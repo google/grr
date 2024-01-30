@@ -7,7 +7,6 @@ import {Flow, FlowState} from '../../../lib/models/flow';
 
 import {Plugin} from './plugin';
 
-
 /**
  * Details about an OnlineNotification flow.
  */
@@ -17,12 +16,13 @@ import {Plugin} from './plugin';
 })
 export class OnlineNotificationDetails extends Plugin {
   /** Observable of the arguments that the flow was created with. */
-  readonly args$: Observable<OnlineNotificationArgs> =
-      this.flow$.pipe(map(flow => flow.args as OnlineNotificationArgs));
+  readonly args$: Observable<OnlineNotificationArgs> = this.flow$.pipe(
+    map((flow) => flow.args as OnlineNotificationArgs),
+  );
 
-  readonly title$ = this.args$.pipe(map(args => `Recipient: ${args.email}`));
+  readonly title$ = this.args$.pipe(map((args) => `Recipient: ${args.email}`));
 
-  override getResultDescription(flow: Flow): string|undefined {
+  override getResultDescription(flow: Flow): string | undefined {
     if (flow.state === FlowState.FINISHED) {
       return '1 email sent';
     } else {

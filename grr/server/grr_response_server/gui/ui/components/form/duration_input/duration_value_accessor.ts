@@ -7,7 +7,7 @@ import {parseDurationString, toDurationString} from './duration_conversion';
 export const DURATION_VALUE_ACCESSOR = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => DurationValueAccessor),
-  multi: true
+  multi: true,
 };
 
 type OnChangeFn = (value?: number) => void;
@@ -21,15 +21,16 @@ type OnTouchedFn = () => void;
     '(input)': 'onChange($event.target.value)',
     '(blur)': 'onTouched()',
   },
-  providers: [DURATION_VALUE_ACCESSOR]
+  providers: [DURATION_VALUE_ACCESSOR],
 })
 export class DurationValueAccessor implements ControlValueAccessor {
   private onChangeListener: OnChangeFn = () => {};
   onTouched: OnTouchedFn = () => {};
 
   constructor(
-      private readonly renderer: Renderer2,
-      private readonly el: ElementRef<HTMLInputElement>) {}
+    private readonly renderer: Renderer2,
+    private readonly el: ElementRef<HTMLInputElement>,
+  ) {}
 
   writeValue(value: unknown): void {
     let durationString = '';
@@ -60,7 +61,7 @@ export class DurationValueAccessor implements ControlValueAccessor {
   }
 }
 
-function robustParseDurationString(value: string|null|undefined) {
+function robustParseDurationString(value: string | null | undefined) {
   if (value === undefined || value === null) {
     return undefined;
   }

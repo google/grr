@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
 
 import {isNonNull} from '../../../lib/preconditions';
 import {ExplainGlobExpressionService} from '../../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
@@ -25,16 +31,16 @@ export class GlobExpressionExplanation implements OnChanges {
 
   @Input() globExpression?: string;
 
-  @Input() clientId?: string|null;
+  @Input() clientId?: string | null;
 
   @Input()
   explanationMode?: GlobExplanationMode =
-      GlobExplanationMode.ONE_EXAMPLE_VISIBLE;
+    GlobExplanationMode.ONE_EXAMPLE_VISIBLE;
 
   readonly explanation$ = this.globExpressionService.explanation$;
 
   constructor(
-      private readonly globExpressionService: ExplainGlobExpressionService,
+    private readonly globExpressionService: ExplainGlobExpressionService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {

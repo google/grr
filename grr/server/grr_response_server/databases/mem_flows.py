@@ -6,21 +6,33 @@ import logging
 import sys
 import threading
 import time
-
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Mapping
+from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Text
+from typing import Tuple
+from typing import TypeVar
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+T = TypeVar("T")
+
+ClientID = NewType("ClientID", str)
+FlowID = NewType("FlowID", str)
+Username = NewType("Username", str)
 
 
 class Error(Exception):
@@ -33,6 +45,17 @@ class TimeOutWhileWaitingForFlowsToBeProcessedError(Error):
 
 class InMemoryDBFlowMixin(object):
   """InMemoryDB mixin for flow handling."""
+
+  flow_results: Dict[Tuple[str, str], List[flows_pb2.FlowResult]]
+  flow_errors: Dict[Tuple[str, str], List[flows_pb2.FlowError]]
+  flow_log_entries: Dict[Tuple[str, str], List[flows_pb2.FlowLogEntry]]
+  flow_output_plugin_log_entries: Dict[
+      Tuple[str, str], List[flows_pb2.FlowOutputPluginLogEntry]
+  ]
+
+  scheduled_flows: dict[
+      tuple[ClientID, Username, FlowID], flows_pb2.ScheduledFlow
+  ]
 
   @utils.Synchronized
   def WriteMessageHandlerRequests(self, requests):
@@ -655,65 +678,86 @@ class InMemoryDBFlowMixin(object):
       time.sleep(0.2)
 
   @utils.Synchronized
-  def _WriteFlowResultsOrErrors(self, container, items):
+  def _WriteFlowResultsOrErrors(
+      self, container: Dict[Tuple[str, str], T], items: Sequence[T]
+  ) -> None:
     for i in items:
       dest = container.setdefault((i.client_id, i.flow_id), [])
-      to_write = i.Copy()
-      to_write.timestamp = rdfvalue.RDFDatetime.Now()
+      to_write = i.__class__()
+      to_write.CopyFrom(i)
+      to_write.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
       dest.append(to_write)
 
-  def WriteFlowResults(self, results):
+  def WriteFlowResults(self, results: Sequence[flows_pb2.FlowResult]) -> None:
     """Writes flow results for a given flow."""
     self._WriteFlowResultsOrErrors(self.flow_results, results)
 
   @utils.Synchronized
-  def _ReadFlowResultsOrErrors(self,
-                               container,
-                               client_id,
-                               flow_id,
-                               offset,
-                               count,
-                               with_tag=None,
-                               with_type=None,
-                               with_substring=None):
+  def _ReadFlowResultsOrErrors(
+      self,
+      container: Dict[Tuple[str, str], T],
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      with_substring: Optional[str] = None,
+  ) -> Sequence[T]:
     """Reads flow results/errors of a given flow using given query options."""
-    results = sorted(
-        [x.Copy() for x in container.get((client_id, flow_id), [])],
-        key=lambda r: r.timestamp)
+    container_copy = []
+    for x in container.get((client_id, flow_id), []):
+      x_copy = x.__class__()
+      x_copy.CopyFrom(x)
+      container_copy.append(x)
+    results = sorted(container_copy, key=lambda r: r.timestamp)
 
     # This is done in order to pass the tests that try to deserialize
     # value of an unrecognized type.
     for r in results:
-      cls_name = r.payload.__class__.__name__
+      # TODO: for separation of concerns reasons,
+      # ReadFlowResults/ReadFlowErrors shouldn't do the payload type validation,
+      # they should be completely agnostic to what payloads get written/read
+      # to/from the database. Keeping this logic here temporarily
+      # to narrow the scope of the RDFProtoStruct->protos migration.
+      cls_name = db_utils.TypeURLToRDFTypeName(r.payload.type_url)
       if cls_name not in rdfvalue.RDFValue.classes:
-        r.payload = rdf_objects.SerializedValueOfUnrecognizedType(
-            type_name=cls_name, value=r.payload.SerializeToBytes())
+        unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType(
+            type_name=cls_name,
+            value=r.payload.value,
+        )
+        r.payload.Pack(unrecognized_value)
 
     if with_tag is not None:
       results = [i for i in results if i.tag == with_tag]
 
     if with_type is not None:
       results = [
-          i for i in results if i.payload.__class__.__name__ == with_type
+          i
+          for i in results
+          if db_utils.TypeURLToRDFTypeName(i.payload.type_url) == with_type
       ]
 
     if with_substring is not None:
       encoded_substring = with_substring.encode("utf8")
       results = [
-          i for i in results
-          if encoded_substring in i.payload.SerializeToBytes()
+          i
+          for i in results
+          if encoded_substring in i.payload.SerializeToString()
       ]
 
     return results[offset:offset + count]
 
-  def ReadFlowResults(self,
-                      client_id,
-                      flow_id,
-                      offset,
-                      count,
-                      with_tag=None,
-                      with_type=None,
-                      with_substring=None):
+  def ReadFlowResults(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      with_substring: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowResult]:
     """Reads flow results of a given flow using given query options."""
     return self._ReadFlowResultsOrErrors(
         self.flow_results,
@@ -726,7 +770,13 @@ class InMemoryDBFlowMixin(object):
         with_substring=with_substring)
 
   @utils.Synchronized
-  def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
+  def CountFlowResults(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> int:
     """Counts flow results of a given flow using given query options."""
     return len(
         self.ReadFlowResults(
@@ -738,16 +788,18 @@ class InMemoryDBFlowMixin(object):
             with_type=with_type))
 
   @utils.Synchronized
-  def CountFlowResultsByType(self, client_id, flow_id):
+  def CountFlowResultsByType(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
     """Returns counts of flow results grouped by result type."""
     result = collections.Counter()
     for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
-      key = hr.payload.__class__.__name__
+      key = db_utils.TypeURLToRDFTypeName(hr.payload.type_url)
       result[key] += 1
 
     return result
 
-  def WriteFlowErrors(self, errors):
+  def WriteFlowErrors(self, errors: Sequence[flows_pb2.FlowError]) -> None:
     """Writes flow errors for a given flow."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -755,13 +807,15 @@ class InMemoryDBFlowMixin(object):
     # errors and results DB code.
     self._WriteFlowResultsOrErrors(self.flow_errors, errors)
 
-  def ReadFlowErrors(self,
-                     client_id,
-                     flow_id,
-                     offset,
-                     count,
-                     with_tag=None,
-                     with_type=None):
+  def ReadFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowError]:
     """Reads flow errors of a given flow using given query options."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -777,7 +831,13 @@ class InMemoryDBFlowMixin(object):
         with_type=with_type)
 
   @utils.Synchronized
-  def CountFlowErrors(self, client_id, flow_id, with_tag=None, with_type=None):
+  def CountFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> int:
     """Counts flow errors of a given flow using given query options."""
     return len(
         self.ReadFlowErrors(
@@ -789,35 +849,40 @@ class InMemoryDBFlowMixin(object):
             with_type=with_type))
 
   @utils.Synchronized
-  def CountFlowErrorsByType(self, client_id, flow_id):
+  def CountFlowErrorsByType(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
     """Returns counts of flow errors grouped by error type."""
     result = collections.Counter()
     for hr in self.ReadFlowErrors(client_id, flow_id, 0, sys.maxsize):
-      key = hr.payload.__class__.__name__
+      key = db_utils.TypeURLToRDFTypeName(hr.payload.type_url)
       result[key] += 1
 
     return result
 
   @utils.Synchronized
-  def WriteFlowLogEntry(self, entry: rdf_flow_objects.FlowLogEntry) -> None:
+  def WriteFlowLogEntry(self, entry: flows_pb2.FlowLogEntry) -> None:
     """Writes a single flow log entry to the database."""
     key = (entry.client_id, entry.flow_id)
 
     if key not in self.flows:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id)
 
-    entry = entry.Copy()
-    entry.timestamp = rdfvalue.RDFDatetime.Now()
+    log_entry = flows_pb2.FlowLogEntry()
+    log_entry.CopyFrom(entry)
+    log_entry.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
-    self.flow_log_entries.setdefault(key, []).append(entry)
+    self.flow_log_entries.setdefault(key, []).append(log_entry)
 
   @utils.Synchronized
-  def ReadFlowLogEntries(self,
-                         client_id,
-                         flow_id,
-                         offset,
-                         count,
-                         with_substring=None):
+  def ReadFlowLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_substring: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowLogEntry]:
     """Reads flow log entries of a given flow using given query options."""
     entries = sorted(
         self.flow_log_entries.get((client_id, flow_id), []),
@@ -829,14 +894,14 @@ class InMemoryDBFlowMixin(object):
     return entries[offset:offset + count]
 
   @utils.Synchronized
-  def CountFlowLogEntries(self, client_id, flow_id):
+  def CountFlowLogEntries(self, client_id: str, flow_id: str) -> int:
     """Returns number of flow log entries of a given flow."""
     return len(self.ReadFlowLogEntries(client_id, flow_id, 0, sys.maxsize))
 
   @utils.Synchronized
   def WriteFlowOutputPluginLogEntry(
       self,
-      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+      entry: flows_pb2.FlowOutputPluginLogEntry,
   ) -> None:
     """Writes a single output plugin log entry to the database."""
     key = (entry.client_id, entry.flow_id)
@@ -844,19 +909,24 @@ class InMemoryDBFlowMixin(object):
     if key not in self.flows:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id)
 
-    entry = entry.Copy()
-    entry.timestamp = rdfvalue.RDFDatetime.Now()
+    log_entry = flows_pb2.FlowOutputPluginLogEntry()
+    log_entry.CopyFrom(entry)
+    log_entry.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
-    self.flow_output_plugin_log_entries.setdefault(key, []).append(entry)
+    self.flow_output_plugin_log_entries.setdefault(key, []).append(log_entry)
 
   @utils.Synchronized
-  def ReadFlowOutputPluginLogEntries(self,
-                                     client_id,
-                                     flow_id,
-                                     output_plugin_id,
-                                     offset,
-                                     count,
-                                     with_type=None):
+  def ReadFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      output_plugin_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
     """Reads flow output plugin log entries."""
     entries = sorted(
         self.flow_output_plugin_log_entries.get((client_id, flow_id), []),
@@ -870,11 +940,15 @@ class InMemoryDBFlowMixin(object):
     return entries[offset:offset + count]
 
   @utils.Synchronized
-  def CountFlowOutputPluginLogEntries(self,
-                                      client_id,
-                                      flow_id,
-                                      output_plugin_id,
-                                      with_type=None):
+  def CountFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      output_plugin_id: str,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+  ):
     """Returns number of flow output plugin log entries of a given flow."""
 
     return len(
@@ -888,7 +962,9 @@ class InMemoryDBFlowMixin(object):
 
   @utils.Synchronized
   def WriteScheduledFlow(
-      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+      self,
+      scheduled_flow: flows_pb2.ScheduledFlow,
+  ) -> None:
     """See base class."""
     if scheduled_flow.client_id not in self.metadatas:
       raise db.UnknownClientError(scheduled_flow.client_id)
@@ -896,16 +972,29 @@ class InMemoryDBFlowMixin(object):
     if scheduled_flow.creator not in self.users:
       raise db.UnknownGRRUserError(scheduled_flow.creator)
 
-    full_id = (scheduled_flow.client_id, scheduled_flow.creator,
-               scheduled_flow.scheduled_flow_id)
-    self.scheduled_flows[full_id] = scheduled_flow.Copy()
+    full_id = (
+        ClientID(scheduled_flow.client_id),
+        Username(scheduled_flow.creator),
+        FlowID(scheduled_flow.scheduled_flow_id),
+    )
+    self.scheduled_flows[full_id] = flows_pb2.ScheduledFlow()
+    self.scheduled_flows[full_id].CopyFrom(scheduled_flow)
 
   @utils.Synchronized
-  def DeleteScheduledFlow(self, client_id: str, creator: str,
-                          scheduled_flow_id: str) -> None:
+  def DeleteScheduledFlow(
+      self,
+      client_id: str,
+      creator: str,
+      scheduled_flow_id: str,
+  ) -> None:
     """See base class."""
+    key = (
+        ClientID(client_id),
+        Username(creator),
+        FlowID(scheduled_flow_id),
+    )
     try:
-      self.scheduled_flows.pop((client_id, creator, scheduled_flow_id))
+      self.scheduled_flows.pop(key)
     except KeyError:
       raise db.UnknownScheduledFlowError(
           client_id=client_id,
@@ -914,11 +1003,18 @@ class InMemoryDBFlowMixin(object):
 
   @utils.Synchronized
   def ListScheduledFlows(
-      self, client_id: str,
-      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+      self,
+      client_id: str,
+      creator: str,
+  ) -> Sequence[flows_pb2.ScheduledFlow]:
     """See base class."""
-    return [
-        sf.Copy()
-        for sf in self.scheduled_flows.values()
-        if sf.client_id == client_id and sf.creator == creator
-    ]
+    results = []
+
+    for flow in self.scheduled_flows.values():
+      if flow.client_id == client_id and flow.creator == creator:
+        flow_copy = flows_pb2.ScheduledFlow()
+        flow_copy.CopyFrom(flow)
+
+        results.append(flow_copy)
+
+    return results

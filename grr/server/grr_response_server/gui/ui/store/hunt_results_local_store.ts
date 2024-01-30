@@ -10,11 +10,14 @@ import {compareDateOldestFirst} from '../lib/type_utils';
 import {ApiCollectionStore, PaginationArgs} from './store_util';
 
 /** Store that fetches and keeps results for a specific Hunt. */
-class HuntResultsStore<T extends HuntResultOrError> extends
-    ApiCollectionStore<T, ApiListHuntResultsArgs> {
+class HuntResultsStore<T extends HuntResultOrError> extends ApiCollectionStore<
+  T,
+  ApiListHuntResultsArgs
+> {
   protected loadResults(
-      args: ApiListHuntResultsArgs,
-      paginationArgs: PaginationArgs): Observable<readonly T[]> {
+    args: ApiListHuntResultsArgs,
+    paginationArgs: PaginationArgs,
+  ): Observable<readonly T[]> {
     if (!args.huntId) return of([]);
 
     if (args.withType === PayloadType.API_HUNT_ERROR) {
@@ -33,15 +36,18 @@ class HuntResultsStore<T extends HuntResultOrError> extends
     }) as Observable<readonly T[]>;
   }
 
-  readonly compareItems =
-      compareDateOldestFirst<T>((r) => new Date(r.timestamp!));
+  readonly compareItems = compareDateOldestFirst<T>(
+    (r) => new Date(r.timestamp!),
+  );
 
   protected areItemsEqual(a: T, b: T): boolean {
     return getHuntResultKey(a, '') === getHuntResultKey(b, '');
   }
 
   protected override areArgsEqual(
-      a: ApiListHuntResultsArgs, b: ApiListHuntResultsArgs): boolean {
+    a: ApiListHuntResultsArgs,
+    b: ApiListHuntResultsArgs,
+  ): boolean {
     return a.huntId === b.huntId && a.withType === b.withType;
   }
 }

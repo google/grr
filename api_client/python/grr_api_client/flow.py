@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 """Flows-related part of GRR API client library."""
 
-from typing import Union
+import contextlib
+import shutil
+import sys
+from typing import Optional, Union
 
 from google.protobuf import wrappers_pb2
 from google.protobuf import message
 from grr_api_client import context as api_context
 from grr_api_client import errors
 from grr_api_client import utils
+from grr_response_core.lib.util import aead
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import osquery_pb2
 from grr_response_proto.api import timeline_pb2
@@ -71,26 +75,31 @@ class FlowBase(object):
 
   def Cancel(self):
     args = flow_pb2.ApiCancelFlowArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     self._context.SendRequest("CancelFlow", args)
 
   def ListResults(self) -> utils.ItemsIterator[FlowResult]:
     args = flow_pb2.ApiListFlowResultsArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     items = self._context.SendIteratorRequest("ListFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
   def ListParsedResults(self) -> utils.ItemsIterator[FlowResult]:
     args = flow_pb2.ApiListParsedFlowResultsArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     items = self._context.SendIteratorRequest("ListParsedFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
   def ListApplicableParsers(
-      self) -> flow_pb2.ApiListFlowApplicableParsersResult:
+      self,
+  ) -> flow_pb2.ApiListFlowApplicableParsersResult:
     """Lists parsers that are applicable to results of the flow."""
     args = flow_pb2.ApiListFlowApplicableParsersArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
 
     result = self._context.SendRequest("ListFlowApplicableParsers", args)
     if not isinstance(result, flow_pb2.ApiListFlowApplicableParsersResult):
@@ -100,18 +109,21 @@ class FlowBase(object):
 
   def GetExportedResultsArchive(self, plugin_name) -> utils.BinaryChunkIterator:
     args = flow_pb2.ApiGetExportedFlowResultsArgs(
-        client_id=self.client_id, flow_id=self.flow_id, plugin_name=plugin_name)
+        client_id=self.client_id, flow_id=self.flow_id, plugin_name=plugin_name
+    )
     return self._context.SendStreamingRequest("GetExportedFlowResults", args)
 
   def ListLogs(self) -> utils.ItemsIterator[FlowLog]:
     args = flow_pb2.ApiListFlowLogsArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     items = self._context.SendIteratorRequest("ListFlowLogs", args)
     return utils.MapItemsIterator(lambda data: FlowLog(data=data), items)
 
   def GetFilesArchive(self) -> utils.BinaryChunkIterator:
     args = flow_pb2.ApiGetFlowFilesArchiveArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 
   def GetCollectedTimeline(
@@ -119,7 +131,8 @@ class FlowBase(object):
       fmt: timeline_pb2.ApiGetCollectedTimelineArgs.Format,
   ) -> utils.BinaryChunkIterator:
     args = timeline_pb2.ApiGetCollectedTimelineArgs(
-        client_id=self.client_id, flow_id=self.flow_id, format=fmt)
+        client_id=self.client_id, flow_id=self.flow_id, format=fmt
+    )
     return self._context.SendStreamingRequest("GetCollectedTimeline", args)
 
   def GetCollectedTimelineBody(
@@ -150,14 +163,16 @@ class FlowBase(object):
       fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format,
   ) -> utils.BinaryChunkIterator:
     args = osquery_pb2.ApiGetOsqueryResultsArgs(
-        client_id=self.client_id, flow_id=self.flow_id, format=fmt)
+        client_id=self.client_id, flow_id=self.flow_id, format=fmt
+    )
     return self._context.SendStreamingRequest("GetOsqueryResults", args)
 
   def Get(self) -> "Flow":
     """Fetch flow's data and return proper Flow object."""
 
     args = flow_pb2.ApiGetFlowArgs(
-        client_id=self.client_id, flow_id=self.flow_id)
+        client_id=self.client_id, flow_id=self.flow_id
+    )
     data = self._context.SendRequest("GetFlow", args)
 
     if not isinstance(data, flow_pb2.ApiFlow):
@@ -185,11 +200,13 @@ class FlowBase(object):
     f = utils.Poll(
         generator=self.Get,
         condition=lambda f: f.data.state != flow_pb2.ApiFlow.State.RUNNING,
-        timeout=timeout)
+        timeout=timeout,
+    )
     if f.data.state != flow_pb2.ApiFlow.State.TERMINATED:
       raise errors.FlowFailedError(
-          "Flow %s (%s) failed: %s" %
-          (self.flow_id, self.client_id, f.data.context.current_state))
+          "Flow %s (%s) failed: %s"
+          % (self.flow_id, self.client_id, f.data.context.current_state)
+      )
     return f
 
 
@@ -198,7 +215,8 @@ class FlowRef(FlowBase):
 
   def __repr__(self) -> str:
     return "FlowRef(client_id={!r}, flow_id={!r})".format(
-        self.client_id, self.flow_id)
+        self.client_id, self.flow_id
+    )
 
 
 class Flow(FlowBase):
@@ -221,11 +239,15 @@ class Flow(FlowBase):
     return utils.UnpackAny(self.data.args)
 
   def __repr__(self) -> str:
-    return ("Flow(data=<{} client_id={!r}, flow_id={!r}, name={!r}, "
-            "state={}, ...>)").format(
-                type(self.data).__name__, self.data.client_id,
-                self.data.flow_id, self.data.name,
-                flow_pb2.ApiFlow.State.Name(self.data.state))
+    return (
+        "Flow(data=<{} client_id={!r}, flow_id={!r}, name={!r}, state={}, ...>)"
+    ).format(
+        type(self.data).__name__,
+        self.data.client_id,
+        self.data.flow_id,
+        self.data.name,
+        flow_pb2.ApiFlow.State.Name(self.data.state),
+    )
 
   def GetLargeFileEncryptionKey(self) -> bytes:
     """Retrieves the encryption key of the large file collection flow."""
@@ -238,3 +260,34 @@ class Flow(FlowBase):
     state["encryption_key"].Unpack(encryption_key_wrapper)
 
     return encryption_key_wrapper.value
+
+  def DecryptLargeFile(
+      self,
+      input_path: Optional[str] = None,
+      output_path: Optional[str] = None,
+  ) -> None:
+    """Decrypts a file from a large file collection flow.
+
+    Args:
+      input_path: Path to read the encrypted file, if not set read from stdin.
+      output_path: Path to write the decrypted file, if not set write to stdout.
+    """
+    if self.data.name != "CollectLargeFileFlow":
+      raise ValueError(f"Incorrect flow type: '{self.data.name}'")
+
+    encryption_key = self.GetLargeFileEncryptionKey()
+
+    if input_path:
+      input_context = open(input_path, mode="rb")
+    else:
+      input_context = contextlib.nullcontext(sys.stdin.buffer)
+
+    if output_path:
+      output_context = open(output_path, mode="wb")
+    else:
+      output_context = contextlib.nullcontext(sys.stdout.buffer)
+
+    with input_context as input_stream:
+      with output_context as output_stream:
+        decrypted_stream = aead.Decrypt(input_stream, encryption_key)
+        shutil.copyfileobj(decrypted_stream, output_stream)

@@ -23,15 +23,22 @@ export interface KnowledgeBaseExample {
 export function getKnowledgeBaseExpressionExamples(kb: KnowledgeBase) {
   const examples = new Map<string, Set<string>>();
   compileExamples(kb, '', examples);
-  return Array.from(examples.entries())
-      .map(([key, values]) => ({key, examples: Array.from(values)}));
+  return Array.from(examples.entries()).map(([key, values]) => ({
+    key,
+    examples: Array.from(values),
+  }));
 }
 
 type KbValue =
-    KnowledgeBase|KnowledgeBase[keyof KnowledgeBase]|User[keyof User];
+  | KnowledgeBase
+  | KnowledgeBase[keyof KnowledgeBase]
+  | User[keyof User];
 
 function compileExamples(
-    obj: KbValue, prefix: string, examples: Map<string, Set<string>>) {
+  obj: KbValue,
+  prefix: string,
+  examples: Map<string, Set<string>>,
+) {
   if (Array.isArray(obj)) {
     for (const value of obj) {
       compileExamples(value, prefix, examples);
@@ -244,6 +251,7 @@ export interface Client {
 /** Approval Request for a client. */
 export interface ClientApprovalRequest extends ApprovalRequest {
   readonly clientId: string;
+  readonly expirationTimeUs?: string;
 }
 
 /** Configuration for Client Approvals. */

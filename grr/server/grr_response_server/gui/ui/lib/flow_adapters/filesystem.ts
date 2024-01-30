@@ -6,8 +6,9 @@ import {ExportMenuItem, FlowDetailsAdapter} from './adapter';
 
 /** Adapter for Timeline flow. */
 export class TimelineAdapter extends FlowDetailsAdapter<Flow<TimelineArgs>> {
-  override getExportMenuItems(flow: Flow<TimelineArgs>):
-      readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow<TimelineArgs>,
+  ): readonly ExportMenuItem[] {
     return [
       {
         title: 'Download body file',
@@ -18,7 +19,7 @@ export class TimelineAdapter extends FlowDetailsAdapter<Flow<TimelineArgs>> {
           backslashEscape: true,
           carriageReturnEscape: true,
           nonPrintableEscape: true,
-        })
+        }),
       },
       {
         title: 'Download body file (Windows format)',
@@ -29,8 +30,8 @@ export class TimelineAdapter extends FlowDetailsAdapter<Flow<TimelineArgs>> {
           backslashEscape: true,
           carriageReturnEscape: true,
           nonPrintableEscape: true,
-        })
-      }
+        }),
+      },
     ];
   }
 }

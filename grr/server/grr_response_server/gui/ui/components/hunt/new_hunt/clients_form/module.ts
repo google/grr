@@ -12,11 +12,10 @@ import {MatSelectModule} from '@angular/material/select';
 
 import {ClientsForm} from './clients_form';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FormsModule,
@@ -30,14 +29,8 @@ import {ClientsForm} from './clients_form';
     MatSelectModule,
     ReactiveFormsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientsForm,
-  ],
-  exports: [
-    ClientsForm,
-  ],
+  declarations: [ClientsForm],
+  exports: [ClientsForm],
 })
-export class ClientsFormModule {
-}
+export class ClientsFormModule {}

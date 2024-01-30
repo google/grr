@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Test for client comms."""
-
-from unittest import mock
-
 from absl import app
 
 from grr_response_client import comms
@@ -15,12 +12,7 @@ class GRRClientWorkerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super().setUp()
-    # GRRClientWorker starts a stats collector thread that will send replies
-    # shortly after starting up. Those replies interfere with the test below so
-    # we disable the ClientStatsCollector thread here.
-    with mock.patch.object(comms.GRRClientWorker, "StartStatsCollector",
-                           lambda self: None):
-      self.client_worker = comms.GRRClientWorker()
+    self.client_worker = comms.GRRClientWorker()
 
   def testSendReplyHandlesFalseyPrimitivesCorrectly(self):
     self.client_worker.SendReply(rdfvalue.RDFDatetime(0))

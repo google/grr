@@ -1,4 +1,8 @@
-import {ChartLegend, ChartLegendConfiguration, LegendOrientation} from './chart_legend';
+import {
+  ChartLegend,
+  ChartLegendConfiguration,
+  LegendOrientation,
+} from './chart_legend';
 
 describe('ChartLegend', () => {
   let testParentContainer: HTMLDivElement;
@@ -24,15 +28,16 @@ describe('ChartLegend', () => {
     chartLegend.renderLegend();
 
     const legendContainer =
-        testParentContainer.querySelector('.legend-container');
+      testParentContainer.querySelector('.legend-container');
     expect(legendContainer).not.toBeNull();
 
     const legendItems = legendContainer!.querySelectorAll('.legend-item');
     expect(legendItems.length).toBe(1);
 
     const legendItemLabel = legendItems[0].querySelector('.legend-item-label');
-    const legendItemSquare =
-        legendItems[0].querySelector<HTMLDivElement>('.legend-item-square');
+    const legendItemSquare = legendItems[0].querySelector<HTMLDivElement>(
+      '.legend-item-square',
+    );
 
     expect(legendItemLabel!.textContent).toContain('Test');
     expect(legendItemSquare!.style.backgroundColor).toEqual('red');
@@ -61,16 +66,17 @@ describe('ChartLegend', () => {
     chartLegend.renderLegend();
 
     const legendContainer =
-        testParentContainer.querySelector('.legend-container');
+      testParentContainer.querySelector('.legend-container');
     expect(legendContainer).not.toBeNull();
 
     const legendItems = legendContainer!.querySelectorAll('.legend-item');
     expect(legendItems.length).toBe(3);
 
     const legendItemLabels =
-        legendContainer!.querySelectorAll('.legend-item-label');
+      legendContainer!.querySelectorAll('.legend-item-label');
     const legendItemSquares = legendContainer!.querySelectorAll<HTMLDivElement>(
-        '.legend-item-square');
+      '.legend-item-square',
+    );
 
     expect(legendItemLabels[0].textContent).toContain('Test');
     expect(legendItemSquares[0].style.backgroundColor).toEqual('red');
@@ -92,7 +98,7 @@ describe('ChartLegend', () => {
     chartLegend.renderLegend();
 
     const legendContainer =
-        testParentContainer.querySelector('.legend-container');
+      testParentContainer.querySelector('.legend-container');
     expect(legendContainer).not.toBeNull();
 
     const legendItems = legendContainer!.querySelectorAll('.legend-item');
@@ -110,7 +116,7 @@ describe('ChartLegend', () => {
     chartLegend.renderLegend();
 
     const legendContainer =
-        testParentContainer.querySelector<HTMLDivElement>('.legend-container');
+      testParentContainer.querySelector<HTMLDivElement>('.legend-container');
     expect(legendContainer).not.toBeNull();
     expect(legendContainer!.style.flexDirection).toEqual('column');
   });
@@ -126,7 +132,7 @@ describe('ChartLegend', () => {
     chartLegend.renderLegend();
 
     const legendContainer =
-        testParentContainer.querySelector<HTMLDivElement>('.legend-container');
+      testParentContainer.querySelector<HTMLDivElement>('.legend-container');
     expect(legendContainer).not.toBeNull();
     expect(legendContainer!.style.flexDirection).toEqual('row');
   });

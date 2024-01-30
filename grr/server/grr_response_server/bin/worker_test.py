@@ -6,8 +6,7 @@ from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import data_store
 from grr_response_server import foreman
@@ -33,25 +32,24 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     data_store.REL_DB.RegisterMessageHandler(
         handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000)
 
-    data_store.REL_DB.WriteMessageHandlerRequests([
-        rdf_objects.MessageHandlerRequest(
-            client_id=client_id,
-            handler_name="StatsHandler",
-            request_id=12345,
-            request=rdf_client_stats.ClientStats(RSS_size=1234))
-    ])
+    startup_info = rdf_client.StartupInfo()
+    startup_info.client_info.client_version = 4321
+
+    data_store.REL_DB.WriteMessageHandlerRequests(
+        [
+            rdf_objects.MessageHandlerRequest(
+                client_id=client_id,
+                handler_name="ClientStartupHandler",
+                request_id=12345,
+                request=startup_info,
+            )
+        ]
+    )
 
     self.assertTrue(done.wait(10))
 
-    results = data_store.REL_DB.ReadClientStats(
-        client_id=client_id,
-        min_timestamp=data_store.REL_DB.MinTimestamp(),
-        max_timestamp=rdfvalue.RDFDatetime.Now(),
-    )
-    self.assertLen(results, 1)
-    stats = results[0]
-
-    self.assertEqual(stats.RSS_size, 1234)
+    result = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    self.assertEqual(result.client_info.client_version, 4321)
 
     data_store.REL_DB.UnregisterMessageHandler(timeout=60)
 

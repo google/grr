@@ -14,7 +14,10 @@ const BASES: Array<[string, string, number]> = [
 
 /** Parses a string like '1 KiB' into the raw number of bytes, e.g. 1024. */
 export function parseByteString(input: string): number {
-  const matches = input.trim().toLowerCase().match(/^(\d+) *([kmgtp]i?)?b?$/);
+  const matches = input
+    .trim()
+    .toLowerCase()
+    .match(/^(\d+) *([kmgtp]i?)?b?$/);
   if (!matches) {
     throw new Error(`Invalid byte input "${input}".`);
   }
@@ -48,7 +51,9 @@ export function parseByteString(input: string): number {
  *   (kibibytes).
  */
 export function toByteUnit(
-    bytes: number, mode: 'short'|'long' = 'short'): [number, string] {
+  bytes: number,
+  mode: 'short' | 'long' = 'short',
+): [number, string] {
   if (bytes === 0) {
     return [bytes, getByteSuffix(0, '', mode)];
   }
@@ -70,13 +75,16 @@ export function toByteUnit(
  * @param mode use 'short' to get symbols (KiB) and 'long' for long unit names
  *   (kibibytes).
  */
-export function toByteString(bytes: number, mode: 'short'|'long' = 'short') {
+export function toByteString(bytes: number, mode: 'short' | 'long' = 'short') {
   const [bytesAtUnit, unit] = toByteUnit(bytes, mode);
   return `${bytesAtUnit} ${unit}`;
 }
 
 function getByteSuffix(
-    bytes: number, prefix: string, mode: 'short'|'long' = 'short') {
+  bytes: number,
+  prefix: string,
+  mode: 'short' | 'long' = 'short',
+) {
   if (mode === 'short') {
     return `${prefix}B`;
   } else if (bytes === 1) {

@@ -9,7 +9,6 @@ from google.protobuf import message
 from grr_api_client import context as api_context
 from grr_api_client import errors
 from grr_api_client import utils
-
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import flow_pb2
 

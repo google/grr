@@ -1,9 +1,12 @@
-import {BaseHarnessFilters, ComponentHarness, HarnessPredicate} from '@angular/cdk/testing';
+import {
+  BaseHarnessFilters,
+  ComponentHarness,
+  HarnessPredicate,
+} from '@angular/cdk/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 
 import {DATE_TIME_FORMAT} from '../../../../components/form/date_time_input/date_time_input';
 import {DateTime} from '../../../../lib/date_time';
-
 
 /** Filters used when searching for the harness component. */
 export interface DateTimeInputHarnessFilters extends BaseHarnessFilters {}
@@ -16,8 +19,9 @@ export class DateTimeInputHarness extends ComponentHarness {
     return this.locatorFor(MatInputHarness)();
   }
 
-  static with(options: DateTimeInputHarnessFilters):
-      HarnessPredicate<DateTimeInputHarness> {
+  static with(
+    options: DateTimeInputHarnessFilters,
+  ): HarnessPredicate<DateTimeInputHarness> {
     return new HarnessPredicate(DateTimeInputHarness, options);
   }
 

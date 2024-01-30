@@ -1,7 +1,10 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {OnlineNotificationArgs} from '../../lib/api/api_interfaces';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
@@ -13,7 +16,6 @@ function makeControls() {
 
 type Controls = ReturnType<typeof makeControls>;
 
-
 /**
  * A form that makes it possible to configure the OnlineNotification flow.
  */
@@ -22,10 +24,11 @@ type Controls = ReturnType<typeof makeControls>;
   templateUrl: './online_notification_form.ng.html',
   styleUrls: ['./online_notification_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class OnlineNotificationForm extends
-    FlowArgumentForm<OnlineNotificationArgs, Controls> {
+export class OnlineNotificationForm extends FlowArgumentForm<
+  OnlineNotificationArgs,
+  Controls
+> {
   constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
   }

@@ -28,9 +28,11 @@ import {FilterPaginate} from '../../helpers/filter_paginate/filter_paginate';
 import {TimestampModule} from '../../timestamp/module';
 import {HelpersModule} from '../helpers/module';
 
+import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
 import {CollectFilesByKnownPathDetails} from './collect_files_by_known_path_details';
+import {CollectLargeFileFlowDetails} from './collect_large_file_flow_details';
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {DefaultDetails} from './default_details';
 import {DumpProcessMemoryDetails} from './dump_process_memory_details';
@@ -48,14 +50,14 @@ import {ReadLowLevelDetails} from './read_low_level_details';
 import {StatMultipleFilesDetails} from './stat_multiple_files_details';
 import {YaraProcessScanDetails} from './yara_process_scan_details';
 
-
 const COMPONENTS = [
   // TODO: re-enable clang format when solved.
-  // clang-format off
+  // prettier-ignore
   // keep-sorted start block=yes
   ArtifactCollectorFlowDetails,
   CollectBrowserHistoryDetails,
   CollectFilesByKnownPathDetails,
+  CollectLargeFileFlowDetails,
   CollectMultipleFilesDetails,
   DefaultDetails,
   DumpProcessMemoryDetails,
@@ -73,7 +75,6 @@ const COMPONENTS = [
   StatMultipleFilesDetails,
   YaraProcessScanDetails,
   // keep-sorted end
-  // clang-format on
 ];
 
 /**
@@ -82,7 +83,7 @@ const COMPONENTS = [
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApiModule,
     BrowserAnimationsModule,
@@ -94,6 +95,7 @@ const COMPONENTS = [
     FilterPaginate,
     FormsModule,
     HelpersModule,
+    HumanReadableSizeModule,
     MatButtonModule,
     MatCardModule,
     MatCheckboxModule,
@@ -113,10 +115,8 @@ const COMPONENTS = [
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: COMPONENTS,
-  exports: COMPONENTS
+  exports: COMPONENTS,
 })
-export class PluginsModule {
-}
+export class PluginsModule {}

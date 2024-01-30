@@ -3,11 +3,10 @@
 
 import os
 import time
+from typing import Iterable, Tuple
 from unittest import mock
 
 from absl.testing import absltest
-
-from typing import Iterable, Tuple
 
 from grr_response_client import client_utils
 from grr_response_client import vfs
@@ -20,6 +19,8 @@ from grr_response_server import client_fixture
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
+from grr_response_server.models import blobs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # pylint: mode=test
@@ -40,25 +41,40 @@ class VFSOverrider(object):
       # Initialize VFS if not yet done, otherwise VFS will not initialize
       # correctly when it is used for the first time in testing code.
       vfs.Init()
-    self._old_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
+    self._old_vfs_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
+    self._old_direct_handler = vfs.VFS_HANDLERS_DIRECT.get(self._vfs_type)
+    self._old_sandbox_handler = vfs.VFS_HANDLERS_SANDBOX.get(self._vfs_type)
     vfs.VFS_HANDLERS[self._vfs_type] = self._temp_handler
+    vfs.VFS_HANDLERS_DIRECT[self._vfs_type] = self._temp_handler
+    vfs.VFS_HANDLERS_SANDBOX[self._vfs_type] = self._temp_handler
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
 
   def Stop(self):
-    if self._old_handler:
-      vfs.VFS_HANDLERS[self._vfs_type] = self._old_handler
+    if self._old_vfs_handler:
+      vfs.VFS_HANDLERS[self._vfs_type] = self._old_vfs_handler
     else:
       del vfs.VFS_HANDLERS[self._vfs_type]
+
+    if self._old_direct_handler:
+      vfs.VFS_HANDLERS_DIRECT[self._vfs_type] = self._old_direct_handler
+    else:
+      del vfs.VFS_HANDLERS_DIRECT[self._vfs_type]
+
+    if self._old_sandbox_handler:
+      vfs.VFS_HANDLERS_SANDBOX[self._vfs_type] = self._old_sandbox_handler
+    else:
+      del vfs.VFS_HANDLERS_SANDBOX[self._vfs_type]
 
 
 class FakeTestDataVFSOverrider(VFSOverrider):
   """A context to temporarily change VFS handler to `FakeTestDataVFSHandler`."""
 
   def __init__(self):
-    super(FakeTestDataVFSOverrider,
-          self).__init__(rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler)
+    super(FakeTestDataVFSOverrider, self).__init__(
+        rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler
+    )
 
   def __enter__(self):
     super().__enter__()
@@ -94,11 +110,13 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
         st_mode=16877,
         st_size=12288,
         st_atime=1319796280,
-        st_dev=1)
+        st_dev=1,
+    )
 
 
 class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   """A client side VFS handler for the OS type - returns the fixture."""
+
   # A class wide cache for fixtures. Key is the prefix, and value is the
   # compiled fixture.
   cache = {}
@@ -112,17 +130,20 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   # Everything below this prefix is emulated
   prefix = "/fs/os"
 
-  def __init__(self,
-               base_fd=None,
-               prefix=None,
-               handlers=None,
-               pathspec=None,
-               progress_callback=None):
+  def __init__(
+      self,
+      base_fd=None,
+      prefix=None,
+      handlers=None,
+      pathspec=None,
+      progress_callback=None,
+  ):
     super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
 
     self.prefix = self.prefix or prefix
     self.pathspec.Append(pathspec)
@@ -142,7 +163,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       if not path.startswith(self.prefix):
         continue
 
-      path = utils.NormalizePath(path[len(self.prefix):])
+      path = utils.NormalizePath(path[len(self.prefix) :])
       if path == "/":
         continue
 
@@ -155,7 +176,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         stat = rdf_client_fs.StatEntry.FromTextFormat(attrs)
 
       stat.pathspec = rdf_paths.PathSpec(
-          pathtype=self.supported_pathtype, path=path)
+          pathtype=self.supported_pathtype, path=path
+      )
 
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
@@ -199,12 +221,12 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         if dirname == "/" or dirname in self.paths:
           break
 
-        self.paths[dirname] = ("Directory",
-                               rdf_client_fs.StatEntry(
-                                   st_mode=16877,
-                                   st_size=1,
-                                   st_dev=1,
-                                   pathspec=new_pathspec))
+        self.paths[dirname] = (
+            "Directory",
+            rdf_client_fs.StatEntry(
+                st_mode=16877, st_size=1, st_dev=1, pathspec=new_pathspec
+            ),
+        )
 
   def ListFiles(self, ext_attrs=None):
     del ext_attrs  # Unused.
@@ -227,7 +249,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     elif result.HasField("registry_type"):
       data = str(result.registry_data.GetValue()).encode("utf-8")
 
-    data = data[self.offset:self.offset + length]
+    data = data[self.offset : self.offset + length]
 
     self.offset += len(data)
     return data
@@ -240,8 +262,10 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     """Get Stat for self.path."""
     del ext_attrs, follow_symlink  # Unused.
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
-    if (not stat_data and
-        self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY):
+    if (
+        not stat_data
+        and self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY
+    ):
       # Check in case it is a registry value. Unfortunately our API doesn't let
       # the user specify if they are after a value or a key, so we have to try
       # both.
@@ -254,40 +278,46 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
+
   prefix = "/registry"
   supported_pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
 
 class FakeFullVFSHandler(ClientVFSHandlerFixture):
   """Full client VFS mock."""
+
   prefix = "/"
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
 
 class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
   """Client VFS mock that looks for files in the test_data directory."""
+
   prefix = "/fs/os"
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
-  def __init__(self,
-               base_fd=None,
-               handlers=None,
-               prefix=None,
-               pathspec=None,
-               progress_callback=None):
+  def __init__(
+      self,
+      base_fd=None,
+      handlers=None,
+      prefix=None,
+      pathspec=None,
+      progress_callback=None,
+  ):
     super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
     # This should not really be done since there might be more information
     # in the pathspec than the path but here in the test is ok.
     if not base_fd:
       self.pathspec = pathspec
     else:
       self.pathspec.last.path = os.path.join(
-          self.pathspec.last.path,
-          pathspec.CollapsePath().lstrip("/"))
+          self.pathspec.last.path, pathspec.CollapsePath().lstrip("/")
+      )
     self.path = self.pathspec.CollapsePath()
     if pathspec.file_size_override:
       self.size = pathspec.file_size_override
@@ -309,7 +339,7 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     if not os.path.exists(test_data_path):
       raise IOError("Could not find %s" % test_data_path)
 
-    data = open(test_data_path, "rb").read()[self.offset:self.offset + length]
+    data = open(test_data_path, "rb").read()[self.offset : self.offset + length]
 
     self.offset += len(data)
     return data
@@ -323,7 +353,8 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     del follow_symlink  # Unused.
 
     return client_utils.StatEntryFromPath(
-        self._AbsPath(), self.pathspec, ext_attrs=ext_attrs)
+        self._AbsPath(), self.pathspec, ext_attrs=ext_attrs
+    )
 
   def ListFiles(self, ext_attrs=None):
     for f in os.listdir(self._AbsPath()):
@@ -354,7 +385,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     parts = res.split("/")
     for cache_key in [
         utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:]),
-        res.lower()
+        res.lower(),
     ]:
       if not cache_key.startswith("/"):
         cache_key = "/" + cache_key
@@ -387,14 +418,14 @@ class RegistryFake(FakeRegistryVFSHandler):
         if modification_time:
           return num_keys, num_vals, modification_time
 
-    modification_time = time.time()
+    modification_time = int(time.time())
     return num_keys, num_vals, modification_time
 
   def EnumKey(self, key, index):
     try:
       return self._GetKeys(key)[index]
-    except IndexError:
-      raise OSError()
+    except IndexError as exc:
+      raise OSError() from exc
 
   def _GetKeys(self, key):
     res = []
@@ -410,8 +441,8 @@ class RegistryFake(FakeRegistryVFSHandler):
       subkey = self._GetValues(key)[index]
       value, value_type = self.QueryValueEx(key, subkey)
       return subkey, value, value_type
-    except IndexError:
-      raise OSError()
+    except IndexError as exc:
+      raise OSError() from exc
 
   def _GetValues(self, key):
     res = []
@@ -480,12 +511,14 @@ class RegistryVFSStubber(object):
         (registry, "QueryValueEx", fixture.QueryValueEx),
         (registry, "QueryInfoKey", fixture.QueryInfoKey),
         (registry, "EnumValue", fixture.EnumValue),
-        (registry, "EnumKey", fixture.EnumKey))
+        (registry, "EnumKey", fixture.EnumKey),
+    )
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.
-    self._original_handler = vfs.VFS_HANDLERS.get(self._supported_pathtype,
-                                                  None)
+    self._original_handler = vfs.VFS_HANDLERS.get(
+        self._supported_pathtype, None
+    )
     vfs.VFS_HANDLERS[self._supported_pathtype] = registry.RegistryFile
 
   def Stop(self):
@@ -510,19 +543,23 @@ def CreateFile(client_path, content=b""):
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertType(content, bytes)
 
-  blob_id = rdf_objects.BlobID.FromBlobData(content)
+  blob_id = blobs.BlobID.Of(content)
 
   stat_entry = rdf_client_fs.StatEntry(
       pathspec=rdf_paths.PathSpec(
           pathtype=rdf_objects.PathInfo.PathTypeToPathspecPathType(
-              client_path.path_type),
-          path="/" + "/".join(client_path.components)),
+              client_path.path_type
+          ),
+          path="/" + "/".join(client_path.components),
+      ),
       st_mode=33206,
-      st_size=len(content))
+      st_size=len(content),
+  )
 
   data_store.BLOBS.WriteBlobs({blob_id: content})
   blob_ref = rdf_objects.BlobReference(
-      size=len(content), offset=0, blob_id=blob_id)
+      size=len(content), offset=0, blob_id=bytes(blob_id)
+  )
   hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_ref])
 
   path_info = rdf_objects.PathInfo()
@@ -545,9 +582,10 @@ def CreateDirectory(client_path):
 
   stat_entry = rdf_client_fs.StatEntry(
       pathspec=rdf_paths.PathSpec(
-          pathtype=client_path.path_type,
-          path="/".join(client_path.components)),
-      st_mode=16895)
+          pathtype=client_path.path_type, path="/".join(client_path.components)
+      ),
+      st_mode=16895,
+  )
 
   path_info = rdf_objects.PathInfo()
   path_info.path_type = client_path.path_type
@@ -578,17 +616,21 @@ def GenerateBlobRefs(
   blob_refs = []
   offset = 0
   for data in blob_data:
-    blob_id = rdf_objects.BlobID.FromBlobData(data)
+    blob_id = blobs.BlobID.Of(data)
     blob_refs.append(
         rdf_objects.BlobReference(
-            offset=offset, size=len(data), blob_id=blob_id))
+            offset=offset, size=len(data), blob_id=bytes(blob_id)
+        )
+    )
     offset += len(data)
   return blob_data, blob_refs
 
 
 def CreateFileWithBlobRefsAndData(
-    client_path: db.ClientPath, blob_refs: Iterable[rdf_objects.BlobReference],
-    blob_data: Iterable[bytes]):
+    client_path: db.ClientPath,
+    blob_refs: Iterable[rdf_objects.BlobReference],
+    blob_data: Iterable[bytes],
+):
   """Writes a file with given data and blob refs to the data/blob store.
 
   Args:
@@ -600,13 +642,16 @@ def CreateFileWithBlobRefsAndData(
   path_info = rdf_objects.PathInfo.OS(components=client_path.components)
 
   data_store.BLOBS.WriteBlobs(
-      {rdf_objects.BlobID.FromBlobData(bdata): bdata for bdata in blob_data})
+      {blobs.BlobID.Of(bdata): bdata for bdata in blob_data}
+  )
 
   hash_id = rdf_objects.SHA256HashID.FromData(b"".join(blob_data))
+  blob_refs = list(map(mig_objects.ToProtoBlobReference, blob_refs))
   data_store.REL_DB.WriteHashBlobReferences({hash_id: blob_refs})
 
   path_info = rdf_objects.PathInfo(
-      path_type=client_path.path_type, components=client_path.components)
+      path_type=client_path.path_type, components=client_path.components
+  )
   path_info.hash_entry.sha256 = hash_id.AsBytes()
   data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 

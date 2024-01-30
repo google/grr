@@ -1,31 +1,37 @@
 #!/usr/bin/env python
 """The in memory database methods for GRR users and approval handling."""
 import os
-
-from typing import Sequence
+from typing import Optional, Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import text
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
+from grr_response_proto import user_pb2
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBUsersMixin(object):
   """InMemoryDB mixin for GRR users and approval related functions."""
 
+  users: dict[str, objects_pb2.GRRUser]
+  notifications_by_username: dict[str, objects_pb2.UserNotification]
+
   @utils.Synchronized
-  def WriteGRRUser(self,
-                   username,
-                   password=None,
-                   ui_mode=None,
-                   canary_mode=None,
-                   user_type=None,
-                   email=None):
+  def WriteGRRUser(
+      self,
+      username: str,
+      password: Optional[jobs_pb2.Password] = None,
+      ui_mode: Optional["user_pb2.GUISettings.UIMode"] = None,
+      canary_mode: Optional[bool] = None,
+      user_type: Optional["objects_pb2.GRRUser.UserType"] = None,
+      email: Optional[str] = None,
+  ) -> None:
     """Writes user object for a user with a given name."""
-    u = self.users.setdefault(username, rdf_objects.GRRUser(username=username))
+    u = self.users.setdefault(username, objects_pb2.GRRUser(username=username))
     if password is not None:
-      u.password = password
+      u.password.CopyFrom(password)
     if ui_mode is not None:
       u.ui_mode = ui_mode
     if canary_mode is not None:
@@ -36,29 +42,38 @@ class InMemoryDBUsersMixin(object):
       u.email = email
 
   @utils.Synchronized
-  def ReadGRRUser(self, username):
+  def ReadGRRUser(self, username: str) -> objects_pb2.GRRUser:
     """Reads a user object corresponding to a given name."""
     try:
-      return self.users[username].Copy()
+      clone = objects_pb2.GRRUser()
+      clone.CopyFrom(self.users[username])
+      return clone
     except KeyError:
       raise db.UnknownGRRUserError(username)
 
   @utils.Synchronized
-  def ReadGRRUsers(self, offset=0, count=None):
+  def ReadGRRUsers(
+      self, offset: int = 0, count: Optional[int] = None
+  ) -> Sequence[objects_pb2.GRRUser]:
     """Reads GRR users with optional pagination, sorted by username."""
     if count is None:
       count = len(self.users)
 
     users = sorted(self.users.values(), key=lambda user: user.username)
-    return [user.Copy() for user in users[offset:offset + count]]
+    clones = []
+    for user in users[offset : offset + count]:
+      clone = objects_pb2.GRRUser()
+      clone.CopyFrom(user)
+      clones.append(clone)
+    return clones
 
   @utils.Synchronized
-  def CountGRRUsers(self):
+  def CountGRRUsers(self) -> int:
     """Returns the total count of GRR users."""
     return len(self.users)
 
   @utils.Synchronized
-  def DeleteGRRUser(self, username):
+  def DeleteGRRUser(self, username: str) -> None:
     """Deletes the user and all related metadata with the given username."""
     try:
       del self.approvals_by_username[username]
@@ -69,7 +84,9 @@ class InMemoryDBUsersMixin(object):
       for approval in approvals.values():
         grants = [g for g in approval.grants if g.grantor_username != username]
         if len(grants) != len(approval.grants):
-          approval.grants = grants
+          approval.ClearField("grants")
+          for g in grants:
+            approval.grants.add().CopyFrom(g)
 
     try:
       del self.notifications_by_username[username]
@@ -86,24 +103,34 @@ class InMemoryDBUsersMixin(object):
       raise db.UnknownGRRUserError(username)
 
   @utils.Synchronized
-  def WriteApprovalRequest(self, approval_request):
+  def WriteApprovalRequest(
+      self, approval_request: objects_pb2.ApprovalRequest
+  ) -> str:
     """Writes an approval request object."""
-    approvals = self.approvals_by_username.setdefault(
-        approval_request.requestor_username, {})
+    approvals_by_id = self.approvals_by_username.setdefault(
+        approval_request.requestor_username, {}
+    )
 
     approval_id = text.Hexify(os.urandom(16))
-    cloned_request = approval_request.Copy()
-    cloned_request.timestamp = rdfvalue.RDFDatetime.Now()
+    cloned_request = objects_pb2.ApprovalRequest()
+    cloned_request.CopyFrom(approval_request)
+    cloned_request.timestamp = (
+        rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+    )
     cloned_request.approval_id = approval_id
-    approvals[approval_id] = cloned_request
+    approvals_by_id[approval_id] = cloned_request
 
     return approval_id
 
   @utils.Synchronized
-  def ReadApprovalRequest(self, requestor_username, approval_id):
+  def ReadApprovalRequest(
+      self, requestor_username: str, approval_id: str
+  ) -> objects_pb2.ApprovalRequest:
     """Reads an approval request object with a given id."""
     try:
-      return self.approvals_by_username[requestor_username][approval_id]
+      res = objects_pb2.ApprovalRequest()
+      res.CopyFrom(self.approvals_by_username[requestor_username][approval_id])
+      return res
     except KeyError:
       raise db.UnknownApprovalRequestError("Can't find approval with id: %s" %
                                            approval_id)
@@ -111,16 +138,17 @@ class InMemoryDBUsersMixin(object):
   @utils.Synchronized
   def ReadApprovalRequests(
       self,
-      requestor_username,
-      approval_type,
-      subject_id=None,
-      include_expired=False) -> Sequence[rdf_objects.ApprovalRequest]:
+      requestor_username: str,
+      approval_type: "objects_pb2.ApprovalRequest.ApprovalType",
+      subject_id: Optional[str] = None,
+      include_expired: bool = False,
+  ) -> Sequence[objects_pb2.ApprovalRequest]:
     """Reads approval requests of a given type for a given user."""
-    now = rdfvalue.RDFDatetime.Now()
+    now = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
     result = []
-    approvals = self.approvals_by_username.get(requestor_username, {})
-    for approval in approvals.values():
+    approvals_by_id = self.approvals_by_username.get(requestor_username, {})
+    for approval in approvals_by_id.values():
       if approval.approval_type != approval_type:
         continue
 
@@ -130,55 +158,84 @@ class InMemoryDBUsersMixin(object):
       if not include_expired and approval.expiration_time < now:
         continue
 
-      result.append(approval)
+      clone = objects_pb2.ApprovalRequest()
+      clone.CopyFrom(approval)
+      result.append(clone)
 
     return result
 
   @utils.Synchronized
-  def GrantApproval(self, requestor_username, approval_id, grantor_username):
+  def GrantApproval(
+      self, requestor_username: str, approval_id: str, grantor_username: str
+  ) -> None:
     """Grants approval for a given request using given username."""
     try:
       approval = self.approvals_by_username[requestor_username][approval_id]
-      approval.grants.append(
-          rdf_objects.ApprovalGrant(
-              grantor_username=grantor_username,
-              timestamp=rdfvalue.RDFDatetime.Now()))
-    except KeyError:
-      raise db.UnknownApprovalRequestError("Can't find approval with id: %s" %
-                                           approval_id)
+      grant = objects_pb2.ApprovalGrant(
+          grantor_username=grantor_username,
+          timestamp=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+      )
+      approval.grants.add().CopyFrom(grant)
+    except KeyError as e:
+      raise db.UnknownApprovalRequestError(
+          f"Can't find approval with id: {approval_id}"
+      ) from e
 
   @utils.Synchronized
-  def WriteUserNotification(self, notification):
+  def WriteUserNotification(self, notification: objects_pb2.UserNotification):
     """Writes a notification for a given user."""
     if notification.username not in self.users:
       raise db.UnknownGRRUserError(notification.username)
 
-    cloned_notification = notification.Copy()
+    cloned_notification = objects_pb2.UserNotification()
+    cloned_notification.CopyFrom(notification)
     if not cloned_notification.timestamp:
-      cloned_notification.timestamp = rdfvalue.RDFDatetime.Now()
+      cloned_notification.timestamp = (
+          rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+      )
 
-    self.notifications_by_username.setdefault(cloned_notification.username,
-                                              []).append(cloned_notification)
+    self.notifications_by_username.setdefault(
+        cloned_notification.username, []
+    ).append(cloned_notification)
 
   @utils.Synchronized
-  def ReadUserNotifications(self, username, state=None, timerange=None):
+  def ReadUserNotifications(
+      self,
+      username: str,
+      state: Optional["objects_pb2.UserNotification.State"] = None,
+      timerange: Optional[
+          Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+      ] = None,
+  ) -> Sequence[objects_pb2.UserNotification]:
     """Reads notifications scheduled for a user within a given timerange."""
     from_time, to_time = self._ParseTimeRange(timerange)
 
     result = []
+    from_time_micros = from_time.AsMicrosecondsSinceEpoch()
+    to_time_micros = to_time.AsMicrosecondsSinceEpoch()
     for n in self.notifications_by_username.get(username, []):
-      if from_time <= n.timestamp <= to_time and (state is None or
-                                                  n.state == state):
-        result.append(n.Copy())
+      if from_time_micros <= n.timestamp <= to_time_micros and (
+          state is None or n.state == state
+      ):
+        clone = objects_pb2.UserNotification()
+        clone.CopyFrom(n)
+        result.append(clone)
 
     return sorted(result, key=lambda r: r.timestamp, reverse=True)
 
   @utils.Synchronized
-  def UpdateUserNotifications(self, username, timestamps, state=None):
+  def UpdateUserNotifications(
+      self,
+      username: str,
+      timestamps: Sequence[rdfvalue.RDFDatetime],
+      state: Optional["objects_pb2.UserNotification.State"] = None,
+  ):
     """Updates existing user notification objects."""
     if not timestamps:
       return
 
+    proto_timestamps = [t.AsMicrosecondsSinceEpoch() for t in timestamps]
+
     for n in self.notifications_by_username.get(username, []):
-      if n.timestamp in timestamps:
+      if n.timestamp in proto_timestamps:
         n.state = state

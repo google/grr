@@ -15,9 +15,12 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import action_registry
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
@@ -30,7 +33,7 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -64,7 +67,9 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   """Test the interrogate flow."""
 
   def _OpenClient(self, client_id):
-    return data_store.REL_DB.ReadClientSnapshot(client_id)
+    return mig_objects.ToRDFClientSnapshot(
+        data_store.REL_DB.ReadClientSnapshot(client_id)
+    )
 
   def _CheckUsers(self, client, expected_users):
     self.assertCountEqual(
@@ -376,11 +381,14 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckGRRConfig(snapshot)
     self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckRelease(snapshot, "Ubuntu", "14.4")
-    self._CheckNetworkInfo(snapshot)
+    self._CheckNetworkInfo(mig_objects.ToRDFClientSnapshot(snapshot))
     labels = data_store.REL_DB.ReadClientLabels(client_id)
     self.assertCountEqual([l.name for l in labels], ["foo", "bar"])
-    self.assertEqual(snapshot.fleetspeak_validation_info.ToStringDict(),
-                     {"IP": "12.34.56.78"})
+
+    fs_validation_tags = snapshot.fleetspeak_validation_info.tags
+    self.assertLen(fs_validation_tags, 1)
+    self.assertEqual(fs_validation_tags[0].key, "IP")
+    self.assertEqual(fs_validation_tags[0].value, "12.34.56.78")
 
   @parser_test_lib.WithAllParsers
   @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
@@ -406,18 +414,18 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
             creator=self.test_username,
             client_id=client_id)
 
-    rdf_labels = data_store.REL_DB.ReadClientLabels(client_id)
+    labels = data_store.REL_DB.ReadClientLabels(client_id)
     expected_labels = [
         action_mocks.InterrogatedClient.LABEL1,
         action_mocks.InterrogatedClient.LABEL2,
     ]
-    self.assertCountEqual([l.name for l in rdf_labels], expected_labels)
+    self.assertCountEqual([l.name for l in labels], expected_labels)
 
   def testCrowdStrikeAgentIDCollection(self):
     agent_id = binascii.hexlify(os.urandom(16)).decode("ascii")
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot = objects_pb2.ClientSnapshot()
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Linux"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)
@@ -486,6 +494,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     result = rrg_get_system_metadata_pb2.Result()
     result.type = rrg_os_pb2.Type.LINUX
+    result.arch = "x86_64"
     result.version = "1.2.3-alpha"
     result.fqdn = "foo.example.com"
     result.install_time.FromDatetime(datetime.datetime.now())
@@ -515,11 +524,13 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     flow.HandleRRGGetSystemMetadata(responses)
 
     self.assertEqual(flow.state.client.knowledge_base.os, "Linux")
+    self.assertEqual(flow.state.client.arch, "x86_64")
     self.assertEqual(flow.state.client.knowledge_base.fqdn, "foo.example.com")
     self.assertEqual(flow.state.client.os_version, "1.2.3-alpha")
 
     snapshot = db.ReadClientSnapshot(client_id)
     self.assertEqual(snapshot.knowledge_base.os, "Linux")
+    self.assertEqual(snapshot.arch, "x86_64")
     self.assertEqual(snapshot.knowledge_base.fqdn, "foo.example.com")
     self.assertEqual(snapshot.os_version, "1.2.3-alpha")
 
@@ -644,7 +655,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    startup = rdf_client.StartupInfo()
+    startup = jobs_pb2.StartupInfo()
     startup.client_info.client_version = 4321
     db.WriteClientStartupInfo(client_id, startup)
 
@@ -662,6 +673,83 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
     self.assertTrue(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
+
+  @db_test_lib.WithDatabase
+  def testProcessKnowledgeBaseCollectPasswdCacheUsers(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+
+    result = rdf_client.KnowledgeBase()
+    result.os = "Linux"
+
+    responses = flow_responses.FakeResponses([result], request_data=None)
+
+    with test_lib.ConfigOverrider({
+        "Interrogate.collect_passwd_cache_users": True,
+    }):
+      flow.ProcessKnowledgeBase(responses)
+
+    self.assertTrue(_HasClientActionRequest(flow, server_stubs.FileFinderOS))
+
+  @db_test_lib.WithDatabase
+  def testProcessPasswdCacheUsers(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.state.client.knowledge_base.users = [
+        rdf_client.User(username="foo", full_name="Fó Fózyńczak"),
+        rdf_client.User(username="bar"),  # No full name available.
+    ]
+
+    result = rdf_file_finder.FileFinderResult()
+
+    match = rdf_client.BufferReference()
+    match.data = "foo:x:123:1337::/home/foo:/bin/bash\n".encode("utf-8")
+    result.matches.append(match)
+
+    match = rdf_client.BufferReference()
+    match.data = "bar:x:456:1337:Bar Barowski:/home/bar:\n".encode("utf-8")
+    result.matches.append(match)
+
+    responses = flow_responses.FakeResponses([result], request_data=None)
+
+    flow.ProcessPasswdCacheUsers(responses)
+
+    users = list(flow.state.client.knowledge_base.users)
+    self.assertLen(users, 2)
+    users.sort(key=lambda user: user.username)
+
+    self.assertEqual(users[0].username, "bar")
+    self.assertEqual(users[0].uid, 456)
+    self.assertEqual(users[0].gid, 1337)
+    self.assertEqual(users[0].full_name, "Bar Barowski")
+
+    self.assertEqual(users[1].username, "foo")
+    self.assertEqual(users[1].uid, 123)
+    self.assertEqual(users[1].gid, 1337)
+    self.assertEqual(users[1].full_name, "Fó Fózyńczak")
+    self.assertEqual(users[1].shell, "/bin/bash")
 
   @parser_test_lib.WithAllParsers
   def testForemanTimeIsResetOnClientSnapshotWrite(self):
@@ -681,8 +769,11 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       )
 
     md = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(md.last_foreman_time, data_store.REL_DB.MinTimestamp())
+    self.assertTrue(md.HasField("last_foreman_time"))
+    self.assertEqual(
+        md.last_foreman_time,
+        int(data_store.REL_DB.MinTimestamp()),
+    )
 
 
 def _HasClientActionRequest(

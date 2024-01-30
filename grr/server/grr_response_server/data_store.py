@@ -36,7 +36,6 @@ able to filter it directly).
 
 import logging
 import sys
-from typing import Optional
 
 from absl import flags
 
@@ -50,10 +49,10 @@ _LIST_STORAGE = flags.DEFINE_bool(
 )
 
 # The global relational db handle.
-REL_DB: Optional[db.Database] = None
+REL_DB: db.Database = None
 
 # The global blobstore handle.
-BLOBS: Optional[blob_store.BlobStore] = None
+BLOBS: blob_store.BlobStore = None
 
 
 def _ListStorageOptions():

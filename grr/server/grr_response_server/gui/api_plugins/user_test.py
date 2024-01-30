@@ -5,10 +5,12 @@ from unittest import mock
 
 from absl import app
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import user_pb2
 from grr_response_server import access_control
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -24,6 +26,7 @@ from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
@@ -479,6 +482,86 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertIn("Running tests", message)  # Request reason.
     self.assertIn(self.client_id, message)
 
+  def testDefaultExpiration(self):
+    """Tests that when no expiration is specified the default is used."""
+    with (
+        mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail"),
+        mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now,
+    ):
+      oneday_s = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      mock_now.return_value = oneday_s  # 'Now' is 1 day past epoch
+
+      approval = self.handler.Handle(self.args, self.context)
+
+      # 'Now' is one day past epoch, plus the default expiration
+      twentyninedays_us = (
+          config.CONFIG["ACL.token_expiry"] * 1000000
+      ) + oneday_s.AsMicrosecondsSinceEpoch()
+
+    self.assertEqual(approval.expiration_time_us, twentyninedays_us)
+
+  def testCorrectNonDefaultExpiration(self):
+    """Tests that a custom expiration is correctly applied."""
+    with (
+        mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail"),
+        mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now,
+    ):
+      mock_now.return_value = (  # 'Now' is 1 day past epoch
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      )
+
+      onetwentydays_us = 120 * 24 * 60 * 60 * 1000000
+      self.args.approval.expiration_time_us = (
+          rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(onetwentydays_us)
+      )
+
+      approval = self.handler.Handle(self.args, self.context)
+
+    self.assertEqual(approval.expiration_time_us, onetwentydays_us)
+
+  def testNonDefaultExpirationInPast(self):
+    """Tests that a custom expiration in the past raises an error."""
+    with (
+        mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail"),
+        mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now,
+    ):
+      mock_now.return_value = (  # 'Now' is 1 day past epoch
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      )
+
+      onehour_us = 60 * 60 * 1000000
+      self.args.approval.expiration_time_us = (
+          rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(onehour_us)
+      )
+
+      with self.assertRaisesRegex(
+          ValueError,
+          "Requested expiration time 1970-01-01 01:00:00 is in the past.",
+      ):
+        self.handler.Handle(self.args, self.context)
+
+  def testNonDefaultExpirationTooLong(self):
+    """Tests that a custom expiration too far in the future raises an error."""
+    with (
+        mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail"),
+        mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now,
+    ):
+      mock_now.return_value = (  # 'Now' is 1 day past epoch
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      )
+
+      fourhundreddays_us = 400 * 24 * 60 * 60 * 1000000
+      self.args.approval.expiration_time_us = (
+          rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(fourhundreddays_us)
+      )
+
+      with self.assertRaisesRegex(
+          ValueError,
+          "Requested expiration time 1971-02-05 00:00:00 is too far in the "
+          "future.",
+      ):
+        self.handler.Handle(self.args, self.context)
+
 
 class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         acl_test_lib.AclTestMixin):
@@ -727,7 +810,9 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = user_plugin.ApiGetOwnGrrUserHandler()
 
   def testRendersSettingsForUserCorrespondingToContext(self):
-    data_store.REL_DB.WriteGRRUser("foo", ui_mode="ADVANCED", canary_mode=True)
+    data_store.REL_DB.WriteGRRUser(
+        "foo", ui_mode=user_pb2.GUISettings.UIMode.ADVANCED, canary_mode=True
+    )
 
     result = self.handler.Handle(
         None, context=api_call_context.ApiCallContext(username="foo"))
@@ -779,9 +864,10 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(
         user, context=api_call_context.ApiCallContext(username="foo"))
 
-    u = data_store.REL_DB.ReadGRRUser("foo")
-    self.assertEqual(settings.mode, u.ui_mode)
-    self.assertEqual(settings.canary_mode, u.canary_mode)
+    proto_user = data_store.REL_DB.ReadGRRUser("foo")
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    self.assertEqual(settings.mode, rdf_user.ui_mode)
+    self.assertEqual(settings.canary_mode, rdf_user.canary_mode)
 
 
 class ApiDeletePendingUserNotificationHandlerTest(
@@ -827,9 +913,11 @@ class ApiDeletePendingUserNotificationHandlerTest(
     pending = data_store.REL_DB.ReadUserNotifications(
         self.context.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING)
+    pending = [mig_objects.ToRDFUserNotification(n) for n in pending]
     shown = data_store.REL_DB.ReadUserNotifications(
         self.context.username,
         state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+    shown = [mig_objects.ToRDFUserNotification(n) for n in shown]
     return pending, shown
 
   def testDeletesFromPendingAndAddsToShown(self):

@@ -10,7 +10,6 @@ import {initTestEnvironment} from '../../../testing';
 
 import {FilterPaginate} from './filter_paginate';
 
-
 initTestEnvironment();
 
 declare interface DummyRow {
@@ -28,7 +27,7 @@ declare interface DummyRow {
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </ng-container>
   </table>
-</app-filter-paginate>`
+</app-filter-paginate>`,
 })
 class TestHostComponentWithDataLength {
   dataSource?: MatTableDataSource<DummyRow>;
@@ -47,7 +46,7 @@ class TestHostComponentWithDataLength {
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </ng-container>
   </table>
-</app-filter-paginate>`
+</app-filter-paginate>`,
 })
 class TestHostComponent {
   dataSource?: MatTableDataSource<DummyRow>;
@@ -56,20 +55,11 @@ class TestHostComponent {
 
 describe('FilterPaginate Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FilterPaginate,
-            MatTableModule,
-          ],
-          declarations: [
-            TestHostComponent,
-            TestHostComponentWithDataLength,
-          ],
-          providers: []
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, FilterPaginate, MatTableModule],
+      declarations: [TestHostComponent, TestHostComponentWithDataLength],
+      providers: [],
+    }).compileComponents();
   }));
 
   function generateRow(i: number): DummyRow {
@@ -84,8 +74,9 @@ describe('FilterPaginate Component', () => {
   }
 
   function createComponentWithDataLength(
-      dataSource: MatTableDataSource<DummyRow>, dataLength: number|undefined):
-      ComponentFixture<TestHostComponentWithDataLength> {
+    dataSource: MatTableDataSource<DummyRow>,
+    dataLength: number | undefined,
+  ): ComponentFixture<TestHostComponentWithDataLength> {
     const fixture = TestBed.createComponent(TestHostComponentWithDataLength);
     fixture.componentInstance.dataSource = dataSource;
     fixture.componentInstance.dataLength = dataLength;
@@ -93,8 +84,9 @@ describe('FilterPaginate Component', () => {
     return fixture;
   }
 
-  function createComponent(dataSource: MatTableDataSource<DummyRow>):
-      ComponentFixture<TestHostComponentWithDataLength> {
+  function createComponent(
+    dataSource: MatTableDataSource<DummyRow>,
+  ): ComponentFixture<TestHostComponentWithDataLength> {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.dataSource = dataSource;
     fixture.detectChanges();
@@ -113,16 +105,18 @@ describe('FilterPaginate Component', () => {
 
     // Filter is applied, selecting only the first row.
     filterInput.nativeElement.value = 'row0';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('row0');
     expect(fixture.nativeElement.innerText).not.toContain('row1');
 
     // Filter is cleared, all rows are showed again.
     filterInput.nativeElement.value = '';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('row0');
     expect(fixture.nativeElement.innerText).toContain('row1');
@@ -133,9 +127,11 @@ describe('FilterPaginate Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
     // Paginators start with default values, 0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -149,13 +145,17 @@ describe('FilterPaginate Component', () => {
 
   it('uses data length if it is not provided', async () => {
     const fixture = createComponentWithDataLength(
-        generateTableData(12), undefined);  // undefined dataLength
+      generateTableData(12),
+      undefined,
+    ); // undefined dataLength
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
     // Paginators start with default values, 0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -167,45 +167,47 @@ describe('FilterPaginate Component', () => {
     expect(fixture.nativeElement.innerText).not.toContain('row10');
   });
 
-  it('clicking TOP paginator updates bottom paginator state (page size)',
-     async () => {
-       const fixture = createComponentWithDataLength(generateTableData(55), 55);
+  it('clicking TOP paginator updates bottom paginator state (page size)', async () => {
+    const fixture = createComponentWithDataLength(generateTableData(55), 55);
 
-       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const paginatorTop = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
-       const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const paginatorTop = await harnessLoader.getHarness(
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
+    const paginatorBottom = await harnessLoader.getHarness(
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
-       // Change page size on top paginator should update the bottom
-       await paginatorTop.setPageSize(50);
-       expect(await paginatorTop.getPageSize()).toBe(50);
-       expect(await paginatorBottom.getPageSize()).toBe(50);
-       expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 55');
-       expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 55');
-       expect(fixture.nativeElement.innerText).toContain('row0');
-       expect(fixture.nativeElement.innerText).toContain('row49');
-     });
+    // Change page size on top paginator should update the bottom
+    await paginatorTop.setPageSize(50);
+    expect(await paginatorTop.getPageSize()).toBe(50);
+    expect(await paginatorBottom.getPageSize()).toBe(50);
+    expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 55');
+    expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 55');
+    expect(fixture.nativeElement.innerText).toContain('row0');
+    expect(fixture.nativeElement.innerText).toContain('row49');
+  });
 
-  it('clicking BOTTOM paginator updates top paginator state (page size)',
-     async () => {
-       const fixture = createComponentWithDataLength(generateTableData(55), 55);
+  it('clicking BOTTOM paginator updates top paginator state (page size)', async () => {
+    const fixture = createComponentWithDataLength(generateTableData(55), 55);
 
-       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const paginatorTop = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
-       const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const paginatorTop = await harnessLoader.getHarness(
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
+    const paginatorBottom = await harnessLoader.getHarness(
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
-       // Change page size on bottom paginator should update the top
-       await paginatorBottom.setPageSize(50);
-       expect(await paginatorTop.getPageSize()).toBe(50);
-       expect(await paginatorBottom.getPageSize()).toBe(50);
-       expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 55');
-       expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 55');
-       expect(fixture.nativeElement.innerText).toContain('row0');
-       expect(fixture.nativeElement.innerText).toContain('row49');
-     });
+    // Change page size on bottom paginator should update the top
+    await paginatorBottom.setPageSize(50);
+    expect(await paginatorTop.getPageSize()).toBe(50);
+    expect(await paginatorBottom.getPageSize()).toBe(50);
+    expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 55');
+    expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 55');
+    expect(fixture.nativeElement.innerText).toContain('row0');
+    expect(fixture.nativeElement.innerText).toContain('row49');
+  });
 
   it('shows controls when data length is updated to more than 1 page', () => {
     const fixture = createComponentWithDataLength(generateTableData(2), 2);

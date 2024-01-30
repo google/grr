@@ -78,8 +78,11 @@ const RELEVANT_ENTRIES_LABEL_MAP = new Map([
  * same map entry and increments the counter for that change.
  */
 function classifyDiffItem(
-    diffItem: Diff<Client>, added: Map<string, number>,
-    deleted: Map<string, number>, updated: Map<string, number>) {
+  diffItem: Diff<Client>,
+  added: Map<string, number>,
+  deleted: Map<string, number>,
+  updated: Map<string, number>,
+) {
   if (diffItem.path === undefined) return;
   const path = getStringsJoinedPath(diffItem.path);
 
@@ -95,8 +98,11 @@ function classifyDiffItem(
       break;
     case 'A':
       classifyDiffItem(
-          {...diffItem.item, path: diffItem.item.path ?? diffItem.path}, added,
-          deleted, updated);
+        {...diffItem.item, path: diffItem.item.path ?? diffItem.path},
+        added,
+        deleted,
+        updated,
+      );
       break;
     default:
       updated.set(label, (updated.get(label) ?? 0) + 1);
@@ -111,7 +117,9 @@ function classifyDiffItem(
  *     "added")
  */
 function getChangeDescriptions(
-    changesMap: Map<string, number>, changeKeyword: string): readonly string[] {
+  changesMap: Map<string, number>,
+  changeKeyword: string,
+): readonly string[] {
   const changeDescriptions: string[] = [];
 
   changesMap.forEach((occurrences, label) => {
@@ -119,7 +127,8 @@ function getChangeDescriptions(
       changeDescriptions.push(`${label} ${changeKeyword}`);
     } else {
       changeDescriptions.push(
-          `${occurrences} ${label} entries ${changeKeyword}`);
+        `${occurrences} ${label} entries ${changeKeyword}`,
+      );
     }
   });
 
@@ -129,7 +138,7 @@ function getChangeDescriptions(
 function getNumEntriesChanged(changesMap: Map<string, number>): number {
   let numEntriesChanged = 0;
 
-  changesMap.forEach(entries => {
+  changesMap.forEach((entries) => {
     numEntriesChanged += entries;
   });
 
@@ -140,9 +149,10 @@ function getNumEntriesChanged(changesMap: Map<string, number>): number {
  * Returns the number of entries changed and a list of the aggregated changes
  * descriptions (e.g. "2 users added")
  */
-function aggregateDiffs(differences?: ReadonlyArray<Diff<Client>>):
-    // tslint:disable-next-line:array-type
-    [number, readonly string[]] {
+function aggregateDiffs(
+  differences?: ReadonlyArray<Diff<Client>>,
+): // tslint:disable-next-line:array-type
+[number, readonly string[]] {
   if (differences === undefined) {
     return [0, []];
   }
@@ -193,13 +203,16 @@ function getSnapshotChanges(current: Client, old?: Client): readonly string[] {
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientVersions(clientSnapshots: readonly Client[]):
-    ClientVersion[] {
+export function getClientVersions(
+  clientSnapshots: readonly Client[],
+): ClientVersion[] {
   const clientChanges: ClientVersion[] = [];
 
   for (let i = 0; i < clientSnapshots.length; i++) {
-    const clientChange =
-        getSnapshotChanges(clientSnapshots[i], clientSnapshots[i + 1]);
+    const clientChange = getSnapshotChanges(
+      clientSnapshots[i],
+      clientSnapshots[i + 1],
+    );
     clientChanges.push({
       client: clientSnapshots[i],
       changes: clientChange,
@@ -234,7 +247,7 @@ function getFirstStringsJoinedPath(path: any[]): string {
 
 // tslint:disable-next-line:no-any
 function getStringsJoinedPath(path: any[]): string {
-  return path.filter(val => typeof val === 'string').join('.');
+  return path.filter((val) => typeof val === 'string').join('.');
 }
 
 function pairwise<T>(arr: readonly T[]): ReadonlyArray<[T, T]> {
@@ -246,18 +259,20 @@ function pairwise<T>(arr: readonly T[]): ReadonlyArray<[T, T]> {
   return pairwiseArray;
 }
 
-function getPathsOfChangedEntries(differences: ReadonlyArray<Diff<Client>>):
-    readonly string[] {
+function getPathsOfChangedEntries(
+  differences: ReadonlyArray<Diff<Client>>,
+): readonly string[] {
   const changedPaths = new Set<string>();
 
-  differences.filter(diffItem => diffItem.path !== undefined)
-      .filter(
-          diffItem => RELEVANT_ENTRIES_LABEL_MAP.has(
-              getStringsJoinedPath(diffItem.path)))
-      .map(diffItem => getFirstStringsJoinedPath(diffItem.path))
-      .forEach(path => {
-        changedPaths.add(path);
-      });
+  differences
+    .filter((diffItem) => diffItem.path !== undefined)
+    .filter((diffItem) =>
+      RELEVANT_ENTRIES_LABEL_MAP.has(getStringsJoinedPath(diffItem.path)),
+    )
+    .map((diffItem) => getFirstStringsJoinedPath(diffItem.path))
+    .forEach((path) => {
+      changedPaths.add(path);
+    });
 
   return Array.from(changedPaths);
 }
@@ -272,8 +287,9 @@ function getPathsOfChangedEntries(differences: ReadonlyArray<Diff<Client>>):
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientEntriesChanged(clientSnapshots: readonly Client[]):
-    Map<string, readonly Client[]> {
+export function getClientEntriesChanged(
+  clientSnapshots: readonly Client[],
+): Map<string, readonly Client[]> {
   const clientChangedEntries = new Map<string, Client[]>();
 
   pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {
@@ -282,14 +298,16 @@ export function getClientEntriesChanged(clientSnapshots: readonly Client[]):
 
     const paths = getPathsOfChangedEntries(differences);
 
-    paths.forEach(path => {
-      clientChangedEntries.set(
-          path, [...clientChangedEntries.get(path) ?? [], newerClient]);
+    paths.forEach((path) => {
+      clientChangedEntries.set(path, [
+        ...(clientChangedEntries.get(path) ?? []),
+        newerClient,
+      ]);
     });
   });
 
   // Add the first client snapshot, as a point of reference
-  clientChangedEntries.forEach(value => {
+  clientChangedEntries.forEach((value) => {
     value.push(clientSnapshots[clientSnapshots.length - 1]);
   });
 

@@ -1,0 +1,41 @@
+<result-accordion
+  [title]="(largeFilePath$ | async)"
+  description=""
+  [expandable]="!!(hasResult$ | async) || !!(hasProgress$ | async)"
+  (firstOpened)="loadResult()"
+>
+  <table class="key-value-table">
+    <ng-container *ngIf="(largeFileResult$ | async) as result; else showProgress">
+      <ng-container
+          [ngTemplateOutlet]="showSessionUri"
+          [ngTemplateOutletContext]="{ $implicit: result.sessionUri }"
+        >
+      </ng-container>
+      <tr>
+        <td class=header>File size:</td>
+        <td>
+          <human-readable-size
+          [size]="parseInt(result.totalBytesSent ?? '', 10)"
+          ></human-readable-size>
+        </td>
+      </tr>
+    </ng-container>
+
+    <ng-template #showProgress>
+      <ng-container
+          *ngIf="(hasProgress$ | async)"
+          [ngTemplateOutlet]="showSessionUri"
+          [ngTemplateOutletContext]="{ $implicit: (flowProgress$ | async)?.sessionUri }"
+        >
+      </ng-container>
+    </ng-template>
+  </table>
+  <ng-template #showSessionUri let-uri>
+    <tr>
+      <td class=header>Session URI:</td>
+      <td>
+        <app-copy-button class="copy-button">{{ uri }}</app-copy-button>
+      </td>
+    </tr>
+  </ng-template>
+</result-accordion>

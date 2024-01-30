@@ -13,28 +13,22 @@ import {HomeModule} from './module';
 initTestEnvironment();
 
 @Component({template: ''})
-class TestComponent {
-}
+class TestComponent {}
 
 describe('Home Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            RouterTestingModule.withRoutes(
-                [{path: 'clients', component: TestComponent}]),
-            HomeModule,
-            NoopAnimationsModule,
-          ],
-          declarations: [
-            TestComponent,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        RouterTestingModule.withRoutes([
+          {path: 'clients', component: TestComponent},
+        ]),
+        HomeModule,
+        NoopAnimationsModule,
+      ],
+      declarations: [TestComponent],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('creates the component', () => {
@@ -44,12 +38,12 @@ describe('Home Component', () => {
   });
 
   it('changes the route when query is submitted', fakeAsync(() => {
-       const fixture = TestBed.createComponent(Home);
-       const componentInstance = fixture.componentInstance;
-       componentInstance.onQuerySubmitted('foo');
-       tick();
+    const fixture = TestBed.createComponent(Home);
+    const componentInstance = fixture.componentInstance;
+    componentInstance.onQuerySubmitted('foo');
+    tick();
 
-       const location = TestBed.inject(Location);
-       expect(location.path()).toEqual('/clients?q=foo');
-     }));
+    const location = TestBed.inject(Location);
+    expect(location.path()).toEqual('/clients?q=foo');
+  }));
 });

@@ -1,4 +1,6 @@
-/** Data structure describing GRR user. */
+/**
+ * Data structure describing GRR user.
+ */
 export declare interface GrrUser {
   readonly name: string;
   readonly canaryMode: boolean;
@@ -31,7 +33,7 @@ export interface Invalid {
 }
 
 /** Status of an Approval. */
-export type ApprovalStatus = Valid|Pending|Expired|Invalid;
+export type ApprovalStatus = Valid | Pending | Expired | Invalid;
 
 /** Approval contins common fields from any approval type. */
 export declare interface Approval {

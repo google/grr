@@ -6,10 +6,11 @@ import {FlowArgumentForm} from './form_interface';
 @Component({
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class FallbackFlowArgsForm<T extends {}> extends
-    FlowArgumentForm<T, {}> {
+export class FallbackFlowArgsForm<T extends {}> extends FlowArgumentForm<
+  T,
+  {}
+> {
   override makeControls() {
     return {};
   }

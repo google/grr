@@ -1,4 +1,10 @@
-import {BaseLineChartDataset, DEFAULT_HEIGHT_TO_WIDTH_RATIO, DEFAULT_TRANSITION_TIME_MS, LineChart, LineChartDatapoint} from './line_chart';
+import {
+  BaseLineChartDataset,
+  DEFAULT_HEIGHT_TO_WIDTH_RATIO,
+  DEFAULT_TRANSITION_TIME_MS,
+  LineChart,
+  LineChartDatapoint,
+} from './line_chart';
 
 interface TestLineChartDataset extends BaseLineChartDataset {
   lineOne: LineChartDatapoint[];
@@ -33,284 +39,276 @@ describe('LineChart', () => {
   });
 
   describe('chart dimensions', () => {
-    it('renders a container SVG element with a width and height of 500px',
-       () => {
-         testChart = new LineChart(
-             testParentContainer,
-             emptyTestData,
-             {
-               sizing: {
-                 widthPx: 500,
-                 heightToWidthRatio: 1,
-               }
-             },
-         );
+    it('renders a container SVG element with a width and height of 500px', () => {
+      testChart = new LineChart(testParentContainer, emptyTestData, {
+        sizing: {
+          widthPx: 500,
+          heightToWidthRatio: 1,
+        },
+      });
 
-         testChart.initialChartRender();
+      testChart.initialChartRender();
 
-         const chartContainerElement = testParentContainer.querySelector('svg');
-         expect(chartContainerElement).not.toBeNull();
+      const chartContainerElement = testParentContainer.querySelector('svg');
+      expect(chartContainerElement).not.toBeNull();
 
-         expect(chartContainerElement!.getAttribute('width')).toEqual(`500px`);
+      expect(chartContainerElement!.getAttribute('width')).toEqual(`500px`);
 
-         expect(chartContainerElement!.getAttribute('height'))
-             .toEqual(
-                 `500px`,  // 500 * 1
-             );
-       });
+      expect(chartContainerElement!.getAttribute('height')).toEqual(
+        `500px`, // 500 * 1
+      );
+    });
 
-    it('renders a container SVG element with a width of 500px and height of 250px',
-       () => {
-         testChart = new LineChart(
-             testParentContainer,
-             emptyTestData,
-             {
-               sizing: {
-                 widthPx: 500,
-                 heightToWidthRatio: 0.5,
-               }
-             },
-         );
+    it('renders a container SVG element with a width of 500px and height of 250px', () => {
+      testChart = new LineChart(testParentContainer, emptyTestData, {
+        sizing: {
+          widthPx: 500,
+          heightToWidthRatio: 0.5,
+        },
+      });
 
-         testChart.initialChartRender();
+      testChart.initialChartRender();
 
-         const chartContainerElement = testParentContainer.querySelector('svg');
-         expect(chartContainerElement).not.toBeNull();
+      const chartContainerElement = testParentContainer.querySelector('svg');
+      expect(chartContainerElement).not.toBeNull();
 
-         expect(chartContainerElement!.getAttribute('width')).toEqual(`500px`);
+      expect(chartContainerElement!.getAttribute('width')).toEqual(`500px`);
 
-         expect(chartContainerElement!.getAttribute('height'))
-             .toEqual(
-                 `250px`,  // 500 * 0.5
-             );
-       });
+      expect(chartContainerElement!.getAttribute('height')).toEqual(
+        `250px`, // 500 * 0.5
+      );
+    });
 
-    it('renders a container SVG element the same width as its container',
-       () => {
-         const testWidth = 400;
+    it('renders a container SVG element the same width as its container', () => {
+      const testWidth = 400;
 
-         testParentContainer.style.width = `${testWidth}px`;
+      testParentContainer.style.width = `${testWidth}px`;
 
-         testChart = new LineChart(
-             testParentContainer,
-             emptyTestData,
-             {
-               sizing: {
-                 widthPx: undefined,
-               }
-             },
-         );
+      testChart = new LineChart(testParentContainer, emptyTestData, {
+        sizing: {
+          widthPx: undefined,
+        },
+      });
 
-         testChart.initialChartRender();
+      testChart.initialChartRender();
 
-         const chartContainerElement = testParentContainer.querySelector('svg');
-         expect(chartContainerElement).not.toBeNull();
+      const chartContainerElement = testParentContainer.querySelector('svg');
+      expect(chartContainerElement).not.toBeNull();
 
-         expect(chartContainerElement!.getAttribute('width'))
-             .toEqual(`${testWidth}px`);
-       });
+      expect(chartContainerElement!.getAttribute('width')).toEqual(
+        `${testWidth}px`,
+      );
+    });
 
     describe('padding', () => {
-      it('renders an svg without paddings and a plot area of the same width',
-         () => {
-           const testWidth = 400;
+      it('renders an svg without paddings and a plot area of the same width', () => {
+        const testWidth = 400;
 
-           testParentContainer.style.width = `${testWidth}px`;
+        testParentContainer.style.width = `${testWidth}px`;
 
-           testChart = new LineChart(
-               testParentContainer,
-               {
-                 lineOne: mockLine,
-               },
-               {
-                 sizing: {
-                   widthPx: undefined,
-                   padding: 0,
-                 }
-               },
-           );
+        testChart = new LineChart(
+          testParentContainer,
+          {
+            lineOne: mockLine,
+          },
+          {
+            sizing: {
+              widthPx: undefined,
+              padding: 0,
+            },
+          },
+        );
 
-           testChart.initialChartRender();
+        testChart.initialChartRender();
 
-           const chartContainerElement =
-               testParentContainer.querySelector('svg.chart-container');
-           expect(chartContainerElement).not.toBeNull();
+        const chartContainerElement = testParentContainer.querySelector(
+          'svg.chart-container',
+        );
+        expect(chartContainerElement).not.toBeNull();
 
-           expect(chartContainerElement!.getAttribute('width'))
-               .toEqual(`${testWidth}px`);
+        expect(chartContainerElement!.getAttribute('width')).toEqual(
+          `${testWidth}px`,
+        );
 
-           const pathContainerElement =
-               testParentContainer.querySelector('g.path-container');
-           expect(pathContainerElement).not.toBeNull();
+        const pathContainerElement =
+          testParentContainer.querySelector('g.path-container');
+        expect(pathContainerElement).not.toBeNull();
 
-           expect(pathContainerElement!.getBoundingClientRect().width)
-               .toEqual(testWidth);
-         });
+        expect(pathContainerElement!.getBoundingClientRect().width).toEqual(
+          testWidth,
+        );
+      });
 
-      it('applies the indicated padding to the plot area container (width)',
-         () => {
-           const testWidth = 400;
-           const testHeight = testWidth * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
-           const padding = 50;
+      it('applies the indicated padding to the plot area container (width)', () => {
+        const testWidth = 400;
+        const testHeight = testWidth * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
+        const padding = 50;
 
-           testParentContainer.style.width = `${testWidth}px`;
+        testParentContainer.style.width = `${testWidth}px`;
 
-           testChart = new LineChart(
-               testParentContainer,
-               {
-                 lineOne: mockLine,
-               },
-               {
-                 sizing: {
-                   widthPx: undefined,
-                   padding,
-                 }
-               },
-           );
+        testChart = new LineChart(
+          testParentContainer,
+          {
+            lineOne: mockLine,
+          },
+          {
+            sizing: {
+              widthPx: undefined,
+              padding,
+            },
+          },
+        );
 
-           testChart.initialChartRender();
+        testChart.initialChartRender();
 
-           const chartContainerElement =
-               testParentContainer.querySelector('svg.chart-container');
-           expect(chartContainerElement).not.toBeNull();
+        const chartContainerElement = testParentContainer.querySelector(
+          'svg.chart-container',
+        );
+        expect(chartContainerElement).not.toBeNull();
 
-           expect(chartContainerElement!.getAttribute('width'))
-               .toEqual(`${testWidth}px`);
+        expect(chartContainerElement!.getAttribute('width')).toEqual(
+          `${testWidth}px`,
+        );
 
-           const pathContainerElement =
-               testParentContainer.querySelector('g.path-container');
-           expect(pathContainerElement).not.toBeNull();
+        const pathContainerElement =
+          testParentContainer.querySelector('g.path-container');
+        expect(pathContainerElement).not.toBeNull();
 
-           // Width should equal parent width - leftPadding - rightPadding
-           expect(pathContainerElement!.getBoundingClientRect().width)
-               .toEqual(testWidth - padding * 2);
+        // Width should equal parent width - leftPadding - rightPadding
+        expect(pathContainerElement!.getBoundingClientRect().width).toEqual(
+          testWidth - padding * 2,
+        );
 
-           // Height should equal to:
-           // parent width * heithToWidthRatio - leftPadding - rightPadding
-           expect(pathContainerElement!.getBoundingClientRect().height)
-               .toEqual(testHeight - padding * 2);
-         });
+        // Height should equal to:
+        // parent width * heithToWidthRatio - leftPadding - rightPadding
+        expect(pathContainerElement!.getBoundingClientRect().height).toEqual(
+          testHeight - padding * 2,
+        );
+      });
 
-      it('applies the indicated padding to the plot area container (width & height)',
-         () => {
-           const testWidth = 400;
-           const heightToWidthRatio = 1;
-           const testHeight = 400 * heightToWidthRatio;
-           const padding = {
-             topPx: 20,
-             rightPx: 50,
-             bottomPx: 10,
-             leftPx: 30,
-           };
+      it('applies the indicated padding to the plot area container (width & height)', () => {
+        const testWidth = 400;
+        const heightToWidthRatio = 1;
+        const testHeight = 400 * heightToWidthRatio;
+        const padding = {
+          topPx: 20,
+          rightPx: 50,
+          bottomPx: 10,
+          leftPx: 30,
+        };
 
-           testParentContainer.style.width = `${testWidth}px`;
+        testParentContainer.style.width = `${testWidth}px`;
 
-           testChart = new LineChart(
-               testParentContainer,
-               {
-                 lineOne: mockLine,
-               },
-               {
-                 sizing: {
-                   widthPx: undefined,
-                   heightToWidthRatio: 1,
-                   padding,
-                 }
-               },
-           );
+        testChart = new LineChart(
+          testParentContainer,
+          {
+            lineOne: mockLine,
+          },
+          {
+            sizing: {
+              widthPx: undefined,
+              heightToWidthRatio: 1,
+              padding,
+            },
+          },
+        );
 
-           testChart.initialChartRender();
+        testChart.initialChartRender();
 
-           const chartContainerElement =
-               testParentContainer.querySelector('svg.chart-container');
-           expect(chartContainerElement).not.toBeNull();
+        const chartContainerElement = testParentContainer.querySelector(
+          'svg.chart-container',
+        );
+        expect(chartContainerElement).not.toBeNull();
 
-           expect(chartContainerElement!.getAttribute('width'))
-               .toEqual(`${testWidth}px`);
+        expect(chartContainerElement!.getAttribute('width')).toEqual(
+          `${testWidth}px`,
+        );
 
-           const pathContainerElement =
-               testParentContainer.querySelector('g.path-container');
-           expect(pathContainerElement).not.toBeNull();
+        const pathContainerElement =
+          testParentContainer.querySelector('g.path-container');
+        expect(pathContainerElement).not.toBeNull();
 
-           // Width should equal parent width - leftPadding - rightPadding
-           expect(pathContainerElement!.getBoundingClientRect().width)
-               .toEqual(testWidth - padding.leftPx - padding.rightPx);
+        // Width should equal parent width - leftPadding - rightPadding
+        expect(pathContainerElement!.getBoundingClientRect().width).toEqual(
+          testWidth - padding.leftPx - padding.rightPx,
+        );
 
-           // Height should equal parent height - topPx - bottomPx
-           expect(pathContainerElement!.getBoundingClientRect().height)
-               .toEqual(testHeight - padding.topPx - padding.bottomPx);
-         });
+        // Height should equal parent height - topPx - bottomPx
+        expect(pathContainerElement!.getBoundingClientRect().height).toEqual(
+          testHeight - padding.topPx - padding.bottomPx,
+        );
+      });
     });
 
     describe('automatic resize', () => {
-      it('reacts to parent node size changes and resizes the chart accordingly',
-         async () => {
-           const initialParentContainerWidthPx = 400;
-           const resultingHeight =
-               initialParentContainerWidthPx * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
+      it('reacts to parent node size changes and resizes the chart accordingly', async () => {
+        const initialParentContainerWidthPx = 400;
+        const resultingHeight =
+          initialParentContainerWidthPx * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
 
-           testParentContainer.style.width =
-               `${initialParentContainerWidthPx}px`;
+        testParentContainer.style.width = `${initialParentContainerWidthPx}px`;
 
-           testChart = new LineChart(
-               testParentContainer,
-               {
-                 lineOne: mockLine,
-               },
-               {
-                 sizing: {
-                   widthPx: undefined,
-                   // default value but we want to be epxlicit in tests:
-                   rerenderOnResize: true,
-                 }
-               },
-           );
+        testChart = new LineChart(
+          testParentContainer,
+          {
+            lineOne: mockLine,
+          },
+          {
+            sizing: {
+              widthPx: undefined,
+              // default value but we want to be epxlicit in tests:
+              rerenderOnResize: true,
+            },
+          },
+        );
 
-           testChart.initialChartRender();
+        testChart.initialChartRender();
 
-           const chartContainerElement =
-               testParentContainer.querySelector('svg.chart-container');
-           expect(chartContainerElement).not.toBeNull();
+        const chartContainerElement = testParentContainer.querySelector(
+          'svg.chart-container',
+        );
+        expect(chartContainerElement).not.toBeNull();
 
-           expect(chartContainerElement!.getAttribute('width'))
-               .toEqual(`${initialParentContainerWidthPx}px`);
+        expect(chartContainerElement!.getAttribute('width')).toEqual(
+          `${initialParentContainerWidthPx}px`,
+        );
 
-           expect(chartContainerElement!.getAttribute('height'))
-               .toEqual(`${resultingHeight}px`);
+        expect(chartContainerElement!.getAttribute('height')).toEqual(
+          `${resultingHeight}px`,
+        );
 
-           const newParentContainerWidthPx = 300;
-           const newParentContainerHeightPx = 200;
+        const newParentContainerWidthPx = 300;
+        const newParentContainerHeightPx = 200;
 
-           testParentContainer.style.width = `${newParentContainerWidthPx}px`;
-           testParentContainer.style.height = `${newParentContainerHeightPx}px`;
+        testParentContainer.style.width = `${newParentContainerWidthPx}px`;
+        testParentContainer.style.height = `${newParentContainerHeightPx}px`;
 
-           const newHeight =
-               newParentContainerWidthPx * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
+        const newHeight =
+          newParentContainerWidthPx * DEFAULT_HEIGHT_TO_WIDTH_RATIO;
 
-           // We simulate the async passage of time for the animations to finish
-           await new Promise(resolve => {
-             return setTimeout(resolve, DEFAULT_TRANSITION_TIME_MS);
-           });
+        // We simulate the async passage of time for the animations to finish
+        await new Promise((resolve) => {
+          return setTimeout(resolve, DEFAULT_TRANSITION_TIME_MS);
+        });
 
-           expect(chartContainerElement!.getAttribute('width'))
-               .toEqual(`${newParentContainerWidthPx}px`);
+        expect(chartContainerElement!.getAttribute('width')).toEqual(
+          `${newParentContainerWidthPx}px`,
+        );
 
-           expect(chartContainerElement!.getAttribute('height'))
-               .toEqual(`${newHeight}px`);
+        expect(chartContainerElement!.getAttribute('height')).toEqual(
+          `${newHeight}px`,
+        );
 
-           testChart.removeEventListeners();
-         });
+        testChart.removeEventListeners();
+      });
     });
   });
 
   describe('path rendering', () => {
     it('renders one path', () => {
-      testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: mockLine,
-          },
-      );
+      testChart = new LineChart(testParentContainer, {
+        lineOne: mockLine,
+      });
 
       testChart.initialChartRender();
 
@@ -322,14 +320,11 @@ describe('LineChart', () => {
     });
 
     it('renders multiple paths', () => {
-      const testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: mockLine,
-            lineTwo: mockLine,
-            lineThree: mockLine,
-          },
-      );
+      const testChart = new LineChart(testParentContainer, {
+        lineOne: mockLine,
+        lineTwo: mockLine,
+        lineThree: mockLine,
+      });
 
       testChart.initialChartRender();
 
@@ -346,17 +341,17 @@ describe('LineChart', () => {
 
     it('renders a path with the indicated id', () => {
       testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: mockLine,
-          },
-          {
-            series: {
-              lineOne: {
-                id: 'line-one',
-              },
+        testParentContainer,
+        {
+          lineOne: mockLine,
+        },
+        {
+          series: {
+            lineOne: {
+              id: 'line-one',
             },
           },
+        },
       );
 
       testChart.initialChartRender();
@@ -370,18 +365,18 @@ describe('LineChart', () => {
 
     it('renders a path with the indicated color', () => {
       testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: mockLine,
-          },
-          {
-            series: {
-              lineOne: {
-                id: 'line-one',
-                color: 'red',
-              },
+        testParentContainer,
+        {
+          lineOne: mockLine,
+        },
+        {
+          series: {
+            lineOne: {
+              id: 'line-one',
+              color: 'red',
             },
           },
+        },
       );
 
       testChart.initialChartRender();
@@ -390,7 +385,7 @@ describe('LineChart', () => {
       expect(chartContainerElement).not.toBeNull();
 
       const pathOne =
-          chartContainerElement!.querySelector<SVGPathElement>('#line-one');
+        chartContainerElement!.querySelector<SVGPathElement>('#line-one');
       expect(pathOne).not.toBeNull();
 
       expect(pathOne!.style.stroke).toEqual('red');
@@ -398,29 +393,29 @@ describe('LineChart', () => {
 
     it('renders two paths with the indicated order', () => {
       const testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: mockLine,
-            lineTwo: mockLine,
-          },
-          {
-            series: {
-              lineOne: {
-                id: 'line-one',
-                order: 2,
-              },
-              lineTwo: {
-                id: 'line-two',
-                order: 1,
-              },
+        testParentContainer,
+        {
+          lineOne: mockLine,
+          lineTwo: mockLine,
+        },
+        {
+          series: {
+            lineOne: {
+              id: 'line-one',
+              order: 2,
+            },
+            lineTwo: {
+              id: 'line-two',
+              order: 1,
             },
           },
+        },
       );
 
       testChart.initialChartRender();
 
       const pathContainerElement =
-          testParentContainer.querySelector<SVGGElement>('g.path-container');
+        testParentContainer.querySelector<SVGGElement>('g.path-container');
       expect(pathContainerElement).not.toBeNull();
 
       const children = pathContainerElement!.children;
@@ -436,31 +431,31 @@ describe('LineChart', () => {
 
     it('renders two areas with the indicated order', () => {
       const testChart = new LineChart(
-          testParentContainer,
-          {
-            areaOne: mockLine,
-            areaTwo: mockLine,
-          },
-          {
-            series: {
-              areaOne: {
-                id: 'area-one',
-                order: 2,
-                isArea: true,
-              },
-              areaTwo: {
-                id: 'area-two',
-                order: 1,
-                isArea: true,
-              },
+        testParentContainer,
+        {
+          areaOne: mockLine,
+          areaTwo: mockLine,
+        },
+        {
+          series: {
+            areaOne: {
+              id: 'area-one',
+              order: 2,
+              isArea: true,
+            },
+            areaTwo: {
+              id: 'area-two',
+              order: 1,
+              isArea: true,
             },
           },
+        },
       );
 
       testChart.initialChartRender();
 
       const pathContainerElement =
-          testParentContainer.querySelector<SVGGElement>('g.path-container');
+        testParentContainer.querySelector<SVGGElement>('g.path-container');
       expect(pathContainerElement).not.toBeNull();
 
       const children = pathContainerElement!.children;
@@ -496,24 +491,24 @@ describe('LineChart', () => {
       const testLinePathCommands = 'M0,0L200,200';
 
       const testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: testLine,
-          },
-          {
-            sizing: lineChartSizingConfiguration,
-            series: {
-              lineOne: {
-                id: 'line-one',
-              },
+        testParentContainer,
+        {
+          lineOne: testLine,
+        },
+        {
+          sizing: lineChartSizingConfiguration,
+          series: {
+            lineOne: {
+              id: 'line-one',
             },
           },
+        },
       );
 
       testChart.initialChartRender();
 
       const pathContainerElement =
-          testParentContainer.querySelector<SVGGElement>('g.path-container');
+        testParentContainer.querySelector<SVGGElement>('g.path-container');
       expect(pathContainerElement).not.toBeNull();
 
       const children = pathContainerElement!.children;
@@ -547,25 +542,25 @@ describe('LineChart', () => {
       const testAreaPathCommands = 'M0,0L200,200L200,200L0,200Z';
 
       const testChart = new LineChart(
-          testParentContainer,
-          {
-            lineOne: testLine,
-          },
-          {
-            sizing: lineChartSizingConfiguration,
-            series: {
-              lineOne: {
-                id: 'area-one',
-                isArea: true,
-              },
+        testParentContainer,
+        {
+          lineOne: testLine,
+        },
+        {
+          sizing: lineChartSizingConfiguration,
+          series: {
+            lineOne: {
+              id: 'area-one',
+              isArea: true,
             },
           },
+        },
       );
 
       testChart.initialChartRender();
 
       const pathContainerElement =
-          testParentContainer.querySelector<SVGGElement>('g.path-container');
+        testParentContainer.querySelector<SVGGElement>('g.path-container');
       expect(pathContainerElement).not.toBeNull();
 
       const children = pathContainerElement!.children;

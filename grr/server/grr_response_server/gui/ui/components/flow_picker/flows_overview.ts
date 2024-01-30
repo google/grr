@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -22,34 +28,36 @@ interface FlowOverviewCategory {
 })
 export class FlowsOverview {
   @Input()
-  set flowsByCategory(value: FlowsByCategory|null) {
+  set flowsByCategory(value: FlowsByCategory | null) {
     this.flowsByCategory$.next(value);
   }
 
-  get flowsByCategory(): FlowsByCategory|null {
+  get flowsByCategory(): FlowsByCategory | null {
     return this.flowsByCategory$.value;
   }
 
   private readonly flowsByCategory$ =
-      new BehaviorSubject<FlowsByCategory|null>(null);
+    new BehaviorSubject<FlowsByCategory | null>(null);
 
   readonly categories$: Observable<readonly FlowOverviewCategory[]> =
-      this.flowsByCategory$.pipe(
-          map(fbc => {
-            const result = Array.from(fbc?.entries() ?? [])
-                               .map(([categoryTitle, items]) => {
-                                 const sortedItems = [...items];
-                                 sortedItems.sort(compareAlphabeticallyBy(
-                                     item => item.friendlyName));
-                                 return {
-                                   title: categoryTitle,
-                                   items: sortedItems,
-                                 };
-                               });
-            result.sort(compareAlphabeticallyBy(cat => cat.title));
-            return result;
-          }),
-      );
+    this.flowsByCategory$.pipe(
+      map((fbc) => {
+        const result = Array.from(fbc?.entries() ?? []).map(
+          ([categoryTitle, items]) => {
+            const sortedItems = [...items];
+            sortedItems.sort(
+              compareAlphabeticallyBy((item) => item.friendlyName),
+            );
+            return {
+              title: categoryTitle,
+              items: sortedItems,
+            };
+          },
+        );
+        result.sort(compareAlphabeticallyBy((cat) => cat.title));
+        return result;
+      }),
+    );
 
   /**
    * Event that is triggered when a flow is selected.

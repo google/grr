@@ -5,6 +5,7 @@ from unittest import mock
 
 from absl import app
 
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -21,7 +22,6 @@ from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -103,7 +103,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
       "ListClientCrashes",
-      "GetClientLoadStats",
   ])
 
   def testClientMethodsAreAccessChecked(self):
@@ -114,10 +113,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_client.ApiListClientCrashesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListClientCrashes, "CheckClientAccess", args=args)
-
-    args = api_client.ApiGetClientLoadStatsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetClientLoadStats, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "VerifyAccess",
@@ -648,7 +643,7 @@ class AccessCheckerTest(test_lib.GRRBaseTest):
 
   def testCheckIfCanStartClientFlow_RestrictedFlow_AdminUser(self):
     data_store.REL_DB.WriteGRRUser(
-        "admin", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN
+        "admin", user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     )
     # Shouldn't raise if it is allowed.
     self.checker.CheckIfCanStartClientFlow("admin", "LaunchBinary")

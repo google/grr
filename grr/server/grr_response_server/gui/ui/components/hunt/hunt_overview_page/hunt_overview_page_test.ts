@@ -5,46 +5,56 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ApiHuntState, ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
-import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
+import {
+  ApiHuntState,
+  ApiListHuntsArgsRobotFilter,
+} from '../../../lib/api/api_interfaces';
+import {HuntState, getHuntTitle} from '../../../lib/models/hunt';
 import {newHunt, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
-import {injectMockStore, mockHuntOverviewPageLocalStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
+import {
+  STORE_PROVIDERS,
+  injectMockStore,
+  mockHuntOverviewPageLocalStore,
+} from '../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../testing';
 
-import {HuntCreatorFilter, HuntOverviewPage, HuntStateFilter} from './hunt_overview_page';
+import {
+  HuntCreatorFilter,
+  HuntOverviewPage,
+  HuntStateFilter,
+} from './hunt_overview_page';
 import {HuntOverviewPageModule} from './module';
 
 initTestEnvironment();
 
 describe('app-hunt-overview-page', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            RouterTestingModule,
-            HuntOverviewPageModule,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            HuntOverviewPageLocalStore,
-            {useFactory: mockHuntOverviewPageLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        RouterTestingModule,
+        HuntOverviewPageModule,
+      ],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(HuntOverviewPageLocalStore, {
+        useFactory: mockHuntOverviewPageLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('displays human hunts by default', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
 
     expect(huntPageLocalStore.setArgs).toHaveBeenCalledWith({
-      robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS
+      robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS,
     });
 
     huntPageLocalStore.mockedObservables.results$.next([
@@ -64,19 +74,22 @@ describe('app-hunt-overview-page', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const huntFilterHarness = await loader.getHarness(
-        MatSelectHarness.with({selector: '[name="hunt-creator-filter"]'}));
+      MatSelectHarness.with({selector: '[name="hunt-creator-filter"]'}),
+    );
     await huntFilterHarness.clickOptions({text: HuntCreatorFilter.ALL_HUNTS});
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
 
     expect(huntPageLocalStore.setArgs).toHaveBeenCalledWith({
-      robotFilter: ApiListHuntsArgsRobotFilter.UNKNOWN
+      robotFilter: ApiListHuntsArgsRobotFilter.UNKNOWN,
     });
 
     huntPageLocalStore.mockedObservables.results$.next([
       newHunt({creator: 'human', isRobot: false}),
-      newHunt({creator: 'robot', isRobot: true})
+      newHunt({creator: 'robot', isRobot: true}),
     ]);
     fixture.detectChanges();
 
@@ -93,24 +106,27 @@ describe('app-hunt-overview-page', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const huntFilterHarness = await loader.getHarness(
-        MatSelectHarness.with({selector: '[name="hunt-state-filter"]'}));
+      MatSelectHarness.with({selector: '[name="hunt-state-filter"]'}),
+    );
     await huntFilterHarness.clickOptions({text: HuntStateFilter.RUNNING});
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
 
     expect(huntPageLocalStore.setArgs).toHaveBeenCalledWith({
       robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS,
-      withState: ApiHuntState.STARTED
+      withState: ApiHuntState.STARTED,
     });
 
     huntPageLocalStore.mockedObservables.results$.next([
       newHunt({
         creator: 'human',
         isRobot: false,
-        state: HuntState.REACHED_CLIENT_LIMIT
+        state: HuntState.REACHED_CLIENT_LIMIT,
       }),
-      newHunt({creator: 'robot', isRobot: true, state: HuntState.RUNNING})
+      newHunt({creator: 'robot', isRobot: true, state: HuntState.RUNNING}),
     ]);
     fixture.detectChanges();
 
@@ -126,8 +142,10 @@ describe('app-hunt-overview-page', () => {
   it('displays hunt information', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
 
     expect(huntPageLocalStore.setArgs).toHaveBeenCalled();
 
@@ -147,17 +165,19 @@ describe('app-hunt-overview-page', () => {
     expect(cardTitle.nativeElement.textContent).toContain(getHuntTitle(hunt));
     expect(fixture.debugElement.nativeElement.textContent).toContain('baz');
     expect(fixture.debugElement.nativeElement.textContent).toContain('H1234');
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('SomeFlow');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'SomeFlow',
+    );
     expect(fixture.debugElement.nativeElement.textContent).toContain('running');
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('1900-01-01');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      '1900-01-01',
+    );
 
-    const argsAccordion =
-        fixture.debugElement.query(By.css('result-accordion'));
+    const argsAccordion = fixture.debugElement.query(
+      By.css('result-accordion'),
+    );
     expect(argsAccordion).toBeTruthy();
     expect(argsAccordion.nativeElement.textContent).toContain('arguments');
-
 
     argsAccordion.query(By.css('.expansion-indicator')).nativeElement.click();
     fixture.detectChanges();
@@ -166,41 +186,47 @@ describe('app-hunt-overview-page', () => {
     expect(argsAccordion.nativeElement.textContent).toContain('1000 clients');
   });
 
-  it('displays an empty progress for a running hunt without completed clients',
-     async () => {
-       const fixture = TestBed.createComponent(HuntOverviewPage);
-       fixture.detectChanges();
+  it('displays an empty progress for a running hunt without completed clients', async () => {
+    const fixture = TestBed.createComponent(HuntOverviewPage);
+    fixture.detectChanges();
 
-       const huntPageLocalStore =
-           injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
-       huntPageLocalStore.mockedObservables.results$.next([newHunt({
-         description: 'Collect foobar',
-         allClientsCount: BigInt(0),
-         completedClientsCount: BigInt(0),
-         state: HuntState.RUNNING,
-       })]);
-       fixture.detectChanges();
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({
+        description: 'Collect foobar',
+        allClientsCount: BigInt(0),
+        completedClientsCount: BigInt(0),
+        state: HuntState.RUNNING,
+      }),
+    ]);
+    fixture.detectChanges();
 
-       // Getting MatProgressBarHarness times out for unknown reasons, so
-       // we read the progress bar state from ARIA:
-       const progressBar =
-           fixture.debugElement.query(By.css('mat-progress-bar'));
-       expect(Number(progressBar.attributes['aria-valuenow'])).toEqual(0);
-     });
+    // Getting MatProgressBarHarness times out for unknown reasons, so
+    // we read the progress bar state from ARIA:
+    const progressBar = fixture.debugElement.query(By.css('mat-progress-bar'));
+    expect(Number(progressBar.attributes['aria-valuenow'])).toEqual(0);
+  });
 
   it('displays a full progress for a completed hunt', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     fixture.detectChanges();
 
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.results$.next([newHunt({
-      description: 'Collect foobar',
-      allClientsCount: BigInt(10),
-      completedClientsCount: BigInt(10),
-      state: HuntState.REACHED_CLIENT_LIMIT,
-      safetyLimits: newSafetyLimits({clientLimit: BigInt(99)}),
-    })]);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({
+        description: 'Collect foobar',
+        allClientsCount: BigInt(10),
+        completedClientsCount: BigInt(10),
+        state: HuntState.REACHED_CLIENT_LIMIT,
+        safetyLimits: newSafetyLimits({clientLimit: BigInt(99)}),
+      }),
+    ]);
     fixture.detectChanges();
 
     // Getting MatProgressBarHarness times out for unknown reasons, so we
@@ -209,72 +235,85 @@ describe('app-hunt-overview-page', () => {
     expect(Number(progressBar.attributes['aria-valuenow'])).toEqual(100);
   });
 
-  it('displays a padded progress for running hunts without client limit',
-     async () => {
-       const fixture = TestBed.createComponent(HuntOverviewPage);
-       fixture.detectChanges();
+  it('displays a padded progress for running hunts without client limit', async () => {
+    const fixture = TestBed.createComponent(HuntOverviewPage);
+    fixture.detectChanges();
 
-       const huntPageLocalStore =
-           injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
-       huntPageLocalStore.mockedObservables.results$.next([newHunt({
-         description: 'Collect foobar',
-         allClientsCount: BigInt(10),
-         completedClientsCount: BigInt(7),
-         state: HuntState.RUNNING,
-         safetyLimits: newSafetyLimits({clientLimit: BigInt(0)}),
-       })]);
-       fixture.detectChanges();
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({
+        description: 'Collect foobar',
+        allClientsCount: BigInt(10),
+        completedClientsCount: BigInt(7),
+        state: HuntState.RUNNING,
+        safetyLimits: newSafetyLimits({clientLimit: BigInt(0)}),
+      }),
+    ]);
+    fixture.detectChanges();
 
-       const completePercent = 7 / 10 * 100;
-       const padding = completePercent * .1;
+    const completePercent = (7 / 10) * 100;
+    const padding = completePercent * 0.1;
 
-       // Getting MatProgressBarHarness times out for unknown reasons, so
-       // we read the progress bar state from ARIA:
-       const progressBar =
-           fixture.debugElement.query(By.css('mat-progress-bar'));
-       expect(Math.trunc(Number(progressBar.attributes['aria-valuenow'])))
-           .toEqual(completePercent - padding);
-     });
+    // Getting MatProgressBarHarness times out for unknown reasons, so
+    // we read the progress bar state from ARIA:
+    const progressBar = fixture.debugElement.query(By.css('mat-progress-bar'));
+    expect(Math.trunc(Number(progressBar.attributes['aria-valuenow']))).toEqual(
+      completePercent - padding,
+    );
+  });
 
   it('displays progress as fraction of client limit', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     fixture.detectChanges();
 
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.results$.next([newHunt({
-      description: 'Collect foobar',
-      allClientsCount: BigInt(10),
-      completedClientsCount: BigInt(7),
-      state: HuntState.RUNNING,
-      safetyLimits: newSafetyLimits({clientLimit: BigInt(20)}),
-    })]);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({
+        description: 'Collect foobar',
+        allClientsCount: BigInt(10),
+        completedClientsCount: BigInt(7),
+        state: HuntState.RUNNING,
+        safetyLimits: newSafetyLimits({clientLimit: BigInt(20)}),
+      }),
+    ]);
     fixture.detectChanges();
 
     // Getting MatProgressBarHarness times out for unknown reasons, so we
     // read the progress bar state from ARIA:
     const progressBar = fixture.debugElement.query(By.css('mat-progress-bar'));
-    expect(Math.trunc(Number(progressBar.attributes['aria-valuenow'])))
-        .toEqual(7 / 20 * 100);
+    expect(Math.trunc(Number(progressBar.attributes['aria-valuenow']))).toEqual(
+      (7 / 20) * 100,
+    );
   });
 
   it('displays context menu button', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     fixture.detectChanges();
 
-    const huntPageLocalStore =
-        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.results$.next([newHunt({
-      description: 'Collect foobar',
-      allClientsCount: BigInt(10),
-      completedClientsCount: BigInt(7),
-      state: HuntState.RUNNING,
-      safetyLimits: newSafetyLimits({clientLimit: BigInt(20)}),
-    })]);
+    const huntPageLocalStore = injectMockStore(
+      HuntOverviewPageLocalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({
+        description: 'Collect foobar',
+        allClientsCount: BigInt(10),
+        completedClientsCount: BigInt(7),
+        state: HuntState.RUNNING,
+        safetyLimits: newSafetyLimits({clientLimit: BigInt(20)}),
+      }),
+    ]);
     fixture.detectChanges();
 
-    const contextMenuButton =
-        fixture.debugElement.query(By.css('.context-menu button'));
+    const contextMenuButton = fixture.debugElement.query(
+      By.css('.context-menu button'),
+    );
     expect(contextMenuButton).toBeTruthy();
     await contextMenuButton.nativeElement.click();
     fixture.detectChanges();
@@ -283,7 +322,8 @@ describe('app-hunt-overview-page', () => {
     // For unknown reasons, finding
     // MatMenuHarness/MatMenuItemHarness both time out the test
     // without finding the menus.
-    expect(document.querySelector('.mat-mdc-menu-content')?.textContent)
-        .toContain('Duplicate');
+    expect(
+      document.querySelector('.mat-mdc-menu-content')?.textContent,
+    ).toContain('Duplicate');
   });
 });

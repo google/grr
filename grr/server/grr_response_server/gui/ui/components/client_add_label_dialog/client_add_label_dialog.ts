@@ -16,13 +16,16 @@ import {ConfigGlobalStore} from '../../store/config_global_store';
 })
 export class ClientAddLabelDialog {
   constructor(
-      private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
-      @Inject(MAT_DIALOG_DATA) private readonly clientLabels:
-          readonly ClientLabel[],
-      private readonly configGlobalStore: ConfigGlobalStore) {}
+    private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
+    @Inject(MAT_DIALOG_DATA)
+    private readonly clientLabels: readonly ClientLabel[],
+    private readonly configGlobalStore: ConfigGlobalStore,
+  ) {}
 
-  readonly labelInputControl =
-      new UntypedFormControl('', this.labelValidator());
+  readonly labelInputControl = new UntypedFormControl(
+    '',
+    this.labelValidator(),
+  );
   private readonly allClientsLabels$ = this.configGlobalStore.clientsLabels$;
 
   /**
@@ -31,21 +34,21 @@ export class ClientAddLabelDialog {
    *    * a string[] containing all labels used in GRR
    */
   private readonly inputAndAllLabels$ =
-      this.labelInputControl.valueChanges.pipe(
-          filter(isNonNull),
-          map(input => input.trim()),
-          withLatestFrom(this.allClientsLabels$),
-      );
+    this.labelInputControl.valueChanges.pipe(
+      filter(isNonNull),
+      map((input) => input.trim()),
+      withLatestFrom(this.allClientsLabels$),
+    );
 
   /**
    * An observable emitting true when the input label is not exactly matching
    *  any of the existing labels in GRR, and false otherwise.
    */
   readonly isNewLabel$: Observable<boolean> = this.inputAndAllLabels$.pipe(
-      map(([input, allLabels]) => {
-        if (input === '') return false;
-        return !allLabels.includes(input);
-      }),
+    map(([input, allLabels]) => {
+      if (input === '') return false;
+      return !allLabels.includes(input);
+    }),
   );
 
   /**
@@ -53,19 +56,21 @@ export class ClientAddLabelDialog {
    *  The array doesn't contain labels already assigned to the client.
    */
   readonly suggestedLabels$: Observable<string[]> =
-      this.inputAndAllLabels$.pipe(
-          map(([input, allLabels]) => {
-            if (input === '') return [];
-            return allLabels.filter(label => label.includes(input));
-          }),
-          map(filteredLabels =>
-                  filteredLabels.filter(label => !this.clientHasLabel(label))),
-      );
+    this.inputAndAllLabels$.pipe(
+      map(([input, allLabels]) => {
+        if (input === '') return [];
+        return allLabels.filter((label) => label.includes(input));
+      }),
+      map((filteredLabels) =>
+        filteredLabels.filter((label) => !this.clientHasLabel(label)),
+      ),
+    );
 
   private clientHasLabel(label: string): boolean {
     const trimmedLabel = label.trim();
-    return this.clientLabels.map(clientLabel => clientLabel.name)
-        .includes(trimmedLabel);
+    return this.clientLabels
+      .map((clientLabel) => clientLabel.name)
+      .includes(trimmedLabel);
   }
 
   private labelValidator(): ValidatorFn {

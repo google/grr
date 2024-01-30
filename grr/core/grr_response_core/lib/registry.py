@@ -9,6 +9,21 @@ and class as value.
 
 # The following are abstract base classes
 import abc
+from typing import Any, Dict, Mapping, Type
+
+
+# TODO: Remove registry once migration is complete.
+# Maps name to the RDFProtoStruct class (circular dep).
+_RDFPROTOSTRUCT_NAME_TO_CLS: Dict[str, Type[Any]] = {}
+
+
+def RegisterRDFProtoStruct(name: str, cls: Type[Any]) -> None:
+  _RDFPROTOSTRUCT_NAME_TO_CLS[name] = cls
+
+
+def GetAllRDFProtoStructs() -> Mapping[str, Type[Any]]:
+  return _RDFPROTOSTRUCT_NAME_TO_CLS
+
 
 # Metaclasses confuse the linter so: pylint: disable=no-value-for-parameter
 

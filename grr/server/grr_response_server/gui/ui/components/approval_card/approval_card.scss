@@ -67,6 +67,31 @@ form {
     }
   }
 
+  .duration {
+    margin-bottom: 1em;
+
+    .info-icon {
+      margin-left: 0.5em;
+      position: relative;
+      top: 10px;
+    }
+
+    .edit-icon {
+      align-items: flex-start;
+    }
+
+    a {
+      color: blue;
+      text-decoration: underline blue;
+    }
+
+    .durationInput {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+    }
+  }
+
   button {
     height: 3em;
   }

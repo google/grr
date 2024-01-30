@@ -11,28 +11,23 @@ import {initTestEnvironment} from '../../testing';
 
 import {ExpandableHash} from './expandable_hash';
 
-
 initTestEnvironment();
 
 describe('ExpandableHash component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          declarations: [ExpandableHash],
-          imports: [
-            ExpandableHashModule,
-            NoopAnimationsModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      declarations: [ExpandableHash],
+      imports: [ExpandableHashModule, NoopAnimationsModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   class ExpandableHashDOM {
     harnessLoader = TestbedHarnessEnvironment.loader(this.rootFixture);
 
     expandButton = this.rootFixture.debugElement.query(
-        By.css('.button-expand-expandable-hash-class'));
+      By.css('.button-expand-expandable-hash-class'),
+    );
     expandButtonText = this.expandButton?.nativeElement.innerText;
     text = this.rootFixture.nativeElement.textContent;
 
@@ -76,37 +71,36 @@ describe('ExpandableHash component', () => {
     expect(dom.expandButtonText).toBe('SHA-256');
   });
 
-  it('should display all hashes and copy-all item if all are available',
-     async () => {
-       const all3Hashes = {
-         sha256: 'sha256value',
-         sha1: 'sha1value',
-         md5: 'md5value',
-       };
-       const dom = initComponentWithHashes(all3Hashes);
+  it('should display all hashes and copy-all item if all are available', async () => {
+    const all3Hashes = {
+      sha256: 'sha256value',
+      sha1: 'sha1value',
+      md5: 'md5value',
+    };
+    const dom = initComponentWithHashes(all3Hashes);
 
-       expect(dom.expandButtonText).toBe('SHA-256 + 2');
+    expect(dom.expandButtonText).toBe('SHA-256 + 2');
 
-       const expandButton = await dom.expandButtonHarness;
-       const expandedMenu = await dom.menuHarness;
-       await expandButton.click();
-       const menuItems = await expandedMenu.getItems();
+    const expandButton = await dom.expandButtonHarness;
+    const expandedMenu = await dom.menuHarness;
+    await expandButton.click();
+    const menuItems = await expandedMenu.getItems();
 
-       expect(menuItems.length).toBe(4);
+    expect(menuItems.length).toBe(4);
 
-       const textOfSha256 = await menuItems[0].getText();
-       expect(textOfSha256).toContain('SHA-256');
-       expect(textOfSha256).toContain('sha256value');
+    const textOfSha256 = await menuItems[0].getText();
+    expect(textOfSha256).toContain('SHA-256');
+    expect(textOfSha256).toContain('sha256value');
 
-       const textOfSha1 = await menuItems[1].getText();
-       expect(textOfSha1).toContain('SHA-1');
-       expect(textOfSha1).toContain('sha1value');
+    const textOfSha1 = await menuItems[1].getText();
+    expect(textOfSha1).toContain('SHA-1');
+    expect(textOfSha1).toContain('sha1value');
 
-       const textOfMd5 = await menuItems[2].getText();
-       expect(textOfMd5).toContain('MD5');
-       expect(textOfMd5).toContain('md5value');
+    const textOfMd5 = await menuItems[2].getText();
+    expect(textOfMd5).toContain('MD5');
+    expect(textOfMd5).toContain('md5value');
 
-       const textOfCopyAll = await menuItems[3].getText();
-       expect(textOfCopyAll).toContain('All hash information');
-     });
+    const textOfCopyAll = await menuItems[3].getText();
+    expect(textOfCopyAll).toContain('All hash information');
+  });
 });

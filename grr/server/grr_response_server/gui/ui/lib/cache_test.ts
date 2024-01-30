@@ -17,11 +17,11 @@ class MapStorage implements Storage {
     this.map.clear();
   }
 
-  getItem(key: string): string|null {
+  getItem(key: string): string | null {
     return this.map.get(key) ?? null;
   }
 
-  key(index: number): string|null {
+  key(index: number): string | null {
     return Array.from(this.map.keys())[index];
   }
 
@@ -46,19 +46,21 @@ describe('cache', () => {
     const storage = new StorageCache<number>(new MapStorage());
     of(3).pipe(cacheLatest('foo', storage)).subscribe();
 
-    const cachedValue =
-        await firstValueFrom(NEVER.pipe(cacheLatest<number>('foo', storage)));
+    const cachedValue = await firstValueFrom(
+      NEVER.pipe(cacheLatest<number>('foo', storage)),
+    );
     expect(cachedValue).toEqual(3);
   });
 
   it('correctly retains JSON-like data', async () => {
     const storage = new StorageCache<{}>(new MapStorage());
     of({a: 42, b: 'foo', c: {d: [true]}})
-        .pipe(cacheLatest('foo', storage))
-        .subscribe();
+      .pipe(cacheLatest('foo', storage))
+      .subscribe();
 
-    const cachedValue =
-        await firstValueFrom(NEVER.pipe(cacheLatest<{}>('foo', storage)));
+    const cachedValue = await firstValueFrom(
+      NEVER.pipe(cacheLatest<{}>('foo', storage)),
+    );
     expect(cachedValue).toEqual({a: 42, b: 'foo', c: {d: [true]}});
   });
 

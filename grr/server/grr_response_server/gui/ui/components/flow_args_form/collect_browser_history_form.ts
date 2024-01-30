@@ -1,7 +1,10 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {Browser, CollectBrowserHistoryArgs} from '../../lib/api/api_interfaces';
 
 function makeControls() {
@@ -23,8 +26,10 @@ type Controls = ReturnType<typeof makeControls>;
   styleUrls: ['./collect_browser_history_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CollectBrowserHistoryForm extends
-    FlowArgumentForm<CollectBrowserHistoryArgs, Controls> {
+export class CollectBrowserHistoryForm extends FlowArgumentForm<
+  CollectBrowserHistoryArgs,
+  Controls
+> {
   override makeControls() {
     return makeControls();
   }

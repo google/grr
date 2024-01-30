@@ -4,10 +4,10 @@ import {Component, HostBinding, Input} from '@angular/core';
 @Component({
   selector: 'app-literal-path-glob-expression-warning',
   templateUrl: './literal_path_glob_expression_warning.ng.html',
-  styleUrls: ['./literal_path_glob_expression_warning.scss']
+  styleUrls: ['./literal_path_glob_expression_warning.scss'],
 })
 export class LiteralPathGlobExpressionWarning {
-  @Input() path: string|undefined|null;
+  @Input() path: string | undefined | null;
 
   @HostBinding('hidden')
   get hideWarning() {

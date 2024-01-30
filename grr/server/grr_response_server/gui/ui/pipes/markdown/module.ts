@@ -6,5 +6,4 @@ import {MarkdownPipe} from './markdown_pipe';
   declarations: [MarkdownPipe],
   exports: [MarkdownPipe],
 })
-export class MarkdownPipeModule {
-}
+export class MarkdownPipeModule {}

@@ -9,8 +9,10 @@ import {createDate} from './primitive';
 const VFS_PATH_RE = /^(\/*fs\/+)?([a-z]+)(.*)$/;
 
 /** Splits a VFS path "fs/os/foo" into PathType "OS" and path "/foo". */
-export function parseVfsPath(vfsPath: string):
-    {pathtype: PathSpecPathType, path: string} {
+export function parseVfsPath(vfsPath: string): {
+  pathtype: PathSpecPathType;
+  path: string;
+} {
   const match = VFS_PATH_RE.exec(vfsPath);
   assertNonNull(match, 'match');
 
@@ -21,7 +23,7 @@ export function parseVfsPath(vfsPath: string):
 }
 
 /** Constructs a File or Directory from the corresponding API data structure */
-export function translateFile(file: ApiFile): File|Directory {
+export function translateFile(file: ApiFile): File | Directory {
   assertKeyNonNull(file, 'isDirectory');
   assertKeyNonNull(file, 'name');
   assertKeyNonNull(file, 'path');
@@ -70,10 +72,14 @@ export function translateFile(file: ApiFile): File|Directory {
 
 /** Constructs a Map from paths to child entries. */
 export function translateBrowseFilesytemResult(
-    result: ApiBrowseFilesystemResult):
-    Map<string, ReadonlyArray<File|Directory>> {
-  return toMap(result.items ?? [], (entry) => {
-    assertKeyNonNull(entry, 'path');
-    return entry.path;
-  }, (entry) => (entry.children ?? []).map(translateFile));
+  result: ApiBrowseFilesystemResult,
+): Map<string, ReadonlyArray<File | Directory>> {
+  return toMap(
+    result.items ?? [],
+    (entry) => {
+      assertKeyNonNull(entry, 'path');
+      return entry.path;
+    },
+    (entry) => (entry.children ?? []).map(translateFile),
+  );
 }

@@ -13,7 +13,6 @@ import stat
 from typing import Collection
 from typing import Text
 
-from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -72,21 +71,6 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.timestamp = None
-
-  def Uname(self):
-    """OS summary string."""
-    return "%s-%s-%s" % (self.knowledge_base.os, self.os_release,
-                         self.os_version)
-
-  def GetGRRVersionString(self):
-    """Returns the client installation-name and GRR version as a string."""
-    client_info = self.startup_info.client_info
-    client_name = client_info.client_description or client_info.client_name
-    if client_info.client_version > 0:
-      client_version = str(client_info.client_version)
-    else:
-      client_version = _UNKNOWN_GRR_VERSION
-    return " ".join([client_name, client_version])
 
   def GetMacAddresses(self):
     """MAC addresses from all interfaces."""
@@ -190,22 +174,17 @@ class ClientFullInfo(rdf_structs.RDFProtoStruct):
 
   def GetLabelsNames(self, owner=None):
     return set(
-        Text(l.name) for l in self.labels if not owner or l.owner == owner)
+        Text(l.name) for l in self.labels if not owner or l.owner == owner
+    )
 
 
 class GRRUser(rdf_structs.RDFProtoStruct):
   """GRRUser object."""
+
   protobuf = objects_pb2.GRRUser
   rdf_deps = [
       rdf_crypto.Password,
   ]
-
-  def GetEmail(self):
-    """Returns the E-Mail address for the user."""
-    if config.CONFIG.Get("Email.enable_custom_email_address") and self.email:
-      return self.email
-
-    return "{}@{}".format(self.username, config.CONFIG.Get("Logging.domain"))
 
 
 class ApprovalGrant(rdf_structs.RDFProtoStruct):
@@ -682,17 +661,6 @@ class SHA256HashID(HashID):
     return SHA256HashID(h)
 
 
-class BlobID(HashID):
-  """Blob identificator."""
-
-  hash_id_length = 32
-
-  @classmethod
-  def FromBlobData(cls, data):
-    h = hashlib.sha256(data).digest()
-    return BlobID(h)
-
-
 class ClientPathID(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientPathID
   rdf_deps = [
@@ -703,9 +671,7 @@ class ClientPathID(rdf_structs.RDFProtoStruct):
 class BlobReference(rdf_structs.RDFProtoStruct):
   """A reference to a blob."""
   protobuf = objects_pb2.BlobReference
-  rdf_deps = [
-      BlobID,
-  ]
+  rdf_deps = []
 
   @classmethod
   def FromBlobImageChunkDescriptor(

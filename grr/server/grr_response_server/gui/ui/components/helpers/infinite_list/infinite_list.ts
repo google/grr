@@ -1,4 +1,13 @@
-import {AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, Output, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  ViewChild,
+} from '@angular/core';
 
 /**
  * A container loading more contents through infinite scroll.
@@ -9,8 +18,8 @@ import {AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, Ou
   styleUrls: ['./infinite_list.scss'],
 })
 export class InfiniteList implements AfterViewInit, OnChanges {
-  @Input() isLoading: boolean|null = null;
-  @Input() hasMore: boolean|null = null;
+  @Input() isLoading: boolean | null = null;
+  @Input() hasMore: boolean | null = null;
 
   @Output() readonly loadMore = new EventEmitter<void>();
 

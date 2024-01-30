@@ -18,7 +18,7 @@ import {ModifyHunt} from './modify_hunt';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatButtonModule,
@@ -30,14 +30,8 @@ import {ModifyHunt} from './modify_hunt';
     RolloutFormModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ModifyHunt,
-  ],
-  exports: [
-    ModifyHunt,
-  ]
+  declarations: [ModifyHunt],
+  exports: [ModifyHunt],
 })
-export class ModifyHuntModule {
-}
+export class ModifyHuntModule {}

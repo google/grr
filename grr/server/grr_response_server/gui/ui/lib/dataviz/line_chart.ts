@@ -32,7 +32,7 @@ declare interface LineChartSizing {
    * Spacing between the chart container element and the chart ploting space.
    * This is useful to prevent Axis labels from being cropped involuntarily.
    */
-  padding?: PaddingConfiguration|number;
+  padding?: PaddingConfiguration | number;
   /**
    * If true, the chart will listen to size changes on the parent HTML node
    * and will resize itself to fit the entire width and always respecting the
@@ -43,9 +43,12 @@ declare interface LineChartSizing {
 
 /** Configuration options for the Line Chart */
 export declare interface LineChartConfiguration<
-    LineChartDataset extends BaseLineChartDataset> {
-  scale?:
-      {x?: d3.ScaleLinear<number, number>; y?: d3.ScaleLinear<number, number>;};
+  LineChartDataset extends BaseLineChartDataset,
+> {
+  scale?: {
+    x?: d3.ScaleLinear<number, number>;
+    y?: d3.ScaleLinear<number, number>;
+  };
   sizing?: LineChartSizing;
   /**
    * Each line/area can be configurted through this property. `SeriesKey` stands
@@ -59,8 +62,9 @@ export declare interface LineChartConfiguration<
    *
    * This allows us to know which line the configuration should apply to.
    */
-  series?:
-      {[SeriesKey in keyof LineChartDataset]?: LineChartSeriesConfiguration;};
+  series?: {
+    [SeriesKey in keyof LineChartDataset]?: LineChartSeriesConfiguration;
+  };
 }
 
 /** Configuration object for each line/area in the chart. */
@@ -86,7 +90,7 @@ export const DEFAULT_TRANSITION_TIME_MS = 500;
 const DEFAULT_AXIS_LABEL_FRONT_SIZE = '14px';
 /** Defines the default height-to-width relationship of the chart */
 export const DEFAULT_HEIGHT_TO_WIDTH_RATIO = 1 / 2;
-const AXIS_COLOR = '#757575';  // Mat. $grey-palette 600
+const AXIS_COLOR = '#757575'; // Mat. $grey-palette 600
 const AXIS_TICKS_PER_WIDTHPX_RATIO = 1 / 80;
 
 // https://github.com/d3/d3-time-format
@@ -109,7 +113,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 const toXAxisDateLabel = d3.timeFormat(X_AXIS_LABEL_DATE_FORMAT);
 const toXAxisDateSubLabel = d3.timeFormat(X_AXIS_SUBLABEL_DATE_FORMAT);
 const toXAxisDateSubLabelWithYear = d3.timeFormat(
-    X_AXIS_SUBLABEL_DATE_FORMAT_WITH_YEAR,
+  X_AXIS_SUBLABEL_DATE_FORMAT_WITH_YEAR,
 );
 
 const HEX_CHAR_RANGE = '0123456789ABCDEF';
@@ -128,10 +132,18 @@ function generateRandomHexColor(): string {
  * the given configuration.
  */
 export class LineChart<LineChartDataset extends BaseLineChartDataset> {
-  private readonly parentNodeSelection:
-      d3.Selection<d3.BaseType, undefined, d3.BaseType, undefined>;
-  private chartSvgContainer?:
-      d3.Selection<SVGSVGElement, undefined, d3.BaseType, undefined>;
+  private readonly parentNodeSelection: d3.Selection<
+    d3.BaseType,
+    undefined,
+    d3.BaseType,
+    undefined
+  >;
+  private chartSvgContainer?: d3.Selection<
+    SVGSVGElement,
+    undefined,
+    d3.BaseType,
+    undefined
+  >;
 
   private readonly transitionDurationMs = DEFAULT_TRANSITION_TIME_MS;
 
@@ -170,35 +182,43 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   get yAxisTicks(): number {
-    const heightToWidthRatio = this.configuration?.sizing?.heightToWidthRatio ??
-        DEFAULT_HEIGHT_TO_WIDTH_RATIO;
+    const heightToWidthRatio =
+      this.configuration?.sizing?.heightToWidthRatio ??
+      DEFAULT_HEIGHT_TO_WIDTH_RATIO;
 
     const yAxisTicksPerHeightPxRatio =
-        AXIS_TICKS_PER_WIDTHPX_RATIO / heightToWidthRatio;
+      AXIS_TICKS_PER_WIDTHPX_RATIO / heightToWidthRatio;
 
     return this.chartPlotHeightPx * yAxisTicksPerHeightPxRatio;
   }
 
   get chartPlotWidthPx(): number {
-    return this.chartWidthPx - this.chartPaddingPx.leftPx -
-        this.chartPaddingPx.rightPx;
+    return (
+      this.chartWidthPx -
+      this.chartPaddingPx.leftPx -
+      this.chartPaddingPx.rightPx
+    );
   }
 
   get chartPlotHeightPx(): number {
-    return this.chartHeightPx - this.chartPaddingPx.topPx -
-        this.chartPaddingPx.bottomPx;
+    return (
+      this.chartHeightPx -
+      this.chartPaddingPx.topPx -
+      this.chartPaddingPx.bottomPx
+    );
   }
 
   constructor(
-      private readonly parentNode: Element,
-      private dataset: LineChartDataset,
-      private readonly configuration?: LineChartConfiguration<LineChartDataset>,
+    private readonly parentNode: Element,
+    private dataset: LineChartDataset,
+    private readonly configuration?: LineChartConfiguration<LineChartDataset>,
   ) {
     this.setChartSize(parentNode, configuration?.sizing);
     this.setChartPadding(configuration?.sizing?.padding);
 
-    this.parentNodeSelection =
-        d3.select<d3.BaseType, undefined>(this.parentNode);
+    this.parentNodeSelection = d3.select<d3.BaseType, undefined>(
+      this.parentNode,
+    );
 
     this.initializeScales();
     this.setAxisScales();
@@ -229,10 +249,11 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   private renderChartElements(): void {
-    this.chartSvgContainer = this.parentNodeSelection.append('svg')
-                                 .attr('class', 'chart-container')
-                                 .attr('width', `${this.chartWidthPx}px`)
-                                 .attr('height', `${this.chartHeightPx}px`);
+    this.chartSvgContainer = this.parentNodeSelection
+      .append('svg')
+      .attr('class', 'chart-container')
+      .attr('width', `${this.chartWidthPx}px`)
+      .attr('height', `${this.chartHeightPx}px`);
 
     this.recalculateScaleDomains(this.dataset);
     this.renderPaths();
@@ -242,8 +263,10 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   private renderPaths(): void {
     const datasetKeys = this.getCurrentDatasetKeys();
 
-    const pathContainer =
-        this.chartSvgContainer!.append('g').attr('class', 'path-container');
+    const pathContainer = this.chartSvgContainer!.append('g').attr(
+      'class',
+      'path-container',
+    );
 
     // The rendering order of the "path" elements is relevant, as the latest
     // sibling will always be shown in front of the previous sibling.
@@ -252,19 +275,22 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
       return this.getLineOrder(aKey) - this.getLineOrder(bKey);
     });
 
-    datasetKeysSortedByOrder.forEach(key => {
+    datasetKeysSortedByOrder.forEach((key) => {
       const color = this.getLineColor(key);
       const lineId = this.getLineId(key);
 
-      const path = pathContainer.append('path')
-                       .datum(this.dataset[key])
-                       .attr('class', `series-path`)
-                       .attr('id', lineId)
-                       .style('stroke', color);
+      const path = pathContainer
+        .append('path')
+        .datum(this.dataset[key])
+        .attr('class', `series-path`)
+        .attr('id', lineId)
+        .style('stroke', color);
 
-      if (this.getLineIsArea(key)) {  // We want an area:
+      if (this.getLineIsArea(key)) {
+        // We want an area:
         path.attr('d', this.getAreaGenerator()).style('fill', color);
-      } else {  // We only want a line:
+      } else {
+        // We only want a line:
         path.attr('d', this.getLineGenerator()).style('fill', 'none');
       }
     });
@@ -273,8 +299,8 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   private recalculateScaleDomains(dataset: LineChartDataset): void {
     const allChartDatapoints = this.getDatasetDatapoints(dataset);
 
-    const allXValues = allChartDatapoints.map(dp => dp.x);
-    const allYValues = allChartDatapoints.map(dp => dp.y);
+    const allXValues = allChartDatapoints.map((dp) => dp.x);
+    const allYValues = allChartDatapoints.map((dp) => dp.y);
 
     this.xScale!.domain([d3.min(allXValues)!, d3.max(allXValues)!]);
     this.yScale!.domain([d3.min(allYValues)!, d3.max(allYValues)!]);
@@ -282,23 +308,25 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
 
   private renderBothAxis(): void {
     const axisContainer = this.chartSvgContainer!.append('g')
-                              .attr('class', 'axis-container')
-                              .style('color', AXIS_COLOR);
+      .attr('class', 'axis-container')
+      .style('color', AXIS_COLOR);
 
-    axisContainer.append('g')
-        .attr('class', 'axis x-axis')
-        .style('font-size', DEFAULT_AXIS_LABEL_FRONT_SIZE)
-        .attr('transform', `translate(0, ${this.xAxisTopMarginPx})`)
-        .call(this.xAxis!)
-        .call(() => {
-          this.updateXAxisTickSubLabels();
-        });
+    axisContainer
+      .append('g')
+      .attr('class', 'axis x-axis')
+      .style('font-size', DEFAULT_AXIS_LABEL_FRONT_SIZE)
+      .attr('transform', `translate(0, ${this.xAxisTopMarginPx})`)
+      .call(this.xAxis!)
+      .call(() => {
+        this.updateXAxisTickSubLabels();
+      });
 
-    axisContainer.append('g')
-        .attr('class', 'axis y-axis')
-        .style('font-size', DEFAULT_AXIS_LABEL_FRONT_SIZE)
-        .attr('transform', `translate(${this.yAxisLeftMarginPx}, 0)`)
-        .call(this.yAxis!);
+    axisContainer
+      .append('g')
+      .attr('class', 'axis y-axis')
+      .style('font-size', DEFAULT_AXIS_LABEL_FRONT_SIZE)
+      .attr('transform', `translate(${this.yAxisLeftMarginPx}, 0)`)
+      .call(this.yAxis!);
   }
 
   private updateBothAxis(): void {
@@ -306,33 +334,34 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
     this.yAxis!.ticks(this.yAxisTicks);
 
     this.selectAxis('x')
-        .transition(d3.transition().duration(this.transitionDurationMs))
-        .attr('transform', `translate(0, ${this.xAxisTopMarginPx})`)
-        .call(this.xAxis!)
-        .on('end', () => {
-          // Note: We need to asynchronously trigger the function to add the
-          // dates to the X Axis labels, as old ticks are still present for some
-          // reason. Old ticks being present will cause the wrong dates
-          // being added (or no dates at all):
-          setTimeout(() => {
-            this.updateXAxisTickSubLabels();
-          });
+      .transition(d3.transition().duration(this.transitionDurationMs))
+      .attr('transform', `translate(0, ${this.xAxisTopMarginPx})`)
+      .call(this.xAxis!)
+      .on('end', () => {
+        // Note: We need to asynchronously trigger the function to add the
+        // dates to the X Axis labels, as old ticks are still present for some
+        // reason. Old ticks being present will cause the wrong dates
+        // being added (or no dates at all):
+        setTimeout(() => {
+          this.updateXAxisTickSubLabels();
         });
+      });
 
     this.selectAxis('y')
-        .transition(d3.transition().duration(this.transitionDurationMs))
-        .call(this.yAxis!);
+      .transition(d3.transition().duration(this.transitionDurationMs))
+      .call(this.yAxis!);
   }
 
   /**
    * Returns an Array containing all the Datapoints of the different series of
    * the dataset, mainly for domain calculation purposes.
    */
-  private getDatasetDatapoints(dataset: LineChartDataset):
-      LineChartDatapoint[] {
+  private getDatasetDatapoints(
+    dataset: LineChartDataset,
+  ): LineChartDatapoint[] {
     const datasetKeys = d3.keys(dataset) as Array<keyof LineChartDataset>;
 
-    return datasetKeys.map(key => dataset[key]).flat();
+    return datasetKeys.map((key) => dataset[key]).flat();
   }
 
   private initializeScales(): void {
@@ -349,11 +378,11 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   private resetScalesRange(): void {
     this.xScale!.range([
       this.chartPaddingPx.leftPx,
-      this.chartWidthPx - this.chartPaddingPx.rightPx
+      this.chartWidthPx - this.chartPaddingPx.rightPx,
     ]);
     this.yScale!.range([
       this.chartHeightPx - this.chartPaddingPx.bottomPx,
-      this.chartPaddingPx.topPx
+      this.chartPaddingPx.topPx,
     ]);
   }
 
@@ -364,8 +393,8 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
 
   private setAxisTicks(): void {
     this.xAxis!.ticks(this.xAxisTicks)
-        .tickSizeInner(-this.chartPlotHeightPx)
-        .tickFormat((timestamp => toXAxisDateLabel(new Date(timestamp))));
+      .tickSizeInner(-this.chartPlotHeightPx)
+      .tickFormat((timestamp) => toXAxisDateLabel(new Date(timestamp)));
 
     this.yAxis!.ticks(this.yAxisTicks);
   }
@@ -380,37 +409,39 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   private updateXAxisTickSubLabels(): void {
     const alreadyAddedDates = new Set<string>();
 
-    this.selectAxis('x').selectAll<SVGGElement, number>('.tick').each(
-        (tickTimestamp, i, nodes) => {
-          const tickSubtitleLabelFn =
-              new Date(tickTimestamp).getFullYear() < CURRENT_YEAR ?
-              toXAxisDateSubLabelWithYear :
-              toXAxisDateSubLabel;
+    this.selectAxis('x')
+      .selectAll<SVGGElement, number>('.tick')
+      .each((tickTimestamp, i, nodes) => {
+        const tickSubtitleLabelFn =
+          new Date(tickTimestamp).getFullYear() < CURRENT_YEAR
+            ? toXAxisDateSubLabelWithYear
+            : toXAxisDateSubLabel;
 
-          const tickSubtitleText = tickSubtitleLabelFn(new Date(tickTimestamp));
+        const tickSubtitleText = tickSubtitleLabelFn(new Date(tickTimestamp));
 
-          if (alreadyAddedDates.has(tickSubtitleText)) return;
+        if (alreadyAddedDates.has(tickSubtitleText)) return;
 
-          alreadyAddedDates.add(tickSubtitleText);
+        alreadyAddedDates.add(tickSubtitleText);
 
-          const currentTick = d3.select(nodes[i]);
-          const currentTickLabel = currentTick.select('text');
-          const currentTickSubLabel = currentTick.select('.tick-subtitle');
+        const currentTick = d3.select(nodes[i]);
+        const currentTickLabel = currentTick.select('text');
+        const currentTickSubLabel = currentTick.select('.tick-subtitle');
 
-          if (currentTickSubLabel.empty()) {
-            const tickSubLabelYPosition =
-                +currentTickLabel.attr('y') + X_AXIS_SUBLABEL_MARGIN_PX;
+        if (currentTickSubLabel.empty()) {
+          const tickSubLabelYPosition =
+            +currentTickLabel.attr('y') + X_AXIS_SUBLABEL_MARGIN_PX;
 
-            currentTick.append('text')
-                .attr('class', 'tick-subtitle')
-                .text(tickSubtitleText)
-                .style('fill', 'currentColor')
-                .attr('y', tickSubLabelYPosition)
-                .attr('dy', currentTickLabel.attr('dy'));
-          } else {
-            currentTickSubLabel.text(tickSubtitleText);
-          }
-        });
+          currentTick
+            .append('text')
+            .attr('class', 'tick-subtitle')
+            .text(tickSubtitleText)
+            .style('fill', 'currentColor')
+            .attr('y', tickSubLabelYPosition)
+            .attr('dy', currentTickLabel.attr('dy'));
+        } else {
+          currentTickSubLabel.text(tickSubtitleText);
+        }
+      });
   }
 
   private getCurrentDatasetKeys(): Array<keyof LineChartDataset> {
@@ -418,34 +449,38 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   private getLineGenerator(): d3.Line<LineChartDatapoint> {
-    return d3
+    return (
+      d3
         .line<LineChartDatapoint>()
         // We filter out incomplete datapoints:
-        .defined(dp => isNonNull(dp.x) && isNonNull(dp.y))
+        .defined((dp) => isNonNull(dp.x) && isNonNull(dp.y))
         .x((dp) => this.xScale!(dp.x))
-        .y((dp) => this.yScale!(dp.y));
+        .y((dp) => this.yScale!(dp.y))
+    );
   }
 
   private getAreaGenerator(): d3.Area<LineChartDatapoint> {
     const lowestYAxisValue = this.yScale!.domain()[0];
     const areaBottomBoundary = this.yScale!(lowestYAxisValue);
 
-    return d3
+    return (
+      d3
         .area<LineChartDatapoint>()
         // We filter out incomplete datapoints:
-        .defined(dp => isNonNull(dp.x) && isNonNull(dp.y))
+        .defined((dp) => isNonNull(dp.x) && isNonNull(dp.y))
         .x((dp) => this.xScale!(dp.x))
         .y0(areaBottomBoundary)
-        .y1((dp) => this.yScale!(dp.y));
+        .y1((dp) => this.yScale!(dp.y))
+    );
   }
 
   private selectLinePath(key: keyof LineChartDataset) {
     return d3.select<SVGPathElement, LineChartDataset[keyof LineChartDataset]>(
-        `.series-path#${this.getLineId(key)}`,
+      `.series-path#${this.getLineId(key)}`,
     );
   }
 
-  private selectAxis(axis: 'x'|'y') {
+  private selectAxis(axis: 'x' | 'y') {
     return d3.select<SVGGElement, number[]>(`.${axis}-axis`);
   }
 
@@ -454,9 +489,9 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   private setChartSize(
-      containerElement: Element,
-      config?: LineChartSizing,
-      ): void {
+    containerElement: Element,
+    config?: LineChartSizing,
+  ): void {
     if (isNonNull(config?.widthPx)) {
       this.chartWidthPx = config!.widthPx;
     } else {
@@ -467,12 +502,12 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
     }
 
     const heightWidthRatio =
-        config?.heightToWidthRatio ?? DEFAULT_HEIGHT_TO_WIDTH_RATIO;
+      config?.heightToWidthRatio ?? DEFAULT_HEIGHT_TO_WIDTH_RATIO;
 
     this.chartHeightPx = this.chartWidthPx * heightWidthRatio;
   }
 
-  private setChartPadding(padding?: PaddingConfiguration|number): void {
+  private setChartPadding(padding?: PaddingConfiguration | number): void {
     if (isNull(padding)) return;
 
     if (typeof padding === 'number') {
@@ -521,8 +556,10 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
    * lines/areas) based on the current dataset.
    */
   private redrawChart(): void {
-    this.chartSvgContainer!.attr('width', `${this.chartWidthPx}px`)
-        .attr('height', `${this.chartHeightPx}px`);
+    this.chartSvgContainer!.attr('width', `${this.chartWidthPx}px`).attr(
+      'height',
+      `${this.chartHeightPx}px`,
+    );
 
     this.recalculateScaleDomains(this.dataset);
     this.updateBothAxis();
@@ -530,15 +567,17 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   private redrawLines(): void {
-    this.getCurrentDatasetKeys().forEach(key => {
+    this.getCurrentDatasetKeys().forEach((key) => {
       this.selectLinePath(key)
-          // We set the new data for the line:
-          .datum(this.dataset[key])
-          .transition(d3.transition().duration(this.transitionDurationMs))
-          .attr(
-              'd',
-              this.getLineIsArea(key) ? this.getAreaGenerator() :
-                                        this.getLineGenerator());
+        // We set the new data for the line:
+        .datum(this.dataset[key])
+        .transition(d3.transition().duration(this.transitionDurationMs))
+        .attr(
+          'd',
+          this.getLineIsArea(key)
+            ? this.getAreaGenerator()
+            : this.getLineGenerator(),
+        );
     });
   }
 

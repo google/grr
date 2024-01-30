@@ -4,6 +4,7 @@
 import os
 import random
 
+from grr_response_proto import objects_pb2
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -11,8 +12,9 @@ class DatabaseTestBlobReferencesMixin(object):
   """A mixin that provides tests for hash blob references."""
 
   def testHashBlobReferenceCanBeWrittenAndReadBack(self):
-    blob_ref = rdf_objects.BlobReference(
-        offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))
+    blob_ref = objects_pb2.BlobReference(
+        offset=0, size=42, blob_id=(b"01234567" * 4)
+    )
     hash_id = rdf_objects.SHA256HashID(b"0a1b2c3d" * 4)
 
     data = {hash_id: [blob_ref]}
@@ -33,8 +35,9 @@ class DatabaseTestBlobReferencesMixin(object):
     self.assertEqual(results, {})
 
   def testCorrectlyHandlesRequestWithOneExistingAndOneMissingHash(self):
-    blob_ref = rdf_objects.BlobReference(
-        offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))
+    blob_ref = objects_pb2.BlobReference(
+        offset=0, size=42, blob_id=(b"01234567" * 4)
+    )
     hash_id = rdf_objects.SHA256HashID(b"0a1b2c3d" * 4)
 
     self.db.WriteHashBlobReferences({hash_id: [blob_ref]})
@@ -48,10 +51,12 @@ class DatabaseTestBlobReferencesMixin(object):
     })
 
   def testMultipleHashBlobReferencesCanBeWrittenAndReadBack(self):
-    blob_ref_1 = rdf_objects.BlobReference(
-        offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))
-    blob_ref_2 = rdf_objects.BlobReference(
-        offset=42, size=42, blob_id=rdf_objects.BlobID(b"01234568" * 4))
+    blob_ref_1 = objects_pb2.BlobReference(
+        offset=0, size=42, blob_id=(b"01234567" * 4)
+    )
+    blob_ref_2 = objects_pb2.BlobReference(
+        offset=42, size=42, blob_id=(b"01234568" * 4)
+    )
 
     hash_id_1 = rdf_objects.SHA256HashID(b"0a1b2c3d" * 4)
     hash_id_2 = rdf_objects.SHA256HashID(b"0a1b2c3e" * 4)
@@ -77,8 +82,8 @@ class DatabaseTestBlobReferencesMixin(object):
     for _ in range(50000):
       hash_id = rdf_objects.SHA256HashID(os.urandom(32))
 
-      blob_ref = rdf_objects.BlobReference()
-      blob_ref.blob_id = rdf_objects.BlobID(os.urandom(32))
+      blob_ref = objects_pb2.BlobReference()
+      blob_ref.blob_id = os.urandom(32)
       blob_ref.offset = random.randint(0, 1024 * 1024 * 1024)
       blob_ref.size = random.randint(128, 256)
 

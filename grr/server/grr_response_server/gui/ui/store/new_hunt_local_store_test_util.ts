@@ -1,4 +1,6 @@
-/** Test helpers. */
+/**
+ * Test helpers.
+ */
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {NewHuntLocalStore} from './new_hunt_local_store';

@@ -1,14 +1,29 @@
-import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, HostListener, OnDestroy, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  HostBinding,
+  HostListener,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {filter, map} from 'rxjs/operators';
 
-import {toDurationUnit} from '../../../../components/form/duration_input/duration_conversion';
+import {ByteFormControl} from '../../../../components/form/byte_input/byte_form_control';
+import {DurationFormControl} from '../../../../components/form/duration_input/duration_form_control';
 import {RolloutForm} from '../../../../components/hunt/rollout_form/rollout_form';
 import {SafetyLimits} from '../../../../lib/models/hunt';
 import {observeOnDestroy} from '../../../../lib/reactive';
 import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
 
+enum InputToggle {
+  UNLIMITED = 'Unlimited',
+  CUSTOM = 'Custom',
+}
+
+const UNLIMITED_INPUT = BigInt(0);
 
 /**
  * Provides the forms for new hunt params configuration.
@@ -28,61 +43,50 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
 
   hideAdvancedParams = true;
 
-  readonly defaultSafetyLimits$: Observable<SafetyLimits|undefined> =
-      this.newHuntLocalStore.safetyLimits$;
+  readonly defaultSafetyLimits$: Observable<SafetyLimits | undefined> =
+    this.newHuntLocalStore.safetyLimits$;
 
   readonly controls = {
-    'expiryTime': new FormControl(BigInt(0), {nonNullable: true}),
-    'crashLimit': new FormControl(BigInt(0), {nonNullable: true}),
-    'avgResultsPerClientLimit': new FormControl(BigInt(0), {nonNullable: true}),
-    'avgCpuSecondsPerClientLimit': new FormControl(
-        BigInt(0), {nonNullable: true}),
-    'avgNetworkBytesPerClientLimit': new FormControl(
-        BigInt(0), {nonNullable: true}),
-    'perClientCpuLimit': new FormControl(BigInt(0), {nonNullable: true}),
-    'perClientNetworkBytesLimit': new FormControl(
-        BigInt(0), {nonNullable: true}),
+    expiryTime: new DurationFormControl(BigInt(0), {
+      nonNullable: true,
+      validators: [DurationFormControl.defaultTimeValidator()],
+    }),
+    crashLimit: new FormControl(BigInt(0), {nonNullable: true}),
+    avgResultsPerClientLimit: new FormControl(BigInt(0), {nonNullable: true}),
+    avgCpuSecondsPerClientLimit: new DurationFormControl(BigInt(0), {
+      nonNullable: true,
+      validators: [DurationFormControl.defaultTimeValidator()],
+    }),
+    avgNetworkBytesPerClientLimit: new DurationFormControl(BigInt(0), {
+      nonNullable: true,
+      validators: [ByteFormControl.byteValidator()],
+    }),
+    perClientCpuLimitToggle: new FormControl(InputToggle.UNLIMITED, {
+      nonNullable: true,
+    }),
+    perClientCpuLimit: new DurationFormControl(BigInt(0), {
+      nonNullable: true,
+      validators: [DurationFormControl.defaultTimeValidator()],
+    }),
+    perClientNetworkBytesLimitToggle: new FormControl(InputToggle.UNLIMITED, {
+      nonNullable: true,
+    }),
+    perClientNetworkBytesLimit: new ByteFormControl(BigInt(0), {
+      nonNullable: true,
+      validators: [ByteFormControl.byteValidator()],
+    }),
   };
   readonly form = new FormGroup(this.controls);
 
-  readonly formExpiryTimeSeconds$ = this.form.valueChanges.pipe(
-      // durationInput is guaranteed to return a number.
-      // It uses `parseDurationString` from
-      // ../form/duration_input/duration_conversion.
-      map(values => Number(values.expiryTime)),
-      filter(time => time !== undefined && time !== null),
-  );
-  readonly durationFormattedParts$ = this.formExpiryTimeSeconds$.pipe(
-      map(formTimeNumber => toDurationUnit(formTimeNumber, 'long')));
-  readonly durationFormattedNumber$ = this.durationFormattedParts$.pipe(
-      map(([durationOnly]) => durationOnly.toLocaleString()));
-  readonly durationFormattedUnit$ =
-      this.durationFormattedParts$.pipe(map(([, unitOnly]) => unitOnly));
-
-  readonly formPerClientCpuLimitSeconds$ = this.form.valueChanges.pipe(
-      // durationInput is guaranteed to return a number.
-      // It uses `parseDurationString` from
-      // ../form/duration_input/duration_conversion.
-      map(values => Number(values.perClientCpuLimit)),
-      filter(cpuLimit => cpuLimit !== undefined && cpuLimit !== null),
-  );
-  readonly perClientCpuLimitFormattedParts$ =
-      this.formPerClientCpuLimitSeconds$.pipe(
-          map(formNumber => toDurationUnit(formNumber, 'long')));
-  readonly perClientCpuLimitFormattedNumber$ =
-      this.perClientCpuLimitFormattedParts$.pipe(
-          map(([numberOnly]) => numberOnly.toLocaleString()));
-  readonly perClientCpuLimitFormattedUnit$ =
-      this.perClientCpuLimitFormattedParts$.pipe(
-          map(([, unitOnly]) => unitOnly));
+  readonly InputToggle = InputToggle;
 
   constructor(
-      private readonly changeDetection: ChangeDetectorRef,
-      private readonly newHuntLocalStore: NewHuntLocalStore,
+    private readonly changeDetection: ChangeDetectorRef,
+    private readonly newHuntLocalStore: NewHuntLocalStore,
   ) {}
 
   ngAfterViewInit() {
-    this.newHuntLocalStore.safetyLimits$.subscribe(safetyLimits => {
+    this.newHuntLocalStore.safetyLimits$.subscribe((safetyLimits) => {
       this.setFormState(safetyLimits);
     });
   }
@@ -111,14 +115,21 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
   setFormState(safetyLimits: SafetyLimits) {
     this.rolloutForm.setFormState(safetyLimits);
     this.form.setValue({
-      'expiryTime': safetyLimits.expiryTime,
-      'crashLimit': safetyLimits.crashLimit,
-      'avgResultsPerClientLimit': safetyLimits.avgResultsPerClientLimit,
-      'avgCpuSecondsPerClientLimit': safetyLimits.avgCpuSecondsPerClientLimit,
-      'avgNetworkBytesPerClientLimit':
-          safetyLimits.avgNetworkBytesPerClientLimit,
-      'perClientCpuLimit': safetyLimits.perClientCpuLimit,
-      'perClientNetworkBytesLimit': safetyLimits.perClientNetworkBytesLimit,
+      expiryTime: safetyLimits.expiryTime,
+      crashLimit: safetyLimits.crashLimit,
+      avgResultsPerClientLimit: safetyLimits.avgResultsPerClientLimit,
+      avgCpuSecondsPerClientLimit: safetyLimits.avgCpuSecondsPerClientLimit,
+      avgNetworkBytesPerClientLimit: safetyLimits.avgNetworkBytesPerClientLimit,
+      perClientCpuLimitToggle:
+        safetyLimits.perClientCpuLimit === UNLIMITED_INPUT
+          ? InputToggle.UNLIMITED
+          : InputToggle.CUSTOM,
+      perClientCpuLimit: safetyLimits.perClientCpuLimit,
+      perClientNetworkBytesLimitToggle:
+        safetyLimits.perClientNetworkBytesLimit === UNLIMITED_INPUT
+          ? InputToggle.UNLIMITED
+          : InputToggle.CUSTOM,
+      perClientNetworkBytesLimit: safetyLimits.perClientNetworkBytesLimit,
     });
     this.changeDetection.markForCheck();
   }
@@ -127,19 +138,28 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
     const partialLimits = this.rolloutForm.getPartialLimits();
     return {
       ...partialLimits,
-      expiryTime: BigInt(this.form.get('expiryTime')!.value),
-      crashLimit: BigInt(this.form.get('crashLimit')!.value),
+      expiryTime: BigInt(this.controls.expiryTime.value),
+      crashLimit: BigInt(this.controls.crashLimit.value),
 
-      avgResultsPerClientLimit:
-          BigInt(this.form.get('avgResultsPerClientLimit')!.value),
-      avgCpuSecondsPerClientLimit:
-          BigInt(this.form.get('avgCpuSecondsPerClientLimit')!.value),
-      avgNetworkBytesPerClientLimit:
-          BigInt(this.form.get('avgNetworkBytesPerClientLimit')!.value),
+      avgResultsPerClientLimit: BigInt(
+        this.controls.avgResultsPerClientLimit.value,
+      ),
+      avgCpuSecondsPerClientLimit: BigInt(
+        this.controls.avgCpuSecondsPerClientLimit.value,
+      ),
+      avgNetworkBytesPerClientLimit: BigInt(
+        this.controls.avgNetworkBytesPerClientLimit.value,
+      ),
 
-      perClientCpuLimit: BigInt(this.form.get('perClientCpuLimit')!.value),
+      perClientCpuLimit:
+        this.controls.perClientCpuLimitToggle.value === InputToggle.UNLIMITED
+          ? UNLIMITED_INPUT
+          : BigInt(this.controls.perClientCpuLimit.value),
       perClientNetworkBytesLimit:
-          BigInt(this.form.get('perClientNetworkBytesLimit')!.value),
+        this.controls.perClientNetworkBytesLimitToggle.value ===
+        InputToggle.UNLIMITED
+          ? UNLIMITED_INPUT
+          : BigInt(this.controls.perClientNetworkBytesLimit.value),
     };
   }
 }

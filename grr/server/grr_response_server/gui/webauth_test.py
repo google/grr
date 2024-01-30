@@ -5,12 +5,12 @@ import base64
 from unittest import mock
 
 from absl import app
+from google.oauth2 import id_token
 import requests
-
 from werkzeug import test as werkzeug_test
 
-from google.oauth2 import id_token
-
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_server import data_store
 from grr_response_server.gui import http_response
 from grr_response_server.gui import validate_iap
@@ -322,8 +322,12 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
 
 class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
-  def _SetupUser(self, user, password):
-    data_store.REL_DB.WriteGRRUser(user, password)
+  # TODO: Stop using `rdf_crypto.Password`.
+  def _SetupUser(self, user: str, password: str) -> None:
+    rdf_pw = rdf_crypto.Password()
+    rdf_pw.SetPassword(password)
+    proto_password = mig_crypto.ToProtoPassword(rdf_pw)
+    data_store.REL_DB.WriteGRRUser(user, proto_password)
 
   def testSecurityCheckUnicode(self):
     user = "żymścimił"

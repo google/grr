@@ -1,10 +1,26 @@
 import {CommonModule} from '@angular/common';
-import {AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Input,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import * as d3 from 'd3';
 
-import {ChartLegend, ChartLegendConfiguration} from '../../../../lib/dataviz/chart_legend';
-import {BaseLineChartDataset, LineChart, LineChartConfiguration, LineChartDatapoint} from '../../../../lib/dataviz/line_chart';
+import {
+  ChartLegend,
+  ChartLegendConfiguration,
+} from '../../../../lib/dataviz/chart_legend';
+import {
+  BaseLineChartDataset,
+  LineChart,
+  LineChartConfiguration,
+  LineChartDatapoint,
+} from '../../../../lib/dataviz/line_chart';
 import {isNonNull, isNull} from '../../../../lib/preconditions';
 import {TimestampModule} from '../../../timestamp/module';
 
@@ -17,16 +33,13 @@ const IN_PROGRESS_CLIENTS_CHART_COLOR = '#C4EED0';
   templateUrl: './hunt_progress_chart.ng.html',
   styleUrls: ['./hunt_progress_chart.scss'],
   standalone: true,
-  imports: [
-    CommonModule,
-    MatTooltipModule,
-    TimestampModule,
-  ],
+  imports: [CommonModule, MatTooltipModule, TimestampModule],
 })
 export class HuntProgressChart implements AfterViewInit, OnDestroy {
   @Input()
-  set chartProgressData(chartData: HuntProgressLineChartDataset|null|
-                        undefined) {
+  set chartProgressData(
+    chartData: HuntProgressLineChartDataset | null | undefined,
+  ) {
     this.chartData = chartData;
 
     if (!this.templateIsReady || !this.hasDataForChart) return;
@@ -42,16 +55,18 @@ export class HuntProgressChart implements AfterViewInit, OnDestroy {
   private readonly progressChartContainerRef!: ElementRef<HTMLDivElement>;
 
   private templateIsReady = false;
-  private chartData: HuntProgressLineChartDataset|null|undefined;
+  private chartData: HuntProgressLineChartDataset | null | undefined;
 
-  huntProgressChart: HuntProgressChartD3|undefined;
+  huntProgressChart: HuntProgressChartD3 | undefined;
 
   get hasDataForChart(): boolean {
     if (isNull(this.chartData)) return false;
 
     // We need at least 2 datapoints in a series in order to render a line:
-    return this.chartData.completedClients.length >= 2 ||
-        this.chartData.inProgressClients.length >= 2;
+    return (
+      this.chartData.completedClients.length >= 2 ||
+      this.chartData.inProgressClients.length >= 2
+    );
   }
 
   constructor(private readonly cdr: ChangeDetectorRef) {}
@@ -93,27 +108,29 @@ export class HuntProgressChart implements AfterViewInit, OnDestroy {
 
   private renderLineChart(): void {
     this.huntProgressChart = new HuntProgressChartD3(
-        this.progressChartContainerRef.nativeElement,
-        this.chartData!,
+      this.progressChartContainerRef.nativeElement,
+      this.chartData!,
     );
   }
 }
 
 /** Data-structure to be consumed by the Hunt Progress Line Chart */
-export declare interface HuntProgressLineChartDataset extends
-    BaseLineChartDataset {
+export declare interface HuntProgressLineChartDataset
+  extends BaseLineChartDataset {
   completedClients: LineChartDatapoint[];
   inProgressClients: LineChartDatapoint[];
 }
 
 class HuntProgressChartD3 {
-  private readonly lineChart: LineChart<HuntProgressLineChartDataset>|undefined;
+  private readonly lineChart:
+    | LineChart<HuntProgressLineChartDataset>
+    | undefined;
   private readonly chartLegend: ChartLegend;
   private readonly xScale: d3.ScaleLinear<number, number>;
 
   constructor(
-      private readonly container: d3.BaseType,
-      private readonly lineChartDataset: HuntProgressLineChartDataset,
+    private readonly container: d3.BaseType,
+    private readonly lineChartDataset: HuntProgressLineChartDataset,
   ) {
     const chartContainerSelection = d3.select(this.container);
 
@@ -145,36 +162,36 @@ class HuntProgressChartD3 {
     // consumed by the future bar-chart:
     this.xScale = d3.scaleLinear();
 
-    const lineChartConfig:
-        LineChartConfiguration<HuntProgressLineChartDataset> = {
-          scale: {x: this.xScale},
-          sizing: {
-            padding: {
-              topPx: 20,
-              rightPx: 50,
-              bottomPx: 50,
-              leftPx: 60,
-            },
-            rerenderOnResize: true,
+    const lineChartConfig: LineChartConfiguration<HuntProgressLineChartDataset> =
+      {
+        scale: {x: this.xScale},
+        sizing: {
+          padding: {
+            topPx: 20,
+            rightPx: 50,
+            bottomPx: 50,
+            leftPx: 60,
           },
-          series: {
-            completedClients: {
-              color: COMPLETED_CLIENTS_CHART_COLOR,
-              isArea: true,
-              order: 2,
-            },
-            inProgressClients: {
-              color: IN_PROGRESS_CLIENTS_CHART_COLOR,
-              isArea: true,
-              order: 1,
-            },
-          }
-        };
+          rerenderOnResize: true,
+        },
+        series: {
+          completedClients: {
+            color: COMPLETED_CLIENTS_CHART_COLOR,
+            isArea: true,
+            order: 2,
+          },
+          inProgressClients: {
+            color: IN_PROGRESS_CLIENTS_CHART_COLOR,
+            isArea: true,
+            order: 1,
+          },
+        },
+      };
 
     this.lineChart = new LineChart(
-        containerNode,
-        this.lineChartDataset,
-        lineChartConfig,
+      containerNode,
+      this.lineChartDataset,
+      lineChartConfig,
     );
 
     this.lineChart.initialChartRender();

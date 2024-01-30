@@ -21,6 +21,7 @@ from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import transfer
+from grr_response_server.models import blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -407,7 +408,7 @@ class LegacyFileFinder(
 
 def _GetPendingBlobIDs(
     responses: Collection[rdf_file_finder.FileFinderResult],
-) -> Sequence[Tuple[rdf_file_finder.FileFinderResult, Set[rdf_objects.BlobID]]]:
+) -> Sequence[Tuple[rdf_file_finder.FileFinderResult, Set[blobs.BlobID]]]:
   """For each FileFinderResult get reported but not yet stored blobs.
 
   Args:
@@ -427,7 +428,7 @@ def _GetPendingBlobIDs(
     # Store the total number of chunks per response.
     response_blob_ids[idx] = set()
     for c in r.transferred_file.chunks:
-      blob_id = rdf_objects.BlobID.FromSerializedBytes(c.digest)
+      blob_id = blobs.BlobID(c.digest)
       blob_ids.add(blob_id)
       response_blob_ids[idx].add(blob_id)
 
@@ -570,7 +571,7 @@ class ClientFileFinder(flow_base.FlowBase):
 
     response_pending_blob_ids = _GetPendingBlobIDs(list(responses))
     # Needed in case we need to report an error (see below).
-    sample_pending_blob_id = None
+    sample_pending_blob_id: Optional[blobs.BlobID] = None
     num_pending_blobs = 0
     for response, pending_blob_ids in response_pending_blob_ids:
       if not pending_blob_ids:
@@ -658,9 +659,9 @@ class ClientFileFinder(flow_base.FlowBase):
       for c in chunks:
         blob_refs.append(
             rdf_objects.BlobReference(
-                offset=c.offset,
-                size=c.length,
-                blob_id=rdf_objects.BlobID.FromSerializedBytes(c.digest)))
+                offset=c.offset, size=c.length, blob_id=c.digest
+            )
+        )
         file_size += c.length
 
       client_path_path_info[client_path] = path_info

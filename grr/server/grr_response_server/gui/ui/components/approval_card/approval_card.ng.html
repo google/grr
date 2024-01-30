@@ -156,6 +156,45 @@
         </mat-checkbox>
       </div>
 
+      <div *ngIf="showDuration" class="duration">
+        <div *ngIf="!showDurationInput">
+          <ng-container *ngIf="defaultAccessDurationDays$ | async as defaultAccessDurationDays">
+            Default duration: {{ defaultAccessDurationDays }} days.
+          </ng-container>
+          <a class="changeDuration" *ngIf="editableDuration" id="showDurationInputButton" (click)="toggleDurationInputField()" type="button">
+            Change duration<mat-icon matTooltip="Change duration" class="edit-icon">edit</mat-icon>
+          </a>
+        </div>
+        <div *ngIf="showDurationInput" class="durationInput">
+          <mat-form-field name="durationFormField" appearance="outline">
+            <mat-label>Access Duration
+              <ng-container *ngIf="maxAccessDurationDays$ | async as maxAccessDurationDays">
+                (max {{ maxAccessDurationDays }} days)
+              </ng-container>
+            </mat-label>
+            <input
+              matInput
+              durationInput
+              [formControl]="controls.duration"
+              name="duration"
+              autocomplete="off"
+            />
+            <mat-hint name="durationHint" align="start">
+              <ng-container *ngIf="controls.duration.showError() else showDuration">
+                {{controls.duration.errors?.['input_error'] ?
+                  controls.duration.errors?.['input_error'] : "Invalid input"}}
+              </ng-container>
+              <ng-template #showDuration>
+                Expires in {{ durationHint$ | async }}<br/>
+              </ng-template>
+            </mat-hint>
+          </mat-form-field>
+          <mat-icon
+            matTooltip="week (w), day (d), hour (h), minute (m), second (s)"
+            class="info-icon">info_outline</mat-icon>
+        </div>
+      </div>
+
       <mat-error *ngIf="error$ | async as error">{{error}}</mat-error>
 
       <button

@@ -145,7 +145,7 @@ class PasswdBufferParser(parsers.SingleResponseParser[rdf_client.User]):
   """Parser for lines grepped from passwd files."""
 
   output_types = [rdf_client.User]
-  supported_artifacts = ["LinuxPasswdHomedirs", "NssCacheLinuxPasswdHomedirs"]
+  supported_artifacts = ["LinuxPasswdHomedirs"]
 
   def ParseResponse(
       self,

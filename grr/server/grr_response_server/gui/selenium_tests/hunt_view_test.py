@@ -8,7 +8,6 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import hunt
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -122,9 +121,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
-        flow_id=flow.RandomFlowId(),
+        flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now())
+        create_time=rdfvalue.RDFDatetime.Now(),
+    )
     rdf_flow.cpu_time_used.user_cpu_time = 5000
     rdf_flow.network_bytes_sent = 1000000
     data_store.REL_DB.WriteFlowObject(rdf_flow)
@@ -148,9 +148,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
-        flow_id=flow.RandomFlowId(),
+        flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now())
+        create_time=rdfvalue.RDFDatetime.Now(),
+    )
     rdf_flow.cpu_time_used.user_cpu_time = 5000
     rdf_flow.network_bytes_sent = 1000000
     data_store.REL_DB.WriteFlowObject(rdf_flow)
@@ -170,9 +171,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
-        flow_id=flow.RandomFlowId(),
+        flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now())
+        create_time=rdfvalue.RDFDatetime.Now(),
+    )
     rdf_flow.cpu_time_used.user_cpu_time = 1000
     rdf_flow.network_bytes_sent = 10000000
     data_store.REL_DB.WriteFlowObject(rdf_flow)

@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 """The MySQL database methods for blobs handling."""
+from typing import Collection, Mapping, Optional
 
+import MySQLdb.cursors
 
 from grr_response_core.lib.util import precondition
+from grr_response_proto import objects_pb2
 from grr_response_server import blob_store
 from grr_response_server.databases import mysql_utils
+from grr_response_server.models import blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Maximum size of one blob chunk, affected by MySQL configuration, especially
@@ -88,7 +92,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     """Writes given blobs."""
     chunks = []
     for blob_id, blob in blob_id_data_map.items():
-      chunks.extend(_BlobToChunks(blob_id.AsBytes(), blob))
+      chunks.extend(_BlobToChunks(bytes(blob_id), blob))
     for values in _PartitionChunks(chunks):
       self._WriteBlobsBatch(values)
 
@@ -104,10 +108,10 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
              "WHERE blob_id IN {} "
              "ORDER BY blob_id, chunk_index ASC").format(
                  mysql_utils.Placeholders(len(blob_ids)))
-    cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
+    cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
     results = {blob_id: None for blob_id in blob_ids}
     for blob_id_bytes, blob in cursor.fetchall():
-      blob_id = rdf_objects.BlobID.FromSerializedBytes(blob_id_bytes)
+      blob_id = blobs.BlobID(blob_id_bytes)
       if results[blob_id] is None:
         results[blob_id] = blob
       else:
@@ -126,25 +130,39 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
              "FORCE INDEX (PRIMARY) "
              "WHERE blob_id IN {}".format(
                  mysql_utils.Placeholders(len(blob_ids))))
-    cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
-    for blob_id, in cursor.fetchall():
-      exists[rdf_objects.BlobID.FromSerializedBytes(blob_id)] = True
+    cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
+    for (blob_id_bytes,) in cursor.fetchall():
+      exists[blobs.BlobID(blob_id_bytes)] = True
     return exists
 
   @mysql_utils.WithTransaction()
-  def WriteHashBlobReferences(self, references_by_hash, cursor):
+  def WriteHashBlobReferences(
+      self,
+      references_by_hash: Mapping[
+          rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
+      ],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Writes blob references for a given set of hashes."""
     values = []
     for hash_id, blob_refs in references_by_hash.items():
-      refs = rdf_objects.BlobReferences(items=blob_refs).SerializeToBytes()
+      refs = objects_pb2.BlobReferences()
+      for blob_ref in blob_refs:
+        refs.items.append(blob_ref)
       values.append({
           "hash_id": hash_id.AsBytes(),
-          "blob_references": refs,
+          "blob_references": refs.SerializeToString(),
       })
     _Insert(cursor, "hash_blob_references", values)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadHashBlobReferences(self, hashes, cursor):
+  def ReadHashBlobReferences(
+      self,
+      hashes: Collection[rdf_objects.SHA256HashID],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Mapping[
+      rdf_objects.SHA256HashID, Optional[Collection[objects_pb2.BlobReference]]
+  ]:
     """Reads blob references of a given set of hashes."""
     if not hashes:
       return {}
@@ -155,6 +173,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     results = {hash_id: None for hash_id in hashes}
     for hash_id, blob_references in cursor.fetchall():
       sha_hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(hash_id)
-      refs = rdf_objects.BlobReferences.FromSerializedBytes(blob_references)
+      refs = objects_pb2.BlobReferences()
+      refs.ParseFromString(blob_references)
       results[sha_hash_id] = list(refs.items)
     return results

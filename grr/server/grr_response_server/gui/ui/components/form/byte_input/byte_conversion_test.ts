@@ -44,17 +44,21 @@ describe('toByteUnit', () => {
     expect(toByteUnit(1000 * 1000 * 1000 * 1000 * 1000)).toEqual([1, 'PB']);
     expect(toByteUnit(1024 * 1024 * 1024 * 1024 * 1024)).toEqual([1, 'PiB']);
     expect(toByteUnit(999 * 1000 * 1000 * 1000 * 1000 * 1000)).toEqual([
-      999, 'PB'
+      999,
+      'PB',
     ]);
     expect(toByteUnit(1023 * 1024 * 1024 * 1024 * 1024 * 1024)).toEqual([
-      1023, 'PiB'
+      1023,
+      'PiB',
     ]);
 
     expect(toByteUnit(1000 * 1000 * 1000 * 1000 * 1000 * 1000)).toEqual([
-      1000, 'PB'
+      1000,
+      'PB',
     ]);
     expect(toByteUnit(1024 * 1024 * 1024 * 1024 * 1024 * 1024)).toEqual([
-      1024, 'PiB'
+      1024,
+      'PiB',
     ]);
   });
 
@@ -77,41 +81,53 @@ describe('toByteUnit', () => {
     expect(toByteUnit(1000 * 1000 * 1000, 'long')).toEqual([1, 'gigabyte']);
     expect(toByteUnit(1024 * 1024 * 1024, 'long')).toEqual([1, 'gibibyte']);
     expect(toByteUnit(999 * 1000 * 1000 * 1000, 'long')).toEqual([
-      999, 'gigabytes'
+      999,
+      'gigabytes',
     ]);
     expect(toByteUnit(1023 * 1024 * 1024 * 1024, 'long')).toEqual([
-      1023, 'gibibytes'
+      1023,
+      'gibibytes',
     ]);
 
     expect(toByteUnit(1000 * 1000 * 1000 * 1000, 'long')).toEqual([
-      1, 'terabyte'
+      1,
+      'terabyte',
     ]);
     expect(toByteUnit(1024 * 1024 * 1024 * 1024, 'long')).toEqual([
-      1, 'tebibyte'
+      1,
+      'tebibyte',
     ]);
     expect(toByteUnit(999 * 1000 * 1000 * 1000 * 1000, 'long')).toEqual([
-      999, 'terabytes'
+      999,
+      'terabytes',
     ]);
     expect(toByteUnit(1023 * 1024 * 1024 * 1024 * 1024, 'long')).toEqual([
-      1023, 'tebibytes'
+      1023,
+      'tebibytes',
     ]);
 
     expect(toByteUnit(1000 * 1000 * 1000 * 1000 * 1000, 'long')).toEqual([
-      1, 'petabyte'
+      1,
+      'petabyte',
     ]);
     expect(toByteUnit(1024 * 1024 * 1024 * 1024 * 1024, 'long')).toEqual([
-      1, 'pebibyte'
+      1,
+      'pebibyte',
     ]);
     expect(toByteUnit(999 * 1000 * 1000 * 1000 * 1000 * 1000, 'long')).toEqual([
-      999, 'petabytes'
+      999,
+      'petabytes',
     ]);
-    expect(toByteUnit(1023 * 1024 * 1024 * 1024 * 1024 * 1024, 'long'))
-        .toEqual([1023, 'pebibytes']);
+    expect(toByteUnit(1023 * 1024 * 1024 * 1024 * 1024 * 1024, 'long')).toEqual(
+      [1023, 'pebibytes'],
+    );
 
-    expect(toByteUnit(1000 * 1000 * 1000 * 1000 * 1000 * 1000, 'long'))
-        .toEqual([1000, 'petabytes']);
-    expect(toByteUnit(1024 * 1024 * 1024 * 1024 * 1024 * 1024, 'long'))
-        .toEqual([1024, 'pebibytes']);
+    expect(toByteUnit(1000 * 1000 * 1000 * 1000 * 1000 * 1000, 'long')).toEqual(
+      [1000, 'petabytes'],
+    );
+    expect(toByteUnit(1024 * 1024 * 1024 * 1024 * 1024 * 1024, 'long')).toEqual(
+      [1024, 'pebibytes'],
+    );
   });
 });
 
@@ -160,8 +176,9 @@ describe('parseByteString', () => {
     expect(parseByteString('1 Ti')).toEqual(1024 * 1024 * 1024 * 1024);
     expect(parseByteString('999 Ti')).toEqual(999 * 1024 * 1024 * 1024 * 1024);
     expect(parseByteString('1 Pi')).toEqual(1024 * 1024 * 1024 * 1024 * 1024);
-    expect(parseByteString('7 Pi'))
-        .toEqual(7 * 1024 * 1024 * 1024 * 1024 * 1024);
+    expect(parseByteString('7 Pi')).toEqual(
+      7 * 1024 * 1024 * 1024 * 1024 * 1024,
+    );
     // JavaScript does not support integers larger than ~ 7Pi. These will be
     // converted to floating point numbers and lose their precision.
   });

@@ -2,27 +2,32 @@
 """The in memory database methods for hunt handling."""
 
 import sys
+from typing import Optional
+from typing import Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 
 
 class InMemoryDBHuntMixin(object):
   """Hunts-related DB methods implementation."""
 
   def _GetHuntFlows(self, hunt_id):
-    top_level_flows = [
-        f for f in self.flows.values()
-        if f.parent_hunt_id == hunt_id and not f.parent_flow_id
+    hunt_flows = [
+        f
+        for f in self.flows.values()
+        if f.parent_hunt_id == hunt_id and f.flow_id == hunt_id
     ]
-    return sorted(top_level_flows, key=lambda f: f.client_id)
+    return sorted(hunt_flows, key=lambda f: f.client_id)
 
   @utils.Synchronized
   def WriteHuntObject(self, hunt_obj):
@@ -47,7 +52,7 @@ class InMemoryDBHuntMixin(object):
         continue
 
       if k.endswith(delta_suffix):
-        key = k[:-len(delta_suffix)]
+        key = k[: -len(delta_suffix)]
         current_value = getattr(hunt_obj, key)
         setattr(hunt_obj, key, current_value + v)
       else:
@@ -90,14 +95,16 @@ class InMemoryDBHuntMixin(object):
 
     try:
       state = rdf_flow_runner.OutputPluginState.FromSerializedBytes(
-          self.hunt_output_plugins_states[hunt_id][state_index])
+          self.hunt_output_plugins_states[hunt_id][state_index]
+      )
     except KeyError:
       raise db.UnknownHuntOutputPluginError(hunt_id, state_index)
 
     state.plugin_state = update_fn(state.plugin_state)
 
     self.hunt_output_plugins_states[hunt_id][
-        state_index] = state.SerializeToBytes()
+        state_index
+    ] = state.SerializeToBytes()
 
     return state.plugin_state
 
@@ -115,7 +122,7 @@ class InMemoryDBHuntMixin(object):
       for approval_id, approval in list(approvals.items()):
         if (
             approval.approval_type
-            != rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+            != objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
         ):
           continue
         if approval.subject_id != hunt_id:
@@ -159,9 +166,8 @@ class InMemoryDBHuntMixin(object):
     filter_fn = lambda h: all(f(h) for f in filter_fns)
 
     result = [self._DeepCopy(h) for h in self.hunts.values() if filter_fn(h)]
-    return sorted(
-        result, key=lambda h: h.create_time,
-        reverse=True)[offset:offset + (count or db.MAX_COUNT)]
+    result.sort(key=lambda h: h.create_time, reverse=True)
+    return result[offset : offset + (count or db.MAX_COUNT)]
 
   @utils.Synchronized
   def ListHuntObjects(
@@ -197,12 +203,17 @@ class InMemoryDBHuntMixin(object):
         continue
       result.append(rdf_hunt_objects.HuntMetadata.FromHunt(h))
 
-    return sorted(
-        result, key=lambda h: h.create_time,
-        reverse=True)[offset:offset + (count or db.MAX_COUNT)]
+    result.sort(key=lambda h: h.create_time, reverse=True)
+    return result[offset : offset + (count or db.MAX_COUNT)]
 
   @utils.Synchronized
-  def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
+  def ReadHuntLogEntries(
+      self,
+      hunt_id: str,
+      offset: int,
+      count: int,
+      with_substring: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowLogEntry]:
     """Reads hunt log entries of a given hunt using given query options."""
     all_entries = []
     for flow_obj in self._GetHuntFlows(hunt_id):
@@ -211,43 +222,51 @@ class InMemoryDBHuntMixin(object):
           flow_obj.flow_id,
           0,
           sys.maxsize,
-          with_substring=with_substring):
+          with_substring=with_substring,
+      ):
 
         all_entries.append(
-            rdf_flow_objects.FlowLogEntry(
+            flows_pb2.FlowLogEntry(
                 hunt_id=hunt_id,
                 client_id=flow_obj.client_id,
                 flow_id=flow_obj.flow_id,
                 timestamp=entry.timestamp,
-                message=entry.message))
+                message=entry.message,
+            )
+        )
 
-    return sorted(all_entries, key=lambda x: x.timestamp)[offset:offset + count]
+    all_entries.sort(key=lambda x: x.timestamp)
+    return all_entries[offset : offset + count]
 
   @utils.Synchronized
-  def CountHuntLogEntries(self, hunt_id):
+  def CountHuntLogEntries(self, hunt_id: str) -> int:
     """Returns number of hunt log entries of a given hunt."""
     return len(self.ReadHuntLogEntries(hunt_id, 0, sys.maxsize))
 
   @utils.Synchronized
-  def ReadHuntResults(self,
-                      hunt_id,
-                      offset,
-                      count,
-                      with_tag=None,
-                      with_type=None,
-                      with_substring=None,
-                      with_timestamp=None):
+  def ReadHuntResults(
+      self,
+      hunt_id,
+      offset,
+      count,
+      with_tag=None,
+      with_type=None,
+      with_substring=None,
+      with_timestamp=None,
+  ):
     """Reads hunt results of a given hunt using given query options."""
     all_results = []
     for flow_obj in self._GetHuntFlows(hunt_id):
-      for entry in self.ReadFlowResults(
+      for proto_entry in self.ReadFlowResults(
           flow_obj.client_id,
           flow_obj.flow_id,
           0,
           sys.maxsize,
           with_tag=with_tag,
           with_type=with_type,
-          with_substring=with_substring):
+          with_substring=with_substring,
+      ):
+        entry = mig_flow_objects.ToRDFFlowResult(proto_entry)
         all_results.append(
             rdf_flow_objects.FlowResult(
                 hunt_id=hunt_id,
@@ -255,19 +274,24 @@ class InMemoryDBHuntMixin(object):
                 flow_id=flow_obj.flow_id,
                 timestamp=entry.timestamp,
                 tag=entry.tag,
-                payload=entry.payload))
+                payload=entry.payload,
+            )
+        )
 
     if with_timestamp:
       all_results = [r for r in all_results if r.timestamp == with_timestamp]
 
-    return sorted(all_results, key=lambda x: x.timestamp)[offset:offset + count]
+    all_results.sort(key=lambda x: x.timestamp)
+    return all_results[offset : offset + count]
 
   @utils.Synchronized
   def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
     """Counts hunt results of a given hunt using given query options."""
     return len(
         self.ReadHuntResults(
-            hunt_id, 0, sys.maxsize, with_tag=with_tag, with_type=with_type))
+            hunt_id, 0, sys.maxsize, with_tag=with_tag, with_type=with_type
+        )
+    )
 
   @utils.Synchronized
   def CountHuntResultsByType(self, hunt_id):
@@ -279,11 +303,9 @@ class InMemoryDBHuntMixin(object):
     return result
 
   @utils.Synchronized
-  def ReadHuntFlows(self,
-                    hunt_id,
-                    offset,
-                    count,
-                    filter_condition=db.HuntFlowsCondition.UNSET):
+  def ReadHuntFlows(
+      self, hunt_id, offset, count, filter_condition=db.HuntFlowsCondition.UNSET
+  ):
     """Reads hunt flows matching given conditins."""
     if filter_condition == db.HuntFlowsCondition.UNSET:
       filter_fn = lambda _: True
@@ -292,8 +314,10 @@ class InMemoryDBHuntMixin(object):
     elif filter_condition == db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY:
       filter_fn = lambda f: f.flow_state == f.FlowState.FINISHED
     elif filter_condition == db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY:
-      filter_fn = (
-          lambda f: f.flow_state in [f.FlowState.ERROR, f.FlowState.FINISHED])
+      filter_fn = lambda f: f.flow_state in [
+          f.FlowState.ERROR,
+          f.FlowState.FINISHED,
+      ]
     elif filter_condition == db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY:
       filter_fn = lambda f: f.flow_state == f.FlowState.RUNNING
     elif filter_condition == db.HuntFlowsCondition.CRASHED_FLOWS_ONLY:
@@ -302,45 +326,56 @@ class InMemoryDBHuntMixin(object):
       raise ValueError("Invalid filter condition: %d" % filter_condition)
 
     results = [
-        flow_obj for flow_obj in self._GetHuntFlows(hunt_id)
+        flow_obj
+        for flow_obj in self._GetHuntFlows(hunt_id)
         if filter_fn(flow_obj)
     ]
     results.sort(key=lambda f: f.last_update_time)
-    return results[offset:offset + count]
+    return results[offset : offset + count]
 
   @utils.Synchronized
-  def CountHuntFlows(self,
-                     hunt_id,
-                     filter_condition=db.HuntFlowsCondition.UNSET):
+  def CountHuntFlows(
+      self, hunt_id, filter_condition=db.HuntFlowsCondition.UNSET
+  ):
     """Counts hunt flows matching given conditions."""
 
     return len(
         self.ReadHuntFlows(
-            hunt_id, 0, sys.maxsize, filter_condition=filter_condition))
+            hunt_id, 0, sys.maxsize, filter_condition=filter_condition
+        )
+    )
 
   @utils.Synchronized
   def ReadHuntCounters(self, hunt_id):
     """Reads hunt counters."""
     num_clients = self.CountHuntFlows(hunt_id)
     num_successful_clients = self.CountHuntFlows(
-        hunt_id, filter_condition=db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY)
+        hunt_id, filter_condition=db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY
+    )
     num_failed_clients = self.CountHuntFlows(
-        hunt_id, filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
+        hunt_id, filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY
+    )
     num_clients_with_results = len(
-        set(r[0].client_id
+        set(
+            r[0].client_id
             for r in self.flow_results.values()
-            if r and r[0].hunt_id == hunt_id))
+            if r and r[0].hunt_id == hunt_id
+        )
+    )
     num_crashed_clients = self.CountHuntFlows(
-        hunt_id, filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY)
+        hunt_id, filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY
+    )
     num_running_clients = self.CountHuntFlows(
-        hunt_id, filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY)
+        hunt_id, filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY
+    )
     num_results = self.CountHuntResults(hunt_id)
 
     total_cpu_seconds = 0
     total_network_bytes_sent = 0
     for f in self.ReadHuntFlows(hunt_id, 0, sys.maxsize):
       total_cpu_seconds += (
-          f.cpu_time_used.user_cpu_time + f.cpu_time_used.system_cpu_time)
+          f.cpu_time_used.user_cpu_time + f.cpu_time_used.system_cpu_time
+      )
       total_network_bytes_sent += f.network_bytes_sent
 
     return db.HuntCounters(
@@ -352,7 +387,8 @@ class InMemoryDBHuntMixin(object):
         num_running_clients=num_running_clients,
         num_results=num_results,
         total_cpu_seconds=total_cpu_seconds,
-        total_network_bytes_sent=total_network_bytes_sent)
+        total_network_bytes_sent=total_network_bytes_sent,
+    )
 
   @utils.Synchronized
   def ReadHuntClientResourcesStats(self, hunt_id):
@@ -364,13 +400,15 @@ class InMemoryDBHuntMixin(object):
           session_id="%s/%s" % (f.client_id, f.flow_id),
           client_id=f.client_id,
           cpu_usage=f.cpu_time_used,
-          network_bytes_sent=f.network_bytes_sent)
+          network_bytes_sent=f.network_bytes_sent,
+      )
       result.RegisterResources(cr)
 
     # TODO(user): remove this hack when compatibility with AFF4 is not
     # important.
     return rdf_stats.ClientResourcesStats.FromSerializedBytes(
-        result.SerializeToBytes())
+        result.SerializeToBytes()
+    )
 
   @utils.Synchronized
   def ReadHuntFlowsStatesAndTimestamps(self, hunt_id):
@@ -382,17 +420,23 @@ class InMemoryDBHuntMixin(object):
           db.FlowStateAndTimestamps(
               flow_state=f.flow_state,
               create_time=f.create_time,
-              last_update_time=f.last_update_time))
+              last_update_time=f.last_update_time,
+          )
+      )
 
     return result
 
   @utils.Synchronized
-  def ReadHuntOutputPluginLogEntries(self,
-                                     hunt_id,
-                                     output_plugin_id,
-                                     offset,
-                                     count,
-                                     with_type=None):
+  def ReadHuntOutputPluginLogEntries(
+      self,
+      hunt_id: str,
+      output_plugin_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
     """Reads hunt output plugin log entries."""
 
     all_entries = []
@@ -403,26 +447,35 @@ class InMemoryDBHuntMixin(object):
           output_plugin_id,
           0,
           sys.maxsize,
-          with_type=with_type):
+          with_type=with_type,
+      ):
         all_entries.append(
-            rdf_flow_objects.FlowOutputPluginLogEntry(
+            flows_pb2.FlowOutputPluginLogEntry(
                 hunt_id=hunt_id,
                 client_id=flow_obj.client_id,
                 flow_id=flow_obj.flow_id,
                 output_plugin_id=output_plugin_id,
                 log_entry_type=entry.log_entry_type,
                 timestamp=entry.timestamp,
-                message=entry.message))
-
-    return sorted(all_entries, key=lambda x: x.timestamp)[offset:offset + count]
+                message=entry.message,
+            )
+        )
+    all_entries.sort(key=lambda x: x.timestamp)
+    return all_entries[offset : offset + count]
 
   @utils.Synchronized
-  def CountHuntOutputPluginLogEntries(self,
-                                      hunt_id,
-                                      output_plugin_id,
-                                      with_type=None):
+  def CountHuntOutputPluginLogEntries(
+      self,
+      hunt_id: str,
+      output_plugin_id: str,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+  ) -> int:
     """Counts hunt output plugin log entries."""
 
     return len(
         self.ReadHuntOutputPluginLogEntries(
-            hunt_id, output_plugin_id, 0, sys.maxsize, with_type=with_type))
+            hunt_id, output_plugin_id, 0, sys.maxsize, with_type=with_type
+        )
+    )

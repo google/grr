@@ -17,7 +17,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_proto.api import reflection_pb2
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr_response_server.gui.api_plugins import stats as api_stats
 
 
 class Error(Exception):
@@ -375,19 +374,6 @@ class ApiDataBlobRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     return self._PassThrough(value.GetValue())
-
-
-class ApiStatsStoreMetricDataPointRenderer(ApiValueRenderer):
-  """Renderer for ApiStatsStoreMetricDataPoint."""
-
-  value_class = api_stats.ApiStatsStoreMetricDataPoint
-
-  def RenderValue(self, value):
-    if value.timestamp:
-      timestamp = value.timestamp.AsMicrosecondsSinceEpoch() / 1000.0
-    else:
-      timestamp = 0
-    return [timestamp, value.value]
 
 
 class SampleFloatRenderer(ApiValueRenderer):

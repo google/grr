@@ -1,8 +1,6 @@
-
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 
 import {DateTimeInput} from '../../../components/form/date_time_input/date_time_input';
-
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
@@ -17,7 +15,8 @@ export class DateTimeInputToggle {
   calendarClick() {
     if (this.dateTimeInput === undefined) {
       throw new Error(
-          '[for] input must be specified on date-time-input-toggle');
+        '[for] input must be specified on date-time-input-toggle',
+      );
     }
 
     this.dateTimeInput.calendarClick();
@@ -26,7 +25,8 @@ export class DateTimeInputToggle {
   clockClick() {
     if (this.dateTimeInput === undefined) {
       throw new Error(
-          '[for] input must be specified on date-time-input-toggle');
+        '[for] input must be specified on date-time-input-toggle',
+      );
     }
 
     this.dateTimeInput.clockClick();

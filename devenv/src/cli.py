@@ -2,6 +2,7 @@
 """CLI utils."""
 
 import argparse
+import sys
 from typing import Any, Callable, Optional
 
 
@@ -40,4 +41,16 @@ def subcommand(
 
 
 def parse_args() -> argparse.Namespace:
-  return _ARG_PARSER.parse_args()
+  """Parse command line arguments."""
+  # Parse only args up to "--". Anything after that is stored/returned verbatim
+  # in the namespace object, as `fwd_args`.
+  try:
+    sep_index = sys.argv.index("--")
+  except ValueError:
+    sep_index = len(sys.argv)
+  local_args = sys.argv[1:sep_index]
+  fwd_args = sys.argv[sep_index + 1 :]
+
+  ns = _ARG_PARSER.parse_args(args=local_args)
+  ns.fwd_args = fwd_args
+  return ns

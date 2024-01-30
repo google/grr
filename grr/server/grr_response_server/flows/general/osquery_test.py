@@ -10,7 +10,6 @@ from unittest import mock
 from absl import app
 
 from grr_response_client.client_actions import osquery as osquery_action
-
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
@@ -41,13 +40,15 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(OsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunFlow(self, query):
+  def _RunFlow(self, query, **kwargs):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.ActionMock(osquery_action.Osquery),
         client_id=self.client_id,
         creator=self.test_username,
-        query=query)
+        query=query,
+        **kwargs,
+    )
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testTime(self):
@@ -62,6 +63,52 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     time_result = int(list(table.Column("unix_time"))[0])
     self.assertBetween(time_result, time_before, time_after)
+
+  def testConfigurationArgsError(self):
+    with self.assertRaises(RuntimeError):
+      _ = self._RunFlow(
+          "SELECT * FROM processes;",
+          configuration_path="foo",
+          configuration_content="bar",
+      )
+
+  def testConfigurationContentNotJSONError(self):
+    with self.assertRaises(RuntimeError):
+      _ = self._RunFlow(
+          "SELECT * FROM processes;", configuration_content="not json content"
+      )
+
+  def testConfigurationPath(self):
+    with temp.AutoTempFilePath() as configuration_path:
+      configuration_content = json.dumps(
+          {"views": {"bar": "SELECT * FROM processes;"}}
+      )
+
+      with io.open(configuration_path, "wt") as config_handle:
+        config_handle.write(configuration_content)
+
+      results = self._RunFlow(
+          "SELECT * FROM bar where pid = {};".format(os.getpid()),
+          configuration_path=configuration_path,
+      )
+      self.assertLen(results, 1)
+
+      table = results[0].table
+      self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
+
+  def testConfigurationContent(self):
+    configuration_content = json.dumps(
+        {"views": {"bar": "SELECT * FROM processes;"}}
+    )
+
+    results = self._RunFlow(
+        "SELECT * FROM bar where pid = {};".format(os.getpid()),
+        configuration_content=configuration_content,
+    )
+    self.assertLen(results, 1)
+
+    table = results[0].table
+    self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
 
   def testFile(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:

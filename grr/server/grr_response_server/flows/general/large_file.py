@@ -22,17 +22,41 @@ class CollectLargeFileFlowArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
+class CollectLargeFileFlowResult(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the result of the large file collection flow."""
+
+  protobuf = large_file_pb2.CollectLargeFileFlowResult
+  rdf_deps = []
+
+
+class CollectLargeFileFlowProgress(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the progress of the large file collection flow."""
+
+  protobuf = large_file_pb2.CollectLargeFileFlowProgress
+  rdf_deps = []
+
+
 class CollectLargeFileFlow(flow_base.FlowBase):
   """A flow mixing with large file collection logic."""
 
   friendly_name = "Collect large file"
   category = "/Filesystem/"
+  block_hunt_creation = True
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   args_type = CollectLargeFileFlowArgs
+  result_types = (CollectLargeFileFlowResult,)
+  progress_type = CollectLargeFileFlowProgress
+
+  def GetProgress(self) -> CollectLargeFileFlowProgress:
+    return self.state.progress
 
   def Start(self) -> None:
     super().Start()
+
+    self.state.progress = CollectLargeFileFlowProgress(
+        session_uri=None,
+    )
 
     # The encryption key is generated and stored within flow state to let the
     # analyst decrypt the file later.
@@ -50,23 +74,29 @@ class CollectLargeFileFlow(flow_base.FlowBase):
         callback_state=self.Callback.__name__)
 
   def Collect(self, responses: _Responses) -> None:
-    # Do nothing, everything is handled by the callback state method.
-    pass
+    if not responses.success:
+      raise flow_base.FlowError(responses.status)
+
+    last_response = responses.Last()
+    result = CollectLargeFileFlowResult(
+        session_uri=last_response.session_uri if last_response else None,
+        total_bytes_sent=last_response.total_bytes_sent
+        if last_response
+        else None,
+    )
+    self.SendReply(result)
 
   def Callback(self, responses: _Responses) -> None:
     if not responses.success:
       raise flow_base.FlowError(f"Failed to start upload: {responses.status}")
 
-    # TODO: Once progress updates are expected we should be fine
-    # with more responses. For now though, only a single response is expected
-    # and it should set session URL.
-    if "session_url" in self.state:
-      raise ValueError("Session URL already received.")
-    if len(responses) != 1:
+    # Old clients return 1 response, new clients return 2.
+    if not responses or len(responses) > 2:
       raise ValueError(f"Unexpected number of responses: {len(responses)}")
 
-    response = responses.First()
+    response = responses.Last()
     if not isinstance(response, rdf_large_file.CollectLargeFileResult):
       raise TypeError(f"Unexpected response type: {type(response)}")
 
     self.state.session_uri = response.session_uri
+    self.state.progress.session_uri = response.session_uri

@@ -89,6 +89,7 @@ def rebuild_grr(args: argparse.Namespace) -> None:
       "grr/client_builder",
       "api_client/python",
       "grr/server",
+      "grr/test",
   ]
   builder_ctr = reslib.Container(
       name="grr-builder",
@@ -98,7 +99,8 @@ def rebuild_grr(args: argparse.Namespace) -> None:
       command=" ".join([
           f". {resdefs.GRR_PERSIST_VOL.mountpoint}/venv/bin/activate",
           f"&& cd {resdefs.GRR_SRC_VOL.mountpoint}",
-          *[f"&& pip install -e {comp}" for comp in grr_components],
+          "&& pip install",
+          *[f"-e {comp}" for comp in grr_components],
       ]),
   )
   if builder_ctr.is_up():
@@ -185,8 +187,8 @@ def start(args: argparse.Namespace) -> None:
     password: {config.get("ui.admin_password")}
 
     MySQL raw access is available at localhost:{config.get("net.mysql_port")}.
-    user: grr
-    password: grr
+    user: grrdev
+    password: grrdev
     """)
 
 
@@ -219,3 +221,36 @@ def stop(args: argparse.Namespace) -> None:
 
   util.say("Stopping devenv ...")
   resdefs.DEVENV.destroy()
+
+
+@cli.subcommand(
+    help=(
+        "Run unit tests via pytest. Any arguments following -- are passed to"
+        " pytest verbatim."
+    )
+)
+def pytest(args: argparse.Namespace) -> None:
+  if not resdefs.DEVENV.is_up():
+    raise SubcommandError("The dev environment is not running.")
+  pytest_args = " ".join(
+      ["'" + a.replace("'", "'\\''") + "'" for a in args.fwd_args]
+  )
+  ctr = reslib.Container(
+      name=f"grr-test-{str(uuid.uuid4())[:8]}",
+      image=resdefs.GRR_IMG,
+      volumes=[resdefs.GRR_SRC_VOL, resdefs.GRR_PERSIST_VOL],
+      pod=resdefs.GRR_POD,
+      env={
+          "MYSQL_TEST_USER": "grrdev",
+          "MYSQL_TEST_PASS": "grrdev",
+          "MYSQL_TEST_HOST": "127.0.0.1",
+          "MYSQL_TEST_PORT": "3306",
+      },
+      command=(
+          f". '{resdefs.GRR_PERSIST_VOL.mountpoint}/venv/bin/activate'"
+          f" && cd '{resdefs.GRR_SRC_VOL.mountpoint}'"
+          f" && pytest {pytest_args}"
+      ),
+      daemonize=False,
+  )
+  ctr.ensure()

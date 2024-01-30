@@ -103,12 +103,14 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
   @classmethod
   def FromWireFormat(cls, value):
     raise NotImplementedError(
-        "Class {} does not implement FromWireFormat.".format(cls.__name__))
+        "Class {} does not implement FromWireFormat.".format(cls.__name__)
+    )
 
   @classmethod
   def FromSerializedBytes(cls, value: bytes):
     raise NotImplementedError(
-        "Class {} does not implement FromSerializedBytes.".format(cls.__name__))
+        "Class {} does not implement FromSerializedBytes.".format(cls.__name__)
+    )
 
   # TODO: Remove legacy SerializeToWireFormat.
   def SerializeToWireFormat(self):
@@ -138,7 +140,8 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
           "of RDFStructs as members of sets or keys of dicts is discouraged. "
           "If used anyway, mutating is prohibited, because it causes the hash "
           "to change. Be aware that accessing unset fields can trigger a "
-          "mutation.".format(type(self).__name__))
+          "mutation.".format(type(self).__name__)
+      )
     else:
       self._prev_hash = new_hash
       return new_hash
@@ -183,12 +186,14 @@ class RDFPrimitive(RDFValue):
       string: An `unicode` value to initialize the object from.
     """
     raise NotImplementedError(
-        "Class {} does not implement FromHumanReadable.".format(cls.__name__))
+        "Class {} does not implement FromHumanReadable.".format(cls.__name__)
+    )
 
 
 @functools.total_ordering
 class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
+
   protobuf_type = "bytes"
 
   def __init__(self, initializer=None):
@@ -481,6 +486,7 @@ class RDFInteger(RDFPrimitive):
 @functools.total_ordering
 class RDFDatetime(RDFPrimitive):
   """A date and time internally stored in MICROSECONDS."""
+
   converter = 1000000
   protobuf_type = "unsigned_integer"
 
@@ -488,14 +494,18 @@ class RDFDatetime(RDFPrimitive):
     if initializer is None:
       super().__init__(0)
     elif isinstance(initializer, RDFDatetime):
-      super().__init__(initializer.AsMicrosecondsSinceEpoch() *
-                       self.converter // 1000000)
-    # TODO(hanuszczak): Disallow `float` initialization.
-    elif isinstance(initializer, (RDFInteger, int, float)):
+      super().__init__(
+          initializer.AsMicrosecondsSinceEpoch() * self.converter // 1000000
+      )
+    elif isinstance(initializer, float):
+      raise TypeError("Float initialization not supported.")
+    elif isinstance(initializer, (RDFInteger, int)):
       super().__init__(int(initializer))
     else:
-      raise InitializeError("Unknown initializer for RDFDateTime: %s %s." %
-                            (type(initializer), initializer))
+      raise InitializeError(
+          "Unknown initializer for RDFDateTime: %s %s."
+          % (type(initializer), initializer)
+      )
 
   @classmethod
   def FromWireFormat(cls, value: int):
@@ -561,8 +571,10 @@ class RDFDatetime(RDFPrimitive):
   @classmethod
   def FromDatetime(cls, value):
     seconds = calendar.timegm(value.utctimetuple())
-    return cls((seconds * cls.converter) +
-               (value.microsecond * cls.converter // 1000000))
+    return cls(
+        (seconds * cls.converter)
+        + (value.microsecond * cls.converter // 1000000)
+    )
 
   @classmethod
   def FromProtoTimestamp(
@@ -601,8 +613,10 @@ class RDFDatetime(RDFPrimitive):
       TypeError: If given time values are not instances of `RDFDatetime`.
       ValueError: If `t` parameter is not between 0 and 1.
     """
-    if not (isinstance(start_time, RDFDatetime) and
-            isinstance(end_time, RDFDatetime)):
+    if not (
+        isinstance(start_time, RDFDatetime)
+        and isinstance(end_time, RDFDatetime)
+    ):
       raise TypeError("Interpolation of non-datetime values")
 
     if not 0.0 <= t <= 1.0:
@@ -611,8 +625,9 @@ class RDFDatetime(RDFPrimitive):
     return cls(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
 
   def __add__(self, other):
-    # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float)):
+    if isinstance(other, float):
+      raise TypeError("Float initialization not supported.")
+    elif isinstance(other, int):
       # Assume other is in seconds
       other_microseconds = int(other * self.converter)
       return self.__class__(self._value + other_microseconds)
@@ -624,8 +639,9 @@ class RDFDatetime(RDFPrimitive):
     return NotImplemented
 
   def __sub__(self, other):
-    # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float)):
+    if isinstance(other, float):
+      raise TypeError("Float initialization not supported.")
+    elif isinstance(other, int):
       # Assume other is in seconds
       other_microseconds = int(other * self.converter)
       return self.__class__(self._value - other_microseconds)
@@ -635,7 +651,8 @@ class RDFDatetime(RDFPrimitive):
       return self.__class__.FromMicrosecondsSinceEpoch(self_us - duration_us)
     elif isinstance(other, RDFDatetime):
       diff_us = (
-          self.AsMicrosecondsSinceEpoch() - other.AsMicrosecondsSinceEpoch())
+          self.AsMicrosecondsSinceEpoch() - other.AsMicrosecondsSinceEpoch()
+      )
       return Duration.From(diff_us, MICROSECONDS)
 
     return NotImplemented
@@ -651,8 +668,7 @@ class RDFDatetime(RDFPrimitive):
         given string is filled with values from the date January 1st of the
         current year, midnight. Sometimes it makes more sense to compare against
         the end of a period so if eoy is set, the default values are copied from
-        the 31st of December of the current
-           year, 23:59h.
+        the 31st of December of the current year, 23:59h.
 
     Returns:
       A new instance based on the given string.
@@ -671,10 +687,12 @@ class RDFDatetime(RDFPrimitive):
     # pylint: disable=g-tzinfo-datetime
     if eoy:
       default = datetime.datetime(
-          time.gmtime().tm_year, 12, 31, 23, 59, tzinfo=dateutil.tz.tzutc())
+          time.gmtime().tm_year, 12, 31, 23, 59, tzinfo=dateutil.tz.tzutc()
+      )
     else:
       default = datetime.datetime(
-          time.gmtime().tm_year, 1, 1, 0, 0, tzinfo=dateutil.tz.tzutc())
+          time.gmtime().tm_year, 1, 1, 0, 0, tzinfo=dateutil.tz.tzutc()
+      )
     # pylint: enable=g-tzinfo-datetime
 
     timestamp = parser.parse(string, default=default)
@@ -684,8 +702,11 @@ class RDFDatetime(RDFPrimitive):
 
   def Floor(self, interval):
     precondition.AssertType(interval, Duration)
-    seconds = self.AsSecondsSinceEpoch() // interval.ToInt(
-        SECONDS) * interval.ToInt(SECONDS)
+    seconds = (
+        self.AsSecondsSinceEpoch()
+        // interval.ToInt(SECONDS)
+        * interval.ToInt(SECONDS)
+    )
     return self.FromSecondsSinceEpoch(seconds)
 
   def __hash__(self):
@@ -714,6 +735,7 @@ class RDFDatetime(RDFPrimitive):
 
 class RDFDatetimeSeconds(RDFDatetime):
   """A DateTime class which is stored in whole seconds."""
+
   converter = 1
 
 
@@ -736,6 +758,7 @@ class Duration(RDFPrimitive):
   The duration is stored as non-negative integer, guaranteeing microsecond
   precision up to MAX_UINT64 microseconds (584k years).
   """
+
   protobuf_type = "unsigned_integer"
 
   _DIVIDERS = dict((
@@ -812,7 +835,7 @@ class Duration(RDFPrimitive):
     try:
       raw = abs(int(value))
     except ValueError as e:
-      raise DecodeError(e)
+      raise DecodeError(e) from e
 
     return cls(raw)
 
@@ -835,15 +858,17 @@ class Duration(RDFPrimitive):
 
   def __add__(self, other):
     if isinstance(other, Duration):
-      return self.__class__.From(self.microseconds + other.microseconds,
-                                 MICROSECONDS)
+      return self.__class__.From(
+          self.microseconds + other.microseconds, MICROSECONDS
+      )
     else:
       return NotImplemented
 
   def __sub__(self, other):
     if isinstance(other, Duration):
-      return self.__class__.From(self.microseconds - other.microseconds,
-                                 MICROSECONDS)
+      return self.__class__.From(
+          self.microseconds - other.microseconds, MICROSECONDS
+      )
     else:
       return NotImplemented
 
@@ -955,7 +980,9 @@ class Duration(RDFPrimitive):
     except KeyError as ex:
       raise ValueError(
           "Invalid unit {!r} for duration in {!r}. Expected any of {}.".format(
-              unit_string, string, ", ".join(cls._DIVIDERS))) from ex
+              unit_string, string, ", ".join(cls._DIVIDERS)
+          )
+      ) from ex
 
     return number * unit_multiplier
 
@@ -1010,6 +1037,7 @@ class ByteSize(RDFInteger):
   Binary units (powers of 2): Ki, Mi, Gi
   SI units (powers of 10): k, m, g
   """
+
   protobuf_type = "unsigned_integer"
 
   DIVIDERS = dict((
@@ -1036,8 +1064,9 @@ class ByteSize(RDFInteger):
     elif initializer is None:
       super().__init__(0)
     else:
-      raise InitializeError("Unknown initializer for ByteSize: %s." %
-                            type(initializer))
+      raise InitializeError(
+          "Unknown initializer for ByteSize: %s." % type(initializer)
+      )
 
   def __str__(self):
     if self._value >= 1024**3:
@@ -1172,8 +1201,9 @@ class RDFURN(RDFPrimitive):
        ValueError: if the path component is not a string.
     """
     if not isinstance(path, str):
-      raise ValueError("Only strings should be added to a URN, not %s" %
-                       path.__class__)
+      raise ValueError(
+          "Only strings should be added to a URN, not %s" % path.__class__
+      )
     return self.__class__(utils.JoinPath(self._value, path))
 
   def __str__(self) -> Text:
@@ -1211,7 +1241,7 @@ class RDFURN(RDFPrimitive):
       count: If count is specified, the output will be exactly this many path
         components, possibly extended with the empty string. This is useful for
         tuple assignments without worrying about ValueErrors:  namespace, path =
-          urn.Split(2)
+        urn.Split(2)
 
     Returns:
       A list of path components of this URN.
@@ -1240,7 +1270,7 @@ class RDFURN(RDFPrimitive):
     string_url = utils.SmartUnicode(self)
     volume_url = utils.SmartUnicode(volume)
     if string_url.startswith(volume_url):
-      result = string_url[len(volume_url):]
+      result = string_url[len(volume_url) :]
       # This must always return a relative path so we strip leading "/"s. The
       # result is always a unicode string.
       return result.lstrip("/")
@@ -1261,11 +1291,13 @@ DEFAULT_FLOW_QUEUE = RDFURN("F")
 class SessionID(RDFURN):
   """An rdfvalue object that represents a session_id."""
 
-  def __init__(self,
-               initializer=None,
-               base="aff4:/flows",
-               queue=DEFAULT_FLOW_QUEUE,
-               flow_name=None):
+  def __init__(
+      self,
+      initializer=None,
+      base="aff4:/flows",
+      queue=DEFAULT_FLOW_QUEUE,
+      flow_name=None,
+  ):
     """Constructor.
 
     Args:
@@ -1291,8 +1323,9 @@ class SessionID(RDFURN):
         try:
           self.ValidateID(initializer.Basename())
         except ValueError as e:
-          raise InitializeError("Invalid URN for SessionID: %s, %s" %
-                                (initializer, e))
+          raise InitializeError(
+              "Invalid URN for SessionID: %s, %s" % (initializer, e)
+          ) from e
 
     super().__init__(initializer=initializer)
 

@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 import "grr_response_proto/api/search.proto";
-import "grr_response_proto/api/stats.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/objects.proto";
@@ -251,46 +250,6 @@ message ApiListClientsLabelsResult {
 
 message ApiListKbFieldsResult {
   repeated string items = 2;
-}
-
-message ApiGetClientLoadStatsArgs {
-  optional string client_id = 1
-      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
-
-  optional uint64 start = 2 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Fetch client load stats data starting from this "
-                 "timestamp. If not set, will default to 30 minutes ago."
-  }];
-  optional uint64 end = 3 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Fetch client load stats data from the interval "
-                 "ending with this timestamp. If not set, will default to the current "
-                 "time."
-  }];
-
-  enum Metric {
-    CPU_PERCENT = 0;
-    CPU_SYSTEM = 1;
-    CPU_USER = 2;
-
-    IO_READ_BYTES = 3;
-    IO_WRITE_BYTES = 4;
-    IO_READ_OPS = 5;
-    IO_WRITE_OPS = 6;
-
-    NETWORK_BYTES_RECEIVED = 7;
-    NETWORK_BYTES_SENT = 8;
-
-    MEMORY_PERCENT = 9;
-    MEMORY_RSS_SIZE = 10;
-    MEMORY_VMS_SIZE = 11;
-  }
-  optional Metric metric = 5;
-}
-
-message ApiGetClientLoadStatsResult {
-  repeated ApiStatsStoreMetricDataPoint data_points = 1;
 }
 
 message ApiKillFleetspeakArgs {

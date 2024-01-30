@@ -4,10 +4,12 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 from grr_response_server import export
 from grr_response_server.export_converters import base
+from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
@@ -120,7 +122,11 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     self.AddClientLabel(self.client_id, self.test_username, "client-label-24")
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertEqual(metadata.os, "Windows")
     self.assertEqual(metadata.labels, "client-label-24")
     self.assertEqual(metadata.user_labels, "client-label-24")
@@ -133,7 +139,11 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     self.AddClientLabel(self.client_id, self.test_username, "b")
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertEqual(metadata.os, "Windows")
     self.assertEqual(metadata.labels, "a,b")
     self.assertEqual(metadata.user_labels, "a,b")
@@ -148,7 +158,11 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     self.AddClientLabel(self.client_id, "GRR", "c")
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertEqual(metadata.labels, "a,b,c")
     self.assertEqual(metadata.user_labels, "a,b")
     self.assertEqual(metadata.system_labels, "c")
@@ -162,27 +176,38 @@ class GetMetadataTest(test_lib.GRRBaseTest):
 
     # Expect empty usernames field due to no knowledge base.
     metadata = export.GetMetadata(
-        client_id, data_store.REL_DB.ReadClientFullInfo(client_id))
+        client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(client_id)
+        ),
+    )
     self.assertFalse(metadata.usernames)
 
   def testGetMetadataWithoutCloudInstanceSet(self):
     fixture_test_lib.ClientFixture(self.client_id)
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertFalse(metadata.HasField("cloud_instance_type"))
     self.assertFalse(metadata.HasField("cloud_instance_id"))
 
   def testGetMetadataWithGoogleCloudInstanceID(self):
     fixture_test_lib.ClientFixture(self.client_id)
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-    snapshot.cloud_instance = rdf_cloud.CloudInstance(
-        cloud_type=rdf_cloud.CloudInstance.InstanceType.GOOGLE,
-        google=rdf_cloud.GoogleCloudInstance(unique_id="foo/bar"))
+    snapshot.cloud_instance.cloud_type = jobs_pb2.CloudInstance.GOOGLE
+    snapshot.cloud_instance.google.unique_id = "foo/bar"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertEqual(metadata.cloud_instance_type,
                      metadata.CloudInstanceType.GOOGLE)
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
@@ -190,16 +215,28 @@ class GetMetadataTest(test_lib.GRRBaseTest):
   def testGetMetadataWithAmazonCloudInstanceID(self):
     fixture_test_lib.ClientFixture(self.client_id)
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-    snapshot.cloud_instance = rdf_cloud.CloudInstance(
-        cloud_type=rdf_cloud.CloudInstance.InstanceType.AMAZON,
-        amazon=rdf_cloud.AmazonCloudInstance(instance_id="foo/bar"))
+    snapshot.cloud_instance.cloud_type = jobs_pb2.CloudInstance.AMAZON
+    snapshot.cloud_instance.amazon.instance_id = "foo/bar"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
     metadata = export.GetMetadata(
-        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+        self.client_id,
+        mig_objects.ToRDFClientFullInfo(
+            data_store.REL_DB.ReadClientFullInfo(self.client_id)
+        ),
+    )
     self.assertEqual(metadata.cloud_instance_type,
                      metadata.CloudInstanceType.AMAZON)
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
+
+  def testGetMetadataUname(self):
+    info = rdf_objects.ClientFullInfo()
+    info.last_snapshot.knowledge_base.os = "Linux"
+    info.last_snapshot.os_release = "1.0RC4"
+    info.last_snapshot.os_version = "13.37"
+
+    metadata = export.GetMetadata(self.client_id, info)
+    self.assertEqual(metadata.uname, "Linux-1.0RC4-13.37")
 
 
 def main(argv):

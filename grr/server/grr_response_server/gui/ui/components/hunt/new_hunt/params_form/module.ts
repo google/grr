@@ -14,11 +14,10 @@ import {RolloutFormModule} from '../../../../components/hunt/rollout_form/module
 
 import {ParamsForm} from './params_form';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ByteComponentsModule,
     CommonModule,
@@ -33,14 +32,8 @@ import {ParamsForm} from './params_form';
     ReactiveFormsModule,
     RolloutFormModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ParamsForm,
-  ],
-  exports: [
-    ParamsForm,
-  ],
+  declarations: [ParamsForm],
+  exports: [ParamsForm],
 })
-export class ParamsFormModule {
-}
+export class ParamsFormModule {}

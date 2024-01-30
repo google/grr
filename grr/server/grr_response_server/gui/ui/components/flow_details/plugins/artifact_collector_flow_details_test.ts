@@ -4,12 +4,20 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ExecuteResponse, PathSpecPathType, StatEntry, StatEntryRegistryType} from '../../../lib/api/api_interfaces';
+import {
+  ExecuteResponse,
+  PathSpecPathType,
+  StatEntry,
+  StatEntryRegistryType,
+} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {MetricsService} from '../../../lib/service/metrics_service/metrics_service';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
@@ -18,28 +26,23 @@ import {PluginsModule} from './module';
 
 initTestEnvironment();
 
-
 describe('app-artifact-collector-flow-details component', () => {
   let flowResultsLocalStore: FlowResultsLocalStoreMock;
 
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            PluginsModule,
-            RouterTestingModule,
-          ],
-          providers: [MetricsService],
-          teardown: {destroyAfterEach: false}
-        })
-        // Override ALL providers to mock the GlobalStore that is provided by
-        // each component.
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      providers: [MetricsService],
+      teardown: {destroyAfterEach: false},
+    })
+      // Override ALL providers to mock the GlobalStore that is provided by
+      // each component.
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('displays file results ', async () => {
@@ -51,17 +54,20 @@ describe('app-artifact-collector-flow-details component', () => {
     });
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
-      payloadType: 'StatEntry',
-      payload: {
-        stSize: '123',
-        pathspec: {path: '/foo', pathtype: PathSpecPathType.OS},
-      },
-    })]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({
+        payloadType: 'StatEntry',
+        payload: {
+          stSize: '123',
+          pathspec: {path: '/foo', pathtype: PathSpecPathType.OS},
+        },
+      }),
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('/foo');
@@ -77,8 +83,9 @@ describe('app-artifact-collector-flow-details component', () => {
     });
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     const statEntry: StatEntry = {
@@ -87,8 +94,9 @@ describe('app-artifact-collector-flow-details component', () => {
       pathspec: {path: 'HKLM\\foo', pathtype: PathSpecPathType.REGISTRY},
     };
 
-    flowResultsLocalStore.mockedObservables.results$.next(
-        [newFlowResult({payloadType: 'StatEntry', payload: statEntry})]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({payloadType: 'StatEntry', payload: statEntry}),
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('HKLM\\foo');
@@ -115,12 +123,14 @@ describe('app-artifact-collector-flow-details component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    flowResultsLocalStore.mockedObservables.results$.next(
-        [newFlowResult({payload: response, payloadType: 'ExecuteResponse'})]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({payload: response, payloadType: 'ExecuteResponse'}),
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('/bin/foo');
@@ -140,14 +150,15 @@ describe('app-artifact-collector-flow-details component', () => {
           {name: 'foo', numResults: 1},
           {name: 'bar', numResults: 2},
           {name: 'baz', numResults: 0},
-        ]
+        ],
       },
     });
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordions =
-        await harnessLoader.getAllHarnesses(ResultAccordionHarness);
+    const resultAccordions = await harnessLoader.getAllHarnesses(
+      ResultAccordionHarness,
+    );
 
     expect(resultAccordions.length).toEqual(3);
     expect(fixture.nativeElement.innerText).toMatch(/foo\s*1 result/g);
@@ -167,8 +178,9 @@ describe('app-artifact-collector-flow-details component', () => {
     expect(flowResultsLocalStore.queryMore).not.toHaveBeenCalled();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     expect(flowResultsLocalStore.queryMore).toHaveBeenCalled();
@@ -189,17 +201,23 @@ describe('app-artifact-collector-flow-details component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult(
-        {payload: {}, payloadType: 'unknown', tag: 'artifact:foobar'})]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({
+        payload: {},
+        payloadType: 'unknown',
+        tag: 'artifact:foobar',
+      }),
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('old UI');
-    expect(fixture.debugElement.query(By.css('a[name=fallback]'))
-               .nativeElement.href)
-        .toContain(`/clients/${clientId}/flows/${flowId}/results`);
+    expect(
+      fixture.debugElement.query(By.css('a[name=fallback]')).nativeElement.href,
+    ).toContain(`/clients/${clientId}/flows/${flowId}/results`);
   });
 });

@@ -28,7 +28,7 @@ import {ClientOverview} from './client_overview';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApprovalChipModule,
     ClientAddLabelDialogModule,
@@ -50,14 +50,8 @@ import {ClientOverview} from './client_overview';
     SanitizerPipeModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientOverview,
-  ],
-  exports: [
-    ClientOverview,
-  ]
+  declarations: [ClientOverview],
+  exports: [ClientOverview],
 })
-export class ClientOverviewModule {
-}
+export class ClientOverviewModule {}

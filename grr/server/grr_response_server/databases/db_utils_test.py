@@ -15,6 +15,74 @@ from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
+class TypeURLToRDFTypeNameTest(absltest.TestCase):
+  """Test class for TypeURLToRDFTypeName."""
+
+  def testReturnsCorrectValuesForWrapperTypes(self):
+    self.assertEqual(
+        db_utils.TypeURLToRDFTypeName(
+            "type.googleapis.com/google.protobuf.BytesValue"
+        ),
+        "RDFBytes",
+    )
+    self.assertEqual(
+        db_utils.TypeURLToRDFTypeName(
+            "type.googleapis.com/google.protobuf.StringValue"
+        ),
+        "RDFString",
+    )
+    self.assertEqual(
+        db_utils.TypeURLToRDFTypeName(
+            "type.googleapis.com/google.protobuf.Int64Value"
+        ),
+        "RDFInteger",
+    )
+
+  def testRaisesOnUnknownWrapperTypes(self):
+    with self.assertRaises(db_utils.UnsupportedWrapperTypeError):
+      db_utils.TypeURLToRDFTypeName(
+          "type.googleapis.com/google.protobuf.Int32Value"
+      )
+
+  def testReturnCorrectValuesForNonWrapperTypes(self):
+    self.assertEqual(
+        db_utils.TypeURLToRDFTypeName(
+            "type.googleapis.com/grr.ClientSummary"
+        ),
+        "ClientSummary",
+    )
+
+  def testRaisesOnInvalidPackageNameWithGrrPrefix(self):
+    with self.assertRaises(db_utils.InvalidTypeURLError):
+      db_utils.TypeURLToRDFTypeName(
+          "type.googleapis.com/grr.blah.ClientSummary"
+      )
+
+
+class RDFTypeNameToTypeURLTest(absltest.TestCase):
+  """Test class for RDFTypeNameToTypeURL."""
+
+  def testReturnsCorrectValuesForWrapperTypes(self):
+    self.assertEqual(
+        db_utils.RDFTypeNameToTypeURL("RDFBytes"),
+        "type.googleapis.com/google.protobuf.BytesValue",
+    )
+    self.assertEqual(
+        db_utils.RDFTypeNameToTypeURL("RDFString"),
+        "type.googleapis.com/google.protobuf.StringValue",
+    )
+    self.assertEqual(
+        db_utils.RDFTypeNameToTypeURL("RDFInteger"),
+        "type.googleapis.com/google.protobuf.Int64Value",
+    )
+
+  def testReturnCorrectValuesForNonWrapperTypes(self):
+    self.assertEqual(
+        db_utils.RDFTypeNameToTypeURL("ClientSummary"),
+        "type.googleapis.com/grr.ClientSummary",
+    )
+
+
 class BatchPlannerTest(absltest.TestCase):
   """Test class for OperatioBatcher."""
 

@@ -5,7 +5,6 @@ import collections
 import contextlib
 import hashlib
 import os
-import time
 from typing import List
 from unittest import mock
 
@@ -45,17 +44,19 @@ def SetUpTestFiles():
       fd.write(b"foo")
 
     yield {
-        "bar":
-            TestFile(path=file_bar_path, sha1=hashlib.sha1(b"bar").hexdigest()),
-        "baz":
-            TestFile(path=file_baz_path, sha1=hashlib.sha1(b"baz").hexdigest()),
-        "foo":
-            TestFile(path=file_foo_path, sha1=hashlib.sha1(b"foo").hexdigest()),
+        "bar": TestFile(
+            path=file_bar_path, sha1=hashlib.sha1(b"bar").hexdigest()
+        ),
+        "baz": TestFile(
+            path=file_baz_path, sha1=hashlib.sha1(b"baz").hexdigest()
+        ),
+        "foo": TestFile(
+            path=file_foo_path, sha1=hashlib.sha1(b"foo").hexdigest()
+        ),
     }
 
 
 def _PatchVfs():
-
   class _UseOSForRawFile(vfs_files.File):
     supported_pathtype = config.CONFIG["Server.raw_filesystem_access_pathtype"]
 
@@ -66,10 +67,12 @@ def _PatchVfs():
       raise IOError("mock error")
 
   return mock.patch.dict(
-      vfs.VFS_HANDLERS, {
+      vfs.VFS_HANDLERS,
+      {
           _UseOSForRawFile.supported_pathtype: _UseOSForRawFile,
           _FailingOSFile.supported_pathtype: _FailingOSFile,
-      })
+      },
+  )
 
 
 class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
@@ -90,7 +93,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         paths=[file_bar_path],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -99,14 +103,17 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=0,
             num_collected=1,
             num_failed=0,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 3)
 
     for result in results:
-      self.assertEqual(result.stat.pathspec.pathtype,
-                       rdf_paths.PathSpec.PathType.OS)
+      self.assertEqual(
+          result.stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+      )
 
     expected_paths = [file_bar_path, file_bar_path, file_bar_path]
     self.assertCountEqual(expected_paths, self._getResultsPaths(results))
@@ -117,7 +124,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     expected_statuses = [
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
     ]
     self.assertCountEqual(expected_statuses, self._getResultsStatus(results))
 
@@ -137,7 +144,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         paths=[file_bar_path, file_foo_path],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -146,14 +154,17 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=0,
             num_collected=2,
             num_failed=0,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 6)
 
     for result in results:
-      self.assertEqual(result.stat.pathspec.pathtype,
-                       rdf_paths.PathSpec.PathType.OS)
+      self.assertEqual(
+          result.stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+      )
 
     expected_paths = [
         file_bar_path,
@@ -161,7 +172,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         file_bar_path,  # Bar
         file_foo_path,
         file_foo_path,
-        file_foo_path  # Foo
+        file_foo_path,  # Foo
     ]
     self.assertCountEqual(expected_paths, self._getResultsPaths(results))
 
@@ -171,7 +182,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         file_bar_hash,  # Bar
         "None",
         file_foo_hash,
-        file_foo_hash  # Foo
+        file_foo_hash,  # Foo
     ]
     self.assertCountEqual(expected_hashes, self._getResultsHashes(results))
 
@@ -183,7 +194,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         # Foo
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
     ]
     self.assertCountEqual(expected_statuses, self._getResultsStatus(results))
 
@@ -201,9 +212,9 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         paths=[file_bar_path, file_foo_path],
-        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs
-        .CollectionLevel.STAT,
-        creator=self.test_username)
+        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.STAT,
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -212,24 +223,30 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=0,
             num_collected=2,
             num_failed=0,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 2)
     self.assertEqual(results[0].stat.pathspec.path, file_bar_path)
-    self.assertEqual(results[0].stat.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(
+        results[0].stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+    )
     self.assertFalse(results[0].hash)
     self.assertEqual(
         results[0].status,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED)
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
+    )
     self.assertEqual(results[1].stat.pathspec.path, file_foo_path)
-    self.assertEqual(results[1].stat.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(
+        results[1].stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+    )
     self.assertFalse(results[1].hash)
     self.assertEqual(
         results[1].status,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED)
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
+    )
 
   def testReturnsMultipleFilesHash(self):
     temp_bar_file = self.create_tempfile()
@@ -247,9 +264,9 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         paths=[file_bar_path, file_foo_path],
-        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs
-        .CollectionLevel.HASH,
-        creator=self.test_username)
+        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.HASH,
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -258,20 +275,23 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=0,
             num_collected=2,
             num_failed=0,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 4)
 
     for result in results:
-      self.assertEqual(result.stat.pathspec.pathtype,
-                       rdf_paths.PathSpec.PathType.OS)
+      self.assertEqual(
+          result.stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+      )
 
     expected_paths = [
         file_bar_path,
         file_bar_path,  # Bar
         file_foo_path,
-        file_foo_path  # Foo
+        file_foo_path,  # Foo
     ]
     self.assertCountEqual(expected_paths, self._getResultsPaths(results))
 
@@ -279,7 +299,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         "None",
         file_bar_hash,  # Bar
         "None",
-        file_foo_hash  # Foo
+        file_foo_hash,  # Foo
     ]
     self.assertCountEqual(expected_hashes, self._getResultsHashes(results))
 
@@ -289,7 +309,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
         # Foo
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
     ]
     self.assertCountEqual(expected_statuses, self._getResultsStatus(results))
 
@@ -302,7 +322,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         paths=[non_existent_file_path],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -311,16 +332,20 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=0,
             num_collected=0,
             num_failed=1,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
     self.assertEqual(results[0].stat.pathspec.path, non_existent_file_path)
-    self.assertEqual(results[0].stat.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(
+        results[0].stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
+    )
     self.assertEqual(
         results[0].status,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.NOT_FOUND)
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.NOT_FOUND,
+    )
 
   def testFetchIsRetriedWithRawOnWindows(self):
     temp_bar_file = self.create_tempfile()
@@ -335,7 +360,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             self.client_mock,
             client_id=self.client_id,
             paths=[file_bar_path],
-            creator=self.test_username)
+            creator=self.test_username,
+        )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -344,7 +370,9 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=1,
             num_collected=1,
             num_failed=0,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 4)
@@ -358,7 +386,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         # Second attempt (success)
         config.CONFIG["Server.raw_filesystem_access_pathtype"],
         config.CONFIG["Server.raw_filesystem_access_pathtype"],
-        config.CONFIG["Server.raw_filesystem_access_pathtype"]
+        config.CONFIG["Server.raw_filesystem_access_pathtype"],
     ]
     self.assertCountEqual(expected_pathtypes, self._getResultsPathType(results))
 
@@ -368,7 +396,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
         # Second attempt (success)
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
         rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
     ]
     self.assertCountEqual(expected_statuses, self._getResultsStatus(results))
 
@@ -387,7 +415,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             self.client_mock,
             client_id=self.client_id,
             paths=[file_bar_path],
-            creator=self.test_username)
+            creator=self.test_username,
+        )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -396,21 +425,26 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
             num_raw_fs_access_retries=1,
             num_collected=0,
             num_failed=1,
-        ), progress)
+        ),
+        progress,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
     self.assertEqual(results[0].stat.pathspec.path, file_bar_path)
-    self.assertEqual(results[0].stat.pathspec.pathtype,
-                     config.CONFIG["Server.raw_filesystem_access_pathtype"])
+    self.assertEqual(
+        results[0].stat.pathspec.pathtype,
+        config.CONFIG["Server.raw_filesystem_access_pathtype"],
+    )
     self.assertIsNone(results[0].hash.sha1)
     self.assertEqual(
         results[0].status,
-        rdf_file_finder.CollectFilesByKnownPathResult.Status.FAILED)
+        rdf_file_finder.CollectFilesByKnownPathResult.Status.FAILED,
+    )
 
   def _getResultsPaths(
-      self,
-      results: rdf_file_finder.CollectFilesByKnownPathResult) -> List[str]:
+      self, results: rdf_file_finder.CollectFilesByKnownPathResult
+  ) -> List[str]:
     paths: str = []
     for result in results:
       paths.append(result.stat.pathspec.path)
@@ -433,8 +467,8 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     return statuses
 
   def _getResultsHashes(
-      self,
-      results: rdf_file_finder.CollectFilesByKnownPathResult) -> List[str]:
+      self, results: rdf_file_finder.CollectFilesByKnownPathResult
+  ) -> List[str]:
     hashes: str = []
     for result in results:
       hashes.append(str(result.hash.sha1))
@@ -461,14 +495,16 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         path_expressions=[path],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 2)
 
     # Check that both returned results are success.
     collected_status = (
-        rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED)
+        rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED
+    )
 
     for f in results:
       self.assertEqual(f.status, collected_status)
@@ -528,7 +564,8 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         path_expressions=[path],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(
@@ -538,42 +575,58 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
             num_found=2,
             num_in_progress=0,
             num_raw_fs_access_retries=0,
-        ), progress)
+        ),
+        progress,
+    )
 
   def testPassesNoConditionsToClientFileFinderWhenNoConditionsSpecified(self):
     flow_id = flow_test_lib.StartFlow(
         file.CollectMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"])
+        path_expressions=["/some/path"],
+    )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
     self.assertLen(children, 1)
 
     child = children[0]
-    self.assertEqual(child.flow_class_name,
-                     file_finder.ClientFileFinder.__name__)
+    self.assertEqual(
+        child.flow_class_name, file_finder.ClientFileFinder.__name__
+    )
     self.assertEmpty(child.args.conditions)
 
   def testPassesAllConditionsToClientFileFinderWhenAllConditionsSpecified(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
-        min_last_modified_time=rdfvalue.RDFDatetime.Now(),)
+        min_last_modified_time=rdfvalue.RDFDatetime.Now(),
+    )
 
     access_time = rdf_file_finder.FileFinderAccessTimeCondition(
-        min_last_access_time=rdfvalue.RDFDatetime.Now(),)
+        min_last_access_time=rdfvalue.RDFDatetime.Now(),
+    )
 
     inode_change_time = rdf_file_finder.FileFinderInodeChangeTimeCondition(
-        min_last_inode_change_time=rdfvalue.RDFDatetime.Now(),)
+        min_last_inode_change_time=rdfvalue.RDFDatetime.Now(),
+    )
 
-    size = rdf_file_finder.FileFinderSizeCondition(min_file_size=42,)
+    size = rdf_file_finder.FileFinderSizeCondition(
+        min_file_size=42,
+    )
 
-    ext_flags = rdf_file_finder.FileFinderExtFlagsCondition(linux_bits_set=42,)
+    ext_flags = rdf_file_finder.FileFinderExtFlagsCondition(
+        linux_bits_set=42,
+    )
 
     contents_regex_match = (
-        rdf_file_finder.FileFinderContentsRegexMatchCondition(regex=b"foo",))
+        rdf_file_finder.FileFinderContentsRegexMatchCondition(
+            regex=b"foo",
+        )
+    )
 
     contents_literal_match = (
         rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-            literal=b"bar",))
+            literal=b"bar",
+        )
+    )
 
     flow_id = flow_test_lib.StartFlow(
         file.CollectMultipleFiles,
@@ -592,8 +645,9 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(children, 1)
 
     child = children[0]
-    self.assertEqual(child.flow_class_name,
-                     file_finder.ClientFileFinder.__name__)
+    self.assertEqual(
+        child.flow_class_name, file_finder.ClientFileFinder.__name__
+    )
     # We expect 7 condition-attributes to be converted
     # to 7 FileFinderConditions.
     self.assertLen(child.args.conditions, 7)
@@ -607,44 +661,56 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(
         _GetCondition(
-            rdf_file_finder.FileFinderCondition.Type.MODIFICATION_TIME),
-        modification_time)
+            rdf_file_finder.FileFinderCondition.Type.MODIFICATION_TIME
+        ),
+        modification_time,
+    )
 
     self.assertEqual(
         _GetCondition(rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME),
-        access_time)
+        access_time,
+    )
 
     self.assertEqual(
         _GetCondition(
-            rdf_file_finder.FileFinderCondition.Type.INODE_CHANGE_TIME),
-        inode_change_time)
+            rdf_file_finder.FileFinderCondition.Type.INODE_CHANGE_TIME
+        ),
+        inode_change_time,
+    )
 
     self.assertEqual(
-        _GetCondition(rdf_file_finder.FileFinderCondition.Type.SIZE), size)
+        _GetCondition(rdf_file_finder.FileFinderCondition.Type.SIZE), size
+    )
 
     self.assertEqual(
         _GetCondition(rdf_file_finder.FileFinderCondition.Type.EXT_FLAGS),
-        ext_flags)
+        ext_flags,
+    )
 
     self.assertEqual(
         _GetCondition(
-            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match)
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH
+        ),
+        contents_regex_match,
+    )
 
     self.assertEqual(
         _GetCondition(
-            rdf_file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH),
-        contents_literal_match)
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH
+        ),
+        contents_literal_match,
+    )
 
 
 class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
+
   def setUp(self):
     super().setUp()
     self.client_id = self.SetupClient(0)
     self.client_mock = action_mocks.CollectMultipleFilesClientMock()
 
   def testReturnsSingleFileStat(self):
-    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds(time.time())
+    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds.Now()
     temp_bar_file_content = b"bar"
     temp_bar_file = self.create_tempfile()
     temp_bar_file.write_bytes(temp_bar_file_content)
@@ -660,7 +726,7 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
-    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds(time.time())
+    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds.Now()
 
     self.assertLen(results, 1)
     self.assertEqual(
@@ -668,7 +734,7 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         rdf_paths.PathSpec.PathType.OS,
     )
     self.assertEqual(file_bar_path, results[0].pathspec.path)
-    self.assertEqual(results[0].st_size, len(temp_bar_file_content))
+    self.assertLen(temp_bar_file_content, results[0].st_size)
 
     self.assertBetween(
         results[0].st_atime,
@@ -689,7 +755,7 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     )
 
   def testReturnsMultipleFileStats(self):
-    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds(time.time())
+    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds.Now()
     temp_bar_file_content = b"bar"
     temp_bar_file = self.create_tempfile()
     temp_bar_file.write_bytes(temp_bar_file_content)
@@ -710,7 +776,7 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
-    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds(time.time())
+    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds.Now()
 
     self.assertLen(results, 2)
 
@@ -719,7 +785,8 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         results[0].pathspec.pathtype,
         rdf_paths.PathSpec.PathType.OS,
     )
-    self.assertEqual(results[0].st_size, len(temp_bar_file_content))
+
+    self.assertLen(temp_bar_file_content, results[0].st_size)
     self.assertBetween(
         results[0].st_atime,
         timestamp_before_file_creation,

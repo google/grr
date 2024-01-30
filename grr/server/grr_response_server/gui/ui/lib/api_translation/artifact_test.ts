@@ -1,10 +1,12 @@
 import * as api from '../../lib/api/api_interfaces';
-import {ArtifactDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {
+  ArtifactDescriptor,
+  OperatingSystem,
+  SourceType,
+} from '../../lib/models/flow';
 import {initTestEnvironment} from '../../testing';
 
 import {translateArtifactDescriptor} from './artifact';
-
-
 
 initTestEnvironment();
 
@@ -28,33 +30,35 @@ describe('translateArtifactDescriptor', () => {
                       'content': [
                         {'string': 'windowsPath1'},
                         {'string': 'windowsPath2'},
-                      ]
-                    }
-                  }
+                      ],
+                    },
+                  },
                 },
-                {'k': {'string': 'separator'}, 'v': {'string': '\\'}}
-              ]
+                {'k': {'string': 'separator'}, 'v': {'string': '\\'}},
+              ],
             },
-            'supportedOs': ['Windows']
+            'supportedOs': ['Windows'],
           },
           {
             'type': 'FILE' as api.ArtifactSourceSourceType,
             'attributes': {
-              'dat': [{
-                'k': {'string': 'paths'},
-                'v': {
-                  'list': {
-                    'content': [
-                      {'string': 'linuxPath1'},
-                      {'string': 'linuxPath2'},
-                    ]
-                  }
-                }
-              }]
+              'dat': [
+                {
+                  'k': {'string': 'paths'},
+                  'v': {
+                    'list': {
+                      'content': [
+                        {'string': 'linuxPath1'},
+                        {'string': 'linuxPath2'},
+                      ],
+                    },
+                  },
+                },
+              ],
             },
-            'supportedOs': ['Linux']
-          }
-        ]
+            'supportedOs': ['Linux'],
+          },
+        ],
       },
       'pathDependencies': ['users.homedir', 'users.localappdata'],
       'isCustom': false,
@@ -81,7 +85,7 @@ describe('translateArtifactDescriptor', () => {
           supportedOs: new Set([OperatingSystem.LINUX]),
           conditions: [],
           returnedTypes: [],
-        }
+        },
       ],
       pathDependencies: ['users.homedir', 'users.localappdata'],
       isCustom: false,

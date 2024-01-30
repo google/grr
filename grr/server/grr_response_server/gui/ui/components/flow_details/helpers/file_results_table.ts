@@ -1,13 +1,25 @@
 
 
-import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map, startWith, takeUntil} from 'rxjs/operators';
 
-import {PathSpecPathType, PathSpecProgressStatus} from '../../../lib/api/api_interfaces';
+import {
+  PathSpecPathType,
+  PathSpecProgressStatus,
+} from '../../../lib/api/api_interfaces';
 import {HexHash} from '../../../lib/models/flow';
 import {StatEntry} from '../../../lib/models/vfs';
 import {observeOnDestroy} from '../../../lib/reactive';
@@ -46,7 +58,8 @@ export declare interface Status {
  * provided PathSpecProgressStatus.
  */
 export function statusFromPathSpecProgressStatus(
-    pathspecStatus: PathSpecProgressStatus|undefined): Status {
+  pathspecStatus: PathSpecProgressStatus | undefined,
+): Status {
   switch (pathspecStatus) {
     case PathSpecProgressStatus.IN_PROGRESS:
       return {icon: StatusIcon.IN_PROGRESS, tooltip: 'In progress'};
@@ -65,18 +78,19 @@ export function statusFromPathSpecProgressStatus(
  * statusFromPathType returns a Status that represents the
  * provided PathSpecPathType.
  */
-export function statusFromPathType(pathspecType: PathSpecPathType|
-                                   undefined): Status {
+export function statusFromPathType(
+  pathspecType: PathSpecPathType | undefined,
+): Status {
   switch (pathspecType) {
     case PathSpecPathType.TSK:
       return {
         icon: StatusIcon.WARNING,
-        tooltip: 'Collected from raw disk with libtsk'
+        tooltip: 'Collected from raw disk with libtsk',
       };
     case PathSpecPathType.NTFS:
       return {
         icon: StatusIcon.WARNING,
-        tooltip: 'Collected from raw disk with libfsntfs'
+        tooltip: 'Collected from raw disk with libfsntfs',
       };
     default:
       return {icon: StatusIcon.CHECK, tooltip: 'Collected'};
@@ -89,7 +103,10 @@ export function statusFromPathType(pathspecType: PathSpecPathType|
  * a StatEntry->FlowFileResult conversion function is provided.
  */
 export function flowFileResultFromStatEntry(
-    statEntry: StatEntry, hashes?: HexHash, status?: Status): FlowFileResult {
+  statEntry: StatEntry,
+  hashes?: HexHash,
+  status?: Status,
+): FlowFileResult {
   return {
     statEntry,
     hashes,
@@ -112,7 +129,7 @@ export declare interface TableRow {
   readonly mtime?: Date;
   readonly ctime?: Date;
   readonly btime?: Date;
-  readonly link: ReadonlyArray<string|undefined>;
+  readonly link: ReadonlyArray<string | undefined>;
   readonly status?: Status;
 }
 
@@ -151,19 +168,21 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
 
   /** Subject corresponding to "displayedColumns" binding. */
   readonly displayedColumns$ = this.results$.pipe(
-      map(results => {
-        const columns = [...BASE_COLUMNS];
-        if (results.some(
-                result =>
-                    result.hashes && Object.keys(result.hashes).length > 0)) {
-          columns.splice(2, 0, 'hashes');
-        }
-        if (results.some(result => result.status)) {
-          columns.splice(columns.length - 1, 0, 'status');
-        }
-        return columns;
-      }),
-      startWith(BASE_COLUMNS),
+    map((results) => {
+      const columns = [...BASE_COLUMNS];
+      if (
+        results.some(
+          (result) => result.hashes && Object.keys(result.hashes).length > 0,
+        )
+      ) {
+        columns.splice(2, 0, 'hashes');
+      }
+      if (results.some((result) => result.status)) {
+        columns.splice(columns.length - 1, 0, 'status');
+      }
+      return columns;
+    }),
+    startWith(BASE_COLUMNS),
   );
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -171,39 +190,41 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   /** dataSource used as input for mat-table. */
   readonly dataSource = new MatTableDataSource<TableRow>();
   /** Subject producting table rows data provided to dataSource. */
-  readonly rows$: Observable<readonly TableRow[]> =
-      this.results$.pipe(map((entries) => {
-        return entries.map((e) => {
-          return {
-            path: e.statEntry.pathspec?.path ?? '',
-            hashes: e.hashes,
-            mode: e.statEntry.stMode,  // formatting will be handled by the pipe
-            uid: e.statEntry.stUid,
-            gid: e.statEntry.stGid,
-            size: e.statEntry.stSize,
-            atime: e.statEntry.stAtime,
-            mtime: e.statEntry.stMtime,
-            ctime: e.statEntry.stCtime,
-            btime: e.statEntry.stBtime,
-            link: [
-              'files', e.statEntry.pathspec?.pathtype.toLowerCase(),
-              e.statEntry.pathspec?.path
-            ],
-            status: e.status,
-          };
-        });
-      }));
+  readonly rows$: Observable<readonly TableRow[]> = this.results$.pipe(
+    map((entries) => {
+      return entries.map((e) => {
+        return {
+          path: e.statEntry.pathspec?.path ?? '',
+          hashes: e.hashes,
+          mode: e.statEntry.stMode, // formatting will be handled by the pipe
+          uid: e.statEntry.stUid,
+          gid: e.statEntry.stGid,
+          size: e.statEntry.stSize,
+          atime: e.statEntry.stAtime,
+          mtime: e.statEntry.stMtime,
+          ctime: e.statEntry.stCtime,
+          btime: e.statEntry.stBtime,
+          link: [
+            'files',
+            e.statEntry.pathspec?.pathtype.toLowerCase(),
+            e.statEntry.pathspec?.path,
+          ],
+          status: e.status,
+        };
+      });
+    }),
+  );
 
   /**
    * Subject indicating whether a "Load more" button has to be shown.
    */
-  shouldShowLoadMoreButton$: Observable<boolean> =
-      combineLatest([
-        this.results$, this.totalCount$
-      ]).pipe(map(([results, count]) => results.length < count));
+  shouldShowLoadMoreButton$: Observable<boolean> = combineLatest([
+    this.results$,
+    this.totalCount$,
+  ]).pipe(map(([results, count]) => results.length < count));
 
   @Input()
-  set results(value: readonly FlowFileResult[]|null) {
+  set results(value: readonly FlowFileResult[] | null) {
     this.results$.next(value ?? []);
   }
 
@@ -212,7 +233,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   }
 
   @Input()
-  set totalCount(value: number|null|undefined) {
+  set totalCount(value: number | null | undefined) {
     this.totalCount$.next(value ?? 0);
   }
 
@@ -225,11 +246,12 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   readonly ngOnDestroy = observeOnDestroy(this);
 
   constructor(readonly activatedRoute: ActivatedRoute) {
-    this.rows$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(results => {
-          this.dataSource.data = results as TableRow[];
-          this.dataLength$.next(this.dataSource.data.length);
-        });
+    this.rows$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((results) => {
+        this.dataSource.data = results as TableRow[];
+        this.dataLength$.next(this.dataSource.data.length);
+      });
   }
 
   ngAfterViewInit() {

@@ -330,6 +330,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -423,6 +424,7 @@
           "avgCpuSecondsPerClientLimit": "60",
           "avgNetworkBytesPerClientLimit": "10485760",
           "avgResultsPerClientLimit": "1000",
+          "clientLimit": "100",
           "clientRate": 0.0,
           "clientRuleSet": {},
           "crashLimit": "100",
@@ -763,44 +765,6 @@
       },
       "test_class": "ApiGetClientHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000"
-    }
-  ],
-  "ApiGetClientLoadStatsHandler": [
-    {
-      "api_method": "GetClientLoadStats",
-      "method": "GET",
-      "response": {
-        "dataPoints": [
-          {
-            "timestamp": "10000000",
-            "value": 10.0
-          },
-          {
-            "timestamp": "20000000",
-            "value": 11.0
-          }
-        ]
-      },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/load-stats/cpu_percent?end=21000000&start=10000000"
-    },
-    {
-      "api_method": "GetClientLoadStats",
-      "method": "GET",
-      "response": {
-        "dataPoints": [
-          {
-            "timestamp": "10000000",
-            "value": 10.0
-          },
-          {
-            "timestamp": "20000000",
-            "value": 12.0
-          }
-        ]
-      },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
     }
   ],
   "ApiGetClientVersionsHandler": [
@@ -1202,14 +1166,15 @@
       "api_method": "GetCronJobRun",
       "method": "GET",
       "response": {
-        "cronJobId": "GRRVersionBreakDown",
+        "cronJobId": "InterrogateClientsCronJob",
         "finishedAt": "44000000",
+        "logMessage": "Started hunt ABCDEFGH12.",
         "runId": "F:ABCDEF11",
         "startedAt": "44000000",
         "status": "FINISHED"
       },
       "test_class": "ApiGetCronJobRunHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/runs/F:ABCDEF11"
+      "url": "/api/v2/cron-jobs/InterrogateClientsCronJob/runs/F:ABCDEF11"
     }
   ],
   "ApiGetFileDownloadCommandHandler": [
@@ -1541,6 +1506,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -1635,6 +1601,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -1719,6 +1686,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -1802,6 +1770,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -1926,6 +1895,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -2267,6 +2237,7 @@
           "avgCpuSecondsPerClientLimit": "60",
           "avgNetworkBytesPerClientLimit": "10485760",
           "avgResultsPerClientLimit": "1000",
+          "clientLimit": "100",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -2359,6 +2330,7 @@
           "avgCpuSecondsPerClientLimit": "60",
           "avgNetworkBytesPerClientLimit": "10485760",
           "avgResultsPerClientLimit": "1000",
+          "clientLimit": "100",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -2449,6 +2421,7 @@
           "avgCpuSecondsPerClientLimit": "60",
           "avgNetworkBytesPerClientLimit": "10485760",
           "avgResultsPerClientLimit": "1000",
+          "clientLimit": "100",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -3084,32 +3057,23 @@
       "method": "GET",
       "response": {
         "data": {
-          "representationType": "STACK_CHART",
-          "stackChart": {
-            "data": [
+          "auditChart": {
+            "rows": [
               {
-                "label": "Bar",
-                "points": [
-                  {
-                    "x": 5.0,
-                    "y": 3.0
-                  },
-                  {
-                    "x": 8.0,
-                    "y": 4.0
-                  },
-                  {
-                    "x": 13.0,
-                    "y": 5.0
-                  },
-                  {
-                    "x": 21.0,
-                    "y": 6.0
-                  }
-                ]
+                "action": "USER_ADD",
+                "id": 42,
+                "timestamp": "1544745600000000",
+                "user": "user"
               }
+            ],
+            "usedFields": [
+              "action",
+              "client",
+              "timestamp",
+              "user"
             ]
-          }
+          },
+          "representationType": "AUDIT_CHART"
         },
         "desc": {
           "name": "BarReportPlugin",
@@ -3433,6 +3397,7 @@
             "avgCpuSecondsPerClientLimit": "60",
             "avgNetworkBytesPerClientLimit": "10485760",
             "avgResultsPerClientLimit": "1000",
+            "clientLimit": "100",
             "clientRate": 0.0,
             "clientRuleSet": {
               "rules": [
@@ -3996,8 +3961,9 @@
       "response": {
         "items": [
           {
-            "cronJobId": "GRRVersionBreakDown",
+            "cronJobId": "InterrogateClientsCronJob",
             "finishedAt": "44000000",
+            "logMessage": "Started hunt ABCDEFGH12.",
             "runId": "F:ABCDEF11",
             "startedAt": "44000000",
             "status": "FINISHED"
@@ -4005,7 +3971,7 @@
         ]
       },
       "test_class": "ApiListCronJobRunsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/runs"
+      "url": "/api/v2/cron-jobs/InterrogateClientsCronJob/runs"
     }
   ],
   "ApiListCronJobsHandler": [
@@ -4158,6 +4124,7 @@
               "ADVANCED",
               "BASIC"
             ],
+            "blockHuntCreation": false,
             "category": "Filesystem",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.FileFinderArgs"
@@ -4172,6 +4139,7 @@
               "ADVANCED",
               "BASIC"
             ],
+            "blockHuntCreation": false,
             "category": "Processes",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
@@ -4608,6 +4576,7 @@
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
+                "clientLimit": "100",
                 "clientRate": 0.0,
                 "clientRuleSet": {
                   "rules": [

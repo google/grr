@@ -7,13 +7,15 @@ import {LaunchBinaryArgs} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {LaunchBinaryDetails} from './launch_binary_details';
 import {PluginsModule} from './module';
-
 
 initTestEnvironment();
 
@@ -23,19 +25,15 @@ describe('LaunchBinaryDetails component', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            PluginsModule,
-            RouterTestingModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('shows binary path as result accordion title', () => {
@@ -62,17 +60,20 @@ describe('LaunchBinaryDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
-      payloadType: 'LaunchBinaryResult',
-      payload: {
-        stdout: btoa('resulttext\nlinetwo\n'),
-        stderr: btoa('errortext\nerrortwo\n'),
-      },
-    })]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({
+        payloadType: 'LaunchBinaryResult',
+        payload: {
+          stdout: btoa('resulttext\nlinetwo\n'),
+          stderr: btoa('errortext\nerrortwo\n'),
+        },
+      }),
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('resulttext\nlinetwo');

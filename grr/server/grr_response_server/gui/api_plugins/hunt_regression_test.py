@@ -4,6 +4,7 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -15,6 +16,7 @@ from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import flow_test_lib
@@ -116,22 +118,32 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
         parent=flow.FlowParent.FromHuntID(hunt_id))
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)):
-      data_store.REL_DB.WriteFlowResults([
-          rdf_flow_objects.FlowResult(
-              client_id=client_id,
-              flow_id=flow_id,
-              hunt_id=hunt_id,
-              payload=rdfvalue.RDFString("blah1"))
-      ])
+      data_store.REL_DB.WriteFlowResults(
+          [
+              mig_flow_objects.ToProtoFlowResult(
+                  rdf_flow_objects.FlowResult(
+                      client_id=client_id,
+                      flow_id=flow_id,
+                      hunt_id=hunt_id,
+                      payload=rdfvalue.RDFString("blah1"),
+                  )
+              )
+          ]
+      )
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43)):
-      data_store.REL_DB.WriteFlowResults([
-          rdf_flow_objects.FlowResult(
-              client_id=client_id,
-              flow_id=flow_id,
-              hunt_id=hunt_id,
-              payload=rdfvalue.RDFString("blah2-foo"))
-      ])
+      data_store.REL_DB.WriteFlowResults(
+          [
+              mig_flow_objects.ToProtoFlowResult(
+                  rdf_flow_objects.FlowResult(
+                      client_id=client_id,
+                      flow_id=flow_id,
+                      hunt_id=hunt_id,
+                      payload=rdfvalue.RDFString("blah2-foo"),
+                  )
+              )
+          ]
+      )
 
     replace = {hunt_id: "H:123456"}
     self.Check(
@@ -169,13 +181,18 @@ class ApiCountHuntResultsByTypeRegressionTest(
         client_id=client_id,
         parent=flow.FlowParent.FromHuntID(hunt_id))
 
-    data_store.REL_DB.WriteFlowResults([
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            hunt_id=hunt_id,
-            payload=rdfvalue.RDFString("blah1"))
-    ])
+    data_store.REL_DB.WriteFlowResults(
+        [
+            mig_flow_objects.ToProtoFlowResult(
+                rdf_flow_objects.FlowResult(
+                    client_id=client_id,
+                    flow_id=flow_id,
+                    hunt_id=hunt_id,
+                    payload=rdfvalue.RDFString("blah1"),
+                )
+            )
+        ]
+    )
 
     # Replace the random hunt id with a constant string to pass the comparison
     # with the golden test file.
@@ -277,19 +294,23 @@ class ApiListHuntLogsHandlerRegressionTest(
 
     with test_lib.FakeTime(52):
       data_store.REL_DB.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_id,
-              message="Sample message: foo"))
+              message="Sample message: foo",
+          )
+      )
 
     with test_lib.FakeTime(55):
       data_store.REL_DB.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_id,
-              message="Sample message: bar"))
+              message="Sample message: bar",
+          )
+      )
 
     self.Check(
         "ListHuntLogs",

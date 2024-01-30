@@ -352,3 +352,12 @@ config_lib.DEFINE_boolean(
         "endpoint's CrowdStrike agent."
     ),
 )
+
+config_lib.DEFINE_boolean(
+    name="Interrogate.collect_passwd_cache_users",
+    default=False,
+    help=(
+        "Whether the interrogate flow should collect user information using the"
+        "`/etc/passwd.cache` file."
+    ),
+)

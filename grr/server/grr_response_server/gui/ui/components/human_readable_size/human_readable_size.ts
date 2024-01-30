@@ -8,7 +8,7 @@ import {Component, Input} from '@angular/core';
   templateUrl: './human_readable_size.ng.html',
 })
 export class HumanReadableSizeComponent {
-  @Input() size?: number|bigint|null;
+  @Input() size?: number | bigint | null;
   private static readonly UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 
   getHumanSize(): string {
@@ -38,6 +38,7 @@ export class HumanReadableSizeComponent {
     // implementation for this. See this post for more info
     // https://stackoverflow.com/questions/4187146/truncate-number-to-two-decimal-places-without-rounding
     return `${(Math.floor(size * fixed) / fixed).toFixed(decimals)} ${
-        HumanReadableSizeComponent.UNITS[i]}`;
+      HumanReadableSizeComponent.UNITS[i]
+    }`;
   }
 }

@@ -8,16 +8,14 @@ import {ApprovalChip} from './approval_chip';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatChipsModule,
     MatIconModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [ApprovalChip],
-  exports: [ApprovalChip]
+  exports: [ApprovalChip],
 })
-export class ApprovalChipModule {
-}
+export class ApprovalChipModule {}

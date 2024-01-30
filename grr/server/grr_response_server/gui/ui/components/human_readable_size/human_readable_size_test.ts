@@ -6,20 +6,14 @@ import {initTestEnvironment} from '../../testing';
 import {HumanReadableSizeComponent} from './human_readable_size';
 import {HumanReadableSizeModule} from './module';
 
-
 initTestEnvironment();
 
 describe('HumanReadableSizeComponent', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HumanReadableSizeModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HumanReadableSizeModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('is created successfully', () => {

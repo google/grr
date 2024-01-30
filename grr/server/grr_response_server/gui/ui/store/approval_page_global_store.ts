@@ -4,7 +4,11 @@ import {merge, Observable, of} from 'rxjs';
 import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
 import {HttpApiService} from '../lib/api/http_api_service';
-import {RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
+import {
+  RequestStatus,
+  RequestStatusType,
+  trackRequest,
+} from '../lib/api/track_request';
 import {translateClientApproval} from '../lib/api_translation/client';
 import {ClientApproval} from '../lib/models/client';
 import {assertNonNull, isNonNull} from '../lib/preconditions';
@@ -20,51 +24,54 @@ interface ApprovalKey {
   readonly requestor: string;
 }
 
-
 /** ComponentStore implementation used by the ApprovalPageGlobalStore. */
 class ApprovalPageComponentStore extends ComponentStore<ApprovalPageState> {
-  constructor(
-      private readonly httpApiService: HttpApiService,
-  ) {
+  constructor(private readonly httpApiService: HttpApiService) {
     super({});
   }
 
-  readonly grantRequestStatus$ = this.select(state => state.grantRequestStatus);
+  readonly grantRequestStatus$ = this.select(
+    (state) => state.grantRequestStatus,
+  );
 
   readonly selectApproval = this.updater<ApprovalKey>(
-      (state, selectedApprovalKey) => ({selectedApprovalKey}));
+    (state, selectedApprovalKey) => ({selectedApprovalKey}),
+  );
 
   private readonly grantedApproval$ = this.grantRequestStatus$.pipe(
-      map(req => req?.status === RequestStatusType.SUCCESS ? req.data : null),
-      filter(isNonNull),
+    map((req) => (req?.status === RequestStatusType.SUCCESS ? req.data : null)),
+    filter(isNonNull),
   );
 
-  readonly approval$: Observable<ClientApproval|null> = merge(
-      this.grantedApproval$,
-      this.select(state => state.selectedApprovalKey)
-          .pipe(
-              switchMap(
-                  (key) => key ?
-                      this.httpApiService.subscribeToClientApproval(key).pipe(
-                          map(translateClientApproval)) :
-                      of(null)),
-              ),
+  readonly approval$: Observable<ClientApproval | null> = merge(
+    this.grantedApproval$,
+    this.select((state) => state.selectedApprovalKey).pipe(
+      switchMap((key) =>
+        key
+          ? this.httpApiService
+              .subscribeToClientApproval(key)
+              .pipe(map(translateClientApproval))
+          : of(null),
+      ),
+    ),
   );
 
-  readonly grantApproval = this.effect<void>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.select(state => state.selectedApprovalKey)),
-          switchMap(([, key]) => {
-            assertNonNull(key, 'approval key');
-            return trackRequest(
-                this.httpApiService.grantClientApproval(key).pipe(
-                    map(translateClientApproval)),
-            );
-          }),
-          tap((grantRequestStatus) => {
-            this.patchState({grantRequestStatus});
-          }),
-          ));
+  readonly grantApproval = this.effect<void>((obs$) =>
+    obs$.pipe(
+      withLatestFrom(this.select((state) => state.selectedApprovalKey)),
+      switchMap(([, key]) => {
+        assertNonNull(key, 'approval key');
+        return trackRequest(
+          this.httpApiService
+            .grantClientApproval(key)
+            .pipe(map(translateClientApproval)),
+        );
+      }),
+      tap((grantRequestStatus) => {
+        this.patchState({grantRequestStatus});
+      }),
+    ),
+  );
 }
 
 /** Store that loads and stores data for the approval page. */
@@ -76,7 +83,7 @@ export class ApprovalPageGlobalStore {
 
   private readonly store = new ApprovalPageComponentStore(this.httpApiService);
 
-  readonly approval$: Observable<ClientApproval|null> = this.store.approval$;
+  readonly approval$: Observable<ClientApproval | null> = this.store.approval$;
 
   readonly grantRequestStatus$ = this.store.grantRequestStatus$;
 

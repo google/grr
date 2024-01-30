@@ -4,6 +4,7 @@
 from typing import Optional
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui.api_plugins import user as api_user
@@ -17,7 +18,8 @@ def CreateUser(username) -> None:
 
 def CreateAdminUser(username):
   data_store.REL_DB.WriteGRRUser(
-      username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+      username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
+  )
 
 
 def BuildClientApprovalRequest(

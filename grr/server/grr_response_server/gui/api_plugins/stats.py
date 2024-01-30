@@ -11,21 +11,6 @@ from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugin
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 
 
-class ApiStatsStoreMetricDataPoint(rdf_structs.RDFProtoStruct):
-  protobuf = stats_pb2.ApiStatsStoreMetricDataPoint
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiStatsStoreMetric(rdf_structs.RDFProtoStruct):
-  protobuf = stats_pb2.ApiStatsStoreMetric
-  rdf_deps = [
-      ApiStatsStoreMetricDataPoint,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiListReportsResult(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiListReportsResult
   rdf_deps = [

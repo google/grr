@@ -197,7 +197,7 @@ class CallClientParentFlow(flow_base.FlowBase):
 class CallClientChildFlow(flow_base.FlowBase):
 
   def Start(self):
-    self.CallClient(server_stubs.GetClientStats, next_state="End")
+    self.CallClient(server_stubs.GetPlatformInfo, next_state="End")
 
 
 class ParentFlowWithoutForwardingOutputPlugins(flow_base.FlowBase):
@@ -622,14 +622,27 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     username0 = self.SetupUser("u0")
     username1 = self.SetupUser("u1")
 
-    sf0 = self.ScheduleFlow(client_id=client_id0, creator=username0)
-    sf1 = self.ScheduleFlow(client_id=client_id0, creator=username0)
-    sf2 = self.ScheduleFlow(client_id=client_id1, creator=username0)
-    sf3 = self.ScheduleFlow(client_id=client_id0, creator=username1)
+    self.ScheduleFlow(client_id=client_id0, creator=username0)
+    self.ScheduleFlow(client_id=client_id0, creator=username0)
+    self.ScheduleFlow(client_id=client_id1, creator=username0)
+    self.ScheduleFlow(client_id=client_id0, creator=username1)
 
-    self.assertEqual([sf0, sf1], flow.ListScheduledFlows(client_id0, username0))
-    self.assertEqual([sf2], flow.ListScheduledFlows(client_id1, username0))
-    self.assertEqual([sf3], flow.ListScheduledFlows(client_id0, username1))
+    results = flow.ListScheduledFlows(client_id0, username0)
+    self.assertLen(results, 2)
+    self.assertEqual(results[0].client_id, client_id0)
+    self.assertEqual(results[1].client_id, client_id0)
+    self.assertEqual(results[0].creator, username0)
+    self.assertEqual(results[1].creator, username0)
+
+    results = flow.ListScheduledFlows(client_id1, username0)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id1)
+    self.assertEqual(results[0].creator, username0)
+
+    results = flow.ListScheduledFlows(client_id0, username1)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id0)
+    self.assertEqual(results[0].creator, username1)
 
   def testStartScheduledFlowsCreatesFlow(self):
     client_id = self.SetupClient(0)

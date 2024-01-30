@@ -1,9 +1,20 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
 import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {DEFAULT_FORM, FORMS} from '../../components/flow_args_form/sub_forms';
-import {type FlowDescriptor, FlowType} from '../../lib/models/flow';
+import {FlowType, type FlowDescriptor} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
 
 import {FlowArgumentForm} from './form_interface';
@@ -20,7 +31,7 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
     this.validSubject.complete();
   });
 
-  @Input() flowDescriptor?: FlowDescriptor|null;
+  @Input() flowDescriptor?: FlowDescriptor | null;
 
   /**
    * Automatically focus on the first input after the respective
@@ -31,7 +42,7 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
   private readonly flowArgValuesSubject = new ReplaySubject<unknown>(1);
   @Output()
   readonly flowArgValues$: Observable<unknown> =
-      this.flowArgValuesSubject.asObservable();
+    this.flowArgValuesSubject.asObservable();
 
   private readonly validSubject = new ReplaySubject<boolean>(1);
   @Output()
@@ -59,7 +70,7 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
     }
 
     const componentClass =
-        FORMS[this.flowDescriptor.name as FlowType] || DEFAULT_FORM;
+      FORMS[this.flowDescriptor.name as FlowType] || DEFAULT_FORM;
 
     if (this.formComponent instanceof componentClass) {
       return;
@@ -71,15 +82,17 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
     const component = componentRef.instance;
     this.formComponent = componentRef.instance;
 
-    component.flowArgs$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(values => {
-          this.flowArgValuesSubject.next(values);
-        });
+    component.flowArgs$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((values) => {
+        this.flowArgValuesSubject.next(values);
+      });
 
-    component.form.statusChanges.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(status => {
-          this.validSubject.next(status === 'VALID');
-        });
+    component.form.statusChanges
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((status) => {
+        this.validSubject.next(status === 'VALID');
+      });
 
     componentRef.changeDetectorRef.detectChanges();
     component.resetFlowArgs(this.flowDescriptor.defaultArgs as {});

@@ -5,11 +5,8 @@ import contextlib
 import os
 import platform
 import stat
+from typing import ContextManager, Iterator, Text
 import unittest
-
-from typing import ContextManager
-from typing import Iterator
-from typing import Text
 
 from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
@@ -17,7 +14,6 @@ from grr.test_lib import test_lib
 
 def FakeOsqueryiOutput(stdout: Text, stderr: Text) -> ContextManager[None]:
   """A context manager with osqueryi executable providing fake output."""
-  # TODO: Ugly formatting.
   script = """\
 #!/usr/bin/env bash
 >&2 cat << $EOF$
@@ -26,8 +22,7 @@ $EOF$
 cat << $EOF$
 {stdout}
 $EOF$
-""".format(
-    stdout=stdout, stderr=stderr)
+""".format(stdout=stdout, stderr=stderr)
   return _FakeOsqueryiScript(script)
 
 

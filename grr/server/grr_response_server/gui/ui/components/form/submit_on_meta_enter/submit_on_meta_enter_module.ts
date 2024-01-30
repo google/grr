@@ -6,7 +6,6 @@ import {SubmitOnMetaEnterDirective} from './submit_on_meta_enter_directive';
 @NgModule({
   imports: [CommonModule],
   declarations: [SubmitOnMetaEnterDirective],
-  exports: [SubmitOnMetaEnterDirective]
+  exports: [SubmitOnMetaEnterDirective],
 })
-export class SubmitOnMetaEnterModule {
-}
+export class SubmitOnMetaEnterModule {}

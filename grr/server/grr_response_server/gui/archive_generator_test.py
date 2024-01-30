@@ -8,7 +8,6 @@ from unittest import mock
 import zipfile
 
 from absl import app
-
 import yaml
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -18,6 +17,7 @@ from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
+from grr_response_server.models import blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -39,10 +39,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     path_info.path_type = path_type
     path_info.components = components
 
-    blob_id = rdf_objects.BlobID.FromSerializedBytes(digest)
+    blob_id = blobs.BlobID.Of(digest)
     data_store.BLOBS.WriteBlobs({blob_id: content})
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=len(content), blob_id=blob_id)
+        offset=0, size=len(content), blob_id=bytes(blob_id)
+    )
     hash_id = file_store.AddFileWithUnknownHash(
         db.ClientPath.FromPathInfo(client_id, path_info), [blob_ref])
     path_info.hash_entry.sha256 = hash_id.AsBytes()

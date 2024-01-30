@@ -92,7 +92,9 @@ class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
 
     # Run FileFinder again and make sure the path gets updated on VFS.
     with self.WaitForFileRefresh(path):
-      self.RunFlowAndWait(flow_name, args=args)
+      f = self.RunFlowAndWait(flow_name, args=args)
+      results = list(f.ListResults())
+      self.assertNotEmpty(results)
 
     self.CheckPEMagic(path)
 

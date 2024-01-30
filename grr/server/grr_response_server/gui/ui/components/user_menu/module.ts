@@ -15,14 +15,13 @@ import {UserImageModule} from '../user_image/module';
 
 import {UserMenu} from './user_menu';
 
-
 /**
  * Module for the flow_picker details component.
  */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
@@ -38,14 +37,8 @@ import {UserMenu} from './user_menu';
     RouterModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    UserMenu,
-  ],
-  exports: [
-    UserMenu,
-  ],
+  declarations: [UserMenu],
+  exports: [UserMenu],
 })
-export class UserMenuModule {
-}
+export class UserMenuModule {}

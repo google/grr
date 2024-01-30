@@ -5,14 +5,14 @@ import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
 export const COMMA_SEPARATED_VALUE_ACCESSOR = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => CommaSeparatedValueAccessor),
-  multi: true
+  multi: true,
 };
 
 /** Angular provider to inject CommaSeparatedNumberValueAccessor. */
 export const COMMA_SEPARATED_NUMBER_VALUE_ACCESSOR = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => CommaSeparatedNumberValueAccessor),
-  multi: true
+  multi: true,
 };
 
 type OnChangeFn<T> = (value: readonly T[]) => void;
@@ -26,19 +26,23 @@ type OnTouchedFn = () => void;
     '(input)': 'onChange($event.target.value)',
     '(blur)': 'onTouched()',
   },
-  providers: [COMMA_SEPARATED_VALUE_ACCESSOR]
+  providers: [COMMA_SEPARATED_VALUE_ACCESSOR],
 })
 export class CommaSeparatedValueAccessor implements ControlValueAccessor {
   private onChangeListener: OnChangeFn<string> = () => {};
   onTouched: OnTouchedFn = () => {};
 
   constructor(
-      private readonly renderer: Renderer2,
-      private readonly el: ElementRef<HTMLInputElement>) {}
+    private readonly renderer: Renderer2,
+    private readonly el: ElementRef<HTMLInputElement>,
+  ) {}
 
-  writeValue(value: Iterable<string>|null|undefined): void {
+  writeValue(value: Iterable<string> | null | undefined): void {
     this.renderer.setProperty(
-        this.el.nativeElement, 'value', Array.from(value ?? []).join(', '));
+      this.el.nativeElement,
+      'value',
+      Array.from(value ?? []).join(', '),
+    );
   }
 
   onChange(value: string) {
@@ -66,19 +70,23 @@ export class CommaSeparatedValueAccessor implements ControlValueAccessor {
     '(input)': 'onChange($event.target.value)',
     '(blur)': 'onTouched()',
   },
-  providers: [COMMA_SEPARATED_NUMBER_VALUE_ACCESSOR]
+  providers: [COMMA_SEPARATED_NUMBER_VALUE_ACCESSOR],
 })
 export class CommaSeparatedNumberValueAccessor implements ControlValueAccessor {
   private onChangeListener: OnChangeFn<number> = () => {};
   onTouched: OnTouchedFn = () => {};
 
   constructor(
-      private readonly renderer: Renderer2,
-      private readonly el: ElementRef<HTMLInputElement>) {}
+    private readonly renderer: Renderer2,
+    private readonly el: ElementRef<HTMLInputElement>,
+  ) {}
 
-  writeValue(value: Iterable<string>|null|undefined): void {
+  writeValue(value: Iterable<string> | null | undefined): void {
     this.renderer.setProperty(
-        this.el.nativeElement, 'value', Array.from(value ?? []).join(', '));
+      this.el.nativeElement,
+      'value',
+      Array.from(value ?? []).join(', '),
+    );
   }
 
   onChange(value: string) {
@@ -98,7 +106,9 @@ export class CommaSeparatedNumberValueAccessor implements ControlValueAccessor {
   }
 }
 
-
-function parseCommaSeparatedString(value: string|null|undefined) {
-  return (value ?? '').split(',').map(item => item.trim()).filter(item => item);
+function parseCommaSeparatedString(value: string | null | undefined) {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item);
 }

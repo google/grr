@@ -1,11 +1,14 @@
 import {Injectable} from '@angular/core';
 
-import {ApiIncrementCounterMetricArgs, FieldValueFieldType} from '../../api/api_interfaces';
+import {
+  ApiIncrementCounterMetricArgs,
+  FieldValueFieldType,
+} from '../../api/api_interfaces';
 import {HttpApiService} from '../../api/http_api_service';
 
 /** Counter metrics available for increase. */
 export enum CounterMetric {
-  UI_REDIRECT = 'ui_redirect'
+  UI_REDIRECT = 'ui_redirect',
 }
 
 /** Source field for UI_REDIRECT counter metric. */
@@ -33,8 +36,8 @@ export class MetricsService {
       metricName: CounterMetric.UI_REDIRECT,
       fieldValues: [
         {fieldType: FieldValueFieldType.STRING, stringValue: direction},
-        {fieldType: FieldValueFieldType.STRING, stringValue: source}
-      ]
+        {fieldType: FieldValueFieldType.STRING, stringValue: source},
+      ],
     };
     this.apiService.increaseCounterMetric(args).subscribe();
   }

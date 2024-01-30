@@ -4,17 +4,24 @@ import {MatTabGroupHarness} from '@angular/material/tabs/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathProgress, CollectFilesByKnownPathResultStatus, PathSpecPathType} from '../../../lib/api/api_interfaces';
+import {
+  CollectFilesByKnownPathArgs,
+  CollectFilesByKnownPathProgress,
+  CollectFilesByKnownPathResultStatus,
+  PathSpecPathType,
+} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {CollectFilesByKnownPathDetails} from './collect_files_by_known_path_details';
 import {PluginsModule} from './module';
-
 
 initTestEnvironment();
 
@@ -23,21 +30,16 @@ describe('CollectFilesByKnownPathDetails component', () => {
 
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            PluginsModule,
-            RouterTestingModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
-
 
   it('shows all results tabs', async () => {
     const fixture = TestBed.createComponent(CollectFilesByKnownPathDetails);
@@ -57,8 +59,9 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     flowResultsLocalStore.mockedObservables.results$.next([
@@ -70,7 +73,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
             sha256: 'testhash',
           },
           status: CollectFilesByKnownPathResultStatus.COLLECTED,
-        }
+        },
       }),
       newFlowResult({
         payloadType: 'CollectFilesByKnownPathResult',
@@ -80,33 +83,34 @@ describe('CollectFilesByKnownPathDetails component', () => {
             sha256: 'testhash',
           },
           status: CollectFilesByKnownPathResultStatus.COLLECTED,
-        }
+        },
       }),
       newFlowResult({
         payloadType: 'CollectFilesByKnownPathResult',
         payload: {
           stat: {pathspec: {path: '/bar', pathtype: PathSpecPathType.OS}},
           status: CollectFilesByKnownPathResultStatus.FAILED,
-          error: '#failed'
-        }
+          error: '#failed',
+        },
       }),
       newFlowResult({
         payloadType: 'CollectFilesByKnownPathResult',
         payload: {
           stat: {pathspec: {path: '/baz', pathtype: PathSpecPathType.OS}},
           status: CollectFilesByKnownPathResultStatus.NOT_FOUND,
-          error: '#reallyfailed'
-        }
-      })
+          error: '#reallyfailed',
+        },
+      }),
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent)
-        .toContain(
-            '1 file fetched by parsing the raw disk image with libtsk or libfsntfs.');
+    expect(fixture.nativeElement.textContent).toContain(
+      '1 file fetched by parsing the raw disk image with libtsk or libfsntfs.',
+    );
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
-                            .then(group => group.getTabs());
+    const tabsHarness = await harnessLoader
+      .getHarness(MatTabGroupHarness)
+      .then((group) => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 
     const successTab = tabsHarness[0];
@@ -148,8 +152,9 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     flowResultsLocalStore.mockedObservables.results$.next([
@@ -158,13 +163,14 @@ describe('CollectFilesByKnownPathDetails component', () => {
         payload: {
           stat: {pathspec: {path: '/foo', pathtype: PathSpecPathType.OS}},
           status: CollectFilesByKnownPathResultStatus.COLLECTED,
-        }
+        },
       }),
     ]);
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
-                            .then(group => group.getTabs());
+    const tabsHarness = await harnessLoader
+      .getHarness(MatTabGroupHarness)
+      .then((group) => group.getTabs());
     expect(tabsHarness.length).toEqual(1);
 
     const successTab = tabsHarness[0];
@@ -190,8 +196,9 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     flowResultsLocalStore.mockedObservables.results$.next([
@@ -200,14 +207,15 @@ describe('CollectFilesByKnownPathDetails component', () => {
         payload: {
           stat: {pathspec: {path: '/bar', pathtype: PathSpecPathType.OS}},
           status: CollectFilesByKnownPathResultStatus.FAILED,
-          error: '#failed'
-        }
+          error: '#failed',
+        },
       }),
     ]);
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
-                            .then(group => group.getTabs());
+    const tabsHarness = await harnessLoader
+      .getHarness(MatTabGroupHarness)
+      .then((group) => group.getTabs());
     expect(tabsHarness.length).toEqual(1);
 
     const errorTab = tabsHarness[0];
@@ -234,18 +242,20 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    expect(fixture.nativeElement.textContent)
-        .toContain(
-            '3 files fetched by parsing the raw disk image with libtsk or libfsntfs.');
+    expect(fixture.nativeElement.textContent).toContain(
+      '3 files fetched by parsing the raw disk image with libtsk or libfsntfs.',
+    );
 
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
-                            .then(group => group.getTabs());
+    const tabsHarness = await harnessLoader
+      .getHarness(MatTabGroupHarness)
+      .then((group) => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 
     const successTab = tabsHarness[0];
@@ -273,18 +283,20 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
-    expect(fixture.nativeElement.textContent)
-        .toContain(
-            '1 file fetched by parsing the raw disk image with libtsk or libfsntfs.');
+    expect(fixture.nativeElement.textContent).toContain(
+      '1 file fetched by parsing the raw disk image with libtsk or libfsntfs.',
+    );
 
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
-                            .then(group => group.getTabs());
+    const tabsHarness = await harnessLoader
+      .getHarness(MatTabGroupHarness)
+      .then((group) => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 
     const successTab = tabsHarness[0];
@@ -310,11 +322,15 @@ describe('CollectFilesByKnownPathDetails component', () => {
     fixture.detectChanges();
 
     const menuItems = fixture.componentInstance.getExportMenuItems(
-        fixture.componentInstance.flow);
-    expect(menuItems[0])
-        .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
-            fixture.componentInstance.flow));
-    expect(menuItems[0].url)
-        .toMatch('/api/v2/clients/.+/flows/.+/results/files-archive');
+      fixture.componentInstance.flow,
+    );
+    expect(menuItems[0]).toEqual(
+      fixture.componentInstance.getDownloadFilesExportMenuItem(
+        fixture.componentInstance.flow,
+      ),
+    );
+    expect(menuItems[0].url).toMatch(
+      '/api/v2/clients/.+/flows/.+/results/files-archive',
+    );
   });
 });

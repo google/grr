@@ -15,7 +15,10 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ExpandableHashModule} from '../../../components/expandable_hash/module';
-import {NetworkConnectionFamilyPipe, NetworkConnectionTypePipe} from '../../../components/flow_details/helpers/network_connection_pipes';
+import {
+  NetworkConnectionFamilyPipe,
+  NetworkConnectionTypePipe,
+} from '../../../components/flow_details/helpers/network_connection_pipes';
 import {HumanReadableSizeModule} from '../../../components/human_readable_size/module';
 import {TimestampModule} from '../../../components/timestamp/module';
 import {FileModeModule} from '../../data_renderers/file_mode/file_mode_module';
@@ -36,7 +39,7 @@ import {ResultAccordion} from './result_accordion';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     ClipboardModule,
@@ -61,11 +64,10 @@ import {ResultAccordion} from './result_accordion';
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     DynamicResultSection,
     FileResultsTable,
@@ -76,11 +78,10 @@ import {ResultAccordion} from './result_accordion';
     RegistryResultsTable,
     ResultAccordion,
     // keep-sorted end
-    // clang-format on
   ],
   exports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     DynamicResultSection,
     FileResultsTable,
@@ -92,8 +93,6 @@ import {ResultAccordion} from './result_accordion';
     RegistryResultsTable,
     ResultAccordion,
     // keep-sorted end
-    // clang-format on
   ],
 })
-export class HelpersModule {
-}
+export class HelpersModule {}

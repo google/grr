@@ -8,10 +8,7 @@ import {initTestEnvironment} from '../../../testing';
 import {HelpersModule} from './module';
 import {Status} from './result_accordion';
 
-
-
 initTestEnvironment();
-
 
 @Component({
   template: `
@@ -23,7 +20,7 @@ initTestEnvironment();
     [status]="status"
     (firstOpened)="firstOpenedTriggered()">
     contenttext
-</result-accordion>`
+</result-accordion>`,
 })
 class TestHostComponent {
   title?: string;
@@ -36,23 +33,17 @@ class TestHostComponent {
 
 describe('ResultAccordion Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
-  function createComponent(args: Partial<TestHostComponent> = {}):
-      ComponentFixture<TestHostComponent> {
+  function createComponent(
+    args: Partial<TestHostComponent> = {},
+  ): ComponentFixture<TestHostComponent> {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.title = args.title;
     fixture.componentInstance.description = args.description;
@@ -72,18 +63,21 @@ describe('ResultAccordion Component', () => {
   it('shows content on click', () => {
     const fixture = createComponent({expandable: true});
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .not.toContain('contenttext');
+    expect(fixture.debugElement.nativeElement.textContent).not.toContain(
+      'contenttext',
+    );
     fixture.debugElement.query(By.css('.header')).nativeElement.click();
     fixture.detectChanges();
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('contenttext');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'contenttext',
+    );
   });
 
   it('emits firstOpened on first open', () => {
     const fixture = createComponent({expandable: true});
-    expect(fixture.componentInstance.firstOpenedTriggered)
-        .not.toHaveBeenCalled();
+    expect(
+      fixture.componentInstance.firstOpenedTriggered,
+    ).not.toHaveBeenCalled();
 
     fixture.debugElement.query(By.css('.header')).nativeElement.click();
     expect(fixture.componentInstance.firstOpenedTriggered).toHaveBeenCalled();
@@ -91,14 +85,16 @@ describe('ResultAccordion Component', () => {
 
   it('shows description', () => {
     const fixture = createComponent({description: 'foobar-description'});
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('foobar-description');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'foobar-description',
+    );
   });
 
   it('shows preview', () => {
     const fixture = createComponent({preview: 'foobar-preview'});
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('foobar-preview');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'foobar-preview',
+    );
   });
 
   it('shows status icon and styling', () => {

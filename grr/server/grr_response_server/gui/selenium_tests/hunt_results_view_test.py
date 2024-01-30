@@ -35,12 +35,6 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
                    "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0])
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
-    self.RequestAndGrantClientApproval(self.client_ids[0])
-
-    self.Click("link=aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0])
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li.active a:contains('Browse Virtual Filesystem')")
-
   def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])

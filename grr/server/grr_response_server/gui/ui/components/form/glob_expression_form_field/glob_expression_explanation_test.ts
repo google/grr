@@ -39,46 +39,40 @@ describe('glob-expression-explanation', () => {
       explain: jasmine.createSpy('explain'),
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            GlobExpressionExplanationModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            ExplainGlobExpressionService,
-            {useFactory: () => explainGlobExpressionService})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, GlobExpressionExplanationModule],
+      declarations: [TestHostComponent],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(ExplainGlobExpressionService, {
+        useFactory: () => explainGlobExpressionService,
+      })
+      .compileComponents();
   }));
 
-  it('displays original glob when no explanation from service yet',
-     async () => {
-       fixture = TestBed.createComponent(TestHostComponent);
-       fixture.detectChanges();
-       expect(fixture.nativeElement.textContent).toContain('%%glob%%');
-     });
+  it('displays original glob when no explanation from service yet', async () => {
+    fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('%%glob%%');
+  });
 
   it('calls service with correct params', async () => {
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
-    expect(explainGlobExpressionService.explain)
-        .toHaveBeenCalledWith('C1234', '%%glob%%');
+    expect(explainGlobExpressionService.explain).toHaveBeenCalledWith(
+      'C1234',
+      '%%glob%%',
+    );
   });
 
   it('ONE_EXAMPLE_VISIBLE', async () => {
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    explanation$.next(
-        [{globExpression: '%%glob%%', examples: ['banana', 'maçã']}]);
+    explanation$.next([
+      {globExpression: '%%glob%%', examples: ['banana', 'maçã']},
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('banana');
@@ -92,11 +86,12 @@ describe('glob-expression-explanation', () => {
   it('ONLY_GLOB_VISIBLE', async () => {
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.explanationMode =
-        GlobExplanationMode.ONLY_GLOB_VISIBLE;
+      GlobExplanationMode.ONLY_GLOB_VISIBLE;
     fixture.detectChanges();
 
-    explanation$.next(
-        [{globExpression: '%%glob%%', examples: ['banana', 'maçã']}]);
+    explanation$.next([
+      {globExpression: '%%glob%%', examples: ['banana', 'maçã']},
+    ]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('%%glob%%');

@@ -14,7 +14,7 @@ from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 
 class GetCrowdstrikeAgentIdResult(rdf_structs.RDFProtoStruct):
@@ -135,7 +135,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     if not isinstance(response, rdf_client.BufferReference):
       raise flow_base.FlowError(f"Unexpected response type: {type(response)!r}")
 
-    blob_id = rdf_objects.BlobID(response.data)
+    blob_id = blobs.BlobID(response.data)
     blob = data_store.BLOBS.ReadAndWaitForBlob(blob_id, _BLOB_WAIT_TIMEOUT)
     if blob is None:
       raise flow_base.FlowError(f"Blob {blob_id!r} not found")

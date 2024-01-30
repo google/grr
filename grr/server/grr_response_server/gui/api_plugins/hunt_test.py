@@ -20,12 +20,14 @@ from grr_response_server import hunt
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import large_file
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -63,8 +65,9 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(hunt_id_str, "1234")
 
 
-class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               hunt_test_lib.StandardHuntTestMixin):
+class ApiCreateHuntHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiCreateHuntHandler."""
 
   def setUp(self):
@@ -96,6 +99,14 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(args, context=self.context)
     self.assertFalse(result.hunt_runner_args.HasField("network_bytes_limit"))
 
+  def testCollectLargeFileBlocksHuntCreationRespected(self):
+    args = hunt_plugin.ApiCreateHuntArgs(
+        flow_name=large_file.CollectLargeFileFlow.__name__
+    )
+    self.assertRaises(
+        ValueError, self.handler.Handle, args, context=self.context
+    )
+
 
 class ApiListHuntsHandlerTest(
     api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
@@ -111,7 +122,8 @@ class ApiListHuntsHandlerTest(
       self.CreateHunt(description="hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(), context=self.context)
+        hunt_plugin.ApiListHuntsArgs(), context=self.context
+    )
     descriptions = set(r.description for r in result.items)
 
     self.assertLen(descriptions, 10)
@@ -122,24 +134,29 @@ class ApiListHuntsHandlerTest(
     client_ids = self.SetupClients(1)
     hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=file_finder.FileFinder.__name__),
+            flow_name=file_finder.FileFinder.__name__
+        ),
         flow_args=rdf_file_finder.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
             action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         ),
         client_rate=0,
-        creator=self.context.username)
+        creator=self.context.username,
+    )
     self.RunHunt(
-        client_ids=client_ids, client_mock=action_mocks.FileFinderClientMock())
+        client_ids=client_ids, client_mock=action_mocks.FileFinderClientMock()
+    )
 
     args = hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_id)
     hunt_api_obj = hunt_plugin.ApiGetHuntHandler().Handle(
-        args, context=self.context)
+        args, context=self.context
+    )
     self.assertEqual(hunt_api_obj.all_clients_count, 1)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(with_full_summary=True),
-        context=self.context)
+        context=self.context,
+    )
 
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].all_clients_count, 1)
@@ -150,7 +167,8 @@ class ApiListHuntsHandlerTest(
         self.CreateHunt(description="hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(), context=self.context)
+        hunt_plugin.ApiListHuntsArgs(), context=self.context
+    )
     create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
     self.assertLen(create_times, 10)
@@ -163,7 +181,8 @@ class ApiListHuntsHandlerTest(
         self.CreateHunt(description="hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(offset=2, count=2), context=self.context)
+        hunt_plugin.ApiListHuntsArgs(offset=2, count=2), context=self.context
+    )
     create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
     self.assertLen(create_times, 2)
@@ -177,8 +196,8 @@ class ApiListHuntsHandlerTest(
 
     with test_lib.FakeTime(10 * 60 + 1):
       result = self.handler.Handle(
-          hunt_plugin.ApiListHuntsArgs(active_within="2m"),
-          context=self.context)
+          hunt_plugin.ApiListHuntsArgs(active_within="2m"), context=self.context
+      )
 
     create_times = [r.created for r in result.items]
 
@@ -195,14 +214,16 @@ class ApiListHuntsHandlerTest(
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(created_by="user-foo", active_within="1d"),
-        context=self.context)
+        context=self.context,
+    )
     self.assertLen(result.items, 5)
     for item in result.items:
       self.assertEqual(item.creator, "user-foo")
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(created_by="user-bar", active_within="1d"),
-        context=self.context)
+        context=self.context,
+    )
     self.assertLen(result.items, 3)
     for item in result.items:
       self.assertEqual(item.creator, "user-bar")
@@ -212,7 +233,8 @@ class ApiListHuntsHandlerTest(
         ValueError,
         self.handler.Handle,
         hunt_plugin.ApiListHuntsArgs(description_contains="foo"),
-        context=self.context)
+        context=self.context,
+    )
 
   def testFiltersHuntsByDescriptionContainsMatch(self):
     for i in range(5):
@@ -223,16 +245,20 @@ class ApiListHuntsHandlerTest(
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
-            description_contains="foo", active_within="1d"),
-        context=self.context)
+            description_contains="foo", active_within="1d"
+        ),
+        context=self.context,
+    )
     self.assertLen(result.items, 5)
     for item in result.items:
       self.assertIn("foo", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
-            description_contains="bar", active_within="1d"),
-        context=self.context)
+            description_contains="bar", active_within="1d"
+        ),
+        context=self.context,
+    )
     self.assertLen(result.items, 3)
     for item in result.items:
       self.assertIn("bar", item.description)
@@ -246,29 +272,36 @@ class ApiListHuntsHandlerTest(
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
-            description_contains="bar", active_within="1d", offset=1),
-        context=self.context)
+            description_contains="bar", active_within="1d", offset=1
+        ),
+        context=self.context,
+    )
     self.assertLen(result.items, 2)
     for item in result.items:
       self.assertIn("bar", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
-            description_contains="bar", active_within="1d", offset=2),
-        context=self.context)
+            description_contains="bar", active_within="1d", offset=2
+        ),
+        context=self.context,
+    )
     self.assertLen(result.items, 1)
     for item in result.items:
       self.assertIn("bar", item.description)
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(
-            description_contains="bar", active_within="1d", offset=3),
-        context=self.context)
+            description_contains="bar", active_within="1d", offset=3
+        ),
+        context=self.context,
+    )
     self.assertEmpty(result.items)
 
 
-class ApiGetHuntHandlerTest(hunt_test_lib.StandardHuntTestMixin,
-                            api_test_lib.ApiCallHandlerTest):
+class ApiGetHuntHandlerTest(
+    hunt_test_lib.StandardHuntTestMixin, api_test_lib.ApiCallHandlerTest
+):
 
   def setUp(self):
     super().setUp()
@@ -289,8 +322,9 @@ class ApiGetHuntHandlerTest(hunt_test_lib.StandardHuntTestMixin,
     self.assertEqual(hunt_api_obj.hunt_runner_args.expiry_time, duration)
 
 
-class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
-                                        api_test_lib.ApiCallHandlerTest):
+class ApiGetHuntFilesArchiveHandlerTest(
+    hunt_test_lib.StandardHuntTestMixin, api_test_lib.ApiCallHandlerTest
+):
 
   def setUp(self):
     super().setUp()
@@ -300,23 +334,28 @@ class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
     self.client_ids = self.SetupClients(10)
     self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=file_finder.FileFinder.__name__),
+            flow_name=file_finder.FileFinder.__name__
+        ),
         flow_args=rdf_file_finder.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
             action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         ),
         client_rate=0,
-        creator=self.context.username)
+        creator=self.context.username,
+    )
 
     self.RunHunt(
         client_ids=self.client_ids,
-        client_mock=action_mocks.FileFinderClientMock())
+        client_mock=action_mocks.FileFinderClientMock(),
+    )
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
         hunt_plugin.ApiGetHuntFilesArchiveArgs(
-            hunt_id=self.hunt_id, archive_format="ZIP"),
-        context=self.context)
+            hunt_id=self.hunt_id, archive_format="ZIP"
+        ),
+        context=self.context,
+    )
 
     out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
@@ -334,13 +373,17 @@ class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
             "failed_files": 0,
             "processed_files": 10,
             "ignored_files": 0,
-        }, manifest)
+        },
+        manifest,
+    )
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
         hunt_plugin.ApiGetHuntFilesArchiveArgs(
-            hunt_id=self.hunt_id, archive_format="TAR_GZ"),
-        context=self.context)
+            hunt_id=self.hunt_id, archive_format="TAR_GZ"
+        ),
+        context=self.context,
+    )
 
     with utils.TempDirectory() as temp_dir:
       tar_path = os.path.join(temp_dir, "archive.tar.gz")
@@ -367,11 +410,14 @@ class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                 "failed_files": 0,
                 "processed_files": 10,
                 "ignored_files": 0,
-            }, manifest)
+            },
+            manifest,
+        )
 
 
-class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                hunt_test_lib.StandardHuntTestMixin):
+class ApiGetHuntFileHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
 
   def setUp(self):
     super().setUp()
@@ -383,25 +429,29 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=file_finder.FileFinder.__name__),
+            flow_name=file_finder.FileFinder.__name__
+        ),
         flow_args=rdf_file_finder.FileFinderArgs(
             paths=[self.file_path],
             action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         ),
         client_rate=0,
-        creator=self.context.username)
+        creator=self.context.username,
+    )
 
     self.client_id = self.SetupClient(0)
     self.RunHunt(
         client_ids=[self.client_id],
-        client_mock=action_mocks.FileFinderClientMock())
+        client_mock=action_mocks.FileFinderClientMock(),
+    )
 
   def testRaisesIfOneOfArgumentAttributesIsNone(self):
     model_args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=rdfvalue.RDFDatetime.Now())
+        timestamp=rdfvalue.RDFDatetime.Now(),
+    )
 
     args = model_args.Copy()
     args.hunt_id = None
@@ -428,7 +478,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path="flows/W:123456",
-        timestamp=rdfvalue.RDFDatetime().Now())
+        timestamp=rdfvalue.RDFDatetime().Now(),
+    )
 
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
@@ -440,8 +491,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=results[0].timestamp +
-        rdfvalue.Duration.From(1, rdfvalue.SECONDS))
+        timestamp=results[0].timestamp
+        + rdfvalue.Duration.From(1, rdfvalue.SECONDS),
+    )
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, context=self.context)
 
@@ -449,12 +501,15 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
     original_result = results[0]
 
-    with test_lib.FakeTime(original_result.timestamp -
-                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
+    with test_lib.FakeTime(
+        original_result.timestamp - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+    ):
       wrong_result = original_result.Copy()
       payload = wrong_result.payload
       payload.stat_entry.pathspec.path += "blah"
-      data_store.REL_DB.WriteFlowResults([wrong_result])
+      data_store.REL_DB.WriteFlowResults(
+          [mig_flow_objects.ToProtoFlowResult(wrong_result)]
+      )
 
     wrong_result_timestamp = wrong_result.timestamp
 
@@ -462,7 +517,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path + "blah",
-        timestamp=wrong_result_timestamp)
+        timestamp=wrong_result_timestamp,
+    )
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, context=self.context)
@@ -475,16 +531,19 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=timestamp)
+        timestamp=timestamp,
+    )
 
     result = self.handler.Handle(args, context=self.context)
     self.assertTrue(hasattr(result, "GenerateContent"))
-    self.assertEqual(result.content_length,
-                     results[0].payload.stat_entry.st_size)
+    self.assertEqual(
+        result.content_length, results[0].payload.stat_entry.st_size
+    )
 
 
-class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                    hunt_test_lib.StandardHuntTestMixin):
+class ApiListHuntResultsHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiListHuntResultsHandler."""
 
   def setUp(self):
@@ -511,7 +570,8 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
-        context=self.context)
+        context=self.context,
+    )
 
     self.assertCountEqual(
         [r.payload_type for r in result.items],
@@ -533,7 +593,8 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, count=3),
-        context=self.context)
+        context=self.context,
+    )
 
     self.assertLen(result.items, 3)
     self.assertEqual(result.total_count, 10)
@@ -548,12 +609,15 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(
-            hunt_id=hunt_id,
-            with_type=rdf_file_finder.FileFinderResult.__name__),
-        context=self.context)
+            hunt_id=hunt_id, with_type=rdf_file_finder.FileFinderResult.__name__
+        ),
+        context=self.context,
+    )
 
-    self.assertCountEqual([r.payload_type for r in result.items],
-                          [rdf_file_finder.FileFinderResult.__name__] * 5)
+    self.assertCountEqual(
+        [r.payload_type for r in result.items],
+        [rdf_file_finder.FileFinderResult.__name__] * 5,
+    )
     self.assertEqual(result.total_count, 5)
 
   def testCountsAllResultsWithType(self):
@@ -568,16 +632,21 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_plugin.ApiListHuntResultsArgs(
             hunt_id=hunt_id,
             count=3,
-            with_type=rdf_file_finder.FileFinderResult.__name__),
-        context=self.context)
+            with_type=rdf_file_finder.FileFinderResult.__name__,
+        ),
+        context=self.context,
+    )
 
-    self.assertCountEqual([r.payload_type for r in result.items],
-                          [rdf_file_finder.FileFinderResult.__name__] * 3)
+    self.assertCountEqual(
+        [r.payload_type for r in result.items],
+        [rdf_file_finder.FileFinderResult.__name__] * 3,
+    )
     self.assertEqual(result.total_count, 5)
 
 
-class ApiCountHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                     hunt_test_lib.StandardHuntTestMixin):
+class ApiCountHuntResultsHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiCountHuntResultsByTypeHandler."""
 
   def setUp(self):
@@ -604,7 +673,8 @@ class ApiCountHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
-        context=self.context)
+        context=self.context,
+    )
 
     self.assertCountEqual(
         result.items,
@@ -620,9 +690,9 @@ class ApiCountHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
 
 
-class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                             hunt_test_lib.StandardHuntTestMixin
-                                            ):
+class ApiListHuntOutputPluginLogsHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -634,16 +704,21 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
             args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="foo")),
+                filename_regex="foo"
+            ),
+        ),
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
             args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="bar"))
+                filename_regex="bar"
+            ),
+        ),
     ]
 
   def RunHuntWithOutputPlugins(self, output_plugins):
     hunt_id = self.StartHunt(
-        description="the hunt", output_plugins=output_plugins)
+        description="the hunt", output_plugins=output_plugins
+    )
 
     for client_id in self.client_ids:
       self.RunHunt(client_ids=[client_id], failrate=-1)
@@ -655,8 +730,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_id,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
-        context=self.context)
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0",
+        ),
+        context=self.context,
+    )
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
@@ -666,8 +743,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_id,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
-        context=self.context)
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1",
+        ),
+        context=self.context,
+    )
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
@@ -679,8 +758,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
             hunt_id=hunt_id,
             offset=2,
             count=2,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
-        context=self.context)
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0",
+        ),
+        context=self.context,
+    )
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 2)
@@ -692,15 +773,18 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
             hunt_id=hunt_id,
             offset=2,
             count=2,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
-        context=self.context)
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1",
+        ),
+        context=self.context,
+    )
 
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 2)
 
 
-class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               hunt_test_lib.StandardHuntTestMixin):
+class ApiModifyHuntHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiModifyHuntHandler."""
 
   def setUp(self):
@@ -714,12 +798,14 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testDoesNothingIfArgsHaveNoChanges(self):
     before = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id))
+        data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    )
 
     self.handler.Handle(self.args, context=self.context)
 
     after = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id))
+        data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    )
 
     self.assertEqual(before, after)
 
@@ -778,15 +864,17 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler.Handle(self.args, context=self.context)
 
     after = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id))
+        data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    )
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
     self.assertEqual(after.duration, rdfvalue.Duration.From(1, rdfvalue.DAYS))
 
 
-class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               hunt_test_lib.StandardHuntTestMixin):
+class ApiDeleteHuntHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiDeleteHuntHandler."""
 
   def setUp(self):
@@ -802,7 +890,8 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(hunt_plugin.HuntNotFoundError):
       self.handler.Handle(
           hunt_plugin.ApiDeleteHuntArgs(hunt_id="H:123456"),
-          context=self.context)
+          context=self.context,
+      )
 
   def testRaisesIfHuntIsRunning(self):
     hunt.StartHunt(self.hunt_id)
@@ -817,8 +906,9 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       data_store.REL_DB.ReadHuntObject(self.hunt_id)
 
 
-class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
-                                           hunt_test_lib.StandardHuntTestMixin):
+class ApiGetExportedHuntResultsHandlerTest(
+    test_lib.GRRBaseTest, hunt_test_lib.StandardHuntTestMixin
+):
 
   def setUp(self):
     super().setUp()
@@ -828,9 +918,11 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
 
     self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__),
+            flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__
+        ),
         flow_args=rdf_flows.EmptyFlowArgs(),
-        client_rate=0)
+        client_rate=0,
+    )
 
     self.client_ids = self.SetupClients(5)
     # Ensure that clients are processed sequentially - this way the test won't
@@ -843,26 +935,31 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     result = self.handler.Handle(
         hunt_plugin.ApiGetExportedHuntResultsArgs(
             hunt_id=self.hunt_id,
-            plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name),
-        context=self.context)
+            plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name,
+        ),
+        context=self.context,
+    )
 
     chunks = list(result.GenerateContent())
 
-    self.assertListEqual(chunks, [
-        "Start: aff4:/hunts/%s" % self.hunt_id,
-        "Values of type: RDFString",
-        "First pass: oh (source=aff4:/%s)" % self.client_ids[0],
-        "First pass: oh (source=aff4:/%s)" % self.client_ids[1],
-        "First pass: oh (source=aff4:/%s)" % self.client_ids[2],
-        "First pass: oh (source=aff4:/%s)" % self.client_ids[3],
-        "First pass: oh (source=aff4:/%s)" % self.client_ids[4],
-        "Second pass: oh (source=aff4:/%s)" % self.client_ids[0],
-        "Second pass: oh (source=aff4:/%s)" % self.client_ids[1],
-        "Second pass: oh (source=aff4:/%s)" % self.client_ids[2],
-        "Second pass: oh (source=aff4:/%s)" % self.client_ids[3],
-        "Second pass: oh (source=aff4:/%s)" % self.client_ids[4],
-        "Finish: aff4:/hunts/%s" % self.hunt_id,
-    ])
+    self.assertListEqual(
+        chunks,
+        [
+            "Start: aff4:/hunts/%s" % self.hunt_id,
+            "Values of type: RDFString",
+            "First pass: oh (source=aff4:/%s)" % self.client_ids[0],
+            "First pass: oh (source=aff4:/%s)" % self.client_ids[1],
+            "First pass: oh (source=aff4:/%s)" % self.client_ids[2],
+            "First pass: oh (source=aff4:/%s)" % self.client_ids[3],
+            "First pass: oh (source=aff4:/%s)" % self.client_ids[4],
+            "Second pass: oh (source=aff4:/%s)" % self.client_ids[0],
+            "Second pass: oh (source=aff4:/%s)" % self.client_ids[1],
+            "Second pass: oh (source=aff4:/%s)" % self.client_ids[2],
+            "Second pass: oh (source=aff4:/%s)" % self.client_ids[3],
+            "Second pass: oh (source=aff4:/%s)" % self.client_ids[4],
+            "Finish: aff4:/hunts/%s" % self.hunt_id,
+        ],
+    )
 
 
 class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
@@ -882,7 +979,8 @@ class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
                 client_id=self.client_id,
                 paths=["/etc/hosts", "/foo/bar"],
             ),
-        ])
+        ],
+    )
     result = self.handler.Handle(args, self.context)
     self.assertTrue(result.hunt_id)
 
@@ -894,14 +992,16 @@ class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
                 client_id=self.client_id,
                 paths=[f"/etc/hosts/{i}" for i in range(1001)],
             ),
-        ])
+        ],
+    )
 
     with self.assertRaises(ValueError):
       self.handler.Handle(args, self.context)
 
   def testFailsWhenMoreThan250ClientsScheduledForCollection(self):
     args = hunt_plugin.ApiCreatePerClientFileCollectionHuntArgs(
-        description="Per-client file collection", per_client_args=[])
+        description="Per-client file collection", per_client_args=[]
+    )
 
     # Ensure that we get 251 unique client ids.
     client_ids = set()
@@ -913,7 +1013,8 @@ class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
           hunt_plugin.PerClientFileCollectionArgs(
               client_id=client_id,
               paths=["/etc/hosts"],
-          ))
+          )
+      )
 
     with self.assertRaises(ValueError):
       self.handler.Handle(args, self.context)

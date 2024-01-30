@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 """DB mixin for blobs-related methods."""
+from typing import Collection, Mapping, Optional
+
 from grr_response_core.lib import utils
+from grr_response_proto import objects_pb2
 from grr_response_server import blob_store
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class _BlobRecord(object):
@@ -18,6 +22,10 @@ class _BlobRecord(object):
 
 class InMemoryDBBlobsMixin(blob_store.BlobStore):
   """InMemoryDB mixin for blobs related functions."""
+
+  blob_refs_by_hashes: dict[
+      rdf_objects.SHA256HashID, list[objects_pb2.BlobReference]
+  ]
 
   @utils.Synchronized
   def WriteBlobs(self, blob_id_data_map):
@@ -45,17 +53,45 @@ class InMemoryDBBlobsMixin(blob_store.BlobStore):
     return result
 
   @utils.Synchronized
-  def WriteHashBlobReferences(self, references_by_hash):
+  def WriteHashBlobReferences(
+      self,
+      references_by_hash: Mapping[
+          rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
+      ],
+  ) -> None:
     for k, vs in references_by_hash.items():
-      self.blob_refs_by_hashes[k] = [v.Copy() for v in vs]
+      blob_refs = []
+
+      for v in vs:
+        blob_ref = objects_pb2.BlobReference()
+        blob_ref.CopyFrom(v)
+
+        blob_refs.append(blob_ref)
+
+      self.blob_refs_by_hashes[k] = blob_refs
 
   @utils.Synchronized
-  def ReadHashBlobReferences(self, hashes):
-    result = {}
+  def ReadHashBlobReferences(
+      self,
+      hashes: Collection[rdf_objects.SHA256HashID],
+  ) -> Mapping[
+      rdf_objects.SHA256HashID, Optional[Collection[objects_pb2.BlobReference]]
+  ]:
+    result = {hash_id: None for hash_id in hashes}
+
     for hash_id in hashes:
       try:
-        result[hash_id] = [v.Copy() for v in self.blob_refs_by_hashes[hash_id]]
+        blob_refs = self.blob_refs_by_hashes[hash_id]
       except KeyError:
-        result[hash_id] = None
+        continue
+
+      blob_ref_copies = []
+      for blob_ref in blob_refs:
+        blob_ref_copy = objects_pb2.BlobReference()
+        blob_ref_copy.CopyFrom(blob_ref)
+
+        blob_ref_copies.append(blob_ref_copy)
+
+      result[hash_id] = blob_ref_copies
 
     return result

@@ -1,6 +1,7 @@
+// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, ViewChild} from '@angular/core';
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {MatTabGroupHarness} from '@angular/material/tabs/testing';
 import {By} from '@angular/platform-browser';
@@ -9,7 +10,11 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ApiHuntError, ApiHuntResult} from '../../../../lib/api/api_interfaces';
 import {HttpApiService} from '../../../../lib/api/http_api_service';
 import {mockHttpApiService} from '../../../../lib/api/http_api_service_test_util';
-import {HuntResultsTableTabConfig, PayloadType, TypedHuntResultOrError} from '../../../../lib/models/result';
+import {
+  HuntResultsTableTabConfig,
+  PayloadType,
+  TypedHuntResultOrError,
+} from '../../../../lib/models/result';
 import {STORE_PROVIDERS} from '../../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../../testing';
 
@@ -27,9 +32,9 @@ initTestEnvironment();
     </app-hunt-results>`,
 })
 class TestHostComponent {
-  huntId: string|undefined = undefined;
-  tabsConfig: HuntResultsTableTabConfig[]|undefined = undefined;
-  isLoading: boolean|undefined = undefined;
+  huntId: string | undefined = undefined;
+  tabsConfig: HuntResultsTableTabConfig[] | undefined = undefined;
+  isLoading: boolean | undefined = undefined;
 
   @ViewChild(HuntResults) huntResults!: HuntResults;
 
@@ -41,20 +46,15 @@ describe('HuntResults', () => {
   const httpApiService = mockHttpApiService();
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HuntResultsModule,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-            {provide: HttpApiService, useFactory: () => httpApiService},
-          ],
-          declarations: [TestHostComponent],
-          teardown: {destroyAfterEach: false},
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HuntResultsModule],
+      providers: [
+        ...STORE_PROVIDERS,
+        {provide: HttpApiService, useFactory: () => httpApiService},
+      ],
+      declarations: [TestHostComponent],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('Shows title and "Nothing to show" if no results are available', () => {
@@ -82,8 +82,9 @@ describe('HuntResults', () => {
     component.tabsConfig = [];
     fixture.detectChanges();
 
-    const downloadButton =
-        fixture.debugElement.query(By.css('#downloadButton'));
+    const downloadButton = fixture.debugElement.query(
+      By.css('#downloadButton'),
+    );
     expect(downloadButton).toBeFalsy();
     expect(fixture.nativeElement.textContent).not.toContain('Download');
   });
@@ -93,22 +94,26 @@ describe('HuntResults', () => {
     const component = fixture.componentInstance;
 
     component.huntId = 'XXX';
-    component.tabsConfig = [{
-      tabName: 'File finder',
-      totalResultsCount: 10,
-      payloadType: PayloadType.FILE_FINDER_RESULT,
-    }];
+    component.tabsConfig = [
+      {
+        tabName: 'File finder',
+        totalResultsCount: 10,
+        payloadType: PayloadType.FILE_FINDER_RESULT,
+      },
+    ];
 
     fixture.detectChanges();
 
-    const downloadButton =
-        fixture.debugElement.query(By.css('#downloadButton'));
+    const downloadButton = fixture.debugElement.query(
+      By.css('#downloadButton'),
+    );
     expect(downloadButton).toBeTruthy();
 
     const primaryOption = downloadButton.query(By.css('a'));
     expect(primaryOption).toBeTruthy();
-    expect(primaryOption.attributes['href'])
-        .toContain('hunts/XXX/results/files-archive?archive_format=TAR_GZ');
+    expect(primaryOption.attributes['href']).toContain(
+      'hunts/XXX/results/files-archive?archive_format=TAR_GZ',
+    );
 
     const openMenuButton = downloadButton.query(By.css('button'));
     expect(openMenuButton).toBeTruthy();
@@ -143,11 +148,13 @@ describe('HuntResults', () => {
     const component = fixture.componentInstance;
 
     component.huntId = 'XXX';
-    component.tabsConfig = [{
-      tabName: 'File finder',
-      totalResultsCount: 10,
-      payloadType: PayloadType.FILE_FINDER_RESULT,
-    }];
+    component.tabsConfig = [
+      {
+        tabName: 'File finder',
+        totalResultsCount: 10,
+        payloadType: PayloadType.FILE_FINDER_RESULT,
+      },
+    ];
 
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).not.toContain('Nothing to show');
@@ -171,16 +178,18 @@ describe('HuntResults', () => {
           'foo': 'bar',
         },
         'payloadType': PayloadType.USER,
-        'timestamp': '1'
+        'timestamp': '1',
       };
 
       // We simulated an event emitted by the Hunt Result Tables:
       component.huntResults.emitSelectedHuntResult(
-          mockResult, PayloadType.USER);
+        mockResult,
+        PayloadType.USER,
+      );
 
       expect(eventListenerSpy).toHaveBeenCalledWith({
         value: mockResult,
-        payloadType: PayloadType.USER
+        payloadType: PayloadType.USER,
       });
     });
 
@@ -189,11 +198,13 @@ describe('HuntResults', () => {
       const component = fixture.componentInstance;
 
       component.huntId = '1984';
-      component.tabsConfig = [{
-        tabName: 'User',
-        totalResultsCount: 1,
-        payloadType: PayloadType.USER,
-      }];
+      component.tabsConfig = [
+        {
+          tabName: 'User',
+          totalResultsCount: 1,
+          payloadType: PayloadType.USER,
+        },
+      ];
 
       fixture.detectChanges();
 
@@ -203,12 +214,13 @@ describe('HuntResults', () => {
           'foo': 'bar',
         },
         'payloadType': PayloadType.USER,
-        'timestamp': '1'
+        'timestamp': '1',
       };
 
       // We provide a mock response for the Hunt Results Local Store:
-      httpApiService.mockedObservables.listResultsForHunt.next(
-          [mockHuntResult]);
+      httpApiService.mockedObservables.listResultsForHunt.next([
+        mockHuntResult,
+      ]);
 
       fixture.detectChanges();
 
@@ -246,16 +258,18 @@ describe('HuntResults', () => {
         clientId: 'C.1234',
         logMessage: 'foo',
         backtrace: 'bar',
-        timestamp: '1'
+        timestamp: '1',
       };
 
       // We simulated an event emitted a Hunt Error Table:
       component.huntResults.emitSelectedHuntResult(
-          mockError, PayloadType.API_HUNT_ERROR);
+        mockError,
+        PayloadType.API_HUNT_ERROR,
+      );
 
       expect(eventListenerSpy).toHaveBeenCalledWith({
         value: mockError,
-        payloadType: PayloadType.API_HUNT_ERROR
+        payloadType: PayloadType.API_HUNT_ERROR,
       });
     });
 
@@ -264,11 +278,13 @@ describe('HuntResults', () => {
       const component = fixture.componentInstance;
 
       component.huntId = '1984';
-      component.tabsConfig = [{
-        tabName: 'Errors',
-        totalResultsCount: 1,
-        payloadType: PayloadType.API_HUNT_ERROR,
-      }];
+      component.tabsConfig = [
+        {
+          tabName: 'Errors',
+          totalResultsCount: 1,
+          payloadType: PayloadType.API_HUNT_ERROR,
+        },
+      ];
 
       fixture.detectChanges();
 
@@ -334,92 +350,95 @@ describe('HuntResults', () => {
 
   describe('Result Table tabs', () => {
     it('displays one tab per result type', fakeAsync(async () => {
-         const fixture = TestBed.createComponent(TestHostComponent);
-         const component = fixture.componentInstance;
+      const fixture = TestBed.createComponent(TestHostComponent);
+      const component = fixture.componentInstance;
 
-         component.huntId = 'XXX';
-         component.tabsConfig = [
-           {
-             tabName: 'File finder',
-             totalResultsCount: 10,
-             payloadType: PayloadType.FILE_FINDER_RESULT,
-           },
-           {
-             tabName: 'User',
-             totalResultsCount: 5,
-             payloadType: PayloadType.USER,
-           },
-         ];
+      component.huntId = 'XXX';
+      component.tabsConfig = [
+        {
+          tabName: 'File finder',
+          totalResultsCount: 10,
+          payloadType: PayloadType.FILE_FINDER_RESULT,
+        },
+        {
+          tabName: 'User',
+          totalResultsCount: 5,
+          payloadType: PayloadType.USER,
+        },
+      ];
 
-         fixture.detectChanges();
+      fixture.detectChanges();
 
-         // We mock an empty list of results as a response for the Hunt Results
-         // Table.
-         httpApiService.mockedObservables.listResultsForHunt.next([]);
+      // We mock an empty list of results as a response for the Hunt Results
+      // Table.
+      httpApiService.mockedObservables.listResultsForHunt.next([]);
 
-         tick();
-         fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
 
-         const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-         const tabGroupHarness =
-             await harnessLoader.getHarness(MatTabGroupHarness);
-         expect((await tabGroupHarness.getTabs()).length).toEqual(2);
+      const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+      const tabGroupHarness = await harnessLoader.getHarness(
+        MatTabGroupHarness,
+      );
+      expect((await tabGroupHarness.getTabs()).length).toEqual(2);
 
-         const fileFinderTab =
-             (await tabGroupHarness.getTabs({label: 'File finder'}))[0];
-         expect(fileFinderTab).toBeTruthy();
+      const fileFinderTab = (
+        await tabGroupHarness.getTabs({label: 'File finder'})
+      )[0];
+      expect(fileFinderTab).toBeTruthy();
 
-         await fileFinderTab.select();
-         expect(await fileFinderTab.getTextContent())
-             .toContain(`${
-                 PayloadType.FILE_FINDER_RESULT} results could not be loaded.`);
+      await fileFinderTab.select();
+      expect(await fileFinderTab.getTextContent()).toContain(
+        `${PayloadType.FILE_FINDER_RESULT} results could not be loaded.`,
+      );
 
-         const userTab = (await tabGroupHarness.getTabs({label: 'User'}))[0];
-         expect(userTab).toBeTruthy();
+      const userTab = (await tabGroupHarness.getTabs({label: 'User'}))[0];
+      expect(userTab).toBeTruthy();
 
-         await userTab.select();
-         expect(await userTab.getTextContent())
-             .toContain(`${PayloadType.USER} results could not be loaded.`);
-       }));
+      await userTab.select();
+      expect(await userTab.getTextContent()).toContain(
+        `${PayloadType.USER} results could not be loaded.`,
+      );
+    }));
   });
 
   it('displays the Error tab with its icon', fakeAsync(async () => {
-       const fixture = TestBed.createComponent(TestHostComponent);
-       const component = fixture.componentInstance;
+    const fixture = TestBed.createComponent(TestHostComponent);
+    const component = fixture.componentInstance;
 
-       component.huntId = 'XXX';
-       component.tabsConfig = [
-         {
-           tabName: 'Errors',
-           totalResultsCount: 1,
-           payloadType: PayloadType.API_HUNT_ERROR,
-         },
-       ];
+    component.huntId = 'XXX';
+    component.tabsConfig = [
+      {
+        tabName: 'Errors',
+        totalResultsCount: 1,
+        payloadType: PayloadType.API_HUNT_ERROR,
+      },
+    ];
 
-       fixture.detectChanges();
+    fixture.detectChanges();
 
-       // We mock an empty list of results as a response for the Hunt Results
-       // Table.
-       httpApiService.mockedObservables.listErrorsForHunt.next([]);
+    // We mock an empty list of results as a response for the Hunt Results
+    // Table.
+    httpApiService.mockedObservables.listErrorsForHunt.next([]);
 
-       tick();
-       fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
 
-       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const tabGroupHarness =
-           await harnessLoader.getHarness(MatTabGroupHarness);
-       expect((await tabGroupHarness.getTabs()).length).toEqual(1);
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const tabGroupHarness = await harnessLoader.getHarness(MatTabGroupHarness);
+    expect((await tabGroupHarness.getTabs()).length).toEqual(1);
 
-       // We can't access the MatTabLabel native element through the harness,
-       // so we do a normal query to check if the warning icon is present.
-       const errorsTabLabel =
-           fixture.debugElement.query(By.css('.mdc-tab__text-label'));
-       expect(errorsTabLabel).toBeTruthy();
+    // We can't access the MatTabLabel native element through the harness,
+    // so we do a normal query to check if the warning icon is present.
+    const errorsTabLabel = fixture.debugElement.query(
+      By.css('.mdc-tab__text-label'),
+    );
+    expect(errorsTabLabel).toBeTruthy();
 
-       expect(errorsTabLabel.nativeElement.textContent).toContain('Errors');
-       const warningIcon = errorsTabLabel.query(By.css('mat-icon'));
+    expect(errorsTabLabel.nativeElement.textContent).toContain('Errors');
+    const warningIcon = errorsTabLabel.query(By.css('mat-icon'));
 
-       expect(warningIcon).toBeTruthy();
-       expect(warningIcon.nativeElement.textContent).toContain('warning');
-     }));
+    expect(warningIcon).toBeTruthy();
+    expect(warningIcon.nativeElement.textContent).toContain('warning');
+  }));
 });

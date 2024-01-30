@@ -10,8 +10,9 @@ export class SanitizerPipe implements PipeTransform {
   constructor(private readonly sanitizer: DomSanitizer) {}
 
   transform(
-      value: string|SafeValue|null,
-      context: SecurityContext = SecurityContext.HTML): string|null {
+    value: string | SafeValue | null,
+    context: SecurityContext = SecurityContext.HTML,
+  ): string | null {
     return this.sanitizer.sanitize(context, value);
   }
 }

@@ -2,8 +2,6 @@ syntax = "proto2";
 
 package grr;
 
-import "grr_response_proto/semantic.proto";
-
 // Arguments for the API method for uploading YARA scan signatures (to be later
 // used when creating the YARA scan flow).
 message ApiUploadYaraSignatureArgs {
@@ -21,5 +19,5 @@ message ApiUploadYaraSignatureArgs {
 message ApiUploadYaraSignatureResult {
   // A reference to the blob containing the signature. This blob identifier can
   // be then used as input to the YARA scan flow.
-  optional bytes blob_id = 1 [(sem_type) = { type: "BlobID" }];
+  optional bytes blob_id = 1;
 }

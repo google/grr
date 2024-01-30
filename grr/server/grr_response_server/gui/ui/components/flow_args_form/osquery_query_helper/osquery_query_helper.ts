@@ -1,16 +1,32 @@
 import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  takeUntil,
+} from 'rxjs/operators';
 
 import {FuzzyMatcher, Match} from '../../../lib/fuzzy_matcher';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 
-import {TableCategory, tableCategoryFromNames, tableCategoryFromSpecs, TableCategoryWithMatchMap} from './osquery_helper_model';
-import {allTableSpecs, nameToTable, OsqueryTableSpec} from './osquery_table_specs';
+import {
+  TableCategory,
+  tableCategoryFromNames,
+  tableCategoryFromSpecs,
+  TableCategoryWithMatchMap,
+} from './osquery_helper_model';
+import {
+  allTableSpecs,
+  nameToTable,
+  OsqueryTableSpec,
+} from './osquery_table_specs';
 import {constructSelectAllFromTable} from './query_composer';
-
 
 /** A helper component for the OsqueryForm to aid in writing the query */
 @Component({
@@ -34,34 +50,34 @@ export class OsqueryQueryHelper implements OnDestroy {
   readonly searchControl = new FormControl('');
 
   readonly searchValues$ = this.searchControl.valueChanges.pipe(
-      filter(isNonNull),
-      debounceTime(OsqueryQueryHelper.INPUT_DEBOUNCE_TIME_MS),
-      map((searchValue: string) => {
-        if (searchValue.length < this.minCharactersToSearch) {
-          return '';
-        } else {
-          return searchValue;
-        }
-      }),
-      startWith(''),
-      distinctUntilChanged(),
-      takeUntil(this.ngOnDestroy.triggered$),
+    filter(isNonNull),
+    debounceTime(OsqueryQueryHelper.INPUT_DEBOUNCE_TIME_MS),
+    map((searchValue: string) => {
+      if (searchValue.length < this.minCharactersToSearch) {
+        return '';
+      } else {
+        return searchValue;
+      }
+    }),
+    startWith(''),
+    distinctUntilChanged(),
+    takeUntil(this.ngOnDestroy.triggered$),
 
-      // Without sharing the execution, unsubscribing and subscribing again will
-      // produce an un-needed '' first value.
-      shareReplay(1),
+    // Without sharing the execution, unsubscribing and subscribing again will
+    // produce an un-needed '' first value.
+    shareReplay(1),
   );
 
   readonly queryToReturn$ = this.searchValues$.pipe(
-      map((tableName) => {
-        const tableSpec = nameToTable(tableName);
+    map((tableName) => {
+      const tableSpec = nameToTable(tableName);
 
-        if (isNonNull(tableSpec)) {
-          return constructSelectAllFromTable(tableSpec);
-        } else {
-          return undefined;
-        }
-      }),
+      if (isNonNull(tableSpec)) {
+        return constructSelectAllFromTable(tableSpec);
+      } else {
+        return undefined;
+      }
+    }),
   );
 
   readonly suggestedTableNames = ['users', 'file'];
@@ -70,39 +86,36 @@ export class OsqueryQueryHelper implements OnDestroy {
     tableCategoryFromSpecs('All tables', allTableSpecs),
   ];
 
-  private readonly allStringToMatch: readonly string[] =
-      this.tableCategories.map(category => category.subjects).flat();
+  private readonly allStringToMatch: readonly string[] = this.tableCategories
+    .map((category) => category.subjects)
+    .flat();
   private readonly fuzzyMatcher = new FuzzyMatcher(this.allStringToMatch);
 
-  readonly filteredCategories$:
-      Observable<readonly TableCategoryWithMatchMap[]> =
-          this.searchValues$.pipe(
-              map(keyword => {
-                const matchMap = this.computeMatchMap(keyword);
+  readonly filteredCategories$: Observable<
+    readonly TableCategoryWithMatchMap[]
+  > = this.searchValues$.pipe(
+    map((keyword) => {
+      const matchMap = this.computeMatchMap(keyword);
 
-                const all =
-                    this.tableCategories.map((tableCategory: TableCategory) => {
-                      if (keyword === '') {
-                        // If the search is empty we want to display all
-                        // categories and tables, so we won't filter out
-                        // anything here.
-                        return {
-                          ...tableCategory,
-                          matchMap,
-                        };
-                      }
+      const all = this.tableCategories.map((tableCategory: TableCategory) => {
+        if (keyword === '') {
+          // If the search is empty we want to display all
+          // categories and tables, so we won't filter out
+          // anything here.
+          return {
+            ...tableCategory,
+            matchMap,
+          };
+        }
 
-                      return this.filterTablesInCategory(
-                          tableCategory,
-                          matchMap,
-                      );
-                    });
+        return this.filterTablesInCategory(tableCategory, matchMap);
+      });
 
-                return all.filter(categoryWithEligibleTables => {
-                  return categoryWithEligibleTables.tableSpecs.length > 0;
-                });
-              }),
-          );
+      return all.filter((categoryWithEligibleTables) => {
+        return categoryWithEligibleTables.tableSpecs.length > 0;
+      });
+    }),
+  );
 
   private computeMatchMap(keyword: string): Map<string, Match> {
     if (keyword === '') {
@@ -110,21 +123,25 @@ export class OsqueryQueryHelper implements OnDestroy {
     }
 
     const matches = this.fuzzyMatcher.match(keyword);
-    return new Map(matches.map(match => [match.subject, match]));
+    return new Map(matches.map((match) => [match.subject, match]));
   }
 
   private filterTablesInCategory(
-      tableCategory: TableCategory,
-      matchMap: Map<string, Match>,
-      ): TableCategoryWithMatchMap {
-    const eligibleTables = tableCategory.tableSpecs.filter(tableSpec => {
+    tableCategory: TableCategory,
+    matchMap: Map<string, Match>,
+  ): TableCategoryWithMatchMap {
+    const eligibleTables = tableCategory.tableSpecs.filter((tableSpec) => {
       const nameMatch = matchMap.get(tableSpec.name);
       const descriptionMatch = matchMap.get(tableSpec.description);
-      const columnMatches =
-          tableSpec.columns.map(column => matchMap.get(column.name));
+      const columnMatches = tableSpec.columns.map((column) =>
+        matchMap.get(column.name),
+      );
 
-      return isNonNull(nameMatch) || isNonNull(descriptionMatch) ||
-          columnMatches.some(isNonNull);
+      return (
+        isNonNull(nameMatch) ||
+        isNonNull(descriptionMatch) ||
+        columnMatches.some(isNonNull)
+      );
     });
 
     return {
@@ -134,17 +151,11 @@ export class OsqueryQueryHelper implements OnDestroy {
     };
   }
 
-  trackCategoryByName(
-      index: number,
-      category: TableCategory,
-      ): string {
+  trackCategoryByName(index: number, category: TableCategory): string {
     return category.categoryName;
   }
 
-  trackTableSpecByName(
-      index: number,
-      tableSpec: OsqueryTableSpec,
-      ): string {
+  trackTableSpecByName(index: number, tableSpec: OsqueryTableSpec): string {
     return tableSpec.name;
   }
 }

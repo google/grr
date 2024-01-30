@@ -14,10 +14,10 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import export_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -43,7 +43,10 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(source=self.client_id, payload=response))
+          rdf_flow_objects.FlowResult(
+              client_id=self.client_id, payload=response
+          )
+      )
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:

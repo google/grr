@@ -10,7 +10,7 @@ import {HuntStatusChip} from './hunt_status_chip';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatChipsModule,
@@ -18,10 +18,8 @@ import {HuntStatusChip} from './hunt_status_chip';
     MatProgressSpinnerModule,
     MatTooltipModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [HuntStatusChip],
-  exports: [HuntStatusChip]
+  exports: [HuntStatusChip],
 })
-export class HuntStatusChipModule {
-}
+export class HuntStatusChipModule {}

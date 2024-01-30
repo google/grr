@@ -18,7 +18,7 @@ import {FileDetailsPage} from './file_details_page';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     DrawerLinkModule,
@@ -32,15 +32,8 @@ import {FileDetailsPage} from './file_details_page';
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FileDetails,
-    FileDetailsPage,
-  ],
-  exports: [
-    FileDetails,
-  ]
+  declarations: [FileDetails, FileDetailsPage],
+  exports: [FileDetails],
 })
-export class FileDetailsModule {
-}
+export class FileDetailsModule {}

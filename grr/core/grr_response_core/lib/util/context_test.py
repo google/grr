@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import contextlib
 import functools
 import io
 
@@ -9,23 +9,6 @@ from grr_response_core.lib.util import context
 from grr_response_core.lib.util import temp
 
 
-class NullContextTest(absltest.TestCase):
-
-  def testIntegerValue(self):
-    with context.NullContext(42) as value:
-      self.assertEqual(value, 42)
-
-  def testBufferValue(self):
-    buf = io.BytesIO()
-
-    with context.NullContext(buf) as filedesc:
-      filedesc.write(b"foo")
-      filedesc.write(b"bar")
-      filedesc.write(b"baz")
-
-    self.assertEqual(buf.getvalue(), b"foobarbaz")
-
-
 class MultiContextTest(absltest.TestCase):
 
   def testEmpty(self):
@@ -33,9 +16,9 @@ class MultiContextTest(absltest.TestCase):
       self.assertEqual(values, [])
 
   def testWithNulls(self):
-    foo = context.NullContext("foo")
-    bar = context.NullContext("bar")
-    baz = context.NullContext("baz")
+    foo = contextlib.nullcontext("foo")
+    bar = contextlib.nullcontext("bar")
+    baz = contextlib.nullcontext("baz")
 
     with context.MultiContext([foo, bar, baz]) as names:
       self.assertEqual(names, ["foo", "bar", "baz"])

@@ -1,10 +1,29 @@
 import {Clipboard} from '@angular/cdk/clipboard';
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 
 import {ExportMenuItem} from '../../../../components/flow_details/plugins/plugin';
-import {getHuntExportedResultsCsvUrl, getHuntExportedResultsSqliteUrl, getHuntExportedResultsYamlUrl, getHuntFilesArchiveTarGzUrl, getHuntFilesArchiveZipUrl} from '../../../../lib/api/http_api_service';
+import {
+  getHuntExportedResultsCsvUrl,
+  getHuntExportedResultsSqliteUrl,
+  getHuntExportedResultsYamlUrl,
+  getHuntFilesArchiveTarGzUrl,
+  getHuntFilesArchiveZipUrl,
+} from '../../../../lib/api/http_api_service';
 import {ERROR_TAB} from '../../../../lib/api_translation/result';
-import {CellComponent, HuntResultOrError, HuntResultsTableTabConfig, PayloadType, TypedHuntResultOrError} from '../../../../lib/models/result';
+import {
+  CellComponent,
+  HuntResultOrError,
+  HuntResultsTableTabConfig,
+  PayloadType,
+  TypedHuntResultOrError,
+} from '../../../../lib/models/result';
 import {observeOnDestroy} from '../../../../lib/reactive';
 
 /**
@@ -64,9 +83,10 @@ export class HuntResults implements OnDestroy {
   }
 
   exportCommand() {
-    const cmd = `/usr/bin/grr_api_shell 'http://localhost:8081' --exec_code` +
-        `'grrapi.Hunt("${this.huntId}").GetFilesArchive().WriteToFile(` +
-        `"./hunt_results_${this.huntId}.zip")'`;
+    const cmd =
+      `/usr/bin/grr_api_shell 'http://localhost:8081' --exec_code` +
+      `'grrapi.Hunt("${this.huntId}").GetFilesArchive().WriteToFile(` +
+      `"./hunt_results_${this.huntId}.zip")'`;
     this.copied = this.clipboard.copy(cmd);
   }
 
@@ -78,9 +98,9 @@ export class HuntResults implements OnDestroy {
   }
 
   emitSelectedHuntResult(
-      resultOrError: HuntResultOrError,
-      payloadType: PayloadType,
-      ): void {
+    resultOrError: HuntResultOrError,
+    payloadType: PayloadType,
+  ): void {
     this.selectedHuntResult.emit({value: resultOrError, payloadType});
   }
 }

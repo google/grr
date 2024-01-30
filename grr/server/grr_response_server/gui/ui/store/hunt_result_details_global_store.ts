@@ -1,15 +1,35 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {Observable, of} from 'rxjs';
-import {catchError, distinctUntilChanged, filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
+import {
+  catchError,
+  distinctUntilChanged,
+  filter,
+  map,
+  switchMap,
+  tap,
+  withLatestFrom,
+} from 'rxjs/operators';
 
-import {ApiFlow, ApiHuntError, ApiHuntResult, ApiListHuntErrorsArgs, ApiListHuntResultsArgs} from '../lib/api/api_interfaces';
+import {
+  ApiFlow,
+  ApiHuntError,
+  ApiHuntResult,
+  ApiListHuntErrorsArgs,
+  ApiListHuntResultsArgs,
+} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {translateFlow} from '../lib/api_translation/flow';
 import {getHuntResultKey} from '../lib/api_translation/hunt';
 import {createOptionalDate} from '../lib/api_translation/primitive';
 import {FlowWithDescriptor} from '../lib/models/flow';
-import {HuntResultOrError, PayloadType, ResultKey, toResultKey, toResultKeyString} from '../lib/models/result';
+import {
+  HuntResultOrError,
+  PayloadType,
+  ResultKey,
+  toResultKey,
+  toResultKeyString,
+} from '../lib/models/result';
 import {isNonNull, isNull} from '../lib/preconditions';
 
 import {ConfigGlobalStore} from './config_global_store';
@@ -21,35 +41,43 @@ import {ConfigGlobalStore} from './config_global_store';
 export const RESULT_BATCH_COUNT = 50;
 
 /** Function that beautifies JSON-like data or primitives into string. */
-export function stringifyAndBeautify(value: Parameters<JSON['stringify']>[0]):
-    string {
+export function stringifyAndBeautify(
+  value: Parameters<JSON['stringify']>[0],
+): string {
   return JSON.stringify(value, null, 2);
 }
 
 const DATA_NOT_FOUND = 'Data not found';
 
-function isHuntError(result: HuntResultOrError|
-                     undefined): result is ApiHuntError {
-  return isNonNull((result as ApiHuntError)?.logMessage) ||
-      isNonNull((result as ApiHuntError)?.backtrace);
+function isHuntError(
+  result: HuntResultOrError | undefined,
+): result is ApiHuntError {
+  return (
+    isNonNull((result as ApiHuntError)?.logMessage) ||
+    isNonNull((result as ApiHuntError)?.backtrace)
+  );
 }
 
-function isHuntResult(result: HuntResultOrError|
-                      undefined): result is ApiHuntResult {
+function isHuntResult(
+  result: HuntResultOrError | undefined,
+): result is ApiHuntResult {
   return isNonNull((result as ApiHuntResult)?.payload);
 }
 
 function getPayloadFromHuntError(error: ApiHuntError): string {
-  return stringifyAndBeautify(
-      {logMessage: error.logMessage, backtrace: error.backtrace});
+  return stringifyAndBeautify({
+    logMessage: error.logMessage,
+    backtrace: error.backtrace,
+  });
 }
 
 function getPayloadFromHuntResult(result: ApiHuntResult): string {
   return stringifyAndBeautify(result.payload);
 }
 
-function getDisplayFromHuntResultOrError(value: HuntResultOrError|
-                                         undefined): string {
+function getDisplayFromHuntResultOrError(
+  value: HuntResultOrError | undefined,
+): string {
   if (isNonNull(value)) {
     if (isHuntResult(value)) return getPayloadFromHuntResult(value);
     if (isHuntError(value)) return getPayloadFromHuntError(value);
@@ -58,8 +86,9 @@ function getDisplayFromHuntResultOrError(value: HuntResultOrError|
   return DATA_NOT_FOUND;
 }
 
-function getPayloadTypeFromResultOrError(result: HuntResultOrError):
-    PayloadType|undefined {
+function getPayloadTypeFromResultOrError(
+  result: HuntResultOrError,
+): PayloadType | undefined {
   if (isHuntResult(result)) {
     return result.payloadType as PayloadType;
   }
@@ -73,127 +102,126 @@ declare interface HuntResultDetailsStoreState {
   resultKeyId?: string;
   payloadType?: PayloadType;
   resultOrErrorState: {
-    value?: HuntResultOrError; stringifiedDisplayResult: string;
+    value?: HuntResultOrError;
+    stringifiedDisplayResult: string;
     isLoading: boolean;
   };
-  flowState: {withDescriptor?: FlowWithDescriptor; isLoading: boolean;};
+  flowState: {withDescriptor?: FlowWithDescriptor; isLoading: boolean};
 }
 
 /**
  * Store that holds the state of the result/error of a hunt and its
  * corresponding flow.
  */
-class HuntResultDetailsStore extends
-    ComponentStore<HuntResultDetailsStoreState> {
-  private readonly shouldLoadResult$ =
-      this.select(state => state)
-          .pipe(
-              filter(({
-                       resultKeyId,
-                       resultOrErrorState: oldResultOrErrorState,
-                     }) => {
-                if (isNull(resultKeyId) || oldResultOrErrorState.isLoading) {
-                  return false;
-                }
-                if (isNull(oldResultOrErrorState.value)) return true;
+class HuntResultDetailsStore extends ComponentStore<HuntResultDetailsStoreState> {
+  private readonly shouldLoadResult$ = this.select((state) => state).pipe(
+    filter(({resultKeyId, resultOrErrorState: oldResultOrErrorState}) => {
+      if (isNull(resultKeyId) || oldResultOrErrorState.isLoading) {
+        return false;
+      }
+      if (isNull(oldResultOrErrorState.value)) return true;
 
-                const resultKey = toResultKey(resultKeyId);
+      const resultKey = toResultKey(resultKeyId);
 
-                const huntId = resultKey.flowId;
+      const huntId = resultKey.flowId;
 
-                const oldResultKeyId =
-                    getHuntResultKey(oldResultOrErrorState.value, huntId);
-
-                return resultKeyId !== oldResultKeyId;
-              }),
-              // We stop the stream is the resultKeyId hasn't changed:
-              distinctUntilChanged((oldState, newState) => {
-                return oldState.resultKeyId === newState.resultKeyId;
-              }),
-              map(state => ({
-                    resultKey: toResultKey(state.resultKeyId!),
-                    payloadType: state.payloadType,
-                  })),
-          );
-
-  readonly resultOrError$ =
-      this.select(state => state.resultOrErrorState.value);
-  readonly filteredResultKeyId$ = this.select(state => state.resultKeyId)
-                                      .pipe(
-                                          filter(isNonNull),
-                                          distinctUntilChanged(),
-                                      );
-  readonly resultKey$ =
-      this.filteredResultKeyId$.pipe(map(rkId => toResultKey(rkId)));
-  readonly resultOrErrorDisplay$ =
-      this.select(state => state.resultOrErrorState.stringifiedDisplayResult);
-  readonly flowWithDescriptor$ =
-      this.select(state => state.flowState.withDescriptor);
-  readonly isFlowLoading$ = this.select(state => state.flowState.isLoading);
-  readonly isHuntResultLoading$ =
-      this.select(state => state.resultOrErrorState.isLoading);
-
-  readonly selectHuntResult = this.updater<{
-    resultOrError: HuntResultOrError,
-    resultKeyId: string,
-  }>(
-      (state, {resultOrError, resultKeyId}) => ({
-        resultKeyId,
-        type: getPayloadTypeFromResultOrError(resultOrError),
-        resultOrErrorState: {
-          value: resultOrError,
-          stringifiedDisplayResult:
-              getDisplayFromHuntResultOrError(resultOrError),
-          isLoading: false,
-        },
-        flowState: {
-          withDescriptor: undefined,
-          isLoading: false,
-        },
-      }),
-  );
-
-  readonly selectHuntResultId =
-      this.updater<{resultKeyId: string, payloadType: PayloadType|undefined}>(
-          (state, resultMetadata) => {
-            if (state.resultKeyId === resultMetadata.resultKeyId) return state;
-
-            return {
-              ...state,
-              resultKeyId: resultMetadata.resultKeyId,
-              payloadType: resultMetadata.payloadType,
-            };
-          },
+      const oldResultKeyId = getHuntResultKey(
+        oldResultOrErrorState.value,
+        huntId,
       );
 
-  readonly setFlowDescriptorFromFlow = this.effect<ApiFlow|undefined>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.configGlobalStore.flowDescriptors$),
-          tap(([apiFlow, fds]) => {
-            let flowWithDescriptor: FlowWithDescriptor|undefined;
+      return resultKeyId !== oldResultKeyId;
+    }),
+    // We stop the stream is the resultKeyId hasn't changed:
+    distinctUntilChanged((oldState, newState) => {
+      return oldState.resultKeyId === newState.resultKeyId;
+    }),
+    map((state) => ({
+      resultKey: toResultKey(state.resultKeyId!),
+      payloadType: state.payloadType,
+    })),
+  );
 
-            if (isNonNull(apiFlow)) {
-              const type = apiFlow.args?.['@type'];
+  readonly resultOrError$ = this.select(
+    (state) => state.resultOrErrorState.value,
+  );
+  readonly filteredResultKeyId$ = this.select(
+    (state) => state.resultKeyId,
+  ).pipe(filter(isNonNull), distinctUntilChanged());
+  readonly resultKey$ = this.filteredResultKeyId$.pipe(
+    map((rkId) => toResultKey(rkId)),
+  );
+  readonly resultOrErrorDisplay$ = this.select(
+    (state) => state.resultOrErrorState.stringifiedDisplayResult,
+  );
+  readonly flowWithDescriptor$ = this.select(
+    (state) => state.flowState.withDescriptor,
+  );
+  readonly isFlowLoading$ = this.select((state) => state.flowState.isLoading);
+  readonly isHuntResultLoading$ = this.select(
+    (state) => state.resultOrErrorState.isLoading,
+  );
 
-              flowWithDescriptor = {
-                flow: translateFlow(apiFlow),
-                descriptor: fds.get(apiFlow.name ?? ''),
-                flowArgType: typeof type === 'string' ? type : undefined,
-              };
-            }
+  readonly selectHuntResult = this.updater<{
+    resultOrError: HuntResultOrError;
+    resultKeyId: string;
+  }>((state, {resultOrError, resultKeyId}) => ({
+    resultKeyId,
+    type: getPayloadTypeFromResultOrError(resultOrError),
+    resultOrErrorState: {
+      value: resultOrError,
+      stringifiedDisplayResult: getDisplayFromHuntResultOrError(resultOrError),
+      isLoading: false,
+    },
+    flowState: {
+      withDescriptor: undefined,
+      isLoading: false,
+    },
+  }));
 
-            this.patchState({
-              flowState: {
-                withDescriptor: flowWithDescriptor,
-                isLoading: false,
-              },
-            });
-          }),
-          ));
+  readonly selectHuntResultId = this.updater<{
+    resultKeyId: string;
+    payloadType: PayloadType | undefined;
+  }>((state, resultMetadata) => {
+    if (state.resultKeyId === resultMetadata.resultKeyId) return state;
+
+    return {
+      ...state,
+      resultKeyId: resultMetadata.resultKeyId,
+      payloadType: resultMetadata.payloadType,
+    };
+  });
+
+  readonly setFlowDescriptorFromFlow = this.effect<ApiFlow | undefined>(
+    (obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.configGlobalStore.flowDescriptors$),
+        tap(([apiFlow, fds]) => {
+          let flowWithDescriptor: FlowWithDescriptor | undefined;
+
+          if (isNonNull(apiFlow)) {
+            const type = apiFlow.args?.['@type'];
+
+            flowWithDescriptor = {
+              flow: translateFlow(apiFlow),
+              descriptor: fds.get(apiFlow.name ?? ''),
+              flowArgType: typeof type === 'string' ? type : undefined,
+            };
+          }
+
+          this.patchState({
+            flowState: {
+              withDescriptor: flowWithDescriptor,
+              isLoading: false,
+            },
+          });
+        }),
+      ),
+  );
 
   constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly httpApiService: HttpApiService,
+    private readonly configGlobalStore: ConfigGlobalStore,
   ) {
     super({
       resultKeyId: undefined,
@@ -210,72 +238,75 @@ class HuntResultDetailsStore extends
     });
 
     this.filteredResultKeyId$
-        .pipe(
-            map((resultKey) => toResultKey(resultKey)),
-            tap(() => {
-              this.patchState({
-                flowState: {
-                  isLoading: true,
-                  withDescriptor: undefined,
-                },
-              });
-            }),
-            switchMap(
-                (resultKey) =>
-                    this.httpApiService
-                        .fetchFlow(resultKey.clientId, resultKey.flowId)
-                        .pipe(catchError(() => of(undefined)))),
-            )
-        .subscribe(this.setFlowDescriptorFromFlow);
+      .pipe(
+        map((resultKey) => toResultKey(resultKey)),
+        tap(() => {
+          this.patchState({
+            flowState: {
+              isLoading: true,
+              withDescriptor: undefined,
+            },
+          });
+        }),
+        switchMap((resultKey) =>
+          this.httpApiService
+            .fetchFlow(resultKey.clientId, resultKey.flowId)
+            .pipe(catchError(() => of(undefined))),
+        ),
+      )
+      .subscribe(this.setFlowDescriptorFromFlow);
 
     this.shouldLoadResult$
-        .pipe(
-            tap(() => {
-              this.patchState({
-                resultOrErrorState: {
-                  isLoading: true,
-                  value: undefined,
-                  stringifiedDisplayResult: DATA_NOT_FOUND,
-                },
-              });
-            }),
-            switchMap(
-                (resultMetadata) => this.getHuntResultFromHuntResultKey(
-                                            resultMetadata.resultKey,
-                                            resultMetadata.payloadType)
-                                        .pipe(catchError(() => of(undefined)))),
-            )
-        .subscribe(huntResultOrError => {
-          this.patchState(({
+      .pipe(
+        tap(() => {
+          this.patchState({
             resultOrErrorState: {
-              value: huntResultOrError,
-              stringifiedDisplayResult:
-                  getDisplayFromHuntResultOrError(huntResultOrError),
-              isLoading: false,
+              isLoading: true,
+              value: undefined,
+              stringifiedDisplayResult: DATA_NOT_FOUND,
             },
-          }));
+          });
+        }),
+        switchMap((resultMetadata) =>
+          this.getHuntResultFromHuntResultKey(
+            resultMetadata.resultKey,
+            resultMetadata.payloadType,
+          ).pipe(catchError(() => of(undefined))),
+        ),
+      )
+      .subscribe((huntResultOrError) => {
+        this.patchState({
+          resultOrErrorState: {
+            value: huntResultOrError,
+            stringifiedDisplayResult:
+              getDisplayFromHuntResultOrError(huntResultOrError),
+            isLoading: false,
+          },
         });
+      });
   }
 
   private getHuntResultFromHuntResultKey(
-      resultKey: ResultKey,
-      payloadType?: PayloadType,
-      ): Observable<HuntResultOrError|undefined> {
+    resultKey: ResultKey,
+    payloadType?: PayloadType,
+  ): Observable<HuntResultOrError | undefined> {
     const isHuntError = payloadType === PayloadType.API_HUNT_ERROR;
     const resultKeyId = toResultKeyString(resultKey);
-    const params =
-        this.getResultsOrErrorSearchParameters(resultKey, payloadType);
+    const params = this.getResultsOrErrorSearchParameters(
+      resultKey,
+      payloadType,
+    );
 
     return this.recursiveSearchForHuntResult(params, resultKeyId, isHuntError);
   }
 
   private getResultsOrErrorSearchParameters(
-      resultKey: ResultKey,
-      payloadType?: PayloadType,
-      ): ApiListHuntResultsArgs&ApiListHuntErrorsArgs {
+    resultKey: ResultKey,
+    payloadType?: PayloadType,
+  ): ApiListHuntResultsArgs & ApiListHuntErrorsArgs {
     const isHuntError = payloadType === PayloadType.API_HUNT_ERROR;
 
-    const params: ApiListHuntResultsArgs&ApiListHuntErrorsArgs = {
+    const params: ApiListHuntResultsArgs & ApiListHuntErrorsArgs = {
       huntId: resultKey.flowId,
       offset: `${0}`,
       count: `${RESULT_BATCH_COUNT}`,
@@ -291,36 +322,41 @@ class HuntResultDetailsStore extends
    * calling the backend for results/errors and then looking for it manually.
    */
   private recursiveSearchForHuntResult(
-      params: ApiListHuntResultsArgs&ApiListHuntErrorsArgs,
-      resultKeyId: string,
-      isHuntError: boolean,
-      ): Observable<HuntResultOrError|undefined> {
+    params: ApiListHuntResultsArgs & ApiListHuntErrorsArgs,
+    resultKeyId: string,
+    isHuntError: boolean,
+  ): Observable<HuntResultOrError | undefined> {
     const huntResultOrErrorList$: Observable<readonly HuntResultOrError[]> =
-        isHuntError ? this.httpApiService.listErrorsForHunt(params) :
-                      this.httpApiService.listResultsForHunt(params);
+      isHuntError
+        ? this.httpApiService.listErrorsForHunt(params)
+        : this.httpApiService.listResultsForHunt(params);
 
     return huntResultOrErrorList$.pipe(
-        catchError(() => of([])),
-        switchMap(resultOrErrors => {
-          if (resultOrErrors.length === 0) return of(undefined);
+      catchError(() => of([])),
+      switchMap((resultOrErrors) => {
+        if (resultOrErrors.length === 0) return of(undefined);
 
-          const huntResult = resultOrErrors.find(
-              (roe) => getHuntResultKey(roe, params.huntId!) === resultKeyId);
+        const huntResult = resultOrErrors.find(
+          (roe) => getHuntResultKey(roe, params.huntId!) === resultKeyId,
+        );
 
-          if (huntResult) return of(huntResult);
+        if (huntResult) return of(huntResult);
 
-          // If the batch is smaller than what we ask for, we assume the
-          // hunt result/error wasn't found and we return undefined:
-          if (resultOrErrors.length < RESULT_BATCH_COUNT) return of(undefined);
+        // If the batch is smaller than what we ask for, we assume the
+        // hunt result/error wasn't found and we return undefined:
+        if (resultOrErrors.length < RESULT_BATCH_COUNT) return of(undefined);
 
-          const updatedParams: ApiListHuntResultsArgs = {
-            ...params,
-            offset: `${Number(params.offset) + RESULT_BATCH_COUNT}`,
-          };
+        const updatedParams: ApiListHuntResultsArgs = {
+          ...params,
+          offset: `${Number(params.offset) + RESULT_BATCH_COUNT}`,
+        };
 
-          return this.recursiveSearchForHuntResult(
-              updatedParams, resultKeyId, isHuntError);
-        }),
+        return this.recursiveSearchForHuntResult(
+          updatedParams,
+          resultKeyId,
+          isHuntError,
+        );
+      }),
     );
   }
 }
@@ -331,17 +367,20 @@ class HuntResultDetailsStore extends
 })
 export class HuntResultDetailsGlobalStore {
   constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly httpApiService: HttpApiService,
+    private readonly configGlobalStore: ConfigGlobalStore,
   ) {}
 
-  private readonly store =
-      new HuntResultDetailsStore(this.httpApiService, this.configGlobalStore);
+  private readonly store = new HuntResultDetailsStore(
+    this.httpApiService,
+    this.configGlobalStore,
+  );
 
-  readonly huntId$ = this.store.resultKey$.pipe(map(key => key?.flowId));
-  readonly clientId$ = this.store.resultKey$.pipe(map(key => key?.clientId));
+  readonly huntId$ = this.store.resultKey$.pipe(map((key) => key?.flowId));
+  readonly clientId$ = this.store.resultKey$.pipe(map((key) => key?.clientId));
   readonly timestamp$ = this.store.resultKey$.pipe(
-      map(key => createOptionalDate(key?.timestamp ?? '')));
+    map((key) => createOptionalDate(key?.timestamp ?? '')),
+  );
   readonly resultOrErrorDisplay$ = this.store.resultOrErrorDisplay$;
   readonly flowWithDescriptor$ = this.store.flowWithDescriptor$;
   readonly isFlowLoading$ = this.store.isFlowLoading$;
@@ -357,9 +396,9 @@ export class HuntResultDetailsGlobalStore {
    * re-fetching it from the backend.
    */
   selectHuntResultOrError(
-      resultOrError: HuntResultOrError,
-      huntId: string,
-      ): void {
+    resultOrError: HuntResultOrError,
+    huntId: string,
+  ): void {
     this.store.selectHuntResult({
       resultOrError,
       resultKeyId: getHuntResultKey(resultOrError, huntId),

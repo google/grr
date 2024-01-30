@@ -141,14 +141,14 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     # We should end up on hunts's page.
     self.WaitUntil(self.IsTextPresent, hunt_id)
 
-  def _CreateOSBreakDownCronJobApproval(self):
-    job_name = cron_system.OSBreakDownCronJob.__name__
+  def _CreateInterrogateClientsCronJobApproval(self):
+    job_name = cron_system.InterrogateClientsCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[job_name])
     cronjobs.CronManager().DisableJob(job_name)
     return job_name
 
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
-    job_name = self._CreateOSBreakDownCronJobApproval()
+    job_name = self._CreateInterrogateClientsCronJobApproval()
 
     self.RequestCronJobApproval(
         job_name,
@@ -161,7 +161,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.test_username, message)
-    self.assertIn("OSBreakDownCronJob", message)
+    self.assertIn("InterrogateClientsCronJob", message)
 
     # Extract link from the message text and open it.
     m = re.search(r"""href=['"](.+?)['"]""", message, re.MULTILINE)
@@ -172,11 +172,13 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, self.test_username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
     self.WaitUntil(self.IsTextPresent, "Frequency")
 
   def testEmailCronJobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
-    job_name = self._CreateOSBreakDownCronJobApproval()
+    job_name = self._CreateInterrogateClientsCronJobApproval()
     self.RequestAndGrantCronJobApproval(
         job_name,
         reason=self.APPROVAL_REASON,
@@ -192,7 +194,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Open(self._ExtractLinkFromMessage(message))
 
-    self.WaitUntil(self.IsTextPresent, "OSBreakDownCronJob")
+    self.WaitUntil(self.IsTextPresent, "InterrogateClientsCronJob")
 
 
 if __name__ == "__main__":

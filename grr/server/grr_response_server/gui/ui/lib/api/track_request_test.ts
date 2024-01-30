@@ -1,4 +1,3 @@
-
 import {HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom, Subject} from 'rxjs';
 
@@ -25,7 +24,7 @@ describe('trackRequest', () => {
 
     expect(await values).toEqual([
       {status: RequestStatusType.SENT},
-      {status: RequestStatusType.SUCCESS, data: 'successvalue'}
+      {status: RequestStatusType.SUCCESS, data: 'successvalue'},
     ]);
   });
 

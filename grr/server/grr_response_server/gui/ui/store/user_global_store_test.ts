@@ -2,7 +2,10 @@ import {TestBed} from '@angular/core/testing';
 import {firstValueFrom} from 'rxjs';
 
 import {HttpApiService} from '../lib/api/http_api_service';
-import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {
+  HttpApiServiceMock,
+  mockHttpApiService,
+} from '../lib/api/http_api_service_test_util';
 import {initTestEnvironment} from '../testing';
 
 import {UserGlobalStore} from './user_global_store';
@@ -22,7 +25,7 @@ describe('UserGlobalStore', () => {
         UserGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
-      teardown: {destroyAfterEach: false}
+      teardown: {destroyAfterEach: false},
     });
 
     userGlobalStore = TestBed.inject(UserGlobalStore);

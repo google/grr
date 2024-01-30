@@ -1,40 +1,50 @@
 #!/usr/bin/env python
 """The MySQL database methods for handling artifacts."""
 
-from typing import Text
+from typing import Optional, Sequence
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
+import MySQLdb.cursors
 
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_proto import artifact_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils
 
 
 def _RowToArtifact(row):
-  return rdf_artifacts.Artifact.FromSerializedBytes(row[0])
+  return artifact_pb2.Artifact.FromString(row[0])
 
 
 class MySQLDBArtifactsMixin(object):
   """An MySQL database mixin with artifact-related methods."""
 
   @mysql_utils.WithTransaction()
-  def WriteArtifact(self, artifact, cursor=None):
-    """Writes new artifact to the database."""
-    name = Text(artifact.name)
+  def WriteArtifact(
+      self,
+      artifact: artifact_pb2.Artifact,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ):
+    """Writes a new artifact to the database."""
+    assert cursor is not None
 
     try:
-      cursor.execute("INSERT INTO artifacts (name, definition) VALUES (%s, %s)",
-                     [name, artifact.SerializeToBytes()])
+      cursor.execute(
+          "INSERT INTO artifacts (name, definition) VALUES (%s, %s)",
+          [artifact.name, artifact.SerializeToString()],
+      )
     except MySQLdb.IntegrityError as error:
       if error.args[0] == mysql_error_constants.DUP_ENTRY:
-        raise db.DuplicatedArtifactError(name, cause=error)
+        raise db.DuplicatedArtifactError(artifact.name, cause=error)
       else:
         raise
 
   @mysql_utils.WithTransaction()
-  def ReadArtifact(self, name, cursor=None):
+  def ReadArtifact(
+      self, name: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
+  ) -> artifact_pb2.Artifact:
     """Looks up an artifact with given name from the database."""
+    assert cursor is not None
     cursor.execute("SELECT definition FROM artifacts WHERE name = %s", [name])
 
     row = cursor.fetchone()
@@ -44,15 +54,20 @@ class MySQLDBArtifactsMixin(object):
       return _RowToArtifact(row)
 
   @mysql_utils.WithTransaction()
-  def ReadAllArtifacts(self, cursor=None):
+  def ReadAllArtifacts(
+      self, cursor: Optional[MySQLdb.cursors.Cursor] = None
+  ) -> Sequence[artifact_pb2.Artifact]:
     """Lists all artifacts that are stored in the database."""
+    assert cursor is not None
     cursor.execute("SELECT definition FROM artifacts")
     return [_RowToArtifact(row) for row in cursor.fetchall()]
 
   @mysql_utils.WithTransaction()
-  def DeleteArtifact(self, name, cursor=None):
+  def DeleteArtifact(
+      self, name: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
+  ) -> None:
     """Deletes an artifact with given name from the database."""
-
+    assert cursor is not None
     cursor.execute("DELETE FROM artifacts WHERE name = %s", [name])
 
     if cursor.rowcount == 0:

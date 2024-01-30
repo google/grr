@@ -2,7 +2,7 @@
 <div>
   <div class="param-name">Pause collection after running on</div>
   <div class="hunt-param-form-row">
-    <mat-button-toggle-group class="run-on" [formControl]="controls.runOn">
+    <mat-button-toggle-group appearance="legacy" class="run-on" [formControl]="controls.runOn">
       <mat-button-toggle class="run-on-option" [value]="RunOn.ALL_CLIENTS"
         >All matching clients</mat-button-toggle
       >
@@ -38,7 +38,7 @@
 <div>
   <div class="param-name">Rollout speed</div>
   <div class="hunt-param-form-row">
-    <mat-button-toggle-group [formControl]="controls.rolloutSpeed">
+    <mat-button-toggle-group appearance="legacy" [formControl]="controls.rolloutSpeed">
       <mat-button-toggle
         class="rollout-speed-option"
         [value]="RolloutSpeed.UNLIMITED"

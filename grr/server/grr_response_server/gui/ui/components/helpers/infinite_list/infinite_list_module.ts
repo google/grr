@@ -12,21 +12,15 @@ import {InfiniteList} from './infinite_list';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    InfiniteList,
-  ],
-  exports: [
-    InfiniteList,
-  ],
+  declarations: [InfiniteList],
+  exports: [InfiniteList],
 })
-export class InfiniteListModule {
-}
+export class InfiniteListModule {}

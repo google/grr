@@ -2,14 +2,14 @@
 """Utilities for managing signed binaries."""
 
 import io
-
-
-from typing import Iterable, Iterator, Generator, Optional, Sequence, Tuple, Union
+from typing import Generator, Iterable, Iterator, Optional, Sequence, Tuple, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.models import blobs as blob_models
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -30,28 +30,32 @@ def GetAFF4ExecutablesRoot():
 
 
 def SignedBinaryIDFromURN(
-    binary_urn: rdfvalue.RDFURN) -> rdf_objects.SignedBinaryID:
+    binary_urn: rdfvalue.RDFURN,
+) -> objects_pb2.SignedBinaryID:
   """Converts an AFF4 URN for a signed binary to a SignedBinaryID."""
   if binary_urn.RelativeName(GetAFF4PythonHackRoot()):
-    return rdf_objects.SignedBinaryID(
-        binary_type=rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
-        path=binary_urn.RelativeName(GetAFF4PythonHackRoot()))
+    return objects_pb2.SignedBinaryID(
+        binary_type=objects_pb2.SignedBinaryID.BinaryType.PYTHON_HACK,
+        path=binary_urn.RelativeName(GetAFF4PythonHackRoot()),
+    )
   elif binary_urn.RelativeName(GetAFF4ExecutablesRoot()):
-    return rdf_objects.SignedBinaryID(
-        binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
-        path=binary_urn.RelativeName(GetAFF4ExecutablesRoot()))
+    return objects_pb2.SignedBinaryID(
+        binary_type=objects_pb2.SignedBinaryID.BinaryType.EXECUTABLE,
+        path=binary_urn.RelativeName(GetAFF4ExecutablesRoot()),
+    )
   else:
     raise ValueError("Unable to determine type of signed binary: %s." %
                      binary_urn)
 
 
-def _SignedBinaryURNFromID(binary_id: rdf_objects.SignedBinaryID
-                          ) -> rdfvalue.RDFURN:
+def _SignedBinaryURNFromID(
+    binary_id: objects_pb2.SignedBinaryID,
+) -> rdfvalue.RDFURN:
   """Converts a SignedBinaryID to the equivalent AFF4 URN."""
   binary_type = binary_id.binary_type
-  if binary_type == rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK:
+  if binary_type == objects_pb2.SignedBinaryID.BinaryType.PYTHON_HACK:
     return GetAFF4PythonHackRoot().Add(binary_id.path)
-  elif binary_type == rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE:
+  elif binary_type == objects_pb2.SignedBinaryID.BinaryType.EXECUTABLE:
     return GetAFF4ExecutablesRoot().Add(binary_id.path)
   else:
     raise ValueError("Unknown binary type %s." % binary_type)
@@ -83,16 +87,20 @@ def WriteSignedBinary(binary_urn: rdfvalue.RDFURN,
     chunk_size: Size, in bytes, of the individual blobs that the binary contents
       will be split to before saving to the datastore.
   """
-  blob_references = rdf_objects.BlobReferences()
+  blob_references = objects_pb2.BlobReferences()
   for chunk_offset in range(0, len(binary_content), chunk_size):
     chunk = binary_content[chunk_offset:chunk_offset + chunk_size]
     blob_rdf = rdf_crypto.SignedBlob()
     blob_rdf.Sign(chunk, private_key, verify_key=public_key)
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(
         blob_rdf.SerializeToBytes())
-    blob_references.items.Append(
-        rdf_objects.BlobReference(
-            offset=chunk_offset, size=len(chunk), blob_id=blob_id))
+    blob_references.items.append(
+        objects_pb2.BlobReference(
+            offset=chunk_offset,
+            size=len(chunk),
+            blob_id=bytes(blob_id),
+        )
+    )
   data_store.REL_DB.WriteSignedBinaryReferences(
       SignedBinaryIDFromURN(binary_urn), blob_references)
 
@@ -108,13 +116,17 @@ def WriteSignedBinaryBlobs(binary_urn: rdfvalue.RDFURN,
     binary_urn: RDFURN that should serve as a unique identifier for the binary.
     blobs: An Iterable of signed blobs to write to the datastore.
   """
-  blob_references = rdf_objects.BlobReferences()
+  blob_references = objects_pb2.BlobReferences()
   current_offset = 0
   for blob in blobs:
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob.SerializeToBytes())
-    blob_references.items.Append(
-        rdf_objects.BlobReference(
-            offset=current_offset, size=len(blob.data), blob_id=blob_id))
+    blob_references.items.append(
+        objects_pb2.BlobReference(
+            offset=current_offset,
+            size=len(blob.data),
+            blob_id=bytes(blob_id),
+        )
+    )
     current_offset += len(blob.data)
   data_store.REL_DB.WriteSignedBinaryReferences(
       SignedBinaryIDFromURN(binary_urn), blob_references)
@@ -147,7 +159,7 @@ def FetchURNsForAllSignedBinaries() -> Sequence[rdfvalue.RDFURN]:
 
 
 def FetchBlobsForSignedBinaryByID(
-    binary_id: rdf_objects.SignedBinaryID
+    binary_id: objects_pb2.SignedBinaryID,
 ) -> Tuple[Iterator[rdf_crypto.SignedBlob], rdfvalue.RDFDatetime]:
   """Retrieves blobs for the given binary from the datastore.
 
@@ -167,7 +179,7 @@ def FetchBlobsForSignedBinaryByID(
         binary_id)
   except db.UnknownSignedBinaryError:
     raise SignedBinaryNotFoundError(_SignedBinaryURNFromID(binary_id))
-  blob_ids = [r.blob_id for r in references.items]
+  blob_ids = [blob_models.BlobID(r.blob_id) for r in references.items]
   raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
   blobs = (
       rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
@@ -176,7 +188,7 @@ def FetchBlobsForSignedBinaryByID(
 
 
 def FetchBlobForSignedBinaryByID(
-    binary_id: rdf_objects.SignedBinaryID,
+    binary_id: objects_pb2.SignedBinaryID,
     blob_index: int,
 ) -> rdf_crypto.SignedBlob:
   """Retrieves a single blob for the given binary from the datastore.
@@ -201,10 +213,11 @@ def FetchBlobForSignedBinaryByID(
     raise SignedBinaryNotFoundError(_SignedBinaryURNFromID(binary_id))
 
   try:
-    blob_id = references.items[blob_index].blob_id
+    blob_id_bytes = references.items[blob_index].blob_id
   except IndexError:
     raise BlobIndexOutOfBoundsError(f"{blob_index} >= {len(references.items)}")
 
+  blob_id = blob_models.BlobID(blob_id_bytes)
   raw_blob = data_store.BLOBS.ReadBlob(blob_id)
   return rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
 
@@ -246,7 +259,9 @@ def FetchBlobForSignedBinaryByURN(
     BlobIndexOutOfBoundsError: If requested blob index is too big.
   """
   return FetchBlobForSignedBinaryByID(
-      SignedBinaryIDFromURN(binary_urn), blob_index)
+      SignedBinaryIDFromURN(binary_urn),
+      blob_index,
+  )
 
 
 def FetchSizeOfSignedBinary(

@@ -12,12 +12,11 @@ import {RouterModule} from '@angular/router';
 import {OsqueryQueryHelper} from './osquery_query_helper';
 import {TableInfoItem} from './table_info_item';
 
-
 /** Module for the OsqueryQueryHelper component. */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatAutocompleteModule,
@@ -29,15 +28,8 @@ import {TableInfoItem} from './table_info_item';
     ReactiveFormsModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    OsqueryQueryHelper,
-    TableInfoItem,
-  ],
-  exports: [
-    OsqueryQueryHelper,
-  ]
+  declarations: [OsqueryQueryHelper, TableInfoItem],
+  exports: [OsqueryQueryHelper],
 })
-export class OsqueryQueryHelperModule {
-}
+export class OsqueryQueryHelperModule {}

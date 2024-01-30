@@ -4,7 +4,7 @@ import {tap} from 'rxjs/operators';
 /** A key-value storage to quickly retrieve items in the future. */
 export declare interface Cache<T> {
   setItem(key: string, value: T): void;
-  getItem(key: string): T|null;
+  getItem(key: string): T | null;
 }
 
 /** A cache that persists over sessions, backed by window.localStorage. */
@@ -14,9 +14,9 @@ export class StorageCache<T> implements Cache<T> {
   setItem(key: string, value: T): void {
     this.storage.setItem(key, JSON.stringify(value));
   }
-  getItem(key: string): T|null {
+  getItem(key: string): T | null {
     const cached = this.storage.getItem(key);
-    return cached === null ? null : JSON.parse(cached) as T;
+    return cached === null ? null : (JSON.parse(cached) as T);
   }
 }
 
@@ -39,7 +39,9 @@ export class StorageCache<T> implements Cache<T> {
  * `1`, `2`, and `3`.
  */
 export function cacheLatest<T>(
-    key: string, cache: Cache<T> = new StorageCache()): OperatorFunction<T, T> {
+  key: string,
+  cache: Cache<T> = new StorageCache(),
+): OperatorFunction<T, T> {
   const cache$ = new Observable<T>((observer) => {
     const rawCached = cache.getItem(key);
     if (rawCached !== null) {
@@ -48,10 +50,13 @@ export function cacheLatest<T>(
     observer.complete();
   });
 
-  return (source) => concat(
-             cache$,
-             source.pipe(tap((value: T) => {
-               cache.setItem(key, value);
-             })),
-         );
+  return (source) =>
+    concat(
+      cache$,
+      source.pipe(
+        tap((value: T) => {
+          cache.setItem(key, value);
+        }),
+      ),
+    );
 }

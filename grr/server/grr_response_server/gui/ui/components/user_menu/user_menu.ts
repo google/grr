@@ -13,7 +13,7 @@ import {UserGlobalStore} from '../../store/user_global_store';
 })
 export class UserMenu {
   readonly currentUsername$: Observable<string> =
-      this.userGlobalStore.currentUser$.pipe(map(user => user.name));
+    this.userGlobalStore.currentUser$.pipe(map((user) => user.name));
 
   constructor(private readonly userGlobalStore: UserGlobalStore) {}
 }

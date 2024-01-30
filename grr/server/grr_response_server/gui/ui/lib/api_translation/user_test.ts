@@ -13,11 +13,13 @@ describe('User API translation', () => {
   });
 
   it('converts canaryMode correctly', () => {
-    expect(translateGrrUser({
-      username: 'test',
-      settings: {canaryMode: true},
-      interfaceTraits: {huntApprovalRequired: true},
-    })).toEqual({
+    expect(
+      translateGrrUser({
+        username: 'test',
+        settings: {canaryMode: true},
+        interfaceTraits: {huntApprovalRequired: true},
+      }),
+    ).toEqual({
       name: 'test',
       canaryMode: true,
       huntApprovalRequired: true,

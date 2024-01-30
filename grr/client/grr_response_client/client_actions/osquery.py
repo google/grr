@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 """A module with client action for talking with osquery."""
 import json
+import logging
 import os
 import subprocess
 from typing import Any, Iterator, List, Optional, Text
 
 from grr_response_client import actions
+from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import precondition
@@ -36,13 +38,15 @@ class Osquery(actions.ActionPlugin):
   in_rdfvalue = rdf_osquery.OsqueryArgs
   out_rdfvalues = [rdf_osquery.OsqueryResult]
 
-  def Run(self, args):
+  def Run(self, args: rdf_osquery.OsqueryArgs):
     for result in self.Process(args):
       self.SendReply(result)
 
   # TODO(hanuszczak): This does not need to be a class method. It should be
   # refactored to a separate function and tested as such.
-  def Process(self, args) -> Iterator[rdf_osquery.OsqueryResult]:
+  def Process(
+      self, args: rdf_osquery.OsqueryArgs
+  ) -> Iterator[rdf_osquery.OsqueryResult]:
     if not config.CONFIG["Osquery.path"]:
       raise RuntimeError("The `Osquery` action invoked on a client without "
                          "osquery path specified.")
@@ -53,6 +57,9 @@ class Osquery(actions.ActionPlugin):
 
     if not args.query:
       raise ValueError("The `Osquery` was invoked with an empty query.")
+
+    if args.configuration_path and not os.path.exists(args.configuration_path):
+      raise ValueError("The configuration path does not exist.")
 
     output = Query(args)
 
@@ -88,7 +95,7 @@ def ChunkTable(table: rdf_osquery.OsqueryTable,
     rows.
   """
 
-  def ByteLength(string: Text) -> int:
+  def ByteLength(string: str) -> int:
     return len(string.encode("utf-8"))
 
   def Chunk() -> rdf_osquery.OsqueryTable:
@@ -148,7 +155,7 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """
   precondition.AssertIterableType(table, dict)
 
-  prototype: List[Text] = None
+  prototype: List[str] = None
 
   for row in table:
     columns = list(row.keys())
@@ -176,7 +183,7 @@ def ParseRow(header: rdf_osquery.OsqueryHeader,
   Returns:
     A parsed `rdf_osquery.OsqueryRow` instance.
   """
-  precondition.AssertDictType(row, Text, Text)
+  precondition.AssertDictType(row, str, str)
 
   result = rdf_osquery.OsqueryRow()
   for column in header.columns:
@@ -198,6 +205,8 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
     Error: If anything goes wrong with the subprocess call, including if the
     query is incorrect.
   """
+  configuration_path = None
+
   timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
   try:
     # We use `--S` to enforce shell execution. This is because on Windows there
@@ -213,6 +222,17 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
         "--logger_min_stderr=2",  # Only ERROR-level logs to stderr.
         "--json",  # Set output format to JSON.
     ]
+
+    if args.configuration_path:
+      configuration_path = args.configuration_path
+    elif args.configuration_content:
+      with tempfiles.CreateGRRTempFile(mode="w+b") as configuration_path_file:
+        configuration_path = configuration_path_file.name
+        configuration_path_file.write(args.configuration_content.encode())
+
+    if configuration_path:
+      command.extend(["--config_path", configuration_path])
+
     proc = subprocess.run(
         command,
         timeout=timeout,
@@ -228,6 +248,13 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
   except subprocess.CalledProcessError as error:
     stderr = error.stderr
     raise Error(message=f"Osquery error on the client: {stderr}")
+  finally:
+    if args.configuration_content and configuration_path:
+      try:
+        if os.path.exists(configuration_path):
+          os.remove(configuration_path)
+      except (OSError, IOError) as error:
+        logging.error("Failed to remove configuration: %s", error)
 
   stderr = proc.stderr.strip()
   if stderr:

@@ -3,7 +3,10 @@ import {firstValueFrom} from 'rxjs';
 
 import * as api from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
-import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {
+  HttpApiServiceMock,
+  mockHttpApiService,
+} from '../lib/api/http_api_service_test_util';
 import {initTestEnvironment} from '../testing';
 
 import {ConfigGlobalStore} from './config_global_store';
@@ -23,7 +26,7 @@ describe('ConfigGlobalStore', () => {
         ConfigGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
-      teardown: {destroyAfterEach: false}
+      teardown: {destroyAfterEach: false},
     });
 
     configGlobalStore = TestBed.inject(ConfigGlobalStore);
@@ -37,20 +40,24 @@ describe('ConfigGlobalStore', () => {
   it('correctly emits the API results in flowDescriptors$', (done) => {
     const expected = new Map([
       [
-        'ClientSideFileFinder', {
+        'ClientSideFileFinder',
+        {
           name: 'ClientSideFileFinder',
           friendlyName: 'Get a file',
           category: 'Filesystem',
+          blockHuntCreation: false,
           defaultArgs: {},
-        }
+        },
       ],
       [
-        'Kill', {
+        'Kill',
+        {
           name: 'Kill',
           friendlyName: 'Kill GRR agent process',
           category: 'Misc',
+          blockHuntCreation: false,
           defaultArgs: {},
-        }
+        },
       ],
     ]);
 
@@ -64,13 +71,15 @@ describe('ConfigGlobalStore', () => {
         name: 'ClientSideFileFinder',
         friendlyName: 'Get a file',
         category: 'Filesystem',
-        defaultArgs: {'@type': 'test-type'}
+        blockHuntCreation: false,
+        defaultArgs: {'@type': 'test-type'},
       },
       {
         name: 'Kill',
         friendlyName: 'Kill GRR agent process',
         category: 'Misc',
-        defaultArgs: {'@type': 'test-type'}
+        blockHuntCreation: false,
+        defaultArgs: {'@type': 'test-type'},
       },
     ]);
   });
@@ -82,9 +91,11 @@ describe('ConfigGlobalStore', () => {
 
   it('correctly emits the API results in artifactDescriptors$', (done) => {
     configGlobalStore.artifactDescriptors$.subscribe((results) => {
-      expect(results.get('TestArtifact')).toEqual(jasmine.objectContaining({
-        name: 'TestArtifact'
-      }));
+      expect(results.get('TestArtifact')).toEqual(
+        jasmine.objectContaining({
+          name: 'TestArtifact',
+        }),
+      );
       done();
     });
 
@@ -104,9 +115,11 @@ describe('ConfigGlobalStore', () => {
 
   it('correctly emits the API results in outputPluginDescriptors$', (done) => {
     configGlobalStore.outputPluginDescriptors$.subscribe((results) => {
-      expect(results.get('TestOutputPlugin')).toEqual(jasmine.objectContaining({
-        name: 'TestOutputPlugin'
-      }));
+      expect(results.get('TestOutputPlugin')).toEqual(
+        jasmine.objectContaining({
+          name: 'TestOutputPlugin',
+        }),
+      );
       done();
     });
 
@@ -144,10 +157,7 @@ describe('ConfigGlobalStore', () => {
   });
 
   it('correctly emits the translated API results in clientLabels$', (done) => {
-    const expected = [
-      'first_label',
-      'second_label',
-    ];
+    const expected = ['first_label', 'second_label'];
 
     configGlobalStore.clientsLabels$.subscribe((results) => {
       expect(results).toEqual(expected);
@@ -182,13 +192,15 @@ describe('ConfigGlobalStore', () => {
           path: 'windows/test/hello.py',
           size: '1',
           timestamp: '1',
-          hasValidSignature: true
+          hasValidSignature: true,
         },
-      ]
+      ],
     });
 
-    expect(await promise).toEqual([jasmine.objectContaining({
-      path: 'windows/test/hello.py',
-    })]);
+    expect(await promise).toEqual([
+      jasmine.objectContaining({
+        path: 'windows/test/hello.py',
+      }),
+    ]);
   });
 });

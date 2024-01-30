@@ -1,5 +1,8 @@
-import {BaseHarnessFilters, ContentContainerComponentHarness, HarnessPredicate} from '@angular/cdk/testing';
-
+import {
+  BaseHarnessFilters,
+  ContentContainerComponentHarness,
+  HarnessPredicate,
+} from '@angular/cdk/testing';
 
 /** Filters used when searching for the harness component. */
 export interface ResultAccordionHarnessFilters extends BaseHarnessFilters {}
@@ -10,8 +13,9 @@ export class ResultAccordionHarness extends ContentContainerComponentHarness {
 
   private readonly getHeader = this.locatorFor('.header');
 
-  static with(options: ResultAccordionHarnessFilters):
-      HarnessPredicate<ResultAccordionHarness> {
+  static with(
+    options: ResultAccordionHarnessFilters,
+  ): HarnessPredicate<ResultAccordionHarness> {
     return new HarnessPredicate(ResultAccordionHarness, options);
   }
 

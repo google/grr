@@ -1,4 +1,6 @@
-/** File flag represented by a binary mask. */
+/**
+ * File flag represented by a binary mask.
+ */
 export interface Flag {
   readonly name: string;
   readonly identifier: string;
@@ -254,8 +256,9 @@ export const LINUX_FLAGS: readonly Flag[] = [
  * https://github.com/mozilla-b2g/busybox/blob/master/e2fsprogs/old_e2fsprogs/e2p/pf.c
  * https://sourcecodebrowser.com/ldiskfsprogs/1.41.10/pf_8c_source.html
  */
-export const LINUX_FLAGS_ORDERED: readonly Flag[] =
-    'suSDiadAcBZXEjItTehC'.split('').map(getLinuxFlagByIdentifier);
+export const LINUX_FLAGS_ORDERED: readonly Flag[] = 'suSDiadAcBZXEjItTehC'
+  .split('')
+  .map(getLinuxFlagByIdentifier);
 
 /**
  * Descriptors of the macOS extended flags.

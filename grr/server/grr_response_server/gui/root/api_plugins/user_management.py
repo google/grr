@@ -2,12 +2,15 @@
 """Root-access-level API handlers for user management."""
 
 from grr_response_core import config
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import user_management_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.rdfvalues import mig_objects
 
 
 class ApiCreateGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -36,14 +39,21 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     else:
       email = None
 
+    password = None
+    if args.HasField("password"):
+      rdf_password = rdf_crypto.Password()
+      rdf_password.SetPassword(args.password)
+      password = mig_crypto.ToProtoPassword(rdf_password)
     data_store.REL_DB.WriteGRRUser(
         username=args.username,
-        password=args.password if args.HasField("password") else None,
-        user_type=args.user_type,
+        password=password,
+        user_type=int(args.user_type),
         email=email,
     )
-    user = data_store.REL_DB.ReadGRRUser(args.username)
-    return api_user.ApiGrrUser().InitFromDatabaseObject(user)
+    # TODO: Use function to get API from proto user.
+    proto_user = data_store.REL_DB.ReadGRRUser(args.username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
 
 
 class ApiDeleteGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -86,13 +96,14 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
     # query user, to throw if a nonexistent user should be modified
     data_store.REL_DB.ReadGRRUser(args.username)
 
+    password = None
     if args.HasField("password"):
-      password = args.password
-    else:
-      password = None
+      rdf_password = rdf_crypto.Password()
+      rdf_password.SetPassword(args.password)
+      password = mig_crypto.ToProtoPassword(rdf_password)
 
     if args.HasField("user_type"):
-      user_type = args.user_type
+      user_type = int(args.user_type)
     else:
       user_type = None
 
@@ -111,8 +122,10 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
         user_type=user_type,
         email=email)
 
-    user = data_store.REL_DB.ReadGRRUser(args.username)
-    return api_user.ApiGrrUser().InitFromDatabaseObject(user)
+    # TODO: Use function to get API from proto user.
+    proto_user = data_store.REL_DB.ReadGRRUser(args.username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
 
 
 class ApiListGrrUsersArgs(rdf_structs.RDFProtoStruct):
@@ -136,7 +149,9 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
     total_count = data_store.REL_DB.CountGRRUsers()
     db_users = data_store.REL_DB.ReadGRRUsers(
         offset=args.offset, count=args.count)
-    items = [api_user.ApiGrrUser().InitFromDatabaseObject(u) for u in db_users]
+    rdf_users = [mig_objects.ToRDFGRRUser(user) for user in db_users]
+    # TODO: Use function to get API from proto user.
+    items = [api_user.ApiGrrUser().InitFromDatabaseObject(u) for u in rdf_users]
     return ApiListGrrUsersResult(total_count=total_count, items=items)
 
 
@@ -155,7 +170,9 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("username can't be empty.")
 
     try:
-      user = data_store.REL_DB.ReadGRRUser(args.username)
-      return api_user.ApiGrrUser().InitFromDatabaseObject(user)
+      # TODO: Use function to get API from proto user.
+      proto_user = data_store.REL_DB.ReadGRRUser(args.username)
+      rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+      return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
     except db.UnknownGRRUserError as e:
       raise api_call_handler_base.ResourceNotFoundError(e)

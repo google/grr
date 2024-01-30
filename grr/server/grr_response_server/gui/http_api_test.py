@@ -18,6 +18,7 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_registry
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui import http_api
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -532,8 +533,9 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
     self._RenderResponse(request)
 
-    u = data_store.REL_DB.ReadGRRUser(request.user)
-    self.assertEqual(u.email, "foo@bar.org")
+    proto_u = data_store.REL_DB.ReadGRRUser(request.user)
+    rdf_u = mig_objects.ToRDFGRRUser(proto_u)
+    self.assertEqual(rdf_u.email, "foo@bar.org")
 
 
 class FlatDictToRDFValue(absltest.TestCase):

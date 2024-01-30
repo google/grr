@@ -71,9 +71,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListClientCrashes(self, args, context=None):
     return api_client.ApiListClientCrashesHandler()
 
-  def GetClientLoadStats(self, args, context=None):
-    return api_client.ApiGetClientLoadStatsHandler()
-
   def KillFleetspeak(
       self,
       args: api_client.ApiKillFleetspeakArgs,

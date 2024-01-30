@@ -70,7 +70,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     if emails_left < 0:
       return
 
-    client_id = response.source.Basename()
+    client_id = response.client_id
     client = data_store.REL_DB.ReadClientSnapshot(client_id)
     hostname = client.knowledge_base.fqdn or "unknown hostname"
     client_fragment_id = "/clients/%s" % client_id

@@ -36,11 +36,14 @@ class MessageToFlatDictTest(absltest.TestCase):
     option.value.value = b"quux"
 
     dct = utils.MessageToFlatDict(option, lambda _, value: value)
-    self.assertEqual(dct, {
-        "name": "foo",
-        "value.type_url": "bar.baz.quux",
-        "value.value": b"quux",
-    })
+    self.assertEqual(
+        dct,
+        {
+            "name": "foo",
+            "value.type_url": "bar.baz.quux",
+            "value.value": b"quux",
+        },
+    )
 
   def testTransform(self):
     i32 = wrappers_pb2.Int32Value()

@@ -14,7 +14,8 @@ from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs as blob_models
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
@@ -81,7 +82,7 @@ class TimelineFlow(flow_base.FlowBase):
     blob_ids = []
     for response in responses:
       for blob_id in response.entry_batch_blob_ids:
-        blob_ids.append(rdf_objects.BlobID(blob_id))
+        blob_ids.append(blob_models.BlobID(blob_id))
 
     data_store.BLOBS.WaitForBlobs(blob_ids, timeout=_BLOB_STORE_TIMEOUT)
 
@@ -98,7 +99,7 @@ class TimelineFlow(flow_base.FlowBase):
       message = f"Timeline collection failure: {responses.status}"
       raise flow_base.FlowError(message)
 
-    blob_ids: list[rdf_objects.BlobID] = []
+    blob_ids: list[blob_models.BlobID] = []
     flow_results: list[rdf_timeline.TimelineResult] = []
 
     # TODO: Add support for streaming responses in RRG.
@@ -106,7 +107,7 @@ class TimelineFlow(flow_base.FlowBase):
       result = rrg_get_filesystem_timeline_pb2.Result()
       result.ParseFromString(response.value)
 
-      blob_ids.append(rdf_objects.BlobID(result.blob_sha256))
+      blob_ids.append(blob_models.BlobID(result.blob_sha256))
 
       flow_result = rdf_timeline.TimelineResult()
       flow_result.entry_batch_blob_ids = [result.blob_sha256]
@@ -159,6 +160,7 @@ def Blobs(
       flow_id=flow_id,
       offset=0,
       count=_READ_FLOW_MAX_RESULTS_COUNT)
+  results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
   # `_READ_FLOW_MAX_RESULTS_COUNT` is far too much than we should ever get. If
   # we really got this many results that it means this assumption is not correct
@@ -175,7 +177,7 @@ def Blobs(
       raise TypeError(message)
 
     for entry_batch_blob_id in payload.entry_batch_blob_ids:
-      blob_id = rdf_objects.BlobID(entry_batch_blob_id)
+      blob_id = blob_models.BlobID(entry_batch_blob_id)
       blob = data_store.BLOBS.ReadBlob(blob_id)
 
       if blob is None:
@@ -197,6 +199,7 @@ def FilesystemType(client_id: str, flow_id: str) -> Optional[str]:
   """
   results = data_store.REL_DB.ReadFlowResults(
       client_id=client_id, flow_id=flow_id, offset=0, count=1)
+  results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
   if not results:
     return None

@@ -3,9 +3,12 @@
 
 import threading
 import time
+from unittest import mock
 
 from absl import app
 
+from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_integration_test_lib
@@ -32,15 +35,54 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     api_auth_manager.InitializeApiAuthManager()
 
   def testCreateClientApproval(self):
-    client_id = self.SetupClient(0)
-    self.CreateUser("foo")
+    with mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now:
+      oneday_s = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      mock_now.return_value = oneday_s  # 'Now' is 1 day past epoch
 
-    approval = self.api.Client(client_id).CreateApproval(
-        reason="blah", notified_users=[u"foo"])
-    self.assertEqual(approval.client_id, client_id)
-    self.assertEqual(approval.data.subject.client_id, client_id)
-    self.assertEqual(approval.data.reason, "blah")
-    self.assertFalse(approval.data.is_valid)
+      # 'Now' is one day past epoch, plus default expiration duration
+      twentyninedays_us = (
+          config.CONFIG["ACL.token_expiry"] * 1000000
+      ) + oneday_s.AsMicrosecondsSinceEpoch()
+
+      client_id = self.SetupClient(0)
+      self.CreateUser("foo")
+
+      approval = self.api.Client(client_id).CreateApproval(
+          reason="blah",
+          notified_users=["foo"],
+          email_cc_addresses=["bar@some.example"],
+      )
+      self.assertEqual(approval.client_id, client_id)
+      self.assertEqual(approval.data.subject.client_id, client_id)
+      self.assertEqual(approval.data.reason, "blah")
+      self.assertFalse(approval.data.is_valid)
+      self.assertEqual(approval.data.email_cc_addresses, ["bar@some.example"])
+      self.assertEqual(approval.data.expiration_time_us, twentyninedays_us)
+
+  def testCreateClientApprovalNonDefaultExpiration(self):
+    """Tests requesting approval with a non-default expiration duration."""
+    with mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now:
+      mock_now.return_value = (  # 'Now' is 1 day past epoch
+          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+      )
+      # 'Now' is one day past epoch, plus 120 days
+      onetwentydays = 120
+      onetwentyonedays_us = 121 * 24 * 60 * 60 * 1000000
+
+      client_id = self.SetupClient(0)
+      self.CreateUser("foo")
+
+      approval = self.api.Client(client_id).CreateApproval(
+          reason="blah",
+          notified_users=["foo"],
+          expiration_duration_days=onetwentydays,
+      )
+      self.assertEqual(approval.client_id, client_id)
+      self.assertEqual(approval.data.subject.client_id, client_id)
+      self.assertEqual(approval.data.reason, "blah")
+      self.assertFalse(approval.data.is_valid)
+      self.assertEqual(approval.data.email_cc_addresses, [])
+      self.assertEqual(approval.data.expiration_time_us, onetwentyonedays_us)
 
   def testWaitUntilClientApprovalValid(self):
     client_id = self.SetupClient(0)

@@ -44,6 +44,19 @@
             </td>
           </tr>
           <tr>
+            <td>Expiration:</td>
+            <td>
+              <app-timestamp
+                [date]="(approval$ | async)?.expirationTime"
+                relativeTimestamp="visible"
+              ></app-timestamp>
+              <mat-chip *ngIf="longExpiration" class="yellow-chip">
+                <mat-icon class="status-icon">warning</mat-icon>
+                This duration is longer then the default of {{defaultAccessDurationDays}} days.
+              </mat-chip>
+            </td>
+          </tr>
+          <tr>
             <td>Status:</td>
             <td>{{approval.status.type}}</td>
           </tr>

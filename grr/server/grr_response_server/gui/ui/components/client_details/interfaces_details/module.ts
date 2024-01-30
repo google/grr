@@ -9,16 +9,8 @@ import {InterfacesDetails} from './interfaces_details';
  * Module for the network interfaces details component.
  */
 @NgModule({
-  imports: [
-    CommonModule,
-    CopyButtonModule,
-  ],
-  declarations: [
-    InterfacesDetails,
-  ],
-  exports: [
-    InterfacesDetails,
-  ]
+  imports: [CommonModule, CopyButtonModule],
+  declarations: [InterfacesDetails],
+  exports: [InterfacesDetails],
 })
-export class InterfacesDetailsModule {
-}
+export class InterfacesDetailsModule {}

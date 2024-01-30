@@ -8,11 +8,14 @@ import {MatTableHarness} from '@angular/material/table/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {RegistryKey, RegistryType, RegistryValue} from '../../../lib/models/flow';
+import {
+  RegistryKey,
+  RegistryType,
+  RegistryValue,
+} from '../../../lib/models/flow';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 
 initTestEnvironment();
 
@@ -22,10 +25,10 @@ initTestEnvironment();
         [results]="results"
         [totalCount]="totalCount"
         (loadMore)="loadMoreTriggered()">
-    </registry-results-table>`
+    </registry-results-table>`,
 })
 class TestHostComponent {
-  results?: ReadonlyArray<RegistryKey|RegistryValue>;
+  results?: ReadonlyArray<RegistryKey | RegistryValue>;
   totalCount?: number;
 
   loadMoreTriggered = jasmine.createSpy('loadMoreTriggered');
@@ -33,20 +36,12 @@ class TestHostComponent {
 
 describe('RegistryResultsTable Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-            MatSortModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule, MatSortModule],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('renders the path (and type) of RegistryKeys', async () => {
@@ -103,8 +98,9 @@ describe('RegistryResultsTable Component', () => {
 
   it('sorts results', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.results =
-        [...Array.from({length: 2}).keys()].map(generateKey);
+    fixture.componentInstance.results = [...Array.from({length: 2}).keys()].map(
+      generateKey,
+    );
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('tr');
@@ -115,36 +111,40 @@ describe('RegistryResultsTable Component', () => {
 
     function getPaths() {
       const p1 = fixture.debugElement.query(
-          By.css('tbody tr:nth-child(1) td:nth-child(1)'));
+        By.css('tbody tr:nth-child(1) td:nth-child(1)'),
+      );
       const p2 = fixture.debugElement.query(
-          By.css('tbody tr:nth-child(2) td:nth-child(1)'));
+        By.css('tbody tr:nth-child(2) td:nth-child(1)'),
+      );
       return [
-        p1.nativeElement.innerText.trim(), p2.nativeElement.innerText.trim()
+        p1.nativeElement.innerText.trim(),
+        p2.nativeElement.innerText.trim(),
       ];
     }
 
     expect(getPaths()).toEqual([
       jasmine.stringMatching('HKLM\\\\reg0'),
-      jasmine.stringMatching('HKLM\\\\reg1')
+      jasmine.stringMatching('HKLM\\\\reg1'),
     ]);
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const sort = await harnessLoader.getHarness(MatSortHarness);
     // Sort by Path.
     const headers = await sort.getSortHeaders();
-    await headers[0].click();  // asc
-    await headers[0].click();  // desc
+    await headers[0].click(); // asc
+    await headers[0].click(); // desc
 
     expect(getPaths()).toEqual([
       jasmine.stringMatching('HKLM\\\\reg1'),
-      jasmine.stringMatching('HKLM\\\\reg0')
+      jasmine.stringMatching('HKLM\\\\reg0'),
     ]);
   });
 
   it('filters results', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.results =
-        [...Array.from({length: 10}).keys()].map(generateKey);
+    fixture.componentInstance.results = [
+      ...Array.from({length: 10}).keys(),
+    ].map(generateKey);
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('tr');
@@ -157,24 +157,27 @@ describe('RegistryResultsTable Component', () => {
 
     // Filter is applied, selecting only the first row by process name.
     filterInput.nativeElement.value = 'reg0';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('reg0');
     expect(fixture.nativeElement.innerText).not.toContain('reg1');
 
     // Filter is applied, selecting only the second row by ip address.
     filterInput.nativeElement.value = 'reg1';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).not.toContain('reg0');
     expect(fixture.nativeElement.innerText).toContain('reg1');
 
     // Filter is applied, selects no row.
     filterInput.nativeElement.value = 'invalid';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).not.toContain('reg0');
     expect(fixture.nativeElement.innerText).not.toContain('reg1');
@@ -182,8 +185,9 @@ describe('RegistryResultsTable Component', () => {
 
     // Filter is cleared, all rows are showed again.
     filterInput.nativeElement.value = '';
-    filterInput.triggerEventHandler(
-        'input', {target: filterInput.nativeElement});
+    filterInput.triggerEventHandler('input', {
+      target: filterInput.nativeElement,
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('reg0');
     expect(fixture.nativeElement.innerText).toContain('reg1');
@@ -191,8 +195,9 @@ describe('RegistryResultsTable Component', () => {
 
   it('results are paginated', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.results =
-        [...Array.from({length: 12}).keys()].map(generateKey);
+    fixture.componentInstance.results = [
+      ...Array.from({length: 12}).keys(),
+    ].map(generateKey);
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('tr');
@@ -205,17 +210,20 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
     expect(await paginatorTop.getRangeLabel()).toBe('1 – 10 of 12');
     expect(await paginatorBottom.getRangeLabel()).toBe('1 – 10 of 12');
   });
 
   it('paginator forward and backwards updates table contents', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.results =
-        [...Array.from({length: 12}).keys()].map(generateKey);
+    fixture.componentInstance.results = [
+      ...Array.from({length: 12}).keys(),
+    ].map(generateKey);
     fixture.detectChanges();
 
     // Rows include the header.
@@ -223,9 +231,11 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
     // Second page should displays results 11-12
     await paginatorTop.goToNextPage();
@@ -246,8 +256,9 @@ describe('RegistryResultsTable Component', () => {
 
   it('paginator change page size updates table contents', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.results =
-        [...Array.from({length: 12}).keys()].map(generateKey);
+    fixture.componentInstance.results = [
+      ...Array.from({length: 12}).keys(),
+    ].map(generateKey);
     fixture.detectChanges();
 
     // Rows include the header.
@@ -255,9 +266,11 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+      MatPaginatorHarness.with({selector: '.top-paginator'}),
+    );
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+      MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+    );
 
     await paginatorTop.setPageSize(50);
     expect(fixture.nativeElement.querySelectorAll('tr').length).toBe(13);

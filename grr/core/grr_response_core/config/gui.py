@@ -113,6 +113,15 @@ config_lib.DEFINE_string(
     "list of multiple plugins.",
 )
 
+# This accepts a comma-separated list of multiple plugins.
+config_lib.DEFINE_string(
+    "AdminUI.new_flow_form.default_output_plugins",
+    None,
+    "Output plugin(s) that will be added by default in the "
+    "'Start Flow' form output plugins section. Accepts comma-separated "
+    "list of multiple plugins.",
+)
+
 config_lib.DEFINE_semantic_struct(
     rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",
     None, "List of per-client-label warning messages to be shown.")

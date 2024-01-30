@@ -41,7 +41,9 @@ enum Action {
 
   // TODO: Define more actions that should be supported.
 
-  // TODO(user): Uncomment once `reserved` is supported in enums.
+  // TODO(user): Uncomment
+  // once `reserved` is supported in enums.
+
   // Reserved for user-defined actions.
   // reserved 1024 to 2048;
 }
@@ -84,6 +86,11 @@ message Request {
   // Leaving this value unset correspnds to the "off" level, meaning that no
   // logs are sent to the server.
   Log.Level log_level = 8;
+
+  // List of filters to apply to the result messages.
+  //
+  // A result message is sent back only if *all* filters pass the check.
+  repeated Filter filters = 9;
 }
 
 // An action response sent by the agent back to the flow.
@@ -129,10 +136,14 @@ message Status {
       REAL_TIME_LIMIT_EXCEEDED = 6;
       // Action-specific error occurred.
       ACTION_FAILURE = 7;
+      // Filter evaluation on action result failed.
+      FILTER_FAILURE = 11;
       // CPU time usage treshhold specified in the request is invalid.
       INVALID_CPU_TIME_LIMIT = 8;
       // Real (wall) time usage treshhold specified in the request is invalid.
       INVALID_REAL_TIME_LIMIT = 9;
+      // Filter specified in the request is invalid.
+      INVALID_FILTER = 10;
     }
 
     // Type of the error.
@@ -153,6 +164,9 @@ message Status {
   google.protobuf.Duration cpu_time = 3;
   // Total real (wall) time elapsed until the action to finished executing.
   google.protobuf.Duration real_time = 4;
+
+  // Number of results that were not sent because they were rejected by filters.
+  uint32 filtered_out_count = 5;
 }
 
 // Log message that agent can send to inform of certain events.
@@ -192,4 +206,110 @@ message Parcel {
   // The type of the payload has to correspond to the type the target
   // sink expects.
   google.protobuf.Any payload = 2;
+}
+
+// A filter is a formula of the form _(x₁ ⋄₁ l₁) ∨ ⋯ ∨ (xₙ ⋄ₙ lₙ)_.
+//
+// Here, xᵢ means a _variable_ (to be substituted by particular value from the
+// result Protocol Buffers message), ⋄ᵢ is an _operator_ and lᵢ is a _literal_.
+// We will say that a message passes a filter if the evaluation of this logical
+// formula is true. Individual xᵢ ⋄ᵢ lᵢ triplets are called _conditions_.
+//
+// Note that the filter is actually a clause (a sequence of disjunctions). In
+// order to model conjunction ("and" behaviour) one can define multiple filters.
+// In this sense, the filtering mechanism is actually a formula in [conjunctive
+// normal form][1].
+//
+// [1]: https://en.wikipedia.org/wiki/Conjunctive_normal_form
+message Filter {
+  // List of conditions to apply to the result message.
+  //
+  // A result message passes the filter if *any* of the conditions is satisfied.
+  repeated Condition conditions = 1;
+}
+
+// Part of the filter of the form _x ⋄ l_.
+//
+// See documentation for the `Filter` message for more details.
+//
+// Note that even the abstract condition is a triplet of the variable, operator
+// and a literal, the actual message models operator and literal using a single
+// `oneof` field (and an extra bit for negation).
+message Condition {
+  // Path in the result message to the field to which the opreator is applied.
+  //
+  // The path is specified as a sequence of field numbers with each entry going
+  // deeper in the message, similarly to the `.` operator in most programming
+  // languages. As an example consider the following messages:
+  //
+  //     message Foo {
+  //       Bar bar = 1;
+  //       Baz baz = 2;
+  //     }
+  //
+  //     message Bar {
+  //       Baz baz = 1;
+  //     }
+  //
+  //     message Baz {
+  //       int32 quux = 1;
+  //       string thud = 2;
+  //     }
+  //
+  // Having a result message of `Foo`, the sequence of field numbers `[1, 1, 2]`
+  // corresponds to `bar.baz.quux` and [2, 1] to `baz.quux`.
+  repeated uint32 field = 1;
+
+  // Whether the result of applying the condition should be negated.
+  //
+  // Setting this to true effectively acts as putting `not` in front of the
+  // operator.
+  bool negated = 2;
+
+  oneof operator {
+    // The condition is satisfied if the field is equal to this boolean.
+    bool bool_equal = 3;
+
+    // The condition is satisfied if the field is equal to this string.
+    string string_equal = 4;
+
+    // The condition is satisfied if the field matches this string regex.
+    //
+    // The exact regex syntax and semantics are not specified but most typical
+    // expressions found in popular regex engines should be supported.
+    string string_match = 5;
+
+    // The condition is satisfied if the field is equal to this byte sequence.
+    bytes bytes_equal = 6;
+
+    // The condition is satisfied if the field matches this byte regex.
+    //
+    // The exact regex syntax and semantics are not specified but most typical
+    // expressions found in popular regex engines should be supported.
+    string bytes_match = 7;
+
+    // The condition is satisfied if the field is equal to this integer.
+    //
+    // This operator works also for fields of type `uint32` in which case the
+    // values are going to be losslessly upcasted.
+    uint64 uint64_equal = 8;
+
+    // The condition is satisfied if the field is less than this integer.
+    //
+    // This operator works also for fields of type `uint32` in which case the
+    // values are going to be losslessly upcasted.
+    uint64 uint64_less = 9;
+
+    // The condition is satisfied if the field is equal to this integer.
+    //
+    // This operator works also for fields of type `int32` in which case the
+    // values are going to be losslessly upcasted.
+    int64 int64_equal = 10;
+
+    // The condition is satisfied if the field is less than this integer.
+    //
+    // This operator works also for fields of type `int32` in which case the
+    // values are going to be losslessly upcasted.
+    int64 int64_less = 11;
+  }
 }

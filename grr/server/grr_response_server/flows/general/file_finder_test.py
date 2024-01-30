@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
@@ -1414,7 +1415,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
     # We need to write some dummy snapshot to ensure the knowledgebase is there.
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.fqdn = "foobar.example.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
@@ -1444,7 +1445,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
     # We need to write some dummy snapshot to ensure the knowledgebase is there.
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.fqdn = "foobar.example.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)

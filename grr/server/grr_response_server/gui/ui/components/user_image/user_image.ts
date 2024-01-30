@@ -1,5 +1,11 @@
-import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {combineLatest, ReplaySubject} from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
+import {ReplaySubject, combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {ConfigGlobalStore} from '../../store/config_global_store';
@@ -16,21 +22,21 @@ export class UserImage implements OnChanges {
 
   @Input() size?: string;
 
-  readonly username$ = new ReplaySubject<string|undefined>(1);
+  readonly username$ = new ReplaySubject<string | undefined>(1);
 
   private readonly userImageUrl$ = this.configGlobalStore.uiConfig$.pipe(
-      map(uiConfig => uiConfig.profileImageUrl),
+    map((uiConfig) => uiConfig.profileImageUrl),
   );
 
-  readonly url$ = combineLatest([
-                    this.username$, this.userImageUrl$
-                  ]).pipe(map(([username, userImageUrl]) => {
-    if (!username || !userImageUrl) {
-      return undefined;
-    } else {
-      return userImageUrl.replace('{username}', encodeURIComponent(username));
-    }
-  }));
+  readonly url$ = combineLatest([this.username$, this.userImageUrl$]).pipe(
+    map(([username, userImageUrl]) => {
+      if (!username || !userImageUrl) {
+        return undefined;
+      } else {
+        return userImageUrl.replace('{username}', encodeURIComponent(username));
+      }
+    }),
+  );
 
   constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
 

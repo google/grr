@@ -27,11 +27,10 @@ import {HuntResultsTable} from '../hunt_results_table/hunt_results_table';
 
 import {HuntResults} from './hunt_results';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
@@ -59,14 +58,8 @@ import {HuntResults} from './hunt_results';
     TimestampModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    HuntResults,
-  ],
-  exports: [
-    HuntResults,
-  ],
+  declarations: [HuntResults],
+  exports: [HuntResults],
 })
-export class HuntResultsModule {
-}
+export class HuntResultsModule {}

@@ -49,6 +49,14 @@ class HuntIDIsNotAnIntegerError(Error):
   pass
 
 
+class UnsupportedWrapperTypeError(Error):
+  pass
+
+
+class InvalidTypeURLError(Error):
+  pass
+
+
 def CallLoggedAndAccounted(f):
   """Decorator to log and account for a DB call."""
 
@@ -335,4 +343,72 @@ class BatchPlanner(Generic[_T]):
     return self._batches
 
 
+def TypeURLToRDFTypeName(type_url: str) -> str:
+  """Returns RDF type corresponding to the given protobuf type URL.
+
+  This function is needed to maintain backwards compatibility with bits and
+  pieces of different DB implementations that deal with google.protobuf.Any and
+  store or return RDF type names.
+
+  Args:
+    type_url: Google Protobuf type URL.
+
+  Returns:
+    RDF type name corresponding to the given type URL.
+  Raises:
+    UnsupportedWrapperTypeError: if there's no RDF type
+    corresponding to the given TypeURL.
+    InvalidTypeURLError: if the type URL doesn't correspond to a protobuf
+      wrapper or GRR's internal protobuf.
+  """
+  type_name = type_url.split(".")[-1]
+  if type_url == f"type.googleapis.com/google.protobuf.{type_name}":
+    try:
+      return _RDF_TYPE_NAME_BY_WRAPPER_TYPE_NAME[type_name]
+    except KeyError as e:
+      raise UnsupportedWrapperTypeError(
+          f"Wrapper type {type_url} has no corresponding RDF type."
+      ) from e
+  elif type_url == f"type.googleapis.com/grr.{type_name}":
+    return type_name
+  else:
+    raise InvalidTypeURLError(f"Invalid type URL: {type_url}")
+
+
+def RDFTypeNameToTypeURL(rdf_type_name: str) -> str:
+  """Returns protobuf type URL corresponding to the given RDF type name.
+
+  This function is needed to maintain backwards compatibility with bits and
+  pieces of different DB implementations that deal with google.protobuf.Any and
+  store or return RDF type names.
+
+  Args:
+    rdf_type_name: RDF type name.
+
+  Returns:
+    Google Protobuf type URL corresponding to the given RDF type.
+  """
+  wrapper_type = _WRAPPER_TYPE_NAME_BY_RDF_TYPE_NAME.get(rdf_type_name, None)
+  if wrapper_type is not None:
+    # This is necessary for compatibility with plain primitive RDFValues
+    # stored in the datastore.
+    return f"type.googleapis.com/google.protobuf.{wrapper_type}"
+  else:
+    return f"type.googleapis.com/grr.{rdf_type_name}"
+
+
 _BYTES_VALUE_TYPE_URL = f"type.googleapis.com/{wrappers_pb2.BytesValue.DESCRIPTOR.full_name}"
+
+
+_RDF_TYPE_NAME_BY_WRAPPER_TYPE_NAME = {
+    wrappers_pb2.BytesValue.__name__: rdfvalue.RDFBytes.__name__,
+    wrappers_pb2.StringValue.__name__: rdfvalue.RDFString.__name__,
+    wrappers_pb2.Int64Value.__name__: rdfvalue.RDFInteger.__name__,
+}
+
+
+_WRAPPER_TYPE_NAME_BY_RDF_TYPE_NAME = {
+    rdfvalue.RDFBytes.__name__: wrappers_pb2.BytesValue.__name__,
+    rdfvalue.RDFString.__name__: wrappers_pb2.StringValue.__name__,
+    rdfvalue.RDFInteger.__name__: wrappers_pb2.Int64Value.__name__,
+}

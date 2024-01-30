@@ -9,13 +9,14 @@ import {newPathSpec} from '../../../lib/api/api_test_util';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {PluginsModule} from './module';
-
-
 
 initTestEnvironment();
 
@@ -25,19 +26,15 @@ describe('list-directory-details component', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            RouterTestingModule,
-            PluginsModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, RouterTestingModule, PluginsModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('does NOT show summary (zero results)', () => {
@@ -105,15 +102,17 @@ describe('list-directory-details component', () => {
       pathspec: {
         path: '/foo',
         pathtype: PathSpecPathType.OS,
-        nestedPath: {path: '/bar', pathtype: PathSpecPathType.TSK}
+        nestedPath: {path: '/bar', pathtype: PathSpecPathType.TSK},
       },
     };
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
-    flowResultsLocalStore.mockedObservables.results$.next(
-        [newFlowResult({payloadType: 'StatEntry', payload: statEntry})]);
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({payloadType: 'StatEntry', payload: statEntry}),
+    ]);
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('/foo/bar');
     expect(fixture.nativeElement.innerText).toContain('2021-08-16');

@@ -1,16 +1,18 @@
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {YaraProcessScanRequest} from '../../lib/api/api_interfaces';
 import {CodeEditor} from '../code_editor/code_editor';
-
 
 enum FilterMode {
   NAME,
   PID,
   CMDLINE,
-  ALL
+  ALL,
 }
 
 function makeControls() {
@@ -48,10 +50,11 @@ const DEFAULT_RULE = `rule Example
   templateUrl: './yara_process_scan_form.ng.html',
   styleUrls: ['./yara_process_scan_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class YaraProcessScanForm extends
-    FlowArgumentForm<YaraProcessScanRequest, Controls> {
+export class YaraProcessScanForm extends FlowArgumentForm<
+  YaraProcessScanRequest,
+  Controls
+> {
   readonly filterMode = FilterMode;
 
   @ViewChild(CodeEditor) codeEditor?: CodeEditor;
@@ -73,38 +76,45 @@ export class YaraProcessScanForm extends
 
     return {
       yaraSignature:
-          flowArgs.yaraSignature ?? this.controls.yaraSignature.defaultValue,
+        flowArgs.yaraSignature ?? this.controls.yaraSignature.defaultValue,
       filterMode,
       pids: flowArgs.pids?.map(Number) ?? this.controls.pids.defaultValue,
       processRegex:
-          flowArgs.processRegex ?? this.controls.processRegex.defaultValue,
+        flowArgs.processRegex ?? this.controls.processRegex.defaultValue,
       cmdlineRegex:
-          flowArgs.cmdlineRegex ?? this.controls.cmdlineRegex.defaultValue,
-      skipSpecialRegions: flowArgs.skipSpecialRegions ??
-          this.controls.skipSpecialRegions.defaultValue,
-      skipMappedFiles: flowArgs.skipMappedFiles ??
-          this.controls.skipMappedFiles.defaultValue,
-      skipSharedRegions: flowArgs.skipSharedRegions ??
-          this.controls.skipSharedRegions.defaultValue,
-      skipExecutableRegions: flowArgs.skipExecutableRegions ??
-          this.controls.skipExecutableRegions.defaultValue,
-      skipReadonlyRegions: flowArgs.skipReadonlyRegions ??
-          this.controls.skipReadonlyRegions.defaultValue,
+        flowArgs.cmdlineRegex ?? this.controls.cmdlineRegex.defaultValue,
+      skipSpecialRegions:
+        flowArgs.skipSpecialRegions ??
+        this.controls.skipSpecialRegions.defaultValue,
+      skipMappedFiles:
+        flowArgs.skipMappedFiles ?? this.controls.skipMappedFiles.defaultValue,
+      skipSharedRegions:
+        flowArgs.skipSharedRegions ??
+        this.controls.skipSharedRegions.defaultValue,
+      skipExecutableRegions:
+        flowArgs.skipExecutableRegions ??
+        this.controls.skipExecutableRegions.defaultValue,
+      skipReadonlyRegions:
+        flowArgs.skipReadonlyRegions ??
+        this.controls.skipReadonlyRegions.defaultValue,
     };
   }
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
       yaraSignature: formState.yaraSignature,
-      pids: formState.filterMode === FilterMode.PID ?
-          formState.pids?.map(pid => pid.toString()) :
-          undefined,
-      processRegex: formState.filterMode === FilterMode.NAME ?
-          formState.processRegex :
-          undefined,
-      cmdlineRegex: formState.filterMode === FilterMode.CMDLINE ?
-          formState.cmdlineRegex :
-          undefined,
+      pids:
+        formState.filterMode === FilterMode.PID
+          ? formState.pids?.map((pid) => pid.toString())
+          : undefined,
+      processRegex:
+        formState.filterMode === FilterMode.NAME
+          ? formState.processRegex
+          : undefined,
+      cmdlineRegex:
+        formState.filterMode === FilterMode.CMDLINE
+          ? formState.cmdlineRegex
+          : undefined,
 
       skipSpecialRegions: formState.skipSpecialRegions,
       skipMappedFiles: formState.skipMappedFiles,

@@ -12,20 +12,14 @@ import {UsersDetails} from './users_details';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    UsersDetails,
-  ],
-  exports: [
-    UsersDetails,
-  ]
+  declarations: [UsersDetails],
+  exports: [UsersDetails],
 })
-export class UsersDetailsModule {
-}
+export class UsersDetailsModule {}

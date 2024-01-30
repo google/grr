@@ -3,7 +3,11 @@ import {Subject} from 'rxjs';
 
 import {ApiHuntResult} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
-import {HttpApiServiceMock, injectHttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {
+  HttpApiServiceMock,
+  injectHttpApiServiceMock,
+  mockHttpApiService,
+} from '../lib/api/http_api_service_test_util';
 import {HuntResultOrError} from '../lib/models/result';
 import {latestValueFrom} from '../lib/reactive';
 import {initTestEnvironment} from '../testing';
@@ -18,9 +22,9 @@ import {HuntResultsLocalStore} from './hunt_results_local_store';
  * @param size: The number of results to be returned.
  */
 function generateResultListFromResult<T extends HuntResultOrError>(
-    result: T,
-    size: number,
-    ): T[] {
+  result: T,
+  size: number,
+): T[] {
   const timeDeltaBetweenResults = 1_000_000;
 
   const res: T[] = [];
@@ -28,7 +32,7 @@ function generateResultListFromResult<T extends HuntResultOrError>(
   for (let i = 1; i <= size; i++) {
     res.push({
       ...result,
-      timestamp: `${Number(result.timestamp) + (timeDeltaBetweenResults * i)}`,
+      timestamp: `${Number(result.timestamp) + timeDeltaBetweenResults * i}`,
     });
   }
 
@@ -38,7 +42,7 @@ function generateResultListFromResult<T extends HuntResultOrError>(
 const mockHuntResult: ApiHuntResult = {
   'clientId': 'mockClientId',
   'payloadType': 'SomeResultType',
-  'timestamp': '1669027009243432'
+  'timestamp': '1669027009243432',
 };
 
 initTestEnvironment();
@@ -48,19 +52,18 @@ describe('HuntResultsLocalStore', () => {
   let httpApiService: HttpApiServiceMock;
 
   beforeEach(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [],
-          providers: [
-            HuntResultsLocalStore,
-            {provide: HttpApiService, useFactory: mockHttpApiService},
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [],
+      providers: [
+        HuntResultsLocalStore,
+        {provide: HttpApiService, useFactory: mockHttpApiService},
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
-    huntResultsLocalStore =
-        TestBed.inject(HuntResultsLocalStore<HuntResultOrError>);
+    huntResultsLocalStore = TestBed.inject(
+      HuntResultsLocalStore<HuntResultOrError>,
+    );
     httpApiService = injectHttpApiServiceMock();
   });
 
@@ -98,14 +101,14 @@ describe('HuntResultsLocalStore', () => {
 
       // Next call to HttpService will return 50 mock elements:
       httpApiService.mockedObservables.listResultsForHunt.next(
-          mockResults.slice(0, 50),
+        mockResults.slice(0, 50),
       );
 
       expect(results.get().length).toEqual(50);
 
       // Next call to HttpService will return 10 mock elements:
       httpApiService.mockedObservables.listResultsForHunt.next(
-          mockResults.slice(50, 60),
+        mockResults.slice(50, 60),
       );
 
       huntResultsLocalStore.loadMore(10);
@@ -125,7 +128,7 @@ describe('HuntResultsLocalStore', () => {
 
       // Next call to HttpService will return 50 mock elements:
       httpApiService.mockedObservables.listResultsForHunt.next(
-          generateResultListFromResult(mockHuntResult, 50),
+        generateResultListFromResult(mockHuntResult, 50),
       );
 
       expect(results.get().length).toEqual(50);
@@ -151,7 +154,7 @@ describe('HuntResultsLocalStore', () => {
 
       // Next call to HttpService will return 50 mock elements:
       httpApiService.mockedObservables.listResultsForHunt.next(
-          generateResultListFromResult(mockHuntResult, 50),
+        generateResultListFromResult(mockHuntResult, 50),
       );
 
       expect(results.get().length).toEqual(50);
@@ -165,59 +168,58 @@ describe('HuntResultsLocalStore', () => {
       expect(results.get().length).toEqual(0);
     });
 
-    it('After changing arguments, it is possible to load more results',
-       async () => {
-         httpApiService.mockedObservables.listResultsForHunt = new Subject();
-         const mockResults = generateResultListFromResult(mockHuntResult, 80);
+    it('After changing arguments, it is possible to load more results', async () => {
+      httpApiService.mockedObservables.listResultsForHunt = new Subject();
+      const mockResults = generateResultListFromResult(mockHuntResult, 80);
 
-         huntResultsLocalStore.setArgs({
-           huntId: '1984',
-           withType: 'SomeResultType',
-         });
+      huntResultsLocalStore.setArgs({
+        huntId: '1984',
+        withType: 'SomeResultType',
+      });
 
-         const results = latestValueFrom(huntResultsLocalStore.results$);
+      const results = latestValueFrom(huntResultsLocalStore.results$);
 
-         // Next call to HttpService will return 50 mock elements:
-         httpApiService.mockedObservables.listResultsForHunt.next(
-             mockResults.slice(0, 50),
-         );
+      // Next call to HttpService will return 50 mock elements:
+      httpApiService.mockedObservables.listResultsForHunt.next(
+        mockResults.slice(0, 50),
+      );
 
-         expect(results.get().length).toEqual(50);
+      expect(results.get().length).toEqual(50);
 
-         // Next call to HttpService will return 10 mock elements:
-         httpApiService.mockedObservables.listResultsForHunt.next(
-             mockResults.slice(50, 60),
-         );
+      // Next call to HttpService will return 10 mock elements:
+      httpApiService.mockedObservables.listResultsForHunt.next(
+        mockResults.slice(50, 60),
+      );
 
-         huntResultsLocalStore.loadMore(10);
+      huntResultsLocalStore.loadMore(10);
 
-         expect(results.get().length).toEqual(60);
+      expect(results.get().length).toEqual(60);
 
-         httpApiService.mockedObservables.listResultsForHunt = new Subject();
+      httpApiService.mockedObservables.listResultsForHunt = new Subject();
 
-         // Resets the result list to 0
-         huntResultsLocalStore.setArgs({
-           huntId: '1234567890',
-           withType: 'SomeResultType',
-         });
+      // Resets the result list to 0
+      huntResultsLocalStore.setArgs({
+        huntId: '1234567890',
+        withType: 'SomeResultType',
+      });
 
-         expect(results.get().length).toEqual(0);
+      expect(results.get().length).toEqual(0);
 
-         // Next call to HttpService will return 50 mock elements:
-         httpApiService.mockedObservables.listResultsForHunt.next(
-             mockResults.slice(0, 50),
-         );
+      // Next call to HttpService will return 50 mock elements:
+      httpApiService.mockedObservables.listResultsForHunt.next(
+        mockResults.slice(0, 50),
+      );
 
-         expect(results.get().length).toEqual(50);
+      expect(results.get().length).toEqual(50);
 
-         // Next call to HttpService will return 30 mock elements:
-         httpApiService.mockedObservables.listResultsForHunt.next(
-             mockResults.slice(50, 90),
-         );
+      // Next call to HttpService will return 30 mock elements:
+      httpApiService.mockedObservables.listResultsForHunt.next(
+        mockResults.slice(50, 90),
+      );
 
-         huntResultsLocalStore.loadMore(30);
+      huntResultsLocalStore.loadMore(30);
 
-         expect(results.get().length).toEqual(80);
-       });
+      expect(results.get().length).toEqual(80);
+    });
   });
 });

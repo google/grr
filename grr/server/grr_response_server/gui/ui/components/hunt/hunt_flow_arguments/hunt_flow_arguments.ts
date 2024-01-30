@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {RouterModule} from '@angular/router';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
@@ -29,9 +29,9 @@ import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
   standalone: true,
 })
 export class HuntFlowArguments {
-  protected readonly hunt$ = new BehaviorSubject<Hunt|null>(null);
+  protected readonly hunt$ = new BehaviorSubject<Hunt | null>(null);
   @Input()
-  set hunt(hunt: Hunt|null) {
+  set hunt(hunt: Hunt | null) {
     this.hunt$.next(hunt);
   }
   get hunt() {
@@ -42,32 +42,29 @@ export class HuntFlowArguments {
 
   constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
 
-  protected readonly flowArgsViewData$: Observable<FlowArgsViewData|null> =
-      combineLatest([this.hunt$, this.configGlobalStore.flowDescriptors$])
-          .pipe(
-              map(([hunt, flowDescriptors]):
-                      FlowArgsViewData|null => {
-                        const flowDescriptor =
-                            flowDescriptors.get(hunt?.flowName ?? '');
+  protected readonly flowArgsViewData$: Observable<FlowArgsViewData | null> =
+    combineLatest([this.hunt$, this.configGlobalStore.flowDescriptors$]).pipe(
+      map(([hunt, flowDescriptors]): FlowArgsViewData | null => {
+        const flowDescriptor = flowDescriptors.get(hunt?.flowName ?? '');
 
-                        if (!hunt?.flowArgs || !hunt?.flowName ||
-                            !flowDescriptor) {
-                          return null;
-                        }
+        if (!hunt?.flowArgs || !hunt?.flowName || !flowDescriptor) {
+          return null;
+        }
 
-                        return {
-                          flowDescriptor,
-                          flowArgs: hunt?.flowArgs,
-                        };
-                      }),
-              startWith(null as FlowArgsViewData|null),
-          );
+        return {
+          flowDescriptor,
+          flowArgs: hunt?.flowArgs,
+        };
+      }),
+      startWith(null as FlowArgsViewData | null),
+    );
 
-  protected readonly huntFlowName$ =
-      combineLatest([
-        this.hunt$, this.flowArgsViewData$.pipe(map(vd => vd?.flowDescriptor))
-      ])
-          .pipe(
-              map(([hunt, descriptor]) =>
-                      getFlowTitleFromFlowName(hunt?.flowName, descriptor)));
+  protected readonly huntFlowName$ = combineLatest([
+    this.hunt$,
+    this.flowArgsViewData$.pipe(map((vd) => vd?.flowDescriptor)),
+  ]).pipe(
+    map(([hunt, descriptor]) =>
+      getFlowTitleFromFlowName(hunt?.flowName, descriptor),
+    ),
+  );
 }

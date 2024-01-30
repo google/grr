@@ -259,6 +259,73 @@ class E2ETestRunner(object):
 
     return Retry()
 
+  def SearchClientByIP(self, client_ip):
+    """Searches for a client with a given IP via the GRR API and return its id.
+
+    Args:
+      client_ip: Client's IP.
+
+    Returns:
+      The IP of the client or `None` if no client found.
+    """
+    start_time = time.time()
+
+    def DeadlineExceeded():
+      return time.time() - start_time > self._api_retry_deadline_secs
+
+    @retry.When(
+        requests.ConnectionError,
+        lambda _: not DeadlineExceeded(),
+        opts=retry.Opts(
+            attempts=sys.maxsize,  # Limited by deadline.
+            init_delay=datetime.timedelta(seconds=self._api_retry_period_secs),
+        ),
+    )
+    def Retry():
+      logging.debug("Trying to find client with ip %s.", client_ip)
+      clients = list(self._grr_api.SearchClients(f"ip:{client_ip}"))
+
+      if clients:
+        return clients[0].client_id
+
+      all_clients = list(self._grr_api.SearchClients("."))
+      logging.info(
+          "Failed to find client for ip %s. All found clients: %s",
+          client_ip,
+          [p.data for p in all_clients],
+      )
+
+    return Retry()
+
+  def SearchClientIDs(self):
+    """Searches for all available client ids via the GRR API.
+
+    Returns:
+      The IP of all clients.
+    """
+    start_time = time.time()
+
+    def DeadlineExceeded():
+      return time.time() - start_time > self._api_retry_deadline_secs
+
+    @retry.When(
+        requests.ConnectionError,
+        lambda _: not DeadlineExceeded(),
+        opts=retry.Opts(
+            attempts=sys.maxsize,  # Limited by deadline.
+            init_delay=datetime.timedelta(seconds=self._api_retry_period_secs),
+        ),
+    )
+    def Retry():
+      logging.debug("Trying to find clients.")
+      clients = list(self._grr_api.SearchClients("."))
+
+      logging.info("Found clients: %s", [c.data for c in clients])
+
+      return [c.client_id for c in clients]
+
+    return Retry()
+
   def _GetApplicableTests(self, client):
     """Returns all e2e test methods that should be run against the client."""
     applicable_tests = {}

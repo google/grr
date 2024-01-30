@@ -8,7 +8,6 @@ from typing import Text
 
 from absl import flags
 import portpicker
-import requests
 
 from google.protobuf import json_format
 from grr_api_client import connectors
@@ -90,7 +89,7 @@ class HttpApiRegressionTestMixinBase(object):
           cls=http_api.JSONEncoderWithRDFPrimitivesSupport,
       )
 
-    prepped_request = request.prepare()
+    prepped_request = self.connector.session.prepare_request(request)
 
     return request, prepped_request
 
@@ -101,7 +100,7 @@ class HttpApiRegressionTestMixinBase(object):
     if args:
       args_proto = args.AsPrimitiveProto()
     request = self.connector.BuildRequest(method, args_proto)
-    prepped_request = request.prepare()
+    prepped_request = self.connector.session.prepare_request(request)
 
     return request, prepped_request
 
@@ -121,8 +120,7 @@ class HttpApiRegressionTestMixinBase(object):
       raise ValueError("api_version may be only 1 or 2, not %d" %
                        flags.FLAGS.api_version)
 
-    session = requests.Session()
-    response = session.send(prepped_request)
+    response = self.connector.session.send(prepped_request)
 
     check_result = {
         "url": replace(prepped_request.path_url),

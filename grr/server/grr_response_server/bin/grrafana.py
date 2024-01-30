@@ -4,7 +4,7 @@
 import abc
 import json
 import types
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, NamedTuple, Type
+from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Type
 
 from absl import app
 from absl import flags
@@ -14,16 +14,12 @@ from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import timestamp_pb2
-
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
-from grr_response_server import data_store
-from grr_response_server import fleet_utils
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import server_startup
-
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 JSON_MIME_TYPE = "application/json"
@@ -115,36 +111,6 @@ class ClientResourceUsageMetric(Metric):
     return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
 
-class ClientsStatisticsMetric(Metric):
-  """A metric that represents aggregated client stats."""
-
-  def __init__(self, name: str,
-               get_fleet_stats_fn: Callable[[FrozenSet[int]],
-                                            fleet_utils.FleetStats],
-               days_active: int) -> None:
-    super().__init__(name)
-    self._get_fleet_stats_fn = get_fleet_stats_fn
-    self._days_active = days_active
-
-  # Note: return type error issues at python/mypy#3915, python/typing#431
-  def ProcessQuery(
-      self,
-      req: werkzeug_wrappers.Request,
-  ) -> _TableQueryResult:  # type: ignore[override]
-    fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
-    totals = fleet_stats.GetTotalsForDay(self._days_active)
-    return _TableQueryResult(
-        columns=[{
-            "text": "Label",
-            "type": "string"
-        }, {
-            "text": "Value",
-            "type": "number"
-        }],
-        rows=[[l, v] for l, v in totals.items()],
-        type="table")
-
-
 AVAILABLE_METRICS_LIST: List[Metric]
 AVAILABLE_METRICS_LIST = [
     ClientResourceUsageMetric("Mean User CPU Rate",
@@ -163,23 +129,7 @@ AVAILABLE_METRICS_LIST = [
         "Max Resident Memory MB",
         lambda rl: [r.max_resident_memory_mib * 1.049 for r in rl]),
 ]
-# pylint: disable=unnecessary-lambda
-# Lambdas below are needed, since data_store.REL_DB is initialized at runtime,
-# so referencing it at the top level won't work.
-client_statistics_names_fns = [
-    (lambda n_days: f"OS Platform Breakdown - {n_days} Day Active",
-     lambda bs: data_store.REL_DB.CountClientPlatformsByLabel(bs)),
-    (lambda n_days: f"OS Release Version Breakdown - {n_days} Day Active",
-     lambda bs: data_store.REL_DB.CountClientPlatformReleasesByLabel(bs)),
-    (lambda n_days: f"Client Version Strings - {n_days} Day Active",
-     lambda bs: data_store.REL_DB.CountClientVersionStringsByLabel(bs))
-]
-# pylint: enable=unnecessary-lambda
-for metric_name_fn, metric_extract_fn in client_statistics_names_fns:
-  for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS:
-    AVAILABLE_METRICS_LIST.append(
-        ClientsStatisticsMetric(
-            metric_name_fn(n_days), metric_extract_fn, n_days))
+
 AVAILABLE_METRICS_BY_NAME = {
     metric.name: metric for metric in AVAILABLE_METRICS_LIST
 }

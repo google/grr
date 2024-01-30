@@ -7,19 +7,14 @@ import {initTestEnvironment} from '../../../testing';
 import {PluginsModule} from './module';
 import {OnlineNotificationDetails} from './online_notification_details';
 
-
 initTestEnvironment();
 
 describe('online-notification-details component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            PluginsModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [PluginsModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('should display the recipient email address', () => {

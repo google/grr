@@ -24,18 +24,6 @@ provides: [users.homedir, users.full_name]
 labels: [Authentication]
 supported_os: [Linux]
 ---
-name: NssCacheLinuxPasswdHomedirs
-doc: Grep /etc/passwd.cache file for user homedirs.
-sources:
-- type: GREP
-  attributes:
-    paths: ['/etc/passwd.cache']
-    content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
-provides: [users.homedir, users.full_name]
-labels: [Authentication]
-supported_os: [Linux]
-urls: ['https://code.google.com/p/nsscache/']
----
 name: RedhatYumPackagesList
 doc: Linux output of yum list installed.
 sources:

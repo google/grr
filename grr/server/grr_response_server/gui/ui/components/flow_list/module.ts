@@ -16,14 +16,13 @@ import {TimestampModule} from '../timestamp/module';
 
 import {FlowList} from './flow_list';
 
-
 /**
  * Module for the flow_picker details component.
  */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
@@ -40,14 +39,8 @@ import {FlowList} from './flow_list';
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FlowList,
-  ],
-  exports: [
-    FlowList,
-  ],
+  declarations: [FlowList],
+  exports: [FlowList],
 })
-export class FlowListModule {
-}
+export class FlowListModule {}

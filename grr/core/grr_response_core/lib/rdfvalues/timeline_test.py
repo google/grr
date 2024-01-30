@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-
 import io
-import math
 import os
 import random
 import stat as stat_mode
@@ -20,16 +18,14 @@ class TimelineEntryTest(absltest.TestCase):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
       filepath = os.path.join(dirpath, "foobar")
 
-      # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
       # We subtract a second to account for the terrible Windows clock accuracy.
-      time_before_ns = math.floor(time.time() - 1.0) * 1e9
+      time_before_ns = time.time_ns() - 1e9
 
       with io.open(filepath, mode="wb") as filedesc:
         filedesc.write(b"1234567")
 
-      # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
       # We add a second to account for the terrible Windows clock accuracy.
-      time_after_ns = math.ceil(time.time() + 1.0) * 1e9
+      time_after_ns = time.time_ns() + 1e9
 
       # TODO(hanuszczak): `AutoTempFilePath` should return a `Path` object.
       filepath_bytes = filepath.encode("utf-8")

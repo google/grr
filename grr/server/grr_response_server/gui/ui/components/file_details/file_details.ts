@@ -1,4 +1,9 @@
-import {ChangeDetectionStrategy, Component, Input, OnDestroy} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnDestroy,
+} from '@angular/core';
 import {Router} from '@angular/router';
 import {map} from 'rxjs/operators';
 
@@ -28,13 +33,15 @@ export class FileDetails implements OnDestroy {
   readonly fileId$ = this.fileDetailsLocalStore.file$;
 
   readonly downloadUrl$ = this.fileDetailsLocalStore.file$.pipe(
-      map((f) => f ? getFileBlobUrl(f.clientId, f.pathType, f.path) : null));
+    map((f) => (f ? getFileBlobUrl(f.clientId, f.pathType, f.path) : null)),
+  );
 
   readonly hasContents$ = this.fileDetailsLocalStore.details$.pipe(
-      map(details => !!details?.lastContentCollected?.timestamp));
+    map((details) => !!details?.lastContentCollected?.timestamp),
+  );
 
   @Input()
-  set file(file: FileIdentifier|null|undefined) {
+  set file(file: FileIdentifier | null | undefined) {
     this.fileDetailsLocalStore.selectFile(file ?? undefined);
 
     if (isNonNull(file)) {
@@ -46,8 +53,8 @@ export class FileDetails implements OnDestroy {
   readonly isRecollecting$ = this.fileDetailsLocalStore.isRecollecting$;
 
   constructor(
-      private readonly fileDetailsLocalStore: FileDetailsLocalStore,
-      readonly router: Router,
+    private readonly fileDetailsLocalStore: FileDetailsLocalStore,
+    readonly router: Router,
   ) {}
 
   loadMore() {

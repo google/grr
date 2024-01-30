@@ -18,16 +18,10 @@ initTestEnvironment();
 
 describe('ReadLowLevelForm', () => {
   beforeEach(waitForAsync(() => {
-    return TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            ReactiveFormsModule,
-            FlowArgsFormModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    return TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, ReactiveFormsModule, FlowArgsFormModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('displays input fields with default values', async () => {
@@ -37,13 +31,15 @@ describe('ReadLowLevelForm', () => {
     const pathInput = fixture.debugElement.query(By.css('input[name=path]'));
     expect(pathInput).toBeTruthy();
 
-    const lengthInput =
-        fixture.debugElement.query(By.css('input[name=length]'));
+    const lengthInput = fixture.debugElement.query(
+      By.css('input[name=length]'),
+    );
     expect(lengthInput).toBeTruthy();
     expect(await getInputValue(fixture, 'input[name=length]')).toBe('42 B');
 
-    const offsetInput =
-        fixture.debugElement.query(By.css('input[name=offset]'));
+    const offsetInput = fixture.debugElement.query(
+      By.css('input[name=offset]'),
+    );
     expect(offsetInput).toBeTruthy();
     expect(await getInputValue(fixture, 'input[name=offset]')).toBe('0 B');
   });
@@ -55,17 +51,19 @@ describe('ReadLowLevelForm', () => {
     await setInputValue(fixture, 'input[name=length]', '0');
     fixture.componentInstance.controls.path.markAsTouched();
     fixture.componentInstance.controls.length.markAsTouched();
-    (fixture.debugElement.injector.get(
-         ChangeDetectorRef as Type<ChangeDetectorRef>))
-        .markForCheck();
+    fixture.debugElement.injector
+      .get(ChangeDetectorRef as Type<ChangeDetectorRef>)
+      .markForCheck();
     fixture.detectChanges();
 
-    const pathError =
-        fixture.debugElement.query(By.css('mat-error[name=reqPath]'));
+    const pathError = fixture.debugElement.query(
+      By.css('mat-error[name=reqPath]'),
+    );
     expect(pathError).toBeTruthy();
 
-    const lengthError =
-        fixture.debugElement.query(By.css('mat-error[name=minLength]'));
+    const lengthError = fixture.debugElement.query(
+      By.css('mat-error[name=minLength]'),
+    );
     expect(lengthError).toBeTruthy();
   });
 
@@ -73,24 +71,27 @@ describe('ReadLowLevelForm', () => {
     const fixture = TestBed.createComponent(ReadLowLevelForm);
     fixture.detectChanges();
 
-
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+      MatInputHarness.with({selector: 'input[name=path]'}),
+    );
     await pathInputHarness.setValue('/some/path');
     fixture.componentInstance.controls.path.markAsTouched();
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+      MatInputHarness.with({selector: 'input[name=length]'}),
+    );
     await lengthInputHarness.setValue('0');
     fixture.componentInstance.controls.length.markAsTouched();
     fixture.detectChanges();
 
-    const pathError =
-        fixture.debugElement.query(By.css('mat-error[name=reqPath]'));
+    const pathError = fixture.debugElement.query(
+      By.css('mat-error[name=reqPath]'),
+    );
     expect(pathError).toBeFalsy();
 
-    const lengthError =
-        fixture.debugElement.query(By.css('mat-error[name=reqLength]'));
+    const lengthError = fixture.debugElement.query(
+      By.css('mat-error[name=reqLength]'),
+    );
     expect(lengthError).toBeFalsy();
   });
 
@@ -100,12 +101,14 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+      MatInputHarness.with({selector: 'input[name=length]'}),
+    );
     await lengthInputHarness.setValue('0');
     await lengthInputHarness.blur();
 
-    const lengthError =
-        fixture.debugElement.query(By.css('mat-error[name=minLength]'));
+    const lengthError = fixture.debugElement.query(
+      By.css('mat-error[name=minLength]'),
+    );
     expect(lengthError).toBeTruthy();
   });
 
@@ -115,13 +118,15 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+      MatInputHarness.with({selector: 'input[name=length]'}),
+    );
     await lengthInputHarness.setValue('1');
     fixture.componentInstance.controls.length.markAsTouched();
     fixture.detectChanges();
 
-    const lengthError =
-        fixture.debugElement.query(By.css('mat-error[name=minLength]'));
+    const lengthError = fixture.debugElement.query(
+      By.css('mat-error[name=minLength]'),
+    );
     expect(lengthError).toBeFalsy();
   });
 
@@ -137,13 +142,16 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+      MatInputHarness.with({selector: 'input[name=path]'}),
+    );
     await pathInputHarness.setValue('/some/path');
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+      MatInputHarness.with({selector: 'input[name=length]'}),
+    );
     await lengthInputHarness.setValue('3 KiB');
     const offsetInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=offset]'}));
+      MatInputHarness.with({selector: 'input[name=offset]'}),
+    );
     await offsetInputHarness.setValue('6 B');
 
     expect(latestValue).toEqual({
@@ -161,11 +169,14 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+      MatInputHarness.with({selector: 'input[name=path]'}),
+    );
     await pathInputHarness.setValue('   /spaces\n\t');
 
-    expect(latestValue.get()).toEqual(jasmine.objectContaining({
-      path: '/spaces'
-    }));
+    expect(latestValue.get()).toEqual(
+      jasmine.objectContaining({
+        path: '/spaces',
+      }),
+    );
   });
 });

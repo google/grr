@@ -1,4 +1,6 @@
-/** Test helpers. */
+/**
+ * Test helpers.
+ */
 // tslint:disable:no-any
 
 import {TestBed} from '@angular/core/testing';
@@ -9,18 +11,20 @@ import {HttpApiService} from './http_api_service';
 type Func = (...args: any[]) => any;
 
 type MockService<T> = {
-  [K in keyof T]: T[K] extends Function ? jasmine.Spy&T[K] : T[K];
-}&{
+  [K in keyof T]: T[K] extends Function ? jasmine.Spy & T[K] : T[K];
+} & {
   readonly mockedObservables: {
-    [K in keyof T]: T[K] extends Func ?
-    ReturnType<T[K]> extends Observable<infer V>? Subject<V>: never :
-    never;
-  }
+    [K in keyof T]: T[K] extends Func
+      ? ReturnType<T[K]> extends Observable<infer V>
+        ? Subject<V>
+        : never
+      : never;
+  };
 };
 
 /** HttpApiService with Spy properties and mocked Observable return values. */
-export declare interface HttpApiServiceMock extends
-    MockService<HttpApiService> {}
+export declare interface HttpApiServiceMock
+  extends MockService<HttpApiService> {}
 
 /**
  * Mocks a HttpApiService, replacing methods with jasmine spies that return
@@ -34,17 +38,21 @@ export function mockHttpApiService(): HttpApiServiceMock {
   const mockSnackBar = {
     openFromComponent: jasmine.createSpy('openFromComponent'),
   };
-  const service: any =
-      new HttpApiService(mockHttpClient as any, mockSnackBar as any);
+  const service: any = new HttpApiService(
+    mockHttpClient as any,
+    mockSnackBar as any,
+  );
   const mockedObservables: any = {};
 
-  const properties = Object.getOwnPropertyNames(HttpApiService.prototype)
-                         .filter(key => service[key] instanceof Function);
+  const properties = Object.getOwnPropertyNames(
+    HttpApiService.prototype,
+  ).filter((key) => service[key] instanceof Function);
 
   for (const property of properties) {
     mockedObservables[property] = new Subject();
-    service[property] = jasmine.createSpy(property).and.callFake(
-        () => mockedObservables[property].asObservable());
+    service[property] = jasmine
+      .createSpy(property)
+      .and.callFake(() => mockedObservables[property].asObservable());
   }
 
   service.mockedObservables = mockedObservables;
@@ -57,8 +65,9 @@ export function injectHttpApiServiceMock(): HttpApiServiceMock {
 
   if (!mock.mockedObservables) {
     const val = JSON.stringify(mock).slice(0, 100);
-    throw new Error(`TestBed.inject(HttpApiService) returned ${
-        val}, which does not look like HttpApiServiceMock. Did you register the HttpApiService providers?`);
+    throw new Error(
+      `TestBed.inject(HttpApiService) returned ${val}, which does not look like HttpApiServiceMock. Did you register the HttpApiService providers?`,
+    );
   }
 
   return mock;

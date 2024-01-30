@@ -15,35 +15,39 @@ const NULL_DATE = new Date(0);
 /**
  * Store used by the ClientSearchLocalStore.
  */
-class ClientSearchStore extends
-    ApiCollectionStore<Client, ApiSearchClientsArgs> {
+class ClientSearchStore extends ApiCollectionStore<
+  Client,
+  ApiSearchClientsArgs
+> {
   protected loadResults(
-      args: ApiSearchClientsArgs,
-      paginationArgs: PaginationArgs): Observable<readonly Client[]> {
+    args: ApiSearchClientsArgs,
+    paginationArgs: PaginationArgs,
+  ): Observable<readonly Client[]> {
     if (args.query?.trim() === '') {
       return of([]);
     }
 
     return this.httpApiService
-        .searchClients({
-          ...args,
-          offset: paginationArgs.offset?.toString(),
-          count: paginationArgs.count?.toString(),
-        })
-        .pipe(
-            map(results => results.items?.map(translateClient) ?? []),
-        );
+      .searchClients({
+        ...args,
+        offset: paginationArgs.offset?.toString(),
+        count: paginationArgs.count?.toString(),
+      })
+      .pipe(map((results) => results.items?.map(translateClient) ?? []));
   }
 
-  readonly compareItems =
-      compareDateNewestFirst<Client>(c => c.lastSeenAt ?? NULL_DATE);
+  readonly compareItems = compareDateNewestFirst<Client>(
+    (c) => c.lastSeenAt ?? NULL_DATE,
+  );
 
   protected areItemsEqual(a: Client, b: Client): boolean {
     return a.clientId === b.clientId;
   }
 
   protected override areArgsEqual(
-      a: ApiSearchClientsArgs, b: ApiSearchClientsArgs): boolean {
+    a: ApiSearchClientsArgs,
+    b: ApiSearchClientsArgs,
+  ): boolean {
     return a.query === b.query;
   }
 }
@@ -57,8 +61,8 @@ export class ClientSearchLocalStore {
 
   private readonly store = new ClientSearchStore(this.httpApiService);
 
-  readonly clients$: Observable<readonly Client[]|undefined> =
-      this.store.results$;
+  readonly clients$: Observable<readonly Client[] | undefined> =
+    this.store.results$;
 
   readonly isLoading$ = this.store.isLoading$;
 

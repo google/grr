@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
@@ -29,6 +30,7 @@ from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import mig_objects
 
 # For file collection artifacts. pylint: disable=unused-import
 # pylint: enable=unused-import
@@ -37,6 +39,8 @@ _MAX_DEBUG_RESPONSES_STRING_LENGTH = 100000
 
 def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
+  if client is not None:
+    client = mig_objects.ToRDFClientSnapshot(client)
   return artifact.GetKnowledgeBase(
       client, allow_uninitialized=allow_uninitialized
   )
@@ -556,7 +560,9 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
           snapshots = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
 
           for snapshot in snapshots:
-            results = self._Interpolate(value, snapshot.knowledge_base)
+            results = self._Interpolate(
+                value, mig_client.ToRDFKnowledgeBase(snapshot.knowledge_base)
+            )
             if results:
               break
 
@@ -964,155 +970,6 @@ class ArtifactFilesDownloaderFlow(
 
     for result in request_data["results"]:
       self.SendReply(result)
-
-
-class ClientArtifactCollector(flow_base.FlowBase):
-  """A client side artifact collector."""
-
-  category = "/Collectors/"
-  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
-  def Start(self):
-    """Issue the artifact collection request."""
-    super().Start()
-
-    self.state.knowledge_base = self.args.knowledge_base
-    self.state.response_count = 0
-
-    if not self.args.recollect_knowledge_base:
-      dependency = rdf_artifacts.ArtifactCollectorFlowArgs.Dependency
-      if self.args.dependencies == dependency.FETCH_NOW:
-        # String due to dependency loop with discover.py.
-        self.CallFlow("Interrogate", next_state=self.StartCollection.__name__)
-        return
-
-      if (
-          self.args.dependencies == dependency.USE_CACHED
-          and not self.state.knowledge_base
-      ):
-        # If not provided, get a knowledge base from the client.
-        try:
-          self.state.knowledge_base = _ReadClientKnowledgeBase(self.client_id)
-        except artifact_utils.KnowledgeBaseUninitializedError:
-          # If no-one has ever initialized the knowledge base, we should do so
-          # now.
-          if not self._AreArtifactsKnowledgeBaseArtifacts():
-            # String due to dependency loop with discover.py
-            self.CallFlow(
-                "Interrogate", next_state=self.StartCollection.__name__
-            )
-            return
-
-    # In all other cases start the collection state.
-    self.CallStateInline(next_state=self.StartCollection.__name__)
-
-  def StartCollection(self, responses):
-    """Start collecting."""
-    if not responses.success:
-      raise artifact_utils.KnowledgeBaseUninitializedError(
-          "Attempt to initialize Knowledge Base failed."
-      )
-
-    # TODO(hanuszczak): Flow arguments also appear to have some knowledgebase.
-    # Do we use it in any way?
-    if not self.state.knowledge_base:
-      self.state.knowledge_base = _ReadClientKnowledgeBase(
-          self.client_id, allow_uninitialized=True
-      )
-
-    request = GetArtifactCollectorArgs(self.args, self.state.knowledge_base)
-    self.CollectArtifacts(request)
-
-  def _AreArtifactsKnowledgeBaseArtifacts(self):
-    knowledgebase_list = config.CONFIG["Artifacts.knowledge_base"]
-    for artifact_name in self.args.artifact_list:
-      if artifact_name not in knowledgebase_list:
-        return False
-    return True
-
-  def CollectArtifacts(self, client_artifact_collector_args):
-    """Start the client side artifact collection."""
-    self.CallClient(
-        server_stubs.ArtifactCollector,
-        request=client_artifact_collector_args,
-        next_state=self.ProcessCollected.__name__,
-    )
-
-  def ProcessCollected(self, responses):
-    flow_name = self.__class__.__name__
-    if responses.success:
-      self.Log(
-          "Artifact data collection completed successfully in flow %s "
-          "with %d responses",
-          flow_name,
-          len(responses),
-      )
-    else:
-      self.Log("Artifact data collection failed. Status: %s.", responses.status)
-      return
-
-    for response in responses:
-      # The ClientArtifactCollector returns a `ClientArtifactCollectorResult`
-      # (an rdf object that contains a knowledge base and the list of collected
-      # artifacts, each collected artifact has a name and a list of responses).
-      # In order to conform to the normal Artifact Collector we just iterate
-      # through and return the responses.
-      for collected_artifact in response.collected_artifacts:
-        for res in collected_artifact.action_results:
-          self.SendReply(res.value)
-      self.state.response_count += 1
-
-  def End(self, responses):
-    super().End(responses)
-
-    # If we got no responses, and user asked for it, we error out.
-    if self.args.error_on_no_results and self.state.response_count == 0:
-      raise artifact_utils.ArtifactProcessingError(
-          "Artifact collector returned 0 responses."
-      )
-
-
-def GetArtifactCollectorArgs(flow_args, knowledge_base):
-  """Prepare bundle of artifacts and their dependencies for the client.
-
-  Args:
-    flow_args: An `ArtifactCollectorFlowArgs` instance.
-    knowledge_base: contains information about the client
-
-  Returns:
-    rdf value object containing a list of extended artifacts and the
-    knowledge base
-  """
-  args = rdf_artifacts.ClientArtifactCollectorArgs()
-  args.knowledge_base = knowledge_base
-
-  args.apply_parsers = flow_args.apply_parsers
-  args.ignore_interpolation_errors = flow_args.ignore_interpolation_errors
-  args.max_file_size = flow_args.max_file_size
-
-  if not flow_args.recollect_knowledge_base:
-    artifact_names = flow_args.artifact_list
-  else:
-    artifact_names = GetArtifactsForCollection(
-        knowledge_base.os, flow_args.artifact_list
-    )
-
-  expander = ArtifactExpander(
-      knowledge_base,
-      _GetPathType(flow_args, knowledge_base.os),
-      flow_args.max_file_size,
-  )
-  for artifact_name in artifact_names:
-    rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-    if not MeetsOSConditions(knowledge_base, rdf_artifact):
-      continue
-    if artifact_name in expander.processed_artifacts:
-      continue
-    requested_by_user = artifact_name in flow_args.artifact_list
-    for expanded_artifact in expander.Expand(rdf_artifact, requested_by_user):
-      args.artifacts.append(expanded_artifact)
-  return args
 
 
 def MeetsOSConditions(knowledge_base, source):

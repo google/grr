@@ -9,6 +9,7 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 import "grr_response_proto/anomaly.proto";
+import "grr_response_proto/artifact.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/output_plugin.proto";
@@ -656,4 +657,209 @@ message FingerprintFileResult {
   optional Hash hash_entry = 2 [(sem_type) = {
     description: "File hash object.",
   }];
+}
+
+message ApiStatsStoreMetricDataPoint {
+  optional uint64 timestamp = 1 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timestamp of the data point."
+  }];
+  optional double value = 2
+      [(sem_type) = { description: "Value corresponding to the timestamp." }];
+}
+
+message ApiStatsStoreMetric {
+  optional string metric_name = 1;
+  optional uint64 start = 2 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional uint64 end = 3 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  repeated ApiStatsStoreMetricDataPoint data_points = 4;
+}
+
+message ApiGetClientLoadStatsArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+
+  optional uint64 start = 2 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Fetch client load stats data starting from this "
+                 "timestamp. If not set, will default to 30 minutes ago."
+  }];
+  optional uint64 end = 3 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Fetch client load stats data from the interval "
+                 "ending with this timestamp. If not set, will default to the current "
+                 "time."
+  }];
+
+  enum Metric {
+    CPU_PERCENT = 0;
+    CPU_SYSTEM = 1;
+    CPU_USER = 2;
+
+    IO_READ_BYTES = 3;
+    IO_WRITE_BYTES = 4;
+    IO_READ_OPS = 5;
+    IO_WRITE_OPS = 6;
+
+    NETWORK_BYTES_RECEIVED = 7;
+    NETWORK_BYTES_SENT = 8;
+
+    MEMORY_PERCENT = 9;
+    MEMORY_RSS_SIZE = 10;
+    MEMORY_VMS_SIZE = 11;
+  }
+  optional Metric metric = 5;
+}
+
+message ApiGetClientLoadStatsResult {
+  repeated ApiStatsStoreMetricDataPoint data_points = 1;
+}
+
+message ExpandedArtifact {
+  required string name = 1 [(sem_type) = {
+    description: "The name of the artifact.",
+    type: "ArtifactName",
+  }];
+  repeated ExpandedSource sources = 2
+      [(sem_type) = { description: "The sources and what they depend on." }];
+  repeated string provides = 3 [(sem_type) = {
+    description: "A list of knowledgebase values this artifact provides.",
+  }];
+  optional bool requested_by_user = 4 [
+    (sem_type) = {
+      description: "Whether the artifact is requested by the user or scheduled"
+                   " for collection as a KnowledgeBase dependency."
+    },
+    default = true
+  ];
+}
+
+message ExpandedSource {
+  required ArtifactSource base_source = 1
+      [(sem_type) = { description: "The base source." }];
+  optional PathSpec.PathType path_type = 6
+      [(sem_type) = { description: "Path Type" }];
+  optional uint64 max_bytesize = 7 [(sem_type) = {
+    type: "ByteSize",
+    description: "File Finder Download Action Option: The maximum byte size of "
+                 "files we will download."
+  }];
+  optional int32 max_number_files = 8 [(sem_type) = {
+    description: "File Finder Action Option: The maximum number of "
+                 "results to get."
+  }];
+  repeated ExpandedSource artifact_sources = 9 [(sem_type) = {
+    description: "Extended sources for ArtifactFiles collection."
+  }];
+}
+
+message ClientArtifactCollectorResult {
+  repeated CollectedArtifact collected_artifacts = 1 [(sem_type) = {
+    description: "The results of the single collected artifacts."
+  }];
+  optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
+    description: "The knowledge base containing information about the client."
+  }];
+}
+
+message CollectedArtifact {
+  required string name = 1 [(sem_type) = {
+    description: "The name of the artifact.",
+    type: "ArtifactName",
+  }];
+  repeated ClientActionResult action_results = 2 [(sem_type) = {
+    description: "The results from the performed client actions."
+  }];
+}
+
+message ClientArtifactCollectorArgs {
+  repeated ExpandedArtifact artifacts = 1
+      [(sem_type) = { description: "A list of artifacts." }];
+  optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
+    description: "The knowledge base containing information about the client."
+  }];
+  // Removed, since it wasn't used.
+  // optional bool use_tsk = 3
+  reserved 3;
+  optional bool apply_parsers = 6 [
+    (sem_type) = {
+      description: "If True, apply any relevant parser to the collected data. "
+                   "If False, return the raw collected data e.g. Files or Registry Keys.",
+      label: ADVANCED,
+    },
+    default = true
+  ];
+  optional bool ignore_interpolation_errors = 7 [
+    (sem_type) = {
+      description: "If true, don't die if %%users.homedir%% and similar fail"
+                   " to expand. It's common on windows for some user attributes to be"
+                   " missing if users have never logged in. Enable this when you have"
+                   " multiple artifacts or paths and want to report partial results.",
+    },
+    default = false
+  ];
+  optional uint64 max_file_size = 8 [
+    (sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+                   " 500MB by default.",
+      label: ADVANCED
+    },
+    default = 500000000
+  ];
+}
+
+message ApiStackChartReportData {
+  repeated ApiReportDataSeries2D data = 1
+      [(sem_type) = { description: "What the report contains." }];
+
+  repeated ApiReportTickSpecifier x_ticks = 2 [(sem_type) = {
+    description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
+  }];
+
+  repeated ApiReportTickSpecifier y_ticks = 3 [(sem_type) = {
+    description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
+  }];
+
+  optional float bar_width = 4 [
+    (sem_type) = { description: "Width of the bars displayed on the chart." }
+  ];
+}
+
+message ApiPieChartReportData {
+  repeated ApiReportDataPoint1D data = 1
+      [(sem_type) = { description: "What the report contains." }];
+}
+
+message ApiLineChartReportData {
+  repeated ApiReportDataSeries2D data = 1
+      [(sem_type) = { description: "What the report contains." }];
+}
+
+message ApiReportDataPoint1D {
+  optional float x = 1;
+
+  optional string label = 2
+      [(sem_type) = { description: "The series is labeled with this string." }];
+}
+
+message ApiReportDataSeries2D {
+  optional string label = 1
+      [(sem_type) = { description: "The series is labeled with this string." }];
+
+  repeated ApiReportDataPoint2D points = 2;
+}
+
+message ApiReportDataPoint2D {
+  optional float x = 1;
+  optional float y = 2;
+}
+
+message ApiReportTickSpecifier {
+  optional float x = 1;
+  optional string label = 2;
 }

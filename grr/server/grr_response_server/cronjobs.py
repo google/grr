@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 """Cron Job objects that get stored in the relational db."""
-
 import abc
 import collections
 import logging
 import threading
 import time
 import traceback
+from typing import Optional, Sequence
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.registry import CronJobRegistry
 from grr_response_core.lib.registry import SystemCronJobRegistry
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server import threadpool
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import mig_cronjobs
 
 # The maximum number of log-messages to store in the DB for a given cron-job
 # run.
@@ -86,14 +89,17 @@ class CronJobBase(metaclass=CronJobRegistry):
     try:
       logging.info("Processing cron job: %s", self.job.cron_job_id)
       self.run_state.started_at = rdfvalue.RDFDatetime.Now()
-      self.run_state.status = "RUNNING"
+      self.run_state.status = rdf_cronjobs.CronJobRun.CronJobRunStatus.RUNNING
 
-      data_store.REL_DB.WriteCronJobRun(self.run_state)
+      data_store.REL_DB.WriteCronJobRun(
+          mig_cronjobs.ToProtoCronJobRun(self.run_state)
+      )
       data_store.REL_DB.UpdateCronJob(
           self.job.cron_job_id,
           last_run_time=rdfvalue.RDFDatetime.Now(),
           current_run_id=self.run_state.run_id,
-          forced_run_requested=False)
+          forced_run_requested=False,
+      )
     finally:
       # Notify the cron scheduler that all the DB updates are done. At this
       # point the cron scheduler can safely return this job's lease.
@@ -101,28 +107,36 @@ class CronJobBase(metaclass=CronJobRegistry):
 
     try:
       self.Run()
-      self.run_state.status = "FINISHED"
+      self.run_state.status = rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED
     except LifetimeExceededError:
-      self.run_state.status = "LIFETIME_EXCEEDED"
+      self.run_state.status = (
+          rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED
+      )
       CRON_JOB_FAILURE.Increment(fields=[self.job.cron_job_id])
     except Exception as e:  # pylint: disable=broad-except
-      logging.exception("Cronjob %s failed with an error: %s",
-                        self.job.cron_job_id, e)
+      logging.exception(
+          "Cronjob %s failed with an error: %s", self.job.cron_job_id, e
+      )
       CRON_JOB_FAILURE.Increment(fields=[self.job.cron_job_id])
-      self.run_state.status = "ERROR"
+      self.run_state.status = rdf_cronjobs.CronJobRun.CronJobRunStatus.ERROR
       self.run_state.backtrace = "{}\n\n{}".format(e, traceback.format_exc())
 
     finally:
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()
       elapsed = self.run_state.finished_at - self.run_state.started_at
       CRON_JOB_LATENCY.RecordEvent(
-          elapsed.ToFractional(rdfvalue.SECONDS), fields=[self.job.cron_job_id])
+          elapsed.ToFractional(rdfvalue.SECONDS), fields=[self.job.cron_job_id]
+      )
       if self.job.lifetime:
         expiration_time = self.run_state.started_at + self.job.lifetime
         if self.run_state.finished_at > expiration_time:
-          self.run_state.status = "LIFETIME_EXCEEDED"
+          self.run_state.status = (
+              rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED
+          )
           CRON_JOB_TIMEOUT.Increment(fields=[self.job.cron_job_id])
-      data_store.REL_DB.WriteCronJobRun(self.run_state)
+      data_store.REL_DB.WriteCronJobRun(
+          mig_cronjobs.ToProtoCronJobRun(self.run_state)
+      )
 
     current_job = data_store.REL_DB.ReadCronJob(self.job.cron_job_id)
     # If no other job was started while we were running, update last status
@@ -131,7 +145,8 @@ class CronJobBase(metaclass=CronJobRegistry):
       data_store.REL_DB.UpdateCronJob(
           self.job.cron_job_id,
           current_run_id=None,
-          last_run_status=self.run_state.status)
+          last_run_status=int(self.run_state.status),
+      )
 
 
 class SystemCronJobBase(CronJobBase, metaclass=SystemCronJobRegistry):
@@ -181,14 +196,20 @@ class SystemCronJobBase(CronJobBase, metaclass=SystemCronJobRegistry):
     # TODO(user): Fix tests that do not set self.run_state.run_id. The field
     # is guaranteed to always be set in prod.
     if self.run_state.run_id:
-      data_store.REL_DB.WriteCronJobRun(self.run_state)
+      data_store.REL_DB.WriteCronJobRun(
+          mig_cronjobs.ToProtoCronJobRun(self.run_state)
+      )
 
   def ReadCronState(self):
     return self.job.state
 
   def WriteCronState(self, state):
     self.job.state = state
-    data_store.REL_DB.UpdateCronJob(self.job.cron_job_id, state=self.job.state)
+    proto_state = mig_protodict.ToProtoAttributedDict(self.job.state)
+    data_store.REL_DB.UpdateCronJob(
+        self.job.cron_job_id,
+        state=proto_state,
+    )
 
 
 TASK_STARTUP_WAIT = 10
@@ -237,51 +258,59 @@ class CronManager(object):
             flow_args=cron_args.flow_args,
             hunt_runner_args=cron_args.hunt_runner_args))
 
-    job = rdf_cronjobs.CronJob(
+    # TODO: Refactor to proto-only.
+    rdf_job = rdf_cronjobs.CronJob(
         cron_job_id=job_id,
         description=cron_args.description,
         frequency=cron_args.frequency,
         lifetime=cron_args.lifetime,
         allow_overruns=cron_args.allow_overruns,
         args=args,
-        enabled=enabled)
-    data_store.REL_DB.WriteCronJob(job)
+        enabled=enabled,
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
+    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+    data_store.REL_DB.WriteCronJob(proto_job)
 
     return job_id
 
-  def ListJobs(self):
+  def ListJobs(self) -> Sequence[str]:
     """Returns a list of ids of all currently running cron jobs."""
     return [job.cron_job_id for job in data_store.REL_DB.ReadCronJobs()]
 
-  def ReadJob(self, job_id):
-    return data_store.REL_DB.ReadCronJob(job_id)
+  def ReadJob(self, job_id: str) -> rdf_cronjobs.CronJob:
+    proto = data_store.REL_DB.ReadCronJob(job_id)
+    return mig_cronjobs.ToRDFCronJob(proto)
 
-  def ReadJobs(self):
+  def ReadJobs(self) -> Sequence[rdf_cronjobs.CronJob]:
     """Returns a list of all currently running cron jobs."""
-    return data_store.REL_DB.ReadCronJobs()
+    protos = data_store.REL_DB.ReadCronJobs()
+    return [mig_cronjobs.ToRDFCronJob(job) for job in protos]
 
-  def ReadJobRun(self, job_id, run_id):
-    return data_store.REL_DB.ReadCronJobRun(job_id, run_id)
+  def ReadJobRun(self, job_id: str, run_id: str) -> rdf_cronjobs.CronJobRun:
+    proto = data_store.REL_DB.ReadCronJobRun(job_id, run_id)
+    return mig_cronjobs.ToRDFCronJobRun(proto)
 
-  def ReadJobRuns(self, job_id):
-    return data_store.REL_DB.ReadCronJobRuns(job_id)
+  def ReadJobRuns(self, job_id: str) -> Sequence[rdf_cronjobs.CronJobRun]:
+    protos = data_store.REL_DB.ReadCronJobRuns(job_id)
+    return [mig_cronjobs.ToRDFCronJobRun(run) for run in protos]
 
-  def EnableJob(self, job_id):
+  def EnableJob(self, job_id: str) -> None:
     """Enable cron job with the given id."""
     return data_store.REL_DB.EnableCronJob(job_id)
 
-  def DisableJob(self, job_id):
+  def DisableJob(self, job_id: str) -> None:
     """Disable cron job with the given id."""
     return data_store.REL_DB.DisableCronJob(job_id)
 
-  def DeleteJob(self, job_id):
+  def DeleteJob(self, job_id: str) -> None:
     """Deletes cron job with the given URN."""
     return data_store.REL_DB.DeleteCronJob(job_id)
 
-  def RequestForcedRun(self, job_id):
+  def RequestForcedRun(self, job_id: str) -> None:
     data_store.REL_DB.UpdateCronJob(job_id, forced_run_requested=True)
 
-  def RunOnce(self, names=None):
+  def RunOnce(self, names: Sequence[str] = None) -> None:
     """Tries to lock and run cron jobs.
 
     Args:
@@ -292,16 +321,20 @@ class CronManager(object):
       Note: a failure of a single cron job doesn't preclude other cron jobs
       from running.
     """
-    leased_jobs = data_store.REL_DB.LeaseCronJobs(
+    proto_leased_jobs = data_store.REL_DB.LeaseCronJobs(
         cronjob_ids=names,
-        lease_time=rdfvalue.Duration.From(10, rdfvalue.MINUTES))
-    logging.info("Leased %d cron jobs for processing.", len(leased_jobs))
-    if not leased_jobs:
+        lease_time=rdfvalue.Duration.From(10, rdfvalue.MINUTES),
+    )
+    logging.info("Leased %d cron jobs for processing.", len(proto_leased_jobs))
+    if not proto_leased_jobs:
       return
 
+    rdf_leased_jobs = [
+        mig_cronjobs.ToRDFCronJob(job) for job in proto_leased_jobs
+    ]
     errors = {}
     processed_count = 0
-    for job in sorted(leased_jobs, key=lambda j: j.cron_job_id):
+    for job in sorted(rdf_leased_jobs, key=lambda j: j.cron_job_id):
       if self.TerminateStuckRunIfNeeded(job):
         continue
 
@@ -321,7 +354,10 @@ class CronManager(object):
         errors[job.cron_job_id] = e
 
     logging.info("Processed %d cron jobs.", processed_count)
-    data_store.REL_DB.ReturnLeasedCronJobs(leased_jobs)
+    updated_proto_leased_jobs = [
+        mig_cronjobs.ToProtoCronJob(job) for job in rdf_leased_jobs
+    ]
+    data_store.REL_DB.ReturnLeasedCronJobs(updated_proto_leased_jobs)
 
     if errors:
       raise OneOrMoreCronJobsFailedError(errors)
@@ -332,7 +368,7 @@ class CronManager(object):
     pool.Start()
     return pool
 
-  def TerminateStuckRunIfNeeded(self, job):
+  def TerminateStuckRunIfNeeded(self, job: rdf_cronjobs.CronJob) -> None:
     """Cleans up job state if the last run is stuck."""
     if job.current_run_id and job.last_run_time and job.lifetime:
       now = rdfvalue.RDFDatetime.Now()
@@ -340,26 +376,35 @@ class CronManager(object):
       # during one of the HeartBeat calls (HeartBeat checks if a cron job is
       # run is running too long and raises if it is).
       expiration_time = (
-          job.last_run_time + job.lifetime +
-          rdfvalue.Duration.From(10, rdfvalue.MINUTES))
+          job.last_run_time
+          + job.lifetime
+          + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
+      )
       if now > expiration_time:
-        run = data_store.REL_DB.ReadCronJobRun(job.cron_job_id,
-                                               job.current_run_id)
-        run.status = "LIFETIME_EXCEEDED"
-        run.finished_at = now
-        data_store.REL_DB.WriteCronJobRun(run)
+        proto_run = data_store.REL_DB.ReadCronJobRun(
+            job.cron_job_id, job.current_run_id
+        )
+        proto_run.status = (
+            flows_pb2.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED
+        )
+        proto_run.finished_at = now.AsMicrosecondsSinceEpoch()
+        data_store.REL_DB.WriteCronJobRun(proto_run)
         data_store.REL_DB.UpdateCronJob(
-            job.cron_job_id, current_run_id=None, last_run_status=run.status)
+            job.cron_job_id,
+            current_run_id=None,
+            last_run_status=proto_run.status,
+        )
         CRON_JOB_LATENCY.RecordEvent(
             (now - job.last_run_time).ToFractional(rdfvalue.SECONDS),
-            fields=[job.cron_job_id])
+            fields=[job.cron_job_id],
+        )
         CRON_JOB_TIMEOUT.Increment(fields=[job.cron_job_id])
 
         return True
 
     return False
 
-  def RunJob(self, job):
+  def RunJob(self, job: rdf_cronjobs.CronJob) -> None:
     """Does the actual work of the Cron, if the job is due to run.
 
     Args:
@@ -422,7 +467,6 @@ class CronManager(object):
       signal_event.set()
 
       wait_for_write_event.wait(TASK_STARTUP_WAIT)
-
       return True
     except threadpool.Full:
       return False
@@ -431,7 +475,7 @@ class CronManager(object):
     """Returns True if there's a currently running iteration of this job."""
     return bool(job.current_run_id)
 
-  def JobDueToRun(self, job):
+  def JobDueToRun(self, job: rdf_cronjobs.CronJob) -> bool:
     """Determines if the given job is due for another run.
 
     Args:
@@ -462,7 +506,9 @@ class CronManager(object):
 
     return False
 
-  def DeleteOldRuns(self, cutoff_timestamp=None):
+  def DeleteOldRuns(
+      self, cutoff_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> None:
     """Deletes runs that were started before the timestamp given."""
     if cutoff_timestamp is None:
       raise ValueError("cutoff_timestamp can't be None")
@@ -471,7 +517,7 @@ class CronManager(object):
         cutoff_timestamp=cutoff_timestamp)
 
 
-def ScheduleSystemCronJobs(names=None):
+def ScheduleSystemCronJobs(names: Optional[Sequence[str]] = None) -> None:
   """Schedules all system cron jobs."""
 
   errors = []
@@ -495,14 +541,18 @@ def ScheduleSystemCronJobs(names=None):
         action_type=system,
         system_cron_action=rdf_cronjobs.SystemCronAction(job_class_name=name))
 
-    job = rdf_cronjobs.CronJob(
+    # TODO: Refactor to proto-only.
+    rdf_job = rdf_cronjobs.CronJob(
         cron_job_id=name,
         args=args,
         enabled=enabled,
         frequency=cls.frequency,
         lifetime=cls.lifetime,
-        allow_overruns=cls.allow_overruns)
-    data_store.REL_DB.WriteCronJob(job)
+        allow_overruns=cls.allow_overruns,
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
+    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+    data_store.REL_DB.WriteCronJob(proto_job)
 
   if errors:
     raise ValueError("Error(s) while parsing Cron.disabled_cron_jobs: %s" %

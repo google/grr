@@ -90,5 +90,41 @@
     <mat-checkbox [formControl]="controls.ignoreStderrErrors" color="primary"
       >Ignore stderr errors</mat-checkbox
     >
+
+    <mat-form-field appearance="outline" class="editor-form-field">
+      <mat-label>Configuration Path</mat-label>
+      <input
+        type="text"
+        matInput
+        placeholder="/var/osquery/osquery.conf"
+        [formControl]="controls.configurationPath"
+        autocomplete="off"
+        name="configurationPath"
+      />
+      <mat-hint>
+        <app-literal-path-glob-expression-warning [path]="controls.configurationPath.value"></app-literal-path-glob-expression-warning>
+      </mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="editor-form-field">
+      <mat-label>Configuration content</mat-label>
+
+      <textarea matInput
+              [formControl]="controls.configurationContent"
+              class="monospace tall"
+              name="configurationContent"
+              autocomplete="off"></textarea>
+      <a
+        href="https://osquery.readthedocs.io/en/stable/deployment/configuration/#configuration-specification"
+        target="_blank"
+        mat-icon-button
+        matTooltip="Osquery configuration documentation"
+      >
+        <mat-icon>help_outline</mat-icon>
+      </a>
+    </mat-form-field>
+    <div class="validation" [hidden]="!(controls.configurationContent.value && controls.configurationPath.value)">
+      <mat-error>Only one of configuration content or configuration path can be set</mat-error>
+    </div>
   </div>
 </div>

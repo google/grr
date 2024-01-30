@@ -16,7 +16,7 @@ import {RecentClientFlows} from './recent_client_flows';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApprovalChipModule,
     CommonModule,
@@ -26,10 +26,8 @@ import {RecentClientFlows} from './recent_client_flows';
     OnlineChipModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [RecentClientFlows],
-  exports: [RecentClientFlows]
+  exports: [RecentClientFlows],
 })
-export class RecentClientFlowsModule {
-}
+export class RecentClientFlowsModule {}

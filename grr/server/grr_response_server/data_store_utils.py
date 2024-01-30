@@ -8,6 +8,7 @@ provided in this module should be no longer useful.
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -21,10 +22,12 @@ def GetClientVersion(client_id):
     return config.CONFIG["Source.version_numeric"]
 
 
-def GetClientOs(client_id):
+def GetClientOs(client_id: str) -> str:
   """Returns last known operating system name that the client used."""
-  kb = data_store.REL_DB.ReadClientSnapshot(client_id).knowledge_base
-  return kb.os
+  if (snapshot := data_store.REL_DB.ReadClientSnapshot(client_id)) is not None:
+    return snapshot.knowledge_base.os
+  else:
+    return ""
 
 
 def GetFileHashEntry(fd):
@@ -41,7 +44,7 @@ def GetClientKnowledgeBase(client_id):
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
   if client is None:
     return None
-  return client.knowledge_base
+  return mig_client.ToRDFKnowledgeBase(client.knowledge_base)
 
 
 def GetClientInformation(client_id: str) -> rdf_client.ClientInformation:
@@ -52,4 +55,4 @@ def GetClientInformation(client_id: str) -> rdf_client.ClientInformation:
     # null case) and missing fields have to be taken into consideration anyway.
     return rdf_client.ClientInformation()
   else:
-    return startup_info.client_info
+    return mig_client.ToRDFClientInformation(startup_info.client_info)

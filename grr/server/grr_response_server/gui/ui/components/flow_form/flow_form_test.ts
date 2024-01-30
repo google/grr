@@ -7,9 +7,15 @@ import {Browser} from '../../lib/api/api_interfaces';
 import {RequestStatusType} from '../../lib/api/track_request';
 import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {
+  ClientPageGlobalStoreMock,
+  mockClientPageGlobalStore,
+} from '../../store/client_page_global_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {
+  ConfigGlobalStoreMock,
+  mockConfigGlobalStore,
+} from '../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {FlowForm} from './flow_form';
@@ -28,23 +34,17 @@ describe('FlowForm Component', () => {
     configGlobalStore = mockConfigGlobalStore();
     clientPageGlobalStore = mockClientPageGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            RouterTestingModule,
-            FlowFormModule,
-          ],
-          providers: [
-            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => clientPageGlobalStore
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, RouterTestingModule, FlowFormModule],
+      providers: [
+        {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+        {
+          provide: ClientPageGlobalStore,
+          useFactory: () => clientPageGlobalStore,
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('shows no submit button without selected flow', () => {
@@ -62,7 +62,8 @@ describe('FlowForm Component', () => {
     fixture.detectChanges();
 
     clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-        newFlowDescriptor());
+      newFlowDescriptor(),
+    );
     fixture.detectChanges();
 
     expect(getSubmit(fixture)).toBeTruthy();
@@ -74,12 +75,13 @@ describe('FlowForm Component', () => {
 
     clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
     clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-        newFlowDescriptor({
-          name: 'CollectBrowserHistory',
-          defaultArgs: {
-            browsers: [Browser.CHROME],
-          }
-        }));
+      newFlowDescriptor({
+        name: 'CollectBrowserHistory',
+        defaultArgs: {
+          browsers: [Browser.CHROME],
+        },
+      }),
+    );
     clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
@@ -95,17 +97,19 @@ describe('FlowForm Component', () => {
 
     clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
     clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-        newFlowDescriptor());
+      newFlowDescriptor(),
+    );
     clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     clientPageGlobalStore.mockedObservables.startFlowStatus$.next({
       status: RequestStatusType.ERROR,
-      error: 'foobazzle rapidly disintegrated'
+      error: 'foobazzle rapidly disintegrated',
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText)
-        .toContain('foobazzle rapidly disintegrated');
+    expect(fixture.nativeElement.innerText).toContain(
+      'foobazzle rapidly disintegrated',
+    );
   });
 });

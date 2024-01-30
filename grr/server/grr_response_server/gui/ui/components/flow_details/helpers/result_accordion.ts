@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 
 import {FlowState} from '../../../lib/models/flow';
 
@@ -18,7 +24,7 @@ export enum ColorScheme {
   ERROR,
 }
 
-const STATUS_ICONS: {[key in Status]: string|null} = {
+const STATUS_ICONS: {[key in Status]: string | null} = {
   [Status.NONE]: null,
   [Status.IN_PROGRESS]: null,
   [Status.SUCCESS]: 'check_circle',
@@ -26,7 +32,7 @@ const STATUS_ICONS: {[key in Status]: string|null} = {
   [Status.WARNING]: 'warning',
 };
 
-const STATUS_CLASSES: {[key in Status]: string|null} = {
+const STATUS_CLASSES: {[key in Status]: string | null} = {
   [Status.NONE]: '',
   [Status.IN_PROGRESS]: 'in-progress',
   [Status.SUCCESS]: 'success',
@@ -34,7 +40,7 @@ const STATUS_CLASSES: {[key in Status]: string|null} = {
   [Status.WARNING]: 'warning',
 };
 
-const COLOR_SCHEME_CLASSES: {[key in ColorScheme]: string|null} = {
+const COLOR_SCHEME_CLASSES: {[key in ColorScheme]: string | null} = {
   [ColorScheme.DEFAULT]: 'default',
   [ColorScheme.FLOW_ARGS]: 'flow-args-scheme',
   [ColorScheme.ERROR]: 'error-scheme',
@@ -48,17 +54,17 @@ const COLOR_SCHEME_CLASSES: {[key in ColorScheme]: string|null} = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultAccordion {
-  @Input() title?: string|null;
+  @Input() title?: string | null;
 
-  @Input() description?: string|null;
+  @Input() description?: string | null;
 
-  @Input() preview?: string|null;
+  @Input() preview?: string | null;
 
-  @Input() status?: Status|null;
+  @Input() status?: Status | null;
 
-  @Input() expandable: boolean|null = true;
+  @Input() expandable: boolean | null = true;
 
-  @Input() colorScheme?: ColorScheme|null;
+  @Input() colorScheme?: ColorScheme | null;
 
   @Input() isOpen?: boolean = false;
 

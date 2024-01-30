@@ -11,17 +11,10 @@ class TestHostComponent {
 
 describe('MarkdownPipe', () => {
   beforeEach(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            MarkdownPipeModule,
-            BrowserTestingModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [MarkdownPipeModule, BrowserTestingModule],
+      declarations: [TestHostComponent],
+    }).compileComponents();
   });
 
   it('shows empty string when the input is undefined', () => {
@@ -41,8 +34,9 @@ describe('MarkdownPipe', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe('<p>Hello world</p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p>Hello world</p>',
+    );
   });
 
   it('converts bold text correctly', () => {
@@ -52,8 +46,9 @@ describe('MarkdownPipe', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe('<p><strong>test</strong></p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p><strong>test</strong></p>',
+    );
   });
 
   it('converts italics text correctly', () => {
@@ -63,8 +58,9 @@ describe('MarkdownPipe', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe('<p><em>test</em></p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p><em>test</em></p>',
+    );
   });
 
   it('converts links correctly', () => {
@@ -74,21 +70,22 @@ describe('MarkdownPipe', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe('<p><a href="https://google.com">Google</a></p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p><a href="https://google.com">Google</a></p>',
+    );
   });
 
   it('converts links in bold correctly', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
 
     fixture.componentInstance.markdownSnippet =
-        '[**Google**](https://google.com)';
+      '[**Google**](https://google.com)';
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe(
-            '<p><a href="https://google.com"><strong>Google</strong></a></p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p><a href="https://google.com"><strong>Google</strong></a></p>',
+    );
   });
 
   it('converts line breaks to HTML paragraphs correctly', () => {
@@ -98,7 +95,8 @@ describe('MarkdownPipe', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent.trim())
-        .toBe('<p>Line 1</p>\n<p>Line 2</p>');
+    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
+      '<p>Line 1</p>\n<p>Line 2</p>',
+    );
   });
 });

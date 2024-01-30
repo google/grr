@@ -27,7 +27,7 @@ message ClientSnapshotMetadata {
   }];
 }
 
-// Next field: 20
+// Next field: 21
 message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
     description: "The client id of this client.",
@@ -86,6 +86,11 @@ message ClientSnapshot {
   optional FleetspeakValidationInfo fleetspeak_validation_info = 18;
 
   optional ClientSnapshotMetadata metadata = 19;
+
+  // Time at which this snapshot was created.
+  optional uint64 timestamp = 20 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
 }
 
 message ClientMetadata {
@@ -218,7 +223,7 @@ message ClientPathID {
 message BlobReference {
   optional uint64 offset = 1;
   optional uint64 size = 2;
-  optional bytes blob_id = 3 [(sem_type) = { type: "BlobID" }];
+  optional bytes blob_id = 3;
 }
 
 message BlobReferences {

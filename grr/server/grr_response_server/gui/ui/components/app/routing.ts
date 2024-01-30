@@ -23,7 +23,6 @@ import {NewHunt} from '../hunt/new_hunt/new_hunt';
 
 import {NotFoundPage} from './not_found_page';
 
-
 const REDACTED_CLIENT_ID = 'client_id';
 const REDACTED_FLOW_ID = 'flow_id';
 const REDACTED_HUNT_ID = 'hunt_id';
@@ -33,7 +32,6 @@ const REDACTED_FILE_PATH = 'file_path';
 const REDACTED_PATH_TYPE = 'path_type';
 const REDACTED_RESULT_KEY = 'result_key';
 const REDACTED_PAYLOAD_TYPE = 'payload_type';
-
 
 /** Routes and subroutes for the client page */
 export const CLIENT_ROUTES: GrrRoute[] = [
@@ -45,8 +43,8 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       pageViewTracking: {
         pagePath: 'client_search',
         pageTitle: 'Client Search',
-      }
-    }
+      },
+    },
   },
   {
     path: 'clients/:id',
@@ -56,7 +54,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       pageViewTracking: {
         pagePath: `clients/${REDACTED_CLIENT_ID}`,
         pageTitle: 'Client > Flows',
-      }
+      },
     },
     children: [
       {
@@ -91,7 +89,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
           pageViewTracking: {
             path: `flows/${REDACTED_FLOW_ID}`,
             pageTitle: 'Client > Flow',
-          }
+          },
         },
       },
       {
@@ -110,16 +108,16 @@ export const CLIENT_ROUTES: GrrRoute[] = [
           pageViewTracking: {
             path: `files/${REDACTED_FILE_PATH}`,
             pageTitle: 'Client > Browse Files',
-          }
+          },
         },
         children: [
           {path: '', redirectTo: 'stat', pathMatch: 'full'},
           {path: 'stat', component: StatView},
           {path: 'text', component: TextView},
           {path: 'blob', component: HexView},
-        ]
+        ],
       },
-    ]
+    ],
   },
   {
     // TODO: `path` requires slashes to be encoded (`%2F`). It'd be
@@ -138,7 +136,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
             pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
             pageTitle: 'Client > Browse Files > Stat',
           },
-        }
+        },
       },
       {
         path: 'text',
@@ -147,7 +145,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
           pageViewTracking: {
             pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
             pageTitle: 'Client > Browse Files > Text',
-          }
+          },
         },
       },
       {
@@ -157,7 +155,7 @@ export const CLIENT_ROUTES: GrrRoute[] = [
           pageViewTracking: {
             pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
             pageTitle: 'Client > Browse Files > Blob',
-          }
+          },
         },
       },
     ],
@@ -165,8 +163,8 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       pageViewTracking: {
         pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
         pageTitle: 'Client > Browse Files',
-      }
-    }
+      },
+    },
   },
   {
     path: 'details/:clientId',
@@ -176,8 +174,8 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       pageViewTracking: {
         pagePath: `details/${REDACTED_CLIENT_ID}`,
         pageTitle: 'Client > Client Details',
-      }
-    }
+      },
+    },
   },
   {
     path: 'details/:clientId/:sourceFlowId',
@@ -187,8 +185,8 @@ export const CLIENT_ROUTES: GrrRoute[] = [
       pageViewTracking: {
         pagePath: `details/${REDACTED_CLIENT_ID}/${REDACTED_FLOW_ID}`,
         pageTitle: 'Client > Client Details',
-      }
-    }
+      },
+    },
   },
 ];
 
@@ -204,7 +202,7 @@ export const HUNT_ROUTES: GrrRoute[] = [
         pagePath: `hunts`,
         pageTitle: 'Hunt Overview',
       },
-    }
+    },
   },
   {
     path: 'hunts/:id',
@@ -215,7 +213,7 @@ export const HUNT_ROUTES: GrrRoute[] = [
         pagePath: `hunts/${REDACTED_HUNT_ID}`,
         pageTitle: 'Hunt Details',
       },
-    }
+    },
   },
   {
     path: 'new-hunt',
@@ -266,8 +264,7 @@ export const HUNT_ROUTES: GrrRoute[] = [
     outlet: 'drawer',
     data: {
       pageViewTracking: {
-        pagePath:
-            `result-details/${REDACTED_RESULT_KEY}/${REDACTED_PAYLOAD_TYPE}`,
+        pagePath: `result-details/${REDACTED_RESULT_KEY}/${REDACTED_PAYLOAD_TYPE}`,
         pageTitle: 'Hunt Details > View Result',
       },
     },
@@ -282,11 +279,10 @@ export const APPROVAL_PAGE_ROUTES: GrrRoute[] = [
     data: {
       legacyLink: '#/users/:requestor/approvals/client/:clientId/:approvalId',
       pageViewTracking: {
-        pagePath: `clients/${REDACTED_CLIENT_ID}/users/${
-            REDACTED_USER}/approvals/${REDACTED_APPROVAL_ID}`,
+        pagePath: `clients/${REDACTED_CLIENT_ID}/users/${REDACTED_USER}/approvals/${REDACTED_APPROVAL_ID}`,
         pageTitle: 'Client Approval',
       },
-    }
+    },
   },
   {
     path: 'hunts/:huntId/users/:requestor/approvals/:approvalId',
@@ -294,11 +290,10 @@ export const APPROVAL_PAGE_ROUTES: GrrRoute[] = [
     data: {
       legacyLink: '#/users/:requestor/approvals/hunt/:huntId/:approvalId',
       pageViewTracking: {
-        pagePath: `hunts/${REDACTED_HUNT_ID}/users/${REDACTED_USER}/approvals/${
-            REDACTED_APPROVAL_ID}`,
+        pagePath: `hunts/${REDACTED_HUNT_ID}/users/${REDACTED_USER}/approvals/${REDACTED_APPROVAL_ID}`,
         pageTitle: 'Hunt Approval',
       },
-    }
+    },
   },
 ];
 
@@ -311,7 +306,7 @@ const APP_ROUTES: GrrRoute[] = [
         pagePath: `/`,
         pageTitle: 'Home',
       },
-    }
+    },
   },
   ...CLIENT_ROUTES,
   ...HUNT_ROUTES,
@@ -323,12 +318,7 @@ const APP_ROUTES: GrrRoute[] = [
 ];
 
 @NgModule({
-  imports: [
-    RouterModule.forRoot(APP_ROUTES),
-  ],
-  exports: [
-    RouterModule,
-  ]
+  imports: [RouterModule.forRoot(APP_ROUTES)],
+  exports: [RouterModule],
 })
-export class AppRoutingModule {
-}
+export class AppRoutingModule {}

@@ -4,7 +4,10 @@ import {FormControl, Validators} from '@angular/forms';
 import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {CodeEditor, HighlightMode} from '../code_editor/code_editor';
@@ -15,13 +18,20 @@ const DEFAULT_QUERY = 'SELECT * FROM users LIMIT 10;';
 
 function makeControls() {
   return {
-    query: new FormControl(
-        DEFAULT_QUERY, {nonNullable: true, validators: [Validators.required]}),
-    timeoutMillis: new FormControl(
-        0, {nonNullable: true, validators: [Validators.required]}),
+    query: new FormControl(DEFAULT_QUERY, {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    timeoutMillis: new FormControl(0, {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     ignoreStderrErrors: new FormControl(false, {nonNullable: true}),
-    fileCollectionColumns:
-        new FormControl<readonly string[]>([], {nonNullable: true}),
+    fileCollectionColumns: new FormControl<readonly string[]>([], {
+      nonNullable: true,
+    }),
+    configurationPath: new FormControl('', {nonNullable: true}),
+    configurationContent: new FormControl('', {nonNullable: true}),
   };
 }
 
@@ -66,22 +76,31 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs, Controls> {
   browseTablesClicked(): void {
     const openedDialog = this.dialog.open(OsqueryQueryHelper);
 
-    openedDialog.afterClosed().subscribe(newQueryReceived => {
+    openedDialog.afterClosed().subscribe((newQueryReceived) => {
       if (isNonNull(newQueryReceived)) {
         this.controls.query.setValue(newQueryReceived);
       }
-    });  // No need to unsubscribe as it completes when the dialog is closed.
+    }); // No need to unsubscribe as it completes when the dialog is closed.
   }
 
   override convertFlowArgsToFormState(flowArgs: OsqueryFlowArgs) {
     return {
-      fileCollectionColumns: flowArgs.fileCollectionColumns ??
-          this.controls.fileCollectionColumns.defaultValue,
-      ignoreStderrErrors: flowArgs.ignoreStderrErrors ??
-          this.controls.ignoreStderrErrors.defaultValue,
+      fileCollectionColumns:
+        flowArgs.fileCollectionColumns ??
+        this.controls.fileCollectionColumns.defaultValue,
+      ignoreStderrErrors:
+        flowArgs.ignoreStderrErrors ??
+        this.controls.ignoreStderrErrors.defaultValue,
       timeoutMillis: Number(
-          flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue),
+        flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue,
+      ),
       query: flowArgs.query ?? this.controls.query.defaultValue,
+      configurationPath:
+        flowArgs.configurationPath ??
+        this.controls.configurationPath.defaultValue,
+      configurationContent:
+        flowArgs.configurationContent ??
+        this.controls.configurationContent.defaultValue,
     };
   }
 

@@ -8,15 +8,31 @@ import {RouterTestingModule} from '@angular/router/testing';
 
 import {Approval} from '../../lib/models/user';
 import {ApprovalCardLocalStore} from '../../store/approval_card_local_store';
-import {ApprovalCardLocalStoreMock, mockApprovalCardLocalStore} from '../../store/approval_card_local_store_test_util';
+import {
+  ApprovalCardLocalStoreMock,
+  mockApprovalCardLocalStore,
+} from '../../store/approval_card_local_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {
+  ConfigGlobalStoreMock,
+  mockConfigGlobalStore,
+} from '../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {ApprovalCard} from './approval_card';
 import {ApprovalCardModule} from './module';
 
 initTestEnvironment();
+
+const UI_CONFIG_DURATIONS = {
+  defaultAccessDurationSeconds: String(28 * 24 * 60 * 60), // 28 days in seconds
+  maxAccessDurationSeconds: String(100 * 24 * 60 * 60), // 100 days in seconds
+};
+
+const PREEXISTING_NOW = Date.prototype.getTime;
+function fakeNow() {
+  return 1000; // "Now" is 1 second (1000 millis) past epoch
+}
 
 describe('ApprovalCard Component', () => {
   let approvalCardLocalStore: ApprovalCardLocalStoreMock;
@@ -26,35 +42,41 @@ describe('ApprovalCard Component', () => {
     approvalCardLocalStore = mockApprovalCardLocalStore();
     configGlobalStore = mockConfigGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            RouterTestingModule,
-            ApprovalCardModule,
-          ],
-          providers: [
-            {
-              provide: ConfigGlobalStore,
-              useFactory: () => configGlobalStore,
-            },
-            OverlayModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            ApprovalCardLocalStore, {useFactory: () => approvalCardLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, RouterTestingModule, ApprovalCardModule],
+      providers: [
+        {
+          provide: ConfigGlobalStore,
+          useFactory: () => configGlobalStore,
+        },
+        OverlayModule,
+      ],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(ApprovalCardLocalStore, {
+        useFactory: () => approvalCardLocalStore,
+      })
+      .compileComponents();
+    Date.prototype.getTime = fakeNow;
   }));
 
+  afterEach(() => {
+    Date.prototype.getTime = PREEXISTING_NOW;
+  });
 
   function createComponent(
-      latestApproval: Approval|null = null, urlTree: string[] = [],
-      validateOnStart = false): ComponentFixture<ApprovalCard> {
+    latestApproval: Approval | null = null,
+    urlTree: string[] = [],
+    validateOnStart = false,
+    showDuration = false,
+    editableDuration = false,
+  ): ComponentFixture<ApprovalCard> {
     const fixture = TestBed.createComponent(ApprovalCard);
     fixture.componentInstance.latestApproval = latestApproval;
     fixture.componentInstance.urlTree = urlTree;
     fixture.componentInstance.validateOnStart = validateOnStart;
+    fixture.componentInstance.showDuration = showDuration;
+    fixture.componentInstance.editableDuration = editableDuration;
     spyOn(fixture.componentInstance.approvalParams, 'emit');
     fixture.detectChanges();
     return fixture;
@@ -66,14 +88,17 @@ describe('ApprovalCard Component', () => {
     configGlobalStore.mockedObservables.approvalConfig$.next({});
     fixture.detectChanges();
 
-    fixture.debugElement.query(By.css('form'))
-        .triggerEventHandler('submit', null);
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.approvalParams.emit)
-        .not.toHaveBeenCalled();
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('required');
+    expect(
+      fixture.componentInstance.approvalParams.emit,
+    ).not.toHaveBeenCalled();
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'required',
+    );
   });
 
   it('validateOnStart triggers error message when rendering', () => {
@@ -82,8 +107,9 @@ describe('ApprovalCard Component', () => {
     configGlobalStore.mockedObservables.approvalConfig$.next({});
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('required');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'required',
+    );
   });
 
   it('FALSE validateOnStart does not show error before touched', () => {
@@ -92,8 +118,9 @@ describe('ApprovalCard Component', () => {
     configGlobalStore.mockedObservables.approvalConfig$.next({});
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .not.toContain('required');
+    expect(fixture.debugElement.nativeElement.textContent).not.toContain(
+      'required',
+    );
   });
 
   it('requests approval when form is submitted', () => {
@@ -106,8 +133,9 @@ describe('ApprovalCard Component', () => {
     fixture.componentInstance.formRequestedApprovers.add('jerry');
     fixture.componentInstance.form.patchValue({reason: 'sample reason'});
 
-    fixture.debugElement.query(By.css('form'))
-        .triggerEventHandler('submit', null);
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.approvalParams.emit).toHaveBeenCalledWith({
@@ -117,12 +145,94 @@ describe('ApprovalCard Component', () => {
     });
   });
 
+  it('requests approval when form is submitted with a non-default duration', () => {
+    const fixture = createComponent(null, [], false, true, true);
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    configGlobalStore.mockedObservables.uiConfig$.next(UI_CONFIG_DURATIONS);
+
+    fixture.debugElement.nativeElement.querySelector('.changeDuration').click();
+
+    fixture.detectChanges();
+
+    fixture.componentInstance.formRequestedApprovers.add('rick');
+    fixture.componentInstance.formRequestedApprovers.add('jerry');
+    fixture.componentInstance.form.patchValue({
+      reason: 'sample reason',
+      duration: 30,
+    });
+
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.approvalParams.emit).toHaveBeenCalledWith({
+      approvers: ['rick', 'jerry'],
+      reason: 'sample reason',
+      cc: [],
+      expirationTimeUs: '31000000', // 31 seconds since epoch in microseconds
+    });
+  });
+
+  it('Submit does not emit approvalParams if duration is higher than max allowed', () => {
+    const fixture = createComponent(null, [], false, true, true);
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    configGlobalStore.mockedObservables.uiConfig$.next(UI_CONFIG_DURATIONS);
+    fixture.detectChanges();
+
+    fixture.debugElement.nativeElement.querySelector('.changeDuration').click();
+
+    fixture.componentInstance.formRequestedApprovers.add('rick');
+    fixture.componentInstance.formRequestedApprovers.add('jerry');
+    fixture.componentInstance.form.patchValue({
+      reason: 'sample reason',
+      duration: Number(UI_CONFIG_DURATIONS.maxAccessDurationSeconds) + 100,
+    });
+    fixture.detectChanges();
+
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
+    fixture.detectChanges();
+
+    expect(
+      fixture.componentInstance.approvalParams.emit,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('duration does no appear if showDuration is false', () => {
+    const fixture = createComponent();
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    configGlobalStore.mockedObservables.uiConfig$.next(UI_CONFIG_DURATIONS);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.nativeElement.querySelector('.duration'),
+    ).toBeNull();
+  });
+
+  it('duration is not editable if editableDuration is false', () => {
+    const fixture = createComponent(null, [], false, true, false);
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    configGlobalStore.mockedObservables.uiConfig$.next(UI_CONFIG_DURATIONS);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.nativeElement.querySelector('.changeDuration'),
+    ).toBeNull();
+  });
+
   it('loads and displays optional cc address for approval', () => {
     const fixture = createComponent();
     fixture.detectChanges();
 
-    configGlobalStore.mockedObservables.approvalConfig$.next(
-        {optionalCcEmail: 'foo@example.org'});
+    configGlobalStore.mockedObservables.approvalConfig$.next({
+      optionalCcEmail: 'foo@example.org',
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -130,8 +240,9 @@ describe('ApprovalCard Component', () => {
   });
 
   it('sets reason for approval value in form based on url param', async () => {
-    await TestBed.inject(Router).navigate(
-        [], {queryParams: {reason: 'foo/t/abcd'}});
+    await TestBed.inject(Router).navigate([], {
+      queryParams: {reason: 'foo/t/abcd'},
+    });
 
     const fixture = createComponent();
     fixture.detectChanges();
@@ -142,38 +253,48 @@ describe('ApprovalCard Component', () => {
   it('uses optional cc address for approval by default', () => {
     const fixture = createComponent();
 
-    configGlobalStore.mockedObservables.approvalConfig$.next(
-        {optionalCcEmail: 'foo@example.org'});
+    configGlobalStore.mockedObservables.approvalConfig$.next({
+      optionalCcEmail: 'foo@example.org',
+    });
     fixture.detectChanges();
 
-    fixture.componentInstance.form.patchValue(
-        {approvers: 'rick', reason: 'sample reason'});
+    fixture.componentInstance.form.patchValue({
+      approvers: 'rick',
+      reason: 'sample reason',
+    });
 
-    fixture.debugElement.query(By.css('form'))
-        .triggerEventHandler('submit', null);
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.approvalParams.emit)
-        .toHaveBeenCalledWith(
-            jasmine.objectContaining({cc: ['foo@example.org']}));
+    expect(fixture.componentInstance.approvalParams.emit).toHaveBeenCalledWith(
+      jasmine.objectContaining({cc: ['foo@example.org']}),
+    );
   });
 
   it('does not use optional cc if checkbox is unchecked', () => {
     const fixture = createComponent();
 
-    configGlobalStore.mockedObservables.approvalConfig$.next(
-        {optionalCcEmail: 'foo@example.org'});
+    configGlobalStore.mockedObservables.approvalConfig$.next({
+      optionalCcEmail: 'foo@example.org',
+    });
     fixture.detectChanges();
 
-    fixture.componentInstance.form.patchValue(
-        {approvers: 'rick', reason: 'sample reason', ccEnabled: false});
+    fixture.componentInstance.form.patchValue({
+      approvers: 'rick',
+      reason: 'sample reason',
+      ccEnabled: false,
+    });
 
-    fixture.debugElement.query(By.css('form'))
-        .triggerEventHandler('submit', null);
+    fixture.debugElement
+      .query(By.css('form'))
+      .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.approvalParams.emit)
-        .toHaveBeenCalledWith(jasmine.objectContaining({cc: []}));
+    expect(fixture.componentInstance.approvalParams.emit).toHaveBeenCalledWith(
+      jasmine.objectContaining({cc: []}),
+    );
   });
 
   it('shows pre-existing approval', () => {
@@ -206,8 +327,9 @@ describe('ApprovalCard Component', () => {
     const fixture = createComponent(latestApproval, urlTree);
     fixture.detectChanges();
 
-    const directiveEl =
-        fixture.debugElement.query(By.directive(CdkCopyToClipboard));
+    const directiveEl = fixture.debugElement.query(
+      By.directive(CdkCopyToClipboard),
+    );
     expect(directiveEl).not.toBeNull();
 
     const expected = /^https?:\/\/.+\/some\/url$/;
@@ -220,13 +342,16 @@ describe('ApprovalCard Component', () => {
     fixture.detectChanges();
 
     expect(approvalCardLocalStore.suggestApprovers).toHaveBeenCalledWith('');
-    const approversInput =
-        fixture.debugElement.query(By.css('mat-chip-grid input'));
+    const approversInput = fixture.debugElement.query(
+      By.css('mat-chip-grid input'),
+    );
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    approvalCardLocalStore.mockedObservables.approverSuggestions$.next(
-        ['bar', 'baz']);
+    approvalCardLocalStore.mockedObservables.approverSuggestions$.next([
+      'bar',
+      'baz',
+    ]);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');
@@ -241,15 +366,18 @@ describe('ApprovalCard Component', () => {
 
     configGlobalStore.mockedObservables.approvalConfig$.next({});
 
-    const approversInput =
-        fixture.debugElement.query(By.css('mat-chip-grid input'));
+    const approversInput = fixture.debugElement.query(
+      By.css('mat-chip-grid input'),
+    );
     fixture.componentInstance.controls.approvers.setValue('ba');
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
     expect(approvalCardLocalStore.suggestApprovers).toHaveBeenCalledWith('ba');
-    approvalCardLocalStore.mockedObservables.approverSuggestions$.next(
-        ['bar', 'baz']);
+    approvalCardLocalStore.mockedObservables.approverSuggestions$.next([
+      'bar',
+      'baz',
+    ]);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');

@@ -10,6 +10,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
+from grr_response_server.models import blobs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -27,7 +29,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
         self.blob_size, "abcde12345")
-    blob_ids = [ref.blob_id for ref in self.blob_refs]
+    blob_ids = [blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
     self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
@@ -94,7 +96,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
         self.blob_size, "abcd")
-    blob_ids = [ref.blob_id for ref in self.blob_refs]
+    blob_ids = [blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
     self.client_id = "C.0000111122223333"
@@ -103,13 +105,14 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
   def testAddsFileWithSingleBlob(self):
     hash_id = file_store.AddFileWithUnknownHash(self.client_path,
                                                 self.blob_refs[:1])
-    self.assertEqual(hash_id.AsBytes(), self.blob_refs[0].blob_id.AsBytes())
+    self.assertEqual(hash_id.AsBytes(), self.blob_refs[0].blob_id)
 
   @mock.patch.object(file_store, "BLOBS_READ_TIMEOUT",
                      rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
   def testRaisesIfOneSingleBlobIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(b""))
+        offset=0, size=0, blob_id=bytes(blobs.BlobID.Of(b""))
+    )
     with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash(self.client_path, [blob_ref])
 
@@ -117,7 +120,8 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
                      rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(b""))
+        offset=0, size=0, blob_id=bytes(blobs.BlobID.Of(b""))
+    )
     with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash(self.client_path,
                                         [self.blob_refs[0], blob_ref])
@@ -165,10 +169,15 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
       p.assert_called_once()
       self.assertLen(p.call_args[POSITIONAL_ARGS], 1)
       self.assertEmpty(p.call_args[KEYWORD_ARGS])
-      self.assertCountEqual(p.call_args[0][0], [
-          r.blob_id for r in itertools.chain(short_blob_refs1, short_blob_refs2,
-                                             long_blob_refs)
-      ])
+      self.assertCountEqual(
+          p.call_args[0][0],
+          [
+              blobs.BlobID(r.blob_id)
+              for r in itertools.chain(
+                  short_blob_refs1, short_blob_refs2, long_blob_refs
+              )
+          ],
+      )
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testAddsFileToExternalFileStore(self, add_file_mock):
@@ -185,10 +194,12 @@ def _BlobRefsFromByteArray(data_array):
   offset = 0
   blob_refs = []
   for data in data_array:
-    blob_id = rdf_objects.BlobID.FromBlobData(data)
+    blob_id = blobs.BlobID.Of(data)
     blob_refs.append(
         rdf_objects.BlobReference(
-            offset=offset, size=len(data), blob_id=blob_id))
+            offset=offset, size=len(data), blob_id=bytes(blob_id)
+        )
+    )
     offset += len(data)
   return blob_refs
 
@@ -216,13 +227,13 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
   def testSimpleMultiplePaths(self):
     foo_blobs = [b"foo", b"norf", b"thud"]
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [ref.blob_id for ref in foo_blob_refs]
+    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
 
     bar_blobs = [b"bar", b"quux", b"blargh"]
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [ref.blob_id for ref in bar_blob_refs]
+    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
@@ -244,11 +255,11 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     bar_blobs = [b"bar", b"norf", b"blag", b"thud"]
 
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [ref.blob_id for ref in foo_blob_refs]
+    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
 
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [ref.blob_id for ref in bar_blob_refs]
+    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
 
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
@@ -275,10 +286,10 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
       components = ("foo", "bar", str(idx))
       paths.append(db.ClientPath.OS(client_id=client_id, components=components))
 
-    blobs = [b"foo", b"bar", b"baz"]
-    blob_refs = _BlobRefsFromByteArray(blobs)
-    blob_ids = [ref.blob_id for ref in blob_refs]
-    data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blobs)))
+    blob_data = [b"foo", b"bar", b"baz"]
+    blob_refs = _BlobRefsFromByteArray(blob_data)
+    blob_ids = [blobs.BlobID(ref.blob_id) for ref in blob_refs]
+    data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
     hash_ids = file_store.AddFilesWithUnknownHashes(
         {path: blob_refs for path in paths})
@@ -295,13 +306,13 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
 
     foo_blobs = list(Blobs(b"foo"))
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [ref.blob_id for ref in foo_blob_refs]
+    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
 
     bar_blobs = list(Blobs(b"bar"))
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [ref.blob_id for ref in bar_blob_refs]
+    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
@@ -329,7 +340,7 @@ class OpenFileTest(test_lib.GRRBaseTest):
 
     blob_size = 10
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abcdef")
-    blob_ids = [ref.blob_id for ref in blob_refs]
+    blob_ids = [blobs.BlobID(ref.blob_id) for ref in blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "def")
@@ -453,9 +464,13 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
   def testRaisesIfSingleFileChunkIsMissing(self):
     _, missing_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "0")
+    missing_blob_refs = list(
+        map(mig_objects.ToProtoBlobReference, missing_blob_refs)
+    )
 
     hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
-        missing_blob_refs[0].blob_id.AsBytes())
+        missing_blob_refs[0].blob_id
+    )
     data_store.REL_DB.WriteHashBlobReferences({hash_id: missing_blob_refs})
 
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))

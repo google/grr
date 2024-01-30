@@ -1,5 +1,14 @@
 import {CommonModule, KeyValue} from '@angular/common';
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
@@ -7,8 +16,19 @@ import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {distinctUntilChanged, map, takeUntil} from 'rxjs/operators';
 
 import {ApiHuntResult} from '../../../../lib/api/api_interfaces';
-import {HUNT_RESULT_COLUMNS, orderApiHuntResultColumns, PAYLOAD_TYPE_TRANSLATION, toHuntResultRow} from '../../../../lib/api_translation/result';
-import {CellComponent, CellData, ColumnDescriptor, HuntResultOrError, PayloadType} from '../../../../lib/models/result';
+import {
+  HUNT_RESULT_COLUMNS,
+  orderApiHuntResultColumns,
+  PAYLOAD_TYPE_TRANSLATION,
+  toHuntResultRow,
+} from '../../../../lib/api_translation/result';
+import {
+  CellComponent,
+  CellData,
+  ColumnDescriptor,
+  HuntResultOrError,
+  PayloadType,
+} from '../../../../lib/models/result';
 import {isNonNull} from '../../../../lib/preconditions';
 import {observeOnDestroy} from '../../../../lib/reactive';
 import {HuntResultsLocalStore} from '../../../../store/hunt_results_local_store';
@@ -64,21 +84,20 @@ const NO_MORE_ITEMS_TO_LOAD_TEXT = 'Nothing more to load';
     TimestampModule,
     UserImageModule,
   ],
-  providers: [
-    HuntResultsLocalStore,
-  ],
+  providers: [HuntResultsLocalStore],
 })
-export class HuntResultsTable<T extends HuntResultOrError> implements
-    OnChanges, OnDestroy {
-  @Input() huntId: string|undefined;
+export class HuntResultsTable<T extends HuntResultOrError>
+  implements OnChanges, OnDestroy
+{
+  @Input() huntId: string | undefined;
   @Input() totalResultsCount = 0;
-  @Input() resultType: PayloadType|undefined;
+  @Input() resultType: PayloadType | undefined;
 
   translateHuntResultFn:
-      ((...args: unknown[]) =>
-           CellData<{[key: string]: ColumnDescriptor}>)|undefined;
+    | ((...args: unknown[]) => CellData<{[key: string]: ColumnDescriptor}>)
+    | undefined;
   translateHuntErrorFn =
-      PAYLOAD_TYPE_TRANSLATION[PayloadType.API_HUNT_ERROR]!.translateFn;
+    PAYLOAD_TYPE_TRANSLATION[PayloadType.API_HUNT_ERROR]!.translateFn;
 
   @Output() readonly selectedHuntResult = new EventEmitter<T>();
 
@@ -92,11 +111,12 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
     // We cover against the case when the loaded results is higher than the
     // "totalResultsCount" given by the parent component. This should never
     // happen but we want to avoid showing "Displaying 20 of 10 results".
-    const totalResults =
-        Math.max(this.totalResultsCount, this.dataSource.data.length);
+    const totalResults = Math.max(
+      this.totalResultsCount,
+      this.dataSource.data.length,
+    );
 
-    return `(displaying ${this.dataSource.data.length} out of ${
-        totalResults} results)`;
+    return `(displaying ${this.dataSource.data.length} out of ${totalResults} results)`;
   }
 
   get showTable(): boolean {
@@ -120,22 +140,26 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
   readonly ngOnDestroy = observeOnDestroy(this);
 
   constructor(
-      private readonly huntResultsLocalStore: HuntResultsLocalStore<T>,
+    private readonly huntResultsLocalStore: HuntResultsLocalStore<T>,
   ) {
     this.huntResultsLocalStore.results$
-        .pipe(
-            distinctUntilChanged(),
-            map(results => results.map((result): ResultTableRow<T> => ({
-                                         resultOrError: result,
-                                         rowData: this.toRowData(result),
-                                       }))),
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe(translatedResults => {
-          this.dataSource.data = translatedResults;
-          this.recalculateItemsToLoad();
-          this.updateLoadMoreButtonText();
-        });
+      .pipe(
+        distinctUntilChanged(),
+        map((results) =>
+          results.map(
+            (result): ResultTableRow<T> => ({
+              resultOrError: result,
+              rowData: this.toRowData(result),
+            }),
+          ),
+        ),
+        takeUntil(this.ngOnDestroy.triggered$),
+      )
+      .subscribe((translatedResults) => {
+        this.dataSource.data = translatedResults;
+        this.recalculateItemsToLoad();
+        this.updateLoadMoreButtonText();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -151,9 +175,11 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
     if (hasHuntIdChanged || hasResultTypeChanged) {
       this.resetTable();
     } else if (
-        hasTotalCountChanged && isNonNull(this.totalResultsCount) &&
-        this.automaticallyLoadUpTo > this.dataSource.data.length &&
-        this.totalResultsCount > this.dataSource.data.length) {
+      hasTotalCountChanged &&
+      isNonNull(this.totalResultsCount) &&
+      this.automaticallyLoadUpTo > this.dataSource.data.length &&
+      this.totalResultsCount > this.dataSource.data.length
+    ) {
       this.recalculateItemsToLoad();
       this.updateLoadMoreButtonText();
       this.loadMoreResults();
@@ -185,8 +211,10 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
 
     // if Result is not an ApiHuntError, then it is an ApiHuntResult
 
-    const translatedResult: ResultTableRow<T>['rowData'] =
-        toHuntResultRow(resultOrError as ApiHuntResult, this.huntId!);
+    const translatedResult: ResultTableRow<T>['rowData'] = toHuntResultRow(
+      resultOrError as ApiHuntResult,
+      this.huntId!,
+    );
 
     if (!this.translateHuntResultFn) return translatedResult;
 
@@ -196,7 +224,7 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
     };
   }
 
-  private setTableColumns(payloadType: PayloadType|undefined): void {
+  private setTableColumns(payloadType: PayloadType | undefined): void {
     const safePayloadType = payloadType || PayloadType.API_HUNT_RESULT;
     const payloadTypeTranslation = PAYLOAD_TYPE_TRANSLATION[safePayloadType];
 
@@ -213,7 +241,7 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
     this.orderedColumnKeys = orderApiHuntResultColumns(columns);
   }
 
-  private setHuntResultTranslationFunction(pt: PayloadType|undefined): void {
+  private setHuntResultTranslationFunction(pt: PayloadType | undefined): void {
     if (isNonNull(pt)) {
       this.translateHuntResultFn = PAYLOAD_TYPE_TRANSLATION[pt]?.translateFn;
 
@@ -227,13 +255,14 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
     const difference = this.totalResultsCount - this.dataSource.data.length;
 
     this.numberOfItemsToLoad =
-        difference > 0 ? Math.min(difference, RESULTS_BATCH_SIZE) : 0;
+      difference > 0 ? Math.min(difference, RESULTS_BATCH_SIZE) : 0;
   }
 
   private updateLoadMoreButtonText(): void {
-    this.loadMoreButtonText = this.numberOfItemsToLoad > 0 ?
-        `Load ${this.numberOfItemsToLoad} more` :
-        NO_MORE_ITEMS_TO_LOAD_TEXT;
+    this.loadMoreButtonText =
+      this.numberOfItemsToLoad > 0
+        ? `Load ${this.numberOfItemsToLoad} more`
+        : NO_MORE_ITEMS_TO_LOAD_TEXT;
   }
 
   private resetTable(): void {

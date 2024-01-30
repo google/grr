@@ -18,6 +18,8 @@ from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.models import blobs as blob_models
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -152,10 +154,11 @@ class BlobStream(object):
     if self._current_ref != found_ref:
       self._current_ref = found_ref
 
-      data = data_store.BLOBS.ReadBlobs([found_ref.blob_id])
-      if data[found_ref.blob_id] is None:
-        raise BlobNotFoundError(found_ref.blob_id)
-      self._current_chunk = data[found_ref.blob_id]
+      blob_id = blob_models.BlobID(found_ref.blob_id)
+      data = data_store.BLOBS.ReadBlobs([blob_id])
+      if data[blob_id] is None:
+        raise BlobNotFoundError(blob_id)
+      self._current_chunk = data[blob_id]
 
     return self._current_chunk, self._current_ref
 
@@ -257,6 +260,7 @@ def AddFilesWithUnknownHashes(
   for client_path, blob_refs in client_path_blob_refs.items():
     if blob_refs:
       for blob_ref in blob_refs:
+        blob_ref = mig_objects.ToProtoBlobReference(blob_ref)
         all_client_path_blob_refs.append((client_path, blob_ref))
     else:
       # Make sure empty files (without blobs) are correctly handled.
@@ -274,12 +278,14 @@ def AddFilesWithUnknownHashes(
 
   for client_path_blob_ref_batch in client_path_blob_ref_batches:
     blob_id_batch = set(
-        blob_ref.blob_id for _, blob_ref in client_path_blob_ref_batch)
+        blob_models.BlobID(blob_ref.blob_id)
+        for _, blob_ref in client_path_blob_ref_batch
+    )
     blobs = data_store.BLOBS.ReadAndWaitForBlobs(
         blob_id_batch, timeout=BLOBS_READ_TIMEOUT)
 
     for client_path, blob_ref in client_path_blob_ref_batch:
-      blob = blobs[blob_ref.blob_id]
+      blob = blobs[blob_models.BlobID(blob_ref.blob_id)]
       if blob is None:
         raise BlobNotFoundError(blob_ref.blob_id)
 
@@ -310,7 +316,13 @@ def AddFilesWithUnknownHashes(
     for client_path in verified_client_path_blob_refs.keys():
       metadatas[client_path_hash_id[client_path]] = FileMetadata(
           client_path=client_path,
-          blob_refs=verified_client_path_blob_refs[client_path])
+          blob_refs=list(
+              map(
+                  mig_objects.ToRDFBlobReference,
+                  verified_client_path_blob_refs[client_path],
+              )
+          ),
+      )
 
     EXTERNAL_FILE_STORE.AddFiles(metadatas)
 
@@ -427,6 +439,7 @@ def OpenFile(
         "File hash was expected to have corresponding "
         "blob references, but they were not found: %r" % hash_id)
 
+  blob_references = list(map(mig_objects.ToRDFBlobReference, blob_references))
   return BlobStream(client_path, blob_references, hash_id)
 
 
@@ -510,7 +523,8 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
 
     cur_size = 0
     for i, ref in enumerate(blob_refs):
-      all_chunks.append((cp, ref.blob_id, i, num_blobs, ref.offset, total_size))
+      blob_id = blob_models.BlobID(ref.blob_id)
+      all_chunks.append((cp, blob_id, i, num_blobs, ref.offset, total_size))
 
       cur_size += ref.size
       if max_size is not None and cur_size >= max_size:

@@ -43,8 +43,10 @@ ERROR_MORE_DATA = 234
 
 
 class FileTime(ctypes.Structure):
-  _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD),
-              ("dwHighDateTime", ctypes.wintypes.DWORD)]
+  _fields_ = [
+      ("dwLowDateTime", ctypes.wintypes.DWORD),
+      ("dwHighDateTime", ctypes.wintypes.DWORD),
+  ]
 
 
 RegCloseKey = advapi32["RegCloseKey"]  # pylint: disable=g-bad-name
@@ -87,16 +89,24 @@ def OpenKey(key, sub_key):
   regopenkeyex = advapi32["RegOpenKeyExW"]
   regopenkeyex.restype = ctypes.c_long
   regopenkeyex.argtypes = [
-      ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong, ctypes.c_ulong,
-      ctypes.POINTER(ctypes.c_void_p)
+      ctypes.c_void_p,
+      ctypes.c_wchar_p,
+      ctypes.c_ulong,
+      ctypes.c_ulong,
+      ctypes.POINTER(ctypes.c_void_p),
   ]
 
   new_key = KeyHandle()
   # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
   rc = regopenkeyex(
-      key.handle, sub_key, 0, KEY_READ,
+      key.handle,
+      sub_key,
+      0,
+      KEY_READ,
       ctypes.cast(
-          ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)))
+          ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)
+      ),
+  )
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -114,26 +124,45 @@ def QueryInfoKey(key):
   regqueryinfokey = advapi32["RegQueryInfoKeyW"]
   regqueryinfokey.restype = ctypes.c_long
   regqueryinfokey.argtypes = [
-      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      ctypes.POINTER(FileTime)
+      ctypes.c_void_p,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      ctypes.POINTER(FileTime),
   ]
 
   null = LPDWORD()
   num_sub_keys = ctypes.wintypes.DWORD()
   num_values = ctypes.wintypes.DWORD()
   ft = FileTime()
-  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null,
-                       ctypes.byref(num_sub_keys), null, null,
-                       ctypes.byref(num_values), null, null, null,
-                       ctypes.byref(ft))
+  rc = regqueryinfokey(
+      key.handle,
+      ctypes.c_wchar_p(),
+      null,
+      null,
+      ctypes.byref(num_sub_keys),
+      null,
+      null,
+      ctypes.byref(num_values),
+      null,
+      null,
+      null,
+      ctypes.byref(ft),
+  )
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
   last_modified = ft.dwLowDateTime | (ft.dwHighDateTime << 32)
   last_modified = last_modified // 10000000 - WIN_UNIX_DIFF_MSECS
 
-  return (num_sub_keys.value, num_values.value, last_modified)
+  return (num_sub_keys.value, num_values.value, int(last_modified))
 
 
 def QueryValueEx(key, value_name):
@@ -141,7 +170,12 @@ def QueryValueEx(key, value_name):
   regqueryvalueex = advapi32["RegQueryValueExW"]
   regqueryvalueex.restype = ctypes.c_long
   regqueryvalueex.argtypes = [
-      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPBYTE, LPDWORD
+      ctypes.c_void_p,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      LPDWORD,
+      LPBYTE,
+      LPDWORD,
   ]
 
   size = 256
@@ -149,9 +183,14 @@ def QueryValueEx(key, value_name):
   while True:
     tmp_size = ctypes.wintypes.DWORD(size)
     buf = ctypes.create_string_buffer(size)
-    rc = regqueryvalueex(key.handle, value_name, LPDWORD(),
-                         ctypes.byref(data_type), ctypes.cast(buf, LPBYTE),
-                         ctypes.byref(tmp_size))
+    rc = regqueryvalueex(
+        key.handle,
+        value_name,
+        LPDWORD(),
+        ctypes.byref(data_type),
+        ctypes.cast(buf, LPBYTE),
+        ctypes.byref(tmp_size),
+    )
     if rc != ERROR_MORE_DATA:
       break
 
@@ -172,21 +211,32 @@ def EnumKey(key, index):
   regenumkeyex = advapi32["RegEnumKeyExW"]
   regenumkeyex.restype = ctypes.c_long
   regenumkeyex.argtypes = [
-      ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.c_wchar_p, LPDWORD,
-      LPDWORD, ctypes.c_wchar_p, LPDWORD,
-      ctypes.POINTER(FileTime)
+      ctypes.c_void_p,
+      ctypes.wintypes.DWORD,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      LPDWORD,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      ctypes.POINTER(FileTime),
   ]
 
   buf = ctypes.create_unicode_buffer(257)
   length = ctypes.wintypes.DWORD(257)
-  rc = regenumkeyex(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
-                    ctypes.byref(length), LPDWORD(), ctypes.c_wchar_p(),
-                    LPDWORD(),
-                    ctypes.POINTER(FileTime)())
+  rc = regenumkeyex(
+      key.handle,
+      index,
+      ctypes.cast(buf, ctypes.c_wchar_p),
+      ctypes.byref(length),
+      LPDWORD(),
+      ctypes.c_wchar_p(),
+      LPDWORD(),
+      ctypes.POINTER(FileTime)(),
+  )
   if rc != 0:
     raise ctypes.WinError(2)
 
-  return ctypes.wstring_at(buf, length.value).rstrip(u"\x00")
+  return ctypes.wstring_at(buf, length.value).rstrip("\x00")
 
 
 def EnumValue(key, index):
@@ -194,26 +244,51 @@ def EnumValue(key, index):
   regenumvalue = advapi32["RegEnumValueW"]
   regenumvalue.restype = ctypes.c_long
   regenumvalue.argtypes = [
-      ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.c_wchar_p, LPDWORD,
-      LPDWORD, LPDWORD, LPBYTE, LPDWORD
+      ctypes.c_void_p,
+      ctypes.wintypes.DWORD,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPBYTE,
+      LPDWORD,
   ]
 
   regqueryinfokey = advapi32["RegQueryInfoKeyW"]
   regqueryinfokey.restype = ctypes.c_long
   regqueryinfokey.argtypes = [
-      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      ctypes.POINTER(FileTime)
+      ctypes.c_void_p,
+      ctypes.c_wchar_p,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      LPDWORD,
+      ctypes.POINTER(FileTime),
   ]
 
   null = ctypes.POINTER(ctypes.wintypes.DWORD)()
   value_size = ctypes.wintypes.DWORD()
   data_size = ctypes.wintypes.DWORD()
 
-  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
-                       null, null, ctypes.byref(value_size),
-                       ctypes.byref(data_size), null,
-                       ctypes.POINTER(FileTime)())
+  rc = regqueryinfokey(
+      key.handle,
+      ctypes.c_wchar_p(),
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      ctypes.byref(value_size),
+      ctypes.byref(data_size),
+      null,
+      ctypes.POINTER(FileTime)(),
+  )
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -228,10 +303,16 @@ def EnumValue(key, index):
     tmp_value_size = ctypes.wintypes.DWORD(value_size.value)
     tmp_data_size = ctypes.wintypes.DWORD(data_size.value)
     data_type = ctypes.wintypes.DWORD()
-    rc = regenumvalue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
-                      ctypes.byref(tmp_value_size), null,
-                      ctypes.byref(data_type), ctypes.cast(data, LPBYTE),
-                      ctypes.byref(tmp_data_size))
+    rc = regenumvalue(
+        key.handle,
+        index,
+        ctypes.cast(value, ctypes.c_wchar_p),
+        ctypes.byref(tmp_value_size),
+        null,
+        ctypes.byref(data_type),
+        ctypes.cast(data, LPBYTE),
+        ctypes.byref(tmp_data_size),
+    )
 
     if rc != ERROR_MORE_DATA:
       break
@@ -241,8 +322,11 @@ def EnumValue(key, index):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (value.value, _Reg2Py(data, tmp_data_size.value,
-                               data_type.value), data_type.value)
+  return (
+      value.value,
+      _Reg2Py(data, tmp_data_size.value, data_type.value),
+      data_type.value,
+  )
 
 
 def _Reg2Py(data, size, data_type):
@@ -254,9 +338,9 @@ def _Reg2Py(data, size, data_type):
     # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/262627d8-3418-4627-9218-4ffe110850b2
     return ctypes.cast(data, ctypes.POINTER(ctypes.c_uint32)).contents.value
   elif data_type == winreg.REG_SZ or data_type == winreg.REG_EXPAND_SZ:
-    return ctypes.wstring_at(data, size // 2).rstrip(u"\x00")
+    return ctypes.wstring_at(data, size // 2).rstrip("\x00")
   elif data_type == winreg.REG_MULTI_SZ:
-    return ctypes.wstring_at(data, size // 2).rstrip(u"\x00").split(u"\x00")
+    return ctypes.wstring_at(data, size // 2).rstrip("\x00").split("\x00")
   else:
     if size == 0:
       return None
@@ -271,24 +355,19 @@ class RegistryFile(vfs_base.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      winreg.REG_NONE:
-          rdf_client_fs.StatEntry.RegistryType.REG_NONE,
-      winreg.REG_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_SZ,
-      winreg.REG_EXPAND_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
-      winreg.REG_BINARY:
-          rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
-      winreg.REG_DWORD:
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
-      winreg.REG_DWORD_LITTLE_ENDIAN:
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN,
-      winreg.REG_DWORD_BIG_ENDIAN:
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN,
-      winreg.REG_LINK:
-          rdf_client_fs.StatEntry.RegistryType.REG_LINK,
-      winreg.REG_MULTI_SZ:
-          rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
+      winreg.REG_NONE: rdf_client_fs.StatEntry.RegistryType.REG_NONE,
+      winreg.REG_SZ: rdf_client_fs.StatEntry.RegistryType.REG_SZ,
+      winreg.REG_EXPAND_SZ: rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
+      winreg.REG_BINARY: rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
+      winreg.REG_DWORD: rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
+      winreg.REG_DWORD_LITTLE_ENDIAN: (
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN
+      ),
+      winreg.REG_DWORD_BIG_ENDIAN: (
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN
+      ),
+      winreg.REG_LINK: rdf_client_fs.StatEntry.RegistryType.REG_LINK,
+      winreg.REG_MULTI_SZ: rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
   def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
@@ -296,7 +375,8 @@ class RegistryFile(vfs_base.VFSHandler):
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
 
     self.value = None
     self.value_type = winreg.REG_NONE
@@ -310,8 +390,9 @@ class RegistryFile(vfs_base.VFSHandler):
     if base_fd is None:
       self.pathspec.Append(pathspec)
     elif base_fd.IsDirectory():
-      self.pathspec.last.path = utils.JoinPath(self.pathspec.last.path,
-                                               pathspec.path)
+      self.pathspec.last.path = utils.JoinPath(
+          self.pathspec.last.path, pathspec.path
+      )
     else:
       raise IOError("Registry handler can not be stacked on another handler.")
 
@@ -320,8 +401,8 @@ class RegistryFile(vfs_base.VFSHandler):
       # The first component MUST be a hive
       self.hive_name = path_components[0]
       self.hive = KeyHandle(getattr(winreg, self.hive_name))
-    except AttributeError:
-      raise IOError("Unknown hive name %s" % self.hive_name)
+    except AttributeError as exc:
+      raise IOError("Unknown hive name %s" % self.hive_name) from exc
     except IndexError:
       # A hive is not specified, we just list all the hives.
       return
@@ -355,8 +436,8 @@ class RegistryFile(vfs_base.VFSHandler):
             self.value = ""
             self.value_type = winreg.REG_NONE
 
-      except OSError:
-        raise IOError("Unable to open key %s" % self.key_name)
+      except OSError as exc:
+        raise IOError("Unable to open key %s" % self.key_name) from exc
 
   def Stat(
       self,
@@ -368,8 +449,9 @@ class RegistryFile(vfs_base.VFSHandler):
     # entry (it's not going to have a hive defined).
     if self.is_directory and self.hive and not self.last_modified:
       with OpenKey(self.hive, self.local_path) as key:
-        (self.number_of_keys, self.number_of_values,
-         self.last_modified) = QueryInfoKey(key)
+        (self.number_of_keys, self.number_of_values, self.last_modified) = (
+            QueryInfoKey(key)
+        )
     return self._Stat("", self.value, self.value_type, mtime=self.last_modified)
 
   def _Stat(self, name, value, value_type, mtime=None):
@@ -380,8 +462,9 @@ class RegistryFile(vfs_base.VFSHandler):
     # since this is the exact filename casing.
     response_pathspec.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
 
-    response_pathspec.last.path = utils.JoinPath(response_pathspec.last.path,
-                                                 name)
+    response_pathspec.last.path = utils.JoinPath(
+        response_pathspec.last.path, name
+    )
     response.pathspec = response_pathspec
 
     if self.IsDirectory():
@@ -423,8 +506,9 @@ class RegistryFile(vfs_base.VFSHandler):
 
     try:
       with OpenKey(self.hive, self.local_path) as key:
-        (self.number_of_keys, self.number_of_values,
-         self.last_modified) = QueryInfoKey(key)
+        (self.number_of_keys, self.number_of_values, self.last_modified) = (
+            QueryInfoKey(key)
+        )
 
         found_keys = set()
 
@@ -451,7 +535,7 @@ class RegistryFile(vfs_base.VFSHandler):
             pass
 
     except OSError as e:
-      raise IOError("Unable to list key %s: %s" % (self.key_name, e))
+      raise IOError("Unable to list key %s: %s" % (self.key_name, e)) from e
 
   def ListFiles(self, ext_attrs=None):
     """A generator of all keys and values."""
@@ -466,7 +550,8 @@ class RegistryFile(vfs_base.VFSHandler):
           response = rdf_client_fs.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()
           response_pathspec.last.path = utils.JoinPath(
-              response_pathspec.last.path, name)
+              response_pathspec.last.path, name
+          )
           response.pathspec = response_pathspec
 
           yield response
@@ -474,8 +559,9 @@ class RegistryFile(vfs_base.VFSHandler):
 
     try:
       with OpenKey(self.hive, self.local_path) as key:
-        (self.number_of_keys, self.number_of_values,
-         self.last_modified) = QueryInfoKey(key)
+        (self.number_of_keys, self.number_of_values, self.last_modified) = (
+            QueryInfoKey(key)
+        )
 
         # First keys - These will look like directories.
         for i in range(self.number_of_keys):
@@ -512,7 +598,7 @@ class RegistryFile(vfs_base.VFSHandler):
           except OSError:
             pass
     except OSError as e:
-      raise IOError("Unable to list key %s: %s" % (self.key_name, e))
+      raise IOError("Unable to list key %s: %s" % (self.key_name, e)) from e
 
   def IsDirectory(self):
     return self.is_directory

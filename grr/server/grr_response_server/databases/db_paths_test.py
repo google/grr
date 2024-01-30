@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import hashlib
 import os
 
@@ -7,6 +6,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -1568,10 +1568,12 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(path_infos[2].stat_entry.st_size, 2)
 
   def _WriteBlobReferences(self):
-    blob_ref_1 = rdf_objects.BlobReference(
-        offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))
-    blob_ref_2 = rdf_objects.BlobReference(
-        offset=42, size=42, blob_id=rdf_objects.BlobID(b"01234568" * 4))
+    blob_ref_1 = objects_pb2.BlobReference(
+        offset=0, size=42, blob_id=(b"01234567" * 4)
+    )
+    blob_ref_2 = objects_pb2.BlobReference(
+        offset=42, size=42, blob_id=(b"01234568" * 4)
+    )
     hash_id_1 = rdf_objects.SHA256HashID(b"0a1b2c3d" * 4)
     hash_id_2 = rdf_objects.SHA256HashID(b"0a1b2c3e" * 4)
     data = {
@@ -1698,7 +1700,7 @@ class DatabaseTestPathsMixin(object):
     before_hash_id = os.urandom(32)
     after_hash_id = os.urandom(32)
 
-    blob_ref = rdf_objects.BlobReference()
+    blob_ref = objects_pb2.BlobReference()
     blob_ref.blob_id = os.urandom(32)
 
     self.db.WriteHashBlobReferences({

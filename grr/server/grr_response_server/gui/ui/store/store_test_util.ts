@@ -1,19 +1,21 @@
-/** Test helpers to mock Stores. */
+/**
+ * Test helpers to mock Stores.
+ */
 // tslint:disable:no-any
 
 import {Observable, ReplaySubject} from 'rxjs';
 
 /** Type of a mocked Store with Observable helpers. */
 export type MockStore<T> = {
-  [K in keyof T]: T[K] extends Function ? jasmine.Spy&T[K] : T[K];
-}&{
+  [K in keyof T]: T[K] extends Function ? jasmine.Spy & T[K] : T[K];
+} & {
   mockedObservables: {
-    [K in keyof T]: T[K] extends Observable<infer V>? ReplaySubject<V>: never;
-  }
+    [K in keyof T]: T[K] extends Observable<infer V> ? ReplaySubject<V> : never;
+  };
 };
 
 interface Constructor<ClassType> {
-  new(...args: never[]): ClassType;
+  new (...args: never[]): ClassType;
 }
 
 /**
@@ -33,9 +35,11 @@ interface Constructor<ClassType> {
  * mockStore(X, {foo: bar}) to supply `bar` manually.
  */
 export function mockStore<T>(
-    cls: Constructor<T>, initial: Partial<MockStore<T>> = {}): MockStore<T> {
+  cls: Constructor<T>,
+  initial: Partial<MockStore<T>> = {},
+): MockStore<T> {
   const mockedObservables: MockStore<T>['mockedObservables'] =
-      initial.mockedObservables ?? {} as any;
+    initial.mockedObservables ?? ({} as any);
 
   initial.mockedObservables = new Proxy(mockedObservables, {
     get(target, prop, receiver) {
@@ -47,16 +51,14 @@ export function mockStore<T>(
 
       if (prop in initial) {
         throw new Error(
-            `Cannot instantiate MockStore<${cls.name}.mockedObservables.${
-                propName}: The property is already set on MockStore.${
-                propName}. Did you supply it manually via mockStore(${cls}, {${
-                propName}: value})?`);
+          `Cannot instantiate MockStore<${cls.name}.mockedObservables.${propName}: The property is already set on MockStore.${propName}. Did you supply it manually via mockStore(${cls}, {${propName}: value})?`,
+        );
       }
 
       const subject = new ReplaySubject<any>(1);
       target[prop as keyof T] = subject as any;
       return subject;
-    }
+    },
   });
 
   return new Proxy(initial as MockStore<T>, {
@@ -86,9 +88,9 @@ export function mockStore<T>(
         return undefined;
       }
 
-      throw new Error(`MockStore<${cls.name}> does not know how to mock ${
-          propName} on the fly. Provide it manually, like: mockStore(${
-          cls.name}, {${propName}: value})`);
-    }
+      throw new Error(
+        `MockStore<${cls.name}> does not know how to mock ${propName} on the fly. Provide it manually, like: mockStore(${cls.name}, {${propName}: value})`,
+      );
+    },
   });
 }

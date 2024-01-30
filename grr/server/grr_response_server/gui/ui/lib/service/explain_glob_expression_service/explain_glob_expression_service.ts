@@ -19,13 +19,14 @@ export class ExplainGlobExpressionService {
   private readonly input$ = new ReplaySubject<ClientGlobExpression>(1);
 
   readonly explanation$: Observable<readonly GlobComponentExplanation[]> =
-      this.input$.pipe(
-          debounceTime(500),
-          concatMap(
-              ({clientId, globExpression}) =>
-                  this.apiService.explainGlobExpression(
-                      clientId, globExpression, {exampleCount: 2})),
-      );
+    this.input$.pipe(
+      debounceTime(500),
+      concatMap(({clientId, globExpression}) =>
+        this.apiService.explainGlobExpression(clientId, globExpression, {
+          exampleCount: 2,
+        }),
+      ),
+    );
 
   constructor(private readonly apiService: HttpApiService) {}
 

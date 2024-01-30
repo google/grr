@@ -7,6 +7,7 @@ from grr_api_client import errors as grr_api_errors
 from grr_api_client import root as grr_api_root
 from grr_response_server import data_store
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
@@ -15,8 +16,9 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
   """E2E test for root API user management calls."""
 
   def _GetPassword(self, username):
-    user = data_store.REL_DB.ReadGRRUser(username)
-    return user.password if user.HasField("password") else None
+    proto_user = data_store.REL_DB.ReadGRRUser(username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    return rdf_user.password if rdf_user.HasField("password") else None
 
   def testStandardUserIsCorrectlyAdded(self):
     user = self.api.root.CreateGrrUser(username="user_foo")

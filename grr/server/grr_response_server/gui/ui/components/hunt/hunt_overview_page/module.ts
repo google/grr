@@ -1,4 +1,3 @@
-
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
@@ -25,11 +24,10 @@ import {HuntStatusChipModule} from '../hunt_status_chip/module';
 
 import {HuntOverviewPage} from './hunt_overview_page';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
@@ -53,14 +51,8 @@ import {HuntOverviewPage} from './hunt_overview_page';
     TimestampModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    HuntOverviewPage,
-  ],
-  exports: [
-    HuntOverviewPage,
-  ],
+  declarations: [HuntOverviewPage],
+  exports: [HuntOverviewPage],
 })
-export class HuntOverviewPageModule {
-}
+export class HuntOverviewPageModule {}

@@ -25,7 +25,6 @@ from grr_response_server.databases import db as db_module
 from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blob_keys
 from grr_response_server.databases import mysql_blobs
-from grr_response_server.databases import mysql_client_reports
 from grr_response_server.databases import mysql_clients
 from grr_response_server.databases import mysql_cronjobs
 from grr_response_server.databases import mysql_events
@@ -427,7 +426,6 @@ def _SleepWithBackoff(exponent):
 class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
               mysql_blob_keys.MySQLDBBlobKeysMixin,
-              mysql_client_reports.MySQLDBClientReportsMixin,
               mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronJobMixin,
               mysql_events.MySQLDBEventMixin,
@@ -514,7 +512,6 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
             "flow_processing_pool",
             min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
             max_threads=config.CONFIG["Mysql.flow_processing_threads_max"]))
-    self.flow_processing_request_handler_pool.Start()
 
   def _Connect(self):
     return _Connect(**self._connect_args)

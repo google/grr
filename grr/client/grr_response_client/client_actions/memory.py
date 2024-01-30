@@ -86,8 +86,12 @@ def ProcessIterator(pids, process_regex_string, cmdline_regex_string,
 
     try:
       process_name = p.name()
-    except psutil.AccessDenied as error:
-      # Catch AccessDenied errors in case psutil can't get the process name.
+    except (
+        psutil.AccessDenied,
+        psutil.ZombieProcess,
+        psutil.NoSuchProcess,
+    ) as error:
+      # Catch psutil errors that might prevent it from getting a process name.
       logging.error("failed to obtain process name: %s", error)
       process_name = ""
 
@@ -96,7 +100,11 @@ def ProcessIterator(pids, process_regex_string, cmdline_regex_string,
 
     try:
       cmdline = p.cmdline()
-    except psutil.AccessDenied as error:
+    except (
+        psutil.AccessDenied,
+        psutil.ZombieProcess,
+        psutil.NoSuchProcess,
+    ) as error:
       # psutil raises AccessDenied when getting the cmdline for special
       # processes like Registry or System on Windows.
       logging.error("failed to obtain process command line: %s", error)
@@ -551,6 +559,12 @@ class YaraProcessScan(actions.ActionPlugin):
         ProcessIterator(scan_request.pids, scan_request.process_regex,
                         scan_request.cmdline_regex,
                         scan_request.ignore_grr_process, scan_response.errors))
+    if not processes:
+      scan_response.errors.Append(
+          rdf_memory.ProcessMemoryError(error="No matching processes to scan.")
+      )
+      self.SendReply(scan_response)
+      return
 
     if self._UseSandboxing(args):
       self._yara_wrapper: YaraWrapper = BatchedUnprivilegedYaraWrapper(

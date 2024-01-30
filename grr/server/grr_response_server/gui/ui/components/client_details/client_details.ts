@@ -1,4 +1,9 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {MatSelectionList} from '@angular/material/list';
 import {ActivatedRoute} from '@angular/router';
 import {combineLatest} from 'rxjs';
@@ -30,7 +35,7 @@ export class ClientDetails implements OnDestroy {
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
   readonly clientVersions$ =
-      this.clientDetailsGlobalStore.selectedClientVersions$;
+    this.clientDetailsGlobalStore.selectedClientVersions$;
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
@@ -40,48 +45,51 @@ export class ClientDetails implements OnDestroy {
 
   readonly canStartFlow$ = this.clientPageGlobalStore.hasAccess$;
 
-  readonly selectedIndex$ =
-      combineLatest([
-        this.clientVersions$,
-        this.activatedRoute.paramMap,
-      ])
-          .pipe(
-              take(1),
-              map(([versions, paramMap]) => this.findVersionOrShowError(
-                      versions, paramMap.get('sourceFlowId'))),
-              startWith(0),
-          );
+  readonly selectedIndex$ = combineLatest([
+    this.clientVersions$,
+    this.activatedRoute.paramMap,
+  ]).pipe(
+    take(1),
+    map(([versions, paramMap]) =>
+      this.findVersionOrShowError(versions, paramMap.get('sourceFlowId')),
+    ),
+    startWith(0),
+  );
 
   constructor(
-      private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
-      private readonly clientPageGlobalStore: ClientPageGlobalStore,
-      private readonly activatedRoute: ActivatedRoute,
-      private readonly errorHandler: SnackBarErrorHandler,
+    private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
+    private readonly clientPageGlobalStore: ClientPageGlobalStore,
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly errorHandler: SnackBarErrorHandler,
   ) {
     this.activatedRoute.paramMap
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            map(params => params.get('clientId')),
-            filter(isNonNull),
-            )
-        .subscribe(clientId => {
-          this.clientPageGlobalStore.selectClient(clientId);
-          this.clientDetailsGlobalStore.selectClient(clientId);
-        });
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        map((params) => params.get('clientId')),
+        filter(isNonNull),
+      )
+      .subscribe((clientId) => {
+        this.clientPageGlobalStore.selectClient(clientId);
+        this.clientDetailsGlobalStore.selectClient(clientId);
+      });
   }
 
   findVersionOrShowError(
-      versions: readonly ClientVersion[], sourceFlowId?: string|null) {
+    versions: readonly ClientVersion[],
+    sourceFlowId?: string | null,
+  ) {
     if (!sourceFlowId) {
       return 0;
     }
 
-    const version =
-        versions.findIndex(v => v.client.sourceFlowId === sourceFlowId);
+    const version = versions.findIndex(
+      (v) => v.client.sourceFlowId === sourceFlowId,
+    );
 
     if (version === -1) {
       this.errorHandler.handleError(
-          `Did not find client history entry from flow ${sourceFlowId}.`);
+        `Did not find client history entry from flow ${sourceFlowId}.`,
+      );
       return 0;
     }
 
@@ -93,13 +101,15 @@ export class ClientDetails implements OnDestroy {
     this.clientPageGlobalStore.scheduleOrStartFlow({});
   }
 
-  get selectedClient(): Client|undefined {
+  get selectedClient(): Client | undefined {
     return this.timeline?.selectedOptions.selected[0]?.value;
   }
 
   getAccordionButtonState(
-      totalNumElements: number, currentMaxNumElementsShown: number,
-      initialMaxNumElementsShown: number): string {
+    totalNumElements: number,
+    currentMaxNumElementsShown: number,
+    initialMaxNumElementsShown: number,
+  ): string {
     if (totalNumElements > currentMaxNumElementsShown) {
       return 'show-more';
     } else if (totalNumElements <= initialMaxNumElementsShown) {

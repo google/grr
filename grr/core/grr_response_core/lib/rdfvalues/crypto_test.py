@@ -63,19 +63,6 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     sample.signature = self.private_key.Sign(sample.data, use_pss=1)
     sample.Verify(self.public_key)
 
-  def testM2CryptoCompatibility(self):
-    old_driver_signing_public_key = rdf_crypto.RSAPublicKey("""
------BEGIN PUBLIC KEY-----
-MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
-QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
------END PUBLIC KEY-----
-                                                        """)
-    serialized_blob = open(
-        os.path.join(self.base_path, "m2crypto/signed_blob"), "rb").read()
-    blob = rdf_crypto.SignedBlob.FromSerializedBytes(serialized_blob)
-
-    self.assertTrue(blob.Verify(old_driver_signing_public_key))
-
 
 class CryptoTestBase(test_lib.GRRBaseTest):
   """Base class for all crypto tests here."""
@@ -131,8 +118,13 @@ executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     config.CONFIG.Initialize(data="""
 [Client]
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
-    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
-    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzbuwYnKTTleU2F4zu1gI
+    /BolzR74470j6wK7QrQp5b5QkmfevCdX540Ax3mFt6isChrhIXy4LmTvM5SeiCvs
+    6su8ro7ZYqtbZjpoBWorESy5VAnnuiuwiAvI7IOPYbSu8e+mHQa893hLYv9q0kQe
+    1CtlvQsKir8aQ0YC63UWhrcMcMYCjUaRkWo8JUWoCW/GuZjbuFF0ZZsA13cVSOhF
+    g1dxvX4/+FXlnyZQbu2Aex4NU9NGYetl+SP10Uq/c92wZ34ENU3rH8Kw8Tar/dku
+    g9+hgrcgt7JRECXmho+WFrKM1H6z1CNe6uEALMfogNl9Mm2jCgavl1wbV92pIKT1
+    pQIDAQAB
     -----END PUBLIC KEY-----
 """)
     config.CONFIG.context = []
@@ -159,13 +151,31 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     config.CONFIG.Initialize(data="""
 [PrivateKeys]
 executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
-    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
+    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
     -----END RSA PRIVATE KEY-----
 """)
     config.CONFIG.context = []

@@ -3,6 +3,7 @@
 
 import codecs
 import collections
+import contextlib
 import os
 import platform
 import subprocess
@@ -10,14 +11,11 @@ import tempfile
 import types
 
 from grr_response_client import actions
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import context
 from grr_response_server import action_registry
 from grr_response_server import server_stubs
-
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
@@ -29,7 +27,8 @@ class EmptyActionTest(test_lib.GRRBaseTest):
     super().setUp()
     # Reset the global last progress time to prevent order-dependent tests.
     actions.ActionPlugin.last_progress_time = (
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
+    )
 
   def RunAction(self, action_cls, arg=None, grr_worker=None):
     if arg is None:
@@ -39,21 +38,25 @@ class EmptyActionTest(test_lib.GRRBaseTest):
     action = self._GetActionInstance(action_cls, grr_worker=grr_worker)
 
     action.status = rdf_flows.GrrStatus(
-        status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+        status=rdf_flows.GrrStatus.ReturnedStatus.OK
+    )
     action.Run(arg)
 
     return self.results
 
-  def ExecuteAction(self,
-                    action_cls,
-                    arg=None,
-                    grr_worker=None,
-                    session_id=None):
+  def ExecuteAction(
+      self,
+      action_cls,
+      arg=None,
+      grr_worker=None,
+      session_id=None,
+  ):
     message = rdf_flows.GrrMessage(
         name=action_cls.__name__,
         payload=arg,
         auth_state="AUTHENTICATED",
-        session_id=session_id)
+        session_id=session_id,
+    )
 
     self.results = []
     action = self._GetActionInstance(action_cls, grr_worker=grr_worker)
@@ -96,7 +99,6 @@ class MockWindowsProcess(object):
   """A mock windows process."""
 
   def __init__(self, name="cmd", pid=10, ppid=1):
-
     self._name = name
     self.pid = pid
     self._ppid = ppid
@@ -130,9 +132,11 @@ class MockWindowsProcess(object):
 
   def cpu_times(self):
     cpu_times = collections.namedtuple(
-        "CPUTimes", ["user", "system", "children_user", "children_system"])
+        "CPUTimes", ["user", "system", "children_user", "children_system"]
+    )
     return cpu_times(
-        user=1.0, system=1.0, children_user=1.0, children_system=1.0)
+        user=1.0, system=1.0, children_user=1.0, children_system=1.0
+    )
 
   def cpu_percent(self):
     return 10.0
@@ -171,7 +175,7 @@ class MockWindowsProcess(object):
     return dic
 
   def oneshot(self):
-    return context.NullContext(None)
+    return contextlib.nullcontext(None)
 
 
 # pylint: enable=g-bad-name
@@ -194,8 +198,10 @@ class WMIWin32NetworkAdapterConfigurationMock(object):
   DHCPServer = "192.168.1.1"
   DNSDomain = "internal.example.com"
   DNSDomainSuffixSearchOrder = [
-      "blah.example.com", "ad.example.com", "internal.example.com",
-      "example.com"
+      "blah.example.com",
+      "ad.example.com",
+      "internal.example.com",
+      "example.com",
   ]
   DNSEnabledForWINSResolution = False
   DNSHostName = "MYHOST-WIN"
@@ -206,9 +212,10 @@ class WMIWin32NetworkAdapterConfigurationMock(object):
   Index = 7
   InterfaceIndex = 11
   IPAddress = [
-      "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
+      "192.168.1.20",
+      "ffff::ffff:aaaa:1111:aaaa",
       "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
-      "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"
+      "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb",
   ]
   IPConnectionMetric = 10
   IPEnabled = True
@@ -224,16 +231,12 @@ class WMIWin32NetworkAdapterConfigurationMock(object):
   WINSEnableLMHostsLookup = True
   WINSScopeID = ""
   NestingTest = {
-      "one": {
-          "two": [3, 4],
-          "broken": UnSerializable(),
-          "three": {}
-      },
+      "one": {"two": [3, 4], "broken": UnSerializable(), "three": {}},
       "four": [],
       "five": "astring",
       "six": [None, None, ""],
       "seven": None,
-      "rdfvalue": rdf_protodict.Dict(a="asdf")
+      "rdfvalue": rdf_protodict.Dict(a="asdf"),
   }
   OpaqueObject = UnSerializable()
 
@@ -264,6 +267,7 @@ class Popen(object):
 
 class Test(server_stubs.ClientActionStub):
   """A test action which can be used in mocks."""
+
   in_rdfvalue = rdf_protodict.DataBlob
   out_rdfvalues = [rdf_protodict.DataBlob]
 
@@ -282,8 +286,8 @@ def import_to_registry(data):
     "bar":"baz"
 
   Args:
-    data: a unicode string of Registry data, following the .REG-format.
-      See https://en.wikipedia.org/wiki/Windows_Registry#.REG_files
+    data: a unicode string of Registry data, following the .REG-format. See
+      https://en.wikipedia.org/wiki/Windows_Registry#.REG_files
 
   Raises:
     RuntimeError: if the function is not called under Windows.

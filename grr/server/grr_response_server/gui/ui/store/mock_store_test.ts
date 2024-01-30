@@ -4,9 +4,7 @@ import {initTestEnvironment} from '../testing';
 
 import {mockStore} from './store_test_util';
 
-
 initTestEnvironment();
-
 
 class Store {
   readonly foo$: Observable<number> = of();

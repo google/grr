@@ -7,6 +7,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import data_store
 from grr_response_server import foreman_rules
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
@@ -58,7 +59,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     # One of the set's rules has os_darwin=True, so the whole set matches
     # with the match any match mode
     self.assertTrue(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_dar)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_dar)
+            )
+        )
+    )
 
   def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(self):
     # Instantiate a rule set that matches if any of its two
@@ -80,7 +86,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     # None of the set's rules has os_windows=True, so the whole set doesn't
     # match
     self.assertFalse(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_win)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_win)
+            )
+        )
+    )
 
   def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(self):
     # Instantiate a rule set that matches if all of its two
@@ -102,7 +113,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     # One of the set's rules has os_darwin=False, so the whole set doesn't
     # match with the match all match mode
     self.assertFalse(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_dar)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_dar)
+            )
+        )
+    )
 
   def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(self):
     # Instantiate a rule set that matches if all of its two
@@ -123,7 +139,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=False, so the whole set matches
     self.assertTrue(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_lin)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
+            )
+        )
+    )
 
   def testEvaluatesNegativeInMatchAnyModeWithNoRules(self):
     # Instantiate an empty rule set that matches if any of its rules matches
@@ -134,7 +155,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # None of the set's rules has os_linux=True, so the set doesn't match
     self.assertFalse(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_lin)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
+            )
+        )
+    )
 
   def testEvaluatesPositiveInMatchAllModeWithNoRules(self):
     # Instantiate an empty rule set that matches if all of its rules match
@@ -145,7 +171,12 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=True, so the set matches
     self.assertTrue(
-        rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_lin)))
+        rs.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_lin)
+            )
+        )
+    )
 
   def testFromDictEmpty(self):
     dct = {
@@ -222,7 +253,12 @@ class ForemanClientRuleTest(rdf_test_base.RDFValueTestMixin,
     client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client matches rule r
     self.assertTrue(
-        r.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_win)))
+        r.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_win)
+            )
+        )
+    )
 
   def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(self):
     r = foreman_rules.ForemanClientRule(
@@ -233,7 +269,12 @@ class ForemanClientRuleTest(rdf_test_base.RDFValueTestMixin,
     client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client doesn't match rule r
     self.assertFalse(
-        r.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_win)))
+        r.Evaluate(
+            mig_objects.ToRDFClientFullInfo(
+                data_store.REL_DB.ReadClientFullInfo(client_id_win)
+            )
+        )
+    )
 
   def testFromDictOs(self):
     dct = {
@@ -332,6 +373,7 @@ class ForemanOsClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Windows")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
     self.assertFalse(r.Evaluate(info))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
@@ -343,6 +385,7 @@ class ForemanOsClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
     self.assertFalse(r0.Evaluate(info))
     self.assertTrue(r1.Evaluate(info))
 
@@ -355,6 +398,7 @@ class ForemanOsClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Darwin")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
     self.assertFalse(r0.Evaluate(info))
     self.assertTrue(r1.Evaluate(info))
 
@@ -374,6 +418,7 @@ class ForemanLabelClientRuleTest(rdf_test_base.RDFValueTestMixin,
     data_store.REL_DB.AddClientLabels(client_id, u"GRR", [u"hello", u"world"])
 
     client_info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    client_info = mig_objects.ToRDFClientFullInfo(client_info)
     return rule.Evaluate(client_info)
 
   def testEvaluatesToFalseForClientWithoutTheLabel(self):
@@ -464,6 +509,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
     now = rdfvalue.RDFDatetime().Now()
     client_id = self.SetupClient(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     for f in foreman_rules.ForemanRegexClientRule.ForemanStringField.enum_dict:
       if f == "UNSET":
@@ -478,6 +524,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
     self.assertTrue(r.Evaluate(info))
 
   def testEvaluatesAttributesSubstringToTrue(self):
@@ -486,6 +533,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     # The system contains the substring inu
     self.assertTrue(r.Evaluate(info))
@@ -496,6 +544,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     # The system doesn't contain foo
     self.assertFalse(r.Evaluate(info))
@@ -503,10 +552,193 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
   def testUnsetFieldRaises(self):
     client_id = self.SetupClient(0, system="Linux")
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     r = foreman_rules.ForemanRegexClientRule(attribute_regex="foo")
     with self.assertRaises(ValueError):
       r.Evaluate(info)
+
+  def testUsernames(self):
+    client_id = self.SetupClient(0)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="USERNAMES", attribute_regex=r"user1"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="USERNAMES", attribute_regex=r"root"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testFqdn(self):
+    client_id = self.SetupClient(0, fqdn="foo.bar.example.com")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="FQDN", attribute_regex=r"foo.*\.example\.com"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="FQDN", attribute_regex=r"localhost"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testHostIps(self):
+    client_id = self.SetupClient(0)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match first address
+    r = foreman_rules.ForemanRegexClientRule(
+        field="HOST_IPS", attribute_regex=r"\b192\.168\.0\.\d+\b"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Match second address
+    r = foreman_rules.ForemanRegexClientRule(
+        field="HOST_IPS", attribute_regex=r"\b2001:abcd::"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="HOST_IPS", attribute_regex=r"10"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testClientName(self):
+    client_id = self.SetupClient(0)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_NAME", attribute_regex=r"Monitor"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_NAME", attribute_regex=r"GRRMonitor"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testClientDescription(self):
+    client_id = self.SetupClient(0, description="GRR Description Text")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_DESCRIPTION", attribute_regex=r"description text"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_DESCRIPTION", attribute_regex=r"GRRDescription"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testSystem(self):
+    client_id = self.SetupClient(0, system="Windows")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="SYSTEM", attribute_regex=r"Win"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="SYSTEM", attribute_regex=r"Linux"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testMacAddresses(self):
+    client_id = self.SetupClient(0)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match first address
+    r = foreman_rules.ForemanRegexClientRule(
+        field="MAC_ADDRESSES", attribute_regex=r"\bAABBCCDDEE\d+\b"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Match second address
+    r = foreman_rules.ForemanRegexClientRule(
+        field="MAC_ADDRESSES", attribute_regex=r"\bBBCCDDEEFF\d+\b"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="MAC_ADDRESSES", attribute_regex=r"\b000000"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testKernelVersion(self):
+    client_id = self.SetupClient(0, kernel="5.15.0-1042-gcp")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="KERNEL_VERSION", attribute_regex=r"^5\..*-gcp$"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="KERNEL_VERSION", attribute_regex=r"^4"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testOsVersion(self):
+    client_id = self.SetupClient(0, os_version="10.0.22621")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="OS_VERSION", attribute_regex=r"^10\..*"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="OS_VERSION", attribute_regex=r"22.04"
+    )
+    self.assertFalse(r.Evaluate(info))
+
+  def testOsRelease(self):
+    client_id = self.SetupClient(0, os_release="Debian")
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="OS_RELEASE", attribute_regex=r"\bDebian\b"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="OS_RELEASE", attribute_regex=r"\bVista\b"
+    )
+    self.assertFalse(r.Evaluate(info))
 
   def testLabels(self):
     client_id = self.SetupClient(0, system="Linux")
@@ -515,6 +747,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
     data_store.REL_DB.AddClientLabels(client_id, u"GRR", [u"hello", u"world"])
 
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     # Match a system label.
     r = foreman_rules.ForemanRegexClientRule(
@@ -531,6 +764,29 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
         field="CLIENT_LABELS", attribute_regex="NonExistentLabel")
     self.assertFalse(r.Evaluate(info))
 
+  def testClientId(self):
+    client_id = self.SetupClient(0)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
+
+    # Match identifier
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_ID", attribute_regex=client_id
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Match slice
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_ID", attribute_regex=r"c\.10.*"
+    )
+    self.assertTrue(r.Evaluate(info))
+
+    # Non-match
+    r = foreman_rules.ForemanRegexClientRule(
+        field="CLIENT_ID", attribute_regex=r"abc"
+    )
+    self.assertFalse(r.Evaluate(info))
+
 
 class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
 
@@ -538,6 +794,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
     now = rdfvalue.RDFDatetime().Now()
     client_id = self.SetupClient(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     int_f = foreman_rules.ForemanIntegerClientRule.ForemanIntegerField
     for f in int_f.enum_dict:
@@ -554,6 +811,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
     now = rdfvalue.RDFDatetime().Now()
     client_id = self.SetupClient(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     r = foreman_rules.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
@@ -567,6 +825,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
     now = rdfvalue.RDFDatetime().Now()
     client_id = self.SetupClient(0, last_boot_time=now)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     before_boot = now - 1
 
@@ -584,6 +843,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.GRRBaseTest):
 
     client_id = self.SetupClient(0)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
 
     with self.assertRaises(ValueError):
       r.Evaluate(info)

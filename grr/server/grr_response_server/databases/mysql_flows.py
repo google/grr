@@ -7,28 +7,35 @@ import time
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Text
+from typing import Type
+from typing import TypeVar
 
 import MySQLdb
 from MySQLdb import cursors
 from MySQLdb.constants import ER as mysql_errors
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+T = TypeVar("T")
 
 
 class MySQLDBFlowMixin(object):
@@ -1163,6 +1170,8 @@ class MySQLDBFlowMixin(object):
 
   def _FlowProcessingRequestHandlerLoop(self, handler):
     """The main loop for the flow processing request queue."""
+    self.flow_processing_request_handler_pool.Start()
+
     while not self.flow_processing_request_handler_stop:
       thread_pool = self.flow_processing_request_handler_pool
       free_threads = thread_pool.max_threads - thread_pool.busy_threads
@@ -1181,6 +1190,8 @@ class MySQLDBFlowMixin(object):
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("_FlowProcessingRequestHandlerLoop raised %s.", e)
         time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
+
+    self.flow_processing_request_handler_pool.Stop()
 
   def RegisterFlowProcessingHandler(self, handler):
     """Registers a handler to receive flow processing messages."""
@@ -1205,7 +1216,12 @@ class MySQLDBFlowMixin(object):
       self.flow_processing_request_handler_thread = None
 
   @mysql_utils.WithTransaction()
-  def _WriteFlowResultsOrErrors(self, table_name, results, cursor=None):
+  def _WriteFlowResultsOrErrors(
+      self,
+      table_name: str,
+      results: Sequence[T],
+      cursor: Optional[cursors.Cursor] = None,
+  ):
     """Writes flow results/errors for a given flow."""
 
     query = (f"INSERT INTO {table_name} "
@@ -1224,8 +1240,8 @@ class MySQLDBFlowMixin(object):
         args.append(0)
       args.append(
           mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()))
-      args.append(r.payload.SerializeToBytes())
-      args.append(r.payload.__class__.__name__)
+      args.append(r.payload.value)
+      args.append(db_utils.TypeURLToRDFTypeName(r.payload.type_url))
       args.append(r.tag)
 
     query += ",".join(templates)
@@ -1236,22 +1252,24 @@ class MySQLDBFlowMixin(object):
       raise db.AtLeastOneUnknownFlowError(
           [(r.client_id, r.flow_id) for r in results], cause=e)
 
-  def WriteFlowResults(self, results):
+  def WriteFlowResults(self, results: Sequence[flows_pb2.FlowResult]) -> None:
     """Writes flow results for a given flow."""
     self._WriteFlowResultsOrErrors("flow_results", results)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def _ReadFlowResultsOrErrors(self,
-                               table_name,
-                               result_cls,
-                               client_id,
-                               flow_id,
-                               offset,
-                               count,
-                               with_tag=None,
-                               with_type=None,
-                               with_substring=None,
-                               cursor=None):
+  def _ReadFlowResultsOrErrors(
+      self,
+      table_name: str,
+      result_cls: Type[T],
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      with_substring: Optional[str] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[T]:
     """Reads flow results/errors of a given flow using given query options."""
     client_id_int = db_utils.ClientIDToInt(client_id)
     flow_id_int = db_utils.FlowIDToInt(flow_id)
@@ -1283,19 +1301,30 @@ class MySQLDBFlowMixin(object):
 
     ret = []
     for serialized_payload, payload_type, ts, tag, hid in cursor.fetchall():
+      # TODO: for separation of concerns reasons,
+      # ReadFlowResults/ReadFlowErrors shouldn't do the payload type validation,
+      # they should be completely agnostic to what payloads get written/read
+      # to/from the database. Keeping this logic here temporarily
+      # to narrow the scope of the RDFProtoStruct->protos migration.
       if payload_type in rdfvalue.RDFValue.classes:
-        payload = rdfvalue.RDFValue.classes[payload_type].FromSerializedBytes(
-            serialized_payload)
+        payload = any_pb2.Any(
+            type_url=db_utils.RDFTypeNameToTypeURL(payload_type),
+            value=serialized_payload,
+        )
       else:
-        payload = rdf_objects.SerializedValueOfUnrecognizedType(
-            type_name=payload_type, value=serialized_payload)
+        unrecognized = objects_pb2.SerializedValueOfUnrecognizedType(
+            type_name=payload_type, value=serialized_payload
+        )
+        payload = any_pb2.Any()
+        payload.Pack(unrecognized)
 
-      timestamp = mysql_utils.TimestampToRDFDatetime(ts)
+      timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(ts)
       result = result_cls(
           client_id=db_utils.IntToClientID(client_id_int),
           flow_id=db_utils.IntToFlowID(flow_id_int),
-          payload=payload,
-          timestamp=timestamp)
+          timestamp=timestamp,
+      )
+      result.payload.CopyFrom(payload)
 
       if hid:
         result.hunt_id = db_utils.IntToHuntID(hid)
@@ -1307,34 +1336,39 @@ class MySQLDBFlowMixin(object):
 
     return ret
 
-  def ReadFlowResults(self,
-                      client_id,
-                      flow_id,
-                      offset,
-                      count,
-                      with_tag=None,
-                      with_type=None,
-                      with_substring=None):
+  def ReadFlowResults(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      with_substring: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowResult]:
     """Reads flow results of a given flow using given query options."""
     return self._ReadFlowResultsOrErrors(
         "flow_results",
-        rdf_flow_objects.FlowResult,
+        flows_pb2.FlowResult,
         client_id,
         flow_id,
         offset,
         count,
         with_tag=with_tag,
         with_type=with_type,
-        with_substring=with_substring)
+        with_substring=with_substring,
+    )
 
   @mysql_utils.WithTransaction(readonly=True)
-  def _CountFlowResultsOrErrors(self,
-                                table_name,
-                                client_id,
-                                flow_id,
-                                with_tag=None,
-                                with_type=None,
-                                cursor=None):
+  def _CountFlowResultsOrErrors(
+      self,
+      table_name: str,
+      client_id: str,
+      flow_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> int:
     """Counts flow results/errors of a given flow using given query options."""
     query = ("SELECT COUNT(*) "
              f"FROM {table_name} "
@@ -1353,7 +1387,13 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
-  def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
+  def CountFlowResults(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> int:
     """Counts flow results of a given flow using given query options."""
     return self._CountFlowResultsOrErrors(
         "flow_results",
@@ -1363,11 +1403,13 @@ class MySQLDBFlowMixin(object):
         with_type=with_type)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def _CountFlowResultsOrErrorsByType(self,
-                                      table_name,
-                                      client_id,
-                                      flow_id,
-                                      cursor=None):
+  def _CountFlowResultsOrErrorsByType(
+      self,
+      table_name: str,
+      client_id: str,
+      flow_id: str,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Mapping[str, int]:
     """Returns counts of flow results/errors grouped by result type."""
     query = (f"SELECT type, COUNT(*) FROM {table_name} "
              f"FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp) "
@@ -1379,12 +1421,14 @@ class MySQLDBFlowMixin(object):
 
     return dict(cursor.fetchall())
 
-  def CountFlowResultsByType(self, client_id, flow_id):
+  def CountFlowResultsByType(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
     """Returns counts of flow results grouped by result type."""
     return self._CountFlowResultsOrErrorsByType("flow_results", client_id,
                                                 flow_id)
 
-  def WriteFlowErrors(self, errors):
+  def WriteFlowErrors(self, errors: Sequence[flows_pb2.FlowError]) -> None:
     """Writes flow errors for a given flow."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -1392,13 +1436,15 @@ class MySQLDBFlowMixin(object):
     # errors and results DB code.
     self._WriteFlowResultsOrErrors("flow_errors", errors)
 
-  def ReadFlowErrors(self,
-                     client_id,
-                     flow_id,
-                     offset,
-                     count,
-                     with_tag=None,
-                     with_type=None):
+  def ReadFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> Sequence[flows_pb2.FlowError]:
     """Reads flow errors of a given flow using given query options."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -1406,15 +1452,22 @@ class MySQLDBFlowMixin(object):
     # errors and results DB code.
     return self._ReadFlowResultsOrErrors(
         "flow_errors",
-        rdf_flow_objects.FlowError,
+        flows_pb2.FlowError,
         client_id,
         flow_id,
         offset,
         count,
         with_tag=with_tag,
-        with_type=with_type)
+        with_type=with_type,
+    )
 
-  def CountFlowErrors(self, client_id, flow_id, with_tag=None, with_type=None):
+  def CountFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+  ) -> int:
     """Counts flow errors of a given flow using given query options."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -1427,7 +1480,9 @@ class MySQLDBFlowMixin(object):
         with_tag=with_tag,
         with_type=with_type)
 
-  def CountFlowErrorsByType(self, client_id, flow_id):
+  def CountFlowErrorsByType(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
     """Returns counts of flow errors grouped by error type."""
     # Errors are similar to results, as they represent a somewhat related
     # concept. Error is a kind of a negative result. Given the structural
@@ -1439,7 +1494,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def WriteFlowLogEntry(
       self,
-      entry: rdf_flow_objects.FlowLogEntry,
+      entry: flows_pb2.FlowLogEntry,
       cursor: Optional[cursors.Cursor] = None,
   ) -> None:
     """Writes a single flow log entry to the database."""
@@ -1465,13 +1520,15 @@ class MySQLDBFlowMixin(object):
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadFlowLogEntries(self,
-                         client_id,
-                         flow_id,
-                         offset,
-                         count,
-                         with_substring=None,
-                         cursor=None):
+  def ReadFlowLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_substring: Optional[str] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.FlowLogEntry]:
     """Reads flow log entries of a given flow using given query options."""
 
     query = ("SELECT message, UNIX_TIMESTAMP(timestamp) "
@@ -1493,14 +1550,23 @@ class MySQLDBFlowMixin(object):
     ret = []
     for message, timestamp in cursor.fetchall():
       ret.append(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               message=message,
-              timestamp=mysql_utils.TimestampToRDFDatetime(timestamp)))
+              timestamp=mysql_utils.TimestampToMicrosecondsSinceEpoch(
+                  timestamp
+              ),
+          )
+      )
 
     return ret
 
   @mysql_utils.WithTransaction(readonly=True)
-  def CountFlowLogEntries(self, client_id, flow_id, cursor=None):
+  def CountFlowLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> int:
     """Returns number of flow log entries of a given flow."""
 
     query = ("SELECT COUNT(*) "
@@ -1515,7 +1581,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def WriteFlowOutputPluginLogEntry(
       self,
-      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+      entry: flows_pb2.FlowOutputPluginLogEntry,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a single output plugin log entry to the database."""
@@ -1550,14 +1616,18 @@ class MySQLDBFlowMixin(object):
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadFlowOutputPluginLogEntries(self,
-                                     client_id,
-                                     flow_id,
-                                     output_plugin_id,
-                                     offset,
-                                     count,
-                                     with_type=None,
-                                     cursor=None):
+  def ReadFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      output_plugin_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
     """Reads flow output plugin log entries."""
     query = ("SELECT log_entry_type, message, UNIX_TIMESTAMP(timestamp) "
              "FROM flow_output_plugin_log_entries "
@@ -1582,13 +1652,17 @@ class MySQLDBFlowMixin(object):
     ret = []
     for log_entry_type, message, timestamp in cursor.fetchall():
       ret.append(
-          rdf_flow_objects.FlowOutputPluginLogEntry(
+          flows_pb2.FlowOutputPluginLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               output_plugin_id=output_plugin_id,
               log_entry_type=log_entry_type,
               message=message,
-              timestamp=mysql_utils.TimestampToRDFDatetime(timestamp)))
+              timestamp=mysql_utils.TimestampToMicrosecondsSinceEpoch(
+                  timestamp
+              ),
+          )
+      )
 
     return ret
 
@@ -1617,9 +1691,11 @@ class MySQLDBFlowMixin(object):
     return cursor.fetchone()[0]
 
   @mysql_utils.WithTransaction()
-  def WriteScheduledFlow(self,
-                         scheduled_flow: rdf_flow_objects.ScheduledFlow,
-                         cursor=None) -> None:
+  def WriteScheduledFlow(
+      self,
+      scheduled_flow: flows_pb2.ScheduledFlow,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """See base class."""
     sf = scheduled_flow
 
@@ -1628,9 +1704,11 @@ class MySQLDBFlowMixin(object):
         "creator_username_hash": mysql_utils.Hash(sf.creator),
         "scheduled_flow_id": db_utils.FlowIDToInt(sf.scheduled_flow_id),
         "flow_name": sf.flow_name,
-        "flow_args": sf.flow_args.SerializeToBytes(),
-        "runner_args": sf.runner_args.SerializeToBytes(),
-        "create_time": mysql_utils.RDFDatetimeToTimestamp(sf.create_time),
+        "flow_args": sf.flow_args.SerializeToString(),
+        "runner_args": sf.runner_args.SerializeToString(),
+        "create_time": mysql_utils.RDFDatetimeToTimestamp(
+            rdfvalue.RDFDatetime(sf.create_time)
+        ),
         "error": sf.error,
     }
 
@@ -1653,11 +1731,13 @@ class MySQLDBFlowMixin(object):
       raise
 
   @mysql_utils.WithTransaction()
-  def DeleteScheduledFlow(self,
-                          client_id: str,
-                          creator: str,
-                          scheduled_flow_id: str,
-                          cursor=None) -> None:
+  def DeleteScheduledFlow(
+      self,
+      client_id: str,
+      creator: str,
+      scheduled_flow_id: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """See base class."""
 
     cursor.execute(
@@ -1685,7 +1765,8 @@ class MySQLDBFlowMixin(object):
       self,
       client_id: str,
       creator: str,
-      cursor=None) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.ScheduledFlow]:
     """See base class."""
 
     query = """
@@ -1712,18 +1793,16 @@ class MySQLDBFlowMixin(object):
     results = []
 
     for row in cursor.fetchall():
-      flow_class = registry.FlowRegistry.FlowClassByName(row[3])
-      flow_args = flow_class.args_type.FromSerializedBytes(row[4])
-      runner_args = rdf_flow_runner.FlowRunnerArgs.FromSerializedBytes(row[5])
+      flow = flows_pb2.ScheduledFlow()
+      flow.client_id = db_utils.IntToClientID(row[0])
+      flow.creator = row[1]
+      flow.scheduled_flow_id = db_utils.IntToFlowID(row[2])
+      flow.flow_name = row[3]
+      flow.flow_args.ParseFromString(row[4])
+      flow.runner_args.ParseFromString(row[5])
+      flow.create_time = int(mysql_utils.TimestampToRDFDatetime(row[6]))
+      flow.error = row[7]
 
-      results.append(
-          rdf_flow_objects.ScheduledFlow(
-              client_id=db_utils.IntToClientID(row[0]),
-              creator=row[1],
-              scheduled_flow_id=db_utils.IntToFlowID(row[2]),
-              flow_name=row[3],
-              flow_args=flow_args,
-              runner_args=runner_args,
-              create_time=mysql_utils.TimestampToRDFDatetime(row[6]),
-              error=row[7]))
+      results.append(flow)
+
     return results

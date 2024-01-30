@@ -36,38 +36,100 @@ def _GetEnvironOrSkip(key):
 
 
 class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
+  _conn: mysql.MysqlDB = None
+  _warning_filters = None
 
   @classmethod
-  def _CreateDatabase(cls):
+  def _Connect(cls):
 
     user = _GetEnvironOrSkip("MYSQL_TEST_USER")
     host = _GetEnvironOrSkip("MYSQL_TEST_HOST")
     port = _GetEnvironOrSkip("MYSQL_TEST_PORT")
     password = _GetEnvironOrSkip("MYSQL_TEST_PASS")
     # Use dash character in database name to break queries that do not quote it.
-    database = "test-{}".format(str(uuid.uuid4())[-10])
+    database = "grr-test-{}".format(str(uuid.uuid4())[-10:])
 
     conn = mysql.MysqlDB(
         host=host,
         port=int(port),
         user=user,
         password=password,
-        database=database)
+        database=database,
+    )
     logging.info("Created test database: %s", database)
 
-    def _Drop(conn):
+    return conn
+
+  @classmethod
+  def _DropTestDB(cls):
+
+    def Drop(conn):
       with contextlib.closing(conn.cursor()) as cursor:
-        cursor.execute("DROP DATABASE `{}`".format(database))
+        cursor.execute("SELECT DATABASE()")
+        dbname = cursor.fetchall()[0][0]
+        cursor.execute(f"DROP DATABASE `{dbname}`")
 
-    def Fin():
-      conn._RunInTransaction(_Drop)
-      conn.Close()
+    cls._conn._RunInTransaction(Drop)
 
-    return conn, Fin
-    # pylint: enable=unreachable
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    cls._conn = cls._Connect()
+    # The MySQL DB object sets some warning filters, and relies upon them.
+    # Since filters are reset between tests, we'll keep them here and restore
+    # them before each test run.
+    cls._warning_filters = warnings.filters
+
+  @classmethod
+  def tearDownClass(cls):
+    cls._DropTestDB()
+    cls._conn.Close()
+    super().tearDownClass()
+
+  @classmethod
+  def _EnableNonIndexedQueryLogging(cls, conn):
+    with contextlib.closing(conn.cursor()) as cursor:
+      print(
+          "Generating log file of queries not using an index at %s."
+          % _SLOW_QUERY_LOG.value
+      )
+      mysql._SetGlobalVariable("log_queries_not_using_indexes", True, cursor)
+      mysql._SetSessionVariable("long_query_time", 100, cursor)
+      mysql._SetGlobalVariable(
+          "slow_query_log_file", _SLOW_QUERY_LOG.value, cursor
+      )
+      mysql._SetGlobalVariable("slow_query_log", True, cursor)
+
+  @classmethod
+  def _TruncateTables(cls, conn):
+    with contextlib.closing(conn.cursor()) as cursor:
+      cursor.execute("SELECT DATABASE()")
+      dbname = cursor.fetchall()[0][0]
+      cursor.execute(
+          "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+          "WHERE table_schema = %s",
+          [dbname],
+      )
+      tables = [r[0] for r in cursor.fetchall()]
+      cursor.execute("SET FOREIGN_KEY_CHECKS=0")
+      for table in tables:
+        if table == "_migrations":
+          continue
+        cursor.execute(f"TRUNCATE TABLE `{table}`")
+      cursor.execute("SET FOREIGN_KEY_CHECKS=1")
 
   def CreateDatabase(self):
-    return self.__class__._CreateDatabase()
+    # Note: this is called by an upstream setUp() (i.e. before any individual
+    # test run).
+    # This returns a reusable DB object (stored as a class member). That object
+    # relies on the warning filters it's set up during its construction. Since
+    # pytest resets warning filters between tests, we restore them here.
+    warnings.filters = self.__class__._warning_filters
+
+    def Clean():
+      self.__class__._conn._RunInTransaction(self.__class__._TruncateTables)
+
+    return self._conn, Clean
 
   def CreateBlobStore(self):
     # Optimization: Since BlobStore and Database share the underlying MysqlDB
@@ -213,21 +275,16 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       with contextlib.closing(conn.cursor()) as cursor:
         return mysql._ReadVariable("max_allowed_packet", cursor)
 
+    # Lower packet size for future connections (i.e. set global var).
     self.db.delegate._RunInTransaction(SetMaxAllowedPacket)
 
-    # Initialize a new connection. This should fix the "max_allowed_packet"
-    # setting.
-    db = mysql.MysqlDB(
-        host=self._testdb.hostname(),
-        port=self._testdb.port(),
-        user=self._testdb.username(),
-        password=self._testdb.password(),
-        database=self._testdb.dbname())
-    db.Close()
+    # Any new connection should fix the packet size (i.e. raise it back up).
+    db = self.__class__._Connect()
+    self.addCleanup(lambda db: db.Close(), db)
 
     self.assertEqual(
-        self.db.delegate._RunInTransaction(GetMaxAllowedPacket),
-        str(mysql.MAX_PACKET_SIZE))
+        db._RunInTransaction(GetMaxAllowedPacket), str(mysql.MAX_PACKET_SIZE)
+    )
 
   def testMeaningfulErrorWhenNotEnoughPermissionsToOverrideGlobalVariable(self):
 
@@ -246,12 +303,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
         "_SetGlobalVariable",
         side_effect=MySQLdb.OperationalError("SUPER privileges required")):
       with self.assertRaises(mysql.MaxAllowedPacketSettingTooLowError):
-        mysql.MysqlDB(
-            host=self._testdb.hostname(),
-            port=self._testdb.port(),
-            user=self._testdb.username(),
-            password=self._testdb.password(),
-            database=self._testdb.dbname())
+        self.__class__._Connect()
 
   @mock.patch.object(mysql, "_SleepWithBackoff")
   @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)

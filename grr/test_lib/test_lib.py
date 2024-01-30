@@ -33,6 +33,7 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import fleetspeak_connector
 from grr_response_server import prometheus_stats_collector
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import testing_startup
@@ -161,8 +162,10 @@ class GRRBaseTest(absltest.TestCase):
       install_time=None,
       kernel="4.0.0",
       os_version="buster/sid",
+      os_release=None,
       ping=None,
       system="Linux",
+      description=None,
       users=None,
       memory_size=None,
       add_cert=True,
@@ -179,8 +182,10 @@ class GRRBaseTest(absltest.TestCase):
       install_time: RDFDatetime
       kernel: string
       os_version: string
+      os_release: string
       ping: RDFDatetime
       system: string
+      description: string
       users: list of rdf_client.User objects.
       memory_size: bytes
       add_cert: boolean
@@ -199,8 +204,10 @@ class GRRBaseTest(absltest.TestCase):
         kernel=kernel,
         memory_size=memory_size,
         os_version=os_version,
+        os_release=os_release,
         ping=ping or rdfvalue.RDFDatetime.Now(),
         system=system,
+        description=description,
         users=users,
     )
     return client.client_id
@@ -213,10 +220,11 @@ class GRRBaseTest(absltest.TestCase):
     """Sets up mock clients, one for each numerical index in 'indices'."""
     return [self.SetupClient(i, *args, **kwargs) for i in indices]
 
-  def _TestClientInfo(self, labels=None):
+  def _TestClientInfo(self, labels=None, description=None):
     res = rdf_client.ClientInformation(
         client_name="GRR Monitor",
         client_version=config.CONFIG["Source.version_numeric"],
+        client_description=description,
         build_time="1980-01-01T12:00:00.000000+00:00",
     )
     if labels is None:
@@ -256,8 +264,10 @@ class GRRBaseTest(absltest.TestCase):
       kernel="4.0.0",
       memory_size=None,
       os_version="buster/sid",
+      os_release=None,
       ping=None,
       system="Linux",
+      description=None,
       users=None,
       labels=None,
   ):
@@ -265,7 +275,9 @@ class GRRBaseTest(absltest.TestCase):
     client_id = u"C.1%015x" % client_nr
 
     client = rdf_objects.ClientSnapshot(client_id=client_id)
-    client.startup_info.client_info = self._TestClientInfo(labels=labels)
+    client.startup_info.client_info = self._TestClientInfo(
+        labels=labels, description=description
+    )
     if last_boot_time is not None:
       client.startup_info.boot_time = last_boot_time
 
@@ -277,6 +289,7 @@ class GRRBaseTest(absltest.TestCase):
     ]
 
     client.os_version = os_version
+    client.os_release = os_release
     client.arch = arch
     client.kernel = kernel
 
@@ -299,7 +312,9 @@ class GRRBaseTest(absltest.TestCase):
     data_store.REL_DB.WriteClientMetadata(
         client_id, last_ping=ping, certificate=cert
     )
-    data_store.REL_DB.WriteClientSnapshot(client)
+
+    proto_client = mig_objects.ToProtoClientSnapshot(client)
+    data_store.REL_DB.WriteClientSnapshot(proto_client)
 
     client_index.ClientIndex().AddClient(client)
     if labels is not None:

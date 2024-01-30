@@ -3,7 +3,10 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {PathSpecPathType} from '../../../lib/api/api_interfaces';
 import {FileDetailsLocalStore} from '../../../store/file_details_local_store';
-import {FileDetailsLocalStoreMock, mockFileDetailsLocalStore} from '../../../store/file_details_local_store_test_util';
+import {
+  FileDetailsLocalStoreMock,
+  mockFileDetailsLocalStore,
+} from '../../../store/file_details_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {StatView} from './stat_view';
@@ -16,18 +19,15 @@ describe('StatView Component', () => {
 
   beforeEach(waitForAsync(() => {
     fileDetailsLocalStore = mockFileDetailsLocalStore();
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            StatViewModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FileDetailsLocalStore, {useFactory: () => fileDetailsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, StatViewModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FileDetailsLocalStore, {
+        useFactory: () => fileDetailsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('shows loaded content', () => {
@@ -47,17 +47,20 @@ describe('StatView Component', () => {
         pathspec: {
           path: '/examplefile',
           pathtype: PathSpecPathType.OS,
-          segments: [{
-            path: '/examplefile',
-            pathtype: PathSpecPathType.OS,
-          }],
-        }
+          segments: [
+            {
+              path: '/examplefile',
+              pathtype: PathSpecPathType.OS,
+            },
+          ],
+        },
       },
     });
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('/examplefile');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      '/examplefile',
+    );
     expect(fixture.debugElement.nativeElement.textContent).toContain('123abc');
   });
 
@@ -68,14 +71,14 @@ describe('StatView Component', () => {
     fileDetailsLocalStore.mockedObservables.details$.next({
       name: 'examplefile',
       isDirectory: false,
-      path: 'fs/ntfs/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}' +
-          '/examplefile',
+      path:
+        'fs/ntfs/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}' +
+        '/examplefile',
       pathtype: PathSpecPathType.OS,
       lastMetadataCollected: new Date(1),
       stat: {
         pathspec: {
-          path:
-              '/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}/examplefile',
+          path: '/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}/examplefile',
           pathtype: PathSpecPathType.NTFS,
           segments: [
             {
@@ -87,15 +90,15 @@ describe('StatView Component', () => {
               pathtype: PathSpecPathType.NTFS,
             },
           ],
-        }
+        },
       },
     });
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain(
-            '/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}' +
-            'NTFS' +
-            '/examplefile');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      '/\\\\?\\Volume{17eaa822-d734-498d-b0e7-954c51ffae41}' +
+        'NTFS' +
+        '/examplefile',
+    );
   });
 });

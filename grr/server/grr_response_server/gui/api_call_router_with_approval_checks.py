@@ -9,6 +9,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import api_call_router_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import groups
@@ -31,7 +32,8 @@ from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_objects
+
 
 APPROVAL_SEARCHES = metrics.Counter(
     "approval_searches", fields=[("reason_presence", str), ("source", str)])
@@ -77,8 +79,10 @@ class AccessChecker(object):
     except KeyError:
       APPROVAL_SEARCHES.Increment(fields=["-", "reldb"])
 
-    approvals = data_store.REL_DB.ReadApprovalRequests(
-        username, approval_type, subject_id=subject_id, include_expired=False)
+    proto_approvals = data_store.REL_DB.ReadApprovalRequests(
+        username, approval_type, subject_id=subject_id, include_expired=False
+    )
+    approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
 
     errors = []
     for approval in approvals:
@@ -101,10 +105,11 @@ class AccessChecker(object):
 
   def CheckClientAccess(self, context, client_id):
     """Checks whether a given user can access given client."""
+    assert context is not None
     context.approval = self._CheckAccess(
         context.username,
         str(client_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
     )
 
   def CheckHuntAccess(self, context, hunt_id):
@@ -112,7 +117,7 @@ class AccessChecker(object):
     context.approval = self._CheckAccess(
         context.username,
         str(hunt_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
+        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
     )
 
   def CheckCronJobAccess(self, context, cron_job_id):
@@ -120,7 +125,7 @@ class AccessChecker(object):
     context.approval = self._CheckAccess(
         context.username,
         str(cron_job_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
+        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
     )
 
   def CheckIfCanStartClientFlow(self, username, flow_name):
@@ -143,7 +148,8 @@ class AccessChecker(object):
   def CheckIfHasAccessToRestrictedFlows(self, username):
     """Checks whether a given user can access restricted (sensitive) flows."""
     if not self._params.ignore_admin_user_attribute:
-      user_obj = data_store.REL_DB.ReadGRRUser(username)
+      proto_user = data_store.REL_DB.ReadGRRUser(username)
+      user_obj = mig_objects.ToRDFGRRUser(proto_user)
       if user_obj.user_type == user_obj.UserType.USER_TYPE_ADMIN:
         return
 
@@ -281,11 +287,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListClientCrashes(args, context=context)
-
-  def GetClientLoadStats(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
-
-    return self.delegate.GetClientLoadStats(args, context=context)
 
   def KillFleetspeak(
       self,
@@ -1037,17 +1038,3 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can get the OpenAPI description.
     return self.delegate.GetOpenApiDescription(args, context=context)
   # pytype: enable=attribute-error
-
-
-# This class is kept here for backwards compatibility only.
-# TODO(user): Remove EOQ42017
-class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
-    ApiCallRouterWithApprovalChecks):
-  pass
-
-
-# This class is kept here for backwards compatibility only.
-# TODO(user): Remove EOQ42017
-class ApiCallRouterWithApprovalChecksWithRobotAccess(
-    ApiCallRouterWithApprovalChecks):
-  pass

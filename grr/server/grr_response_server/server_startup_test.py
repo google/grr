@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from absl.testing import absltest
 
+from grr_response_core.lib import rdfvalue
 from grr_response_server import cronjobs
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import test_lib
@@ -23,7 +24,10 @@ class CronJobRegistryTest(test_lib.GRRBaseTest):
     # pylint: enable=unused-variable, g-import-not-at-top
 
     for job_cls in cronjobs.CronJobRegistry.CRON_REGISTRY.values():
-      job = rdf_cronjobs.CronJob(cron_job_id="foobar")
+      job = rdf_cronjobs.CronJob(
+          cron_job_id="foobar",
+          created_at=rdfvalue.RDFDatetime.Now(),
+      )
       job_run = rdf_cronjobs.CronJobRun(cron_job_id="foobar", status="RUNNING")
 
       job_cls(job_run, job)  # Should not fail.

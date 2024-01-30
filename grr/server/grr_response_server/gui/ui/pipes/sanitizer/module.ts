@@ -8,5 +8,4 @@ import {SanitizerPipe} from './sanitizer_pipe';
   declarations: [SanitizerPipe],
   exports: [SanitizerPipe],
 })
-export class SanitizerPipeModule {
-}
+export class SanitizerPipeModule {}

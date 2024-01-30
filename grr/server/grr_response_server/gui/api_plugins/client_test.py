@@ -11,6 +11,7 @@ from google.protobuf import timestamp_pb2
 from google.protobuf import text_format
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_proto import objects_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -150,8 +151,11 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     md = data_store.REL_DB.ReadClientMetadata(cid)
-    self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(md.last_foreman_time, data_store.REL_DB.MinTimestamp())
+    self.assertTrue(md.HasField("last_foreman_time"))
+    self.assertEqual(
+        md.last_foreman_time,
+        int(data_store.REL_DB.MinTimestamp()),
+    )
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -384,7 +388,7 @@ class ApiGetClientVersionsTest(api_test_lib.ApiCallHandlerTest):
 
     for time in kernels:
       with test_lib.FakeTime(time):
-        client = rdf_objects.ClientSnapshot(
+        client = objects_pb2.ClientSnapshot(
             client_id=self.client_id, kernel=f"{time}"
         )
         client.knowledge_base.fqdn = self.fqdn
@@ -412,7 +416,7 @@ class ApiGetClientVersionsTest(api_test_lib.ApiCallHandlerTest):
 
     for time in kernels:
       with test_lib.FakeTime(time):
-        client = rdf_objects.ClientSnapshot(
+        client = objects_pb2.ClientSnapshot(
             client_id=self.client_id, kernel=f"{time}"
         )
         client.knowledge_base.fqdn = self.fqdn

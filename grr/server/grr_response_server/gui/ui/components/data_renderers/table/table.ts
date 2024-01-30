@@ -1,10 +1,22 @@
 import {CommonModule, KeyValue} from '@angular/common';
-import {AfterViewInit, ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  TrackByFunction,
+} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {combineLatest, Observable} from 'rxjs';
-import {distinctUntilChanged, filter, map, shareReplay, takeUntil} from 'rxjs/operators';
+import {Observable, combineLatest} from 'rxjs';
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay,
+  takeUntil,
+} from 'rxjs/operators';
 
 import {PAYLOAD_TYPE_TRANSLATION} from '../../../lib/api_translation/result';
 import {PaginatedResultView} from '../../../lib/models/flow';
@@ -52,10 +64,12 @@ class PlaceholderDataSource extends MatTableDataSource<null> {
     FileModeModule,
     HumanReadableSizeModule,
     UserImageModule,
-  ]
+  ],
 })
-export class DataTableView<T> extends PaginatedResultView<T> implements
-    AfterViewInit, OnDestroy {
+export class DataTableView<T>
+  extends PaginatedResultView<T>
+  implements AfterViewInit, OnDestroy
+{
   protected readonly CellComponent = CellComponent;
 
   /**
@@ -65,63 +79,67 @@ export class DataTableView<T> extends PaginatedResultView<T> implements
   protected readonly paginationDataSource = new PlaceholderDataSource();
 
   private readonly translation$ = this.resultSource.query$.pipe(
-      map(({type}) => type),
-      filter(isNonNull),
-      distinctUntilChanged(),
-      map(payloadType => this.getPayloadTypeTranslation(payloadType)),
-      shareReplay(1),
+    map(({type}) => type),
+    filter(isNonNull),
+    distinctUntilChanged(),
+    map((payloadType) => this.getPayloadTypeTranslation(payloadType)),
+    shareReplay(1),
   );
 
-  protected rows$ =
-      combineLatest([this.translation$, this.resultSource.results$])
-          .pipe(
-              map(([translation, results]) =>
-                      results.map(r => translation.translateFn(r.payload))));
+  protected rows$ = combineLatest([
+    this.translation$,
+    this.resultSource.results$,
+  ]).pipe(
+    map(([translation, results]) =>
+      results.map((r) => translation.translateFn(r.payload)),
+    ),
+  );
 
   protected readonly columns$: Observable<{[key: string]: ColumnDescriptor}> =
-      this.translation$.pipe(map(translation => translation.columns));
+    this.translation$.pipe(map((translation) => translation.columns));
 
-  protected readonly displayedColumns$ =
-      this.columns$.pipe(map(columns => Object.keys(columns)));
+  protected readonly displayedColumns$ = this.columns$.pipe(
+    map((columns) => Object.keys(columns)),
+  );
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
   ngAfterViewInit(): void {
-    this.resultSource.totalCount$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe((totalCount) => {
-          if (totalCount !== this.paginationDataSource.data.length) {
-            this.paginationDataSource.fillWithNullElements(totalCount);
-          }
-        });
+    this.resultSource.totalCount$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((totalCount) => {
+        if (totalCount !== this.paginationDataSource.data.length) {
+          this.paginationDataSource.fillWithNullElements(totalCount);
+        }
+      });
 
-    this.paginationDataSource.paginator!.page
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe((page) => {
-          this.resultSource.loadResults({
-            offset: page.pageIndex * page.pageSize,
-            count: page.pageSize,
-          });
+    this.paginationDataSource
+      .paginator!.page.pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((page) => {
+        this.resultSource.loadResults({
+          offset: page.pageIndex * page.pageSize,
+          count: page.pageSize,
         });
+      });
 
     this.resultSource.loadResults({
-      offset: this.paginationDataSource.paginator!.pageIndex *
-          this.paginationDataSource.paginator!.pageSize,
+      offset:
+        this.paginationDataSource.paginator!.pageIndex *
+        this.paginationDataSource.paginator!.pageSize,
       count: this.paginationDataSource.paginator!.pageSize,
     });
   }
 
   protected getPayloadTypeTranslation(type: string) {
     const translation =
-        PAYLOAD_TYPE_TRANSLATION[type as keyof typeof PAYLOAD_TYPE_TRANSLATION];
+      PAYLOAD_TYPE_TRANSLATION[type as keyof typeof PAYLOAD_TYPE_TRANSLATION];
 
     assertNonNull(translation, `PAYLOAD_TYPE translation for "${type}"`);
     return translation;
   }
 
   protected readonly trackByIndex: TrackByFunction<unknown> = (index) => index;
-  protected readonly trackByKey:
-      TrackByFunction<KeyValue<string, ColumnDescriptor>> = (index, pair) =>
-          pair.key;
+  protected readonly trackByKey: TrackByFunction<
+    KeyValue<string, ColumnDescriptor>
+  > = (index, pair) => pair.key;
 }

@@ -392,21 +392,6 @@ class ArtifactDescriptor(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ExpandedSource(rdf_structs.RDFProtoStruct):
-  """An RDFValue representing a source and everything it depends on."""
-  protobuf = artifact_pb2.ExpandedSource
-  rdf_deps = [ArtifactSource, rdfvalue.ByteSize, "ExpandedSource"]
-
-
-class ExpandedArtifact(rdf_structs.RDFProtoStruct):
-  """An RDFValue representing an artifact with its extended sources."""
-  protobuf = artifact_pb2.ExpandedArtifact
-  rdf_deps = [
-      ExpandedSource,
-      ArtifactName,
-  ]
-
-
 class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
   """Arguments for the artifact collector flow."""
 
@@ -434,16 +419,6 @@ class ArtifactCollectorFlowProgress(rdf_structs.RDFProtoStruct):
   rdf_deps = [ArtifactProgress]
 
 
-class ClientArtifactCollectorArgs(rdf_structs.RDFProtoStruct):
-  """An RDFValue representation of an artifact bundle."""
-  protobuf = artifact_pb2.ClientArtifactCollectorArgs
-  rdf_deps = [
-      ExpandedArtifact,
-      rdf_client.KnowledgeBase,
-      rdfvalue.ByteSize,
-  ]
-
-
 class ClientActionResult(rdf_structs.RDFProtoStruct):
   """An RDFValue representing one type of response for a client action."""
   protobuf = artifact_pb2.ClientActionResult
@@ -453,21 +428,3 @@ class ClientActionResult(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.GetPlugin(self.type)
     except KeyError:
       raise ValueError("No class found for type %s." % self.type)
-
-
-class CollectedArtifact(rdf_structs.RDFProtoStruct):
-  """An RDFValue representation of a single collected artifact."""
-  protobuf = artifact_pb2.CollectedArtifact
-  rdf_deps = [
-      ArtifactName,
-      ClientActionResult,
-  ]
-
-
-class ClientArtifactCollectorResult(rdf_structs.RDFProtoStruct):
-  """An RDFValue representation of the result of the collection results."""
-  protobuf = artifact_pb2.ClientArtifactCollectorResult
-  rdf_deps = [
-      CollectedArtifact,
-      rdf_client.KnowledgeBase,
-  ]

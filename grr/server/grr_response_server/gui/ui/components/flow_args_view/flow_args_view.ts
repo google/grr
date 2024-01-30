@@ -15,10 +15,10 @@ export interface FlowArgsViewData {
   styleUrls: ['./flow_args_view.scss'],
 })
 export class FlowArgsView {
-  flowDescriptor: FlowDescriptor|null = null;
+  flowDescriptor: FlowDescriptor | null = null;
 
   @Input()
-  set flowArgsViewData(data: FlowArgsViewData|null) {
+  set flowArgsViewData(data: FlowArgsViewData | null) {
     if (!data) {
       this.flowDescriptor = null;
     } else {

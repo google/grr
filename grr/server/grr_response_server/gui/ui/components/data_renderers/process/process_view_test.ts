@@ -5,21 +5,15 @@ import {initTestEnvironment} from '../../../testing';
 
 import {ProcessView} from './process_view';
 
-
 initTestEnvironment();
 
 describe('ProcessView component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            ProcessView,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, ProcessView],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('displays process results', async () => {

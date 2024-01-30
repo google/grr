@@ -6,6 +6,7 @@ from grr_response_server import data_store
 from grr_response_server import export
 from grr_response_server import export_converters_registry
 from grr_response_server.export_converters import base
+from grr_response_server.rdfvalues import mig_objects
 
 
 class GrrMessageConverter(base.ExportConverter):
@@ -78,7 +79,7 @@ class GrrMessageConverter(base.ExportConverter):
       infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
 
       fetched_metadata = [
-          export.GetMetadata(client_id, info)
+          export.GetMetadata(client_id, mig_objects.ToRDFClientFullInfo(info))
           for client_id, info in infos.items()
       ]
 

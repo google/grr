@@ -1,13 +1,13 @@
 import {Directive, ElementRef, Input} from '@angular/core';
 
-const shouldPassThroughEnter = (target: EventTarget|null) =>
-    // If the focussed element is a button (likely by TAB-ing),  allow ENTER
-    // to activate the active button.
-    (target instanceof HTMLButtonElement) ||
-    (target instanceof HTMLInputElement &&
-         (target.type === 'submit' || target.type === 'button') ||
-     // If the focussed element is a textarea, allow newlines by typing ENTER.
-     (target instanceof HTMLTextAreaElement));
+const shouldPassThroughEnter = (target: EventTarget | null) =>
+  // If the focussed element is a button (likely by TAB-ing),  allow ENTER
+  // to activate the active button.
+  target instanceof HTMLButtonElement ||
+  (target instanceof HTMLInputElement &&
+    (target.type === 'submit' || target.type === 'button')) ||
+  // If the focussed element is a textarea, allow newlines by typing ENTER.
+  target instanceof HTMLTextAreaElement;
 
 const isMetaPressed = (event: KeyboardEvent) => event.metaKey || event.ctrlKey;
 
@@ -41,11 +41,11 @@ export class SubmitOnMetaEnterDirective {
 
   onKeyPress(event: KeyboardEvent) {
     if (!this.appSubmitOnMetaEnter) {
-      return;  // Directive has been disabled.
+      return; // Directive has been disabled.
     }
 
     if (!isEnterPressed(event)) {
-      return;  // Pass through and ignore all non-ENTER presses.
+      return; // Pass through and ignore all non-ENTER presses.
     }
 
     if (shouldPassThroughEnter(event.target)) {
@@ -69,7 +69,7 @@ export class SubmitOnMetaEnterDirective {
 
   onKeyDown(event: KeyboardEvent) {
     if (!this.appSubmitOnMetaEnter) {
-      return;  // Directive has been disabled.
+      return; // Directive has been disabled.
     }
 
     if (isEnterPressed(event) && isMetaPressed(event)) {

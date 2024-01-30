@@ -80,8 +80,11 @@ class CollectLargeFileTest(absltest.TestCase):
 
       results = list(large_file.CollectLargeFile(args))
 
-    self.assertLen(results, 1)
+    self.assertLen(results, 2)
     self.assertEqual(results[0].session_uri, "https://foo.bar/norf")
+
+    self.assertEqual(results[1].session_uri, "https://foo.bar/norf")
+    self.assertGreater(results[1].total_bytes_sent, 0)
 
     encrypted_buf = io.BytesIO(handler.content)
     decrypted_buf = aead.Decrypt(encrypted_buf, key)

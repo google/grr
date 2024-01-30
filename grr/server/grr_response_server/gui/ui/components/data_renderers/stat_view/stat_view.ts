@@ -5,7 +5,6 @@ import {hashName} from '../../../lib/models/flow';
 import {PathSpecPathType} from '../../../lib/models/vfs';
 import {FileDetailsLocalStore} from '../../../store/file_details_local_store';
 
-
 /** Component to show file stat and other metadata. */
 @Component({
   selector: 'app-stat-view',
@@ -24,13 +23,15 @@ export class StatView {
   };
 
   readonly hashes$ = this.details$.pipe(
-      map(details => details?.hash ?? {}),
-      map(hash => Object.entries(hash).map(
-              ([name, hash]) => ({name: hashName(name), hash}))),
-      map(hashes => hashes.length ? hashes : null),
+    map((details) => details?.hash ?? {}),
+    map((hash) =>
+      Object.entries(hash).map(([name, hash]) => ({
+        name: hashName(name),
+        hash,
+      })),
+    ),
+    map((hashes) => (hashes.length ? hashes : null)),
   );
 
-  constructor(
-      private readonly fileDetailsLocalStore: FileDetailsLocalStore,
-  ) {}
+  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {}
 }

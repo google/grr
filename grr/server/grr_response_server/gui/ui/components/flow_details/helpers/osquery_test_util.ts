@@ -10,11 +10,13 @@ export class OsqueryResultsTableDOM {
 
   readonly columnElements = this.rootElement?.queryAll(By.css('th'));
   readonly columnsText?: readonly string[] = this.columnElements?.map(
-      columnElement => columnElement.nativeElement.innerText);
+    (columnElement) => columnElement.nativeElement.innerText,
+  );
 
   readonly cellDivs = this.rootElement?.queryAll(By.css('td'));
-  readonly cellsText?: readonly string[] =
-      this.cellDivs?.map(cellDiv => cellDiv.nativeElement.innerText);
+  readonly cellsText?: readonly string[] = this.cellDivs?.map(
+    (cellDiv) => cellDiv.nativeElement.innerText,
+  );
 
   get rowsLength() {
     return this.rootElement?.queryAll(By.css('tr')).length;
@@ -33,15 +35,15 @@ export class OsqueryResultsTableDOM {
  * @param rows Array of arrays containing values for each row
  */
 export function newOsqueryTable(
-    query: string,
-    columns: readonly string[],
-    rows: ReadonlyArray<readonly string[]>,
-    ): OsqueryTable {
+  query: string,
+  columns: readonly string[],
+  rows: ReadonlyArray<readonly string[]>,
+): OsqueryTable {
   return {
     query,
     header: {
-      columns: columns.map(colName => ({name: colName})),
+      columns: columns.map((colName) => ({name: colName})),
     },
-    rows: rows.map(rowValues => ({values: rowValues})),
+    rows: rows.map((rowValues) => ({values: rowValues})),
   };
 }

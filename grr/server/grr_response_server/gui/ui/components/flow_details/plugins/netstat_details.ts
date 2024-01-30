@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
+// g3-format-changed-lines-during-prettier-version-upgrade
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
 import {Observable} from 'rxjs';
@@ -59,41 +65,46 @@ export class NetstatDetails extends Plugin implements OnDestroy {
   readonly dataSource = new MatTableDataSource<ConnectionRow>();
 
   readonly netstatResults$: Observable<readonly ConnectionRow[]> =
-      this.flowResultsLocalStore.results$.pipe(
-          map(results =>
-                  results?.map((data) => data.payload as NetworkConnection)),
-          map(connections =>
-                  connections?.map(connection => asConnectionRow(connection))),
-      );
+    this.flowResultsLocalStore.results$.pipe(
+      map((results) =>
+        results?.map((data) => data.payload as NetworkConnection),
+      ),
+      map((connections) =>
+        connections?.map((connection) => asConnectionRow(connection)),
+      ),
+    );
 
   override readonly ngOnDestroy = observeOnDestroy(this);
 
-  constructor(
-      private readonly flowResultsLocalStore: FlowResultsLocalStore,
-  ) {
+  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
     super();
     this.flowResultsLocalStore.query(
-        this.flow$.pipe(map(flow => ({flow, withType: 'NetworkConnection'}))));
+      this.flow$.pipe(map((flow) => ({flow, withType: 'NetworkConnection'}))),
+    );
 
-    this.netstatResults$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(results => {
-          this.dataSource.data = results as ConnectionRow[];
-        });
+    this.netstatResults$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((results) => {
+        this.dataSource.data = results as ConnectionRow[];
+      });
   }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
 
-  private readonly flowArgs$ =
-      this.flow$.pipe(map(flow => flow.args as NetstatArgs));
-  readonly title$ = this.flowArgs$.pipe(map(args => {
-    if (args.listeningOnly) {
-      return 'Listening only';
-    } else {
-      return 'All connections';
-    }
-  }));
+  private readonly flowArgs$ = this.flow$.pipe(
+    map((flow) => flow.args as NetstatArgs),
+  );
+  readonly title$ = this.flowArgs$.pipe(
+    map((args) => {
+      if (args.listeningOnly) {
+        return 'Listening only';
+      } else {
+        return 'All connections';
+      }
+    }),
+  );
 
   onShowClicked() {
     this.flowResultsLocalStore.queryMore(INITIAL_RESULT_COUNT);

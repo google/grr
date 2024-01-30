@@ -13,17 +13,15 @@ import {RecentActivity} from './recent_activity';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     OnlineChipModule,
     RecentClientFlowsModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [RecentActivity],
-  exports: [RecentActivity]
+  exports: [RecentActivity],
 })
-export class RecentActivityModule {
-}
+export class RecentActivityModule {}

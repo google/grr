@@ -14,15 +14,16 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
+from grr_response_server import mig_foreman_rules
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import transfer
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -34,9 +35,11 @@ from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntTest(stats_test_lib.StatsTestMixin,
-               notification_test_lib.NotificationTestMixin,
-               test_lib.GRRBaseTest):
+class HuntTest(
+    stats_test_lib.StatsTestMixin,
+    notification_test_lib.NotificationTestMixin,
+    test_lib.GRRBaseTest,
+):
   """Tests for the relational hunts implementation."""
 
   def ClientFileFinderHuntArgs(self):
@@ -64,18 +67,18 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     if client_mock is None:
       client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     return hunt_test_lib.TestHuntHelper(
-        client_mock, client_ids, iteration_limit=iteration_limit)
+        client_mock, client_ids, iteration_limit=iteration_limit
+    )
 
-  def _CreateAndRunHunt(self,
-                        num_clients=5,
-                        client_mock=None,
-                        iteration_limit=None,
-                        **kwargs):
+  def _CreateAndRunHunt(
+      self, num_clients=5, client_mock=None, iteration_limit=None, **kwargs
+  ):
     client_ids = self.SetupClients(num_clients)
 
     hunt_id = self._CreateHunt(**kwargs)
     self._RunHunt(
-        client_ids, client_mock=client_mock, iteration_limit=iteration_limit)
+        client_ids, client_mock=client_mock, iteration_limit=iteration_limit
+    )
 
     return hunt_id, client_ids
 
@@ -87,19 +90,24 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     acl_test_lib.CreateUser(self.test_username)
 
   def testForemanRulesAreCorrectlyPropagatedWhenHuntStarts(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-            regex=foreman_rules.ForemanRegexClientRule(
-                field="CLIENT_NAME", attribute_regex="HUNT")),
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-            integer=foreman_rules.ForemanIntegerClientRule(
-                field="CLIENT_CLOCK",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator
-                .GREATER_THAN,
-                value=1336650631137737))
-    ])
+    client_rule_set = foreman_rules.ForemanClientRuleSet(
+        rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+                regex=foreman_rules.ForemanRegexClientRule(
+                    field="CLIENT_NAME", attribute_regex="HUNT"
+                ),
+            ),
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
+                integer=foreman_rules.ForemanIntegerClientRule(
+                    field="CLIENT_CLOCK",
+                    operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
+                    value=1336650631137737,
+                ),
+            ),
+        ]
+    )
 
     self.assertEmpty(data_store.REL_DB.ReadAllForemanRules())
 
@@ -112,10 +120,17 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     rules = data_store.REL_DB.ReadAllForemanRules()
     self.assertLen(rules, 1)
     rule = rules[0]
-    self.assertEqual(rule.client_rule_set, client_rule_set)
+    self.assertEqual(
+        rule.client_rule_set,
+        mig_foreman_rules.ToProtoForemanClientRuleSet(client_rule_set),
+    )
     self.assertEqual(rule.hunt_id, hunt_obj.hunt_id)
-    self.assertEqual(rule.expiration_time,
-                     hunt_obj.init_start_time + hunt_obj.duration)
+    self.assertEqual(
+        rule.expiration_time,
+        (
+            hunt_obj.init_start_time + hunt_obj.duration
+        ).AsMicrosecondsSinceEpoch(),
+    )
 
     # Running a second time should not change the rules any more.
     with self.assertRaises(hunt.OnlyPausedHuntCanBeStartedError):
@@ -124,19 +139,24 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     self.assertLen(rules, 1)
 
   def testForemanRulesAreCorrectlyRemovedWhenHuntIsStopped(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-            regex=foreman_rules.ForemanRegexClientRule(
-                field="CLIENT_NAME", attribute_regex="HUNT")),
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-            integer=foreman_rules.ForemanIntegerClientRule(
-                field="CLIENT_CLOCK",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator
-                .GREATER_THAN,
-                value=1336650631137737))
-    ])
+    client_rule_set = foreman_rules.ForemanClientRuleSet(
+        rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+                regex=foreman_rules.ForemanRegexClientRule(
+                    field="CLIENT_NAME", attribute_regex="HUNT"
+                ),
+            ),
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
+                integer=foreman_rules.ForemanIntegerClientRule(
+                    field="CLIENT_CLOCK",
+                    operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
+                    value=1336650631137737,
+                ),
+            ),
+        ]
+    )
 
     hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
@@ -174,12 +194,16 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     self.assertEqual(hunt_obj2.hunt_state_comment, "not working")
 
   def testHuntWithInvalidForemanRulesDoesNotStart(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-            regex=foreman_rules.ForemanRegexClientRule(
-                field="UNSET", attribute_regex="HUNT"))
-    ])
+    client_rule_set = foreman_rules.ForemanClientRuleSet(
+        rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+                regex=foreman_rules.ForemanRegexClientRule(
+                    field="UNSET", attribute_regex="HUNT"
+                ),
+            )
+        ]
+    )
 
     hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
@@ -188,11 +212,14 @@ class HuntTest(stats_test_lib.StatsTestMixin,
       hunt.StartHunt(hunt_obj.hunt_id)
 
   def testForemanRulesWorkCorrectlyWithStandardHunt(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.OS,
-            os=foreman_rules.ForemanOsClientRule(os_windows=True))
-    ])
+    client_rule_set = foreman_rules.ForemanClientRuleSet(
+        rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.OS,
+                os=foreman_rules.ForemanOsClientRule(os_windows=True),
+            )
+        ]
+    )
     hunt_obj = rdf_hunt_objects.Hunt(
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -315,7 +342,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     for i, (r, client_id) in enumerate(zip(requests, client_ids[1:])):
       self.assertEqual(r.client_id, client_id)
       time_diff = r.delivery_time - (
-          now + rdfvalue.Duration.From(1, rdfvalue.MINUTES) * (i + 1))
+          now + rdfvalue.Duration.From(1, rdfvalue.MINUTES) * (i + 1)
+      )
       self.assertLess(time_diff, rdfvalue.Duration.From(5, rdfvalue.SECONDS))
 
   def testResultsAreCorrectlyCounted(self):
@@ -329,14 +357,16 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     hunt_args = rdf_hunt_objects.HuntArguments.Standard(
         flow_name=file_finder.FileFinder.__name__,
-        flow_args=rdf_structs.AnyValue.Pack(flow_args))
+        flow_args=rdf_structs.AnyValue.Pack(flow_args),
+    )
 
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=action_mocks.FileFinderClientMock(),
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
-        args=hunt_args)
+        args=hunt_args,
+    )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients_with_results, 5)
@@ -344,13 +374,15 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
   def testStoppingHuntMarksHuntFlowsForTermination(self):
     hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=flow_test_lib.InfiniteFlow.__name__)
+        flow_name=flow_test_lib.InfiniteFlow.__name__
+    )
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         iteration_limit=10,
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
-        args=hunt_args)
+        args=hunt_args,
+    )
 
     hunt.StopHunt(hunt_id)
 
@@ -368,7 +400,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
       self.assertEqual(flow_obj.error_message, "Parent hunt stopped.")
 
       req_resp = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-          client_id, flow_obj.flow_id)
+          client_id, flow_obj.flow_id
+      )
       self.assertFalse(req_resp)
 
   def testResultsAreCorrectlyWrittenAndAreFilterable(self):
@@ -393,7 +426,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     hunt_test_lib.DummyHuntOutputPlugin.num_responses = 0
 
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")
+        plugin_name="DummyHuntOutputPlugin"
+    )
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
@@ -414,7 +448,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="0",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertLen(logs, 5)
     self.assertCountEqual([l.client_id for l in logs], client_ids)
     for l in logs:
@@ -424,7 +459,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
   def testOutputPluginsErrorsAreCorrectlyWrittenAndCanBeRead(self):
     failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin")
+        plugin_name="FailingDummyHuntOutputPlugin"
+    )
 
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
@@ -443,7 +479,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="0",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertLen(errors, 5)
     self.assertCountEqual([e.client_id for e in errors], client_ids)
     for e in errors:
@@ -453,7 +490,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
   def testOutputPluginsMaintainGlobalState(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="StatefulDummyHuntOutputPlugin")
+        plugin_name="StatefulDummyHuntOutputPlugin"
+    )
 
     self.assertListEqual(hunt_test_lib.StatefulDummyHuntOutputPlugin.data, [])
 
@@ -468,12 +506,14 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     # Output plugins should have been called 5 times, adding a number
     # to the "data" list on every call and incrementing it each time.
-    self.assertListEqual(hunt_test_lib.StatefulDummyHuntOutputPlugin.data,
-                         [0, 1, 2, 3, 4])
+    self.assertListEqual(
+        hunt_test_lib.StatefulDummyHuntOutputPlugin.data, [0, 1, 2, 3, 4]
+    )
 
   def testOutputPluginFlushErrorIsLoggedProperly(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingInFlushDummyHuntOutputPlugin")
+        plugin_name="FailingInFlushDummyHuntOutputPlugin"
+    )
 
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
@@ -489,7 +529,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="0",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertEmpty(logs)
 
     errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
@@ -497,20 +538,24 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="0",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertLen(errors, 5)
     self.assertCountEqual([e.client_id for e in errors], client_ids)
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
-      self.assertEqual(e.message,
-                       "Error while processing 1 replies: Flush, oh no!")
+      self.assertEqual(
+          e.message, "Error while processing 1 replies: Flush, oh no!"
+      )
 
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin")
+        plugin_name="FailingDummyHuntOutputPlugin"
+    )
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")
+        plugin_name="DummyHuntOutputPlugin"
+    )
 
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=5,
@@ -526,7 +571,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="0",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertLen(errors, 5)
 
     # Check that non-failing output plugin is still correctly processed.
@@ -535,22 +581,26 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         output_plugin_id="1",
         offset=0,
         count=sys.maxsize,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertLen(logs, 5)
 
   def testUpdatesStatsCounterOnOutputPluginSuccess(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")
+        plugin_name="DummyHuntOutputPlugin"
+    )
 
     # 1 result for each client makes it 5 results.
     with self.assertStatsCounterDelta(
         5,
         flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
-        fields=["DummyHuntOutputPlugin"]):
+        fields=["DummyHuntOutputPlugin"],
+    ):
       with self.assertStatsCounterDelta(
           0,
           flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
-          fields=["DummyHuntOutputPlugin"]):
+          fields=["DummyHuntOutputPlugin"],
+      ):
         self._CreateAndRunHunt(
             num_clients=5,
             client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
@@ -562,17 +612,20 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
   def testUpdatesStatsCounterOnOutputPluginFailure(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin")
+        plugin_name="FailingDummyHuntOutputPlugin"
+    )
 
     # 1 error for each client makes it 5 errors, 0 results.
     with self.assertStatsCounterDelta(
         0,
         flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
-        fields=["FailingDummyHuntOutputPlugin"]):
+        fields=["FailingDummyHuntOutputPlugin"],
+    ):
       with self.assertStatsCounterDelta(
           5,
           flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
-          fields=["FailingDummyHuntOutputPlugin"]):
+          fields=["FailingDummyHuntOutputPlugin"],
+      ):
         self._CreateAndRunHunt(
             num_clients=5,
             client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
@@ -601,14 +654,16 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     self._RunHunt(client_ids[:2], client_mock=client_mock)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.hunt_state,
-                     rdf_hunt_objects.Hunt.HuntState.STARTED)
+    self.assertEqual(
+        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
+    )
 
     self._RunHunt(client_ids[2:], client_mock=client_mock)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.hunt_state,
-                     rdf_hunt_objects.Hunt.HuntState.STOPPED)
+    self.assertEqual(
+        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STOPPED
+    )
 
     self._CheckHuntStoppedNotification("reached the crashes limit")
 
@@ -616,12 +671,14 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     client_ids = self.SetupClients(5)
 
     hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=processes.ListProcesses.__name__)
+        flow_name=processes.ListProcesses.__name__
+    )
     hunt_id = self._CreateHunt(
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
         avg_results_per_client_limit=1,
-        args=hunt_args)
+        args=hunt_args,
+    )
 
     single_process = [rdf_client.Process(pid=1, exe="a.exe")]
 
@@ -635,23 +692,26 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
       self._RunHunt(
           client_ids[:2],
-          client_mock=action_mocks.ListProcessesMock(single_process))
+          client_mock=action_mocks.ListProcessesMock(single_process),
+      )
 
       # Hunt should still be running: we got 1 response from 2 clients. We need
       # at least 3 clients to start calculating the average.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2)
 
-      self._RunHunt([client_ids[2]],
-                    client_mock=action_mocks.ListProcessesMock(single_process *
-                                                               2))
+      self._RunHunt(
+          [client_ids[2]],
+          client_mock=action_mocks.ListProcessesMock(single_process * 2),
+      )
 
       # Hunt should still be running: we got 1 response for first 2 clients and
       # 2 responses for the third. This is over the limit but we need at least 4
       # clients to start applying thresholds.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
 
-      self._RunHunt([client_ids[3]],
-                    client_mock=action_mocks.ListProcessesMock([]))
+      self._RunHunt(
+          [client_ids[3]], client_mock=action_mocks.ListProcessesMock([])
+      )
 
       # Hunt should still be running: we got 1 response for first 2 clients,
       # 2 responses for the third and zero for the 4th. This makes it 1 result
@@ -660,7 +720,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
       self._RunHunt(
           client_ids[4:5],
-          client_mock=action_mocks.ListProcessesMock(single_process * 2))
+          client_mock=action_mocks.ListProcessesMock(single_process * 2),
+      )
 
       # Hunt should be terminated: 5 clients did run and we got 6 results.
       # That's more than the allowed average of 1.
@@ -669,7 +730,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
       CheckState(rdf_hunt_objects.Hunt.HuntState.STOPPED, 6)
 
       self._CheckHuntStoppedNotification(
-          "reached the average results per client")
+          "reached the average results per client"
+      )
 
   def testHuntIsStoppedIfAveragePerClientCpuUsageTooHigh(self):
     client_ids = self.SetupClients(5)
@@ -687,29 +749,38 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
         self.assertEqual(hunt_obj.hunt_state, hunt_state)
         hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
-        self.assertAlmostEqual(hunt_counters.total_cpu_seconds,
-                               user_cpu_time + system_cpu_time)
+        self.assertAlmostEqual(
+            hunt_counters.total_cpu_seconds, user_cpu_time + system_cpu_time
+        )
 
       self._RunHunt(
           client_ids[:2],
           client_mock=hunt_test_lib.SampleHuntMock(
-              user_cpu_time=1, system_cpu_time=2, failrate=-1))
+              user_cpu_time=1, system_cpu_time=2, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: we need at least 3 clients to start
       # calculating the average.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2, 4)
 
-      self._RunHunt([client_ids[2]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        user_cpu_time=2, system_cpu_time=4, failrate=-1))
+      self._RunHunt(
+          [client_ids[2]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              user_cpu_time=2, system_cpu_time=4, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: even though the average is higher than the
       # limit, number of clients is not enough.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4, 8)
 
-      self._RunHunt([client_ids[3]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        user_cpu_time=0, system_cpu_time=0, failrate=-1))
+      self._RunHunt(
+          [client_ids[3]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              user_cpu_time=0, system_cpu_time=0, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: we got 4 clients, which is enough to check
       # average per-client CPU usage. But 4 user cpu + 8 system cpu seconds for
@@ -717,9 +788,12 @@ class HuntTest(stats_test_lib.StatsTestMixin,
       # limit.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4, 8)
 
-      self._RunHunt([client_ids[4]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        user_cpu_time=2, system_cpu_time=4, failrate=-1))
+      self._RunHunt(
+          [client_ids[4]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              user_cpu_time=2, system_cpu_time=4, failrate=-1
+          ),
+      )
 
       # TODO: Re-enable the checks after the test is reworked to
       # run with approximate limits (flow not persisted in the DB every time).
@@ -746,38 +820,50 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
         self.assertEqual(hunt_obj.hunt_state, hunt_state)
         hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
-        self.assertEqual(hunt_counters.total_network_bytes_sent,
-                         network_bytes_sent)
+        self.assertEqual(
+            hunt_counters.total_network_bytes_sent, network_bytes_sent
+        )
 
       self._RunHunt(
           client_ids[:2],
           client_mock=hunt_test_lib.SampleHuntMock(
-              network_bytes_sent=1, failrate=-1))
+              network_bytes_sent=1, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: we need at least 3 clients to start
       # calculating the average.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2)
 
-      self._RunHunt([client_ids[2]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        network_bytes_sent=2, failrate=-1))
+      self._RunHunt(
+          [client_ids[2]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              network_bytes_sent=2, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: even though the average is higher than the
       # limit, number of clients is not enough.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
 
-      self._RunHunt([client_ids[3]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        network_bytes_sent=0, failrate=-1))
+      self._RunHunt(
+          [client_ids[3]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              network_bytes_sent=0, failrate=-1
+          ),
+      )
 
       # Hunt should still be running: we got 4 clients, which is enough to check
       # average per-client network bytes usage, but 4 bytes for 4 clients is
       # within the limit of 1 byte per client on average.
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
 
-      self._RunHunt([client_ids[4]],
-                    client_mock=hunt_test_lib.SampleHuntMock(
-                        network_bytes_sent=2, failrate=-1))
+      self._RunHunt(
+          [client_ids[4]],
+          client_mock=hunt_test_lib.SampleHuntMock(
+              network_bytes_sent=2, failrate=-1
+          ),
+      )
 
       # TODO: Re-enable the checks after the test is reworked to
       # run with approximate limits (flow not persisted in the DB every time).
@@ -802,19 +888,22 @@ class HuntTest(stats_test_lib.StatsTestMixin,
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state, hunt_state)
       hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
-      self.assertEqual(hunt_counters.total_network_bytes_sent,
-                       network_bytes_sent)
+      self.assertEqual(
+          hunt_counters.total_network_bytes_sent, network_bytes_sent
+      )
 
     self._RunHunt(
         client_ids[:2],
-        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=2))
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=2),
+    )
 
     # 4 is lower than the total limit. The hunt should still be running.
     CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
 
     self._RunHunt(
         [client_ids[2]],
-        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1))
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1),
+    )
 
     # 5 is equal to the total limit. Total network bytes sent should
     # go over the limit in order for the hunt to be stopped.
@@ -822,7 +911,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     self._RunHunt(
         [client_ids[3]],
-        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1))
+        client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1),
+    )
 
     # TODO: Re-enable the checks after the test is reworked to
     # run with approximate limits (flow not persisted in the DB every time).
@@ -838,13 +928,16 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     #     "reached the total network bytes sent limit")
 
   def testHuntIsStoppedWhenExpirationTimeIsReached(self):
-    client_ids = self.SetupClients(5)
+    client_ids = self.SetupClients(3)
 
-    fake_time = (
-        rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(30, rdfvalue.DAYS))
+    fake_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        30, rdfvalue.DAYS
+    )
 
     duration = rdfvalue.Duration.From(1, rdfvalue.DAYS)
     expiry_time = fake_time + duration
+
+    foreman_obj = foreman.Foreman()
 
     with test_lib.FakeTime(fake_time):
       hunt_id = self._CreateHunt(
@@ -854,30 +947,34 @@ class HuntTest(stats_test_lib.StatsTestMixin,
           args=self.ClientFileFinderHuntArgs(),
       )
 
-      client_mock = hunt_test_lib.SampleHuntMock(failrate=-1)
-      foreman_obj = foreman.Foreman()
-      for client_id in client_ids:
-        foreman_obj.AssignTasksToClient(client_id)
-
-      hunt_test_lib.TestHuntHelper(client_mock, client_ids[:3])
+      foreman_obj.AssignTasksToClient(client_ids[0])
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.hunt_state,
-                     rdf_hunt_objects.Hunt.HuntState.STARTED)
+    self.assertEqual(
+        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
+    )
 
-    with test_lib.FakeTime(expiry_time -
-                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
-      hunt_test_lib.TestHuntHelper(client_mock, client_ids[3:4])
+    with test_lib.FakeTime(
+        expiry_time - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+    ):
+      foreman_obj.AssignTasksToClient(client_ids[1])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-      self.assertEqual(hunt_obj.hunt_state,
-                       rdf_hunt_objects.Hunt.HuntState.STARTED)
+      self.assertEqual(
+          hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
+      )
+      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
+      self.assertEqual(hunt_counters.num_clients, 2)
 
-    with test_lib.FakeTime(expiry_time +
-                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
-      hunt_test_lib.TestHuntHelper(client_mock, client_ids[4:5])
+    with test_lib.FakeTime(
+        expiry_time + rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+    ):
+      foreman_obj.AssignTasksToClient(client_ids[2])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-      self.assertEqual(hunt_obj.hunt_state,
-                       rdf_hunt_objects.Hunt.HuntState.COMPLETED)
+      self.assertEqual(
+          hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.COMPLETED
+      )
+      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
+      self.assertEqual(hunt_counters.num_clients, 2)
 
   def testPausingTheHuntChangingParametersAndStartingAgainWorksAsExpected(self):
     client_ids = self.SetupClients(2)
@@ -891,8 +988,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     self._RunHunt(client_ids[:2])
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.hunt_state,
-                     rdf_hunt_objects.Hunt.HuntState.PAUSED)
+    self.assertEqual(
+        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.PAUSED
+    )
     # There should be only one client, due to the limit
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients, 1)
@@ -926,8 +1024,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
     self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 16.5)
-    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.stddev,
-                           8.61684396)
+    self.assertAlmostEqual(
+        usage_stats.network_bytes_sent_stats.stddev, 8.61684396
+    )
 
     # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
     # standard deviation and histograms are calculated correctly. Therefore
@@ -939,18 +1038,21 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     for p in usage_stats.worst_performers[1:]:
       self.assertGreater(
           prev.cpu_usage.user_cpu_time + prev.cpu_usage.system_cpu_time,
-          p.cpu_usage.user_cpu_time + p.cpu_usage.system_cpu_time)
+          p.cpu_usage.user_cpu_time + p.cpu_usage.system_cpu_time,
+      )
       prev = p
 
   def testHuntFlowLogsAreCorrectlyWrittenAndCanBeRead(self):
     hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=flow_test_lib.DummyLogFlow.__name__)
+        flow_name=flow_test_lib.DummyLogFlow.__name__
+    )
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=10,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
-        args=hunt_args)
+        args=hunt_args,
+    )
 
     hunt_logs = data_store.REL_DB.ReadHuntLogEntries(hunt_id, 0, sys.maxsize)
     # 4 logs for each flow. Note: DummyLogFlow also calls DummyLogFlowChild,
@@ -1014,7 +1116,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
           rdf_hunt_objects.VariableHuntFlowGroup(
               client_ids=[client_id],
               flow_name=transfer.GetFile.__name__,
-              flow_args=rdf_structs.AnyValue.Pack(flow_args)))
+              flow_args=rdf_structs.AnyValue.Pack(flow_args),
+          )
+      )
 
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
@@ -1054,7 +1158,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
           rdf_hunt_objects.VariableHuntFlowGroup(
               client_ids=pair,
               flow_name=transfer.GetFile.__name__,
-              flow_args=rdf_structs.AnyValue.Pack(flow_args)))
+              flow_args=rdf_structs.AnyValue.Pack(flow_args),
+          )
+      )
 
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     hunt.StartHunt(hunt_obj.hunt_id)
@@ -1062,8 +1168,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
     self.assertEqual(hunt_counters.num_clients, 10)
 
-    all_flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0,
-                                                sys.maxsize)
+    all_flows = data_store.REL_DB.ReadHuntFlows(
+        hunt_obj.hunt_id, 0, sys.maxsize
+    )
     self.assertCountEqual(client_ids, [f.client_id for f in all_flows])
 
     for index, pair in enumerate(collection.Batch(client_ids, 2)):
@@ -1071,15 +1178,18 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         all_flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
         self.assertLen(all_flows, 1)
 
-        self.assertEqual(all_flows[0].flow_class_name,
-                         transfer.GetFile.__name__)
-        self.assertEqual(all_flows[0].args.pathspec.path,
-                         "/tmp/evil_%d.txt" % index)
+        self.assertEqual(
+            all_flows[0].flow_class_name, transfer.GetFile.__name__
+        )
+        self.assertEqual(
+            all_flows[0].args.pathspec.path, "/tmp/evil_%d.txt" % index
+        )
 
   def testHuntIDFromURN(self):
     self.assertEqual(
         hunt.HuntIDFromURN(rdfvalue.RDFURN("aff4:/hunts/H:12345678")),
-        "12345678")
+        "12345678",
+    )
 
   def testHuntURNFromID(self):
     hunt_urn = hunt.HuntURNFromID("12345678")
@@ -1092,8 +1202,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     original = data_store.REL_DB.delegate.WriteFlowObject
 
     def WriteFlowObject(*args, **kwargs):
-      with mock.patch.object(data_store.REL_DB.delegate, "WriteFlowObject",
-                             original):
+      with mock.patch.object(
+          data_store.REL_DB.delegate, "WriteFlowObject", original
+      ):
         try:
           hunt.StartHuntFlowOnClient(client_id, hunt_id)
         except Exception as e:
@@ -1102,8 +1213,9 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     # Patch WriteFlowObject to execute another hunt.StartHuntFlowOnClient() for
     # the same flow and client during the initial StartHuntFlowOnClient().
-    with mock.patch.object(data_store.REL_DB.delegate, "WriteFlowObject",
-                           WriteFlowObject):
+    with mock.patch.object(
+        data_store.REL_DB.delegate, "WriteFlowObject", WriteFlowObject
+    ):
       with self.assertRaises(hunt.flow.CanNotStartFlowWithExistingIdError):
         hunt.StartHuntFlowOnClient(client_id, hunt_id)
 

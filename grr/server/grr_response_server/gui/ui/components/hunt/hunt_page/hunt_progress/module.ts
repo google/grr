@@ -1,4 +1,3 @@
-
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
@@ -14,11 +13,10 @@ import {HuntProgressTable} from '../hunt_progress_table/hunt_progress_table';
 
 import {HuntProgress} from './hunt_progress';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     HelpersModule,
@@ -31,14 +29,8 @@ import {HuntProgress} from './hunt_progress';
     MatTabsModule,
     MatTooltipModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    HuntProgress,
-  ],
-  exports: [
-    HuntProgress,
-  ],
+  declarations: [HuntProgress],
+  exports: [HuntProgress],
 })
-export class HuntProgressModule {
-}
+export class HuntProgressModule {}

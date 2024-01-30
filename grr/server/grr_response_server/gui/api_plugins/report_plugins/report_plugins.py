@@ -2,7 +2,6 @@
 """UI report plugins server-side interface."""
 
 
-from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 
 
@@ -55,20 +54,6 @@ class _Registry(object):
 
 REGISTRY = _Registry()
 
-# Client report plugins.
-
-REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion1ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion7ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion30ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.LastActiveReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown1ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown7ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown14ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown30ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown1ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown7ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown14ReportPlugin)
-REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown30ReportPlugin)
 
 # Server report plugins.
 
@@ -76,7 +61,3 @@ REGISTRY.RegisterPlugin(server_report_plugins.ClientApprovalsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.CronApprovalsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.HuntActionsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.HuntApprovalsReportPlugin)
-REGISTRY.RegisterPlugin(server_report_plugins.MostActiveUsersReportPlugin)
-REGISTRY.RegisterPlugin(server_report_plugins.SystemFlowsReportPlugin)
-REGISTRY.RegisterPlugin(server_report_plugins.UserActivityReportPlugin)
-REGISTRY.RegisterPlugin(server_report_plugins.UserFlowsReportPlugin)

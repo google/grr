@@ -85,7 +85,6 @@ class ObjectTest(absltest.TestCase):
     self.assertIsNone(client.timestamp)
 
     self.assertEqual(client.knowledge_base.fqdn, "test123.examples.com")
-    self.assertEqual(client.Uname(), "Linux-Ubuntu-14.4")
 
   def testClientAddresses(self):
     client = MakeClient()
@@ -106,26 +105,6 @@ class ObjectTest(absltest.TestCase):
     client.timestamp = rdfvalue.RDFDatetime.Now()
     summary = client.GetSummary()
     self.assertEqual(client.timestamp, summary.timestamp)
-
-  def testGetGRRVersionString(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.startup_info.client_info.client_description = "GRR windows amd64"
-    snapshot.startup_info.client_info.client_name = "Foo"
-    snapshot.startup_info.client_info.client_version = 1234
-    self.assertEqual(snapshot.GetGRRVersionString(), "GRR windows amd64 1234")
-
-  def testGetGRRVersionString_NoDescription(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.startup_info.client_info.client_name = "GRR"
-    snapshot.startup_info.client_info.client_version = 1234
-    self.assertEqual(snapshot.GetGRRVersionString(), "GRR 1234")
-
-  def testGetGRRVersionString_NoVersion(self):
-    snapshot = rdf_objects.ClientSnapshot()
-    snapshot.startup_info.client_info.client_description = "GRR windows amd64"
-    snapshot.startup_info.client_info.client_name = "Foo"
-    self.assertEqual(snapshot.GetGRRVersionString(),
-                     "GRR windows amd64 %s" % rdf_objects._UNKNOWN_GRR_VERSION)
 
 
 class ClientSnapshotTest(absltest.TestCase):
@@ -602,53 +581,6 @@ class VfsFileReferenceTest(absltest.TestCase):
   def testConvertingPathVfsPathStringWithUnknownTypeRaises(self):
     with self.assertRaises(ValueError):
       rdf_objects.VfsFileReference().ToPath()
-
-
-class BlobIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
-  rdfvalue_class = rdf_objects.BlobID
-
-  def GenerateSample(self, number=0):
-    return rdf_objects.BlobID.FromBlobData(b"a" * number)
-
-  def testFromBytes(self):
-    foo = rdf_objects.BlobID(b"12345678" * 4)
-    self.assertEqual(foo, b"12345678" * 4)
-
-  def testFromRDFBytes(self):
-    foo = rdf_objects.BlobID(rdfvalue.RDFBytes(b"12345678" * 4))
-    self.assertEqual(foo, b"12345678" * 4)
-
-  def testFromBytesValidatesType(self):
-    with self.assertRaises(TypeError):
-      rdf_objects.BlobID(42)
-
-  def testFromBytesValidatesLength(self):
-    with self.assertRaises(ValueError):
-      rdf_objects.BlobID(b"foobar")
-
-  def testStr(self):
-    string = str(rdf_objects.BlobID.FromBlobData(b"foo"))
-    self.assertRegex(string, r"^BlobID\(\'[0-9a-f]{64}\'\)$")
-
-  def testDefaultsToNull(self):
-    string = str(rdf_objects.BlobID())
-    self.assertEqual(string, "BlobID('{}')".format("0" * 64))
-
-
-class GRRUserTest(absltest.TestCase):
-
-  def testGetEmail(self):
-    u = rdf_objects.GRRUser(username="foo")
-    self.assertEqual("foo@localhost", u.GetEmail())
-
-  def testGetEmail_customEmailDisabled(self):
-    u = rdf_objects.GRRUser(username="foo", email="bar@baz.org")
-    self.assertEqual("foo@localhost", u.GetEmail())
-
-  def testGetEmail_customEmailEnabled(self):
-    u = rdf_objects.GRRUser(username="foo", email="bar@baz.org")
-    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
-      self.assertEqual("bar@baz.org", u.GetEmail())
 
 
 class BlobReferenceTest(absltest.TestCase):

@@ -26,7 +26,7 @@ import {SearchBox} from './search_box';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     FormsModule,
@@ -46,15 +46,8 @@ import {SearchBox} from './search_box';
     SubmitOnMetaEnterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientSearch,
-    SearchBox,
-  ],
-  exports: [
-    SearchBox,
-  ]
+  declarations: [ClientSearch, SearchBox],
+  exports: [SearchBox],
 })
-export class ClientSearchModule {
-}
+export class ClientSearchModule {}

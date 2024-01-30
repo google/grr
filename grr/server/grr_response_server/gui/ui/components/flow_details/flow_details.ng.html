@@ -114,6 +114,9 @@
       <button
         name="createHunt"
         mat-menu-item
+        matTooltip="Can't start a fleet collection from {{ flowTitle$ | async }} Flow"
+        [matTooltipDisabled]="!flowDescriptor?.blockHuntCreation"
+        [disabled]="flowDescriptor?.blockHuntCreation"
         (click)="triggerMenuEvent(flowMenuAction.CREATE_HUNT)"
       >
         <span>Create a fleet collection</span>

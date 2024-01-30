@@ -4,7 +4,7 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import flow_test_lib
@@ -34,13 +34,14 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
           check_flow_errors=False)
 
   def CreateClientWithVolumes(self, available=50):
-    volume = rdf_client_fs.Volume(
-        total_allocation_units=100, actual_available_allocation_units=available)
+    volume = sysinfo_pb2.Volume(
+        total_allocation_units=100, actual_available_allocation_units=available
+    )
 
     client_id = self.SetupClient(0)
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
-    snapshot.volumes = [volume]
+    snapshot.volumes.append(volume)
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
     self.RequestAndGrantClientApproval(client_id)

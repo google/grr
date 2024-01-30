@@ -23,7 +23,7 @@ import {FlowForm} from './flow_form';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
@@ -41,14 +41,8 @@ import {FlowForm} from './flow_form';
     RouterModule,
     SubmitOnMetaEnterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FlowForm,
-  ],
-  exports: [
-    FlowForm,
-  ],
+  declarations: [FlowForm],
+  exports: [FlowForm],
 })
-export class FlowFormModule {
-}
+export class FlowFormModule {}

@@ -2,8 +2,6 @@
 """Client actions requests and responses."""
 
 
-from grr_response_core.lib import rdfvalue
-
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -112,14 +110,6 @@ class WMIRequest(rdf_structs.RDFProtoStruct):
 
 class StatFSRequest(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.StatFSRequest
-
-
-class GetClientStatsRequest(rdf_structs.RDFProtoStruct):
-  """Request for GetClientStats action."""
-  protobuf = jobs_pb2.GetClientStatsRequest
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
 
 
 class ListNetworkConnectionsArgs(rdf_structs.RDFProtoStruct):

@@ -7,9 +7,12 @@ from typing import Any
 from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import metrics
@@ -27,6 +30,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import crowdstrike
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
@@ -110,12 +114,6 @@ class Interrogate(flow_base.FlowBase):
         server_stubs.EnumerateFilesystems,
         next_state=self.EnumerateFilesystems.__name__)
 
-    if config.CONFIG["Interrogate.collect_crowdstrike_agent_id"]:
-      self.CallFlow(
-          crowdstrike.GetCrowdStrikeAgentID.__name__,
-          next_state=self.ProcessGetCrowdStrikeAgentID.__name__,
-      )
-
   @flow_base.UseProto2AnyResponses
   def HandleRRGGetSystemMetadata(
       self,
@@ -145,6 +143,7 @@ class Interrogate(flow_base.FlowBase):
     else:
       self.Log("Unexpected operating system: %s", result.type)
 
+    self.state.client.arch = result.arch
     self.state.client.knowledge_base.fqdn = result.fqdn
     self.state.client.os_version = result.version
     self.state.client.install_time = rdfvalue.RDFDatetime.FromDatetime(
@@ -166,7 +165,8 @@ class Interrogate(flow_base.FlowBase):
     # still preserve information in such cases, we write the snapshot right now.
     # If GRR is running and adds more complete data, this information will be
     # just overridden.
-    data_store.REL_DB.WriteClientSnapshot(self.state.client)
+    proto_snapshot = mig_objects.ToProtoClientSnapshot(self.state.client)
+    data_store.REL_DB.WriteClientSnapshot(proto_snapshot)
 
     # Cloud VM metadata collection is not supported in RRG at the moment but we
     # still need it, so we fall back to the Python agent. This is the same call
@@ -238,7 +238,8 @@ class Interrogate(flow_base.FlowBase):
         # This is the first time we interrogate this client. In that case, we
         # need to store basic information about this client right away so
         # follow up flows work properly.
-        data_store.REL_DB.WriteClientSnapshot(self.state.client)
+        proto_snapshot = mig_objects.ToProtoClientSnapshot(self.state.client)
+        data_store.REL_DB.WriteClientSnapshot(proto_snapshot)
 
       try:
         # Update the client index
@@ -263,6 +264,14 @@ class Interrogate(flow_base.FlowBase):
       self.Log("Could not retrieve Platform info.")
 
     if known_system_type:
+      # Crowdstrike id collection is platform-dependent and can only be done
+      # if we know the system type.
+      if config.CONFIG["Interrogate.collect_crowdstrike_agent_id"]:
+        self.CallFlow(
+            crowdstrike.GetCrowdStrikeAgentID.__name__,
+            next_state=self.ProcessGetCrowdStrikeAgentID.__name__,
+        )
+
       # We will accept a partial KBInit rather than raise, so pass
       # require_complete=False.
       self.CallFlow(
@@ -271,7 +280,10 @@ class Interrogate(flow_base.FlowBase):
           lightweight=self.args.lightweight,
           next_state=self.ProcessKnowledgeBase.__name__)
     else:
-      self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
+      log_msg = "Unknown system type, skipping KnowledgeBaseInitializationFlow"
+      if config.CONFIG["Interrogate.collect_crowdstrike_agent_id"]:
+        log_msg += " and GetCrowdStrikeAgentID"
+      self.Log(log_msg)
 
   def InstallDate(self, responses):
     """Stores the time when the OS was installed on the client."""
@@ -312,6 +324,28 @@ class Interrogate(flow_base.FlowBase):
       kb.fqdn = self.state.fqdn
 
     self.state.client.knowledge_base = kb
+
+    if (
+        config.CONFIG["Interrogate.collect_passwd_cache_users"]
+        and kb.os == "Linux"
+    ):
+      condition = rdf_file_finder.FileFinderCondition()
+      condition.condition_type = (
+          rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH
+      )
+      condition.contents_regex_match.regex = (
+          b"^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"
+      )
+
+      args = rdf_file_finder.FileFinderArgs()
+      args.paths = ["/etc/passwd.cache"]
+      args.conditions.append(condition)
+
+      self.CallClient(
+          server_stubs.FileFinderOS,
+          args,
+          next_state=self.ProcessPasswdCacheUsers.__name__,
+      )
 
     non_kb_artifacts = config.CONFIG["Artifacts.non_kb_interrogate_artifacts"]
     if non_kb_artifacts:
@@ -407,7 +441,10 @@ class Interrogate(flow_base.FlowBase):
     metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
     if metadata and metadata.last_fleetspeak_validation_info:
       self.state.client.fleetspeak_validation_info = (
-          metadata.last_fleetspeak_validation_info)
+          mig_client.ToRDFFleetspeakValidationInfo(
+              metadata.last_fleetspeak_validation_info
+          )
+      )
 
   def ClientConfiguration(self, responses):
     """Process client config."""
@@ -446,6 +483,55 @@ class Interrogate(flow_base.FlowBase):
       edr_agent.agent_id = response.agent_id
       self.state.client.edr_agents.append(edr_agent)
 
+  def ProcessPasswdCacheUsers(
+      self,
+      responses: flow_responses.Responses[Any],
+  ) -> None:
+    """Processes user information obtained from the `/etc/passwd.cache` file."""
+    if not responses.success:
+      status = responses.status
+      self.Log("failed to collect users from `/etc/passwd.cache`: %s", status)
+      return
+
+    users = []
+
+    for response in responses:
+      if not isinstance(response, rdf_file_finder.FileFinderResult):
+        raise flow_base.FlowError(f"Unexpected response type: {type(response)}")
+
+      for index, match in enumerate(response.matches):
+        user = linux_file_parser.PasswdParser.ParseLine(
+            index,
+            match.data.decode("utf-8").strip(),
+        )
+        if user is not None:
+          users.append(user)
+
+    kb_users_by_username: dict[str, rdf_client.User] = {
+        user.username: user for user in self.state.client.knowledge_base.users
+    }
+
+    for user in users:
+      # User lookup should never fail as we only grepped for known users. If
+      # this assumption does not hold for whatever reason, it is better to fail
+      # loudly.
+      kb_user = kb_users_by_username[user.username]
+
+      if not kb_user.uid and user.uid:
+        kb_user.uid = user.uid
+
+      if not kb_user.gid and user.gid:
+        kb_user.gid = user.gid
+
+      if not kb_user.full_name and user.full_name:
+        kb_user.full_name = user.full_name
+
+      if not kb_user.homedir and user.homedir:
+        kb_user.homedir = user.homedir
+
+      if not kb_user.shell and user.shell:
+        kb_user.shell = user.shell
+
   def NotifyAboutEnd(self):
     notification.Notify(
         self.creator,
@@ -459,8 +545,9 @@ class Interrogate(flow_base.FlowBase):
     # Update summary and publish to the Discovery queue.
     del responses
 
+    proto_snapshot = mig_objects.ToProtoClientSnapshot(self.state.client)
     try:
-      data_store.REL_DB.WriteClientSnapshot(self.state.client)
+      data_store.REL_DB.WriteClientSnapshot(proto_snapshot)
     except db.UnknownClientError:
       pass
 

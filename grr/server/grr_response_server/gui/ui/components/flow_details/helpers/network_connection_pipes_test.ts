@@ -5,38 +5,32 @@ import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
-
 @Component({template: '{{ value | networkConnectionFamily }}'})
 class TestFamilyComponent {
-  value: string|undefined;
+  value: string | undefined;
 }
 
 @Component({template: '{{ value | networkConnectionType }}'})
 class TestTypeComponent {
-  value: string|undefined;
+  value: string | undefined;
 }
 
 initTestEnvironment();
 
 describe('Network Connection Pipes', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            HelpersModule,
-          ],
-          declarations: [
-            TestFamilyComponent,
-            TestTypeComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [HelpersModule],
+      declarations: [TestFamilyComponent, TestTypeComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   function render(
-      component: Type<TestFamilyComponent|TestTypeComponent>, value?: string) {
+    component: Type<TestFamilyComponent | TestTypeComponent>,
+    value?: string,
+  ) {
     const fixture = TestBed.createComponent(component);
     fixture.componentInstance.value = value;
     fixture.detectChanges();

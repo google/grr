@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
 
+from typing import Optional
+from typing import Sequence
+
 import MySQLdb
+from MySQLdb import cursors
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_proto import flows_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
@@ -508,12 +513,14 @@ class MySQLDBHuntMixin(object):
     return state
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadHuntLogEntries(self,
-                         hunt_id,
-                         offset,
-                         count,
-                         with_substring=None,
-                         cursor=None):
+  def ReadHuntLogEntries(
+      self,
+      hunt_id: str,
+      offset: int,
+      count: int,
+      with_substring: Optional[str] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.FlowLogEntry]:
     """Reads hunt log entries of a given hunt using given query options."""
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
@@ -538,17 +545,23 @@ class MySQLDBHuntMixin(object):
     flow_log_entries = []
     for client_id_int, flow_id_int, message, timestamp in cursor.fetchall():
       flow_log_entries.append(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=db_utils.IntToClientID(client_id_int),
               flow_id=db_utils.IntToFlowID(flow_id_int),
               hunt_id=hunt_id,
               message=message,
-              timestamp=mysql_utils.TimestampToRDFDatetime(timestamp)))
+              timestamp=mysql_utils.TimestampToMicrosecondsSinceEpoch(
+                  timestamp
+              ),
+          )
+      )
 
     return flow_log_entries
 
   @mysql_utils.WithTransaction(readonly=True)
-  def CountHuntLogEntries(self, hunt_id, cursor=None):
+  def CountHuntLogEntries(
+      self, hunt_id: str, cursor: Optional[cursors.Cursor] = None
+  ) -> int:
     """Returns number of hunt log entries of a given hunt."""
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
@@ -571,13 +584,15 @@ class MySQLDBHuntMixin(object):
     """Reads hunt results of a given hunt using given query options."""
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
-    query = ("SELECT client_id, flow_id, hunt_id, payload, type, "
-             "UNIX_TIMESTAMP(timestamp), tag "
-             "FROM flow_results "
-             "FORCE INDEX(flow_results_hunt_id_flow_id_timestamp) "
-             "WHERE hunt_id = %s ")
+    query = """
+    SELECT client_id, flow_id, hunt_id, payload, type,
+           UNIX_TIMESTAMP(timestamp), tag
+      FROM flow_results
+           FORCE INDEX(flow_results_hunt_id_flow_id_timestamp)
+     WHERE hunt_id = %s AND flow_id = %s
+    """
 
-    args = [hunt_id_int]
+    args = [hunt_id_int, hunt_id_int]
 
     if with_tag:
       query += "AND tag = %s "
@@ -946,13 +961,17 @@ class MySQLDBHuntMixin(object):
     return result
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadHuntOutputPluginLogEntries(self,
-                                     hunt_id,
-                                     output_plugin_id,
-                                     offset,
-                                     count,
-                                     with_type=None,
-                                     cursor=None):
+  def ReadHuntOutputPluginLogEntries(
+      self,
+      hunt_id: str,
+      output_plugin_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
     """Reads hunt output plugin log entries."""
     query = ("SELECT client_id, flow_id, log_entry_type, message, "
              "UNIX_TIMESTAMP(timestamp) "
@@ -978,23 +997,31 @@ class MySQLDBHuntMixin(object):
     for (client_id_int, flow_id_int, log_entry_type, message,
          timestamp) in cursor.fetchall():
       ret.append(
-          rdf_flow_objects.FlowOutputPluginLogEntry(
+          flows_pb2.FlowOutputPluginLogEntry(
               hunt_id=hunt_id,
               client_id=db_utils.IntToClientID(client_id_int),
               flow_id=db_utils.IntToFlowID(flow_id_int),
               output_plugin_id=output_plugin_id,
               log_entry_type=log_entry_type,
               message=message,
-              timestamp=mysql_utils.TimestampToRDFDatetime(timestamp)))
+              timestamp=mysql_utils.TimestampToMicrosecondsSinceEpoch(
+                  timestamp
+              ),
+          )
+      )
 
     return ret
 
   @mysql_utils.WithTransaction(readonly=True)
-  def CountHuntOutputPluginLogEntries(self,
-                                      hunt_id,
-                                      output_plugin_id,
-                                      with_type=None,
-                                      cursor=None):
+  def CountHuntOutputPluginLogEntries(
+      self,
+      hunt_id: str,
+      output_plugin_id: str,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ):
     """Counts hunt output plugin log entries."""
     query = ("SELECT COUNT(*) "
              "FROM flow_output_plugin_log_entries "

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with flow class calling the osquery client action."""
 
+import json
 from typing import Any, Iterable, Iterator, List
 
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -226,8 +227,26 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     self.state.path_to_count = {}
     self.state.total_collected_bytes = 0
 
+    if self.args.configuration_path and self.args.configuration_content:
+      raise ValueError(
+          "Configuration path and configuration content are mutually exclusive."
+      )
+
+    if self.args.configuration_content:
+      try:
+        _ = json.loads(self.args.configuration_content)
+      except json.JSONDecodeError as json_error:
+        raise ValueError(
+            "Configuration content is not valid JSON"
+        ) from json_error
+
     action_args = rdf_osquery.OsqueryArgs(
-        query=self.args.query, timeout_millis=self.args.timeout_millis)
+        query=self.args.query,
+        timeout_millis=self.args.timeout_millis,
+        configuration_path=self.args.configuration_path,
+        configuration_content=self.args.configuration_content,
+    )
+
     self.CallClient(
         server_stubs.Osquery,
         request=action_args,

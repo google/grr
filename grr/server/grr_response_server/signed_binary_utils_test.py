@@ -8,8 +8,8 @@ from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_proto import objects_pb2
 from grr_response_server import signed_binary_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -18,18 +18,24 @@ class SignedBinaryIDFromURNTest(absltest.TestCase):
   def testCorrectlyConvertsPythonHackURN(self):
     self.assertEqual(
         signed_binary_utils.SignedBinaryIDFromURN(
-            rdfvalue.RDFURN("aff4:/config/python_hacks/foo")),
-        rdf_objects.SignedBinaryID(
-            binary_type=rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
-            path="foo"))
+            rdfvalue.RDFURN("aff4:/config/python_hacks/foo")
+        ),
+        objects_pb2.SignedBinaryID(
+            binary_type=objects_pb2.SignedBinaryID.BinaryType.PYTHON_HACK,
+            path="foo",
+        ),
+    )
 
   def testCorrectlyConvertsExecutableURN(self):
     self.assertEqual(
         signed_binary_utils.SignedBinaryIDFromURN(
-            rdfvalue.RDFURN("aff4:/config/executables/foo")),
-        rdf_objects.SignedBinaryID(
-            binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
-            path="foo"))
+            rdfvalue.RDFURN("aff4:/config/executables/foo")
+        ),
+        objects_pb2.SignedBinaryID(
+            binary_type=objects_pb2.SignedBinaryID.BinaryType.EXECUTABLE,
+            path="foo",
+        ),
+    )
 
   def testRaisesWhenNeitherPythonHackNorExecutableURNIsPassed(self):
     with self.assertRaises(ValueError):

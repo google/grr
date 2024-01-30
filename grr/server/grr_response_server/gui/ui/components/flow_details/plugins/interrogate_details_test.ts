@@ -10,23 +10,15 @@ import {initTestEnvironment} from '../../../testing';
 import {InterrogateDetails} from './interrogate_details';
 import {PluginsModule} from './module';
 
-
-
 initTestEnvironment();
 
 describe('app-interrogate-details component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            PluginsModule,
-            RouterTestingModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('does not show link when flow is in progress', () => {

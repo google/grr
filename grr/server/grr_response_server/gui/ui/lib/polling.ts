@@ -1,6 +1,5 @@
 import {Observable, Subscription} from 'rxjs';
 
-
 interface PollArgs<T> {
   readonly pollOn: Observable<unknown>;
   readonly pollEffect: () => void;
@@ -29,10 +28,10 @@ interface PollArgs<T> {
  * - selector is a selector that reads from the updated store field.
  */
 export function poll<T>(args: PollArgs<T>) {
-  return new Observable<T>(subscriber => {
-    let pollUntilSub: Subscription|undefined;
-    let selectorSub: Subscription|undefined;
-    let pollSub: Subscription|undefined;
+  return new Observable<T>((subscriber) => {
+    let pollUntilSub: Subscription | undefined;
+    let selectorSub: Subscription | undefined;
+    let pollSub: Subscription | undefined;
 
     const unsubscribe = () => {
       pollSub?.unsubscribe();
@@ -47,7 +46,7 @@ export function poll<T>(args: PollArgs<T>) {
       complete() {
         subscriber.complete();
         unsubscribe();
-      }
+      },
     });
 
     selectorSub = args.selector.subscribe({
@@ -67,7 +66,7 @@ export function poll<T>(args: PollArgs<T>) {
       next() {
         subscriber.complete();
         unsubscribe();
-      }
+      },
     });
 
     return unsubscribe;

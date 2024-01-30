@@ -10,7 +10,12 @@ import {FileFinderContentsRegexMatchConditionMode} from '../../../lib/api/api_in
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition, regexMatchConditionFlowArgsToFormValues} from './regex_match_condition';
+import {
+  createRegexMatchFormGroup,
+  formValuesToFileFinderContentsRegexMatchCondition,
+  RegexMatchCondition,
+  regexMatchConditionFlowArgsToFormValues,
+} from './regex_match_condition';
 
 initTestEnvironment();
 
@@ -20,39 +25,35 @@ describe('RegexMatchCondition component', () => {
   beforeEach(waitForAsync(() => {
     control = createRegexMatchFormGroup();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-          ],
-          providers: [
-            {
-              provide: ControlContainer,
-              useValue: {
-                control,
-              }
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule],
+      providers: [
+        {
+          provide: ControlContainer,
+          useValue: {
+            control,
+          },
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
-  it('displays empty regex field and correctly filled mode and length fields when initialized',
-     () => {
-       const fixture = TestBed.createComponent(RegexMatchCondition);
-       fixture.detectChanges();
+  it('displays empty regex field and correctly filled mode and length fields when initialized', () => {
+    const fixture = TestBed.createComponent(RegexMatchCondition);
+    fixture.detectChanges();
 
-       const regexField = fixture.debugElement.query(By.css('input'));
-       const modeField = fixture.debugElement.query(By.css('mat-select'));
-       const lengthField =
-           fixture.debugElement.query(By.css('input[type=number]'));
-       expect(regexField.nativeElement.textContent).toBe('');
-       expect(modeField.componentInstance.value)
-           .toBe(FileFinderContentsRegexMatchConditionMode.FIRST_HIT);
-       expect(lengthField.nativeElement.value).toBe('20000000');
-     });
+    const regexField = fixture.debugElement.query(By.css('input'));
+    const modeField = fixture.debugElement.query(By.css('mat-select'));
+    const lengthField = fixture.debugElement.query(
+      By.css('input[type=number]'),
+    );
+    expect(regexField.nativeElement.textContent).toBe('');
+    expect(modeField.componentInstance.value).toBe(
+      FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+    );
+    expect(lengthField.nativeElement.value).toBe('20000000');
+  });
 
   it('correctly exposes form values', async () => {
     const fixture = TestBed.createComponent(RegexMatchCondition);
@@ -60,12 +61,14 @@ describe('RegexMatchCondition component', () => {
     fixture.detectChanges();
 
     const regexFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="regex"]'}));
+      MatInputHarness.with({selector: '[name="regex"]'}),
+    );
     await regexFieldHarness.setValue('test');
     const modeFieldHarness = await loader.getHarness(MatSelectHarness);
     await modeFieldHarness.clickOptions({text: 'All Hits'});
     const lengthFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="length"]'}));
+      MatInputHarness.with({selector: '[name="length"]'}),
+    );
     await lengthFieldHarness.setValue('30000000');
 
     expect(control.value).toEqual({
@@ -105,32 +108,30 @@ describe('regexMatchConditionFlowArgsToFormValues()', () => {
     });
   });
 
-  it('correctly converts Regex Match Condition to form value (empty string)',
-     () => {
-       const source = {
-         regex: '',
-         mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
-         length: '',
-       };
+  it('correctly converts Regex Match Condition to form value (empty string)', () => {
+    const source = {
+      regex: '',
+      mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+      length: '',
+    };
 
-       expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
-         regex: '',
-         mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
-         length: undefined,
-       });
-     });
+    expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
+      regex: '',
+      mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+      length: undefined,
+    });
+  });
 
-  it('correctly converts Regex Match Condition to form value (undefined)',
-     () => {
-       const source = {
-         regex: undefined,
-         mode: undefined,
-         length: undefined,
-       };
-       expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
-         regex: '',
-         mode: undefined,
-         length: undefined,
-       });
-     });
+  it('correctly converts Regex Match Condition to form value (undefined)', () => {
+    const source = {
+      regex: undefined,
+      mode: undefined,
+      length: undefined,
+    };
+    expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
+      regex: '',
+      mode: undefined,
+      length: undefined,
+    });
+  });
 });

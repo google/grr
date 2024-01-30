@@ -15,7 +15,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 _YARA_SIGNATURE_SHARD_SIZE = 500 << 10  # 500 KiB
 
@@ -47,7 +47,7 @@ class YaraProcessScan(flow_base.FlowBase):
         raise flow_base.FlowError(
             "No rules found in the signature specification.")
     elif self.args.yara_signature_blob_id:
-      blob_id = rdf_objects.BlobID(self.args.yara_signature_blob_id)
+      blob_id = blobs.BlobID(self.args.yara_signature_blob_id)
       if not data_store.REL_DB.VerifyYaraSignatureReference(blob_id):
         message = "Incorrect YARA signature reference: {}".format(blob_id)
         raise flow_base.FlowError(message)
@@ -89,7 +89,7 @@ class YaraProcessScan(flow_base.FlowBase):
     if self.args.yara_signature:
       signature_bytes = str(self.args.yara_signature).encode("utf-8")
     elif self.args.yara_signature_blob_id:
-      blob_id = rdf_objects.BlobID(self.args.yara_signature_blob_id)
+      blob_id = blobs.BlobID(self.args.yara_signature_blob_id)
       signature_bytes = data_store.BLOBS.ReadBlob(blob_id)
 
     offsets = range(0, len(signature_bytes), _YARA_SIGNATURE_SHARD_SIZE)

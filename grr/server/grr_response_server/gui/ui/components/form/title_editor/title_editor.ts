@@ -1,4 +1,18 @@
-import {AfterContentInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ContentChild, Directive, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output} from '@angular/core';
+import {
+  AfterContentInit,
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ContentChild,
+  Directive,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  Output,
+} from '@angular/core';
 
 import {assertNonNull} from '../../../lib/preconditions';
 
@@ -22,8 +36,8 @@ export class TitleEditorContent implements AfterViewInit {
   private previousValue = '';
 
   constructor(
-      private readonly element: ElementRef,
-      private readonly parent: TitleEditor,
+    private readonly element: ElementRef,
+    private readonly parent: TitleEditor,
   ) {}
 
   ngAfterViewInit() {
@@ -85,7 +99,7 @@ export class TitleEditorContent implements AfterViewInit {
 })
 export class TitleEditor implements AfterContentInit, OnChanges {
   @Input() disabled = false;
-  @Input() route: unknown[]|null = null;
+  @Input() route: unknown[] | null = null;
   @Output() changed = new EventEmitter<string>();
   @ContentChild(TitleEditorContent) content!: TitleEditorContent;
 

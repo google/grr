@@ -118,6 +118,7 @@ class HuntCreationTest(
             )
         ],
         client_rate=60,
+        client_limit=0,
         creator=self.test_username,
     )
 
@@ -192,7 +193,7 @@ class HuntCreationTest(
     self.assertEqual(original_hunt.creator, self.test_username)
     self.assertEqual(original_hunt.flow_args, original_hunt_flow_args)
     self.assertEqual(original_hunt.hunt_runner_args.client_rate, 60)
-    self.assertEqual(original_hunt.hunt_runner_args.client_limit, 100)
+    self.assertEqual(original_hunt.hunt_runner_args.client_limit, 0)
     self.assertLen(original_hunt.hunt_runner_args.client_rule_set.rules, 1)
 
     self.assertEqual(copied_hunt.creator, self.test_username)
@@ -201,7 +202,7 @@ class HuntCreationTest(
         copied_hunt.original_object.hunt_reference.hunt_id, original_hunt_id
     )
     self.assertEqual(copied_hunt.hunt_runner_args.client_rate, 0)
-    self.assertEqual(original_hunt.hunt_runner_args.client_limit, 100)
+    self.assertEqual(copied_hunt.hunt_runner_args.client_limit, 100)
     self.assertLen(copied_hunt.hunt_runner_args.client_rule_set.rules, 2)
 
     # Confirm redirection data.
@@ -215,6 +216,52 @@ class HuntCreationTest(
     self.WaitUntil(
         self.IsElementPresent, "css=approval-card:contains('Request sent')"
     )
+
+  def testNoHuntIsCreatedWhenInputInvalid(self):
+    client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(client_id)
+    flow_id = flow_test_lib.StartFlow(
+        network.Netstat,
+        creator=self.test_username,
+        client_id=client_id,
+        flow_args=network.NetstatArgs(),
+    )
+
+    self.Open(f"/v2/clients/{client_id}")
+    self.WaitUntil(
+        self.IsElementPresent, "css=flow-details:contains('Netstat')"
+    )
+
+    self.Click("css=flow-details button[name=flowContextMenu]")
+    self.WaitUntil(self.IsElementPresent, "css=button[name=createHunt]")
+    self.Click("css=button[name=createHunt]")
+
+    # Redirects the user to new hunt page with original flow information.
+    self.WaitUntilEqual("/v2/new-hunt", self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        f"clientId={client_id}&flowId={flow_id}", self.GetCurrentUrlQuery
+    )
+    # Make sure original flow information is displayed.
+    self.WaitUntil(self.IsElementPresent, "css=[name=titleInput]")
+    self.WaitUntil(self.IsElementPresent, "css=td:contains('Original flow')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=flow-details:contains('Netstat')"
+    )
+    self.Click("css=button[name=toggle-advance-params-top]")
+
+    self.Type("css=input[name=activeFor]", "fooo")
+    self.Type("css=input[name=aveCPU]", "")
+    self.Click("css=.client-cpu-limit-option button:contains('Custom')")
+    self.Type("css=input[name=perClientCpuLimit]", "fooo")
+
+    # Fill out necessary approval information and create hunt.
+    self.Type("css=approval-card input[name=reason]", "because")
+    self.Click("css=button[id=runHunt]")
+
+    hunts = _ListHunts(self.test_username)
+    self.assertEmpty(hunts)
+
+    self.WaitUntil(self.IsElementPresent, "css=.mdc-snackbar")
 
 
 if __name__ == "__main__":

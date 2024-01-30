@@ -1,6 +1,10 @@
-/** Map from OutputPlugin name to OutputPluginDescriptor. */
-export type OutputPluginDescriptorMap =
-    ReadonlyMap<string, OutputPluginDescriptor>;
+/**
+ * Map from OutputPlugin name to OutputPluginDescriptor.
+ */
+export type OutputPluginDescriptorMap = ReadonlyMap<
+  string,
+  OutputPluginDescriptor
+>;
 
 /** Combine both OutputPlugin and OutputPluginDescriptor from the backend */
 export interface OutputPluginDescriptor {

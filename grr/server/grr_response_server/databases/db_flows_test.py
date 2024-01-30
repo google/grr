@@ -5,21 +5,24 @@ import queue
 import random
 import threading
 import time
+from typing import Optional, Sequence
 from unittest import mock
 
+from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows import file
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -1306,13 +1309,14 @@ class DatabaseTestFlowMixin(object):
     flow_for_processing = self.db.LeaseFlowForProcessing(
         client_id, flow_id, processing_time)
     flow_for_processing.num_replies_sent = 10
-    sample_results = [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            hunt_id=hunt_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 10
+
+    client_summary_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id, hunt_id=hunt_id
+    )
+    client_summary_result.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+    sample_results = [client_summary_result] * 10
     self._WriteFlowResults(sample_results)
 
     self.assertTrue(self.db.ReleaseProcessedFlow(flow_for_processing))
@@ -1946,20 +1950,27 @@ class DatabaseTestFlowMixin(object):
 
     self.db.UnregisterFlowProcessingHandler()
 
-  def _SampleResults(self, client_id, flow_id, hunt_id=None):
+  def _SampleResults(
+      self, client_id: str, flow_id: str, hunt_id: Optional[str] = None
+  ) -> Sequence[flows_pb2.FlowResult]:
     sample_results = []
     for i in range(10):
-      sample_results.append(
-          rdf_flow_objects.FlowResult(
+      r = flows_pb2.FlowResult(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_id,
+          tag="tag_%d" % i,
+      )
+      r.payload.Pack(
+          jobs_pb2.ClientSummary(
               client_id=client_id,
-              flow_id=flow_id,
-              hunt_id=hunt_id,
-              tag="tag_%d" % i,
-              payload=rdf_client.ClientSummary(
-                  client_id=client_id,
-                  system_manufacturer="manufacturer_%d" % i,
-                  install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                          i))))
+              system_manufacturer="manufacturer_%d" % i,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results.append(r)
 
     return sample_results
 
@@ -1980,10 +1991,8 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_result = rdf_flow_objects.FlowResult(
-        client_id=client_id,
-        flow_id=flow_id,
-        payload=rdf_client.ClientSummary(client_id=client_id))
+    sample_result = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+    sample_result.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
     with test_lib.FakeTime(42):
       self.db.WriteFlowResults([sample_result])
@@ -1991,57 +2000,64 @@ class DatabaseTestFlowMixin(object):
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
     self.assertLen(results, 1)
     self.assertEqual(results[0].payload, sample_result.payload)
-    self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
+    self.assertEqual(
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(results[0].timestamp),
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+    )
 
   def testWritesAndReadsRDFStringFlowResult(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    result = rdf_flow_objects.FlowResult(
-        client_id=client_id,
-        flow_id=flow_id,
-        payload=rdfvalue.RDFString("foobar"))
+    result = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+    result.payload.Pack(wrappers_pb2.StringValue(value="foobar"))
     self.db.WriteFlowResults([result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
     self.assertLen(results, 1)
-    self.assertEqual(results[0].payload, rdfvalue.RDFString("foobar"))
+
+    r_payload = wrappers_pb2.StringValue()
+    results[0].payload.Unpack(r_payload)
+    self.assertEqual(r_payload, wrappers_pb2.StringValue(value="foobar"))
 
   def testWritesAndReadsRDFBytesFlowResult(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    result = rdf_flow_objects.FlowResult(
-        client_id=client_id,
-        flow_id=flow_id,
-        payload=rdfvalue.RDFBytes(b"foobar"))
+    result = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+    result.payload.Pack(wrappers_pb2.BytesValue(value=b"foobar"))
     self.db.WriteFlowResults([result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
     self.assertLen(results, 1)
-    self.assertEqual(results[0].payload, rdfvalue.RDFBytes(b"foobar"))
+
+    r_payload = wrappers_pb2.BytesValue()
+    results[0].payload.Unpack(r_payload)
+    self.assertEqual(r_payload, wrappers_pb2.BytesValue(value=b"foobar"))
 
   def testWritesAndReadsRDFIntegerFlowResult(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    result = rdf_flow_objects.FlowResult(
-        client_id=client_id, flow_id=flow_id, payload=rdfvalue.RDFInteger(42))
+    result = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+    result.payload.Pack(wrappers_pb2.Int64Value(value=42))
     self.db.WriteFlowResults([result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
     self.assertLen(results, 1)
-    self.assertEqual(results[0].payload, rdfvalue.RDFInteger(42))
+
+    r_payload = wrappers_pb2.Int64Value()
+    results[0].payload.Unpack(r_payload)
+    self.assertEqual(r_payload, wrappers_pb2.Int64Value(value=42))
 
   def testReadResultsRestoresAllFlowResultsFields(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_result = rdf_flow_objects.FlowResult(
-        client_id=client_id,
-        flow_id=flow_id,
-        hunt_id="ABC123",
-        payload=rdf_client.ClientSummary(client_id=client_id))
+    sample_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id, hunt_id="ABC123"
+    )
+    sample_result.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
     with test_lib.FakeTime(42):
       self.db.WriteFlowResults([sample_result])
@@ -2052,7 +2068,10 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].flow_id, flow_id)
     self.assertEndsWith(results[0].hunt_id, "ABC123")  # Ignore leading 0s.
     self.assertEqual(results[0].payload, sample_result.payload)
-    self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
+    self.assertEqual(
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(results[0].timestamp),
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+    )
 
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2093,35 +2112,35 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_results = self._WriteFlowResults(sample_results=[
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(
-                client_id=client_id,
-                install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                        i)))
-        for i in range(10)
-    ])
-    sample_results.extend(
-        self._WriteFlowResults(sample_results=[
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                payload=rdf_client.ClientCrash(
-                    client_id=client_id,
-                    timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                         i)))
-            for i in range(10)
-        ]))
-    sample_results.extend(
-        self._WriteFlowResults(sample_results=[
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                payload=rdf_client.ClientInformation(client_version=i))
-            for i in range(10)
-        ]))
+    sample_results = []
+    for i in range(10):
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientSummary(
+              client_id=client_id,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results.append(r)
+
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientCrash(
+              client_id=client_id,
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results.append(r)
+
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(jobs_pb2.ClientInformation(client_version=i))
+      sample_results.append(r)
+
+    self._WriteFlowResults(sample_results)
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
     self.assertLen(results, len(sample_results))
@@ -2173,27 +2192,32 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_results = self._WriteFlowResults(sample_results=[
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(
-                client_id=client_id,
-                install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                        i)))
-        for i in range(10)
-    ])
-    sample_results.extend(
-        self._WriteFlowResults(sample_results=[
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                payload=rdf_client.ClientCrash(
-                    client_id=client_id,
-                    timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                         i)))
-            for i in range(10)
-        ]))
+    sample_results_summary = []
+    sample_results_crash = []
+    for i in range(10):
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientSummary(
+              client_id=client_id,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results_summary.append(r)
+
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientCrash(
+              client_id=client_id,
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results_crash.append(r)
+
+    self.db.WriteFlowResults(sample_results_summary + sample_results_crash)
 
     results = self.db.ReadFlowResults(
         client_id,
@@ -2207,7 +2231,7 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, 0, 100, with_type=rdf_client.ClientSummary.__name__)
     self.assertCountEqual(
         [i.payload for i in results],
-        [i.payload for i in sample_results[:10]],
+        [i.payload for i in sample_results_summary],
     )
 
   def testReadFlowResultsCorrectlyAppliesWithSubstringFilter(self):
@@ -2249,7 +2273,7 @@ class DatabaseTestFlowMixin(object):
 
     types = {
         None: list(sample_results),
-        rdf_client.ClientSummary.__name__: list(sample_results),
+        jobs_pb2.ClientSummary.__name__: list(sample_results),
     }
 
     for tag_value, tag_expected in tags.items():
@@ -2281,7 +2305,7 @@ class DatabaseTestFlowMixin(object):
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
-    type_name = rdf_client.ClientSummary.__name__
+    type_name = jobs_pb2.ClientSummary.__name__
     try:
       cls = rdfvalue.RDFValue.classes.pop(type_name)
 
@@ -2291,9 +2315,12 @@ class DatabaseTestFlowMixin(object):
 
     self.assertLen(sample_results, len(results))
     for r in results:
-      self.assertIsInstance(r.payload,
-                            rdf_objects.SerializedValueOfUnrecognizedType)
-      self.assertEqual(r.payload.type_name, type_name)
+      self.assertTrue(
+          r.payload.Is(objects_pb2.SerializedValueOfUnrecognizedType.DESCRIPTOR)
+      )
+      unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType()
+      r.payload.Unpack(unrecognized_value)
+      self.assertEqual(unrecognized_value.type_name, type_name)
 
   def testCountFlowResultsReturnsCorrectResultsCount(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2322,20 +2349,20 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    self._WriteFlowResults(sample_results=[
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-        for _ in range(10)
-    ])
-    self._WriteFlowResults(sample_results=[
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientCrash(client_id=client_id))
-        for _ in range(10)
-    ])
+    client_summary_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_result.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    client_crash_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_crash_result.payload.Pack(jobs_pb2.ClientCrash(client_id=client_id))
+
+    self._WriteFlowResults(sample_results=[client_summary_result] * 10)
+    self._WriteFlowResults(sample_results=[client_crash_result] * 10)
 
     num_results = self.db.CountFlowResults(
         client_id, flow_id, with_type=rdf_client.ClientInformation.__name__)
@@ -2360,26 +2387,32 @@ class DatabaseTestFlowMixin(object):
         client_id,
         flow_id,
         with_tag="tag_1",
-        with_type=rdf_client.ClientSummary.__name__)
+        with_type=jobs_pb2.ClientSummary.__name__,
+    )
     self.assertEqual(num_results, 1)
 
   def testCountFlowResultsByTypeReturnsCorrectNumbers(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_results = self._WriteFlowResults(sample_results=[
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 3)
+    client_summary_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_result.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    client_crash_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_crash_result.payload.Pack(jobs_pb2.ClientCrash(client_id=client_id))
+
+    sample_results = self._WriteFlowResults(
+        sample_results=[client_summary_result] * 3
+    )
     sample_results.extend(
-        self._WriteFlowResults(sample_results=[
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                payload=rdf_client.ClientCrash(client_id=client_id))
-        ] * 5))
+        self._WriteFlowResults(sample_results=[client_crash_result] * 5)
+    )
 
     counts_by_type = self.db.CountFlowResultsByType(client_id, flow_id)
     self.assertEqual(counts_by_type, {
@@ -2390,17 +2423,22 @@ class DatabaseTestFlowMixin(object):
   def _CreateErrors(self, client_id, flow_id, hunt_id=None):
     sample_errors = []
     for i in range(10):
-      sample_errors.append(
-          rdf_flow_objects.FlowError(
+      e = flows_pb2.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_id,
+          tag="tag_%d" % i,
+      )
+      e.payload.Pack(
+          jobs_pb2.ClientSummary(
               client_id=client_id,
-              flow_id=flow_id,
-              hunt_id=hunt_id,
-              tag="tag_%d" % i,
-              payload=rdf_client.ClientSummary(
-                  client_id=client_id,
-                  system_manufacturer="manufacturer_%d" % i,
-                  install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                          i))))
+              system_manufacturer="manufacturer_%d" % i,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_errors.append(e)
 
     return sample_errors
 
@@ -2421,10 +2459,8 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_error = rdf_flow_objects.FlowError(
-        client_id=client_id,
-        flow_id=flow_id,
-        payload=rdf_client.ClientSummary(client_id=client_id))
+    sample_error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+    sample_error.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
     with test_lib.FakeTime(42):
       self.db.WriteFlowErrors([sample_error])
@@ -2432,7 +2468,12 @@ class DatabaseTestFlowMixin(object):
     errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
     self.assertLen(errors, 1)
     self.assertEqual(errors[0].payload, sample_error.payload)
-    self.assertEqual(errors[0].timestamp.AsSecondsSinceEpoch(), 42)
+    self.assertEqual(
+        errors[0].timestamp,
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+            42
+        ).AsMicrosecondsSinceEpoch(),
+    )
 
   def testWritesAndReadsMultipleFlowErrorsOfSingleType(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2474,33 +2515,40 @@ class DatabaseTestFlowMixin(object):
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     def SampleClientSummaryError(i):
-      return rdf_flow_objects.FlowError(
-          client_id=client_id,
-          flow_id=flow_id,
-          payload=rdf_client.ClientSummary(
+      error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+      error.payload.Pack(
+          jobs_pb2.ClientSummary(
               client_id=client_id,
-              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      return error
 
     sample_errors = self._WriteFlowErrors(
         sample_errors=[SampleClientSummaryError(i) for i in range(10)])
 
     def SampleClientCrashError(i):
-      return rdf_flow_objects.FlowError(
-          client_id=client_id,
-          flow_id=flow_id,
-          payload=rdf_client.ClientCrash(
+      error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+      error.payload.Pack(
+          jobs_pb2.ClientCrash(
               client_id=client_id,
-              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      return error
 
     sample_errors.extend(
         self._WriteFlowErrors(
             sample_errors=[SampleClientCrashError(i) for i in range(10)]))
 
     def SampleClientInformationError(i):
-      return rdf_flow_objects.FlowError(
-          client_id=client_id,
-          flow_id=flow_id,
-          payload=rdf_client.ClientInformation(client_version=i))
+      error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+      error.payload.Pack(jobs_pb2.ClientInformation(client_version=i))
+      return error
 
     sample_errors.extend(
         self._WriteFlowErrors(
@@ -2555,23 +2603,31 @@ class DatabaseTestFlowMixin(object):
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     def SampleClientSummaryError(i):
-      return rdf_flow_objects.FlowError(
-          client_id=client_id,
-          flow_id=flow_id,
-          payload=rdf_client.ClientSummary(
+      error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+      error.payload.Pack(
+          jobs_pb2.ClientSummary(
               client_id=client_id,
-              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      return error
 
     sample_errors = self._WriteFlowErrors(
         sample_errors=[SampleClientSummaryError(i) for i in range(10)])
 
     def SampleClientCrashError(i):
-      return rdf_flow_objects.FlowError(
-          client_id=client_id,
-          flow_id=flow_id,
-          payload=rdf_client.ClientCrash(
+      error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
+      error.payload.Pack(
+          jobs_pb2.ClientCrash(
               client_id=client_id,
-              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      return error
 
     sample_errors.extend(
         self._WriteFlowErrors(
@@ -2640,9 +2696,12 @@ class DatabaseTestFlowMixin(object):
 
     self.assertLen(sample_errors, len(errors))
     for r in errors:
-      self.assertIsInstance(r.payload,
-                            rdf_objects.SerializedValueOfUnrecognizedType)
-      self.assertEqual(r.payload.type_name, type_name)
+      self.assertTrue(
+          r.payload.Is(objects_pb2.SerializedValueOfUnrecognizedType.DESCRIPTOR)
+      )
+      unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType()
+      r.payload.Unpack(unrecognized_value)
+      self.assertEqual(unrecognized_value.type_name, type_name)
 
   def testCountFlowErrorsReturnsCorrectErrorsCount(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2671,18 +2730,20 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    self._WriteFlowErrors(sample_errors=[
-        rdf_flow_objects.FlowError(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 10)
-    self._WriteFlowErrors(sample_errors=[
-        rdf_flow_objects.FlowError(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientCrash(client_id=client_id))
-    ] * 10)
+    client_summary_error = flows_pb2.FlowError(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_error.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    client_crash_error = flows_pb2.FlowError(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_crash_error.payload.Pack(jobs_pb2.ClientCrash(client_id=client_id))
+
+    self._WriteFlowErrors(sample_errors=[client_summary_error] * 10)
+    self._WriteFlowErrors(sample_errors=[client_crash_error] * 10)
 
     num_errors = self.db.CountFlowErrors(
         client_id, flow_id, with_type=rdf_client.ClientInformation.__name__)
@@ -2714,19 +2775,24 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_errors = self._WriteFlowErrors(sample_errors=[
-        rdf_flow_objects.FlowError(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 3)
+    client_summary_error = flows_pb2.FlowError(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_error.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    client_crash_error = flows_pb2.FlowError(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_crash_error.payload.Pack(jobs_pb2.ClientCrash(client_id=client_id))
+
+    sample_errors = self._WriteFlowErrors(
+        sample_errors=[client_summary_error] * 3
+    )
     sample_errors.extend(
-        self._WriteFlowErrors(sample_errors=[
-            rdf_flow_objects.FlowError(
-                client_id=client_id,
-                flow_id=flow_id,
-                payload=rdf_client.ClientCrash(client_id=client_id))
-        ] * 5))
+        self._WriteFlowErrors(sample_errors=[client_crash_error] * 5)
+    )
 
     counts_by_type = self.db.CountFlowErrorsByType(client_id, flow_id)
     self.assertEqual(counts_by_type, {
@@ -2740,8 +2806,10 @@ class DatabaseTestFlowMixin(object):
     message = "blah: ٩(͡๏̯͡๏)۶"
 
     self.db.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
-            client_id=client_id, flow_id=flow_id, message=message))
+        flows_pb2.FlowLogEntry(
+            client_id=client_id, flow_id=flow_id, message=message
+        )
+    )
 
     entries = self.db.ReadFlowLogEntries(client_id, flow_id, 0, 100)
     self.assertLen(entries, 1)
@@ -2751,8 +2819,10 @@ class DatabaseTestFlowMixin(object):
     messages = ["blah_%d" % i for i in range(10)]
     for message in messages:
       self.db.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
-              client_id=client_id, flow_id=flow_id, message=message))
+          flows_pb2.FlowLogEntry(
+              client_id=client_id, flow_id=flow_id, message=message
+          )
+      )
 
     return messages
 
@@ -2822,8 +2892,10 @@ class DatabaseTestFlowMixin(object):
 
     with self.assertRaises(db.UnknownFlowError) as context:
       self.db.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
-              client_id=client_id, flow_id=flow_id, message="test"))
+          flows_pb2.FlowLogEntry(
+              client_id=client_id, flow_id=flow_id, message="test"
+          )
+      )
 
     self.assertEqual(context.exception.client_id, client_id)
     self.assertEqual(context.exception.flow_id, flow_id)
@@ -2833,18 +2905,19 @@ class DatabaseTestFlowMixin(object):
     entries = []
     for i in range(10):
       message = "blah_🚀_%d" % i
-      enum = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+      enum = flows_pb2.FlowOutputPluginLogEntry.LogEntryType
       if i % 3 == 0:
         log_entry_type = enum.ERROR
       else:
         log_entry_type = enum.LOG
 
-      entry = rdf_flow_objects.FlowOutputPluginLogEntry(
+      entry = flows_pb2.FlowOutputPluginLogEntry(
           client_id=client_id,
           flow_id=flow_id,
           output_plugin_id=output_plugin_id,
           message=message,
-          log_entry_type=log_entry_type)
+          log_entry_type=log_entry_type,
+      )
       entries.append(entry)
 
       self.db.WriteFlowOutputPluginLogEntry(entry)
@@ -2855,7 +2928,7 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = "ABCDEF48"
 
-    entry = rdf_flow_objects.FlowOutputPluginLogEntry()
+    entry = flows_pb2.FlowOutputPluginLogEntry()
     entry.client_id = client_id
     entry.flow_id = flow_id
     entry.output_plugin_id = "F00"
@@ -2886,13 +2959,13 @@ class DatabaseTestFlowMixin(object):
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
-    entry = rdf_flow_objects.FlowOutputPluginLogEntry(
+    entry = flows_pb2.FlowOutputPluginLogEntry(
         client_id=client_id,
         flow_id=flow_id,
         output_plugin_id=output_plugin_id,
         message="x" * 1024 * 1024,
-        log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
-        .LOG)
+        log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
 
     self.db.WriteFlowOutputPluginLogEntry(entry)
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
@@ -2914,7 +2987,8 @@ class DatabaseTestFlowMixin(object):
         output_plugin_id,
         0,
         100,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertLen(read_entries, 4)
 
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
@@ -2923,7 +2997,8 @@ class DatabaseTestFlowMixin(object):
         output_plugin_id,
         0,
         100,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertLen(read_entries, 6)
 
   def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
@@ -2958,8 +3033,8 @@ class DatabaseTestFlowMixin(object):
     for l in range(1, 11):
       for i in range(10):
         for with_type in [
-            rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG,
-            rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR
+            flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+            flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
         ]:
           results = self.db.ReadFlowOutputPluginLogEntries(
               client_id, flow_id, output_plugin_id, i, l, with_type=with_type)
@@ -3003,7 +3078,7 @@ class DatabaseTestFlowMixin(object):
             client_id,
             flow_id,
             output_plugin_id,
-            with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG
+            with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
         ),
         6,
     )
@@ -3012,26 +3087,22 @@ class DatabaseTestFlowMixin(object):
             client_id,
             flow_id,
             output_plugin_id,
-            with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
-            .ERROR),
+            with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+        ),
         4,
     )
 
   def _SetupScheduledFlow(self, **kwargs):
-    merged_kwargs = {
-        "scheduled_flow_id": flow.RandomFlowId(),
-        "flow_name": file.CollectFilesByKnownPath.__name__,
-        "flow_args": rdf_file_finder.CollectFilesByKnownPathArgs(
-            collection_level=random.randint(0, 3)
-        ),
-        "runner_args": rdf_flow_runner.FlowRunnerArgs(
-            network_bytes_limit=random.randint(0, 10)
-        ),
-        "create_time": rdfvalue.RDFDatetime.Now(),
-        **kwargs,
-    }
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs()
+    flow_args.collection_level = random.randint(0, 3)
 
-    sf = rdf_flow_objects.ScheduledFlow(**merged_kwargs)
+    sf = flows_pb2.ScheduledFlow()
+    sf.scheduled_flow_id = flow.RandomFlowId()
+    sf.flow_name = file.CollectFilesByKnownPath.__name__
+    sf.flow_args.Pack(flow_args)
+    sf.runner_args.network_bytes_limit = random.randint(0, 10)
+    sf.create_time = int(rdfvalue.RDFDatetime.Now())
+    sf.MergeFrom(flows_pb2.ScheduledFlow(**kwargs))
     self.db.WriteScheduledFlow(sf)
     return sf
 
@@ -3044,14 +3115,20 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     username = db_test_utils.InitializeUser(self.db)
 
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs()
+    flow_args.paths.append("/baz")
+
+    flow_args_any = any_pb2.Any()
+    flow_args_any.Pack(flow_args)
+
     sf = self._SetupScheduledFlow(
         client_id=client_id,
         creator=username,
         scheduled_flow_id="1234123421342134",
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/baz"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(network_bytes_limit=1024),
-        create_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        flow_args=flow_args_any,
+        runner_args=flows_pb2.FlowRunnerArgs(network_bytes_limit=1024),
+        create_time=int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)),
         error="foobazzle disintegrated",
     )
 
@@ -3063,21 +3140,31 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(result.creator, username)
     self.assertEqual(result.scheduled_flow_id, "1234123421342134")
     self.assertEqual(result.flow_name, file.CollectFilesByKnownPath.__name__)
-    self.assertEqual(result.flow_args.paths, ["/baz"])
     self.assertEqual(result.runner_args.network_bytes_limit, 1024)
-    self.assertEqual(result.create_time,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
+    self.assertEqual(
+        result.create_time, int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
+    )
     self.assertEqual(result.error, "foobazzle disintegrated")
+
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs()
+    result.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.paths, ["/baz"])
 
   def testWriteMultipleScheduledFlows(self):
     client_id = db_test_utils.InitializeClient(self.db)
     username = db_test_utils.InitializeUser(self.db)
 
-    sf1 = self._SetupScheduledFlow(client_id=client_id, creator=username)
-    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    self._SetupScheduledFlow(client_id=client_id, creator=username)
+    self._SetupScheduledFlow(client_id=client_id, creator=username)
 
-    self.assertCountEqual([sf1, sf2],
-                          self.db.ListScheduledFlows(client_id, username))
+    results = self.db.ListScheduledFlows(client_id, username)
+    self.assertLen(results, 2)
+
+    self.assertEqual(results[0].client_id, client_id)
+    self.assertEqual(results[1].client_id, client_id)
+
+    self.assertEqual(results[0].creator, username)
+    self.assertEqual(results[1].creator, username)
 
   def testWriteScheduledFlowUpdatesExistingEntry(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3090,7 +3177,12 @@ class DatabaseTestFlowMixin(object):
         scheduled_flow_id=sf.scheduled_flow_id,
         error="foobar")
 
-    self.assertEqual([sf], self.db.ListScheduledFlows(client_id, username))
+    results = self.db.ListScheduledFlows(client_id, username)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id)
+    self.assertEqual(results[0].creator, username)
+    self.assertEqual(results[0].scheduled_flow_id, sf.scheduled_flow_id)
+    self.assertEqual(results[0].error, "foobar")
 
   def testListScheduledFlowsFiltersCorrectly(self):
     client_id1 = db_test_utils.InitializeClient(self.db, "C.0000000000000001")
@@ -3101,17 +3193,33 @@ class DatabaseTestFlowMixin(object):
     username2 = db_test_utils.InitializeUser(self.db)
     username3 = db_test_utils.InitializeUser(self.db)
 
-    sf11a = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
-    sf11b = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
-    sf12 = self._SetupScheduledFlow(client_id=client_id1, creator=username2)
-    sf21 = self._SetupScheduledFlow(client_id=client_id2, creator=username1)
-    sf22 = self._SetupScheduledFlow(client_id=client_id2, creator=username2)
+    self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    self._SetupScheduledFlow(client_id=client_id1, creator=username2)
+    self._SetupScheduledFlow(client_id=client_id2, creator=username1)
+    self._SetupScheduledFlow(client_id=client_id2, creator=username2)
 
-    self.assertCountEqual([sf11a, sf11b],
-                          self.db.ListScheduledFlows(client_id1, username1))
-    self.assertEqual([sf12], self.db.ListScheduledFlows(client_id1, username2))
-    self.assertEqual([sf21], self.db.ListScheduledFlows(client_id2, username1))
-    self.assertEqual([sf22], self.db.ListScheduledFlows(client_id2, username2))
+    results = self.db.ListScheduledFlows(client_id1, username1)
+    self.assertLen(results, 2)
+    self.assertEqual(results[0].client_id, client_id1)
+    self.assertEqual(results[0].creator, username1)
+    self.assertEqual(results[1].client_id, client_id1)
+    self.assertEqual(results[1].creator, username1)
+
+    results = self.db.ListScheduledFlows(client_id1, username2)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id1)
+    self.assertEqual(results[0].creator, username2)
+
+    results = self.db.ListScheduledFlows(client_id2, username1)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id2)
+    self.assertEqual(results[0].creator, username1)
+
+    results = self.db.ListScheduledFlows(client_id2, username2)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id2)
+    self.assertEqual(results[0].creator, username2)
 
     self.assertEmpty(
         self.db.ListScheduledFlows("C.1234123412341234", username1))
@@ -3154,21 +3262,34 @@ class DatabaseTestFlowMixin(object):
     username2 = db_test_utils.InitializeUser(self.db)
 
     sf111 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
-    sf112 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
-    sf211 = self._SetupScheduledFlow(
+    self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    self._SetupScheduledFlow(
         client_id=client_id2,
         creator=username1,
-        scheduled_flow_id=sf111.scheduled_flow_id)
-    sf121 = self._SetupScheduledFlow(
+        scheduled_flow_id=sf111.scheduled_flow_id,
+    )
+    self._SetupScheduledFlow(
         client_id=client_id1,
         creator=username2,
-        scheduled_flow_id=sf111.scheduled_flow_id)
+        scheduled_flow_id=sf111.scheduled_flow_id,
+    )
 
     self.db.DeleteScheduledFlow(client_id1, username1, sf111.scheduled_flow_id)
 
-    self.assertEqual([sf112], self.db.ListScheduledFlows(client_id1, username1))
-    self.assertEqual([sf211], self.db.ListScheduledFlows(client_id2, username1))
-    self.assertEqual([sf121], self.db.ListScheduledFlows(client_id1, username2))
+    results = self.db.ListScheduledFlows(client_id1, username1)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id1)
+    self.assertEqual(results[0].creator, username1)
+
+    results = self.db.ListScheduledFlows(client_id2, username1)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id2)
+    self.assertEqual(results[0].creator, username1)
+
+    results = self.db.ListScheduledFlows(client_id1, username2)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id1)
+    self.assertEqual(results[0].creator, username2)
 
   def testDeleteScheduledFlowRaisesForUnknownScheduledFlow(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3199,13 +3320,17 @@ class DatabaseTestFlowMixin(object):
     self._SetupScheduledFlow(client_id=client_id, creator=username1)
     self._SetupScheduledFlow(client_id=client_id, creator=username1)
     self._SetupScheduledFlow(client_id=client_id2, creator=username1)
-    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username2)
+    self._SetupScheduledFlow(client_id=client_id, creator=username2)
 
     self.db.DeleteGRRUser(username1)
 
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username1))
     self.assertEmpty(self.db.ListScheduledFlows(client_id2, username1))
-    self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username2))
+
+    results = self.db.ListScheduledFlows(client_id, username2)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id)
+    self.assertEqual(results[0].creator, username2)
 
 
 class DatabaseLargeTestFlowMixin(object):
@@ -3336,12 +3461,14 @@ class DatabaseLargeTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_results = [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 40001
+    client_summary_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_result.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    sample_results = [client_summary_result] * 40001
 
     self.db.WriteFlowResults(sample_results)
 
@@ -3352,12 +3479,13 @@ class DatabaseLargeTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    sample_errors = [
-        rdf_flow_objects.FlowError(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 40001
+    client_summary_error = flows_pb2.FlowError(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_error.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+    sample_errors = [client_summary_error] * 40001
 
     self.db.WriteFlowErrors(sample_errors)
 

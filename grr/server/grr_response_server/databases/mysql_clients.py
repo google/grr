@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for client handling."""
 import itertools
-from typing import Collection, Iterator, List, Mapping, Optional, Text
+from typing import Collection, Mapping, Optional, Sequence, Tuple
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
@@ -9,16 +9,15 @@ import MySQLdb.cursors
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import search as rdf_search
-from grr_response_server import fleet_utils
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
+from grr_response_server.models import clients
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import rrg as rdf_rrg
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -33,7 +32,7 @@ class MySQLDBClientMixin(object):
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
@@ -69,7 +68,7 @@ class MySQLDBClientMixin(object):
     if last_ip is not None:
       column_names.append("last_ip")
       common_placeholders.append("%(last_ip)s")
-      values["last_ip"] = last_ip.SerializeToBytes()
+      values["last_ip"] = last_ip.SerializeToString()
     if last_foreman is not None:
       column_names.append("last_foreman")
       common_placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
@@ -79,10 +78,10 @@ class MySQLDBClientMixin(object):
       column_names.append("last_fleetspeak_validation_info")
       common_placeholders.append("%(last_fleetspeak_validation_info)s")
       if fleetspeak_validation_info:
-        pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+        pb = clients.FleetspeakValidationInfoFromDict(
             fleetspeak_validation_info
         )
-        values["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+        values["last_fleetspeak_validation_info"] = pb.SerializeToString()
       else:
         # Write null for empty or non-existent validation info.
         values["last_fleetspeak_validation_info"] = None
@@ -111,7 +110,11 @@ class MySQLDBClientMixin(object):
     )
 
   @mysql_utils.WithTransaction(readonly=True)
-  def MultiReadClientMetadata(self, client_ids, cursor=None):
+  def MultiReadClientMetadata(
+      self,
+      client_ids: Collection[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Mapping[str, objects_pb2.ClientMetadata]:
     """Reads ClientMetadata records for a list of clients."""
     ids = [db_utils.ClientIDToInt(client_id) for client_id in client_ids]
     query = """
@@ -137,29 +140,43 @@ class MySQLDBClientMixin(object):
       if not row:
         break
       cid, crt, ping, clk, ip, foreman, first, lct, lst, fsvi = row
-      metadata = rdf_objects.ClientMetadata(
-          certificate=crt,
-          first_seen=mysql_utils.TimestampToRDFDatetime(first),
-          ping=mysql_utils.TimestampToRDFDatetime(ping),
-          clock=mysql_utils.TimestampToRDFDatetime(clk),
-          ip=mysql_utils.StringToRDFProto(
-              rdf_client_network.NetworkAddress, ip
-          ),
-          last_foreman_time=mysql_utils.TimestampToRDFDatetime(foreman),
-          startup_info_timestamp=mysql_utils.TimestampToRDFDatetime(lst),
-          last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(lct),
-      )
 
-      if fsvi:
-        metadata.last_fleetspeak_validation_info = (
-            rdf_client.FleetspeakValidationInfo.FromSerializedBytes(fsvi))
+      metadata = objects_pb2.ClientMetadata()
+      if crt is not None:
+        metadata.certificate = crt
+      if first is not None:
+        metadata.first_seen = int(mysql_utils.TimestampToRDFDatetime(first))
+      if ping is not None:
+        metadata.ping = int(mysql_utils.TimestampToRDFDatetime(ping))
+      if clk is not None:
+        metadata.clock = int(mysql_utils.TimestampToRDFDatetime(clk))
+      if foreman is not None:
+        metadata.last_foreman_time = int(
+            mysql_utils.TimestampToRDFDatetime(foreman)
+        )
+      if lst is not None:
+        metadata.startup_info_timestamp = int(
+            mysql_utils.TimestampToRDFDatetime(lst)
+        )
+      if lct is not None:
+        metadata.last_crash_timestamp = int(
+            mysql_utils.TimestampToRDFDatetime(lct)
+        )
+      if ip is not None:
+        metadata.ip.ParseFromString(ip)
+      if fsvi is not None:
+        metadata.last_fleetspeak_validation_info.ParseFromString(fsvi)
 
       ret[db_utils.IntToClientID(cid)] = metadata
 
     return ret
 
   @mysql_utils.WithTransaction()
-  def WriteClientSnapshot(self, snapshot, cursor=None):
+  def WriteClientSnapshot(
+      self,
+      snapshot: rdf_objects.ClientSnapshot,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Write new client snapshot."""
     cursor.execute("SET @now = NOW(6)")
 
@@ -171,16 +188,12 @@ class MySQLDBClientMixin(object):
         "startup_info) VALUES(%s, @now, %s)")
 
     client_info = {
-        "last_version_string": snapshot.GetGRRVersionString(),
         "last_platform": snapshot.knowledge_base.os,
-        "last_platform_release": snapshot.Uname(),
     }
     update_clauses = [
         "last_snapshot_timestamp = @now",
         "last_startup_timestamp = @now",
-        "last_version_string = %(last_version_string)s",
         "last_platform = %(last_platform)s",
-        "last_platform_release = %(last_platform_release)s",
     ]
 
     update_query = (
@@ -190,24 +203,35 @@ class MySQLDBClientMixin(object):
     int_client_id = db_utils.ClientIDToInt(snapshot.client_id)
     client_info["client_id"] = int_client_id
 
-    startup_info = snapshot.startup_info
-    snapshot.startup_info = None
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.CopyFrom(snapshot.startup_info)
+
+    snapshot_without_startup_info = objects_pb2.ClientSnapshot()
+    snapshot_without_startup_info.CopyFrom(snapshot)
+    snapshot_without_startup_info.ClearField("startup_info")
+
     try:
-      cursor.execute(insert_history_query,
-                     (int_client_id, snapshot.SerializeToBytes()))
-      cursor.execute(insert_startup_query,
-                     (int_client_id, startup_info.SerializeToBytes()))
+      cursor.execute(
+          insert_history_query,
+          (int_client_id, snapshot_without_startup_info.SerializeToString()),
+      )
+      cursor.execute(
+          insert_startup_query,
+          (int_client_id, startup_info.SerializeToString()),
+      )
       cursor.execute(update_query, client_info)
     except MySQLdb.IntegrityError as e:
       if e.args and e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:
         raise db.UnknownClientError(snapshot.client_id, cause=e)
       else:
         raise
-    finally:
-      snapshot.startup_info = startup_info
 
   @mysql_utils.WithTransaction(readonly=True)
-  def MultiReadClientSnapshot(self, client_ids, cursor=None):
+  def MultiReadClientSnapshot(
+      self,
+      client_ids: Collection[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Reads the latest client snapshots for a list of clients."""
     if not client_ids:
       return {}
@@ -231,17 +255,35 @@ class MySQLDBClientMixin(object):
       row = cursor.fetchone()
       if not row:
         break
-      cid, snapshot, timestamp, startup_info = row
-      client_obj = mysql_utils.StringToRDFProto(rdf_objects.ClientSnapshot,
-                                                snapshot)
-      client_obj.startup_info = mysql_utils.StringToRDFProto(
-          rdf_client.StartupInfo, startup_info)
-      client_obj.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
-      ret[db_utils.IntToClientID(cid)] = client_obj
+
+      int_client_id, snapshot_bytes, timestamp, startup_bytes = row
+      client_id = db_utils.IntToClientID(int_client_id)
+
+      if snapshot_bytes is None:
+        continue
+
+      snapshot = objects_pb2.ClientSnapshot()
+      snapshot.ParseFromString(snapshot_bytes)
+
+      if startup_bytes is not None:
+        snapshot.startup_info.ParseFromString(startup_bytes)
+
+      snapshot.timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+          timestamp
+      )
+
+      ret[client_id] = snapshot
     return ret
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientSnapshotHistory(self, client_id, timerange=None, cursor=None):
+  def ReadClientSnapshotHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
 
     client_id_int = db_utils.ClientIDToInt(client_id)
@@ -270,84 +312,30 @@ class MySQLDBClientMixin(object):
 
     ret = []
     cursor.execute(query, args)
-    for snapshot, startup_info, timestamp in cursor.fetchall():
-      client = rdf_objects.ClientSnapshot.FromSerializedBytes(snapshot)
-      client.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
-          startup_info)
-      client.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
+    for snapshot_bytes, startup_bytes, timestamp in cursor.fetchall():
+      snapshot = objects_pb2.ClientSnapshot()
+      snapshot.ParseFromString(snapshot_bytes)
+      snapshot.startup_info.ParseFromString(startup_bytes)
+      snapshot.timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+          timestamp
+      )
 
-      ret.append(client)
+      ret.append(snapshot)
     return ret
 
   @mysql_utils.WithTransaction()
-  def WriteClientSnapshotHistory(self, clients, cursor=None):
-    """Writes the full history for a particular client."""
-    client_id = clients[0].client_id
-    latest_timestamp = max(client.timestamp for client in clients)
-
-    base_params = {
-        "client_id": db_utils.ClientIDToInt(client_id),
-        "latest_timestamp": mysql_utils.RDFDatetimeToTimestamp(latest_timestamp)
-    }
-
-    try:
-      for client in clients:
-        startup_info = client.startup_info
-        client.startup_info = None
-
-        params = base_params.copy()
-        params.update({
-            "timestamp": mysql_utils.RDFDatetimeToTimestamp(client.timestamp),
-            "client_snapshot": client.SerializeToBytes(),
-            "startup_info": startup_info.SerializeToBytes(),
-        })
-
-        cursor.execute(
-            """
-        INSERT INTO client_snapshot_history (client_id, timestamp,
-                                             client_snapshot)
-        VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp)s),
-                %(client_snapshot)s)
-        """, params)
-
-        cursor.execute(
-            """
-        INSERT INTO client_startup_history (client_id, timestamp,
-                                            startup_info)
-        VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp)s),
-                %(startup_info)s)
-        """, params)
-
-        client.startup_info = startup_info
-
-      cursor.execute(
-          """
-      UPDATE clients
-         SET last_snapshot_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
-       WHERE client_id = %(client_id)s
-         AND (last_snapshot_timestamp IS NULL OR
-              last_snapshot_timestamp < FROM_UNIXTIME(%(latest_timestamp)s))
-      """, base_params)
-
-      cursor.execute(
-          """
-      UPDATE clients
-         SET last_startup_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
-       WHERE client_id = %(client_id)s
-         AND (last_startup_timestamp IS NULL OR
-              last_startup_timestamp < FROM_UNIXTIME(%(latest_timestamp)s))
-      """, base_params)
-    except MySQLdb.IntegrityError as error:
-      raise db.UnknownClientError(client_id, cause=error)
-
-  @mysql_utils.WithTransaction()
-  def WriteClientStartupInfo(self, client_id, startup_info, cursor=None):
+  def WriteClientStartupInfo(
+      self,
+      client_id: str,
+      startup_info: jobs_pb2.StartupInfo,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Writes a new client startup record."""
     cursor.execute("SET @now = NOW(6)")
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
-        "startup_info": startup_info.SerializeToBytes(),
+        "startup_info": startup_info.SerializeToString(),
     }
 
     try:
@@ -429,8 +417,8 @@ class MySQLDBClientMixin(object):
   def ReadClientStartupInfo(
       self,
       client_id: str,
-      cursor: Optional[MySQLdb.cursors.Cursor] = None
-  ) -> Optional[rdf_client.StartupInfo]:
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Optional[jobs_pb2.StartupInfo]:
     """Reads the latest client startup record for a single client."""
     query = """
     SELECT startup_info, UNIX_TIMESTAMP(timestamp)
@@ -449,45 +437,10 @@ class MySQLDBClientMixin(object):
       return None
 
     startup_info, timestamp = row
-    res = rdf_client.StartupInfo.FromSerializedBytes(startup_info)
-    res.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
+    res = jobs_pb2.StartupInfo()
+    res.ParseFromString(startup_info)
+    res.timestamp = int(mysql_utils.TimestampToRDFDatetime(timestamp))
     return res
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientStartupInfoHistory(self,
-                                   client_id,
-                                   timerange=None,
-                                   cursor=None):
-    """Reads the full startup history for a particular client."""
-
-    client_id_int = db_utils.ClientIDToInt(client_id)
-
-    query = ("SELECT startup_info, UNIX_TIMESTAMP(timestamp) "
-             "FROM client_startup_history "
-             "WHERE client_id=%s ")
-    args = [client_id_int]
-
-    if timerange:
-      time_from, time_to = timerange  # pylint: disable=unpacking-non-sequence
-
-      if time_from is not None:
-        query += "AND timestamp >= FROM_UNIXTIME(%s) "
-        args.append(mysql_utils.RDFDatetimeToTimestamp(time_from))
-
-      if time_to is not None:
-        query += "AND timestamp <= FROM_UNIXTIME(%s) "
-        args.append(mysql_utils.RDFDatetimeToTimestamp(time_to))
-
-    query += "ORDER BY timestamp DESC "
-
-    ret = []
-    cursor.execute(query, args)
-
-    for startup_info, timestamp in cursor.fetchall():
-      si = rdf_client.StartupInfo.FromSerializedBytes(startup_info)
-      si.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
-      ret.append(si)
-    return ret
 
   def _ResponseToClientsFullInfo(self, response):
     """Creates a ClientFullInfo object from a database response."""
@@ -517,67 +470,75 @@ class MySQLDBClientMixin(object):
         if c_full_info:
           yield db_utils.IntToClientID(prev_cid), c_full_info
 
-        metadata = rdf_objects.ClientMetadata(
-            certificate=crt,
-            first_seen=mysql_utils.TimestampToRDFDatetime(first),
-            ping=mysql_utils.TimestampToRDFDatetime(ping),
-            clock=mysql_utils.TimestampToRDFDatetime(clk),
-            ip=mysql_utils.StringToRDFProto(rdf_client_network.NetworkAddress,
-                                            ip),
-            last_foreman_time=mysql_utils.TimestampToRDFDatetime(foreman),
-            startup_info_timestamp=mysql_utils.TimestampToRDFDatetime(
-                last_startup_ts),
-            last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(
-                last_crash_ts))
+        c_full_info = objects_pb2.ClientFullInfo()
+
+        if crt is not None:
+          c_full_info.metadata.certificate = crt
+        if first is not None:
+          c_full_info.metadata.first_seen = int(
+              mysql_utils.TimestampToRDFDatetime(first)
+          )
+        if ping is not None:
+          c_full_info.metadata.ping = int(
+              mysql_utils.TimestampToRDFDatetime(ping)
+          )
+        if clk is not None:
+          c_full_info.metadata.clock = int(
+              mysql_utils.TimestampToRDFDatetime(clk)
+          )
+        if foreman is not None:
+          c_full_info.metadata.last_foreman_time = int(
+              mysql_utils.TimestampToRDFDatetime(foreman)
+          )
+        if last_startup_ts is not None:
+          c_full_info.metadata.startup_info_timestamp = int(
+              mysql_utils.TimestampToRDFDatetime(last_startup_ts)
+          )
+        if last_crash_ts is not None:
+          c_full_info.metadata.last_crash_timestamp = int(
+              mysql_utils.TimestampToRDFDatetime(last_crash_ts)
+          )
+        if ip is not None:
+          c_full_info.metadata.ip.ParseFromString(ip)
 
         if client_obj is not None:
-          l_snapshot = rdf_objects.ClientSnapshot.FromSerializedBytes(
-              client_obj)
-          l_snapshot.timestamp = mysql_utils.TimestampToRDFDatetime(
-              last_client_ts)
-          l_snapshot.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
-              client_startup_obj)
-          l_snapshot.startup_info.timestamp = l_snapshot.timestamp
-        else:
-          l_snapshot = rdf_objects.ClientSnapshot(
-              client_id=db_utils.IntToClientID(cid))
-
-        if last_startup_obj is not None:
-          startup_info = rdf_client.StartupInfo.FromSerializedBytes(
-              last_startup_obj)
-          startup_info.timestamp = mysql_utils.TimestampToRDFDatetime(
-              last_startup_ts)
-        else:
-          startup_info = None
-
-        if last_rrg_startup_obj is not None:
-          last_rrg_startup = rdf_rrg.Startup.FromSerializedBytes(
-              last_rrg_startup_obj,
+          c_full_info.last_snapshot.ParseFromString(client_obj)
+          c_full_info.last_snapshot.timestamp = int(
+              mysql_utils.TimestampToRDFDatetime(last_client_ts)
+          )
+          c_full_info.last_snapshot.startup_info.ParseFromString(
+              client_startup_obj
+          )
+          c_full_info.last_snapshot.startup_info.timestamp = (
+              c_full_info.last_snapshot.timestamp
           )
         else:
-          last_rrg_startup = None
+          c_full_info.last_snapshot.client_id = db_utils.IntToClientID(cid)
+
+        if last_startup_obj is not None:
+          c_full_info.last_startup_info.ParseFromString(last_startup_obj)
+          c_full_info.last_startup_info.timestamp = int(
+              mysql_utils.TimestampToRDFDatetime(last_startup_ts)
+          )
+
+        if last_rrg_startup_obj is not None:
+          c_full_info.last_rrg_startup.ParseFromString(last_rrg_startup_obj)
 
         prev_cid = cid
-        c_full_info = rdf_objects.ClientFullInfo(
-            metadata=metadata,
-            labels=[],
-            last_snapshot=l_snapshot,
-            last_startup_info=startup_info,
-            last_rrg_startup=last_rrg_startup,
-        )
 
       if label_owner and label_name:
-        c_full_info.labels.append(
-            rdf_objects.ClientLabel(name=label_name, owner=label_owner))
+        c_full_info.labels.add(name=label_name, owner=label_owner)
 
     if c_full_info:
       yield db_utils.IntToClientID(prev_cid), c_full_info
 
   @mysql_utils.WithTransaction(readonly=True)
-  def MultiReadClientFullInfo(self,
-                              client_ids,
-                              min_last_ping=None,
-                              cursor=None):
+  def MultiReadClientFullInfo(
+      self,
+      client_ids: Collection[str],
+      min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Mapping[str, objects_pb2.ClientFullInfo]:
     """Reads full client information for a list of clients."""
     if not client_ids:
       return {}
@@ -709,7 +670,12 @@ class MySQLDBClientMixin(object):
       raise db.AtLeastOneUnknownClientError(client_ids) from error
 
   @mysql_utils.WithTransaction()
-  def RemoveClientKeyword(self, client_id, keyword, cursor=None):
+  def RemoveClientKeyword(
+      self,
+      client_id: str,
+      keyword: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Removes the association of a particular client to a keyword."""
     cursor.execute(
         "DELETE FROM client_keywords "
@@ -718,7 +684,12 @@ class MySQLDBClientMixin(object):
          mysql_utils.Hash(keyword)])
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ListClientsForKeywords(self, keywords, start_time=None, cursor=None):
+  def ListClientsForKeywords(
+      self,
+      keywords: Collection[str],
+      start_time: Optional[rdfvalue.RDFDatetime] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Mapping[str, Collection[str]]:
     """Lists the clients associated with keywords."""
     keywords = set(keywords)
     hash_to_kw = {mysql_utils.Hash(kw): kw for kw in keywords}
@@ -776,7 +747,11 @@ class MySQLDBClientMixin(object):
       raise db.AtLeastOneUnknownClientError(client_ids) from error
 
   @mysql_utils.WithTransaction(readonly=True)
-  def MultiReadClientLabels(self, client_ids, cursor=None):
+  def MultiReadClientLabels(
+      self,
+      client_ids: Collection[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Mapping[str, Sequence[objects_pb2.ClientLabel]]:
     """Reads the user labels for a list of clients."""
 
     int_ids = [db_utils.ClientIDToInt(cid) for cid in client_ids]
@@ -789,14 +764,22 @@ class MySQLDBClientMixin(object):
     cursor.execute(query, int_ids)
     for client_id, owner, label in cursor.fetchall():
       ret[db_utils.IntToClientID(client_id)].append(
-          rdf_objects.ClientLabel(name=label, owner=owner))
+          objects_pb2.ClientLabel(name=label, owner=owner)
+      )
 
     for r in ret.values():
       r.sort(key=lambda label: (label.owner, label.name))
+
     return ret
 
   @mysql_utils.WithTransaction()
-  def RemoveClientLabels(self, client_id, owner, labels, cursor=None):
+  def RemoveClientLabels(
+      self,
+      client_id: str,
+      owner: str,
+      labels: Sequence[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Removes a list of user labels from a given client."""
 
     query = ("DELETE FROM client_labels "
@@ -821,13 +804,18 @@ class MySQLDBClientMixin(object):
     return result
 
   @mysql_utils.WithTransaction()
-  def WriteClientCrashInfo(self, client_id, crash_info, cursor=None):
+  def WriteClientCrashInfo(
+      self,
+      client_id: str,
+      crash_info: jobs_pb2.ClientCrash,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Writes a new client crash record."""
     cursor.execute("SET @now = NOW(6)")
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
-        "crash_info": crash_info.SerializeToBytes(),
+        "crash_info": crash_info.SerializeToString(),
     }
 
     try:
@@ -848,7 +836,11 @@ class MySQLDBClientMixin(object):
       raise db.UnknownClientError(client_id, cause=e)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientCrashInfo(self, client_id, cursor=None):
+  def ReadClientCrashInfo(
+      self,
+      client_id: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Optional[jobs_pb2.ClientCrash]:
     """Reads the latest client crash record for a single client."""
     cursor.execute(
         "SELECT UNIX_TIMESTAMP(timestamp), crash_info "
@@ -861,12 +853,17 @@ class MySQLDBClientMixin(object):
       return None
 
     timestamp, crash_info = row
-    res = rdf_client.ClientCrash.FromSerializedBytes(crash_info)
-    res.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
+    res = jobs_pb2.ClientCrash()
+    res.ParseFromString(crash_info)
+    res.timestamp = int(mysql_utils.TimestampToRDFDatetime(timestamp))
     return res
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientCrashInfoHistory(self, client_id, cursor=None):
+  def ReadClientCrashInfoHistory(
+      self,
+      client_id: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Sequence[rdf_client.ClientCrash]:
     """Reads the full crash history for a particular client."""
     cursor.execute(
         "SELECT UNIX_TIMESTAMP(timestamp), crash_info "
@@ -875,195 +872,18 @@ class MySQLDBClientMixin(object):
         "ORDER BY timestamp DESC", [db_utils.ClientIDToInt(client_id)])
     ret = []
     for timestamp, crash_info in cursor.fetchall():
-      ci = rdf_client.ClientCrash.FromSerializedBytes(crash_info)
-      ci.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
+      ci = jobs_pb2.ClientCrash()
+      ci.ParseFromString(crash_info)
+      ci.timestamp = int(mysql_utils.TimestampToRDFDatetime(timestamp))
       ret.append(ci)
     return ret
 
   @mysql_utils.WithTransaction()
-  def WriteClientStats(self,
-                       client_id: Text,
-                       stats: rdf_client_stats.ClientStats,
-                       cursor=None) -> None:
-    """Stores a ClientStats instance."""
-
-    if stats.timestamp is None:
-      stats.timestamp = rdfvalue.RDFDatetime.Now()
-
-    try:
-      cursor.execute(
-          """
-          INSERT INTO client_stats (client_id, payload, timestamp)
-          VALUES (%s, %s, FROM_UNIXTIME(%s))
-          ON DUPLICATE KEY UPDATE payload=VALUES(payload)
-          """, [
-              db_utils.ClientIDToInt(client_id),
-              stats.SerializeToBytes(),
-              mysql_utils.RDFDatetimeToTimestamp(stats.timestamp)
-          ])
-    except MySQLdb.IntegrityError as e:
-      if e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:
-        raise db.UnknownClientError(client_id, cause=e)
-      else:
-        raise
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientStats(self,
-                      client_id: Text,
-                      min_timestamp: rdfvalue.RDFDatetime,
-                      max_timestamp: rdfvalue.RDFDatetime,
-                      cursor=None) -> List[rdf_client_stats.ClientStats]:
-    """Reads ClientStats for a given client and time range."""
-
-    cursor.execute(
-        """
-        SELECT payload FROM client_stats
-        WHERE client_id = %s
-          AND timestamp BETWEEN FROM_UNIXTIME(%s) AND FROM_UNIXTIME(%s)
-        ORDER BY timestamp ASC
-        """, [
-            db_utils.ClientIDToInt(client_id),
-            mysql_utils.RDFDatetimeToTimestamp(min_timestamp),
-            mysql_utils.RDFDatetimeToTimestamp(max_timestamp)
-        ])
-    return [
-        rdf_client_stats.ClientStats.FromSerializedBytes(stats_bytes)
-        for stats_bytes, in cursor.fetchall()
-    ]
-
-  # DeleteOldClientStats does not use a single transaction, since it runs for
-  # a long time. Instead, it uses multiple transactions internally.
-  def DeleteOldClientStats(
+  def DeleteClient(
       self,
-      cutoff_time: rdfvalue.RDFDatetime,
-      batch_size: Optional[int] = None,
-  ) -> Iterator[int]:
-    """Deletes client stats older than the specified cutoff time."""
-    if batch_size is None:
-      batch_size = db.CLIENT_IDS_BATCH_SIZE
-
-    while True:
-      deleted_count = self._DeleteClientStatsBatch(cutoff_time, batch_size)
-
-      # Do not yield a trailing 0 which occurs when an exact multiple of
-      # `yield_after_count` rows were in the table.
-      if deleted_count > 0:
-        yield deleted_count
-      else:
-        break
-
-  @mysql_utils.WithTransaction()
-  def _DeleteClientStatsBatch(
-      self,
-      cutoff_time: rdfvalue.RDFDatetime,
-      batch_size: int,
+      client_id: str,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> int:
-    """Deletes up to `limit` ClientStats older than `retention_time`."""
-    cursor.execute(
-        "DELETE FROM client_stats WHERE timestamp < FROM_UNIXTIME(%s) LIMIT %s",
-        [mysql_utils.RDFDatetimeToTimestamp(cutoff_time), batch_size])
-    return cursor.rowcount
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def CountClientVersionStringsByLabel(self, day_buckets, cursor):
-    """Computes client-activity stats for all GRR versions in the DB."""
-    return self._CountClientStatisticByLabel("last_version_string", day_buckets,
-                                             cursor)
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def CountClientPlatformsByLabel(self, day_buckets, cursor):
-    """Computes client-activity stats for all client platforms in the DB."""
-    return self._CountClientStatisticByLabel("last_platform", day_buckets,
-                                             cursor)
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def CountClientPlatformReleasesByLabel(self, day_buckets, cursor):
-    """Computes client-activity stats for OS-release strings in the DB."""
-    return self._CountClientStatisticByLabel("last_platform_release",
-                                             day_buckets, cursor)
-
-  def _CountClientStatisticByLabel(self, statistic, day_buckets, cursor):
-    """Returns client-activity metrics for a given statistic.
-
-    Args:
-      statistic: The name of the statistic, which should also be a column in the
-        'clients' table.
-      day_buckets: A set of n-day-active buckets.
-      cursor: MySQL cursor for executing queries.
-    """
-    day_buckets = sorted(day_buckets)
-    sum_clauses = []
-    ping_cast_clauses = []
-    timestamp_buckets = []
-    now = rdfvalue.RDFDatetime.Now()
-
-    for day_bucket in day_buckets:
-      column_name = "days_active_{}".format(day_bucket)
-      sum_clauses.append(
-          "CAST(SUM({0}) AS UNSIGNED) AS {0}".format(column_name))
-      ping_cast_clauses.append(
-          "CAST(c.last_ping > FROM_UNIXTIME(%s) AS UNSIGNED) AS {}".format(
-              column_name))
-      timestamp_bucket = now - rdfvalue.Duration.From(day_bucket, rdfvalue.DAYS)
-      timestamp_buckets.append(
-          mysql_utils.RDFDatetimeToTimestamp(timestamp_bucket))
-
-    # Count all clients with a label owned by 'GRR', aggregating by label.
-    query = """
-    SELECT j.{statistic}, j.label, {sum_clauses}
-    FROM (
-      SELECT c.{statistic} AS {statistic}, l.label AS label, {ping_cast_clauses}
-      FROM clients c
-      LEFT JOIN client_labels l USING(client_id)
-      WHERE c.last_ping IS NOT NULL AND l.owner_username = 'GRR'
-    ) AS j
-    GROUP BY j.{statistic}, j.label
-    """.format(
-        statistic=statistic,
-        sum_clauses=", ".join(sum_clauses),
-        ping_cast_clauses=", ".join(ping_cast_clauses))
-
-    cursor.execute(query, timestamp_buckets)
-
-    fleet_stats_builder = fleet_utils.FleetStatsBuilder(day_buckets)
-    for response_row in cursor.fetchall():
-      statistic_value, client_label = response_row[:2]
-      for i, num_actives in enumerate(response_row[2:]):
-        if num_actives <= 0:
-          continue
-        fleet_stats_builder.IncrementLabel(
-            client_label, statistic_value, day_buckets[i], delta=num_actives)
-
-    # Get n-day-active totals for the statistic across all clients (including
-    # those that do not have a 'GRR' label).
-    query = """
-    SELECT j.{statistic}, {sum_clauses}
-    FROM (
-      SELECT c.{statistic} AS {statistic}, {ping_cast_clauses}
-      FROM clients c
-      WHERE c.last_ping IS NOT NULL
-    ) AS j
-    GROUP BY j.{statistic}
-    """.format(
-        statistic=statistic,
-        sum_clauses=", ".join(sum_clauses),
-        ping_cast_clauses=", ".join(ping_cast_clauses))
-
-    cursor.execute(query, timestamp_buckets)
-
-    for response_row in cursor.fetchall():
-      statistic_value = response_row[0]
-      for i, num_actives in enumerate(response_row[1:]):
-        if num_actives <= 0:
-          continue
-        fleet_stats_builder.IncrementTotal(
-            statistic_value, day_buckets[i], delta=num_actives)
-
-    return fleet_stats_builder.Build()
-
-  @mysql_utils.WithTransaction()
-  def DeleteClient(self, client_id, cursor=None):
+  ) -> None:
     """Deletes a client with all associated metadata."""
     cursor.execute("SELECT COUNT(*) FROM clients WHERE client_id = %s",
                    [db_utils.ClientIDToInt(client_id)])

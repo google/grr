@@ -14,7 +14,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   reason = u"Cóż, po prostu taką miałem zachciankę."
 
   def _ScheduleCronJob(self):
-    cron_job_id = cron_system.OSBreakDownCronJob.__name__
+    cron_job_id = cron_system.InterrogateClientsCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
     cronjobs.CronManager().DisableJob(cron_job_id)
     return cron_job_id
@@ -66,7 +66,9 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "The user %s has requested" % self.test_username)
 
     # Cron job overview should be visible
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
     self.WaitUntil(self.IsTextPresent, "Frequency")
 
     self.Click("css=button:contains('Approve')")
@@ -82,7 +84,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "a cron job')")
     self.Click("css=tr:contains('has granted you access') a")
 
-    # Enable OSBreakDownCronJob (it should be selected by default).
+    # Enable InterrogateClientsCronJob (it should be selected by default).
     self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable and wait for dialog again.
@@ -115,9 +117,11 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # Wait for modal backdrop to go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
 
-    # Enable OSBreakDownCronJob (it should be selected by default).
+    # Enable InterrogateClientsCronJob (it should be selected by default).
     self.Click("css=button[name=EnableCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to ENABLE this cron job?")
@@ -136,7 +140,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
 
-    # Select and enable OSBreakDownCronJob.
+    # Select and enable InterrogateClientsCronJob.
     self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable button and check that dialog appears.

@@ -6,8 +6,14 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {newClientApproval} from '../../../lib/models/model_test_util';
 import {HomePageGlobalStore} from '../../../store/home_page_global_store';
 import {RecentClientFlowsLocalStore} from '../../../store/recent_client_flows_local_store';
-import {mockRecentClientFlowsLocalStore, RecentClientFlowsLocalStoreMock} from '../../../store/recent_client_flows_local_store_test_util';
-import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
+import {
+  mockRecentClientFlowsLocalStore,
+  RecentClientFlowsLocalStoreMock,
+} from '../../../store/recent_client_flows_local_store_test_util';
+import {
+  injectMockStore,
+  STORE_PROVIDERS,
+} from '../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../testing';
 
 import {RecentActivityModule} from './module';
@@ -16,8 +22,7 @@ import {RecentActivity} from './recent_activity';
 initTestEnvironment();
 
 @Component({template: ''})
-class DummyComponent {
-}
+class DummyComponent {}
 
 describe('RecentActivity Component', () => {
   let recentClientFlowsLocalStore: RecentClientFlowsLocalStoreMock;
@@ -25,28 +30,24 @@ describe('RecentActivity Component', () => {
   beforeEach(waitForAsync(() => {
     recentClientFlowsLocalStore = mockRecentClientFlowsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            RecentActivityModule,
-            RouterTestingModule.withRoutes(
-                [{path: 'clients', component: DummyComponent}]),
-            NoopAnimationsModule,
-          ],
-          declarations: [
-            DummyComponent,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        // The child component RecentClientFlows provides their own Store,
-        // needing a super-override in all tests of components that include it.
-        .overrideProvider(
-            RecentClientFlowsLocalStore,
-            {useFactory: () => recentClientFlowsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        RecentActivityModule,
+        RouterTestingModule.withRoutes([
+          {path: 'clients', component: DummyComponent},
+        ]),
+        NoopAnimationsModule,
+      ],
+      declarations: [DummyComponent],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    })
+      // The child component RecentClientFlows provides their own Store,
+      // needing a super-override in all tests of components that include it.
+      .overrideProvider(RecentClientFlowsLocalStore, {
+        useFactory: () => recentClientFlowsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('renders title when loaded', () => {
@@ -58,11 +59,12 @@ describe('RecentActivity Component', () => {
 
   it('displays recently accessed clients', () => {
     const fixture = TestBed.createComponent(RecentActivity);
-    injectMockStore(HomePageGlobalStore)
-        .mockedObservables.recentClientApprovals$.next([
-          newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
-          newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
-        ]);
+    injectMockStore(
+      HomePageGlobalStore,
+    ).mockedObservables.recentClientApprovals$.next([
+      newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
+      newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
+    ]);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -72,10 +74,11 @@ describe('RecentActivity Component', () => {
 
   it('shows approval information for recently accessed clients', () => {
     const fixture = TestBed.createComponent(RecentActivity);
-    injectMockStore(HomePageGlobalStore)
-        .mockedObservables.recentClientApprovals$.next([
-          newClientApproval({status: {type: 'valid'}}),
-        ]);
+    injectMockStore(
+      HomePageGlobalStore,
+    ).mockedObservables.recentClientApprovals$.next([
+      newClientApproval({status: {type: 'valid'}}),
+    ]);
     recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
@@ -85,14 +88,15 @@ describe('RecentActivity Component', () => {
 
   it('only shows unique clients in recently accessed clients', () => {
     const fixture = TestBed.createComponent(RecentActivity);
-    injectMockStore(HomePageGlobalStore)
-        .mockedObservables.recentClientApprovals$.next([
-          newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
-          newClientApproval({
-            clientId: 'C.1111',
-            status: {type: 'pending', reason: 'Need 1 more approver'}
-          })
-        ]);
+    injectMockStore(
+      HomePageGlobalStore,
+    ).mockedObservables.recentClientApprovals$.next([
+      newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
+      newClientApproval({
+        clientId: 'C.1111',
+        status: {type: 'pending', reason: 'Need 1 more approver'},
+      }),
+    ]);
     recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
