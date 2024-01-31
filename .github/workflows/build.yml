@@ -229,9 +229,7 @@ jobs:
           path: /tmp/grr_base_image.tar
           retention-days: 3
     
-
   docker-compose-e2e-test:
-    if: ${{ github.event_name == 'push' }}
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -290,6 +288,7 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-22.04
     needs:
+      - test-ubuntu
       - docker-compose-e2e-test
     steps:
       - uses: actions/checkout@v4
@@ -302,27 +301,30 @@ jobs:
         run: |
           docker load --input /tmp/grr_base_image.tar
       - name: Login to GitHub Container registry
-        if: ${{ github.event_name == 'push' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker image
-        if: ${{ github.event_name == 'push' }}
         run: |
           # Remove the tag used to identify the image for testing again.
           docker rmi ${{ env.DOCKER_REPOSITORY }}:testing
           docker push --all-tags ${{ env.DOCKER_REPOSITORY }}
 
   upload-artifacts:
-    if: ${{ github.event_name == 'push' }}
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-22.04
     needs:
       - docker-compose-e2e-test
+      - test-ubuntu
+      - build-centos
+      - build-ubuntu
+      - build-osx
+      - build-windows
+      - build-openapi
     steps:
       - uses: actions/checkout@v4
       - name: Download installers from GitHub artifacts
@@ -357,6 +359,10 @@ jobs:
           destination: ${{ env.GCS_BUCKET }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
+      - name: Replace ${{ env.GCS_LATEST_PATH }} folder in GCS
+        run: |
+          gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
+          gsutil cp -r $OUTPUT_DIR/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
       - name: Upload OpenAPI to GCS
         uses: google-github-actions/upload-cloud-storage@v1.0.0
         with:
@@ -364,4 +370,3 @@ jobs:
           destination: ${{ env.GCS_BUCKET_OPENAPI }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
-
