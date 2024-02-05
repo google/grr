@@ -157,12 +157,12 @@
       </div>
 
       <div *ngIf="showDuration" class="duration">
-        <div *ngIf="!showDurationInput">
+        <div *ngIf="!showDurationInput" class="durationLabel">
           <ng-container *ngIf="defaultAccessDurationDays$ | async as defaultAccessDurationDays">
             Default duration: {{ defaultAccessDurationDays }} days.
           </ng-container>
-          <a class="changeDuration" *ngIf="editableDuration" id="showDurationInputButton" (click)="toggleDurationInputField()" type="button">
-            Change duration<mat-icon matTooltip="Change duration" class="edit-icon">edit</mat-icon>
+          <a class="changeDuration app-link" *ngIf="editableDuration" id="showDurationInputButton" (click)="toggleDurationInputField()" type="button">
+            <mat-icon matTooltip="Change duration" class="edit-icon">edit</mat-icon> Change duration
           </a>
         </div>
         <div *ngIf="showDurationInput" class="durationInput">

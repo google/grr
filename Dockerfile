@@ -2,78 +2,91 @@
 #
 # See https://hub.docker.com/r/grrdocker/grr/
 #
-# We have configured Travis to trigger an image build every time a new server
-# deb is been uploaded to GCS.
+# We have configured Github Actions to trigger an image build every
+# time a new a PUSH happens in the GRR github repository.
 #
-# Run the container with:
+# Examples:
+# - Run a grr server component (e.g. admin_ui):
 #
-# docker run \
-#    -e EXTERNAL_HOSTNAME="localhost" \
-#    -e ADMIN_PASSWORD="demo" \
-#    -p 0.0.0.0:8000:8000 \
-#    -p 0.0.0.0:8080:8080 \
-#    grrdocker/grr
+#   $ docker run -it \
+#       -v $(pwd)/docker_config_files/server:/configs \
+#       ghcr.io/google/grr:latest \
+#       "-component" "admin_ui" \
+#       "-config" "/configs/grr.server.yaml"
+#
+# - Run the grr client component:
+#   -- Start the container and mount the client config directory:
+#       $ docker run -it \
+#          -v $(pwd)/docker_config_files/client:/configs \
+#          --entrypoint /bin/bash \
+#          ghcr.io/google/grr:latest
+#
+#   -- The previous command will leave you with an open shell in
+#      the container. Repack the client template and install the
+#      resulting debian file inside the container:
+#       root@<CONTAINER ID> $ /configs/repack_install_client.sh
+#
+#   -- Start fleetspeak and grr clients:
+#       root@<CONTAINER ID> $ fleetspeak-client -config /configs/client.config
+#
+#   -- (Optional) To verify if the client runs, check if the two expected
+#      processes are running:
+#       root@<CONTAINER ID> $ ps aux
+#             ...        COMMAND
+#             ...        fleetspeak-client -config /configs/client.config
+#             ...        python -m grr_response_client.client ...
 
-FROM mariadb:jammy
+FROM ubuntu:22.04
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
-ARG GCS_BUCKET
-ARG GRR_COMMIT
-
-ENV GRR_VENV /usr/share/grr-server
 ENV DEBIAN_FRONTEND noninteractive
 # Buffering output (sometimes indefinitely if a thread is stuck in
 # a loop) makes for a non-optimal user experience when containers
 # are run in the foreground, so we disable that.
-ENV PYTHONUNBUFFERED=0
-
-SHELL ["/bin/bash", "-c"]
+ENV PYTHONUNBUFFERED 0
 
 RUN apt-get update && \
   apt-get install -y \
-  debhelper \
   default-jre \
-  dpkg-dev \
-  git \
-  libffi-dev \
-  libssl-dev \
+  python-is-python3 \
   python3-dev \
   python3-pip \
   python3-venv \
   python3-mysqldb \
-  rpm \
-  wget \
-  zip \
-  python3-mysqldb
+  build-essential \
+  linux-headers-generic \
+  dh-make \
+  rpm
 
-# Limiting setuptools version due to
-# https://github.com/pypa/setuptools/issues/3278
-# (it behaves incorrectly on Ubuntu 22 on virtualenvs with access to
-# globally installed packages).
-RUN pip3 install --upgrade 'setuptools<58.3.1' && \
-    python3 -m venv --system-site-packages $GRR_VENV
+# Copy the client installers to the image, only available when
+# building as part of Github Actions.
+COPY ./_installers* /client_templates
 
-RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir pip wheel six setuptools nodeenv && \
-    $GRR_VENV/bin/nodeenv -p --prebuilt --node=16.13.0 && \
-    echo '{ "allow_root": true }' > /root/.bowerrc
+ENV VIRTUAL_ENV /usr/share/grr-server
+ENV GRR_SOURCE /usr/src/grr
 
-# Copy the GRR code over.
-ADD . /usr/src/grr
+RUN python -m venv --system-site-packages $VIRTUAL_ENV
+ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
 
-RUN cd /usr/src/grr && bash -x /usr/src/grr/docker/install_grr_from_gcs.sh
+RUN ${VIRTUAL_ENV}/bin/python -m pip install wheel nodeenv grpcio-tools==1.60
 
-ENTRYPOINT ["/usr/src/grr/docker/docker-entrypoint.sh"]
+RUN ${VIRTUAL_ENV}/bin/nodeenv -p --prebuilt --node=16.13.0
 
-# Port for the admin UI GUI
-EXPOSE 8000
+RUN mkdir ${GRR_SOURCE}
+ADD . ${GRR_SOURCE}
 
-# Port for clients to talk to
-EXPOSE 8080
+WORKDIR ${GRR_SOURCE}
 
-# Directories used by GRR at runtime, which can be mounted from the host's
-# filesystem. Note that volumes can be mounted even if they do not appear in
-# this list.
-VOLUME ["/usr/share/grr-server/install_data/etc"]
+RUN ${VIRTUAL_ENV}/bin/python -m pip install \
+  -e grr/proto \
+  -e grr/core \
+  -e grr/client \
+  -e grr/server \
+  -e grr/client_builder \
+  -e api_client/python
 
-CMD ["grr"]
+RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
+  ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py
+
+ENTRYPOINT [ "grr_server" ]

@@ -747,6 +747,15 @@ class DatabaseTestPathsMixin(object):
 
     self.assertEmpty(results)
 
+  def testListDescendantPathInfosAlwaysSucceedsOnRoot_ListVersion(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    results = self.db.ListDescendantPathInfos(
+        client_id, rdf_objects.PathInfo.PathType.OS, components=[]
+    )
+
+    self.assertEmpty(results)
+
   def testListDescendantPathInfosNonexistentDirectory(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
@@ -1033,6 +1042,55 @@ class DatabaseTestPathsMixin(object):
         path_type=rdf_objects.PathInfo.PathType.OS,
         components=("foo",),
         timestamp=timestamp_2)
+    self.assertLen(results_2, 1)
+    self.assertEqual(results_2[0].components, ("foo", "bar"))
+    self.assertEqual(results_2[0].stat_entry.st_size, 42)
+
+  def testListDescendantPathInfosTimestampStatValue_ListVersion(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    timestamp_0 = self.db.Now()
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo", "bar"))
+
+    path_info.stat_entry.st_size = 1337
+    self.db.WritePathInfos(client_id, [path_info])
+    timestamp_1 = self.db.Now()
+
+    path_info.stat_entry.st_size = 42
+    self.db.WritePathInfos(client_id, [path_info])
+    timestamp_2 = self.db.Now()
+
+    results_0 = self.db.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=[
+            "foo",
+        ],
+        timestamp=timestamp_0,
+    )
+    self.assertEmpty(results_0)
+
+    results_1 = self.db.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=[
+            "foo",
+        ],
+        timestamp=timestamp_1,
+    )
+    self.assertLen(results_1, 1)
+    self.assertEqual(results_1[0].components, ("foo", "bar"))
+    self.assertEqual(results_1[0].stat_entry.st_size, 1337)
+
+    results_2 = self.db.ListDescendantPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=[
+            "foo",
+        ],
+        timestamp=timestamp_2,
+    )
     self.assertLen(results_2, 1)
     self.assertEqual(results_2[0].components, ("foo", "bar"))
     self.assertEqual(results_2[0].stat_entry.st_size, 42)

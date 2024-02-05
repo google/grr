@@ -6,6 +6,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
+from grr_response_proto import hunts_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -13,6 +14,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import mig_foreman_rules
 from grr_response_server import notification
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
@@ -256,11 +258,12 @@ def CompleteHuntIfExpirationTimeReached(hunt_id):
   return hunt_obj
 
 
-def CreateHunt(hunt_obj):
+def CreateHunt(hunt_obj: hunts_pb2.Hunt):
   """Creates a hunt using a given hunt object."""
   data_store.REL_DB.WriteHuntObject(hunt_obj)
 
-  if hunt_obj.HasField("output_plugins"):
+  if hunt_obj.output_plugins:
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     output_plugins_states = flow.GetOutputPluginStates(
         hunt_obj.output_plugins, source=f"hunts/{hunt_obj.hunt_id}"
     )
@@ -289,7 +292,7 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
       create_time=rdfvalue.RDFDatetime.Now(),
       **kwargs,
   )
-
+  hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
   CreateHunt(hunt_obj)
   StartHunt(hunt_obj.hunt_id)
 

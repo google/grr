@@ -31,6 +31,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
@@ -2556,11 +2557,11 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteHuntObject(self, hunt_obj):
+  def WriteHuntObject(self, hunt_obj: hunts_pb2.Hunt) -> None:
     """Writes a hunt object to the database.
 
     Args:
-      hunt_obj: An rdf_hunt_objects.Hunt object to write.
+      hunt_obj: A Hunt object to write.
     """
 
   @abc.abstractmethod
@@ -4225,13 +4226,13 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.CountHuntOutputPluginLogEntries(
         hunt_id, output_plugin_id, with_type=with_type)
 
-  def WriteHuntObject(self, hunt_obj):
-    precondition.AssertType(hunt_obj, rdf_hunt_objects.Hunt)
+  def WriteHuntObject(self, hunt_obj: hunts_pb2.Hunt) -> None:
+    precondition.AssertType(hunt_obj, hunts_pb2.Hunt)
 
-    if hunt_obj.hunt_state != rdf_hunt_objects.Hunt.HuntState.PAUSED:
+    if hunt_obj.hunt_state != hunts_pb2.Hunt.HuntState.PAUSED:
       raise ValueError("Creation of hunts in non-paused state is not allowed.")
 
-    self.delegate.WriteHuntObject(hunt_obj)
+    return self.delegate.WriteHuntObject(hunt_obj)
 
   def UpdateHuntObject(
       self,
