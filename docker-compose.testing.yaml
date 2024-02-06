@@ -1,0 +1,13 @@
+
+services:
+  grr-admin-ui:
+    image: ghcr.io/google/grr:testing
+
+  grr-fleetspeak-frontend:
+    image: ghcr.io/google/grr:testing
+
+  grr-worker:
+    image: ghcr.io/google/grr:testing
+
+  grr-client:
+    image: ghcr.io/google/grr:testing
