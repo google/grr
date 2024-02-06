@@ -12,6 +12,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
@@ -48,7 +49,9 @@ class MySQLDBHuntMixin(object):
   """MySQLDB mixin for flow handling."""
 
   @mysql_utils.WithTransaction()
-  def WriteHuntObject(self, hunt_obj, cursor=None):
+  def WriteHuntObject(
+      self, hunt_obj: hunts_pb2.Hunt, cursor: Optional[cursors.Cursor] = None
+  ):
     """Writes a hunt object to the database."""
     query = """
     INSERT INTO hunts (hunt_id, creator, description, duration_micros,
@@ -65,11 +68,11 @@ class MySQLDBHuntMixin(object):
         "hunt_id": db_utils.HuntIDToInt(hunt_obj.hunt_id),
         "creator": hunt_obj.creator,
         "description": hunt_obj.description,
-        "duration_micros": hunt_obj.duration.microseconds,
-        "hunt_state": int(rdf_hunt_objects.Hunt.HuntState.PAUSED),
+        "duration_micros": hunt_obj.duration * 10**6,
+        "hunt_state": int(hunts_pb2.Hunt.HuntState.PAUSED),
         "client_rate": hunt_obj.client_rate,
         "client_limit": hunt_obj.client_limit,
-        "hunt": hunt_obj.SerializeToBytes(),
+        "hunt": hunt_obj.SerializeToString(),
     }
 
     try:

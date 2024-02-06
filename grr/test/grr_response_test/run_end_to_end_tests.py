@@ -103,10 +103,20 @@ def main(argv):
 
   client_id = _CLIENT_ID.value
   if _CLIENT_IP.value and not _CLIENT_ID.value:
+    logging.info("Searching client by IP: %s", _CLIENT_IP.value)
     client_id = test_runner.SearchClientByIP(_CLIENT_IP.value)
+    if not client_id:
+      logging.warning("No client with IP %s found.", _CLIENT_IP.value)
 
   if not client_id:
-    sys.exit(1)
+    logging.info("Searching all clients.")
+    client_ids = test_runner.SearchClientIDs()
+
+    if not client_ids:
+      logging.warning("No client found, aborting tests.")
+      sys.exit(1)
+    logging.info("Found client ids: %s. Using first client.", client_ids)
+    client_id = client_ids[0]
 
   results, _ = test_runner.RunTestsAgainstClient(client_id)
   # Exit with a non-0 error code if one of the tests failed.

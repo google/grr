@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by individual and combination of system name, release and version).
 * Removed support for foreman rules using `uname` of an endpoint (this can be
   simulated by using 3 rules for system name, release and version).
+* GRR server Debian package is removed when github actions are updated. The
+  docker image and docker compose stack (see section "Added") are the
+  recommended wait of running GRR in the future.
+
+
+### Added
+* GRR docker image which contains all grr server components and client
+  templates. It is available for every new GRR version for download at
+  https://github.com/google/grr/pkgs/container/grr
+* Docker compose configuration file to run all GRR/Fleetspeak components in
+  separate Docker containers.
+
 
 ### API removed
 

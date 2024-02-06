@@ -28,6 +28,7 @@ from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -278,9 +279,9 @@ class ApiClientLibHuntTest(
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     flow_obj = rdf_flow_objects.Flow()
@@ -367,9 +368,9 @@ class ApiClientLibHuntTest(
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     flow_obj = rdf_flow_objects.Flow()

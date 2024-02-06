@@ -22,6 +22,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -248,6 +249,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         args=hunt_args,
         **kwargs,
     )
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     hunt.CreateHunt(hunt_obj)
 
     return hunt_obj.hunt_id

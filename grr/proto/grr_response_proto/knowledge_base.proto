@@ -203,7 +203,7 @@ message User {
   }];
 }
 
-// Next ID: 39
+// Next ID: 40
 message KnowledgeBase {
   repeated User users = 32;
 
@@ -335,4 +335,6 @@ message KnowledgeBase {
   // This field is deprecated due to a type switch from jobs.User to
   // knowledge_base.User.
   repeated bytes DEPRECATED_users = 1;
+
+  reserved 39;
 }

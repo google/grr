@@ -25,6 +25,7 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -54,6 +55,7 @@ class HuntTest(
 
   def _CreateHunt(self, **kwargs):
     hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username, **kwargs)
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
@@ -113,6 +115,7 @@ class HuntTest(
 
     hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
@@ -160,6 +163,7 @@ class HuntTest(
 
     hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
@@ -173,6 +177,7 @@ class HuntTest(
   def testStopHuntWithReason(self):
     hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
@@ -207,6 +212,7 @@ class HuntTest(
 
     hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     with self.assertRaises(ValueError):
       hunt.StartHunt(hunt_obj.hunt_id)
@@ -226,6 +232,7 @@ class HuntTest(
         args=self.ClientFileFinderHuntArgs(),
     )
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt.StartHunt(hunt_obj.hunt_id)
@@ -266,6 +273,7 @@ class HuntTest(
         client_rate=0,
         args=self.ClientFileFinderHuntArgs(),
     )
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
@@ -1120,6 +1128,7 @@ class HuntTest(
           )
       )
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     with self.assertRaises(hunt.CanStartAtMostOneFlowPerClientError):
@@ -1133,6 +1142,7 @@ class HuntTest(
     hunt_obj = rdf_hunt_objects.Hunt(client_rate=42)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     with self.assertRaises(hunt.VariableHuntCanNotHaveClientRateError):
       hunt.StartHunt(hunt_obj.hunt_id)
@@ -1140,6 +1150,7 @@ class HuntTest(
     hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     hunt.StartHunt(hunt_obj.hunt_id)  # Should not raise.
 
@@ -1162,6 +1173,7 @@ class HuntTest(
           )
       )
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     hunt.StartHunt(hunt_obj.hunt_id)
 

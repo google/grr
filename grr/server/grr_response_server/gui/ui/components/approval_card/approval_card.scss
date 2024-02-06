@@ -76,13 +76,13 @@ form {
       top: 10px;
     }
 
-    .edit-icon {
-      align-items: flex-start;
+    .durationLabel {
+      display: inline-flex;
     }
 
-    a {
-      color: blue;
-      text-decoration: underline blue;
+    .changeDuration {
+      display: inline-flex;
+      align-items: center;
     }
 
     .durationInput {

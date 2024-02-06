@@ -1379,8 +1379,8 @@
             "value": 100
           },
           "client_rate": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "client_rule_set": {
             "type": "ForemanClientRuleSet",
@@ -1497,8 +1497,8 @@
                 "value": 100
               },
               "client_rate": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "client_rule_set": {
                 "type": "ForemanClientRuleSet",
@@ -1576,7 +1576,7 @@
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 100,
-        "client_rate": 0,
+        "client_rate": 0.0,
         "client_rule_set": {},
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
@@ -1614,7 +1614,7 @@
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
           "client_limit": 100,
-          "client_rate": 0,
+          "client_rate": 0.0,
           "client_rule_set": {},
           "crash_limit": 100,
           "description": "Per-client file collection",

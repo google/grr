@@ -28,6 +28,7 @@ from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -312,6 +313,7 @@ class ApiGetHuntHandlerTest(
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = "12345678"
     hunt_obj.duration = duration
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     args = hunt_plugin.ApiGetHuntArgs()

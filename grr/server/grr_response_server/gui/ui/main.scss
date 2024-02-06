@@ -105,7 +105,9 @@ a:any-link:not(.mat-mdc-button-base) {
 }
 
 a.text-link:any-link,
-a.text-link-hover:hover {
+a.text-link-hover:hover,
+.app-link,
+.app-link:hover {
   color: mat.get-color-from-palette(c.$foreground, link);
   text-decoration: underline;
 }

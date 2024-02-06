@@ -2,7 +2,7 @@
 """The in memory database methods for hunt handling."""
 
 import sys
-from typing import Optional
+from typing import Dict, Optional
 from typing import Sequence
 
 from grr_response_core.lib import rdfvalue
@@ -10,16 +10,20 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 
 
 class InMemoryDBHuntMixin(object):
   """Hunts-related DB methods implementation."""
+
+  hunts: Dict[str, hunts_pb2.Hunt]
 
   def _GetHuntFlows(self, hunt_id):
     hunt_flows = [
@@ -30,15 +34,16 @@ class InMemoryDBHuntMixin(object):
     return sorted(hunt_flows, key=lambda f: f.client_id)
 
   @utils.Synchronized
-  def WriteHuntObject(self, hunt_obj):
+  def WriteHuntObject(self, hunt_obj: hunts_pb2.Hunt):
     """Writes a hunt object to the database."""
     if hunt_obj.hunt_id in self.hunts:
       raise db.DuplicatedHuntError(hunt_id=hunt_obj.hunt_id)
 
-    clone = self._DeepCopy(hunt_obj)
-    clone.create_time = rdfvalue.RDFDatetime.Now()
-    clone.last_update_time = rdfvalue.RDFDatetime.Now()
-    self.hunts[(hunt_obj.hunt_id)] = clone
+    clone = hunts_pb2.Hunt()
+    clone.CopyFrom(hunt_obj)
+    clone.create_time = int(rdfvalue.RDFDatetime.Now())
+    clone.last_update_time = int(rdfvalue.RDFDatetime.Now())
+    self.hunts[hunt_obj.hunt_id] = clone
 
   @utils.Synchronized
   def UpdateHuntObject(self, hunt_id, start_time=None, **kwargs):
@@ -63,7 +68,7 @@ class InMemoryDBHuntMixin(object):
       hunt_obj.last_start_time = start_time
 
     hunt_obj.last_update_time = rdfvalue.RDFDatetime.Now()
-    self.hunts[hunt_obj.hunt_id] = hunt_obj
+    self.hunts[hunt_obj.hunt_id] = mig_hunt_objects.ToProtoHunt(hunt_obj)
 
   @utils.Synchronized
   def ReadHuntOutputPluginsStates(self, hunt_id):
@@ -130,10 +135,10 @@ class InMemoryDBHuntMixin(object):
         del approvals[approval_id]
 
   @utils.Synchronized
-  def ReadHuntObject(self, hunt_id):
+  def ReadHuntObject(self, hunt_id: str) -> rdf_hunt_objects.Hunt:
     """Reads a hunt object from the database."""
     try:
-      return self._DeepCopy(self.hunts[hunt_id])
+      return self._DeepCopy(mig_hunt_objects.ToRDFHunt(self.hunts[hunt_id]))
     except KeyError:
       raise db.UnknownHuntError(hunt_id)
 
@@ -165,7 +170,11 @@ class InMemoryDBHuntMixin(object):
       filter_fns.append(lambda h: h.hunt_state in with_states)
     filter_fn = lambda h: all(f(h) for f in filter_fns)
 
-    result = [self._DeepCopy(h) for h in self.hunts.values() if filter_fn(h)]
+    result = [
+        self._DeepCopy(mig_hunt_objects.ToRDFHunt(h))
+        for h in self.hunts.values()
+        if filter_fn(h)
+    ]
     result.sort(key=lambda h: h.create_time, reverse=True)
     return result[offset : offset + (count or db.MAX_COUNT)]
 
@@ -199,6 +208,7 @@ class InMemoryDBHuntMixin(object):
 
     result = []
     for h in self.hunts.values():
+      h = mig_hunt_objects.ToRDFHunt(h)
       if not filter_fn(h):
         continue
       result.append(rdf_hunt_objects.HuntMetadata.FromHunt(h))

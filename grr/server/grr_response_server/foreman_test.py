@@ -12,6 +12,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import hunt
 from grr_response_server import mig_foreman_rules
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import test_lib
 
 
@@ -283,6 +284,7 @@ class ForemanTests(test_lib.GRRBaseTest):
         # Rule expiration is handled through StopHunt
         duration = rule.expiration_time - rule.creation_time
         hunt_obj = rdf_hunt_objects.Hunt(hunt_id=rule.hunt_id, creator="GRR")
+        hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
         data_store.REL_DB.WriteHuntObject(hunt_obj)
         data_store.REL_DB.UpdateHuntObject(
             rule.hunt_id, start_time=rule.creation_time, duration=duration

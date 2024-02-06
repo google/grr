@@ -11,6 +11,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -319,6 +320,7 @@ def InitializeHunt(
   hunt_obj = rdf_hunt_objects.Hunt()
   hunt_obj.hunt_id = hunt_id
   hunt_obj.creator = creator
+  hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
   db.WriteHuntObject(hunt_obj)
 
   return hunt_id

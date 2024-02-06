@@ -7,10 +7,10 @@ import getpass
 import io
 import os
 import pathlib
-import pipes
 import queue
 import random
 import re
+import shlex
 import shutil
 import socket
 import struct
@@ -611,8 +611,7 @@ def JoinPath(stem: Text = "", *parts: Text) -> Text:  # pylint: disable=keyword-
 
 def ShellQuote(value):
   """Escapes the string for the safe use inside shell command line."""
-  # TODO(user): replace pipes.quote with shlex.quote when time comes.
-  return pipes.quote(SmartUnicode(value))
+  return shlex.quote(SmartUnicode(value))
 
 
 def Join(*parts):

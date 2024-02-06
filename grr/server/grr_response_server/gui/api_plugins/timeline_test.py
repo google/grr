@@ -19,6 +19,7 @@ from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import testing_startup
 from grr.test_lib import timeline_test_lib
 
@@ -384,15 +385,14 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = api_timeline.ApiGetCollectedHuntTimelinesHandler()
 
   def testRaisesOnIncorrectFlowType(self):
-    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     hunt_id = "".join(random.choice("ABCDEF") for _ in range(8))
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id]
     hunt_obj.args.standard.flow_name = "NotTimelineFlow"
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
@@ -403,15 +403,14 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(args)
 
   def testRaisesOnIncorrectFormat(self):
-    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     hunt_id = "B1C2E3D4"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
@@ -439,10 +438,10 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id_1, client_id_2]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     entry_1 = rdf_timeline.TimelineEntry()
@@ -520,10 +519,10 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id_1, client_id_2]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     entry_1 = rdf_timeline.TimelineEntry()
@@ -578,9 +577,9 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
-    hunt_obj.args.standard.client_ids = [client_id]
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
     hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     entry = rdf_timeline.TimelineEntry()

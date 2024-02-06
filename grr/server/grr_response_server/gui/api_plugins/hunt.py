@@ -43,6 +43,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
@@ -264,7 +265,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
           original_object=hunt_obj.original_object,
       )
 
-      if hunt_obj.HasField("output_plugins"):
+      if hunt_obj.output_plugins:
         hra.output_plugins = hunt_obj.output_plugins
 
       if hunt_obj.HasField("per_client_cpu_limit"):
@@ -1548,11 +1549,13 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
       )
       hunt_obj.original_object = ref
 
-    if hra.HasField("output_plugins"):
+    if hra.output_plugins:
       hunt_obj.output_plugins = hra.output_plugins
 
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     hunt.CreateHunt(hunt_obj)
 
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)
 
 
@@ -1802,8 +1805,10 @@ class ApiCreatePerClientFileCollectionHuntHandler(
         description=args.description,
         duration=args.duration_secs,
         creator=context.username,
-        client_rate=0,
+        client_rate=0.0,
     )
+    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     hunt.CreateHunt(hunt_obj)
 
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)

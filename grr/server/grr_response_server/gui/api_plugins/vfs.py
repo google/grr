@@ -482,7 +482,6 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     for child_path_info in child_path_infos:
       if args.directories_only and not child_path_info.directory:
         continue
-
       items.append(_PathInfoToApiFile(child_path_info))
 
     # TODO(hanuszczak): Instead of getting the whole list from the database and
@@ -537,6 +536,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
       context: Optional[api_call_context.ApiCallContext] = None
   ) -> ApiBrowseFilesystemResult:
     del context  # Unused.
+
     last_components = rdf_objects.ParsePath(args.path)
     client_id = args.client_id.ToString()
     results = []
@@ -587,11 +587,14 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
         path_infos[pi.basename] = pi
 
   def _ListDirectory(
-      self, client_id: str,
+      self,
+      client_id: str,
       path_types: Collection["rdf_objects.PathInfo.PathType"],
-      components: Collection[str], timestamp: rdfvalue.RDFDatetime
-  ) -> Tuple[Set["rdf_objects.PathInfo.PathType"],
-             Optional[Collection[ApiFile]]]:
+      components: Collection[str],
+      timestamp: rdfvalue.RDFDatetime,
+  ) -> Tuple[
+      Set["rdf_objects.PathInfo.PathType"], Optional[Collection[ApiFile]]
+  ]:
     path_infos = {}
     existing_path_types = set(path_types)
 
@@ -602,6 +605,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
             path_type=path_type,
             components=components,
             timestamp=timestamp)
+
       except (db.UnknownPathError, db.NotDirectoryPathError):
         # Whenever a directory cannot be found with a given PathType, we remove
         # this PathType from the list of existing PathTypes to not wastefully
