@@ -239,10 +239,28 @@ class FlowBase(metaclass=FlowRegistry):
             payload=r,
         )
         self.flow_responses.append(wrapped_response)
-
-      nr_responses_expected = len(responses)
+      self.flow_responses.append(
+          rdf_flow_objects.FlowStatus(
+              client_id=self.rdf_flow.client_id,
+              flow_id=self.rdf_flow.flow_id,
+              request_id=request_id,
+              response_id=len(responses) + 1,
+              status=rdf_flow_objects.FlowStatus.Status.OK,
+          )
+      )
+      nr_responses_expected = len(responses) + 1
+      # No need to set needs_processing to True as we write the status
+      # message above. WriteFlowResponses implementation on all DBs
+      # will automatically issue a FlowProcessingRequest upon receiving a
+      # status message and seeing that all needed messages are in the
+      # database. Setting needs_processing to True here might lead to a race
+      # condition when a FlowProcessingRequest will be written and processed
+      # before FlowResponses corresponding to the FlowRequest are going to
+      # be written to the DB.
+      needs_processing = False
     else:
       nr_responses_expected = 0
+      needs_processing = True
 
     flow_request = rdf_flow_objects.FlowRequest(
         client_id=self.rdf_flow.client_id,
@@ -251,7 +269,7 @@ class FlowBase(metaclass=FlowRegistry):
         next_state=next_state,
         start_time=start_time,
         nr_responses_expected=nr_responses_expected,
-        needs_processing=True,
+        needs_processing=needs_processing,
     )
     self.flow_requests.append(flow_request)
 

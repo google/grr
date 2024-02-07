@@ -23,7 +23,6 @@ from typing import Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import search as rdf_search
@@ -558,24 +557,6 @@ class ClientPath(object):
     return "<%s client_id=%r path_type=%r components=%r>" % (
         self.__class__.__name__, self.client_id, self.path_type,
         self.components)
-
-
-class ClientPathHistory(object):
-  """A class representing stat and hash history for some path."""
-
-  def __init__(self):
-    self.stat_entries = {}
-    self.hash_entries = {}
-
-  def AddStatEntry(self, timestamp, stat_entry):
-    precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
-    precondition.AssertType(stat_entry, rdf_client_fs.StatEntry)
-    self.stat_entries[timestamp] = stat_entry
-
-  def AddHashEntry(self, timestamp, hash_entry):
-    precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
-    precondition.AssertType(hash_entry, rdf_crypto.Hash)
-    self.hash_entries[timestamp] = hash_entry
 
 
 class Database(metaclass=abc.ABCMeta):
@@ -3553,51 +3534,6 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
     return self.delegate.WritePathInfos(client_id, path_infos)
-
-  def InitPathInfos(self, client_id, path_infos):
-    precondition.ValidateClientId(client_id)
-    _ValidatePathInfos(path_infos)
-    return self.delegate.InitPathInfos(client_id, path_infos)  # pytype: disable=attribute-error
-
-  def MultiInitPathInfos(self, path_infos):
-    precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in path_infos.items():
-      precondition.ValidateClientId(client_id)
-      _ValidatePathInfos(client_path_infos)
-
-    return self.delegate.MultiInitPathInfos(path_infos)  # pytype: disable=attribute-error
-
-  def ClearPathHistory(self, client_id, path_infos):
-    precondition.ValidateClientId(client_id)
-    _ValidatePathInfos(path_infos)
-
-    return self.delegate.ClearPathHistory(client_id, path_infos)  # pytype: disable=attribute-error
-
-  def MultiClearPathHistory(self, path_infos):
-    precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in path_infos.items():
-      precondition.ValidateClientId(client_id)
-      _ValidatePathInfos(client_path_infos)
-
-    return self.delegate.MultiClearPathHistory(path_infos)  # pytype: disable=attribute-error
-
-  def MultiWritePathHistory(self, client_path_histories):
-    precondition.AssertType(client_path_histories, dict)
-    for client_path, client_path_history in client_path_histories.items():
-      precondition.AssertType(client_path, ClientPath)
-      precondition.AssertType(client_path_history, ClientPathHistory)
-
-    self.delegate.MultiWritePathHistory(client_path_histories)  # pytype: disable=attribute-error
-
-  def FindDescendentPathIDs(self,
-                            client_id,
-                            path_type,
-                            path_id,
-                            max_depth=None):
-    precondition.ValidateClientId(client_id)
-
-    return self.delegate.FindDescendentPathIDs(  # pytype: disable=attribute-error
-        client_id, path_type, path_id, max_depth=max_depth)
 
   def WriteUserNotification(
       self, notification: objects_pb2.UserNotification

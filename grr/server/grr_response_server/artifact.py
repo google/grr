@@ -11,14 +11,12 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 
-from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_release_parser
 from grr_response_core.lib.parsers import windows_registry_parser
-from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -97,31 +95,8 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.state.knowledge_base = None
-    self.state.fulfilled_deps = set()
-    self.state.partial_fulfilled_deps = set()
-    self.state.all_deps = set()
-    self.state.in_flight_artifacts = set()
-    self.state.awaiting_deps_artifacts = set()
-    self.state.completed_artifacts = set()
 
     self.InitializeKnowledgeBase()
-    first_flows = self.GetFirstFlowsForCollection()
-
-    # Send each artifact independently so we can track which artifact produced
-    # it when it comes back.
-    # TODO(user): tag SendReplys with the flow that
-    # generated them.
-    for artifact_name in first_flows:
-      self.state.in_flight_artifacts.add(artifact_name)
-
-      self.CallFlow(
-          # TODO(user): dependency loop with flows/general/collectors.py.
-          # collectors.ArtifactCollectorFlow.__name__,
-          "ArtifactCollectorFlow",
-          artifact_list=[artifact_name],
-          knowledge_base=self.state.knowledge_base,
-          next_state=self.ProcessBase.__name__,
-          request_data={"artifact_name": artifact_name})
 
     if self.client_os == "Linux":
       if artifact_registry.REGISTRY.Exists("LinuxReleaseInfo"):
@@ -250,148 +225,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           args,
           next_state=self._ProcessWindowsProfiles.__name__,
       )
-      # TODO: We pretend that `WindowsRegistryProfiles` is being
-      # collected to avoid issues with the flow failing due its dependees not
-      # being possible to satisfy. Once the dependees are refactored not to be
-      # artifacts this can be removed.
-      self.state.in_flight_artifacts.add("WindowsRegistryProfiles")
-      # pylint: enable=line-too-long
-      # pyformat: enable
-
-  def _ScheduleCollection(self):
-    # Schedule any new artifacts for which we have now fulfilled dependencies.
-    for artifact_name in self.state.awaiting_deps_artifacts:
-      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-      deps = artifact_registry.GetArtifactPathDependencies(artifact_obj)
-      if set(deps).issubset(self.state.fulfilled_deps):
-        self.state.in_flight_artifacts.add(artifact_name)
-        self.state.awaiting_deps_artifacts.remove(artifact_name)
-        self.CallFlow(
-            # TODO(user): dependency loop with flows/general/collectors.py.
-            # collectors.ArtifactCollectorFlow.__name__,
-            "ArtifactCollectorFlow",
-            artifact_list=[artifact_name],
-            next_state=self.ProcessBase.__name__,
-            request_data={"artifact_name": artifact_name},
-            knowledge_base=self.state.knowledge_base)
-
-    # If we're not done but not collecting anything, start accepting the partial
-    # dependencies as full, and see if we can complete.
-    if (self.state.awaiting_deps_artifacts and
-        not self.state.in_flight_artifacts):
-      if self.state.partial_fulfilled_deps:
-        partial = self.state.partial_fulfilled_deps.pop()
-        self.Log("Accepting partially fulfilled dependency: %s", partial)
-        self.state.fulfilled_deps.add(partial)
-        self._ScheduleCollection()
-
-  def ProcessBase(self, responses):
-    """Process any retrieved artifacts."""
-    artifact_name = responses.request_data["artifact_name"]
-    self.state.in_flight_artifacts.remove(artifact_name)
-    self.state.completed_artifacts.add(artifact_name)
-
-    if not responses.success:
-      self.Log("Failed to get artifact %s. Status: %s", artifact_name,
-               responses.status)
-    else:
-      deps = self.SetKBValue(responses.request_data["artifact_name"], responses)
-      if deps:
-        # If we fulfilled a dependency, make sure we have collected all
-        # artifacts that provide the dependency before marking it as fulfilled.
-        for dep in deps:
-          required_artifacts = artifact_registry.REGISTRY.GetArtifactNames(
-              os_name=self.state.knowledge_base.os, provides=[dep])
-          if required_artifacts.issubset(self.state.completed_artifacts):
-            self.state.fulfilled_deps.add(dep)
-          else:
-            self.state.partial_fulfilled_deps.add(dep)
-      else:
-        self.Log("Failed to get artifact %s. Artifact failed to return value.",
-                 artifact_name)
-
-    if self.state.awaiting_deps_artifacts:
-      # Schedule any new artifacts for which we have now fulfilled dependencies.
-      self._ScheduleCollection()
-
-      # If we fail to fulfil deps for things we're supposed to collect, raise
-      # an error.
-      if (self.state.awaiting_deps_artifacts and
-          not self.state.in_flight_artifacts):
-        missing_deps = list(
-            self.state.all_deps.difference(self.state["fulfilled_deps"]))
-
-        if self.args.require_complete:
-          raise flow_base.FlowError(
-              "KnowledgeBase initialization failed as the "
-              "following artifacts had dependencies that could"
-              " not be fulfilled %s. Missing: %s" %
-              ([str(a) for a in self.state.awaiting_deps_artifacts
-               ], missing_deps))
-        else:
-          self.Log("Storing incomplete KnowledgeBase. The following artifacts "
-                   "had dependencies that could not be fulfilled %s. "
-                   "Missing: %s. Completed: %s" %
-                   (self.state.awaiting_deps_artifacts, missing_deps,
-                    self.state.completed_artifacts))
-
-  def SetKBValue(self, artifact_name, responses):
-    """Set values in the knowledge base based on responses."""
-    artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
-    if not responses:
-      return None
-
-    provided = set()  # Track which deps have been provided.
-
-    for response in responses:
-      if isinstance(response, rdf_anomaly.Anomaly):
-        logging.info("Artifact %s returned an Anomaly: %s", artifact_name,
-                     response)
-        continue
-
-      if isinstance(response, rdf_client.User):
-        # MergeOrAddUser will update or add a user based on the attributes
-        # returned by the artifact in the User.
-        attrs_provided, merge_conflicts = (
-            self.state.knowledge_base.MergeOrAddUser(response))
-        provided.update(attrs_provided)
-        for key, old_val, val in merge_conflicts:
-          self.Log(
-              "User merge conflict in %s. Old value: %s, "
-              "Newly written value: %s", key, old_val, val)
-        continue
-
-      artifact_provides = artifact_obj.provides
-      if isinstance(response, rdf_protodict.Dict):
-        # Attempting to fulfil provides with a Dict response means we are
-        # supporting multiple provides based on the keys of the dict.
-        kb_dict = response.ToDict()
-      elif len(artifact_provides) == 1:
-        # If its not a dict we only support a single value.
-        kb_dict = {artifact_provides[0]: response}
-      elif not artifact_provides:
-        raise ValueError("Artifact %s does not have a provide clause and "
-                         "can't be used to populate a knowledge base value." %
-                         artifact_obj)
-      else:
-        raise ValueError("Attempt to set a knowledge base value with "
-                         "multiple provides clauses without using Dict."
-                         ": %s" % artifact_obj)
-
-      for provides, value in kb_dict.items():
-        if provides not in artifact_provides:
-          raise ValueError("Attempt to provide knowledge base value %s "
-                           "without this being set in the artifact "
-                           "provides setting: %s" % (provides, artifact_obj))
-
-        if hasattr(value, "registry_data"):
-          value = value.registry_data.GetValue()
-
-        if value:
-          self.state.knowledge_base.Set(provides, value)
-          provided.add(provides)
-
-    return provided
 
   def _ProcessLinuxReleaseInfo(
       self,
@@ -500,11 +333,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     self.state.knowledge_base.environ_systemroot = system_root
     self.state.knowledge_base.environ_systemdrive = system_drive
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_systemroot")
-    self.state.fulfilled_deps.add("environ_systemdrive")
-
     # pylint: disable=line-too-long
     # pyformat: disable
     #
@@ -578,10 +406,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_programfiles = program_files
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_programfiles")
-
   def _ProcessWindowsEnvProgramFilesDirX86(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -602,10 +426,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     program_files_x86 = response.registry_data.string
 
     self.state.knowledge_base.environ_programfilesx86 = program_files_x86
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_programfilesx86")
 
   def _ProcessWindowsEnvCommonFilesDir(
       self,
@@ -629,10 +449,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_commonprogramfiles = common_files
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_commonprogramfiles")
-
   def _ProcessWindowsEnvCommonFilesDirX86(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -654,10 +470,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     common_files_x86 = response.registry_data.string
 
     self.state.knowledge_base.environ_commonprogramfilesx86 = common_files_x86
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_commonprogramfilesx86")
 
   def _ProcessWindowsEnvProgramData(
       self,
@@ -687,11 +499,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     self.state.knowledge_base.environ_programdata = program_data
     # TODO: Remove once this knowledge base field is removed.
     self.state.knowledge_base.environ_allusersappdata = program_data
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_programdata")
-    self.state.fulfilled_deps.add("environ_allusersappdata")
 
     # pylint: disable=line-too-long
     # pyformat: disable
@@ -743,10 +550,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_driverdata = driver_data
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_driverdata")
-
   def _ProcessWindowsCurrentControlSet(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -772,10 +575,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.current_control_set = current_control_set
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("current_control_set")
-
   def _ProcessWindowsCodePage(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -797,10 +596,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.code_page = code_page
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("code_page")
-
   def _ProcessWindowsDomain(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -819,10 +614,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       raise flow_base.FlowError(message)
 
     self.state.knowledge_base.domain = response.registry_data.string
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("domain")
 
   def _ProcessWindowsTimeZoneKeyName(
       self,
@@ -873,10 +664,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.time_zone = time_zone
 
-    # TODO: This should be deleted once `provides` sections are
-    # no longer used.
-    self.state.fulfilled_deps.add("time_zone")
-
   def _ProcessWindowsTimeZoneStandardName(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -915,10 +702,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.time_zone = time_zone
 
-    # TODO: This should be deleted once `provides` sections are
-    # no longer used.
-    self.state.fulfilled_deps.add("time_zone")
-
   def _ProcessWindowsEnvTemp(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -945,10 +728,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     )
 
     self.state.knowledge_base.environ_temp = temp
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_temp")
 
   def _ProcessWindowsEnvPath(
       self,
@@ -977,10 +756,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_path = path
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_path")
-
   def _ProcessWindowsEnvComSpec(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -1007,10 +782,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     )
 
     self.state.knowledge_base.environ_comspec = com_spec
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_comspec")
 
   def _ProcessWindowsEnvWindir(
       self,
@@ -1039,10 +810,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_windir = windir
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_windir")
-
   def _ProcessWindowsProfilesDirectory(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -1069,10 +836,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     )
 
     self.state.knowledge_base.environ_profilesdirectory = profiles_directory
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_profilesdirectory")
 
   def _ProcessWindowsEnvAllUsersProfile(
       self,
@@ -1106,17 +869,10 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_allusersprofile = allusersprofile
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("environ_allusersprofile")
-
   def _ProcessWindowsProfiles(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
   ) -> None:
-    # TODO: Delete this once dependent artifacts are removed.
-    self.state.in_flight_artifacts.remove("WindowsRegistryProfiles")
-
     if not responses.success:
       self.Log("Failed to obtain Windows profiles: %s", responses.status)
       return
@@ -1139,13 +895,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       user.username = ntpath.basename(home)
 
       self.state.knowledge_base.users.append(user)
-
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("users.sid")
-    self.state.fulfilled_deps.add("users.userprofile")
-    self.state.fulfilled_deps.add("users.homedir")
-    self.state.fulfilled_deps.add("users.username")
 
     args = rdf_file_finder.FileFinderArgs()
     # TODO: There is no dedicated action for obtaining registry
@@ -1275,58 +1024,10 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
       user.userdomain = domain
 
-    # TODO: This should be deleted once `provides` sections are no
-    # longer used.
-    self.state.fulfilled_deps.add("users.userdomain")
-
   def End(self, responses):
     """Finish up."""
     del responses
     self.SendReply(self.state.knowledge_base)
-
-  def GetFirstFlowsForCollection(self):
-    """Initialize dependencies and calculate first round of flows.
-
-    Returns:
-      set of artifact names with no dependencies that should be collected first.
-
-    Raises:
-      RuntimeError: On bad artifact configuration parameters.
-    """
-    kb_base_set = set(config.CONFIG["Artifacts.knowledge_base"])
-    kb_add = set(config.CONFIG["Artifacts.knowledge_base_additions"])
-    kb_skip = set(config.CONFIG["Artifacts.knowledge_base_skip"])
-    if self.args.lightweight:
-      kb_skip.update(config.CONFIG["Artifacts.knowledge_base_heavyweight"])
-    kb_set = kb_base_set.union(kb_add) - kb_skip
-
-    for artifact_name in kb_set:
-      artifact_registry.REGISTRY.GetArtifact(artifact_name)
-
-    # If `kb_set` is empty, `GetArtifactNames` returns *all* artifacts in the
-    # system for the given platform, which is not what we want.
-    if kb_set:
-      no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
-          os_name=self.state.knowledge_base.os,
-          name_list=kb_set,
-          exclude_dependents=True,
-      )
-    else:
-      no_deps_names = set()
-
-    name_deps, self.state.all_deps = (
-        artifact_registry.REGISTRY.SearchDependencies(
-            self.state.knowledge_base.os, kb_set))
-
-    # We only retrieve artifacts that are explicitly listed in
-    # Artifacts.knowledge_base + additions - skip.
-    name_deps = name_deps.intersection(kb_set)
-
-    # We're going to collect everything that doesn't have a dependency first.
-    # Anything else we're waiting on a dependency before we can collect.
-    self.state.awaiting_deps_artifacts = list(name_deps - no_deps_names)
-
-    return no_deps_names
 
   def InitializeKnowledgeBase(self):
     """Get the existing KB or create a new one if none exists."""

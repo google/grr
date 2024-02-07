@@ -5,6 +5,7 @@ import collections
 import io
 import itertools
 import os
+from typing import Iterator
 from typing import Mapping
 from typing import Type
 
@@ -561,6 +562,18 @@ class InterrogatedClient(ClientFileFinderWithVFS):
     return [
         rdf_client_fs.Filesystem(device="/dev/sda", mount_point="/mnt/data")
     ]
+
+  def EnumerateUsers(
+      self,
+      args: None,
+  ) -> Iterator[rdf_client.User]:
+    del args  # Unused.
+
+    yield rdf_client.User(username="yagharek")
+    yield rdf_client.User(username="isaac")
+    yield rdf_client.User(username="user1")
+    yield rdf_client.User(username="user2")
+    yield rdf_client.User(username="user3")
 
   def GetClientInfo(self, _):
     self.response_count += 1
