@@ -82,22 +82,16 @@ class CallStateFlowWithResponses(flow_base.FlowBase):
         )
         for i in range(10)
     ]
-    # Calling the state a little in the future to avoid inline processing done
-    # by the flow test library. Inline processing will break the CallState
-    # logic: responses are written after requests, but the inline processing
-    # is triggered already when requests are written. Inline processing
-    # doesn't happen if flow requests are scheduled in the future.
     self.CallState(
         next_state=self.ReceiveHello.__name__,
         responses=responses,
-        start_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1s"),
     )
 
   def ReceiveHello(self, responses: flow_responses.Responses) -> None:
     if len(responses) != 10:
       raise RuntimeError(f"Expected 10 responses, got: {len(responses)}")
 
-    for i, r in enumerate(sorted(responses)):
+    for i, r in enumerate(sorted(responses, key=lambda x: x.path)):
       expected = rdf_paths.PathSpec(
           path=f"/tmp/{i}.txt", pathtype=rdf_paths.PathSpec.PathType.OS
       )
@@ -300,7 +294,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
     flow_test_lib.StartAndRunFlow(
         CallStateFlowWithResponses, client_id=self.client_id
     )
-    self.assertEqual(CallStateFlow.success, True)
+    self.assertEqual(CallStateFlowWithResponses.success, True)
 
   def testChainedFlow(self):
     """Test the ability to chain flows."""

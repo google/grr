@@ -259,26 +259,20 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckCloudMetadata(client)
 
   @parser_test_lib.WithAllParsers
-  def testInterrogateLinuxWithWtmp(self):
+  def testInterrogateLinux(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": [
-              "LinuxWtmp",
-              "NetgroupConfiguration",
-          ],
-          "Artifacts.netgroup_filter_regexes": [r"^login$"],
-      }):
-        client_mock = action_mocks.InterrogatedClient()
-        client_mock.InitializeClient(version="14.4", release="Ubuntu")
+      client_mock = action_mocks.InterrogatedClient()
+      client_mock.InitializeClient(version="14.4", release="Ubuntu")
 
-        with test_lib.SuppressLogs():
-          flow_test_lib.TestFlowHelper(
-              discovery.Interrogate.__name__,
-              client_mock,
-              creator=self.test_username,
-              client_id=client_id)
+      with test_lib.SuppressLogs():
+        flow_test_lib.TestFlowHelper(
+            discovery.Interrogate.__name__,
+            client_mock,
+            creator=self.test_username,
+            client_id=client_id,
+        )
 
     client = self._OpenClient(client_id)
     self._CheckBasicInfo(client, "test_node.test", "Linux", 100 * 1000000)

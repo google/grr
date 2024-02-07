@@ -2,7 +2,6 @@
 """Tests for artifacts."""
 
 import io
-import logging
 import os
 import subprocess
 from typing import Collection
@@ -40,7 +39,6 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -617,70 +615,6 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
-  @parser_test_lib.WithAllParsers
-  def testGetKBDependencies(self):
-    """Test that KB dependencies are calculated correctly."""
-    artifact_registry.REGISTRY.ClearSources()
-    try:
-      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                         "artifacts", "test_artifacts.json")
-      artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-
-      with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": [
-              "DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindir",
-              "DepsWindirRegex", "DepsControlSet", "FakeArtifact"
-          ],
-          "Artifacts.knowledge_base_additions": ["DepsHomedir2"],
-          "Artifacts.knowledge_base_skip": ["DepsWindir"],
-          "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]
-      }):
-        args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
-        kb_init = artifact.KnowledgeBaseInitializationFlow(
-            rdf_flow_objects.Flow(args=args))
-        kb_init.state["all_deps"] = set()
-        kb_init.state["awaiting_deps_artifacts"] = []
-        kb_init.state["knowledge_base"] = rdf_client.KnowledgeBase(os="Windows")
-        no_deps = kb_init.GetFirstFlowsForCollection()
-
-        self.assertCountEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
-        self.assertCountEqual(kb_init.state.all_deps, [
-            "users.homedir", "users.desktop", "users.username",
-            "environ_windir", "current_control_set"
-        ])
-        self.assertCountEqual(
-            kb_init.state.awaiting_deps_artifacts,
-            ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"])
-    finally:
-      artifact.LoadArtifactsOnce()
-
-  def _RunKBIFlow(self, artifact_list):
-    self.LoadTestArtifacts()
-    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": artifact_list}):
-      logging.disable(logging.CRITICAL)
-      try:
-        session_id = flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            self.client_mock,
-            client_id=test_lib.TEST_CLIENT_ID,
-            creator=self.test_username)
-      finally:
-        logging.disable(logging.NOTSET)
-    return session_id
-
-  @parser_test_lib.WithAllParsers
-  def testKnowledgeBaseNoProvides(self):
-    with self.assertRaises(RuntimeError) as context:
-      self._RunKBIFlow(["NoProvides"])
-
-    self.assertIn("does not have a provide", str(context.exception))
-
-  def testKnowledgeBaseMultipleProvidesNoDict(self):
-    with self.assertRaises(RuntimeError) as context:
-      self._RunKBIFlow(["TooManyProvides"])
-
-    self.assertIn("multiple provides clauses", str(context.exception))
-
 
 class GrrKbLinuxTest(GrrKbTest):
 
@@ -691,55 +625,54 @@ class GrrKbLinuxTest(GrrKbTest):
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinux(self):
     """Check we can retrieve a Linux kb."""
-    with test_lib.ConfigOverrider({
-        "Artifacts.knowledge_base": [
-            "LinuxWtmp", "NetgroupConfiguration", "LinuxPasswdHomedirs",
-        ],
-        "Artifacts.netgroup_filter_regexes": ["^login$"],
-        "Artifacts.netgroup_ignore_users": ["isaac"]
-    }):
-      with vfs_test_lib.FakeTestDataVFSOverrider():
-        with test_lib.SuppressLogs():
-          kb = self._RunKBI()
 
-    self.assertEqual(kb.os_major_version, 14)
-    self.assertEqual(kb.os_minor_version, 4)
-    # user 1,2,3 from wtmp. yagharek from netgroup.
+    class KnowledgebaseInitMock(action_mocks.FileFinderClientMock):
+
+      def EnumerateUsers(
+          self,
+          args: None,
+      ) -> Iterator[rdf_client.User]:
+        del args  # Unused.
+
+        yield rdf_client.User(
+            username="user1",
+            homedir="/home/user1",
+            last_logon=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1296552099),
+        )
+        yield rdf_client.User(
+            username="user2",
+            homedir="/home/user2",
+            last_logon=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1234567890),
+        )
+        yield rdf_client.User(
+            username="user3",
+            homedir="/home/user3",
+            last_logon=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3456789012),
+        )
+        yield rdf_client.User(
+            username="yagharek",
+            homedir="/home/yagharek",
+            last_logon=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(7890123456),
+        )
+
+    session_id = flow_test_lib.TestFlowHelper(
+        artifact.KnowledgeBaseInitializationFlow.__name__,
+        client_id=test_lib.TEST_CLIENT_ID,
+        client_mock=KnowledgebaseInitMock(),
+    )
+
+    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
+
+    self.assertLen(results, 1)
+    self.assertIsInstance(results[0], rdf_client.KnowledgeBase)
+
+    kb = results[0]
+
     self.assertCountEqual([x.username for x in kb.users],
                           ["user1", "user2", "user3", "yagharek"])
     user = kb.GetUser(username="user1")
     self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
-
-  @parser_test_lib.WithAllParsers
-  def testKnowledgeBaseRetrievalLinuxPasswd(self):
-    """Check we can retrieve a Linux kb."""
-    with vfs_test_lib.FakeTestDataVFSOverrider():
-      with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": [
-              "LinuxWtmp",
-              "LinuxPasswdHomedirs",
-          ],
-          "Artifacts.knowledge_base_additions": [],
-          "Artifacts.knowledge_base_skip": [],
-      }):
-        with test_lib.SuppressLogs():
-          kb = self._RunKBI()
-
-    self.assertEqual(kb.os_major_version, 14)
-    self.assertEqual(kb.os_minor_version, 4)
-    # user 1,2,3 from wtmp.
-    self.assertCountEqual([x.username for x in kb.users],
-                          ["user1", "user2", "user3"])
-    user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
-    self.assertEqual(user.homedir, "/home/user1")
-
-    user = kb.GetUser(username="user2")
-    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552102)
-    self.assertEqual(user.homedir, "/home/user2")
-
-    self.assertFalse(kb.GetUser(username="buguser3"))
 
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
@@ -757,33 +690,6 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
     self.assertCountEqual([x.username for x in kb.users], [])
-
-  def testUnicodeValues(self):
-
-    foo_artifact_source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-        attributes={"client_action": "FooAction"})
-
-    foo_artifact = rdf_artifacts.Artifact(
-        name="Foo",
-        doc="Foo bar baz.",
-        sources=[foo_artifact_source],
-        provides=["os"],
-        supported_os=["Linux"])
-
-    with artifact_test_lib.PatchCleanArtifactRegistry():
-      artifact_registry.REGISTRY.RegisterArtifact(foo_artifact)
-
-      with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["Foo"]}):
-        session_id = flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            client_mock=action_mocks.ActionMock(FooAction),
-            client_id=test_lib.TEST_CLIENT_ID,
-            creator=self.test_username)
-
-    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].os, "zażółć gęślą jaźń 🎮")
 
 
 class GrrKbDarwinTest(GrrKbTest):

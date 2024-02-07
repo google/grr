@@ -15,7 +15,7 @@ export class HuntOverviewPageLocalStore extends ApiCollectionStore<
   Hunt,
   ApiListHuntsArgs
 > {
-  override readonly INITIAL_LOAD_COUNT = 100;
+  override readonly INITIAL_LOAD_COUNT = 10;
 
   protected loadResults(
     args: ApiListHuntsArgs,
