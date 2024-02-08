@@ -25,7 +25,7 @@
     "@ngrx/component-store": "^15.2.1",
     "angular-split": "^3.0.1",
     "codemirror": "^5.58.3",
-    "d3": "5.16.0",
+    "d3": "7.8.5",
     "deep-diff": "^1.0.2",
     "luxon": "^1.25.0",
     "marked": "^0.7.0",
