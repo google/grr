@@ -195,8 +195,12 @@ message FlowRunnerArgs {
   // DEPRECATED
   // optional string base_session_id = 12;
 
-  // DEPRECATED, unused.
-  // optional uint64 start_time = 15;
+  optional uint64 start_time = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Do not process this flow until this time "
+      "(Implies the flow is run asyncronously).",
+      label: ADVANCED,
+    }];
 
   // DEPRECATED, output is now fixed.
   // optional string output = 16 [(sem_type) = {

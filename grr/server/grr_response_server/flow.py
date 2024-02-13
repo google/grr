@@ -288,6 +288,8 @@ def StartFlow(client_id=None,
     rdf_flow.cpu_limit = cpu_limit
   if runtime_limit is not None:
     rdf_flow.runtime_limit_us = runtime_limit
+  if start_at is not None:
+    rdf_flow.start_at = start_at
 
   logging.info(u"Starting %s(%s) on %s (%s)", rdf_flow.long_flow_id,
                rdf_flow.flow_class_name, client_id, start_at or "now")
