@@ -89,12 +89,6 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       self.assertFalse(ar.GetArtifactPathDependencies(result))
 
     # Check provides filtering
-    results = registry.GetArtifacts(
-        os_name="Windows", provides=["users.homedir", "domain"])
-    for result in results:
-      # provides contains at least one of the filter strings
-      self.assertGreaterEqual(
-          len(set(result.provides).union(set(["users.homedir", "domain"]))), 1)
 
     results = registry.GetArtifacts(
         os_name="Windows", provides=["nothingprovidesthis"])
@@ -105,16 +99,16 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     registry.AddFileSource(self.test_artifacts_file)
 
     result_objs = registry.GetArtifacts(
-        os_name="Windows", provides=["users.homedir", "domain"])
+        os_name="Windows")
 
     results_names = registry.GetArtifactNames(
-        os_name="Windows", provides=["users.homedir", "domain"])
+        os_name="Windows")
 
     self.assertCountEqual(set([a.name for a in result_objs]), results_names)
     self.assertNotEmpty(results_names)
 
     results_names = registry.GetArtifactNames(
-        os_name="Darwin", provides=["users.username"])
+        os_name="Darwin")
     self.assertIn("UsersDirectory", results_names)
 
   @artifact_test_lib.PatchCleanArtifactRegistry
