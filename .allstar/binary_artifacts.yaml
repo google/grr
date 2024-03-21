@@ -1,0 +1,7 @@
+# Ignore reason: These artifacts are only used in tests...
+ignorePaths:
+- grr/test/grr_response_test/test_data/fingerprint/SoftwareUpdate.exe
+- grr/test/grr_response_test/test_data/fingerprint/pciide.sys
+- grr/test/grr_response_test/test_data/fingerprint/simple
+- grr/test/grr_response_test/test_data/linux_hello
+- grr/test/grr_response_test/test_data/win_hello.exe
