@@ -17,23 +17,29 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 
 
-_INSTALL = flags.DEFINE_bool("install", False,
-                             "Specify this to install the client.")
+_INSTALL = flags.DEFINE_bool(
+    "install", False, "Specify this to install the client."
+)
 
 _BREAK_ON_START = flags.DEFINE_bool(
-    "break_on_start", False,
+    "break_on_start",
+    False,
     "If True break into a pdb shell immediately on startup. This"
-    " can be used for debugging the client manually.")
+    " can be used for debugging the client manually.",
+)
 
 _DEBUG_CLIENT_ACTIONS = flags.DEFINE_bool(
-    "debug_client_actions", False,
-    "If True break into a pdb shell before executing any client"
-    " action.")
+    "debug_client_actions",
+    False,
+    "If True break into a pdb shell before executing any client action.",
+)
 
 _REMOTE_DEBUGGING_PORT = flags.DEFINE_integer(
-    "remote_debugging_port", 0,
+    "remote_debugging_port",
+    0,
     "If set to a non-zero port, pydevd is started to allow remote debugging "
-    "(e.g. using PyCharm).")
+    "(e.g. using PyCharm).",
+)
 
 
 def _start_remote_debugging(port):
@@ -48,12 +54,14 @@ def _start_remote_debugging(port):
         port=port,
         stdoutToServer=True,
         stderrToServer=True,
-        suspend=_BREAK_ON_START.value)
+        suspend=_BREAK_ON_START.value,
+    )
   except ImportError:
     print(
         "pydevd is required for remote debugging. Please follow the PyCharm"
         "manual or run `pip install pydevd-pycharm` to install.",
-        file=sys.stderr)
+        file=sys.stderr,
+    )
 
 
 def main(unused_args):
@@ -65,8 +73,9 @@ def main(unused_args):
     pdb.set_trace()
 
   # Allow per platform configuration.
-  config.CONFIG.AddContext(contexts.CLIENT_CONTEXT,
-                           "Context applied when we run the client process.")
+  config.CONFIG.AddContext(
+      contexts.CLIENT_CONTEXT, "Context applied when we run the client process."
+  )
 
   client_startup.ClientInit()
 
@@ -80,11 +89,14 @@ def main(unused_args):
     # initialization makes only sense if we run from a proper installation.
     # This is the case if this is a PyInstaller binary.
     sandbox.InitSandbox(
-        "{}_{}".format(config.CONFIG["Client.name"],
-                       config.CONFIG["Source.version_string"]),
-        [config.CONFIG["Client.install_path"]])
+        "{}_{}".format(
+            config.CONFIG["Client.name"], config.CONFIG["Source.version_string"]
+        ),
+        [config.CONFIG["Client.install_path"]],
+    )
 
   fleetspeak_client.GRRFleetspeakClient().Run()
+
 
 if __name__ == "__main__":
   app.run(main)

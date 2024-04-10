@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 """The MySQL database methods for event handling."""
 
+from typing import Optional
+
+import MySQLdb
+
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import mysql_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def _AuditEntryFromRow(details, timestamp):
-  entry = rdf_objects.APIAuditEntry.FromSerializedBytes(details)
-  entry.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
+def _AuditEntryFromRow(
+    details: bytes, timestamp: float
+) -> objects_pb2.APIAuditEntry:
+  entry = objects_pb2.APIAuditEntry()
+  entry.ParseFromString(details)
+  entry.timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(timestamp)
   return entry
 
 
@@ -16,12 +23,14 @@ class MySQLDBEventMixin(object):
   """MySQLDB mixin for event handling."""
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAPIAuditEntries(self,
-                          username=None,
-                          router_method_names=None,
-                          min_timestamp=None,
-                          max_timestamp=None,
-                          cursor=None):
+  def ReadAPIAuditEntries(
+      self,
+      username: Optional[str] = None,
+      router_method_names: Optional[list[str]] = None,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> list[objects_pb2.APIAuditEntry]:
     """Returns audit entries stored in the database."""
 
     query = """SELECT details, UNIX_TIMESTAMP(timestamp)
@@ -30,6 +39,7 @@ class MySQLDBEventMixin(object):
         {WHERE_PLACEHOLDER}
         ORDER BY timestamp ASC
     """
+    assert cursor is not None
 
     conditions = []
     values = []
@@ -65,11 +75,14 @@ class MySQLDBEventMixin(object):
     ]
 
   @mysql_utils.WithTransaction()
-  def CountAPIAuditEntriesByUserAndDay(self,
-                                       min_timestamp=None,
-                                       max_timestamp=None,
-                                       cursor=None):
+  def CountAPIAuditEntriesByUserAndDay(
+      self,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> dict[tuple[str, rdfvalue.RDFDatetime], int]:
     """Returns audit entry counts grouped by user and calendar day."""
+    assert cursor is not None
 
     query = """
         -- Timestamps are timezone-agnostic whereas dates are not. Hence, we are
@@ -102,22 +115,30 @@ class MySQLDBEventMixin(object):
     query = query.replace("{WHERE_PLACEHOLDER}", where)
     cursor.execute(query, values)
 
-    return {(username, rdfvalue.RDFDatetime.FromDate(day)): count
-            for (username, day, count) in cursor.fetchall()}
+    return {
+        (username, rdfvalue.RDFDatetime.FromDate(day)): count
+        for (username, day, count) in cursor.fetchall()
+    }
 
   @mysql_utils.WithTransaction()
-  def WriteAPIAuditEntry(self, entry: rdf_objects.APIAuditEntry, cursor=None):
+  def WriteAPIAuditEntry(
+      self,
+      entry: objects_pb2.APIAuditEntry,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Writes an audit entry to the database."""
-    if entry.timestamp is None:
-      datetime = rdfvalue.RDFDatetime.Now()
+    assert cursor is not None
+
+    if not entry.HasField("timestamp"):
+      datetime = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
     else:
       datetime = entry.timestamp
 
     args = {
         "username": entry.username,
         "router_method_name": entry.router_method_name,
-        "details": entry.SerializeToBytes(),
-        "timestamp": mysql_utils.RDFDatetimeToTimestamp(datetime),
+        "details": entry.SerializeToString(),
+        "timestamp": mysql_utils.MicrosecondsSinceEpochToTimestamp(datetime),
     }
     query = """
     INSERT INTO api_audit_entry (username, router_method_name, details,

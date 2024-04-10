@@ -32,24 +32,28 @@ class ListMigrationsToProcessTest(absltest.TestCase):
     fnames = ["0000.sql", "0001.sql", "0002.sql"]
     self._CreateMigrationFiles(fnames)
     self.assertListEqual(
-        mysql_migration.ListMigrationsToProcess(self.temp_dir, None), fnames)
+        mysql_migration.ListMigrationsToProcess(self.temp_dir, None), fnames
+    )
 
   def testReturnsOnlyMigrationsWithNumbersBiggerThanCurrentMigrationIndex(self):
     fnames = ["0000.sql", "0001.sql", "0002.sql", "0003.sql"]
     self._CreateMigrationFiles(fnames)
     self.assertListEqual(
         mysql_migration.ListMigrationsToProcess(self.temp_dir, 1),
-        ["0002.sql", "0003.sql"])
+        ["0002.sql", "0003.sql"],
+    )
 
   def testDoesNotAssumeLexicalSortingOrder(self):
     fnames = ["7.sql", "8.sql", "9.sql", "10.sql"]
     self._CreateMigrationFiles(fnames)
     self.assertListEqual(
-        mysql_migration.ListMigrationsToProcess(self.temp_dir, None), fnames)
+        mysql_migration.ListMigrationsToProcess(self.temp_dir, None), fnames
+    )
 
 
-class MySQLMigrationTest(mysql_test.MySQLDatabaseProviderMixin,
-                         absltest.TestCase):
+class MySQLMigrationTest(
+    mysql_test.MySQLDatabaseProviderMixin, absltest.TestCase
+):
 
   def _GetLatestMigrationNumber(self, conn):
     with contextlib.closing(conn.cursor()) as cursor:
@@ -57,14 +61,17 @@ class MySQLMigrationTest(mysql_test.MySQLDatabaseProviderMixin,
 
   def testMigrationsTableIsCorrectlyUpdates(self):
     all_migrations = mysql_migration.ListMigrationsToProcess(
-        config.CONFIG["Mysql.migrations_dir"], None)
+        config.CONFIG["Mysql.migrations_dir"], None
+    )
     self.assertEqual(
         self._conn._RunInTransaction(self._GetLatestMigrationNumber),
-        len(all_migrations) - 1)
+        len(all_migrations) - 1,
+    )
 
   def _DumpSchema(self, conn):
     with contextlib.closing(conn.cursor()) as cursor:
       return mysql_migration.DumpCurrentSchema(cursor)
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

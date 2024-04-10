@@ -33,6 +33,7 @@ from grr_response_core.lib.util import precondition
 
 class ReadBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to a server callback."""
+
   in_rdfvalue = rdf_client.BufferReference
   out_rdfvalues = [rdf_client.BufferReference]
 
@@ -57,11 +58,14 @@ class ReadBuffer(actions.ActionPlugin):
     # Now return the data to the server
     self.SendReply(
         rdf_client.BufferReference(
-            offset=offset, data=data, length=len(data), pathspec=fd.pathspec))
+            offset=offset, data=data, length=len(data), pathspec=fd.pathspec
+        )
+    )
 
 
 class TransferBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to the server efficiently."""
+
   in_rdfvalue = rdf_client.BufferReference
   out_rdfvalues = [rdf_client.BufferReference]
 
@@ -72,13 +76,12 @@ class TransferBuffer(actions.ActionPlugin):
       raise RuntimeError("Can not read buffers this large.")
 
     data = vfs.ReadVFS(
-        args.pathspec,
-        args.offset,
-        args.length,
-        progress_callback=self.Progress)
+        args.pathspec, args.offset, args.length, progress_callback=self.Progress
+    )
     result = rdf_protodict.DataBlob(
         data=zlib.compress(data),
-        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
+        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,
+    )
 
     digest = hashlib.sha256(data).digest()
 
@@ -89,17 +92,21 @@ class TransferBuffer(actions.ActionPlugin):
     # Now return the data to the server into the special TransferStore well
     # known flow.
     self.grr_worker.SendReply(
-        result, session_id=rdfvalue.SessionID(flow_name="TransferStore"))
+        result, session_id=rdfvalue.SessionID(flow_name="TransferStore")
+    )
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
     self.SendReply(
         rdf_client.BufferReference(
-            offset=args.offset, length=len(data), data=digest))
+            offset=args.offset, length=len(data), data=digest
+        )
+    )
 
 
 class HashBuffer(actions.ActionPlugin):
   """Hash a buffer from a file and returns it to the server efficiently."""
+
   in_rdfvalue = rdf_client.BufferReference
   out_rdfvalues = [rdf_client.BufferReference]
 
@@ -117,11 +124,14 @@ class HashBuffer(actions.ActionPlugin):
     # length.
     self.SendReply(
         rdf_client.BufferReference(
-            offset=args.offset, length=len(data), data=digest))
+            offset=args.offset, length=len(data), data=digest
+        )
+    )
 
 
 class HashFile(actions.ActionPlugin):
   """Hash an entire file using multiple algorithms."""
+
   in_rdfvalue = rdf_client_action.FingerprintRequest
   out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
@@ -143,14 +153,14 @@ class HashFile(actions.ActionPlugin):
 
     hash_object = hasher.GetHashObject()
     response = rdf_client_action.FingerprintResponse(
-        pathspec=fd.pathspec,
-        bytes_read=hash_object.num_bytes,
-        hash=hash_object)
+        pathspec=fd.pathspec, bytes_read=hash_object.num_bytes, hash=hash_object
+    )
     self.SendReply(response)
 
 
 class ListDirectory(ReadBuffer):
   """Lists all the files in a directory."""
+
   in_rdfvalue = rdf_client_action.ListDirRequest
   out_rdfvalues = [rdf_client_fs.StatEntry]
 
@@ -186,7 +196,8 @@ class GetFileStat(actions.ActionPlugin):
       fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
 
       stat_entry = fd.Stat(
-          ext_attrs=args.collect_ext_attrs, follow_symlink=args.follow_symlink)
+          ext_attrs=args.collect_ext_attrs, follow_symlink=args.follow_symlink
+      )
 
       self.SendReply(stat_entry)
     except (IOError, OSError) as error:
@@ -210,8 +221,8 @@ def ExecuteCommandFromClient(command):
   (stdout, stderr, status, time_used) = res
 
   # Limit output to 10MB so our response doesn't get too big.
-  stdout = stdout[:10 * 1024 * 1024]
-  stderr = stderr[:10 * 1024 * 1024]
+  stdout = stdout[: 10 * 1024 * 1024]
+  stderr = stderr[: 10 * 1024 * 1024]
 
   yield rdf_client_action.ExecuteResponse(
       request=command,
@@ -219,7 +230,8 @@ def ExecuteCommandFromClient(command):
       stderr=stderr,
       exit_status=status,
       # We have to return microseconds.
-      time_used=int(1e6 * time_used))
+      time_used=int(1e6 * time_used),
+  )
 
 
 class ExecuteCommand(actions.ActionPlugin):
@@ -247,6 +259,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   NOTE: If the binary is too large to fit inside a single request, the request
   will have the more_data flag enabled, indicating more data is coming.
   """
+
   in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
   out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
 
@@ -259,7 +272,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
       mode = "r+b"
 
     temp_file = tempfiles.CreateGRRTempFile(
-        filename=request.write_path, mode=mode)
+        filename=request.write_path, mode=mode
+    )
     with temp_file:
       path = temp_file.name
       temp_file.seek(0, 2)
@@ -283,7 +297,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     """Run."""
     # Verify the executable blob.
     args.executable.Verify(
-        config.CONFIG["Client.executable_signing_public_key"])
+        config.CONFIG["Client.executable_signing_public_key"]
+    )
 
     path = self.WriteBlobToFile(args)
 
@@ -294,12 +309,13 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
   def ProcessFile(self, path, args):
     res = client_utils_common.Execute(
-        path, args.args, args.time_limit, bypass_allowlist=True)
+        path, args.args, args.time_limit, bypass_allowlist=True
+    )
     (stdout, stderr, status, time_used) = res
 
     # Limit output to 10MB so our response doesn't get too big.
-    stdout = stdout[:10 * 1024 * 1024]
-    stderr = stderr[:10 * 1024 * 1024]
+    stdout = stdout[: 10 * 1024 * 1024]
+    stderr = stderr[: 10 * 1024 * 1024]
 
     self.SendReply(
         rdf_client_action.ExecuteBinaryResponse(
@@ -307,7 +323,9 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
             stderr=stderr,
             exit_status=status,
             # We have to return microseconds.
-            time_used=int(1e6 * time_used)))
+            time_used=int(1e6 * time_used),
+        )
+    )
 
 
 class ExecutePython(actions.ActionPlugin):
@@ -319,6 +337,7 @@ class ExecutePython(actions.ActionPlugin):
   This is protected by CONFIG[PrivateKeys.executable_signing_private_key], which
   should be stored offline and well protected.
   """
+
   in_rdfvalue = rdf_client_action.ExecutePythonRequest
   out_rdfvalues = [rdf_client_action.ExecutePythonResponse]
 
@@ -327,7 +346,8 @@ class ExecutePython(actions.ActionPlugin):
     time_start = rdfvalue.RDFDatetime.Now()
 
     args.python_code.Verify(
-        config.CONFIG["Client.executable_signing_public_key"])
+        config.CONFIG["Client.executable_signing_public_key"]
+    )
 
     # The execed code can assign to this variable if it wants to return data.
     logging.debug("exec for python code %s", args.python_code.data[0:100])
@@ -353,8 +373,9 @@ class ExecutePython(actions.ActionPlugin):
     time_used = rdfvalue.RDFDatetime.Now() - time_start
     self.SendReply(
         rdf_client_action.ExecutePythonResponse(
-            time_used=time_used.ToInt(rdfvalue.MICROSECONDS),
-            return_val=output))
+            time_used=time_used.ToInt(rdfvalue.MICROSECONDS), return_val=output
+        )
+    )
 
 
 # TODO(hanuszczak): This class has been moved out of `ExecutePython::Run`. The
@@ -377,6 +398,7 @@ class StdOutHook(object):
 
 class Segfault(actions.ActionPlugin):
   """This action is just for debugging. It induces a segfault."""
+
   in_rdfvalue = None
   out_rdfvalues = [None]
 
@@ -402,6 +424,7 @@ def ListProcessesFromClient(args):
 
 class ListProcesses(actions.ActionPlugin):
   """This action lists all the processes running on a machine."""
+
   in_rdfvalue = None
   out_rdfvalues = [rdf_client.Process]
 
@@ -448,7 +471,8 @@ def StatFSFromClient(args):
         sectors_per_allocation_unit=1,
         total_allocation_units=st.f_blocks,
         actual_available_allocation_units=st.f_bavail,
-        unixvolume=unix)
+        unixvolume=unix,
+    )
 
 
 class StatFS(actions.ActionPlugin):
@@ -459,6 +483,7 @@ class StatFS(actions.ActionPlugin):
   Note that a statvfs call for a network filesystem (e.g. NFS) that is
   unavailable, e.g. due to no network, will result in the call blocking.
   """
+
   in_rdfvalue = rdf_client_action.StatFSRequest
   out_rdfvalues = [rdf_client_fs.Volume]
 

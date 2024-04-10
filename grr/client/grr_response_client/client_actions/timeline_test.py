@@ -126,22 +126,26 @@ class WalkTest(absltest.TestCase):
       self.assertLen(entries, 7)
 
       paths = [_.path.decode("utf-8") for _ in entries]
-      self.assertCountEqual(paths, [
-          os.path.join(root_dirpath),
-          os.path.join(root_dirpath, "foo"),
-          os.path.join(root_dirpath, "foo", "bar"),
-          os.path.join(root_dirpath, "foo", "baz"),
-          os.path.join(root_dirpath, "quux"),
-          os.path.join(root_dirpath, "quux", "norf"),
-          os.path.join(root_dirpath, "quux", "norf", "thud"),
-      ])
+      self.assertCountEqual(
+          paths,
+          [
+              os.path.join(root_dirpath),
+              os.path.join(root_dirpath, "foo"),
+              os.path.join(root_dirpath, "foo", "bar"),
+              os.path.join(root_dirpath, "foo", "baz"),
+              os.path.join(root_dirpath, "quux"),
+              os.path.join(root_dirpath, "quux", "norf"),
+              os.path.join(root_dirpath, "quux", "norf", "thud"),
+          ],
+      )
 
       for entry in entries:
         self.assertTrue(stat_mode.S_ISDIR(entry.mode))
 
   @skip.If(
       platform.system() == "Windows",
-      reason="Symlinks are not supported on Windows.")
+      reason="Symlinks are not supported on Windows.",
+  )
   def testSymlinks(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as root_dirpath:
       sub_dirpath = os.path.join(root_dirpath, "foo", "bar", "baz")
@@ -155,13 +159,16 @@ class WalkTest(absltest.TestCase):
       self.assertLen(entries, 5)
 
       paths = [_.path.decode("utf-8") for _ in entries]
-      self.assertEqual(paths, [
-          os.path.join(root_dirpath),
-          os.path.join(root_dirpath, "foo"),
-          os.path.join(root_dirpath, "foo", "bar"),
-          os.path.join(root_dirpath, "foo", "bar", "baz"),
-          os.path.join(root_dirpath, "foo", "bar", "baz", "quux")
-      ])
+      self.assertEqual(
+          paths,
+          [
+              os.path.join(root_dirpath),
+              os.path.join(root_dirpath, "foo"),
+              os.path.join(root_dirpath, "foo", "bar"),
+              os.path.join(root_dirpath, "foo", "bar", "baz"),
+              os.path.join(root_dirpath, "foo", "bar", "baz", "quux"),
+          ],
+      )
 
       for entry in entries[:-1]:
         self.assertTrue(stat_mode.S_ISDIR(entry.mode))

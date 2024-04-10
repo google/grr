@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with client action for talking with osquery."""
+
 import json
 import logging
 import os
@@ -48,12 +49,17 @@ class Osquery(actions.ActionPlugin):
       self, args: rdf_osquery.OsqueryArgs
   ) -> Iterator[rdf_osquery.OsqueryResult]:
     if not config.CONFIG["Osquery.path"]:
-      raise RuntimeError("The `Osquery` action invoked on a client without "
-                         "osquery path specified.")
+      raise RuntimeError(
+          "The `Osquery` action invoked on a client without "
+          "osquery path specified."
+      )
 
     if not os.path.exists(config.CONFIG["Osquery.path"]):
-      raise RuntimeError("The `Osquery` action invoked on a client where "
-                         "osquery executable is not available.")
+      raise RuntimeError(
+          "The `Osquery` action invoked on a client where "
+          "the specified osquery executable "
+          f"({config.CONFIG['Osquery.path']!r}) is not available."
+      )
 
     if not args.query:
       raise ValueError("The `Osquery` was invoked with an empty query.")
@@ -72,8 +78,9 @@ class Osquery(actions.ActionPlugin):
       yield rdf_osquery.OsqueryResult(table=chunk)
 
 
-def ChunkTable(table: rdf_osquery.OsqueryTable,
-               max_chunk_size: int) -> Iterator[rdf_osquery.OsqueryTable]:
+def ChunkTable(
+    table: rdf_osquery.OsqueryTable, max_chunk_size: int
+) -> Iterator[rdf_osquery.OsqueryTable]:
   """Chunks given table into multiple smaller ones.
 
   Tables that osquery yields can be arbitrarily large. Because GRR's messages
@@ -172,8 +179,9 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   return result
 
 
-def ParseRow(header: rdf_osquery.OsqueryHeader,
-             row: Any) -> rdf_osquery.OsqueryRow:
+def ParseRow(
+    header: rdf_osquery.OsqueryHeader, row: Any
+) -> rdf_osquery.OsqueryRow:
   """Parses a single row of osquery output.
 
   Args:

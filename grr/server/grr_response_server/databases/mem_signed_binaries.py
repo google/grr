@@ -17,7 +17,7 @@ def _SignedBinaryKeyFromID(
 
 
 def _SignedBinaryIDFromKey(
-    binary_key: Tuple[int, Text]
+    binary_key: Tuple[int, Text],
 ) -> objects_pb2.SignedBinaryID:
   """Converts a tuple representing a signed binary to a SignedBinaryID."""
   return objects_pb2.SignedBinaryID(

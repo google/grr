@@ -4,7 +4,7 @@
 from grr_response_core.lib import rdfvalue
 
 
-class TimeRange(object):
+class TimeRange:
   """An object representing a closed time-range.
 
   Attributes:
@@ -25,8 +25,9 @@ class TimeRange(object):
     """
     if start > end:
       raise ValueError(
-          "Invalid time-range: %s > %s." % (start.AsMicrosecondsSinceEpoch(),
-                                            end.AsMicrosecondsSinceEpoch()))
+          "Invalid time-range: %s > %s."
+          % (start.AsMicrosecondsSinceEpoch(), end.AsMicrosecondsSinceEpoch())
+      )
     self._start = start
     self._end = end
 

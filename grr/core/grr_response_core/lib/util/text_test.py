@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 from grr_response_core.lib.util import text
@@ -39,7 +38,7 @@ class UnescapeStringTest(absltest.TestCase):
 
   def testQuotemark(self):
     self.assertEqual(text.Unescape("\\'"), "'")
-    self.assertEqual(text.Unescape("\\\""), "\"")
+    self.assertEqual(text.Unescape('\\"'), '"')
 
   def testMany(self):
     self.assertEqual(text.Unescape("foo\\n\\'bar\\'\nbaz"), "foo\n'bar'\nbaz")

@@ -23,6 +23,8 @@ export class CopyButton {
    */
   @Input() overrideCopyText: string | null | undefined = undefined;
 
+  @Input() multiline: boolean | null | undefined = undefined;
+
   copied = false;
 
   constructor(private readonly clipboard: Clipboard) {}

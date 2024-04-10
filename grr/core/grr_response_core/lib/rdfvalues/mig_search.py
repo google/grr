@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_proto.api import search_pb2
 

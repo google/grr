@@ -12,8 +12,10 @@ from absl.testing import absltest
 from grr_response_client.unprivileged import sandbox
 
 
-@unittest.skipIf(platform.system() != "Darwin" or os.getuid() != 0,
-                 "Skipping OSX-only root test.")
+@unittest.skipIf(
+    platform.system() != "Darwin" or os.getuid() != 0,
+    "Skipping OSX-only root test.",
+)
 class OSXSandboxTest(absltest.TestCase):
 
   @classmethod

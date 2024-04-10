@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {FormControl, Validators} from '@angular/forms';
 
 import {
   ControlValues,
@@ -22,6 +22,10 @@ function makeControls() {
     processRegex: new FormControl('', {nonNullable: true}),
     cmdlineRegex: new FormControl('', {nonNullable: true}),
     pids: new FormControl<readonly number[]>([], {nonNullable: true}),
+    contextWindow: new FormControl<number>(50, {
+      nonNullable: true,
+      validators: [Validators.min(0)],
+    }),
     skipSpecialRegions: new FormControl(false, {nonNullable: true}),
     skipMappedFiles: new FormControl(false, {nonNullable: true}),
     skipSharedRegions: new FormControl(false, {nonNullable: true}),
@@ -79,6 +83,8 @@ export class YaraProcessScanForm extends FlowArgumentForm<
         flowArgs.yaraSignature ?? this.controls.yaraSignature.defaultValue,
       filterMode,
       pids: flowArgs.pids?.map(Number) ?? this.controls.pids.defaultValue,
+      contextWindow:
+        flowArgs.contextWindow ?? this.controls.contextWindow.defaultValue,
       processRegex:
         flowArgs.processRegex ?? this.controls.processRegex.defaultValue,
       cmdlineRegex:
@@ -116,6 +122,7 @@ export class YaraProcessScanForm extends FlowArgumentForm<
           ? formState.cmdlineRegex
           : undefined,
 
+      contextWindow: formState.contextWindow,
       skipSpecialRegions: formState.skipSpecialRegions,
       skipMappedFiles: formState.skipMappedFiles,
       skipSharedRegions: formState.skipSharedRegions,

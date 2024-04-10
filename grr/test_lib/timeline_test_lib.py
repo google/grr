@@ -5,7 +5,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Text
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_server import data_store
 from grr_response_server.flows.general import timeline
@@ -37,9 +36,8 @@ def WriteTimeline(
   flow_obj.flow_id = flow_id
   flow_obj.client_id = client_id
   flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-  flow_obj.create_time = rdfvalue.RDFDatetime.Now()
   flow_obj.parent_hunt_id = hunt_id
-  data_store.REL_DB.WriteFlowObject(flow_obj)
+  data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
   blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))
   blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)

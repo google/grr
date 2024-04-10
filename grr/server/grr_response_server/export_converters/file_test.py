@@ -18,6 +18,7 @@ from grr_response_server.export_converters import file
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import export_test_lib
@@ -74,10 +75,12 @@ class StatEntryToExportedFileConverterTest(export_test_lib.ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    path_info = data_store.REL_DB.ReadPathInfo(
+    proto_path_info = data_store.REL_DB.ReadPathInfo(
         self.client_id,
         rdf_objects.PathInfo.PathType.TSK,
-        components=tuple(pathspec.CollapsePath().lstrip("/").split("/")))
+        components=tuple(pathspec.CollapsePath().lstrip("/").split("/")),
+    )
+    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
     stat = path_info.stat_entry
 
     self.assertTrue(stat)
@@ -117,12 +120,14 @@ class StatEntryToExportedFileConverterTest(export_test_lib.ExportTestBase):
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=pathspec)
+        pathspec=pathspec,
+    )
 
     path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-    path_info = data_store.REL_DB.ReadPathInfo(self.client_id,
-                                               path_info.path_type,
-                                               tuple(path_info.components))
+    proto_path_info = data_store.REL_DB.ReadPathInfo(
+        self.client_id, path_info.path_type, tuple(path_info.components)
+    )
+    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
     hash_value = path_info.hash_entry
 
     self.assertTrue(hash_value)

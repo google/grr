@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
@@ -120,9 +119,8 @@ describe('OsqueryForm', () => {
     );
     await expandButtonHarness.click();
 
-    const collectionListHarness = await harnessLoader.getHarness(
-      MatChipGridHarness,
-    );
+    const collectionListHarness =
+      await harnessLoader.getHarness(MatChipGridHarness);
 
     const inputHarness = await collectionListHarness.getInput();
     await inputHarness?.setValue('column1');
@@ -148,9 +146,8 @@ describe('OsqueryForm', () => {
     );
     await expandButtonHarness.click();
 
-    const collectionListHarness = await harnessLoader.getHarness(
-      MatChipGridHarness,
-    );
+    const collectionListHarness =
+      await harnessLoader.getHarness(MatChipGridHarness);
 
     const inputHarness = await collectionListHarness.getInput();
     await inputHarness?.setValue('column1');

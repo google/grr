@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Functions to convert strings between different case styles."""
+
 import re
 
 

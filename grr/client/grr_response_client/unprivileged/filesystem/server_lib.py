@@ -5,7 +5,7 @@ import abc
 import os
 import sys
 import traceback
-from typing import TypeVar, Generic, Optional, Tuple
+from typing import Generic, Optional, Tuple, TypeVar
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.filesystem import ntfs
@@ -15,11 +15,13 @@ from grr_response_client.unprivileged.proto import filesystem_pb2
 
 class Error(Exception):
   """Base class for exceptions in this module."""
+
   pass
 
 
 class DispatchError(Error):
   """Error while dispatching a request."""
+
   pass
 
 
@@ -42,7 +44,8 @@ class ConnectionWrapper:
 
   def Send(self, response: filesystem_pb2.Response, attachment: bytes) -> None:
     self._connection.Send(
-        communication.Message(response.SerializeToString(), attachment))
+        communication.Message(response.SerializeToString(), attachment)
+    )
 
   def Recv(self) -> Tuple[filesystem_pb2.Request, bytes]:
     raw_request, attachment = self._connection.Recv()
@@ -59,9 +62,11 @@ class RpcDevice(filesystem.Device):
 
   def Read(self, offset: int, size: int) -> bytes:
     device_data_request = filesystem_pb2.DeviceDataRequest(
-        offset=offset, size=size)
+        offset=offset, size=size
+    )
     self._connection.Send(
-        filesystem_pb2.Response(device_data_request=device_data_request), b'')
+        filesystem_pb2.Response(device_data_request=device_data_request), b''
+    )
     _, attachment = self._connection.Recv()
     return attachment
 
@@ -88,8 +93,12 @@ class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
   common to most RPCs.
   """
 
-  def __init__(self, state: State, request: filesystem_pb2.Request,
-               connection: ConnectionWrapper):
+  def __init__(
+      self,
+      state: State,
+      request: filesystem_pb2.Request,
+      connection: ConnectionWrapper,
+  ):
     self._state = state
     self._request = request
     self._connection = connection
@@ -123,18 +132,20 @@ class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
     return b''
 
 
-class InitHandler(OperationHandler[filesystem_pb2.InitRequest,
-                                   filesystem_pb2.InitResponse]):
+class InitHandler(
+    OperationHandler[filesystem_pb2.InitRequest, filesystem_pb2.InitResponse]
+):
   """Implements the Init operation."""
 
   def HandleOperation(
-      self, state: State,
-      request: filesystem_pb2.InitRequest) -> filesystem_pb2.InitResponse:
+      self, state: State, request: filesystem_pb2.InitRequest
+  ) -> filesystem_pb2.InitResponse:
     if request.HasField('serialized_device_file_descriptor'):
       device = FileDevice(
           communication.FileDescriptor.FromSerialized(
-              request.serialized_device_file_descriptor,
-              communication.Mode.READ).ToFileDescriptor())
+              request.serialized_device_file_descriptor, communication.Mode.READ
+          ).ToFileDescriptor()
+      )
     else:
       device = self.CreateDevice()
 
@@ -144,30 +155,35 @@ class InitHandler(OperationHandler[filesystem_pb2.InitRequest,
       state.filesystem = tsk.TskFilesystem(device)
     else:
       raise DispatchError(
-          f'Bad implementation type: {request.implementation_type}')
+          f'Bad implementation type: {request.implementation_type}'
+      )
 
     return filesystem_pb2.InitResponse()
 
   def PackResponse(
-      self, response: filesystem_pb2.InitResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.InitResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(init_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.InitRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.InitRequest:
     return request.init_request
 
 
-class OpenHandler(OperationHandler[filesystem_pb2.OpenRequest,
-                                   filesystem_pb2.OpenResponse]):
+class OpenHandler(
+    OperationHandler[filesystem_pb2.OpenRequest, filesystem_pb2.OpenResponse]
+):
   """Implements the Open operation."""
 
   def HandleOperation(
-      self, state: State,
-      request: filesystem_pb2.OpenRequest) -> filesystem_pb2.OpenResponse:
+      self, state: State, request: filesystem_pb2.OpenRequest
+  ) -> filesystem_pb2.OpenResponse:
     path = request.path if request.HasField('path') else None
     inode = request.inode if request.HasField('inode') else None
-    stream_name = request.stream_name if request.HasField(
-        'stream_name') else None
+    stream_name = (
+        request.stream_name if request.HasField('stream_name') else None
+    )
     assert state.filesystem is not None
     if inode is None:
       file_obj = state.filesystem.Open(path, stream_name)
@@ -176,69 +192,83 @@ class OpenHandler(OperationHandler[filesystem_pb2.OpenRequest,
         file_obj = state.filesystem.OpenByInode(inode, stream_name)
       except filesystem.StaleInodeError:
         return filesystem_pb2.OpenResponse(
-            status=filesystem_pb2.OpenResponse.Status.STALE_INODE)
+            status=filesystem_pb2.OpenResponse.Status.STALE_INODE
+        )
     file_id = state.files.Add(file_obj)
     return filesystem_pb2.OpenResponse(
         status=filesystem_pb2.OpenResponse.Status.NO_ERROR,
         file_id=file_id,
-        inode=file_obj.Inode())
+        inode=file_obj.Inode(),
+    )
 
   def PackResponse(
-      self, response: filesystem_pb2.OpenResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.OpenResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(open_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.OpenRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.OpenRequest:
     return request.open_request
 
 
-class ReadHandler(OperationHandler[filesystem_pb2.ReadRequest,
-                                   filesystem_pb2.ReadResponse]):
+class ReadHandler(
+    OperationHandler[filesystem_pb2.ReadRequest, filesystem_pb2.ReadResponse]
+):
   """Implements the Read operation."""
 
   def HandleOperation(
-      self, state: State,
-      request: filesystem_pb2.ReadRequest) -> filesystem_pb2.ReadResponse:
+      self, state: State, request: filesystem_pb2.ReadRequest
+  ) -> filesystem_pb2.ReadResponse:
     file = state.files.Get(request.file_id)
     data = file.Read(offset=request.offset, size=request.size)
     return filesystem_pb2.ReadResponse(data=data)
 
   def PackResponse(
-      self, response: filesystem_pb2.ReadResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.ReadResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(read_response=response)
 
-  def ExtractResponseAttachment(self,
-                                response: filesystem_pb2.ReadResponse) -> bytes:
+  def ExtractResponseAttachment(
+      self, response: filesystem_pb2.ReadResponse
+  ) -> bytes:
     attachment = response.data
     response.ClearField('data')
     return attachment
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.ReadRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.ReadRequest:
     return request.read_request
 
 
-class StatHandler(OperationHandler[filesystem_pb2.StatRequest,
-                                   filesystem_pb2.StatResponse]):
+class StatHandler(
+    OperationHandler[filesystem_pb2.StatRequest, filesystem_pb2.StatResponse]
+):
   """Implements the Stat operation."""
 
   def HandleOperation(
-      self, state: State,
-      request: filesystem_pb2.StatRequest) -> filesystem_pb2.StatResponse:
+      self, state: State, request: filesystem_pb2.StatRequest
+  ) -> filesystem_pb2.StatResponse:
     file_obj = state.files.Get(request.file_id)
     return filesystem_pb2.StatResponse(entry=file_obj.Stat())
 
   def PackResponse(
-      self, response: filesystem_pb2.StatResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.StatResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(stat_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.StatRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.StatRequest:
     return request.stat_request
 
 
-class ListFilesHandler(OperationHandler[filesystem_pb2.ListFilesRequest,
-                                        filesystem_pb2.ListFilesResponse]):
+class ListFilesHandler(
+    OperationHandler[
+        filesystem_pb2.ListFilesRequest, filesystem_pb2.ListFilesResponse
+    ]
+):
   """Implements the ListFiles operation."""
 
   def HandleOperation(
@@ -248,17 +278,21 @@ class ListFilesHandler(OperationHandler[filesystem_pb2.ListFilesRequest,
     return filesystem_pb2.ListFilesResponse(entries=file_obj.ListFiles())
 
   def PackResponse(
-      self,
-      response: filesystem_pb2.ListFilesResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.ListFilesResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(list_files_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.ListFilesRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.ListFilesRequest:
     return request.list_files_request
 
 
-class ListNamesHandler(OperationHandler[filesystem_pb2.ListNamesRequest,
-                                        filesystem_pb2.ListNamesResponse]):
+class ListNamesHandler(
+    OperationHandler[
+        filesystem_pb2.ListNamesRequest, filesystem_pb2.ListNamesResponse
+    ]
+):
   """Implements the ListNames operation."""
 
   def HandleOperation(
@@ -268,39 +302,46 @@ class ListNamesHandler(OperationHandler[filesystem_pb2.ListNamesRequest,
     return filesystem_pb2.ListNamesResponse(names=file_obj.ListNames())
 
   def PackResponse(
-      self,
-      response: filesystem_pb2.ListNamesResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.ListNamesResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(list_names_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.ListNamesRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.ListNamesRequest:
     return request.list_names_request
 
 
-class CloseHandler(OperationHandler[filesystem_pb2.CloseRequest,
-                                    filesystem_pb2.CloseResponse]):
+class CloseHandler(
+    OperationHandler[filesystem_pb2.CloseRequest, filesystem_pb2.CloseResponse]
+):
   """Implements the Close operation."""
 
   def HandleOperation(
-      self, state: State,
-      request: filesystem_pb2.CloseRequest) -> filesystem_pb2.CloseResponse:
+      self, state: State, request: filesystem_pb2.CloseRequest
+  ) -> filesystem_pb2.CloseResponse:
     file_obj = state.files.Get(request.file_id)
     file_obj.Close()
     state.files.Remove(request.file_id)
     return filesystem_pb2.CloseResponse()
 
   def PackResponse(
-      self, response: filesystem_pb2.CloseResponse) -> filesystem_pb2.Response:
+      self, response: filesystem_pb2.CloseResponse
+  ) -> filesystem_pb2.Response:
     return filesystem_pb2.Response(close_response=response)
 
   def UnpackRequest(
-      self, request: filesystem_pb2.Request) -> filesystem_pb2.CloseRequest:
+      self, request: filesystem_pb2.Request
+  ) -> filesystem_pb2.CloseRequest:
     return request.close_request
 
 
 class LookupCaseInsensitiveHandler(
-    OperationHandler[filesystem_pb2.LookupCaseInsensitiveRequest,
-                     filesystem_pb2.LookupCaseInsensitiveResponse]):
+    OperationHandler[
+        filesystem_pb2.LookupCaseInsensitiveRequest,
+        filesystem_pb2.LookupCaseInsensitiveResponse,
+    ]
+):
   """Implements the LookupCaseInsensitive operation."""
 
   def HandleOperation(
@@ -358,7 +399,8 @@ def DispatchWrapped(connection: ConnectionWrapper) -> None:
     except:  # pylint: disable=bare-except
       exception = filesystem_pb2.Exception(
           message=str(sys.exc_info()[1]),
-          formatted_exception=traceback.format_exc())
+          formatted_exception=traceback.format_exc(),
+      )
       connection.Send(filesystem_pb2.Response(exception=exception), b'')
 
 

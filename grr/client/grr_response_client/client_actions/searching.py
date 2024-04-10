@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 class Find(actions.ActionPlugin):
   """Recurses through a directory returning files which match conditions."""
+
   in_rdfvalue = rdf_client_fs.FindSpec
   out_rdfvalues = [rdf_client_fs.FindSpec, rdf_client_fs.StatEntry]
 
@@ -39,8 +40,9 @@ class Find(actions.ActionPlugin):
         self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
       else:
         # Can't open the directory we're searching, ignore the directory.
-        logging.info("Find failed to ListDirectory for %s. Err: %s", pathspec,
-                     e)
+        logging.info(
+            "Find failed to ListDirectory for %s. Err: %s", pathspec, e
+        )
       return
 
     # If we are not supposed to cross devices, and don't know yet
@@ -67,7 +69,8 @@ class Find(actions.ActionPlugin):
 
       data = b""
       with vfs.VFSOpen(
-          file_stat.pathspec, progress_callback=self.Progress) as fd:
+          file_stat.pathspec, progress_callback=self.Progress
+      ) as fd:
         # Only read this much data from the file.
         while fd.Tell() < self.request.max_data:
           data_read = fd.read(1024000)
@@ -107,8 +110,9 @@ class Find(actions.ActionPlugin):
 
       def FilterTimestamp(file_stat, request=request):
         return file_stat.HasField("st_mtime") and (
-            file_stat.st_mtime < request.start_time or
-            file_stat.st_mtime > request.end_time)
+            file_stat.st_mtime < request.start_time
+            or file_stat.st_mtime > request.end_time
+        )
 
       result.append(FilterTimestamp)
 
@@ -116,8 +120,9 @@ class Find(actions.ActionPlugin):
 
       def FilterSize(file_stat, request=request):
         return file_stat.HasField("st_size") and (
-            file_stat.st_size < request.min_file_size or
-            file_stat.st_size > request.max_file_size)
+            file_stat.st_size < request.min_file_size
+            or file_stat.st_size > request.max_file_size
+        )
 
       result.append(FilterSize)
 
@@ -186,6 +191,7 @@ class Find(actions.ActionPlugin):
 
 class Grep(actions.ActionPlugin):
   """Search a file for a pattern."""
+
   in_rdfvalue = rdf_client_fs.GrepSpec
   out_rdfvalues = [rdf_client.BufferReference]
 
@@ -268,7 +274,6 @@ class Grep(actions.ActionPlugin):
 
     Raises:
       RuntimeError: No search pattern has been given in the request.
-
     """
     fd = vfs.VFSOpen(args.target, progress_callback=self.Progress)
     fd.Seek(args.start_offset)
@@ -291,13 +296,16 @@ class Grep(actions.ActionPlugin):
     while fd.Tell() < args.start_offset + args.length:
 
       # Base size to read is at most the buffer size.
-      to_read = min(args.length, self.BUFF_SIZE,
-                    args.start_offset + args.length - fd.Tell())
+      to_read = min(
+          args.length,
+          self.BUFF_SIZE,
+          args.start_offset + args.length - fd.Tell(),
+      )
       # Read some more data for the snippet.
       to_read += self.ENVELOPE_SIZE - postscript_size
       read_data = fd.Read(to_read)
 
-      data = data[-postscript_size - self.ENVELOPE_SIZE:] + read_data
+      data = data[-postscript_size - self.ENVELOPE_SIZE :] + read_data
 
       postscript_size = max(0, self.ENVELOPE_SIZE - (to_read - len(read_data)))
       data_size = len(data) - preamble_size - postscript_size
@@ -305,7 +313,7 @@ class Grep(actions.ActionPlugin):
       if data_size == 0 and postscript_size == 0:
         break
 
-      for (start, end) in find_func(data):
+      for start, end in find_func(data):
         # Ignore hits in the preamble.
         if end <= preamble_size:
           continue
@@ -328,17 +336,22 @@ class Grep(actions.ActionPlugin):
                 offset=base_offset + start - preamble_size,
                 data=out_data,
                 length=len(out_data),
-                pathspec=fd.pathspec))
+                pathspec=fd.pathspec,
+            )
+        )
 
         if args.mode == rdf_client_fs.GrepSpec.Mode.FIRST_HIT:
           return
 
         if hits >= self.HIT_LIMIT:
           msg = utils.Xor(
-              b"This Grep has reached the maximum number of hits"
-              b" (%d)." % self.HIT_LIMIT, self.xor_out_key)
+              b"This Grep has reached the maximum number of hits (%d)."
+              % self.HIT_LIMIT,
+              self.xor_out_key,
+          )
           self.SendReply(
-              rdf_client.BufferReference(offset=0, data=msg, length=len(msg)))
+              rdf_client.BufferReference(offset=0, data=msg, length=len(msg))
+          )
           return
 
       self.Progress()

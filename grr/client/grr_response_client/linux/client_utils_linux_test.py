@@ -44,22 +44,42 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     with contextlib.ExitStack() as stack:
       stack.enter_context(
           mock.patch.object(
-              client_utils_linux, "MOUNTPOINT_CACHE", new=[0, None]))
+              client_utils_linux, "MOUNTPOINT_CACHE", new=[0, None]
+          )
+      )
 
       mountpoints = client_utils_linux.GetMountpoints(proc_mounts)
 
       stack.enter_context(
           mock.patch.object(
-              client_utils_linux, "GetMountpoints", return_value=mountpoints))
+              client_utils_linux, "GetMountpoints", return_value=mountpoints
+          )
+      )
       for filename, expected_device, expected_path, device_type in [
-          ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
-           rdf_paths.PathSpec.PathType.OS),
-          ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-           rdf_paths.PathSpec.PathType.OS),
-          ("/proc/net/sys", "none", "/net/sys",
-           rdf_paths.PathSpec.PathType.UNSET),
-          ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-           rdf_paths.PathSpec.PathType.UNSET)
+          (
+              "/etc/passwd",
+              "/dev/mapper/root",
+              "/etc/passwd",
+              rdf_paths.PathSpec.PathType.OS,
+          ),
+          (
+              "/usr/local/bin/ls",
+              "/dev/mapper/usr",
+              "/bin/ls",
+              rdf_paths.PathSpec.PathType.OS,
+          ),
+          (
+              "/proc/net/sys",
+              "none",
+              "/net/sys",
+              rdf_paths.PathSpec.PathType.UNSET,
+          ),
+          (
+              "/home/user/test.txt",
+              "server.nfs:/vol/home",
+              "/test.txt",
+              rdf_paths.PathSpec.PathType.UNSET,
+          ),
       ]:
         raw_pathspec, path = client_utils_linux.GetRawDevice(filename)
 
@@ -92,9 +112,11 @@ class GetExtAttrsText(absltest.TestCase):
   def testMany(self):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name=b"user.foo", value=b"bar")
+          temp_filepath, name=b"user.foo", value=b"bar"
+      )
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name=b"user.quux", value=b"norf")
+          temp_filepath, name=b"user.quux", value=b"norf"
+      )
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 
@@ -113,7 +135,8 @@ class GetExtAttrsText(absltest.TestCase):
   def testAttrChangeAfterListing(self, listxattr):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name=b"user.bar", value=b"baz")
+          temp_filepath, name=b"user.bar", value=b"baz"
+      )
 
       attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
 

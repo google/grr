@@ -4,6 +4,7 @@
 import collections
 import platform
 import unittest
+
 from absl import app
 from absl.testing import absltest
 
@@ -19,19 +20,20 @@ class TSKWindowsGlobbingTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
 
   def testGlobComponentGenerateWorksWithTSK(self):
     opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.TSK)
-    paths = globbing.GlobComponent(u"Windows", opts=opts).Generate("C:\\")
-    self.assertEqual(list(paths), [u"C:\\Windows"])
+    paths = globbing.GlobComponent("Windows", opts=opts).Generate("C:\\")
+    self.assertEqual(list(paths), ["C:\\Windows"])
 
   def testGlobbingExpandPathWorksWithTSK(self):
     opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.TSK)
     paths = globbing.ExpandPath("C:/Windows/System32/notepad.exe", opts=opts)
-    self.assertEqual(list(paths), [u"C:\\Windows\\System32\\notepad.exe"])
+    self.assertEqual(list(paths), ["C:\\Windows\\System32\\notepad.exe"])
 
   def testListNamesNoDuplicates(self):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
-            path="C:/Windows/System32",
-            pathtype=rdf_paths.PathSpec.PathType.TSK))
+            path="C:/Windows/System32", pathtype=rdf_paths.PathSpec.PathType.TSK
+        )
+    )
     names = fd.ListNames()
     counts = collections.Counter(names)
     duplicates = [(name, count) for name, count in counts.items() if count > 1]

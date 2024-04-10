@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test for client comms."""
+
 from absl import app
 
 from grr_response_client import comms

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from unittest import mock
 
 from absl.testing import absltest
@@ -24,8 +23,9 @@ class WindowsActionTests(absltest.TestCase):
         self.assertNotEmpty(address.human_readable_address)
         found_address = True
     if not found_address:
-      self.fail("Not a single address found in EnumerateInterfaces {}".format(
-          replies))
+      self.fail(
+          "Not a single address found in EnumerateInterfaces {}".format(replies)
+      )
 
   def testEnumerateInterfacesMock(self):
     # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration()
@@ -44,11 +44,15 @@ class WindowsActionTests(absltest.TestCase):
     interface = replies[0]
     self.assertLen(interface.addresses, 4)
     addresses = [x.human_readable_address for x in interface.addresses]
-    self.assertCountEqual(addresses, [
-        "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
-        "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
-        "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"
-    ])
+    self.assertCountEqual(
+        addresses,
+        [
+            "192.168.1.20",
+            "ffff::ffff:aaaa:1111:aaaa",
+            "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
+            "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb",
+        ],
+    )
 
   def testRunWMI(self):
     result_list = list(windows.RunWMIQuery("SELECT * FROM Win32_logicalDisk"))

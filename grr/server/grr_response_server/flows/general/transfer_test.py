@@ -165,8 +165,8 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
-    self.assertIsNone(history[-1].hash_entry.sha1)
-    self.assertIsNone(history[-1].hash_entry.md5)
+    self.assertFalse(history[-1].hash_entry.HasField("sha1"))
+    self.assertFalse(history[-1].hash_entry.HasField("md5"))
 
   def testGetFilePathCorrection(self):
     """Tests that the pathspec returned is used for the aff4path."""
@@ -204,8 +204,8 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
     self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
-    self.assertIsNone(history[-1].hash_entry.sha1)
-    self.assertIsNone(history[-1].hash_entry.md5)
+    self.assertFalse(history[-1].hash_entry.HasField("sha1"))
+    self.assertFalse(history[-1].hash_entry.HasField("md5"))
 
   def testGetFileIsDirectory(self):
     """Tests that the flow raises when called on directory."""

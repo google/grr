@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the MySQL-based blob store."""
 
-
 from absl import app
 from absl.testing import absltest
 
@@ -11,8 +10,11 @@ from grr_response_server.databases import mysql_test
 from grr.test_lib import test_lib
 
 
-class MySQLBlobStoreTest(blob_store_test_mixin.BlobStoreTestMixin,
-                         mysql_test.MysqlTestBase, absltest.TestCase):
+class MySQLBlobStoreTest(
+    blob_store_test_mixin.BlobStoreTestMixin,
+    mysql_test.MysqlTestBase,
+    absltest.TestCase,
+):
 
   def CreateBlobStore(self):
     db, db_cleanup_fn = self.CreateDatabase()

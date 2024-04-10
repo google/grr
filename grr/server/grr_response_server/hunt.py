@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """REL_DB implementation of hunts."""
 
+from typing import Optional
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -14,6 +16,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import mig_foreman_rules
 from grr_response_server import notification
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -101,6 +104,7 @@ def HuntURNFromID(hunt_id):
 def StopHuntIfCrashLimitExceeded(hunt_id):
   """Stops the hunt if number of crashes exceeds the limit."""
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
 
   # Do nothing if the hunt is already stopped.
   if hunt_obj.hunt_state == rdf_hunt_objects.Hunt.HuntState.STOPPED:
@@ -115,9 +119,7 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
           f"Hunt {hunt_obj.hunt_id} reached the crashes limit of"
           f" {hunt_obj.crash_limit} and was stopped."
       )
-      hunt_state_reason = (
-          rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_CRASHES_EXCEEDED
-      )
+      hunt_state_reason = hunts_pb2.Hunt.HuntStateReason.TOTAL_CRASHES_EXCEEDED
       StopHunt(
           hunt_obj.hunt_id,
           hunt_state_reason=hunt_state_reason,
@@ -134,6 +136,7 @@ _TIME_BETWEEN_STOP_CHECKS = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
 def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
   """Stops the hunt if average limites are exceeded."""
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
 
   # Do nothing if the hunt is already stopped.
   if hunt_obj.hunt_state == rdf_hunt_objects.Hunt.HuntState.STOPPED:
@@ -151,9 +154,7 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
         f"Hunt {hunt_obj.hunt_id} reached the total network bytes sent limit of"
         f" {hunt_obj.total_network_bytes_limit} and was stopped."
     )
-    hunt_state_reason = (
-        rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_NETWORK_EXCEEDED
-    )
+    hunt_state_reason = hunts_pb2.Hunt.HuntStateReason.TOTAL_NETWORK_EXCEEDED
     StopHunt(
         hunt_obj.hunt_id,
         hunt_state_reason=hunt_state_reason,
@@ -175,9 +176,7 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
           f"Hunt {hunt_obj.hunt_id} reached the average results per client "
           f"limit of {hunt_obj.avg_results_per_client_limit} and was stopped."
       )
-      hunt_state_reason = (
-          rdf_hunt_objects.Hunt.HuntStateReason.AVG_RESULTS_EXCEEDED
-      )
+      hunt_state_reason = hunts_pb2.Hunt.HuntStateReason.AVG_RESULTS_EXCEEDED
       StopHunt(
           hunt_obj.hunt_id,
           hunt_state_reason=hunt_state_reason,
@@ -196,7 +195,7 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
           f" limit of {hunt_obj.avg_cpu_seconds_per_client_limit} and was"
           " stopped."
       )
-      hunt_state_reason = rdf_hunt_objects.Hunt.HuntStateReason.AVG_CPU_EXCEEDED
+      hunt_state_reason = hunts_pb2.Hunt.HuntStateReason.AVG_CPU_EXCEEDED
       StopHunt(
           hunt_obj.hunt_id,
           hunt_state_reason=hunt_state_reason,
@@ -219,9 +218,7 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
           f" client limit of {hunt_obj.avg_network_bytes_per_client_limit} and"
           " was stopped."
       )
-      hunt_state_reason = (
-          rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED
-      )
+      hunt_state_reason = hunts_pb2.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED
       StopHunt(
           hunt_obj.hunt_id,
           hunt_state_reason=hunt_state_reason,
@@ -231,11 +228,12 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
   return hunt_obj
 
 
-def CompleteHuntIfExpirationTimeReached(hunt_id):
+def CompleteHuntIfExpirationTimeReached(hunt_id: str) -> rdf_hunt_objects.Hunt:
   """Marks the hunt as complete if it's past its expiry time."""
   # TODO(hanuszczak): This should not set the hunt state to `COMPLETED` but we
   # should have a separate `EXPIRED` state instead and set that.
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   if (
       hunt_obj.hunt_state
       not in [
@@ -246,14 +244,15 @@ def CompleteHuntIfExpirationTimeReached(hunt_id):
   ):
     StopHunt(
         hunt_obj.hunt_id,
-        rdf_hunt_objects.Hunt.HuntStateReason.DEADLINE_REACHED,
+        hunts_pb2.Hunt.HuntStateReason.DEADLINE_REACHED,
         reason_comment="Hunt completed.",
     )
 
     data_store.REL_DB.UpdateHuntObject(
-        hunt_obj.hunt_id, hunt_state=hunt_obj.HuntState.COMPLETED
+        hunt_obj.hunt_id, hunt_state=hunts_pb2.Hunt.HuntState.COMPLETED
     )
-    return data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
+    hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
 
   return hunt_obj
 
@@ -267,6 +266,10 @@ def CreateHunt(hunt_obj: hunts_pb2.Hunt):
     output_plugins_states = flow.GetOutputPluginStates(
         hunt_obj.output_plugins, source=f"hunts/{hunt_obj.hunt_id}"
     )
+    output_plugins_states = [
+        mig_flow_runner.ToProtoOutputPluginState(state)
+        for state in output_plugins_states
+    ]
     data_store.REL_DB.WriteHuntOutputPluginsStates(
         hunt_obj.hunt_id, output_plugins_states
     )
@@ -299,7 +302,7 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   return hunt_obj.hunt_id
 
 
-def _ScheduleGenericHunt(hunt_obj):
+def _ScheduleGenericHunt(hunt_obj: rdf_hunt_objects.Hunt):
   """Adds foreman rules for a generic hunt."""
   # TODO: Migrate foreman conditions to use relation expiration
   # durations instead of absolute timestamps.
@@ -320,7 +323,7 @@ def _ScheduleGenericHunt(hunt_obj):
   data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
 
 
-def _ScheduleVariableHunt(hunt_obj):
+def _ScheduleVariableHunt(hunt_obj: rdf_hunt_objects.Hunt):
   """Schedules flows for a variable hunt."""
   if hunt_obj.client_rate != 0:
     raise VariableHuntCanNotHaveClientRateError(
@@ -359,10 +362,11 @@ def _ScheduleVariableHunt(hunt_obj):
       )
 
 
-def StartHunt(hunt_id):
+def StartHunt(hunt_id) -> rdf_hunt_objects.Hunt:
   """Starts a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   num_hunt_clients = data_store.REL_DB.CountHuntFlows(hunt_id)
 
   if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
@@ -370,11 +374,12 @@ def StartHunt(hunt_id):
 
   data_store.REL_DB.UpdateHuntObject(
       hunt_id,
-      hunt_state=hunt_obj.HuntState.STARTED,
+      hunt_state=hunts_pb2.Hunt.HuntState.STARTED,
       start_time=rdfvalue.RDFDatetime.Now(),
       num_clients_at_start_time=num_hunt_clients,
   )
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
 
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
     _ScheduleGenericHunt(hunt_obj)
@@ -388,28 +393,42 @@ def StartHunt(hunt_id):
   return hunt_obj
 
 
-def PauseHunt(hunt_id, hunt_state_reason=None, reason=None):
+def PauseHunt(
+    hunt_id,
+    hunt_state_reason=None,
+    reason=None,
+) -> rdf_hunt_objects.Hunt:
   """Pauses a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   if hunt_obj.hunt_state != hunt_obj.HuntState.STARTED:
     raise OnlyStartedHuntCanBePausedError(hunt_obj)
 
   data_store.REL_DB.UpdateHuntObject(
       hunt_id,
-      hunt_state=hunt_obj.HuntState.PAUSED,
+      hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
       hunt_state_reason=hunt_state_reason,
       hunt_state_comment=reason,
   )
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  return data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+  return hunt_obj
 
 
-def StopHunt(hunt_id, hunt_state_reason=None, reason_comment=None):
+def StopHunt(
+    hunt_id: str,
+    hunt_state_reason: Optional[
+        hunts_pb2.Hunt.HuntStateReason.ValueType
+    ] = None,
+    reason_comment: Optional[str] = None,
+) -> rdf_hunt_objects.Hunt:
   """Stops a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   if hunt_obj.hunt_state not in [
       hunt_obj.HuntState.STARTED,
       hunt_obj.HuntState.PAUSED,
@@ -418,7 +437,7 @@ def StopHunt(hunt_id, hunt_state_reason=None, reason_comment=None):
 
   data_store.REL_DB.UpdateHuntObject(
       hunt_id,
-      hunt_state=hunt_obj.HuntState.STOPPED,
+      hunt_state=hunts_pb2.Hunt.HuntState.STOPPED,
       hunt_state_reason=hunt_state_reason,
       hunt_state_comment=reason_comment,
   )
@@ -426,8 +445,7 @@ def StopHunt(hunt_id, hunt_state_reason=None, reason_comment=None):
 
   # TODO: Stop matching on string (comment).
   if (
-      hunt_state_reason
-      != rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER
+      hunt_state_reason != hunts_pb2.Hunt.HuntStateReason.TRIGGERED_BY_USER
       and reason_comment is not None
       and reason_comment != CANCELLED_BY_USER
       and hunt_obj.creator not in access_control.SYSTEM_USERS
@@ -442,13 +460,21 @@ def StopHunt(hunt_id, hunt_state_reason=None, reason_comment=None):
         ),
     )
 
-  return data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+  return hunt_obj
 
 
-def UpdateHunt(hunt_id, client_limit=None, client_rate=None, duration=None):
+def UpdateHunt(
+    hunt_id,
+    client_limit=None,
+    client_rate=None,
+    duration=None,
+) -> rdf_hunt_objects.Hunt:
   """Updates a hunt (it must be paused to be updated)."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
     raise OnlyPausedHuntCanBeModifiedError(hunt_obj)
 
@@ -458,7 +484,9 @@ def UpdateHunt(hunt_id, client_limit=None, client_rate=None, duration=None):
       client_rate=client_rate,
       duration=duration,
   )
-  return data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+  return hunt_obj
 
 
 _TIME_BETWEEN_PAUSE_CHECKS = rdfvalue.Duration.From(5, rdfvalue.SECONDS)
@@ -473,6 +501,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   """Starts a flow corresponding to a given hunt on a given client."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+
   # There may be a little race between foreman rules being removed and
   # foreman scheduling a client on an (already) paused hunt. Making sure
   # we don't lose clients in such a race by accepting clients for paused
@@ -480,6 +509,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
     return
 
+  hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
     hunt_args = hunt_obj.args.standard
 

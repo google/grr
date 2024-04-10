@@ -27,6 +27,7 @@ from grr_response_server import output_plugin
 from grr_response_server.export_converters import base
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 
 BULK_OPERATIONS_PATH = "_bulk"
@@ -116,6 +117,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
   def _GetFlowMetadata(self, client_id: Text,
                        flow_id: Text) -> api_flow.ApiFlow:
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
   def _MakeEvent(

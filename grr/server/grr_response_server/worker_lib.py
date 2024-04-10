@@ -7,9 +7,10 @@ from typing import Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.stats import metrics
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
@@ -18,7 +19,9 @@ from grr_response_server import server_stubs
 # pylint: enable=unused-import
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
+
 
 WELL_KNOWN_FLOW_REQUESTS = metrics.Counter(
     "well_known_flow_requests", fields=[("flow", str)])
@@ -33,12 +36,18 @@ class FlowHasNothingToProcessError(Error):
 
 
 def ProcessMessageHandlerRequests(
-    requests: Sequence[rdf_objects.MessageHandlerRequest]):
+    requests: Sequence[objects_pb2.MessageHandlerRequest],
+) -> None:
   """Processes message handler requests."""
-  logging.info("Leased message handler request ids: %s",
-               ",".join(str(r.request_id) for r in requests))
+  logging.info(
+      "Leased message handler request ids: %s",
+      ",".join(str(r.request_id) for r in requests),
+  )
   grouped_requests = collection.Group(requests, lambda r: r.handler_name)
   for handler_name, requests_for_handler in grouped_requests.items():
+    requests_for_handler = [
+        mig_objects.ToRDFMessageHandlerRequest(r) for r in requests_for_handler
+    ]
     handler_cls = handler_registry.handler_name_map.get(handler_name)
     if not handler_cls:
       logging.error("Unknown message handler: %s", handler_name)
@@ -92,33 +101,42 @@ class GRRWorker(object):
       self.Shutdown()
 
   def _ReleaseProcessedFlow(self, flow_obj: rdf_flow_objects.Flow) -> bool:
+    """Release a processed flow if the processing deadline is not exceeded."""
     rdf_flow = flow_obj.rdf_flow
     if rdf_flow.processing_deadline < rdfvalue.RDFDatetime.Now():
       raise flow_base.FlowError(
-          "Lease expired for flow %s on %s (%s)." %
-          (rdf_flow.flow_id, rdf_flow.client_id, rdf_flow.processing_deadline))
-
+          "Lease expired for flow %s on %s (%s)."
+          % (
+              rdf_flow.flow_id,
+              rdf_flow.client_id,
+              rdf_flow.processing_deadline,
+          ),
+      )
     flow_obj.FlushQueuedMessages()
 
-    return data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
+    proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
+    return data_store.REL_DB.ReleaseProcessedFlow(proto_flow)
 
   def ProcessFlow(
-      self, flow_processing_request: rdf_flows.FlowProcessingRequest) -> None:
+      self, flow_processing_request: flows_pb2.FlowProcessingRequest
+  ) -> None:
     """The callback for the flow processing queue."""
-
     client_id = flow_processing_request.client_id
     flow_id = flow_processing_request.flow_id
 
     data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
 
     try:
-      rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
+      flow = data_store.REL_DB.LeaseFlowForProcessing(
           client_id,
           flow_id,
-          processing_time=rdfvalue.Duration.From(6, rdfvalue.HOURS))
+          processing_time=rdfvalue.Duration.From(6, rdfvalue.HOURS),
+      )
     except db.ParentHuntIsNotRunningError:
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return
+
+    rdf_flow = mig_flow_objects.ToRDFFlow(flow)
 
     first_request_to_process = rdf_flow.next_request_to_process
     logging.info("Processing Flow %s/%s/%d (%s).", client_id, flow_id,

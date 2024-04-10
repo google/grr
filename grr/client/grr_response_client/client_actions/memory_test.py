@@ -25,6 +25,16 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
+    patcher = mock.patch.object(
+        psutil,
+        "process_iter",
+        return_value=[
+            Process(0, "foo"),
+        ],
+    )
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
   def testSignatureShards_Multiple(self):
     requests = [
         rdf_memory.YaraProcessScanRequest(
@@ -32,18 +42,24 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
                 index=0, payload=b"123"
             ),
             num_signature_shards=3,
+            include_misses_in_results=True,
+            include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
         ),
         rdf_memory.YaraProcessScanRequest(
             signature_shard=rdf_memory.YaraSignatureShard(
                 index=1, payload=b"456"
             ),
             num_signature_shards=3,
+            include_misses_in_results=True,
+            include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
         ),
         rdf_memory.YaraProcessScanRequest(
             signature_shard=rdf_memory.YaraSignatureShard(
                 index=2, payload=b"789"
             ),
             num_signature_shards=3,
+            include_misses_in_results=True,
+            include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
         ),
     ]
     flow_id = "01234567"
@@ -91,6 +107,8 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     scan_request = rdf_memory.YaraProcessScanRequest(
         signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
         num_signature_shards=1,
+        include_misses_in_results=True,
+        include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
     )
 
     results = self.ExecuteAction(
@@ -111,12 +129,14 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
         signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
         num_signature_shards=1,
         process_regex=invalid_process_regex,
+        include_misses_in_results=True,
+        include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
     )
 
     results = self.ExecuteAction(
         memory.YaraProcessScan, arg=scan_request, session_id=session_id
     )
-    print(results)
+
     self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
     self.assertLen(results[0].errors, 1)
@@ -124,6 +144,142 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     self.assertEqual(
         results[0].errors[0].error, "No matching processes to scan."
     )
+
+  def testCanExcludesMisses(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        include_misses_in_results=False,
+        include_errors_in_results=(
+            rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS
+        ),
+    )
+    yara_process_scan = memory.YaraProcessScan()
+    scan_response = rdf_memory.YaraProcessScanResponse()
+
+    process_mock = Process(123, "cmd")
+    mock_process_matcher = mock.create_autospec(memory.YaraScanRequestMatcher)
+    mock_process_matcher.GetMatchesForProcess.return_value = []
+
+    yara_process_scan._ScanProcess(
+        process_mock, scan_request, scan_response, mock_process_matcher
+    )
+    mock_process_matcher.GetMatchesForProcess.assert_called_once_with(
+        process_mock, scan_request
+    )
+    self.assertEmpty(scan_response.misses)
+    self.assertEmpty(scan_response.errors)
+    self.assertEmpty(scan_response.matches)
+
+  def testCanExcludeErrors_WhenNoProcessesAreFound(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        include_misses_in_results=True,
+        include_errors_in_results=(
+            rdf_memory.YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+        ),
+    )
+    with mock.patch.object(
+        memory,
+        "ProcessIterator",
+        return_value=(),
+    ):
+      results = self.ExecuteAction(
+          memory.YaraProcessScan,
+          arg=scan_request,
+          session_id="C.0123456789abcdef/01234567",
+      )
+
+    self.assertLen(results, 2)
+    self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
+    self.assertEmpty(results[0].misses)
+    self.assertEmpty(results[0].errors)
+    self.assertEmpty(results[0].matches)
+    self.assertIsInstance(results[1], rdf_flows.GrrStatus)
+
+  def testProcessScanCanExcludeErrors_WhenTimeoutErrorIsRaised(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        include_misses_in_results=True,
+        include_errors_in_results=(
+            rdf_memory.YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+        ),
+    )
+
+    yara_process_scan = memory.YaraProcessScan()
+    scan_response = rdf_memory.YaraProcessScanResponse()
+
+    process_mock = Process(123, "cmd")
+    mock_process_matcher = mock.create_autospec(memory.YaraScanRequestMatcher)
+    mock_process_matcher.GetMatchesForProcess.side_effect = TimeoutError()
+
+    yara_process_scan._ScanProcess(
+        process_mock, scan_request, scan_response, mock_process_matcher
+    )
+    mock_process_matcher.GetMatchesForProcess.assert_called_once_with(
+        process_mock, scan_request
+    )
+    self.assertEmpty(scan_response.misses)
+    self.assertEmpty(scan_response.errors)
+    self.assertEmpty(scan_response.matches)
+
+  def testCanExcludeErrors_WhenExceptionIsRaised(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        include_misses_in_results=True,
+        include_errors_in_results=(
+            rdf_memory.YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+        ),
+    )
+    yara_process_scan = memory.YaraProcessScan()
+    scan_response = rdf_memory.YaraProcessScanResponse()
+
+    process_mock = Process(123, "cmd")
+    mock_process_matcher = mock.create_autospec(memory.YaraScanRequestMatcher)
+    mock_process_matcher.GetMatchesForProcess.side_effect = Exception("any")
+
+    yara_process_scan._ScanProcess(
+        process_mock, scan_request, scan_response, mock_process_matcher
+    )
+    mock_process_matcher.GetMatchesForProcess.assert_called_once_with(
+        process_mock, scan_request
+    )
+    self.assertEmpty(scan_response.misses)
+    self.assertEmpty(scan_response.errors)
+    self.assertEmpty(scan_response.matches)
+
+  def testCanExcludeNonCriticalErrors(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        include_misses_in_results=True,
+        include_errors_in_results=(
+            rdf_memory.YaraProcessScanRequest.ErrorPolicy.CRITICAL_ERRORS
+        ),
+    )
+    yara_process_scan = memory.YaraProcessScan()
+    scan_response = rdf_memory.YaraProcessScanResponse()
+
+    process_mock = Process(123, "cmd")
+    mock_process_matcher = mock.create_autospec(memory.YaraScanRequestMatcher)
+    # Filtering errors based on lower case string matching, so adding some
+    # capital letters to `access denied`.
+    mock_process_matcher.GetMatchesForProcess.side_effect = Exception(
+        "Any ACCESS Denied is a non-critical error"
+    )
+
+    yara_process_scan._ScanProcess(
+        process_mock, scan_request, scan_response, mock_process_matcher
+    )
+    mock_process_matcher.GetMatchesForProcess.assert_called_once_with(
+        process_mock, scan_request
+    )
+    self.assertEmpty(scan_response.misses)
+    self.assertEmpty(scan_response.errors)
+    self.assertEmpty(scan_response.matches)
 
 
 def R(start, size):
@@ -228,6 +384,7 @@ def GetProcessIteratorPids(
     process_regex_string=None,
     cmdline_regex_string=None,
     ignore_grr_process=False,
+    ignore_parent_processes=False,
 ):
   return [
       p.pid
@@ -236,6 +393,7 @@ def GetProcessIteratorPids(
           process_regex_string,
           cmdline_regex_string,
           ignore_grr_process,
+          ignore_parent_processes,
           [],
       )
   ]
@@ -283,17 +441,131 @@ class ProcessFilteringTest(client_test_lib.EmptyActionTest):
         signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
         num_signature_shards=1,
         cmdline_regex="svchost.exe -k def",
+        include_misses_in_results=True,
+        include_errors_in_results=rdf_memory.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
+    )
+    yara_process_scan = memory.YaraProcessScan()
+    scan_response = rdf_memory.YaraProcessScanResponse()
+
+    process_mock = Process(1, "cmd")
+    mock_process_matcher = mock.create_autospec(memory.YaraScanRequestMatcher)
+    mock_process_matcher.GetMatchesForProcess.return_value = [
+        rdf_memory.YaraMatch()
+    ]
+
+    yara_process_scan._ScanProcess(
+        process_mock, scan_request, scan_response, mock_process_matcher
+    )
+    mock_process_matcher.GetMatchesForProcess.assert_called_once_with(
+        process_mock, scan_request
+    )
+    self.assertEmpty(scan_response.misses)
+    self.assertEmpty(scan_response.errors)
+    self.assertLen(scan_response.matches, 1)
+    self.assertEqual(scan_response.matches[0].process.pid, 1)
+
+
+class ProcessIteratorTest(absltest.TestCase):
+
+  def testNoIgnores(self):
+    iterator = memory.ProcessIterator(
+        pids=[],
+        process_regex_string=None,
+        cmdline_regex_string=None,
+        ignore_grr_process=False,
+        ignore_parent_processes=False,
+        error_list=[],
     )
 
+    pids = set(_.pid for _ in iterator)
+    self.assertIn(os.getpid(), pids)
+    self.assertIn(os.getppid(), pids)
+
+  def testIgnoreGRRProcess(self):
+    iterator = memory.ProcessIterator(
+        pids=[],
+        process_regex_string=None,
+        cmdline_regex_string=None,
+        ignore_grr_process=True,
+        ignore_parent_processes=False,
+        error_list=[],
+    )
+
+    pids = set(_.pid for _ in iterator)
+    self.assertNotEmpty(pids)
+    self.assertNotIn(os.getpid(), pids)
+
+  def testIgnoreParentProcesses(self):
+    iterator = memory.ProcessIterator(
+        pids=[],
+        process_regex_string=None,
+        cmdline_regex_string=None,
+        ignore_grr_process=False,
+        ignore_parent_processes=True,
+        error_list=[],
+    )
+
+    pids = set(_.pid for _ in iterator)
+    self.assertNotEmpty(pids)
+    self.assertNotIn(os.getppid(), pids)
+
+
+class ParametersTest(client_test_lib.EmptyActionTest):
+
+  def setUp(self):
+    super().setUp()
+    patcher = mock.patch.object(
+        psutil,
+        "process_iter",
+        return_value=[
+            Process(3, "foo"),
+        ],
+    )
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+  def testContextWindowDefaultValue(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+    )
     with mock.patch.object(
-        memory.YaraProcessScan,
-        "_GetMatches",
-        return_value=[rdf_memory.YaraMatch()],
-    ):
+        memory.YaraScanRequestMatcher,
+        "GetMatchesForProcess",
+        return_value=[
+            rdf_memory.YaraMatch(
+                string_matches=[
+                    rdf_memory.YaraStringMatch(
+                        string_id="$",
+                        offset=0,
+                        data=b"bla",
+                        context=b"blablabla",
+                    )
+                ]
+            )
+        ],
+    ) as mock_get_matches:
       results = self.ExecuteAction(memory.YaraProcessScan, arg=scan_request)
-    self.assertLen(results, 2)
-    self.assertLen(results[0].matches, 1)
-    self.assertEqual(results[0].matches[0].process.pid, 1)
+      _, scan_request = mock_get_matches.call_args_list[0][0]
+      self.assertEqual(
+          results[0].matches[0].match[0].string_matches[0].context, b"blablabla"
+      )
+      self.assertEqual(scan_request.context_window, 50)
+
+  def testContextWindowCustomValue(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        context_window=100,
+    )
+    with mock.patch.object(
+        memory.YaraScanRequestMatcher,
+        "GetMatchesForProcess",
+        return_value=[rdf_memory.YaraMatch()],
+    ) as mock_get_matches:
+      self.ExecuteAction(memory.YaraProcessScan, arg=scan_request)
+      _, scan_request = mock_get_matches.call_args_list[0][0]
+      self.assertEqual(scan_request.context_window, 100)
 
 
 if __name__ == "__main__":

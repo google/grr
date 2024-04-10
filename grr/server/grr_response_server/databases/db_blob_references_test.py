@@ -45,10 +45,13 @@ class DatabaseTestBlobReferencesMixin(object):
     missing_hash_id = rdf_objects.SHA256HashID(b"00000000" * 4)
 
     results = self.db.ReadHashBlobReferences([missing_hash_id, hash_id])
-    self.assertEqual(results, {
-        hash_id: [blob_ref],
-        missing_hash_id: None,
-    })
+    self.assertEqual(
+        results,
+        {
+            hash_id: [blob_ref],
+            missing_hash_id: None,
+        },
+    )
 
   def testMultipleHashBlobReferencesCanBeWrittenAndReadBack(self):
     blob_ref_1 = objects_pb2.BlobReference(

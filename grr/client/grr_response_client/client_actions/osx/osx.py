@@ -15,14 +15,13 @@ import struct
 import pytsk3
 
 from grr_response_client import actions
-from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
+from grr_response_client.client_actions import osx_linux
 from grr_response_client.client_actions import standard
 from grr_response_client.osx import objc
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -106,6 +105,7 @@ class Sockaddr(ctypes.Structure):
 
 class Sockaddrdl(ctypes.Structure):
   """The sockaddr_dl struct."""
+
   _fields_ = [
       ("sdl_len", ctypes.c_ubyte),
       ("sdl_family", ctypes.c_ubyte),
@@ -129,6 +129,7 @@ class Sockaddrdl(ctypes.Structure):
 
 class Sockaddrin(ctypes.Structure):
   """The sockaddr_in struct."""
+
   _fields_ = [
       ("sin_len", ctypes.c_ubyte),
       ("sin_family", sa_family_t),
@@ -150,6 +151,7 @@ class Sockaddrin(ctypes.Structure):
 
 class Sockaddrin6(ctypes.Structure):
   """The sockaddr_in6 struct."""
+
   _fields_ = [
       ("sin6_len", ctypes.c_ubyte),
       ("sin6_family", sa_family_t),
@@ -158,6 +160,7 @@ class Sockaddrin6(ctypes.Structure):
       ("sin6_addr", in6_addr_t),
       ("sin6_scope_id", ctypes.c_uint32),
   ]
+
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
 #          char             *ifa_name;         /* Interface name */
@@ -247,7 +250,9 @@ def ParseIfaddrs(ifaddrs):
 
       nlen = sockaddrdl.contents.sdl_nlen
       alen = sockaddrdl.contents.sdl_alen
-      iface.mac_address = bytes(sockaddrdl.contents.sdl_data[nlen:nlen + alen])
+      iface.mac_address = bytes(
+          sockaddrdl.contents.sdl_data[nlen : nlen + alen]
+      )
     else:
       raise ValueError("Unexpected socket address family: %s" % iffamily)
 
@@ -271,6 +276,7 @@ def EnumerateInterfacesFromClient(args):
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
+
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
@@ -280,6 +286,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
+
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
@@ -300,7 +307,8 @@ def EnumerateFilesystemsFromClient(args):
     yield rdf_client_fs.Filesystem(
         device=fs_struct.f_mntfromname,
         mount_point=fs_struct.f_mntonname,
-        type=fs_struct.f_fstypename)
+        type=fs_struct.f_fstypename,
+    )
 
   drive_re = re.compile("r?disk[0-9].*")
   for drive in os.listdir("/dev"):
@@ -320,7 +328,8 @@ def EnumerateFilesystemsFromClient(args):
           offset = volume.start * vol_inf.info.block_size
           yield rdf_client_fs.Filesystem(
               device="{path}:{offset}".format(path=path, offset=offset),
-              type="partition")
+              type="partition",
+          )
 
     except (IOError, RuntimeError):
       continue
@@ -328,6 +337,7 @@ def EnumerateFilesystemsFromClient(args):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
+
   out_rdfvalues = [rdf_client_fs.Filesystem]
 
   def Run(self, args):
@@ -348,7 +358,8 @@ def CreateServiceProto(job):
       label=job.get("Label"),
       program=job.get("Program"),
       sessiontype=job.get("LimitLoadToSessionType"),
-      ondemand=bool(job["OnDemand"]))
+      ondemand=bool(job["OnDemand"]),
+  )
 
   if job["LastExitStatus"] is not None:
     service.lastexitstatus = int(job["LastExitStatus"])
@@ -399,8 +410,9 @@ def OSXEnumerateRunningServicesFromClient(args):
 
   if version_array[:2] < [10, 6]:
     raise UnsupportedOSVersionError(
-        "ServiceManagement API unsupported on < 10.6. This client is %s" %
-        osx_version.VersionString())
+        "ServiceManagement API unsupported on < 10.6. This client is %s"
+        % osx_version.VersionString()
+    )
 
   launchd_list = GetRunningLaunchDaemons()
 
@@ -412,6 +424,7 @@ def OSXEnumerateRunningServicesFromClient(args):
 
 class OSXEnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
+
   in_rdfvalue = None
   out_rdfvalues = [rdf_client.OSXServiceInformation]
 
@@ -424,23 +437,5 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
   def ProcessFile(self, path, args):
-
-    cmd = "/usr/sbin/installer"
-    cmd_args = ["-pkg", path, "-target", "/"]
-    time_limit = args.time_limit
-
-    res = client_utils_common.Execute(
-        cmd, cmd_args, time_limit=time_limit, bypass_allowlist=True)
-    (stdout, stderr, status, time_used) = res
-
-    # Limit output to 10MB so our response doesn't get too big.
-    stdout = stdout[:10 * 1024 * 1024]
-    stderr = stderr[:10 * 1024 * 1024]
-
-    self.SendReply(
-        rdf_client_action.ExecuteBinaryResponse(
-            stdout=stdout,
-            stderr=stderr,
-            exit_status=status,
-            # We have to return microseconds.
-            time_used=int(1e6 * time_used)))
+    cmd = ["/usr/sbin/installer", "-pkg", path, "-target", "/"]
+    osx_linux.RunInstallerCmd(cmd)

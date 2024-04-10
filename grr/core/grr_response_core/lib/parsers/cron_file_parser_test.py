@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.cron_file_parser."""
 
-
 import os
 
 from absl import app
@@ -32,7 +31,7 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
       self.assertEqual(result.jobs[0].dayofmonth, "3")
       self.assertEqual(result.jobs[0].month, "4")
       self.assertEqual(result.jobs[0].dayofweek, "5")
-      self.assertEqual(result.jobs[0].command, "/usr/bin/echo \"test\"")
+      self.assertEqual(result.jobs[0].command, '/usr/bin/echo "test"')
 
 
 def main(args):

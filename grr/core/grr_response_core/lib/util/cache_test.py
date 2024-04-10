@@ -19,7 +19,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def testCallsFunctionEveryTimeWhenMinTimeBetweenCallsZero(self):
     decorated = cache.WithLimitedCallFrequency(rdfvalue.Duration(0))(
-        self.mock_fn)
+        self.mock_fn
+    )
     for _ in range(10):
       decorated()
 
@@ -60,8 +61,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def testCallsFunctionOnceInGivenTimeRangeWhenMinTimeBetweenCallsNonZero(self):
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            self.mock_fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
@@ -81,8 +82,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def testCachingIsDonePerArguments(self):
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            self.mock_fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
@@ -120,8 +121,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
       return self.mock_fn()
 
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            Fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(Fn)
 
     results = []
 
@@ -159,8 +160,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
       return x
 
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            Fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(Fn)
 
     def T():
       decorated(1)
@@ -185,8 +186,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     mock_fn.__name__ = "foo"  # Expected by functools.wraps.
 
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            mock_fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
 
     with self.assertRaises(ValueError):
       decorated()
@@ -196,8 +197,8 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     mock_fn.__name__ = "foo"  # Expected by functools.wraps.
 
     decorated = cache.WithLimitedCallFrequency(
-        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            mock_fn)
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
 
     for _ in range(10):
       with self.assertRaises(ValueError):

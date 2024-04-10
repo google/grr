@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """RDFValue implementations related to flow scheduling."""
 
-
 import threading
 import time
 
@@ -18,6 +17,7 @@ from grr_response_proto import jobs_pb2
 
 class GrrMessage(rdf_structs.RDFProtoStruct):
   """An RDFValue class to manage GRR messages."""
+
   protobuf = jobs_pb2.GrrMessage
   rdf_deps = [
       rdf_protodict.EmbeddedRDFValue,
@@ -31,11 +31,9 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   next_id_base = 0
   max_ttl = 5
 
-  def __init__(self,
-               initializer=None,
-               payload=None,
-               generate_task_id=False,
-               **kwarg):
+  def __init__(
+      self, initializer=None, payload=None, generate_task_id=False, **kwarg
+  ):
     super().__init__(initializer=initializer, **kwarg)
 
     if payload is not None:
@@ -83,13 +81,15 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
   @property
   def args(self):
-    raise RuntimeError("Direct access to serialized args is not permitted! "
-                       "Use payload field.")
+    raise RuntimeError(
+        "Direct access to serialized args is not permitted! Use payload field."
+    )
 
   @args.setter
   def args(self, value):
-    raise RuntimeError("Direct access to serialized args is not permitted! "
-                       "Use payload field.")
+    raise RuntimeError(
+        "Direct access to serialized args is not permitted! Use payload field."
+    )
 
   @property
   def payload(self):
@@ -121,6 +121,7 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
   followed by a single status message. The GrrStatus message contains error and
   traceback information for any failures on the client.
   """
+
   protobuf = jobs_pb2.GrrStatus
   rdf_deps = [
       rdf_client_stats.CpuSeconds,
@@ -142,6 +143,7 @@ class Notification(rdf_structs.RDFProtoStruct):
   Usually the notification means that some operation is completed, and provides
   a link to view the results.
   """
+
   protobuf = jobs_pb2.Notification
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -154,7 +156,7 @@ class Notification(rdf_structs.RDFProtoStruct):
       "FlowStatus",  # Link to a flow
       "GrantAccess",  # Link to an access grant page
       "ArchiveGenerationFinished",
-      "Error"
+      "Error",
   ]
 
 
@@ -168,6 +170,7 @@ class FlowNotification(rdf_structs.RDFProtoStruct):
 
 class NotificationList(rdf_protodict.RDFValueArray):
   """A List of notifications for this user."""
+
   rdf_type = Notification
 
 
@@ -191,6 +194,7 @@ class MessageList(rdf_structs.RDFProtoStruct):
 
 class CipherProperties(rdf_structs.RDFProtoStruct):
   """Contains information about a cipher and keys."""
+
   protobuf = jobs_pb2.CipherProperties
   rdf_deps = [
       rdf_crypto.EncryptionKey,
@@ -224,6 +228,7 @@ class CipherMetadata(rdf_structs.RDFProtoStruct):
 
 class FlowLog(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing flow log entries."""
+
   protobuf = jobs_pb2.FlowLog
   rdf_deps = [
       rdf_client.ClientURN,
@@ -250,4 +255,5 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
 
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
   """Some flows do not take argumentnts."""
+
   protobuf = flows_pb2.EmptyFlowArgs

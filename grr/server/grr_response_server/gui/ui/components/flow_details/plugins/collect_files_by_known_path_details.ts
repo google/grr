@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
@@ -130,8 +129,9 @@ export class CollectFilesByKnownPathDetails extends Plugin {
 
   readonly fileResults$: Observable<readonly CollectFilesByKnownPathResult[]> =
     this.flowResultsLocalStore.results$.pipe(
-      map((results) =>
-        results?.map((data) => data.payload as CollectFilesByKnownPathResult),
+      map(
+        (results) =>
+          results?.map((data) => data.payload as CollectFilesByKnownPathResult),
       ),
     );
 

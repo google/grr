@@ -8,7 +8,6 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {HexViewModule} from '../data_renderers/hex_view/hex_view_module';
-import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {HumanReadableSizeModule} from '../human_readable_size/module';
 import {TimestampModule} from '../timestamp/module';
 
@@ -21,7 +20,6 @@ import {FileDetailsPage} from './file_details_page';
     // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
-    DrawerLinkModule,
     HexViewModule,
     HumanReadableSizeModule,
     MatButtonModule,

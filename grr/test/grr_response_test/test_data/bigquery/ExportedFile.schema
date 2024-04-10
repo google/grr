@@ -23,11 +23,6 @@
       },
       {
         "type": "STRING",
-        "description": "Uname string.",
-        "name": "uname"
-      },
-      {
-        "type": "STRING",
         "description": "The OS release identifier e.g. 7, OSX, debian.",
         "name": "os_release"
       },

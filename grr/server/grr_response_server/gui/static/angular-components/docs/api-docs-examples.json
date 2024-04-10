@@ -8867,7 +8867,7 @@
                   },
                   "session_id": {
                     "type": "SessionID",
-                    "value": "<replaced session value>"
+                    "value": "aff4:/C.1000000000000000/H:123456"
                   }
                 }
               }
@@ -9090,7 +9090,7 @@
                 "user_cpu_time": 1.0
               },
               "network_bytes_sent": 3,
-              "session_id": "<replaced session value>"
+              "session_id": "aff4:/C.1000000000000000/H:123456"
             }
           ]
         }
@@ -11454,7 +11454,6 @@
                     "type": "ArtifactName",
                     "value": "TestDrivers"
                   },
-                  "provides": [],
                   "sources": [
                     {
                       "type": "ArtifactSource",
@@ -11512,7 +11511,6 @@
             "artifact": {
               "doc": "Extract the installed drivers on Windows via WMI.",
               "name": "TestDrivers",
-              "provides": [],
               "sources": [
                 {
                   "attributes": {

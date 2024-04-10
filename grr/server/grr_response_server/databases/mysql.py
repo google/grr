@@ -63,7 +63,9 @@ CHARACTER_SET = "utf8mb4"
 COLLATION = "utf8mb4_unicode_ci"
 CREATE_DATABASE_QUERY = (
     "CREATE DATABASE `{}` CHARACTER SET {} COLLATE {}".format(
-        "{}", CHARACTER_SET, COLLATION))  # Keep first placeholder for later.
+        "{}", CHARACTER_SET, COLLATION
+    )  # Keep first placeholder for later.
+)
 
 
 def _IsRetryable(error):
@@ -120,15 +122,21 @@ def _CheckCollation(cursor):
 
   cur_collation_connection = _ReadVariable("collation_connection", cursor)
   if cur_collation_connection != COLLATION:
-    logging.warning("Require MySQL collation_connection of %s, got %s.",
-                    COLLATION, cur_collation_connection)
+    logging.warning(
+        "Require MySQL collation_connection of %s, got %s.",
+        COLLATION,
+        cur_collation_connection,
+    )
 
   cur_collation_database = _ReadVariable("collation_database", cursor)
   if cur_collation_database != COLLATION:
     logging.warning(
         "Require MySQL collation_database of %s, got %s."
-        " To create your database, use: %s", COLLATION, cur_collation_database,
-        CREATE_DATABASE_QUERY)
+        " To create your database, use: %s",
+        COLLATION,
+        cur_collation_database,
+        CREATE_DATABASE_QUERY,
+    )
 
 
 def _SetEncoding(cursor):
@@ -159,7 +167,9 @@ def _CheckConnectionEncoding(cursor):
   if cur_character_set != CHARACTER_SET:
     raise EncodingEnforcementError(
         "Require MySQL character_set_connection of {}, got {}.".format(
-            CHARACTER_SET, cur_character_set))
+            CHARACTER_SET, cur_character_set
+        )
+    )
 
 
 def _CheckDatabaseEncoding(cursor):
@@ -168,9 +178,10 @@ def _CheckDatabaseEncoding(cursor):
   if cur_character_set != CHARACTER_SET:
     raise EncodingEnforcementError(
         "Require MySQL character_set_database of {}, got {}."
-        " To create your database, use: {}".format(CHARACTER_SET,
-                                                   cur_character_set,
-                                                   CREATE_DATABASE_QUERY))
+        " To create your database, use: {}".format(
+            CHARACTER_SET, cur_character_set, CREATE_DATABASE_QUERY
+        )
+    )
 
 
 def _SetPacketSizeForFollowingConnections(cursor):
@@ -180,16 +191,20 @@ def _SetPacketSizeForFollowingConnections(cursor):
   if cur_packet_size < MAX_PACKET_SIZE:
     logging.warning(
         "MySQL max_allowed_packet of %d is required, got %d. Overwriting.",
-        MAX_PACKET_SIZE, cur_packet_size)
+        MAX_PACKET_SIZE,
+        cur_packet_size,
+    )
     try:
       _SetGlobalVariable("max_allowed_packet", MAX_PACKET_SIZE, cursor)
     except MySQLdb.OperationalError as e:
       logging.error(e)
 
-      msg = ("Failed to override max_allowed_packet setting. "
-             "max_allowed_packet must be < %d. Please update MySQL "
-             "configuration or grant GRR sufficient privileges to "
-             "override global variables." % MAX_PACKET_SIZE)
+      msg = (
+          "Failed to override max_allowed_packet setting. "
+          "max_allowed_packet must be < %d. Please update MySQL "
+          "configuration or grant GRR sufficient privileges to "
+          "override global variables." % MAX_PACKET_SIZE
+      )
       logging.error(msg)
       raise MaxAllowedPacketSettingTooLowError(msg)
 
@@ -201,7 +216,9 @@ def _CheckPacketSize(cursor):
     raise Error(
         "MySQL max_allowed_packet of {0} is required, got {1}. "
         "Please set max_allowed_packet={0} in your MySQL config.".format(
-            MAX_PACKET_SIZE, cur_packet_size))
+            MAX_PACKET_SIZE, cur_packet_size
+        )
+    )
 
 
 def _CheckLogFileSize(cursor):
@@ -220,8 +237,11 @@ def _CheckLogFileSize(cursor):
     max_blob_size_mib = max_blob_size / 2**20
     logging.warning(
         "MySQL innodb_log_file_size of %d is required, got %d. "
-        "Storing Blobs bigger than %.4f MiB will fail.", required_size,
-        innodb_log_file_size, max_blob_size_mib)
+        "Storing Blobs bigger than %.4f MiB will fail.",
+        required_size,
+        innodb_log_file_size,
+        max_blob_size_mib,
+    )
 
 
 def _IsMariaDB(cursor):
@@ -254,8 +274,10 @@ def _SetMariaDBMode(cursor):
   # encounters duplicate keys. This flag disables this behavior for
   # consistency.
   if _IsMariaDB(cursor):
-    cursor.execute("SET @@OLD_MODE = CONCAT(@@OLD_MODE, "
-                   "',NO_DUP_KEY_WARNINGS_WITH_IGNORE')")
+    cursor.execute(
+        "SET @@OLD_MODE = CONCAT(@@OLD_MODE, "
+        "',NO_DUP_KEY_WARNINGS_WITH_IGNORE')"
+    )
 
 
 def _CheckForSSL(cursor):
@@ -270,14 +292,16 @@ def _CheckForSSL(cursor):
     raise RuntimeError("Unable to establish SSL connection to MySQL.")
 
 
-def _SetupDatabase(host=None,
-                   port=None,
-                   user=None,
-                   password=None,
-                   database=None,
-                   client_key_path=None,
-                   client_cert_path=None,
-                   ca_cert_path=None):
+def _SetupDatabase(
+    host=None,
+    port=None,
+    user=None,
+    password=None,
+    database=None,
+    client_key_path=None,
+    client_cert_path=None,
+    ca_cert_path=None,
+):
   """Connect to the given MySQL host and create a utf8mb4_unicode_ci database.
 
   Args:
@@ -301,7 +325,9 @@ def _SetupDatabase(host=None,
           database=None,
           client_key_path=client_key_path,
           client_cert_path=client_cert_path,
-          ca_cert_path=ca_cert_path)) as conn:
+          ca_cert_path=ca_cert_path,
+      )
+  ) as conn:
     with contextlib.closing(conn.cursor()) as cursor:
       try:
         cursor.execute(CREATE_DATABASE_QUERY.format(database))
@@ -322,20 +348,24 @@ def _SetupDatabase(host=None,
         database=database,
         client_key_path=client_key_path,
         client_cert_path=client_cert_path,
-        ca_cert_path=ca_cert_path)
+        ca_cert_path=ca_cert_path,
+    )
 
-  mysql_migration.ProcessMigrations(_MigrationConnect,
-                                    config.CONFIG["Mysql.migrations_dir"])
+  mysql_migration.ProcessMigrations(
+      _MigrationConnect, config.CONFIG["Mysql.migrations_dir"]
+  )
 
 
-def _GetConnectionArgs(host=None,
-                       port=None,
-                       user=None,
-                       password=None,
-                       database=None,
-                       client_key_path=None,
-                       client_cert_path=None,
-                       ca_cert_path=None):
+def _GetConnectionArgs(
+    host=None,
+    port=None,
+    user=None,
+    password=None,
+    database=None,
+    client_key_path=None,
+    client_cert_path=None,
+    ca_cert_path=None,
+):
   """Builds connection arguments for MySQLdb.Connect function."""
   connection_args = dict(
       autocommit=False,
@@ -368,14 +398,16 @@ def _GetConnectionArgs(host=None,
   return connection_args
 
 
-def _Connect(host=None,
-             port=None,
-             user=None,
-             password=None,
-             database=None,
-             client_key_path=None,
-             client_cert_path=None,
-             ca_cert_path=None):
+def _Connect(
+    host=None,
+    port=None,
+    user=None,
+    password=None,
+    database=None,
+    client_key_path=None,
+    client_cert_path=None,
+    ca_cert_path=None,
+):
   """Connect to MySQL and check if server fulfills requirements."""
   connection_args = _GetConnectionArgs(
       host=host,
@@ -385,7 +417,8 @@ def _Connect(host=None,
       database=database,
       client_key_path=client_key_path,
       client_cert_path=client_cert_path,
-      ca_cert_path=ca_cert_path)
+      ca_cert_path=ca_cert_path,
+  )
 
   conn = MySQLdb.Connect(**connection_args)
   with contextlib.closing(conn.cursor()) as cursor:
