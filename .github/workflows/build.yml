@@ -24,7 +24,7 @@ jobs:
               jq -r ".items[].value.client_id.value" |
               egrep -e "^C[.][0-9a-f]{16}\$" && { OK=true; break; }
             echo "attempt ${attempt}: devenv not ready"
-            sleep 5
+            sleep 10
           done
           [[ $OK = true ]]
 
