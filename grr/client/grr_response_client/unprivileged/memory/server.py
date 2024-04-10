@@ -9,7 +9,8 @@ from grr_response_client.unprivileged import server
 
 
 def CreateMemoryServer(
-    process_file_descriptors: List[communication.FileDescriptor]
+    process_file_descriptors: List[communication.FileDescriptor],
 ) -> communication.Server:
-  return server.CreateServer(process_file_descriptors,
-                             interface_registry.Interface.MEMORY)
+  return server.CreateServer(
+      process_file_descriptors, interface_registry.Interface.MEMORY
+  )

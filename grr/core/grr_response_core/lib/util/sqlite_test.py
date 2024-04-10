@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-
 import contextlib
 import io
+import sqlite3
 
 from absl.testing import absltest
-import sqlite3
 
 from grr_response_core.lib.util import sqlite
 from grr_response_core.lib.util import temp

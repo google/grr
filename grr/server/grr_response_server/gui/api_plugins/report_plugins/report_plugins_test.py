@@ -5,13 +5,13 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.gui.api_plugins import stats as stats_api
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins_test_mocks
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 RepresentationType = rdf_report_plugins.ApiReportData.RepresentationType
@@ -52,11 +52,12 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
 
 def AddFakeAuditLog(user=None, router_method_name=None, http_request_path=None):
   data_store.REL_DB.WriteAPIAuditEntry(
-      rdf_objects.APIAuditEntry(
+      objects_pb2.APIAuditEntry(
           username=user,
           router_method_name=router_method_name,
           http_request_path=http_request_path,
-      ))
+      )
+  )
 
 
 class ServerReportPluginsTest(test_lib.GRRBaseTest):

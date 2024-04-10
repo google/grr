@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 from grr_response_core.lib import interpolation
@@ -41,7 +40,8 @@ class SubstitutionTest(absltest.TestCase):
     subst = interpolation.Substitution(var_config=var_config, scope_config={})
 
     self.assertEqual(
-        subst.Substitute(b"%%foo%% %%bar%% %%baz%%"), b"42 BAR 1337")
+        subst.Substitute(b"%%foo%% %%bar%% %%baz%%"), b"42 BAR 1337"
+    )
 
   def testSimpleScopeUnicodeString(self):
     scope_config = {sid("foo"): {vid("bar"): "BAR", vid("baz"): "BAZ"}}
@@ -57,14 +57,8 @@ class SubstitutionTest(absltest.TestCase):
 
   def testMultipleScopeUnicodeString(self):
     scope_config = {
-        sid("foo"): {
-            vid("bar"): "BAR",
-            vid("baz"): "BAZ"
-        },
-        sid("quux"): {
-            vid("norf"): "NORF",
-            vid("thud"): "THUD"
-        },
+        sid("foo"): {vid("bar"): "BAR", vid("baz"): "BAZ"},
+        sid("quux"): {vid("norf"): "NORF", vid("thud"): "THUD"},
     }
     subst = interpolation.Substitution(var_config={}, scope_config=scope_config)
 
@@ -73,14 +67,8 @@ class SubstitutionTest(absltest.TestCase):
 
   def testMultipleScopeByteString(self):
     scope_config = {
-        sid("foo"): {
-            vid("bar"): 2,
-            vid("baz"): 3
-        },
-        sid("quux"): {
-            vid("norf"): 5,
-            vid("thud"): 7
-        },
+        sid("foo"): {vid("bar"): 2, vid("baz"): 3},
+        sid("quux"): {vid("norf"): 5, vid("thud"): 7},
     }
     subst = interpolation.Substitution(var_config={}, scope_config=scope_config)
 
@@ -91,7 +79,8 @@ class SubstitutionTest(absltest.TestCase):
     var_config = {vid("foo"): "FOO"}
     scope_config = {sid("quux"): {vid("bar"): "BAR", vid("baz"): "BAZ"}}
     subst = interpolation.Substitution(
-        var_config=var_config, scope_config=scope_config)
+        var_config=var_config, scope_config=scope_config
+    )
 
     pattern = "%%foo%% %%quux.bar%% %%quux.baz%%"
     self.assertEqual(subst.Substitute(pattern), "FOO BAR BAZ")
@@ -104,13 +93,11 @@ class SubstitutionTest(absltest.TestCase):
   def testInterpolationHappensSimultaneously(self):
     var_config = {vid("foo"): "%%bar%%", vid("bar"): "%%quux.norf%%"}
     scope_config = {
-        sid("quux"): {
-            vid("norf"): "%%foo%%",
-            vid("thud"): "%%quux.norf%%"
-        }
+        sid("quux"): {vid("norf"): "%%foo%%", vid("thud"): "%%quux.norf%%"}
     }
     subst = interpolation.Substitution(
-        var_config=var_config, scope_config=scope_config)
+        var_config=var_config, scope_config=scope_config
+    )
 
     pattern = "%%foo%% %%bar%% %%quux.norf%% %%quux.thud%%"
     output = "%%bar%% %%quux.norf%% %%foo%% %%quux.norf%%"
@@ -143,11 +130,13 @@ class InterpolatorTest(absltest.TestCase):
   def testListScopeVarsByteString(self):
     interpolator = interpolation.Interpolator(b"%%foo.A%% %%foo.B%% %%foo.C%%")
     self.assertEqual(
-        interpolator.ScopeVars(sid("foo")), {
+        interpolator.ScopeVars(sid("foo")),
+        {
             vid("A"),
             vid("B"),
             vid("C"),
-        })
+        },
+    )
 
   def testBindVarSimpleUnicodeString(self):
     interpolator = interpolation.Interpolator("foo %%bar%% baz")
@@ -251,16 +240,19 @@ class InterpolatorTest(absltest.TestCase):
     interpolator.BindScope(sid("norf"), {vid("thud"): 9, vid("blargh"): 0})
 
     strings = list(interpolator.Interpolate())
-    self.assertCountEqual(strings, [
-        "3|1|4|7|8",
-        "3|1|4|9|0",
-        "3|2|4|7|8",
-        "3|2|4|9|0",
-        "5|1|6|7|8",
-        "5|1|6|9|0",
-        "5|2|6|7|8",
-        "5|2|6|9|0",
-    ])
+    self.assertCountEqual(
+        strings,
+        [
+            "3|1|4|7|8",
+            "3|1|4|9|0",
+            "3|2|4|7|8",
+            "3|2|4|9|0",
+            "5|1|6|7|8",
+            "5|1|6|9|0",
+            "5|2|6|7|8",
+            "5|2|6|9|0",
+        ],
+    )
 
   def testBindScopeKeyErrorScope(self):
     interpolator = interpolation.Interpolator("%%foo.bar%%")

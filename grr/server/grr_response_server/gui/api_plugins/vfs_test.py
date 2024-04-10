@@ -14,7 +14,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-
 from grr_response_server import data_store
 from grr_response_server import decoders
 from grr_response_server import flow
@@ -25,8 +24,9 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
-
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
@@ -503,10 +503,13 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def testRaisesOnExistingPathWithoutContent(self):
     path_info = rdf_objects.PathInfo.OS(components=["foo", "bar"])
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     args = vfs_plugin.ApiGetFileBlobArgs(
-        client_id=self.client_id, file_path="fs/os/foo/bar")
+        client_id=self.client_id, file_path="fs/os/foo/bar"
+    )
 
     with self.assertRaises(vfs_plugin.FileContentNotFoundError) as context:
       self.handler.Handle(args, context=self.context)
@@ -759,6 +762,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     result = self.handler.Handle(args, context=self.context)
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     self.assertEqual(flow_obj.args.pathspec, expected_pathspec)
 
 
@@ -938,11 +942,14 @@ class VfsTimelineTestMixin(object):
     else:
       path_info = rdf_objects.PathInfo.OS(components=vfs_path.split("/"))
     path_info.hash_entry = hash_entry
-    data_store.REL_DB.WritePathInfos(client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
 
-class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                        VfsTimelineTestMixin):
+class ApiGetVfsTimelineAsCsvHandlerTest(
+    api_test_lib.ApiCallHandlerTest, VfsTimelineTestMixin
+):
 
   def setUp(self):
     super().setUp()

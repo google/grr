@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import io
 import os
 import platform
@@ -129,8 +128,10 @@ class MetadataConditionTestMixin(ConditionTestMixin):
     self.assertEqual(result, 0)
 
 
-class ModificationTimeConditionTest(MetadataConditionTestMixin,
-                                    absltest.TestCase):
+class ModificationTimeConditionTest(
+    MetadataConditionTestMixin,
+    absltest.TestCase,
+):
 
   def testDefault(self):
     params = rdf_file_finder.FileFinderCondition()

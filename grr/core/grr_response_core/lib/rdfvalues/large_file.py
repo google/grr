@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with RDF wrappers for large file collection proto messages."""
+
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import large_file_pb2

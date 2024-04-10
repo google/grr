@@ -3,12 +3,10 @@
 
 import binascii
 
-from typing import Text
-
 from grr_response_core.lib.util import precondition
 
 
-def Asciify(data: bytes) -> Text:
+def Asciify(data: bytes) -> str:
   """Turns given bytes to human-readable ASCII representation.
 
   All ASCII-representable bytes are turned into proper characters, whereas all
@@ -25,7 +23,7 @@ def Asciify(data: bytes) -> Text:
   return repr(data)[2:-1]
 
 
-def Hexify(data: bytes) -> Text:
+def Hexify(data: bytes) -> str:
   """Turns given bytes to its hex representation.
 
   It works just like `binascii.hexlify` but always returns string objects rather
@@ -50,5 +48,5 @@ def Unescape(string: str) -> str:
   Returns:
     An unescaped version of the input string.
   """
-  precondition.AssertType(string, Text)
+  precondition.AssertType(string, str)
   return string.encode("utf-8").decode("unicode_escape")

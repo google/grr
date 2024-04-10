@@ -45,10 +45,12 @@ class Factory(Generic[T]):
     self._cls: Type[T] = cls
     self._entries: Dict[str, _FactoryEntry[T]] = {}
 
-  def Register(self,
-               name: Text,
-               cls: Type[T],
-               constructor: Optional[Callable[[], T]] = None):
+  def Register(
+      self,
+      name: Text,
+      cls: Type[T],
+      constructor: Optional[Callable[[], T]] = None,
+  ):
     """Registers a new constructor in the factory.
 
     Args:

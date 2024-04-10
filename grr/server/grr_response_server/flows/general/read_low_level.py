@@ -8,6 +8,7 @@ from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -105,7 +106,9 @@ class ReadLowLevel(flow_base.FlowBase):
     path_info.hash_entry.source_offset = smallest_offset
 
     # Store file reference for this client in data_store.
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     result = rdf_read_low_level.ReadLowLevelFlowResult(path=tmp_filename)
     self.SendReply(result)

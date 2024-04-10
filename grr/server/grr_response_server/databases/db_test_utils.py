@@ -7,11 +7,12 @@ import string
 from typing import Any, Callable, Dict, Iterable, Optional, Text
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -257,9 +258,13 @@ def InitializeFlow(
     db: abstract_db.Database,
     client_id: str,
     flow_id: Optional[str] = None,
+    flow_state: Optional[rdf_structs.EnumNamedValue] = None,
     parent_flow_id: Optional[str] = None,
     parent_hunt_id: Optional[str] = None,
-    **kwargs,
+    next_request_to_process: Optional[int] = None,
+    cpu_time_used: Optional[float] = None,
+    network_bytes_sent: Optional[int] = None,
+    creator: Optional[str] = None,
 ) -> str:
   """Initializes a test flow.
 
@@ -268,9 +273,13 @@ def InitializeFlow(
     client_id: A client id of the client to run the flow on.
     flow_id: A specific flow id to use for initialized flow. If none is provided
       a randomly generated one is used.
+    flow_state: A flow state (optional).
     parent_flow_id: Identifier of the parent flow (optional).
     parent_hunt_id: Identifier of the parent hunt (optional).
-    **kwargs: Parameters to initialize the flow object with.
+    next_request_to_process: The next request to process (optional).
+    cpu_time_used: The used CPU time (optional).
+    network_bytes_sent: The number of bytes sent (optional).
+    creator: The creator of the flow (optional).
 
   Returns:
     A flow id of the initialized flow.
@@ -279,9 +288,10 @@ def InitializeFlow(
     random_digit = lambda: random.choice(string.hexdigits).upper()
     flow_id = "".join(random_digit() for _ in range(16))
 
-  flow_obj = rdf_flow_objects.Flow(**kwargs)
-  flow_obj.client_id = client_id
-  flow_obj.flow_id = flow_id
+  flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+
+  if flow_state is not None:
+    flow_obj.flow_state = flow_state
 
   if parent_flow_id is not None:
     flow_obj.parent_flow_id = parent_flow_id
@@ -289,7 +299,19 @@ def InitializeFlow(
   if parent_hunt_id is not None:
     flow_obj.parent_hunt_id = parent_hunt_id
 
-  db.WriteFlowObject(flow_obj)
+  if cpu_time_used is not None:
+    flow_obj.cpu_time_used = cpu_time_used
+
+  if network_bytes_sent is not None:
+    flow_obj.network_bytes_sent = network_bytes_sent
+
+  if next_request_to_process is not None:
+    flow_obj.next_request_to_process = next_request_to_process
+
+  if creator is not None:
+    flow_obj.creator = creator
+
+  db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
   return flow_id
 
@@ -298,6 +320,8 @@ def InitializeHunt(
     db: abstract_db.Database,
     hunt_id: Optional[str] = None,
     creator: Optional[str] = None,
+    description: Optional[str] = None,
+    client_rate: Optional[float] = None,
 ) -> str:
   """Initializes a test user.
 
@@ -307,6 +331,8 @@ def InitializeHunt(
       a randomly generated one is used.
     creator: A username of the hunt creator. If none is provided a randomly
       generated one is used (and initialized).
+    description: A hunt description.
+    client_rate: The client rate
 
   Returns:
     A hunt id of the initialized hunt.
@@ -317,10 +343,15 @@ def InitializeHunt(
   if creator is None:
     creator = InitializeUser(db)
 
-  hunt_obj = rdf_hunt_objects.Hunt()
-  hunt_obj.hunt_id = hunt_id
-  hunt_obj.creator = creator
-  hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+  hunt_obj = hunts_pb2.Hunt(
+      hunt_id=hunt_id,
+      hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+      creator=creator,
+  )
+  if description is not None:
+    hunt_obj.description = description
+  if client_rate is not None:
+    hunt_obj.client_rate = client_rate
   db.WriteHuntObject(hunt_obj)
 
   return hunt_id

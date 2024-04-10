@@ -8,7 +8,6 @@ from absl import app
 from absl import flags
 
 from grr_response_core.config import server as config_server
-
 from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend
 from grr_response_server.bin import fleetspeak_server_wrapper
@@ -21,11 +20,14 @@ _VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
-    help="Print the GRR server version number and exit immediately.")
+    help="Print the GRR server version number and exit immediately.",
+)
 
 _COMPONENT = flags.DEFINE_string(
-    "component", None,
-    "Component to start: [frontend|admin_ui|worker|grrafana].")
+    "component",
+    None,
+    "Component to start: [frontend|admin_ui|worker|grrafana].",
+)
 
 
 def main(argv):
@@ -64,8 +66,9 @@ def main(argv):
 
   # Raise on invalid component.
   else:
-    raise ValueError("No valid component specified. Got: "
-                     "%s." % _COMPONENT.value)
+    raise ValueError(
+        "No valid component specified. Got: %s." % _COMPONENT.value
+    )
 
 
 if __name__ == "__main__":

@@ -34,7 +34,8 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
   def setUp(self):
     super().setUp()
     self.signing_key = config.CONFIG[
-        "PrivateKeys.executable_signing_private_key"]
+        "PrivateKeys.executable_signing_private_key"
+    ]
 
   def testExecutePython(self):
     """Test the basic ExecutePython action."""
@@ -132,15 +133,23 @@ print("Done.")
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
     # Should raise since the code has been modified.
-    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      standard.ExecutePython, request)
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        self.RunAction,
+        standard.ExecutePython,
+        request,
+    )
 
     # Lets also adjust the hash.
     signed_blob.digest = hashlib.sha256(signed_blob.data).digest()
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      standard.ExecutePython, request)
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        self.RunAction,
+        standard.ExecutePython,
+        request,
+    )
 
     # Make sure the code never ran.
     self.assertEqual(sys.TEST_VAL, "original")
@@ -152,8 +161,9 @@ print("Done.")
     signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(ValueError, self.RunAction, standard.ExecutePython,
-                      request)
+    self.assertRaises(
+        ValueError, self.RunAction, standard.ExecutePython, request
+    )
 
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
@@ -166,14 +176,16 @@ print("Done.")
     signed_blob.Sign(open(cmd, "rb").read(), self.signing_key)
 
     request = rdf_client_action.ExecuteBinaryRequest(
-        executable=signed_blob, args=args, write_path="ablob")
+        executable=signed_blob, args=args, write_path="ablob"
+    )
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
     if platform.system() != "Windows":  # Windows time resolution is too coarse.
       self.assertGreater(result.time_used, 0)
-    self.assertEqual("foobar{}".format(os.linesep).encode("utf-8"),
-                     result.stdout)
+    self.assertEqual(
+        "foobar{}".format(os.linesep).encode("utf-8"), result.stdout
+    )
 
   def testReturnVals(self):
     """Test return values."""
@@ -194,8 +206,12 @@ print("Done.")
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code.encode("utf-8"), signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
-    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      standard.ExecutePython, request)
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        self.RunAction,
+        standard.ExecutePython,
+        request,
+    )
 
   def testArgs(self):
     """Test passing arguments."""
@@ -210,7 +226,8 @@ sys.TEST_VAL = py_args[43]
     signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     pdict = rdf_protodict.Dict({"test": "dict_arg", 43: "dict_arg2"})
     request = rdf_client_action.ExecutePythonRequest(
-        python_code=signed_blob, py_args=pdict)
+        python_code=signed_blob, py_args=pdict
+    )
     result = self.RunAction(standard.ExecutePython, request)[0]
     self.assertEqual(result.return_val, "dict_arg")
     self.assertEqual(sys.TEST_VAL, "dict_arg2")
@@ -219,15 +236,18 @@ sys.TEST_VAL = py_args[43]
 class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   # TODO:
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Skipping due to temp file locking issues.")
+  @unittest.skipIf(
+      platform.system() == "Windows",
+      "Skipping due to temp file locking issues.",
+  )
   def testStatSize(self):
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, "wb") as temp_file:
         temp_file.write(b"123456")
 
       pathspec = rdf_paths.PathSpec(
-          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
+          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS
+      )
 
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
       results = self.RunAction(standard.GetFileStat, request)
@@ -238,13 +258,16 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
   def testStatExtAttrsEnabled(self):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name="user.foo", value="bar")
+          temp_filepath, name="user.foo", value="bar"
+      )
 
       pathspec = rdf_paths.PathSpec(
-          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
+          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS
+      )
 
       request = rdf_client_action.GetFileStatRequest(
-          pathspec=pathspec, collect_ext_attrs=True)
+          pathspec=pathspec, collect_ext_attrs=True
+      )
       results = self.RunAction(standard.GetFileStat, request)
 
       self.assertLen(results, 1)
@@ -255,13 +278,16 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
   def testStatExtAttrsDisabled(self):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name="user.foo", value="bar")
+          temp_filepath, name="user.foo", value="bar"
+      )
 
       pathspec = rdf_paths.PathSpec(
-          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS)
+          path=temp_filepath, pathtype=rdf_paths.PathSpec.PathType.OS
+      )
 
       request = rdf_client_action.GetFileStatRequest(
-          pathspec=pathspec, collect_ext_attrs=False)
+          pathspec=pathspec, collect_ext_attrs=False
+      )
       results = self.RunAction(standard.GetFileStat, request)
 
       self.assertLen(results, 1)
@@ -321,7 +347,8 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
   def setUp(self):
     super().setUp()
     pathspec = rdf_paths.PathSpec(
-        path="/nothing", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/nothing", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     self.buffer_ref = rdf_client.BufferReference(pathspec=pathspec, length=5000)
     self.data = b"X" * 500
 
@@ -336,7 +363,8 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
         name="TransferBuffer",
         payload=self.buffer_ref,
         network_bytes_limit=300,
-        generate_task_id=True)
+        generate_task_id=True,
+    )
 
     # We just get a client alert and a status message back.
     responses = self.transfer_buf.HandleMessage(message)
@@ -346,22 +374,25 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
 
     status = responses[1].payload
     self.assertIn("Action exceeded network send limit", str(status.backtrace))
-    self.assertEqual(status.status,
-                     rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED)
+    self.assertEqual(
+        status.status, rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED
+    )
 
   def testTransferNetworkByteLimit(self):
     message = rdf_flows.GrrMessage(
         name="TransferBuffer",
         payload=self.buffer_ref,
         network_bytes_limit=900,
-        generate_task_id=True)
+        generate_task_id=True,
+    )
 
     responses = self.transfer_buf.HandleMessage(message)
 
     for response in responses:
       if isinstance(response, rdf_flows.GrrStatus):
-        self.assertEqual(response.payload.status,
-                         rdf_flows.GrrStatus.ReturnedStatus.OK)
+        self.assertEqual(
+            response.payload.status, rdf_flows.GrrStatus.ReturnedStatus.OK
+        )
 
 
 def main(argv):

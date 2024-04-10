@@ -14,5 +14,6 @@ class TSKTest(ntfs_image_test_lib.NTFSImageTest):
     return file_ref & ~(0xFFFF << 48)
 
   def _ExpectedStatEntry(
-      self, st: rdf_client_fs.StatEntry) -> rdf_client_fs.StatEntry:
+      self, st: rdf_client_fs.StatEntry
+  ) -> rdf_client_fs.StatEntry:
     return st

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import logging
-from unittest import mock
+from typing import Tuple
 
 from absl import app
 from absl.testing import absltest
@@ -90,9 +90,12 @@ class BatchPlannerTest(absltest.TestCase):
     batch_planner = db_utils.BatchPlanner(10)
     batch_planner.PlanOperation("a", 9)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 9)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 9)],
+        ],
+    )
 
   def testMultipleOperationsLowerThanLimitInTotal(self):
     batch_planner = db_utils.BatchPlanner(10)
@@ -100,28 +103,37 @@ class BatchPlannerTest(absltest.TestCase):
     batch_planner.PlanOperation("b", 3)
     batch_planner.PlanOperation("c", 3)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 3), ("b", 0, 3), ("c", 0, 3)],
+        ],
+    )
 
   def testSingleOperationBiggerThanLimit(self):
     batch_planner = db_utils.BatchPlanner(10)
     batch_planner.PlanOperation("a", 12)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 10)],
-        [("a", 10, 2)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 10)],
+            [("a", 10, 2)],
+        ],
+    )
 
   def testSingleOperationMoreThanTwiceBiggerThanLimit(self):
     batch_planner = db_utils.BatchPlanner(10)
     batch_planner.PlanOperation("a", 22)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 10)],
-        [("a", 10, 10)],
-        [("a", 20, 2)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 10)],
+            [("a", 10, 10)],
+            [("a", 20, 2)],
+        ],
+    )
 
   def testMultipleOperationsBiggerThanLimitInTotal(self):
     batch_planner = db_utils.BatchPlanner(10)
@@ -130,10 +142,13 @@ class BatchPlannerTest(absltest.TestCase):
     batch_planner.PlanOperation("c", 3)
     batch_planner.PlanOperation("d", 3)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
-        [("d", 1, 2)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
+            [("d", 1, 2)],
+        ],
+    )
 
   def testMultipleOperationsTwiceBiggerThanLimitInTotal(self):
     batch_planner = db_utils.BatchPlanner(10)
@@ -145,57 +160,70 @@ class BatchPlannerTest(absltest.TestCase):
     batch_planner.PlanOperation("f", 3)
     batch_planner.PlanOperation("g", 3)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
-        [("d", 1, 2), ("e", 0, 3), ("f", 0, 3), ("g", 0, 2)],
-        [("g", 2, 1)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
+            [("d", 1, 2), ("e", 0, 3), ("f", 0, 3), ("g", 0, 2)],
+            [("g", 2, 1)],
+        ],
+    )
 
   def testMultipleOperationsEachBiggerThanLimit(self):
     batch_planner = db_utils.BatchPlanner(10)
     batch_planner.PlanOperation("a", 12)
     batch_planner.PlanOperation("b", 12)
 
-    self.assertEqual(batch_planner.batches, [
-        [("a", 0, 10)],
-        [("a", 10, 2), ("b", 0, 8)],
-        [("b", 8, 4)],
-    ])
+    self.assertEqual(
+        batch_planner.batches,
+        [
+            [("a", 0, 10)],
+            [("a", 10, 2), ("b", 0, 8)],
+            [("b", 8, 4)],
+        ],
+    )
 
 
-class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
-                                 absltest.TestCase):
+class CallAccountedTest(stats_test_lib.StatsTestMixin, absltest.TestCase):
 
-  @db_utils.CallLoggedAndAccounted
+  @db_utils.CallAccounted
   def SampleCall(self):
     return 42
 
-  @db_utils.CallLoggedAndAccounted
+  @db_utils.CallAccounted
   def SampleCallWithGRRError(self):
     raise db.UnknownGRRUserError("Unknown")
 
-  @db_utils.CallLoggedAndAccounted
+  @db_utils.CallAccounted
   def SampleCallWithDBError(self):
     raise RuntimeError("some")
 
   def testReturnValueIsPropagated(self):
     self.assertEqual(self.SampleCall(), 42)
 
-  def _ExpectIncrements(self, fn, latency_count_increment,
-                        grr_errors_count_increment, db_errors_count_increment):
+  def _ExpectIncrements(
+      self,
+      fn,
+      latency_count_increment,
+      grr_errors_count_increment,
+      db_errors_count_increment,
+  ):
 
     with self.assertStatsCounterDelta(
         latency_count_increment,
         db_utils.DB_REQUEST_LATENCY,
-        fields=[fn.__name__]):
+        fields=[fn.__name__],
+    ):
       with self.assertStatsCounterDelta(
           grr_errors_count_increment,
           db_utils.DB_REQUEST_ERRORS,
-          fields=[fn.__name__, "grr"]):
+          fields=[fn.__name__, "grr"],
+      ):
         with self.assertStatsCounterDelta(
             db_errors_count_increment,
             db_utils.DB_REQUEST_ERRORS,
-            fields=[fn.__name__, "db"]):
+            fields=[fn.__name__, "db"],
+        ):
           try:
             fn()
           except Exception:  # pylint: disable=broad-except
@@ -210,34 +238,80 @@ class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
   def testCallRaisingRuntimeDBErrorIsCorretlyAccounted(self):
     self._ExpectIncrements(self.SampleCallWithDBError, 0, 0, 1)
 
-  @mock.patch.object(logging, "debug")
-  def testSuccessfulCallIsCorretlyLogged(self, debug_mock):
-    self.SampleCall()
 
-    self.assertTrue(debug_mock.called)
-    got = debug_mock.call_args_list[0][0]
-    self.assertIn("SUCCESS", got[0])
-    self.assertEqual(got[1], "SampleCall")
+class CallLoggedTest(absltest.TestCase):
 
-  @mock.patch.object(logging, "debug")
-  def testCallRaisingLogicalErrorIsCorretlyLogged(self, debug_mock):
+  def setUp(self):
+    super().setUp()
+
+    logger = logging.getLogger()
+
+    class Handler(logging.Handler):
+
+      def __init__(self):
+        super().__init__()
+        self.logs: list[logging.LogRecord] = []
+
+      def emit(self, record: logging.LogRecord):
+        self.logs.append(record)
+
+    # We create our own log handler that stores all records in a simple list.
+    self.handler = Handler()
+    logger.addHandler(self.handler)
+    self.addCleanup(lambda: logger.removeHandler(self.handler))
+
+    # We adjust log level to `DEBUG` to catch all logs.
+    old_log_level = logger.level
+    logger.setLevel(logging.DEBUG)
+    self.addCleanup(lambda: logger.setLevel(old_log_level))
+
+  def testArgsAndResultPropagated(self):
+    @db_utils.CallLogged
+    def SampleCall(arg: int, kwarg: int = 0) -> Tuple[int, int]:
+      return (arg, kwarg)
+
+    self.assertEqual(SampleCall(42, 1337), (42, 1337))
+
+  def testCallSuccessLogged(self):
+    @db_utils.CallLogged
+    def SampleCall():
+      return 42
+
+    SampleCall()
+
+    self.assertLen(self.handler.logs, 1)
+
+    message = self.handler.logs[0].getMessage()
+    self.assertIn("SUCCESS", message)
+    self.assertIn("SampleCall", message)
+
+  def testCallRaisedDBErrorLogged(self):
+    @db_utils.CallLogged
+    def SampleCallWithDBError():
+      raise db.UnknownGRRUserError("Unknown")
+
     with self.assertRaises(db.UnknownGRRUserError):
-      self.SampleCallWithGRRError()
+      SampleCallWithDBError()
 
-    self.assertTrue(debug_mock.called)
-    got = debug_mock.call_args_list[0][0]
-    self.assertIn("GRR ERROR", got[0])
-    self.assertEqual(got[1], "SampleCallWithGRRError")
+    self.assertLen(self.handler.logs, 1)
 
-  @mock.patch.object(logging, "debug")
-  def testCallRaisingRuntimeDBErrorIsCorretlyLogged(self, debug_mock):
+    message = self.handler.logs[0].getMessage()
+    self.assertIn("GRR ERROR", message)
+    self.assertIn("SampleCallWithDBError", message)
+
+  def testCallRaisedGenericErrorLogged(self):
+    @db_utils.CallLogged
+    def SampleCallWithGenericError():
+      raise RuntimeError()
+
     with self.assertRaises(RuntimeError):
-      self.SampleCallWithDBError()
+      SampleCallWithGenericError()
 
-    self.assertTrue(debug_mock.called)
-    got = debug_mock.call_args_list[0][0]
-    self.assertIn("INTERNAL DB ERROR", got[0])
-    self.assertEqual(got[1], "SampleCallWithDBError")
+    self.assertLen(self.handler.logs, 1)
+
+    message = self.handler.logs[0].getMessage()
+    self.assertIn("INTERNAL DB ERROR", message)
+    self.assertIn("SampleCallWithGenericError", message)
 
 
 class IdToIntConversionTest(absltest.TestCase):
@@ -248,7 +322,8 @@ class IdToIntConversionTest(absltest.TestCase):
     self.assertEqual(db_utils.FlowIDToInt("FFFFFFFF"), 0xFFFFFFFF)
     self.assertEqual(db_utils.FlowIDToInt("0000000100000000"), 0x100000000)
     self.assertEqual(
-        db_utils.FlowIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF)
+        db_utils.FlowIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF
+    )
 
   def testIntToFlowId(self):
     self.assertEqual(db_utils.IntToFlowID(1), "00000001")
@@ -256,7 +331,8 @@ class IdToIntConversionTest(absltest.TestCase):
     self.assertEqual(db_utils.IntToFlowID(0xFFFFFFFF), "FFFFFFFF")
     self.assertEqual(db_utils.IntToFlowID(0x100000000), "0000000100000000")
     self.assertEqual(
-        db_utils.IntToFlowID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF")
+        db_utils.IntToFlowID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF"
+    )
 
   def testHuntIdToInt(self):
     self.assertEqual(db_utils.HuntIDToInt("00000001"), 1)
@@ -264,7 +340,8 @@ class IdToIntConversionTest(absltest.TestCase):
     self.assertEqual(db_utils.HuntIDToInt("FFFFFFFF"), 0xFFFFFFFF)
     self.assertEqual(db_utils.HuntIDToInt("0000000100000000"), 0x100000000)
     self.assertEqual(
-        db_utils.HuntIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF)
+        db_utils.HuntIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF
+    )
 
   def testIntToHuntId(self):
     self.assertEqual(db_utils.IntToHuntID(1), "00000001")
@@ -272,7 +349,8 @@ class IdToIntConversionTest(absltest.TestCase):
     self.assertEqual(db_utils.IntToHuntID(0xFFFFFFFF), "FFFFFFFF")
     self.assertEqual(db_utils.IntToHuntID(0x100000000), "0000000100000000")
     self.assertEqual(
-        db_utils.IntToHuntID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF")
+        db_utils.IntToHuntID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF"
+    )
 
 
 class ParseAndUnpackAnyTest(absltest.TestCase):

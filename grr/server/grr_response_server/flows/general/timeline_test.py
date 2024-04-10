@@ -259,8 +259,7 @@ class FilesystemTypeTest(absltest.TestCase):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-    db.WriteFlowObject(flow_obj)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     self.assertIsNone(timeline_flow.FilesystemType(client_id, flow_id))
 
@@ -275,8 +274,7 @@ class FilesystemTypeTest(absltest.TestCase):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-    db.WriteFlowObject(flow_obj)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id

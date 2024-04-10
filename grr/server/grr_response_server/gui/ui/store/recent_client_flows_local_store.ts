@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {combineLatest, Observable, of, throwError} from 'rxjs';
@@ -80,7 +79,7 @@ class RecentClientFlowsComponentStore extends ComponentStore<RecentClientFlowsSt
             .map(translateFlow)
             .sort(compareDateNewestFirst((f) => f.startedAt)),
         ),
-        map((flows) => ({flows} as FlowListState)),
+        map((flows) => ({flows}) as FlowListState),
         catchError<FlowListState, Observable<FlowListState>>((err) =>
           err instanceof MissingApprovalError
             ? of({flows: []} as FlowListState)

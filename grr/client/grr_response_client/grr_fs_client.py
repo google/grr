@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-r"""This is the GRR client for Fleetspeak enabled installations.
-"""
+r"""This is the GRR client for Fleetspeak enabled installations."""
 
 from absl import app
 

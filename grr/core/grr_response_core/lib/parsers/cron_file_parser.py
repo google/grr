@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Simple parsers for cron type files."""
 
-
 from typing import IO
 from typing import Iterator
 
@@ -41,9 +40,12 @@ class CronTabParser(parsers.SingleFileParser[rdf_cronjobs.CronTabFile]):
               month=str(job.month),
               dayofweek=str(job.dow),
               command=str(job.command),
-              comment=str(job.comment)))
+              comment=str(job.comment),
+          )
+      )
 
     yield rdf_cronjobs.CronTabFile(
         # We're interested in the nominal file path, not the full Pathspec.
         path=pathspec.last.path,
-        jobs=entries)
+        jobs=entries,
+    )

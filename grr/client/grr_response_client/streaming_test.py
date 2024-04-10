@@ -171,7 +171,7 @@ class StreamRangesTest(StreamerTestMixin, absltest.TestCase):
     def Result(amount=available_data, offset=0):
       amount = min(amount, available_data - offset)
       for chunk in streamer.StreamRanges(offset, amount):
-        chunk.data = data[chunk.offset:chunk.offset + chunk.amount]
+        chunk.data = data[chunk.offset : chunk.offset + chunk.amount]
         yield chunk
 
     return Result
@@ -252,7 +252,7 @@ class StubProcess(object):
     self.memory = memory
 
   def ReadBytes(self, address, num_bytes):
-    return self.memory[address:address + num_bytes]
+    return self.memory[address : address + num_bytes]
 
 
 class ChunkTest(absltest.TestCase):

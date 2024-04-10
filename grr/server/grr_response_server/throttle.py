@@ -4,6 +4,7 @@
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
+from grr_response_server.rdfvalues import mig_flow_objects
 
 
 class Error(Exception):
@@ -51,6 +52,7 @@ class FlowThrottler(object):
         client_id=client_id,
         min_create_time=min_create_time,
         include_child_flows=False)
+    flow_list = [mig_flow_objects.ToRDFFlow(flow) for flow in flow_list]
     for flow_obj in flow_list:
       yield flow_obj
 

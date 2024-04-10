@@ -3,7 +3,6 @@
 
 This code is based on the memorpy project:
 https://github.com/n1nj4sec/memorpy
-
 """
 
 import ctypes
@@ -21,8 +20,9 @@ def Errcheck(ret, func, args):
   del args
   if ret == -1:
     raise OSError(
-        "Error in %s: %s" % (func.__name__,
-                             os.strerror(ctypes.get_errno() or errno.EPERM)))
+        "Error in %s: %s"
+        % (func.__name__, os.strerror(ctypes.get_errno() or errno.EPERM))
+    )
   return ret
 
 
@@ -54,7 +54,8 @@ class Process(object):
 
   maps_re = re.compile(
       r"([0-9A-Fa-f]+)-([0-9A-Fa-f]+)\s+([-rwpsx]+)\s+"
-      r"([0-9A-Fa-f]+)\s+([0-9A-Fa-f]+:[0-9A-Fa-f]+)\s+([0-9]+)\s*(.*)")
+      r"([0-9A-Fa-f]+)\s+([0-9A-Fa-f]+:[0-9A-Fa-f]+)\s+([0-9]+)\s*(.*)"
+  )
 
   def __init__(self, pid=None, mem_fd=None):
     """Creates a process for reading memory."""
@@ -95,11 +96,13 @@ class Process(object):
   def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
     self.Close()
 
-  def Regions(self,
-              skip_mapped_files=False,
-              skip_shared_regions=False,
-              skip_executable_regions=False,
-              skip_readonly_regions=False):
+  def Regions(
+      self,
+      skip_mapped_files=False,
+      skip_shared_regions=False,
+      skip_executable_regions=False,
+      skip_readonly_regions=False,
+  ):
     """Returns an iterator over the readable regions for this process."""
     try:
       maps_file = open("/proc/" + str(self.pid) + "/maps", "r")
@@ -134,7 +137,8 @@ class Process(object):
               size=end - start,
               is_readable=True,
               is_writable=is_writable,
-              is_executable=is_executable)
+              is_executable=is_executable,
+          )
 
   def ReadBytes(self, address, num_bytes):
     lseek64(self.mem_file, address, os.SEEK_SET)
@@ -149,5 +153,7 @@ class Process(object):
 
   @classmethod
   def CreateFromSerializedFileDescriptor(
-      cls, serialized_file_descriptor: int) -> "Process":
+      cls,
+      serialized_file_descriptor: int,
+  ) -> "Process":
     return Process(mem_fd=serialized_file_descriptor)

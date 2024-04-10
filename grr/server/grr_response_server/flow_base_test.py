@@ -17,6 +17,7 @@ from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import stats_test_lib
 from grr_response_proto import rrg_pb2
@@ -36,7 +37,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow = FlowBaseTest.Flow(flow)
     flow.Log("foo %s %s", "bar", 42)
@@ -52,7 +53,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow = FlowBaseTest.Flow(flow)
     flow.Log("foo %s %s")
@@ -136,7 +137,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow_obj = FlowBaseTest.Flow(flow)
     progress = flow_obj.GetProgress()
@@ -150,7 +151,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow_obj = FlowBaseTest.Flow(flow)
     result_metadata = flow_obj.GetResultMetadata()
@@ -167,7 +168,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow_obj = FlowBaseTest.Flow(flow)
     flow_obj.PersistState()
@@ -185,7 +186,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow_obj = FlowBaseTest.Flow(flow)
     flow_obj.SendReply(rdf_client.ClientInformation())
@@ -193,9 +194,10 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow_obj.SendReply(rdf_client.StartupInfo())
     flow_obj.SendReply(rdf_client.StartupInfo(), tag="foo")
     flow_obj.PersistState()
-    db.WriteFlowObject(flow_obj.rdf_flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
+    flow_2 = mig_flow_objects.ToRDFFlow(flow_2)
     flow_obj_2 = FlowBaseTest.Flow(flow_2)
 
     result_metadata = flow_obj_2.GetResultMetadata()
@@ -222,15 +224,16 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
     flow.flow_id = self._FLOW_ID
-    db.WriteFlowObject(flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     flow_obj = FlowBaseTest.Flow(flow)
     flow_obj.SendReply(rdf_client.ClientInformation())
     flow_obj.PersistState()
     flow_obj.PersistState()
-    db.WriteFlowObject(flow_obj.rdf_flow)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj.rdf_flow))
 
     flow_2 = db.ReadFlowObject(client_id, self._FLOW_ID)
+    flow_2 = mig_flow_objects.ToRDFFlow(flow_2)
     flow_obj_2 = FlowBaseTest.Flow(flow_2)
     result_metadata = flow_obj_2.GetResultMetadata()
 

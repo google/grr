@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 """The base classes for RDFValue tests."""
 
-from typing import Text
-
 from grr_response_core.lib import serialization
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 # pylint:mode=test
 
 
-class RDFValueTestMixin(object):
+class RDFValueTestMixin:
   """The base class for testing RDFValue implementations."""
 
   # This should be overridden by the RDFValue class we want to test.
@@ -94,15 +92,16 @@ class RDFValueTestMixin(object):
     if protobuf_type == "bytes":
       self.assertIsInstance(serialized, bytes)
     elif protobuf_type == "string":
-      self.assertIsInstance(serialized, Text)
+      self.assertIsInstance(serialized, str)
     elif protobuf_type in ["unsigned_integer", "integer"]:
       self.assertIsInstance(serialized, int)
     else:
       self.fail("%s has no valid protobuf_type" % self.rdfvalue_class)
 
     # Ensure we can parse it again.
-    rdfvalue_object = serialization.FromWireFormat(self.rdfvalue_class,
-                                                   serialized)
+    rdfvalue_object = serialization.FromWireFormat(
+        self.rdfvalue_class, serialized
+    )
     self.CheckRDFValue(rdfvalue_object, sample)
 
 

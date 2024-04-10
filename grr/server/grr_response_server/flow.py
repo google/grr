@@ -305,7 +305,8 @@ def StartFlow(client_id=None,
     # database doesn't raise consistency errors due to missing parent keys when
     # writing logs / errors / results which might happen in Start().
     try:
-      data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow, allow_update=False)
+      proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
+      data_store.REL_DB.WriteFlowObject(proto_flow, allow_update=False)
     except db.FlowExistsError:
       raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
 
@@ -337,8 +338,8 @@ def StartFlow(client_id=None,
   flow_obj.PersistState()
 
   try:
-    data_store.REL_DB.WriteFlowObject(
-        flow_obj.rdf_flow, allow_update=allow_update)
+    proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
+    data_store.REL_DB.WriteFlowObject(proto_flow, allow_update=allow_update)
   except db.FlowExistsError:
     raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
 

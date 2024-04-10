@@ -25,21 +25,24 @@ def _MigrationFilenameToInt(fname: Text) -> int:
   return int(base)
 
 
-def ListMigrationsToProcess(migrations_root: Text,
-                            current_migration_number: Optional[int]
-                           ) -> Sequence[Text]:
+def ListMigrationsToProcess(
+    migrations_root: Text, current_migration_number: Optional[int]
+) -> Sequence[Text]:
   """Lists filenames of migrations with numbers bigger than a given one."""
   migrations = []
   for m in os.listdir(migrations_root):
-    if (current_migration_number is None or
-        _MigrationFilenameToInt(m) > current_migration_number):
+    if (
+        current_migration_number is None
+        or _MigrationFilenameToInt(m) > current_migration_number
+    ):
       migrations.append(m)
 
   return sorted(migrations, key=_MigrationFilenameToInt)
 
 
-def ProcessMigrations(open_conn_fn: Callable[[], Connection],
-                      migrations_root: Text) -> None:
+def ProcessMigrations(
+    open_conn_fn: Callable[[], Connection], migrations_root: Text
+) -> None:
   """Processes migrations from a given folder.
 
   This function uses LOCK TABLE MySQL command on _migrations
@@ -74,8 +77,9 @@ def ProcessMigrations(open_conn_fn: Callable[[], Connection],
         current_migration = GetLatestMigrationNumber(cursor)
 
       to_process = ListMigrationsToProcess(migrations_root, current_migration)
-      logging.info("Will execute following DB migrations: %s",
-                   ", ".join(to_process))
+      logging.info(
+          "Will execute following DB migrations: %s", ", ".join(to_process)
+      )
 
       for fname in to_process:
         start_time = time.time()
@@ -86,13 +90,16 @@ def ProcessMigrations(open_conn_fn: Callable[[], Connection],
           with contextlib.closing(conn.cursor()) as cursor:
             cursor.execute(sql)
 
-        logging.info("Migration %s is done. Took %.2fs", fname,
-                     time.time() - start_time)
+        logging.info(
+            "Migration %s is done. Took %.2fs", fname, time.time() - start_time
+        )
 
         # Update _migrations table with the latest migration.
         with contextlib.closing(conn.cursor()) as cursor:
-          cursor.execute("INSERT INTO _migrations (migration_id) VALUES (%s)",
-                         [_MigrationFilenameToInt(fname)])
+          cursor.execute(
+              "INSERT INTO _migrations (migration_id) VALUES (%s)",
+              [_MigrationFilenameToInt(fname)],
+          )
     finally:
       with contextlib.closing(conn.cursor()) as cursor:
         cursor.execute('SELECT RELEASE_LOCK("grr_migration")')
@@ -100,10 +107,12 @@ def ProcessMigrations(open_conn_fn: Callable[[], Connection],
 
 def DumpCurrentSchema(cursor: Cursor) -> Text:
   """Dumps current database schema."""
-  cursor.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
-                 "WHERE table_schema = (SELECT DATABASE())")
+  cursor.execute(
+      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+      "WHERE table_schema = (SELECT DATABASE())"
+  )
   defs = []
-  for table, in sorted(cursor.fetchall()):
+  for (table,) in sorted(cursor.fetchall()):
     cursor.execute("SHOW CREATE TABLE `{}`".format(table))
     rows = cursor.fetchall()
     defs.append(rows[0][1])

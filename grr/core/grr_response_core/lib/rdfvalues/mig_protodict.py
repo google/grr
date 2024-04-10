@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from typing import Any, Dict
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -76,7 +77,7 @@ def FromProtoAttributedDictToNativeDict(
 
 
 def FromNativeDictToProtoAttributedDict(
-    dictionary: Dict[Any, Any]
+    dictionary: Dict[Any, Any],
 ) -> jobs_pb2.AttributedDict:
   rdf_dict = rdf_protodict.AttributedDict().FromDict(dictionary)
   return ToProtoAttributedDict(rdf_dict)

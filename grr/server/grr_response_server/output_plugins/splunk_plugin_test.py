@@ -13,6 +13,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server.output_plugins import splunk_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -28,12 +29,14 @@ class SplunkOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.client_id = self.SetupClient(0)
     self.flow_id = '12345678'
     data_store.REL_DB.WriteFlowObject(
-        rdf_flow_objects.Flow(
-            flow_id=self.flow_id,
-            client_id=self.client_id,
-            flow_class_name='ClientFileFinder',
-            create_time=rdfvalue.RDFDatetime.Now(),
-        ))
+        mig_flow_objects.ToProtoFlow(
+            rdf_flow_objects.Flow(
+                flow_id=self.flow_id,
+                client_id=self.client_id,
+                flow_class_name='ClientFileFinder',
+            )
+        )
+    )
 
   def _CallPlugin(self, plugin_args=None, responses=None, patcher=None):
     source_id = rdf_client.ClientURN(

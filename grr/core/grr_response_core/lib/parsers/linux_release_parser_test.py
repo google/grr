@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Unit test for the linux distribution parser."""
 
-
 import io
 import os
 
@@ -160,8 +159,10 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   def testEndToEndAmazon(self):
     parser = linux_release_parser.LinuxReleaseParser()
     test_data = [
-        ("/etc/system-release",
-         os.path.join(self.parser_test_dir, "amazon-system-release")),
+        (
+            "/etc/system-release",
+            os.path.join(self.parser_test_dir, "amazon-system-release"),
+        ),
     ]
     pathspecs, file_objects = self._CreateTestData(test_data)
     actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))
@@ -177,8 +178,10 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   def testEndToEndCoreOS(self):
     parser = linux_release_parser.LinuxReleaseParser()
     test_data = [
-        ("/etc/os-release",
-         os.path.join(self.parser_test_dir, "coreos-os-release")),
+        (
+            "/etc/os-release",
+            os.path.join(self.parser_test_dir, "coreos-os-release"),
+        ),
     ]
     pathspecs, file_objects = self._CreateTestData(test_data)
     actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))
@@ -194,8 +197,10 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   def testEndToEndGoogleCOS(self):
     parser = linux_release_parser.LinuxReleaseParser()
     test_data = [
-        ("/etc/os-release",
-         os.path.join(self.parser_test_dir, "google-cos-os-release")),
+        (
+            "/etc/os-release",
+            os.path.join(self.parser_test_dir, "google-cos-os-release"),
+        ),
     ]
     pathspecs, file_objects = self._CreateTestData(test_data)
     actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))

@@ -910,9 +910,17 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       # pylint: disable=line-too-long
       # pyformat: disable
       args.paths.extend([
-          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*",
-          rf"HKEY_USERS\{user.sid}\Environment\*",
-          rf"HKEY_USERS\{user.sid}\Volatile Environment\*",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\{{A520A1A4-1780-4FF6-BD18-167343C5AF16}}",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Desktop",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\AppData",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Local AppData",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Cookies",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Cache",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Recent",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Startup",
+          rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Personal",
+          rf"HKEY_USERS\{user.sid}\Environment\TEMP",
+          rf"HKEY_USERS\{user.sid}\Volatile Environment\USERDOMAIN",
       ])
       # pylint: enable=line-too-long
       # pyformat: enable
@@ -981,14 +989,34 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       registry_value = parts[-1]
       registry_data = response.stat_entry.registry_data.string
 
-      attrs = windows_registry_parser.WinUserSpecialDirs.key_var_mapping
-      try:
-        attr = attrs[registry_key][registry_value]
-      except KeyError:
+      # TODO: Replace with `match` once we can use Python 3.10
+      # features.
+      case = (registry_key, registry_value)
+      if case == ("Shell Folders", "{A520A1A4-1780-4FF6-BD18-167343C5AF16}"):
+        user.localappdata_low = registry_data
+      elif case == ("Shell Folders", "Desktop"):
+        user.desktop = registry_data
+      elif case == ("Shell Folders", "AppData"):
+        user.appdata = registry_data
+      elif case == ("Shell Folders", "Local AppData"):
+        user.localappdata = registry_data
+      elif case == ("Shell Folders", "Cookies"):
+        user.cookies = registry_data
+      elif case == ("Shell Folders", "Cache"):
+        user.internet_cache = registry_data
+      elif case == ("Shell Folders", "Recent"):
+        user.recent = registry_data
+      elif case == ("Shell Folders", "Startup"):
+        user.startup = registry_data
+      elif case == ("Shell Folders", "Personal"):
+        user.personal = registry_data
+      elif case == ("Environment", "TEMP"):
+        user.temp = registry_data
+      elif case == ("Volatile Environment", "USERDOMAIN"):
+        user.userdomain = registry_data
+      else:
         self.Log("Invalid registry value for %r", path)
         continue
-
-      setattr(user, attr, registry_data)
 
   def _ProcessWindowsWMIUserAccounts(
       self,
@@ -1027,6 +1055,23 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
   def End(self, responses):
     """Finish up."""
     del responses
+
+    # TODO: `%LOCALAPPDATA%` is a very often used variable that we
+    # potentially not collect due to limitations of the Windows registry. For
+    # now, in case we did not collect it, we set it to the default Windows value
+    # (which should be the case almost always but is nevertheless not the most
+    # way of handling it).
+    #
+    # Alternatively, we could develop a more general way of handling default
+    # environment variable values in case they are missing.
+    for user in self.state.knowledge_base.users:
+      if not user.localappdata:
+        self.Log(
+            "Missing `%%LOCALAPPDATA%%` for '%s', using Windows default",
+            user.username,
+        )
+        user.localappdata = rf"{user.userprofile}\AppData\Local"
+
     self.SendReply(self.state.knowledge_base)
 
   def InitializeKnowledgeBase(self):

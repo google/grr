@@ -7,8 +7,11 @@ from grr_response_server.databases import mem_test_base
 from grr.test_lib import test_lib
 
 
-class MemoryDBClientsTest(db_clients_test.DatabaseTestClientsMixin,
-                          mem_test_base.MemoryDBTestBase, absltest.TestCase):
+class MemoryDBClientsTest(
+    db_clients_test.DatabaseTestClientsMixin,
+    mem_test_base.MemoryDBTestBase,
+    absltest.TestCase,
+):
   pass
 
 

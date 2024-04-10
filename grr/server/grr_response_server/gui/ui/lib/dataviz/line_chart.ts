@@ -524,7 +524,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
 
   private setupEventListeners(): void {
     if (this.configuration?.sizing?.rerenderOnResize) {
-      this.resizeObserver = new ResizeObserver((e) => {
+      this.resizeObserver = new ResizeObserver(() => {
         const currentSizeConfig = this.configuration?.sizing || {};
         const containerWidth = this.getElementWidthPx(this.parentNode);
 
@@ -538,11 +538,13 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
           widthPx: this.containerWidthPx,
         };
 
-        this.setChartSize(this.parentNode, newChartSizeConfiguration);
-        this.resetScalesRange();
-        this.setAxisScales();
-        this.setAxisTicks();
-        this.redrawChart();
+        requestAnimationFrame(() => {
+          this.setChartSize(this.parentNode, newChartSizeConfiguration);
+          this.resetScalesRange();
+          this.setAxisScales();
+          this.setAxisTicks();
+          this.redrawChart();
+        });
       });
 
       // We listen to size changes of the chart's container element:

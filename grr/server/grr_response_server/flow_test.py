@@ -13,6 +13,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -25,6 +26,7 @@ from grr_response_server.flows import file
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -85,6 +87,13 @@ class CallStateFlowWithResponses(flow_base.FlowBase):
     self.CallState(
         next_state=self.ReceiveHello.__name__,
         responses=responses,
+        # Calling the state a little in the future to avoid inline processing
+        # done by the flow test library. Inline processing will break the
+        # CallState logic: responses are written after requests, but the
+        # inline processing is triggered already when requests are written.
+        # Inline processing doesn't happen if flow requests are scheduled in
+        # the future.
+        start_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1s"),
     )
 
   def ReceiveHello(self, responses: flow_responses.Responses) -> None:
@@ -251,8 +260,10 @@ class FlowCreationTest(BasicFlowTest):
     client_flow_obj = data_store.REL_DB.ReadChildFlowObjects(
         self.client_id, flow_id)[0]
 
-    self.assertEqual(flow_obj.flow_state, "RUNNING")
-    self.assertEqual(client_flow_obj.flow_state, "RUNNING")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.RUNNING)
+    self.assertEqual(
+        client_flow_obj.flow_state, flows_pb2.Flow.FlowState.RUNNING
+    )
 
     # Terminate the parent flow.
     flow_base.TerminateFlow(self.client_id, flow_id, reason="Testing")
@@ -261,15 +272,15 @@ class FlowCreationTest(BasicFlowTest):
     client_flow_obj = data_store.REL_DB.ReadChildFlowObjects(
         self.client_id, flow_id)[0]
 
-    self.assertEqual(flow_obj.flow_state, "ERROR")
-    self.assertEqual(client_flow_obj.flow_state, "ERROR")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertEqual(client_flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
 
   def testExceptionInStart(self):
     flow_id = flow.StartFlow(
         flow_cls=FlowWithBrokenStart, client_id=self.client_id)
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
 
-    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.ERROR)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertEqual(flow_obj.error_message, "boo")
     self.assertIsNotNone(flow_obj.backtrace)
 
@@ -381,7 +392,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
           check_flow_errors=False)
 
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(rdf_flow.flow_state, "ERROR")
+    self.assertEqual(rdf_flow.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn("CPU limit exceeded", rdf_flow.error_message)
 
   def testNetworkLimitExceeded(self):
@@ -399,7 +410,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
           check_flow_errors=False)
 
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(rdf_flow.flow_state, "ERROR")
+    self.assertEqual(rdf_flow.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn("bytes limit exceeded", rdf_flow.error_message)
 
   def testRuntimeLimitExceeded(self):
@@ -417,9 +428,9 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
           runtime_limit=rdfvalue.Duration.From(9, rdfvalue.SECONDS),
           check_flow_errors=False)
 
-    rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(rdf_flow.flow_state, "ERROR")
-    self.assertIn("Runtime limit exceeded", rdf_flow.error_message)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertIn("Runtime limit exceeded", flow_obj.error_message)
 
   def testUserGetsNotificationWithNumberOfResults(self):
     username = "notification_test_user"
@@ -548,7 +559,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
             plugin_name="FailingDummyFlowOutputPlugin")
     ])
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, "FINISHED")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
   def testFailingPluginDoesNotImpactOtherPlugins(self):
     self.RunFlow(output_plugins=[
@@ -660,7 +671,8 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         flows[0].flow_class_name, file.CollectFilesByKnownPath.__name__
     )
-    self.assertEqual(flows[0].args.paths, ["/foo"])
+    rdf_flow = mig_flow_objects.ToRDFFlow(flows[0])
+    self.assertEqual(rdf_flow.args.paths, ["/foo"])
     self.assertEqual(
         flows[0].flow_state, rdf_flow_objects.Flow.FlowState.RUNNING
     )
@@ -993,8 +1005,9 @@ class WorkerTest(BasicFlowTest):
     with flow_test_lib.TestWorker() as worker:
       flow_id = flow.StartFlow(
           flow_cls=CallClientParentFlow, client_id=self.client_id)
-      fpr = rdf_flows.FlowProcessingRequest(
-          client_id=self.client_id, flow_id=flow_id)
+      fpr = flows_pb2.FlowProcessingRequest(
+          client_id=self.client_id, flow_id=flow_id
+      )
       with self.assertRaises(worker_lib.FlowHasNothingToProcessError):
         worker.ProcessFlow(fpr)
 

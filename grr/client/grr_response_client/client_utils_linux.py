@@ -8,7 +8,6 @@ import time
 
 from grr_response_client import client_utils_osx_linux
 from grr_response_client.linux import process
-
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -20,7 +19,9 @@ LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
 TransactionLog = client_utils_osx_linux.TransactionLog
 
-CreateProcessFromSerializedFileDescriptor = process.Process.CreateFromSerializedFileDescriptor
+CreateProcessFromSerializedFileDescriptor = (
+    process.Process.CreateFromSerializedFileDescriptor
+)
 
 # pylint: enable=invalid-name
 
@@ -88,12 +89,14 @@ def GetRawDevice(path):
         result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:
         logging.error(
-            "Filesystem %s is not supported. Supported filesystems "
-            "are %s", fs_type, SUPPORTED_FILESYSTEMS)
+            "Filesystem %s is not supported. Supported filesystems are %s",
+            fs_type,
+            SUPPORTED_FILESYSTEMS,
+        )
         result.pathtype = rdf_paths.PathSpec.PathType.UNSET
 
       # Drop the mount point
-      path = utils.NormalizePath(path[len(mount_point):])
+      path = utils.NormalizePath(path[len(mount_point) :])
       result.mount_point = mount_point
 
       return result, path
@@ -110,4 +113,5 @@ def MemoryRegions(proc, options):
       skip_executable_regions=options.skip_executable_regions,
       skip_mapped_files=options.skip_mapped_files,
       skip_readonly_regions=options.skip_readonly_regions,
-      skip_shared_regions=options.skip_shared_regions)
+      skip_shared_regions=options.skip_shared_regions,
+  )

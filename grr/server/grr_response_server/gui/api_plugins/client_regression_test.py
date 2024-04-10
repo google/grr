@@ -40,7 +40,7 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
+      client_id = self.SetupClient(0, memory_size=4294967296)
 
     self.Check(
         "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
@@ -56,14 +56,12 @@ class ApiGetClientVersionsRegressionTest(
 
   def _SetupTestClient(self):
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
+      client_id = self.SetupClient(0, memory_size=4294967296)
 
     with test_lib.FakeTime(45):
       self.SetupClient(
-          0,
-          fqdn="some-other-hostname.org",
-          memory_size=4294967296,
-          add_cert=False)
+          0, fqdn="some-other-hostname.org", memory_size=4294967296
+      )
 
     return client_id
 

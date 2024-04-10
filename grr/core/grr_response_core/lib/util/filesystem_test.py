@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import datetime
 import io
 import os
@@ -82,8 +81,10 @@ class StatTest(absltest.TestCase):
 
   @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
   def testSymlink(self):
-    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath, \
-        temp.AutoTempFilePath() as temp_filepath:
+    with (
+        temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,
+        temp.AutoTempFilePath() as temp_filepath,
+    ):
       with io.open(temp_filepath, "wb") as fd:
         fd.write(b"foobar")
 
@@ -135,11 +136,14 @@ class StatTest(absltest.TestCase):
       self.assertFalse(stat.GetOsxFlags() & self.UF_IMMUTABLE)
       self.assertEqual(stat.GetLinuxFlags(), 0)
 
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Windows does not support os.symlink().")
+  @unittest.skipIf(
+      platform.system() == "Windows", "Windows does not support os.symlink()."
+  )
   def testGetFlagsSymlink(self):
-    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath, \
-        temp.AutoTempFilePath() as temp_filepath:
+    with (
+        temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,
+        temp.AutoTempFilePath() as temp_filepath,
+    ):
       temp_linkpath = os.path.join(temp_dirpath, "foo")
       os.symlink(temp_filepath, temp_linkpath)
 
@@ -148,8 +152,9 @@ class StatTest(absltest.TestCase):
       self.assertEqual(stat.GetLinuxFlags(), 0)
       self.assertEqual(stat.GetOsxFlags(), 0)
 
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Windows does not support socket.AF_UNIX.")
+  @unittest.skipIf(
+      platform.system() == "Windows", "Windows does not support socket.AF_UNIX."
+  )
   def testGetFlagsSocket(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       temp_socketpath = os.path.join(temp_dirpath, "foo")
@@ -163,8 +168,9 @@ class StatTest(absltest.TestCase):
       # pylint: disable=line-too-long
       # [1]: https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
       # pylint: enable=ling-too-long
-      if ((platform.system() == "Linux" and len(temp_socketpath) > 108) or
-          (platform.system() == "Darwin" and len(temp_socketpath) > 104)):
+      if (platform.system() == "Linux" and len(temp_socketpath) > 108) or (
+          platform.system() == "Darwin" and len(temp_socketpath) > 104
+      ):
         message = "Generated path '{}' is too long for a socket path"
         self.skipTest(message.format(temp_socketpath))
 
@@ -238,8 +244,9 @@ class StatCacheTest(absltest.TestCase):
       self.assertEqual(other_baz_stat.GetSize(), 9)
       self.assertFalse(stat_mock.FromPath.called)
 
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Windows does not support os.symlink().")
+  @unittest.skipIf(
+      platform.system() == "Windows", "Windows does not support os.symlink()."
+  )
   def testFollowSymlink(self):
     with io.open(self.Path("foo"), "wb") as fd:
       fd.write(b"123456")
