@@ -3,10 +3,10 @@
 
 import datetime
 import os
+import sqlite3
 import zipfile
 
 from absl import app
-import sqlite3
 import yaml
 
 from grr_response_core.lib import rdfvalue
@@ -27,7 +27,8 @@ class TestEmbeddedStruct(rdf_structs.RDFProtoStruct):
 
   type_description = type_info.TypeDescriptorSet(
       rdf_structs.ProtoString(name="e_string_field", field_number=1),
-      rdf_structs.ProtoDouble(name="e_double_field", field_number=2))
+      rdf_structs.ProtoDouble(name="e_double_field", field_number=2),
+  )
 
 
 class SqliteTestStruct(rdf_structs.RDFProtoStruct):
@@ -44,22 +45,27 @@ class SqliteTestStruct(rdf_structs.RDFProtoStruct):
           name="enum_field",
           field_number=7,
           enum_name="EnumField",
-          enum={
-              "FIRST": 1,
-              "SECOND": 2
-          }), rdf_structs.ProtoBoolean(name="bool_field", field_number=8),
+          enum={"FIRST": 1, "SECOND": 2},
+      ),
+      rdf_structs.ProtoBoolean(name="bool_field", field_number=8),
       rdf_structs.ProtoRDFValue(
-          name="urn_field", field_number=9, rdf_type="RDFURN"),
+          name="urn_field", field_number=9, rdf_type="RDFURN"
+      ),
       rdf_structs.ProtoRDFValue(
-          name="time_field", field_number=10, rdf_type="RDFDatetime"),
+          name="time_field", field_number=10, rdf_type="RDFDatetime"
+      ),
       rdf_structs.ProtoRDFValue(
           name="time_field_seconds",
           field_number=11,
-          rdf_type="RDFDatetimeSeconds"),
+          rdf_type="RDFDatetimeSeconds",
+      ),
       rdf_structs.ProtoRDFValue(
-          name="duration_field", field_number=12, rdf_type="DurationSeconds"),
+          name="duration_field", field_number=12, rdf_type="DurationSeconds"
+      ),
       rdf_structs.ProtoEmbedded(
-          name="embedded_field", field_number=13, nested=TestEmbeddedStruct))
+          name="embedded_field", field_number=13, nested=TestEmbeddedStruct
+      ),
+  )
 
 
 class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
@@ -79,7 +85,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
           st_size=0,
           st_atime=1493596800,  # Midnight, 01.05.2017 UTC in seconds
           st_mtime=1493683200,  # Midnight, 01.05.2017 UTC in seconds
-          st_ctime=1493683200) for i in range(10)
+          st_ctime=1493683200,
+      )
+      for i in range(10)
   ]
 
   def setUp(self):
@@ -98,7 +106,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
     column_types = {k: v.sqlite_type for k, v in schema.items()}
     self.assertEqual(
-        column_types, {
+        column_types,
+        {
             "string_field": "TEXT",
             "bytes_field": "BLOB",
             "uint_field": "INTEGER",
@@ -112,8 +121,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "time_field_seconds": "INTEGER",
             "duration_field": "INTEGER",
             "embedded_field.e_string_field": "TEXT",
-            "embedded_field.e_double_field": "REAL"
-        })
+            "embedded_field.e_double_field": "REAL",
+        },
+    )
 
   def testConversionToCanonicalSqlDict(self):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
@@ -128,14 +138,19 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         bool_field=True,
         urn_field=rdfvalue.RDFURN("www.test.com"),
         time_field=rdfvalue.RDFDatetime.FromDatetime(
-            datetime.datetime(2017, 5, 1)),
+            datetime.datetime(2017, 5, 1)
+        ),
         time_field_seconds=rdfvalue.RDFDatetimeSeconds.FromDatetime(
-            datetime.datetime(2017, 5, 2)),
+            datetime.datetime(2017, 5, 2)
+        ),
         duration_field=rdfvalue.Duration.From(123, rdfvalue.SECONDS),
         embedded_field=TestEmbeddedStruct(
-            e_string_field="e_string_value", e_double_field=0.789))
+            e_string_field="e_string_value", e_double_field=0.789
+        ),
+    )
     sql_dict = self.plugin._ConvertToCanonicalSqlDict(
-        schema, test_struct.ToPrimitiveDict())
+        schema, test_struct.ToPrimitiveDict()
+    )
     self.assertEqual(
         sql_dict,
         {
@@ -152,29 +167,29 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "time_field_seconds": 1493683200000000,  # Midnight, May 2
             "duration_field": 123000000,
             "embedded_field.e_string_field": "e_string_value",
-            "embedded_field.e_double_field": 0.789
-        })
+            "embedded_field.e_double_field": 0.789,
+        },
+    )
 
   @export_test_lib.WithAllExportConverters
   def testExportedFilenamesAndManifestForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES}
+    )
     self.assertEqual(
         set(zip_fd.namelist()),
-        {"%s/MANIFEST" % prefix,
-         "%s/ExportedFile_from_StatEntry.sql" % prefix})
+        {"%s/MANIFEST" % prefix, "%s/ExportedFile_from_StatEntry.sql" % prefix},
+    )
     parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest,
-                     {"export_stats": {
-                         "StatEntry": {
-                             "ExportedFile": 10
-                         }
-                     }})
+    self.assertEqual(
+        parsed_manifest, {"export_stats": {"StatEntry": {"ExportedFile": 10}}}
+    )
 
   @export_test_lib.WithAllExportConverters
   def testExportedTableStructureForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES}
+    )
 
     sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
     sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
@@ -202,7 +217,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   @export_test_lib.WithAllExportConverters
   def testExportedRowsForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
+        {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES}
+    )
 
     sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
     sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
@@ -212,14 +228,28 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
       self.db_cursor.executescript(sqlite_dump)
 
     select_columns = [
-        "metadata.client_urn", "metadata.source_urn", "urn", "st_mode",
-        "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid", "st_size",
-        "st_atime", "st_mtime", "st_ctime", "st_blksize", "st_rdev", "symlink"
+        "metadata.client_urn",
+        "metadata.source_urn",
+        "urn",
+        "st_mode",
+        "st_ino",
+        "st_dev",
+        "st_nlink",
+        "st_uid",
+        "st_gid",
+        "st_size",
+        "st_atime",
+        "st_mtime",
+        "st_ctime",
+        "st_blksize",
+        "st_rdev",
+        "symlink",
     ]
-    escaped_column_names = ["\"%s\"" % c for c in select_columns]
-    self.db_cursor.execute("SELECT %s FROM "
-                           "\"ExportedFile.from_StatEntry\";" %
-                           ",".join(escaped_column_names))
+    escaped_column_names = ['"%s"' % c for c in select_columns]
+    self.db_cursor.execute(
+        'SELECT %s FROM "ExportedFile.from_StatEntry";'
+        % ",".join(escaped_column_names)
+    )
     rows = self.db_cursor.fetchall()
     self.assertLen(rows, 10)
     for i, row in enumerate(rows):
@@ -240,7 +270,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
           "st_ctime": 1493683200000000,
           "st_blksize": 0,
           "st_rdev": 0,
-          "symlink": ""
+          "symlink": "",
       }
       self.assertEqual(results, expected_results)
 
@@ -249,38 +279,40 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS")
+            )
         ],
-        rdf_client.Process: [rdf_client.Process(pid=42)]
+        rdf_client.Process: [rdf_client.Process(pid=42)],
     })
     self.assertEqual(
-        set(zip_fd.namelist()), {
+        set(zip_fd.namelist()),
+        {
             "%s/MANIFEST" % prefix,
             "%s/ExportedFile_from_StatEntry.sql" % prefix,
-            "%s/ExportedProcess_from_Process.sql" % prefix
-        })
+            "%s/ExportedProcess_from_Process.sql" % prefix,
+        },
+    )
 
     parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(
-        parsed_manifest, {
+        parsed_manifest,
+        {
             "export_stats": {
-                "StatEntry": {
-                    "ExportedFile": 1
-                },
-                "Process": {
-                    "ExportedProcess": 1
-                }
+                "StatEntry": {"ExportedFile": 1},
+                "Process": {"ExportedProcess": 1},
             }
-        })
+        },
+    )
 
   @export_test_lib.WithAllExportConverters
   def testExportedRowsForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS")
+            )
         ],
-        rdf_client.Process: [rdf_client.Process(pid=42)]
+        rdf_client.Process: [rdf_client.Process(pid=42)],
     })
     with self.db_connection:
       stat_entry_script_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
@@ -293,8 +325,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
       self.db_cursor.executescript(process_script)
 
     self.db_cursor.execute(
-        "SELECT \"metadata.client_urn\", \"metadata.source_urn\", urn "
-        "FROM \"ExportedFile.from_StatEntry\";")
+        'SELECT "metadata.client_urn", "metadata.source_urn", urn '
+        'FROM "ExportedFile.from_StatEntry";'
+    )
     stat_entry_results = self.db_cursor.fetchall()
     self.assertLen(stat_entry_results, 1)
     # Client URN
@@ -302,12 +335,14 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # Source URN
     self.assertEqual(stat_entry_results[0][1], str(self.results_urn))
     # URN
-    self.assertEqual(stat_entry_results[0][2],
-                     "aff4:/%s/fs/os/foo/bar" % self.client_id)
+    self.assertEqual(
+        stat_entry_results[0][2], "aff4:/%s/fs/os/foo/bar" % self.client_id
+    )
 
     self.db_cursor.execute(
-        "SELECT \"metadata.client_urn\", \"metadata.source_urn\", pid "
-        "FROM \"ExportedProcess.from_Process\";")
+        'SELECT "metadata.client_urn", "metadata.source_urn", pid '
+        'FROM "ExportedProcess.from_Process";'
+    )
     process_results = self.db_cursor.fetchall()
     self.assertLen(process_results, 1)
     # Client URN
@@ -322,23 +357,28 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS"))
+                pathspec=rdf_paths.PathSpec(
+                    path="/中国新闻网新闻中", pathtype="OS"
+                )
+            )
         ]
     })
     self.assertEqual(
         set(zip_fd.namelist()),
-        {"%s/MANIFEST" % prefix,
-         "%s/ExportedFile_from_StatEntry.sql" % prefix})
+        {"%s/MANIFEST" % prefix, "%s/ExportedFile_from_StatEntry.sql" % prefix},
+    )
 
     with self.db_connection:
       sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
       sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
       self.db_cursor.executescript(sqlite_dump)
 
-    self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
+    self.db_cursor.execute('SELECT urn FROM "ExportedFile.from_StatEntry";')
     results = self.db_cursor.fetchall()
     self.assertLen(results, 1)
-    self.assertEqual(results[0][0], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
+    self.assertEqual(
+        results[0][0], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id
+    )
 
   @export_test_lib.WithAllExportConverters
   def testHandlingOfMultipleRowBatches(self):
@@ -348,21 +388,24 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     for i in range(num_rows):
       responses.append(
           rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec(
-                  path="/foo/bar/%d" % i, pathtype="OS")))
+              pathspec=rdf_paths.PathSpec(path="/foo/bar/%d" % i, pathtype="OS")
+          )
+      )
 
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: responses})
+        {rdf_client_fs.StatEntry: responses}
+    )
     with self.db_connection:
       sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
       sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
       self.db_cursor.executescript(sqlite_dump)
-    self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
+    self.db_cursor.execute('SELECT urn FROM "ExportedFile.from_StatEntry";')
     results = self.db_cursor.fetchall()
     self.assertLen(results, num_rows)
     for i in range(num_rows):
-      self.assertEqual(results[i][0],
-                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
+      self.assertEqual(
+          results[i][0], "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i)
+      )
 
 
 def main(argv):

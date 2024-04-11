@@ -20,7 +20,8 @@ class NTFSTest(ntfs_image_test_lib.NTFSImageTest):
     return file_ref
 
   def _ExpectedStatEntry(
-      self, st: rdf_client_fs.StatEntry) -> rdf_client_fs.StatEntry:
+      self, st: rdf_client_fs.StatEntry
+  ) -> rdf_client_fs.StatEntry:
     # libfsntfs doesn't report these fields.
     st.st_gid = None
     st.st_uid = None
@@ -39,16 +40,17 @@ class NTFSNativeWindowsTest(absltest.TestCase):
       with open(path, "w", encoding="utf-8") as f:
         f.write(file_data)
       pathspec = rdf_paths.PathSpec(
-          path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS)
+          path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS
+      )
       fd = vfs.VFSOpen(pathspec)
       self.assertEqual(fd.Read(100).decode("utf-8"), file_data)
 
   def testGlobComponentGenerate(self):
     opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
-    paths = globbing.GlobComponent(u"Windows", opts=opts).Generate("C:\\")
-    self.assertEqual(list(paths), [u"C:\\Windows"])
+    paths = globbing.GlobComponent("Windows", opts=opts).Generate("C:\\")
+    self.assertEqual(list(paths), ["C:\\Windows"])
 
   def testGlobbingExpandPath(self):
     opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
     paths = globbing.ExpandPath("C:/Windows/System32/notepad.exe", opts=opts)
-    self.assertEqual(list(paths), [u"C:\\Windows\\System32\\notepad.exe"])
+    self.assertEqual(list(paths), ["C:\\Windows\\System32\\notepad.exe"])

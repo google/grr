@@ -9,12 +9,15 @@ import platform
 # These imports populate the Action registry
 if platform.system() == "Linux":
   from grr_response_client.client_actions.linux import linux
+
   submodule = linux
 elif platform.system() == "Windows":
   from grr_response_client.client_actions.windows import windows
+
   submodule = windows
 elif platform.system() == "Darwin":
   from grr_response_client.client_actions.osx import osx
+
   submodule = osx
 else:
   raise RuntimeError("Unknown platform.system() {!r}".format(platform.system()))

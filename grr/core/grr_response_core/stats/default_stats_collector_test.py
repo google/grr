@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the DefaultStatsCollector."""
 
-
 from absl import app
 
 from grr_response_core.stats import default_stats_collector

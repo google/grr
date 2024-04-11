@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
-
-
-def ToProtoPCIDevice(rdf: rdf_client.PCIDevice) -> sysinfo_pb2.PCIDevice:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFPCIDevice(proto: sysinfo_pb2.PCIDevice) -> rdf_client.PCIDevice:
-  return rdf_client.PCIDevice.FromSerializedBytes(proto.SerializeToString())
 
 
 def ToProtoPackageRepository(

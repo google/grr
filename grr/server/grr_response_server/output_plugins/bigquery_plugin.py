@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """BigQuery output plugin."""
+
 import base64
 import gzip
 import json
@@ -18,14 +19,16 @@ from grr_response_server import output_plugin
 from grr_response_server.export_converters import base
 
 
-class TempOutputTracker(object):
+class TempOutputTracker:
   """Track temp output files for BigQuery JSON data and schema."""
 
-  def __init__(self,
-               output_type=None,
-               gzip_filehandle=None,
-               gzip_filehandle_parent=None,
-               schema=None):
+  def __init__(
+      self,
+      output_type=None,
+      gzip_filehandle=None,
+      gzip_filehandle_parent=None,
+      schema=None,
+  ):
     """Create tracker.
 
     This class is used to track a gzipped filehandle for each type of output
@@ -75,7 +78,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       "bool": "BOOLEAN",
       "float": "FLOAT",
       "uint32": "INTEGER",
-      "uint64": "INTEGER"
+      "uint64": "INTEGER",
   }
 
   def __init__(self, *args, **kwargs):
@@ -93,15 +96,17 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
 
   def ProcessResponses(self, state, responses):
     default_metadata = base.ExportedMetadata(
-        annotations=u",".join(self.args.export_options.annotations),
-        source_urn=self.source_urn)
+        annotations=",".join(self.args.export_options.annotations),
+        source_urn=self.source_urn,
+    )
 
     responses = [r.AsLegacyGrrMessage() for r in responses]
 
     if self.args.convert_values:
       # This is thread-safe - we just convert the values.
       converted_responses = export.ConvertValues(
-          default_metadata, responses, options=self.args.export_options)
+          default_metadata, responses, options=self.args.export_options
+      )
     else:
       converted_responses = responses
 
@@ -173,13 +178,17 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       A TempOutputTracker object
     """
     gzip_filehandle_parent = tempfile.NamedTemporaryFile(suffix=output_type)
-    gzip_filehandle = gzip.GzipFile(gzip_filehandle_parent.name, "wb",
-                                    self.GZIP_COMPRESSION_LEVEL,
-                                    gzip_filehandle_parent)
+    gzip_filehandle = gzip.GzipFile(
+        gzip_filehandle_parent.name,
+        "wb",
+        self.GZIP_COMPRESSION_LEVEL,
+        gzip_filehandle_parent,
+    )
     self.temp_output_trackers[output_type] = TempOutputTracker(
         output_type=output_type,
         gzip_filehandle=gzip_filehandle,
-        gzip_filehandle_parent=gzip_filehandle_parent)
+        gzip_filehandle_parent=gzip_filehandle_parent,
+    )
     return self.temp_output_trackers[output_type]
 
   def _GetTempOutputFileHandles(self, value_type):
@@ -193,8 +202,13 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     """Finish writing JSON files, upload to cloudstorage and bigquery."""
     self.bigquery = bigquery.GetBigQueryClient()
     # BigQuery job ids must be alphanum plus dash and underscore.
-    urn_str = rdfvalue.RDFURN(self.source_urn).RelativeName("aff4:/").replace(
-        "/", "_").replace(":", "").replace(".", "-")
+    urn_str = (
+        rdfvalue.RDFURN(self.source_urn)
+        .RelativeName("aff4:/")
+        .replace("/", "_")
+        .replace(":", "")
+        .replace(".", "-")
+    )
 
     for tracker in self.temp_output_trackers.values():
       # Close out the gzip handle and pass the original file handle to the
@@ -205,8 +219,10 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
 
       # e.g. job_id: hunts_HFFE1D044_Results_ExportedFile_1446056474
       job_id = "{0}_{1}_{2}".format(
-          urn_str, tracker.output_type,
-          rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch())
+          urn_str,
+          tracker.output_type,
+          rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch(),
+      )
 
       # If we have a job id stored, that means we failed last time. Re-use the
       # job id and append to the same file if it continues to fail. This avoids
@@ -216,16 +232,22 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       else:
         self.output_jobids[tracker.output_type] = job_id
 
-      if (state.failure_count + self.failure_count >=
-          config.CONFIG["BigQuery.max_upload_failures"]):
+      if (
+          state.failure_count + self.failure_count
+          >= config.CONFIG["BigQuery.max_upload_failures"]
+      ):
         logging.error(
             "Exceeded BigQuery.max_upload_failures for %s, giving up.",
-            self.source_urn)
+            self.source_urn,
+        )
       else:
         try:
-          self.bigquery.InsertData(tracker.output_type,
-                                   tracker.gzip_filehandle_parent,
-                                   tracker.schema, job_id)
+          self.bigquery.InsertData(
+              tracker.output_type,
+              tracker.gzip_filehandle_parent,
+              tracker.schema,
+              job_id,
+          )
           self.failure_count = max(0, self.failure_count - 1)
           del self.output_jobids[tracker.output_type]
         except bigquery.BigQueryJobUploadError:
@@ -244,18 +266,21 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
             "name": type_info.name,
             "type": "RECORD",
             "description": type_info.description,
-            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name))
+            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name)),
         })
       else:
         # If we don't have a specific map use string.
-        bq_type = self.RDF_BIGQUERY_TYPE_MAP.get(type_info.proto_type_name,
-                                                 None) or "STRING"
+        bq_type = (
+            self.RDF_BIGQUERY_TYPE_MAP.get(type_info.proto_type_name, None)
+            or "STRING"
+        )
 
         # For protos with RDF types we need to do some more checking to properly
         # covert types.
         if hasattr(type_info, "original_proto_type_name"):
           if type_info.original_proto_type_name in [
-              "RDFDatetime", "RDFDatetimeSeconds"
+              "RDFDatetime",
+              "RDFDatetimeSeconds",
           ]:
             bq_type = "TIMESTAMP"
           elif type_info.proto_type_name == "uint64":
@@ -268,7 +293,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
         fields_array.append({
             "name": type_info.name,
             "type": bq_type,
-            "description": type_info.description
+            "description": type_info.description,
         })
     return fields_array
 
@@ -312,7 +337,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
         self._WriteJSONValue(output_tracker.gzip_filehandle, value)
       else:
         self._WriteJSONValue(
-            output_tracker.gzip_filehandle, value, delimiter="\n")
+            output_tracker.gzip_filehandle, value, delimiter="\n"
+        )
 
     for output_tracker in self.temp_output_trackers.values():
       output_tracker.gzip_filehandle.flush()

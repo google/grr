@@ -4,7 +4,6 @@
 import contextlib
 import functools
 import hashlib
-import inspect
 from typing import Iterable
 from typing import Optional
 from typing import Sequence
@@ -94,6 +93,7 @@ def Columns(iterable: Iterable[Text]) -> Text:
 
   Args:
     iterable: The iterable of strings to be used as column names.
+
   Returns: A string containing a tuple of sorted comma-separated column names.
   """
   columns = sorted(iterable)
@@ -153,7 +153,7 @@ def ComponentsToPath(components: Sequence[Text]) -> Text:
     return ""
 
 
-def PathToComponents(path: Text) -> Sequence[Text]:
+def PathToComponents(path: Text) -> tuple[str, ...]:
   """Converts a canonical path representation to a list of components.
 
   Args:
@@ -201,33 +201,6 @@ class WithTransaction(object):
   def __call__(self, func):
     readonly = self.readonly
 
-    takes_args = inspect.getfullargspec(func).args
-    takes_connection = "connection" in takes_args
-    takes_cursor = "cursor" in takes_args
-
-    if takes_connection == takes_cursor:
-      raise TypeError(
-          "@mysql_utils.WithTransaction requires a function to take exactly "
-          "one of 'connection', 'cursor', got: %s" % str(takes_args))
-
-    if takes_connection:
-
-      @functools.wraps(func)
-      def Decorated(self, *args, **kw):
-        """A function decorated by WithTransaction to receive a connection."""
-        connection = kw.get("connection", None)
-        if connection:
-          return func(self, *args, **kw)
-
-        def Closure(connection):
-          new_kw = kw.copy()
-          new_kw["connection"] = connection
-          return func(self, *args, **new_kw)
-
-        return self._RunInTransaction(Closure, readonly)
-
-      return Decorated
-
     @functools.wraps(func)
     def Decorated(self, *args, **kw):  # pylint: disable=function-redefined
       """A function decorated by WithTransaction to receive a cursor."""
@@ -243,7 +216,7 @@ class WithTransaction(object):
 
       return self._RunInTransaction(Closure, readonly)
 
-    return db_utils.CallLoggedAndAccounted(Decorated)
+    return db_utils.CallLogged(db_utils.CallAccounted(Decorated))
 
 
 class RetryableError(db_module.Error):

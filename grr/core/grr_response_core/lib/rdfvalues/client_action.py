@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 """Client actions requests and responses."""
 
-
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 
@@ -51,6 +49,7 @@ class ExecuteResponse(rdf_structs.RDFProtoStruct):
 
 class Iterator(rdf_structs.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
+
   protobuf = jobs_pb2.Iterator
   rdf_deps = [
       rdf_protodict.Dict,
@@ -90,6 +89,7 @@ class FingerprintRequest(rdf_structs.RDFProtoStruct):
 
 class FingerprintResponse(rdf_structs.RDFProtoStruct):
   """Proto containing dicts with hashes."""
+
   protobuf = jobs_pb2.FingerprintResponse
   rdf_deps = [
       rdf_protodict.Dict,
@@ -114,4 +114,5 @@ class StatFSRequest(rdf_structs.RDFProtoStruct):
 
 class ListNetworkConnectionsArgs(rdf_structs.RDFProtoStruct):
   """Args for the ListNetworkConnections client action."""
+
   protobuf = flows_pb2.ListNetworkConnectionsArgs

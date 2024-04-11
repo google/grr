@@ -26,7 +26,8 @@ class AbstractMetric(metaclass=abc.ABCMeta):
   def GetValue(self, fields=None):
     """Returns the value of a given metric for given field values."""
     return stats_collector_instance.Get().GetMetricValue(
-        self.name, fields=fields)
+        self.name, fields=fields
+    )
 
   def GetFields(self):
     """Returns all field values for the given metric."""
@@ -49,12 +50,15 @@ class Counter(AbstractMetric):
             value_type=rdf_stats.MetricMetadata.ValueType.INT,
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
-            units=units))
+            units=units,
+        )
+    )
 
   def Increment(self, delta=1, fields=None):
     """Increments a counter metric by a given delta."""
     stats_collector_instance.Get().IncrementCounter(
-        self.name, delta, fields=fields)
+        self.name, delta, fields=fields
+    )
 
   def Counted(self, fields=None):
     """Returns a decorator that counts function calls."""
@@ -85,17 +89,21 @@ class Gauge(AbstractMetric):
             value_type=stats_utils.MetricValueTypeFromPythonType(value_type),
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
-            units=units))
+            units=units,
+        )
+    )
 
   def SetValue(self, value, fields=None):
     """Sets value of a given gauge metric."""
     stats_collector_instance.Get().SetGaugeValue(
-        self.name, value, fields=fields)
+        self.name, value, fields=fields
+    )
 
   def SetCallback(self, callback, fields=None):
     """Attaches a callback to the given gauge metric."""
     stats_collector_instance.Get().SetGaugeCallback(
-        self.name, callback, fields=fields)
+        self.name, callback, fields=fields
+    )
 
 
 class Event(AbstractMetric):
@@ -115,7 +123,9 @@ class Event(AbstractMetric):
             value_type=rdf_stats.MetricMetadata.ValueType.DISTRIBUTION,
             fields_defs=stats_utils.FieldDefinitionProtosFromTuples(fields),
             docstring=docstring,
-            units=units))
+            units=units,
+        )
+    )
 
   def RecordEvent(self, value, fields=None):
     """Records value corresponding to the given event metric."""

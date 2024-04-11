@@ -30,7 +30,7 @@ class ExportOptions(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportOptions
 
 
-class ExportConverter():
+class ExportConverter:
   """Base ExportConverter class.
 
   ExportConverters are used to convert RDFValues to export-friendly RDFValues.

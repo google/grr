@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for AuthorizationManager."""
+
 from unittest import mock
 
 from absl import app
@@ -38,10 +39,14 @@ users:
 
     self.assertEqual(
         self.auth_reader.GetAuthorizationForSubject("ApiCallRobotRouter").data,
-        dict(router="ApiCallRobotRouter", users=["foo", "bar"]))
+        dict(router="ApiCallRobotRouter", users=["foo", "bar"]),
+    )
     self.assertEqual(
-        self.auth_reader.GetAuthorizationForSubject("ApiCallDisabledRouter")
-        .data, dict(router="ApiCallDisabledRouter", users=["blah"]))
+        self.auth_reader.GetAuthorizationForSubject(
+            "ApiCallDisabledRouter"
+        ).data,
+        dict(router="ApiCallDisabledRouter", users=["blah"]),
+    )
 
   def testCreateAuthorizationsRaisesOnDuplicateKeys(self):
     yaml_data = """
@@ -58,7 +63,8 @@ router: "ApiCallRobotRouter"
     self.auth_reader.CreateAuthorizations(yaml_data, DummyAuthorization)
 
     for index, authorization in enumerate(
-        self.auth_reader.GetAllAuthorizationObjects()):
+        self.auth_reader.GetAllAuthorizationObjects()
+    ):
       self.assertEqual(authorization.key, "Router%d" % index)
 
   def testGetAuthSubjectsPreservesOrder(self):
@@ -77,7 +83,8 @@ class AuthorizationManagerTest(test_lib.GRRBaseTest):
 
     self.group_access_manager = groups.NoGroupAccess()
     self.auth_manager = auth_manager.AuthorizationManager(
-        group_access_manager=self.group_access_manager)
+        group_access_manager=self.group_access_manager
+    )
 
   def testGetAuthSubjectsPreservesOrder(self):
     for index in range(10):
@@ -93,32 +100,41 @@ class AuthorizationManagerTest(test_lib.GRRBaseTest):
   def testCheckPermissionsReturnsFalseIfDenyAllWasCalled(self):
     self.auth_manager.DenyAll("subject-bar")
     self.assertFalse(
-        self.auth_manager.CheckPermissions("user-foo", "subject-bar"))
+        self.auth_manager.CheckPermissions("user-foo", "subject-bar")
+    )
 
   def testCheckPermissionsReturnsTrueIfUserWasAuthorized(self):
     self.auth_manager.AuthorizeUser("user-foo", "subject-bar")
     self.assertTrue(
-        self.auth_manager.CheckPermissions("user-foo", "subject-bar"))
+        self.auth_manager.CheckPermissions("user-foo", "subject-bar")
+    )
 
   def testCheckPermissionsReturnsFalseIfUserWasNotAuthorized(self):
     self.auth_manager.AuthorizeUser("user-foo", "subject-bar")
     self.assertFalse(
-        self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
+        self.auth_manager.CheckPermissions("user-bar", "subject-bar")
+    )
 
   def testCheckPermissionsReturnsTrueIfGroupWasAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
-    with mock.patch.object(self.group_access_manager, "MemberOfAuthorizedGroup",
-                           lambda *args: True):
+    with mock.patch.object(
+        self.group_access_manager, "MemberOfAuthorizedGroup", lambda *args: True
+    ):
       self.assertTrue(
-          self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
+          self.auth_manager.CheckPermissions("user-bar", "subject-bar")
+      )
 
   def testCheckPermissionsReturnsFalseIfGroupWasNotAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
 
-    with mock.patch.object(self.group_access_manager, "MemberOfAuthorizedGroup",
-                           lambda *args: False):
+    with mock.patch.object(
+        self.group_access_manager,
+        "MemberOfAuthorizedGroup",
+        lambda *args: False,
+    ):
       self.assertFalse(
-          self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
+          self.auth_manager.CheckPermissions("user-bar", "subject-bar")
+      )
 
 
 def main(argv):

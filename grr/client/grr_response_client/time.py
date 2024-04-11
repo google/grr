@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with agent-specific time utilities."""
+
 import math
 import time
 from typing import Callable

@@ -20,16 +20,23 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""
 
-    def MockedOpen(requested_path, mode="rb"):
+    def MockedOpen(requested_path, mode="rb", buffering=-1):
       try:
-        fixture_path = os.path.join(self.base_path, "VFSFixture",
-                                    requested_path.lstrip("/"))
-        return builtins.open.old_target(fixture_path, mode)
+        fixture_path = os.path.join(
+            self.base_path, "VFSFixture", requested_path.lstrip("/")
+        )
+        return builtins.open.old_target(
+            fixture_path, mode=mode, buffering=buffering
+        )
       except IOError:
-        return builtins.open.old_target(requested_path, mode)
+        return builtins.open.old_target(
+            requested_path, mode=mode, buffering=buffering
+        )
 
-    with utils.MultiStubber((builtins, "open", MockedOpen),
-                            (glob, "glob", lambda x: ["/var/log/wtmp"])):
+    with utils.MultiStubber(
+        (builtins, "open", MockedOpen),
+        (glob, "glob", lambda x: ["/var/log/wtmp"]),
+    ):
       results = self.RunAction(linux.EnumerateUsers)
 
     found = 0
@@ -66,7 +73,8 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
     expected = rdf_client_fs.Filesystem(
         mount_point="/",
         type="ext4",
-        device="/dev/mapper/dhcp--100--104--9--24--vg-root")
+        device="/dev/mapper/dhcp--100--104--9--24--vg-root",
+    )
 
     self.assertLen(results, 2)
     for result in results:

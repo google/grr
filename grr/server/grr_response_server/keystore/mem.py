@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with implementation of the in-memory keystore."""
+
 import itertools
 import os
 from typing import Sequence
@@ -56,7 +57,7 @@ class XorCrypter(abstract.Crypter):
     key = itertools.cycle(self._key)
 
     unencrypted_data = bytes(db ^ kb for db, kb in zip(data, key))
-    if unencrypted_data[-len(assoc_data):] != assoc_data:
+    if unencrypted_data[-len(assoc_data) :] != assoc_data:
       raise abstract.DecryptionError("Incorrect associated data")
 
-    return unencrypted_data[:-len(assoc_data)]
+    return unencrypted_data[: -len(assoc_data)]

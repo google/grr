@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """A module with utilities for working with iterators."""
-from typing import Iterator
-from typing import Optional
-from typing import TypeVar
+
+from typing import Iterator, Optional, TypeVar
 
 _T = TypeVar("_T")
 

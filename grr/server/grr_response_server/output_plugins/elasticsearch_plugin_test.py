@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for Elasticsearch output plugin."""
+
 import json
 from unittest import mock
 
@@ -13,6 +14,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server.output_plugins import elasticsearch_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -29,16 +31,21 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.client_id = self.SetupClient(0)
     self.flow_id = '12345678'
     data_store.REL_DB.WriteFlowObject(
-        rdf_flow_objects.Flow(
-            flow_id=self.flow_id,
-            client_id=self.client_id,
-            flow_class_name='ClientFileFinder',
-            create_time=rdfvalue.RDFDatetime.Now(),
-        ))
+        mig_flow_objects.ToProtoFlow(
+            rdf_flow_objects.Flow(
+                flow_id=self.flow_id,
+                client_id=self.client_id,
+                flow_class_name='ClientFileFinder',
+            )
+        )
+    )
 
   def _CallPlugin(self, plugin_args=None, responses=None, patcher=None):
-    source_id = rdf_client.ClientURN(
-        self.client_id).Add('Results').RelativeName('aff4:/')
+    source_id = (
+        rdf_client.ClientURN(self.client_id)
+        .Add('Results')
+        .RelativeName('aff4:/')
+    )
 
     messages = []
     for response in responses:
@@ -50,7 +57,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     plugin_cls = elasticsearch_plugin.ElasticsearchOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=source_id, args=plugin_args)
+        source_urn=source_id, args=plugin_args
+    )
 
     if patcher is None:
       patcher = mock.patch.object(requests, 'post')
@@ -87,27 +95,34 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
         mock_post = self._CallPlugin(
             plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(
-                index='idx', tags=['a', 'b', 'c']),
+                index='idx', tags=['a', 'b', 'c']
+            ),
             responses=[
                 rdf_client_fs.StatEntry(
-                    pathspec=rdf_paths.PathSpec(path='/中国', pathtype='OS'))
-            ])
+                    pathspec=rdf_paths.PathSpec(path='/中国', pathtype='OS')
+                )
+            ],
+        )
     bulk_pairs = self._ParseEvents(mock_post)
 
     self.assertLen(bulk_pairs, 1)
     event_pair = bulk_pairs[0]
     self.assertEqual(event_pair[0]['index']['_index'], 'idx')
-    self.assertEqual(event_pair[1]['client']['clientUrn'],
-                     'aff4:/C.1000000000000000')
+    self.assertEqual(
+        event_pair[1]['client']['clientUrn'], 'aff4:/C.1000000000000000'
+    )
     self.assertEqual(event_pair[1]['flow']['flowId'], '12345678')
     self.assertEqual(event_pair[1]['tags'], ['a', 'b', 'c'])
     self.assertEqual(event_pair[1]['resultType'], 'StatEntry')
-    self.assertEqual(event_pair[1]['result'], {
-        'pathspec': {
-            'pathtype': 'OS',
-            'path': '/中国',
+    self.assertEqual(
+        event_pair[1]['result'],
+        {
+            'pathspec': {
+                'pathtype': 'OS',
+                'path': '/中国',
+            },
         },
-    })
+    )
 
   def testPopulatesBatchCorrectly(self):
     with test_lib.ConfigOverrider({
@@ -118,48 +133,61 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
           responses=[
               rdf_client_fs.StatEntry(
-                  pathspec=rdf_paths.PathSpec(path='/中国', pathtype='OS')),
+                  pathspec=rdf_paths.PathSpec(path='/中国', pathtype='OS')
+              ),
               rdf_client.Process(pid=42),
-          ])
+          ],
+      )
 
     bulk_pairs = self._ParseEvents(mock_post)
 
     self.assertLen(bulk_pairs, 2)
     for event_pair in bulk_pairs:
-      self.assertEqual(event_pair[1]['client']['clientUrn'],
-                       'aff4:/C.1000000000000000')
+      self.assertEqual(
+          event_pair[1]['client']['clientUrn'], 'aff4:/C.1000000000000000'
+      )
 
     self.assertEqual(bulk_pairs[0][1]['resultType'], 'StatEntry')
-    self.assertEqual(bulk_pairs[0][1]['result'], {
-        'pathspec': {
-            'pathtype': 'OS',
-            'path': '/中国',
+    self.assertEqual(
+        bulk_pairs[0][1]['result'],
+        {
+            'pathspec': {
+                'pathtype': 'OS',
+                'path': '/中国',
+            },
         },
-    })
+    )
 
     self.assertEqual(bulk_pairs[1][1]['resultType'], 'Process')
-    self.assertEqual(bulk_pairs[1][1]['result'], {
-        'pid': 42,
-    })
+    self.assertEqual(
+        bulk_pairs[1][1]['result'],
+        {
+            'pid': 42,
+        },
+    )
 
   def testReadsConfigurationValuesCorrectly(self):
     with test_lib.ConfigOverrider({
         'Elasticsearch.url': 'http://a',
         'Elasticsearch.token': 'b',
         'Elasticsearch.verify_https': False,
-        'Elasticsearch.index': 'e'
+        'Elasticsearch.index': 'e',
     }):
       mock_post = self._CallPlugin(
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
-          responses=[rdf_client.Process(pid=42)])
+          responses=[rdf_client.Process(pid=42)],
+      )
 
     self.assertEqual(mock_post.call_args[KWARGS]['url'], 'http://a/_bulk')
     self.assertFalse(mock_post.call_args[KWARGS]['verify'])
-    self.assertEqual(mock_post.call_args[KWARGS]['headers']['Authorization'],
-                     'Basic b')
+    self.assertEqual(
+        mock_post.call_args[KWARGS]['headers']['Authorization'], 'Basic b'
+    )
 
-    self.assertIn(mock_post.call_args[KWARGS]['headers']['Content-Type'],
-                  ('application/json', 'application/x-ndjson'))
+    self.assertIn(
+        mock_post.call_args[KWARGS]['headers']['Content-Type'],
+        ('application/json', 'application/x-ndjson'),
+    )
 
     bulk_pairs = self._ParseEvents(mock_post)
     self.assertEqual(bulk_pairs[0][0]['index']['_index'], 'e')
@@ -168,21 +196,25 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     with test_lib.ConfigOverrider({'Elasticsearch.token': 'b'}):
       with self.assertRaisesRegex(
           elasticsearch_plugin.ElasticsearchConfigurationError,
-          'Elasticsearch.url'):
+          'Elasticsearch.url',
+      ):
         self._CallPlugin(
             plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
-            responses=[rdf_client.Process(pid=42)])
+            responses=[rdf_client.Process(pid=42)],
+        )
 
   def testArgsOverrideConfiguration(self):
     with test_lib.ConfigOverrider({
         'Elasticsearch.url': 'http://a',
         'Elasticsearch.token': 'b',
-        'Elasticsearch.index': 'e'
+        'Elasticsearch.index': 'e',
     }):
       mock_post = self._CallPlugin(
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(
-              index='f'),
-          responses=[rdf_client.Process(pid=42)])
+              index='f'
+          ),
+          responses=[rdf_client.Process(pid=42)],
+      )
 
     bulk_pairs = self._ParseEvents(mock_post)
     self.assertEqual(bulk_pairs[0][0]['index']['_index'], 'f')
@@ -190,7 +222,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def testRaisesForHttpError(self):
     post = mock.MagicMock()
     post.return_value.raise_for_status.side_effect = (
-        requests.exceptions.HTTPError())
+        requests.exceptions.HTTPError()
+    )
 
     with test_lib.ConfigOverrider({
         'Elasticsearch.url': 'http://a',
@@ -200,7 +233,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         self._CallPlugin(
             plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
             responses=[rdf_client.Process(pid=42)],
-            patcher=mock.patch.object(requests, 'post', post))
+            patcher=mock.patch.object(requests, 'post', post),
+        )
 
   def testPostDataTerminatingNewline(self):
     with test_lib.ConfigOverrider({
@@ -209,7 +243,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     }):
       mock_post = self._CallPlugin(
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
-          responses=[rdf_client.Process(pid=42)])
+          responses=[rdf_client.Process(pid=42)],
+      )
     self.assertEndsWith(mock_post.call_args[KWARGS]['data'], '\n')
 
 

@@ -9,6 +9,7 @@ from grr_response_proto import read_low_level_pb2
 
 class ReadLowLevelArgs(rdf_structs.RDFProtoStruct):
   """Arguments for ReadLowLevel flow."""
+
   protobuf = read_low_level_pb2.ReadLowLevelArgs
   rdf_deps = [
       rdfvalue.ByteSize,
@@ -30,18 +31,22 @@ class ReadLowLevelArgs(rdf_structs.RDFProtoStruct):
       raise ValueError(f"Negative length ({self.length})")
 
     if self.length > self.MAX_RAW_DATA_BYTES:
-      raise ValueError(f"Cannot read more than {self.MAX_RAW_DATA_BYTES} bytes "
-                       f"({self.length} bytes requested")
+      raise ValueError(
+          f"Cannot read more than {self.MAX_RAW_DATA_BYTES} bytes "
+          f"({self.length} bytes requested"
+      )
 
 
 class ReadLowLevelFlowResult(rdf_structs.RDFProtoStruct):
   """Result returned by ReadLowLevel."""
+
   protobuf = read_low_level_pb2.ReadLowLevelFlowResult
   rdf_deps = []
 
 
 class ReadLowLevelRequest(rdf_structs.RDFProtoStruct):
   """Request for ReadLowLevel action."""
+
   protobuf = read_low_level_pb2.ReadLowLevelRequest
   rdf_deps = [
       rdfvalue.ByteSize,
@@ -50,6 +55,7 @@ class ReadLowLevelRequest(rdf_structs.RDFProtoStruct):
 
 class ReadLowLevelResult(rdf_structs.RDFProtoStruct):
   """Result for ReadLowLevel action."""
+
   protobuf = read_low_level_pb2.ReadLowLevelResult
   rdf_deps = [
       rdf_client.BufferReference,

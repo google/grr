@@ -23,6 +23,7 @@ class YaraSignatureShard(rdf_structs.RDFProtoStruct):
 
 class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
   """Args for YaraProcessScan flow and client action."""
+
   protobuf = flows_pb2.YaraProcessScanRequest
   rdf_deps = [
       YaraSignature,
@@ -36,7 +37,9 @@ class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
 
     # These default values were migrated from the Protobuf definition.
     if not self.HasField("include_errors_in_results"):
-      self.include_errors_in_results = YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+      self.include_errors_in_results = (
+          YaraProcessScanRequest.ErrorPolicy.NO_ERRORS
+      )
     if not self.HasField("include_misses_in_results"):
       self.include_misses_in_results = False
     if not self.HasField("ignore_grr_process"):
@@ -59,6 +62,8 @@ class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
       self.dump_process_on_match = False
     if not self.HasField("process_dump_size_limit"):
       self.process_dump_size_limit = 0
+    if not self.HasField("context_window"):
+      self.context_window = 50
 
 
 class ProcessMemoryError(rdf_structs.RDFProtoStruct):
@@ -68,6 +73,7 @@ class ProcessMemoryError(rdf_structs.RDFProtoStruct):
 
 class YaraStringMatch(rdf_structs.RDFProtoStruct):
   """A result of Yara string matching."""
+
   protobuf = flows_pb2.YaraStringMatch
   rdf_deps = []
 
@@ -82,16 +88,22 @@ class YaraStringMatch(rdf_structs.RDFProtoStruct):
 
 class YaraMatch(rdf_structs.RDFProtoStruct):
   """A result of Yara matching."""
+
   protobuf = flows_pb2.YaraMatch
   rdf_deps = [YaraStringMatch]
 
   @classmethod
-  def FromLibYaraMatch(cls, yara_match):
+  def FromLibYaraMatch(cls, yara_match, data, context_window):
     res = cls()
     res.rule_name = yara_match.rule
-    res.string_matches = [
-        YaraStringMatch.FromLibYaraStringMatch(sm) for sm in yara_match.strings
-    ]
+    string_matches = []
+    for sm in yara_match.strings:
+      yara_string_match = YaraStringMatch.FromLibYaraStringMatch(sm)
+      if context_window > 0:
+        context = data[sm[0] - context_window : sm[0] + context_window]
+        yara_string_match.context = context
+      string_matches.append(yara_string_match)
+    res.string_matches = string_matches
     return res
 
 
@@ -112,6 +124,7 @@ class YaraProcessScanResponse(rdf_structs.RDFProtoStruct):
 
 class YaraProcessDumpArgs(rdf_structs.RDFProtoStruct):
   """Args for DumpProcessMemory flow and YaraProcessDump client action."""
+
   protobuf = flows_pb2.YaraProcessDumpArgs
   rdf_deps = [rdfvalue.ByteSize]
 

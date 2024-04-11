@@ -11,6 +11,7 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import test_lib
 
@@ -250,6 +251,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertLen(hunts_list, 2)
 
     last_hunt = hunts_list[-1]
+    last_hunt = mig_hunt_objects.ToRDFHunt(last_hunt)
 
     args = last_hunt.args.standard.flow_args.Unpack(transfer.GetFileArgs)
     self.assertEqual(args.pathspec.path, "/tmp/very-evil.txt")
@@ -340,6 +342,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertLen(hunts_list, 2)
 
     last_hunt = hunts_list[-1]
+    last_hunt = mig_hunt_objects.ToRDFHunt(last_hunt)
 
     # Check that the hunt was created with a correct literal value.
     self.assertEqual(last_hunt.args.standard.flow_name,
@@ -445,6 +448,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertLen(hunts_list, 1)
 
     hunt = hunts_list[0]
+    hunt = mig_hunt_objects.ToRDFHunt(hunt)
 
     # Check that the hunt was created with correct rules
     rules = hunt.client_rule_set.rules

@@ -2,7 +2,6 @@
 """(De-)serialization to bytes, wire format, and human readable strings."""
 
 import abc
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -18,31 +17,27 @@ class Converter(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def FromBytes(self, value: bytes):
     """Deserializes a value from bytes outputted by ToBytes."""
-    pass
 
   @abc.abstractmethod
   def ToBytes(self, value) -> bytes:
     """Serializes `value` into bytes which can be parsed with FromBytes."""
-    pass
 
   @abc.abstractmethod
   def FromWireFormat(self, value):
     """Deserializes a value from a primitive outputted by ToWireFormat."""
-    pass
 
   @abc.abstractmethod
   def ToWireFormat(self, value):
     """Serializes to a primitive which can be parsed with FromWireFormat."""
-    pass
 
   @abc.abstractmethod
-  def FromHumanReadable(self, string: Text):
+  def FromHumanReadable(self, string: str):
     """Deserializes a value from a string outputted by str(value)."""
-    pass
 
 
 class BoolConverter(Converter):
   """Converter for Python's `bool`."""
+
   protobuf_type = "unsigned_integer"
   wrapping_type = bool
 
@@ -59,11 +54,11 @@ class BoolConverter(Converter):
   def ToWireFormat(self, value: bool) -> int:
     return 1 if value else 0
 
-  def FromHumanReadable(self, string: Text) -> bool:
+  def FromHumanReadable(self, string: str) -> bool:
     upper_string = string.upper()
-    if upper_string == u"TRUE" or string == u"1":
+    if upper_string == "TRUE" or string == "1":
       return True
-    elif upper_string == u"FALSE" or string == u"0":
+    elif upper_string == "FALSE" or string == "0":
       return False
     else:
       raise ValueError("Unparsable boolean string: `%s`" % string)
@@ -94,7 +89,7 @@ class RDFValueConverter(Converter):
     precondition.AssertType(value, self._cls)
     return value.SerializeToWireFormat()
 
-  def FromHumanReadable(self, string: Text) -> rdfvalue.RDFValue:
+  def FromHumanReadable(self, string: str) -> rdfvalue.RDFValue:
     if issubclass(self._cls, rdfvalue.RDFPrimitive):
       return self._cls.FromHumanReadable(string)
     else:
@@ -115,9 +110,9 @@ def GetProtobufType(cls):
   return _GetFactory(cls).protobuf_type
 
 
-def FromHumanReadable(cls, string: Text):
+def FromHumanReadable(cls, string: str):
   """Deserializes a value of `cls` from a string outputted by str(value)."""
-  precondition.AssertType(string, Text)
+  precondition.AssertType(string, str)
   return _GetFactory(cls).FromHumanReadable(string)
 
 

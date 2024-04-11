@@ -69,7 +69,6 @@ describe('translateArtifactDescriptor', () => {
       doc: 'Chrome browser history.',
       supportedOs: new Set([OperatingSystem.WINDOWS, OperatingSystem.LINUX]),
       urls: ['artifactUrl'],
-      provides: [],
       dependencies: [],
       sources: [
         {

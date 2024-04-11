@@ -1,57 +1,22 @@
 #!/usr/bin/env python
 """Simple parsers for OS X files."""
 
-
 import datetime
 import io
-import os
 import plistlib
-import stat
-from typing import IO
-from typing import Iterable
-from typing import Iterator
-
+from typing import IO, Iterator
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
-
-
-class OSXUsersParser(parsers.MultiResponseParser[rdf_client.User]):
-  """Parser for Glob of /Users/*."""
-
-  output_types = [rdf_client.User]
-
-  # TODO: The parser has to be invoked explicitly, we should not
-  # relly on magic parsing anymore.
-  supported_artifacts = []
-
-  _ignore_users = ["Shared"]
-
-  def ParseResponses(
-      self,
-      knowledge_base: rdf_client.KnowledgeBase,
-      responses: Iterable[rdfvalue.RDFValue],
-  ) -> Iterator[rdf_client.User]:
-    for response in responses:
-      if not isinstance(response, rdf_client_fs.StatEntry):
-        raise TypeError(f"Unexpected response type: `{type(response)}`")
-
-      # TODO: `st_mode` has to be an `int`, not `StatMode`.
-      if stat.S_ISDIR(int(response.st_mode)):
-        homedir = response.pathspec.path
-        username = os.path.basename(homedir)
-        if username not in self._ignore_users:
-          yield rdf_client.User(username=username, homedir=homedir)
 
 
 # TODO(hanuszczak): Why is a command parser in a file called `osx_file_parsers`?
 class OSXSPHardwareDataTypeParser(parser.CommandParser):
   """Parser for the Hardware Data from System Profiler."""
+
   output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["OSXSPHardwareDataType"]
 
@@ -76,7 +41,8 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
     yield rdf_client.HardwareInfo(
         serial_number=serial_number,
         bios_version=bios_version,
-        system_product_name=system_product_name)
+        system_product_name=system_product_name,
+    )
 
 
 class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
@@ -84,7 +50,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
 
   output_types = [rdf_plist.LaunchdPlist]
   supported_artifacts = [
-      "MacOSLaunchAgentsPlistFile", "MacOSLaunchDaemonsPlistFile"
+      "MacOSLaunchAgentsPlistFile",
+      "MacOSLaunchDaemonsPlistFile",
   ]
 
   def ParseFile(
@@ -98,18 +65,44 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
     kwargs = {"path": pathspec.last.path}
 
     direct_copy_items = [
-        "Label", "Disabled", "UserName", "GroupName", "Program",
-        "StandardInPath", "StandardOutPath", "StandardErrorPath",
-        "LimitLoadToSessionType", "EnableGlobbing", "EnableTransactions",
-        "OnDemand", "RunAtLoad", "RootDirectory", "WorkingDirectory", "Umask",
-        "TimeOut", "ExitTimeOut", "ThrottleInterval", "InitGroups",
-        "StartOnMount", "StartInterval", "Debug", "WaitForDebugger", "Nice",
-        "ProcessType", "AbandonProcessGroup", "LowPriorityIO", "LaunchOnlyOnce"
+        "Label",
+        "Disabled",
+        "UserName",
+        "GroupName",
+        "Program",
+        "StandardInPath",
+        "StandardOutPath",
+        "StandardErrorPath",
+        "LimitLoadToSessionType",
+        "EnableGlobbing",
+        "EnableTransactions",
+        "OnDemand",
+        "RunAtLoad",
+        "RootDirectory",
+        "WorkingDirectory",
+        "Umask",
+        "TimeOut",
+        "ExitTimeOut",
+        "ThrottleInterval",
+        "InitGroups",
+        "StartOnMount",
+        "StartInterval",
+        "Debug",
+        "WaitForDebugger",
+        "Nice",
+        "ProcessType",
+        "AbandonProcessGroup",
+        "LowPriorityIO",
+        "LaunchOnlyOnce",
     ]
 
     string_array_items = [
-        "LimitLoadToHosts", "LimitLoadFromHosts", "LimitLoadToSessionType",
-        "ProgramArguments", "WatchPaths", "QueueDirectories"
+        "LimitLoadToHosts",
+        "LimitLoadFromHosts",
+        "LimitLoadToSessionType",
+        "ProgramArguments",
+        "WatchPaths",
+        "QueueDirectories",
     ]
 
     flag_only_items = ["SoftResourceLimits", "HardResourceLimits", "Sockets"]
@@ -142,7 +135,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
 
     if plist.get("inetdCompatibility") is not None:
       kwargs["inetdCompatibilityWait"] = plist.get("inetdCompatibility").get(
-          "Wait")
+          "Wait"
+      )
 
     keepalive = plist.get("KeepAlive")
     if isinstance(keepalive, bool) or keepalive is None:
@@ -158,7 +152,9 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
         for pathstate in pathstates:
           keepalivedict["PathState"].append(
               rdf_plist.PlistBoolDictEntry(
-                  name=pathstate, value=pathstates[pathstate]))
+                  name=pathstate, value=pathstates[pathstate]
+              )
+          )
 
       otherjobs = keepalive.get("OtherJobEnabled")
       if otherjobs is not None:
@@ -166,7 +162,9 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
         for otherjob in otherjobs:
           keepalivedict["OtherJobEnabled"].append(
               rdf_plist.PlistBoolDictEntry(
-                  name=otherjob, value=otherjobs[otherjob]))
+                  name=otherjob, value=otherjobs[otherjob]
+              )
+          )
       kwargs["KeepAliveDict"] = rdf_plist.LaunchdKeepAlive(**keepalivedict)
 
     envvars = plist.get("EnvironmentVariables")
@@ -175,7 +173,9 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
       for envvar in envvars:
         kwargs["EnvironmentVariables"].append(
             rdf_plist.PlistStringDictEntry(
-                name=envvar, value=str(envvars[envvar])))
+                name=envvar, value=str(envvars[envvar])
+            )
+        )
 
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:
@@ -186,7 +186,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
                 Hour=startcalendarinterval.get("Hour"),
                 Day=startcalendarinterval.get("Day"),
                 Weekday=startcalendarinterval.get("Weekday"),
-                Month=startcalendarinterval.get("Month"))
+                Month=startcalendarinterval.get("Month"),
+            )
         ]
       else:
         kwargs["StartCalendarInterval"] = []
@@ -197,13 +198,16 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
                   Hour=entry.get("Hour"),
                   Day=entry.get("Day"),
                   Weekday=entry.get("Weekday"),
-                  Month=entry.get("Month")))
+                  Month=entry.get("Month"),
+              )
+          )
 
     yield rdf_plist.LaunchdPlist(**kwargs)
 
 
 class OSXInstallHistoryPlistParser(
-    parsers.SingleFileParser[rdf_client.SoftwarePackages]):
+    parsers.SingleFileParser[rdf_client.SoftwarePackages]
+):
   """Parse InstallHistory plist files into SoftwarePackage objects."""
 
   output_types = [rdf_client.SoftwarePackages]
@@ -225,7 +229,8 @@ class OSXInstallHistoryPlistParser(
 
     if not isinstance(plist, list):
       raise parsers.ParseError(
-          "InstallHistory plist is a '%s', expecting a list" % type(plist))
+          "InstallHistory plist is a '%s', expecting a list" % type(plist)
+      )
 
     packages = []
     for sw in plist:
@@ -235,7 +240,9 @@ class OSXInstallHistoryPlistParser(
               version=sw.get("displayVersion"),
               description=",".join(sw.get("packageIdentifiers", [])),
               # TODO(hanuszczak): make installed_on an RDFDatetime
-              installed_on=_DateToEpoch(sw.get("date"))))
+              installed_on=_DateToEpoch(sw.get("date")),
+          )
+      )
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)

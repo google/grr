@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Contains a stats-collector singleton shared across a GRR process."""
 
-
 import logging
 import threading
 

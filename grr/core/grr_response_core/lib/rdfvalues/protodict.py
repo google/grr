@@ -21,8 +21,11 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, initializer=None, payload=None, *args, **kwargs):
-    if (not payload and isinstance(initializer, rdfvalue.RDFValue) and
-        not isinstance(initializer, EmbeddedRDFValue)):
+    if (
+        not payload
+        and isinstance(initializer, rdfvalue.RDFValue)
+        and not isinstance(initializer, EmbeddedRDFValue)
+    ):
       # The initializer is an RDFValue object that we can use as payload.
       payload = initializer
       initializer = None
@@ -52,6 +55,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
 
 class DataBlob(rdf_structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
+
   protobuf = jobs_pb2.DataBlob
   rdf_deps = [
       "BlobArray",  # TODO(user): dependency loop.
@@ -72,8 +76,14 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     Raises:
       TypeError: if the value can't be serialized and raise_on_error is True
     """
-    type_mappings = [(Text, "string"), (bytes, "data"), (bool, "boolean"),
-                     (int, "integer"), (dict, "dict"), (float, "float")]
+    type_mappings = [
+        (Text, "string"),
+        (bytes, "data"),
+        (bool, "boolean"),
+        (int, "integer"),
+        (dict, "dict"),
+        (float, "float"),
+    ]
 
     if value is None:
       self.none = "None"
@@ -83,14 +93,14 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       self.rdf_value.name = value.__class__.__name__
 
     elif isinstance(value, (list, tuple)):
-      self.list.content.Extend([
-          DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value
-      ])
+      self.list.content.Extend(
+          [DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value]
+      )
 
     elif isinstance(value, set):
-      self.set.content.Extend([
-          DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value
-      ])
+      self.set.content.Extend(
+          [DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value]
+      )
 
     elif isinstance(value, dict):
       self.dict.FromDict(value, raise_on_error=raise_on_error)
@@ -102,8 +112,10 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
           return self
 
-      message = "Unsupported type for ProtoDict: %s of type %s" % (value,
-                                                                   type(value))
+      message = "Unsupported type for ProtoDict: %s of type %s" % (
+          value,
+          type(value),
+      )
       if raise_on_error:
         raise TypeError(message)
 
@@ -120,8 +132,15 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       return None
 
     field_names = [
-        "integer", "string", "data", "boolean", "list", "dict", "rdf_value",
-        "float", "set"
+        "integer",
+        "string",
+        "data",
+        "boolean",
+        "list",
+        "dict",
+        "rdf_value",
+        "float",
+        "set",
     ]
 
     values = [getattr(self, x) for x in field_names if self.HasField(x)]
@@ -168,6 +187,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   The dict may contain strings (python unicode objects), int64,
   or binary blobs (python string objects) as keys and values.
   """
+
   protobuf = jobs_pb2.Dict
   rdf_deps = [
       KeyValue,
@@ -212,7 +232,8 @@ class Dict(rdf_structs.RDFProtoStruct):
     for key, value in dictionary.items():
       self._values[key] = KeyValue(
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
-          v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
+          v=DataBlob().SetValue(value, raise_on_error=raise_on_error),
+      )
     self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return self
 
@@ -283,7 +304,8 @@ class Dict(rdf_structs.RDFProtoStruct):
     cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
     self._values[key] = KeyValue(
         k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
-        v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
+        v=DataBlob().SetValue(value, raise_on_error=raise_on_error),
+    )
 
   def __setitem__(self, key, value):
     # TODO(user):pytype: assigning "dirty" here is a hack. The assumption
@@ -294,7 +316,8 @@ class Dict(rdf_structs.RDFProtoStruct):
       raise TypeError("self.dat has an unexpected type %s" % self.dat.__class__)
     cast(rdf_structs.RepeatedFieldHelper, self.dat).dirty = True
     self._values[key] = KeyValue(
-        k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
+        k=DataBlob().SetValue(key), v=DataBlob().SetValue(value)
+    )
 
   def __iter__(self):
     for x in self._values.values():
@@ -429,6 +452,7 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
   protobuf with a repeated field (This can be now done dynamically, which is the
   main reason we used this in the past).
   """
+
   protobuf = jobs_pb2.BlobArray
   allow_custom_class_name = True
   rdf_deps = [
@@ -450,8 +474,9 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
       except TypeError:
         if initializer is not None:
           raise rdfvalue.InitializeError(
-              "%s can not be initialized from %s" %
-              (self.__class__.__name__, type(initializer)))
+              "%s can not be initialized from %s"
+              % (self.__class__.__name__, type(initializer))
+          )
 
   def Append(self, value=None, **kwarg):
     """Add another member to the array.
@@ -468,16 +493,20 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
       ValueError: If the value to add is not allowed.
     """
     if self.rdf_type is not None:
-      if (isinstance(value, rdfvalue.RDFValue) and
-          value.__class__ != self.rdf_type):
+      if (
+          isinstance(value, rdfvalue.RDFValue)
+          and value.__class__ != self.rdf_type
+      ):
         raise ValueError("Can only accept %s" % self.rdf_type)
 
       try:
         # Try to coerce the value.
         value = self.rdf_type(value, **kwarg)  # pylint: disable=not-callable
-      except (TypeError, ValueError):
-        raise ValueError("Unable to initialize %s from type %s" %
-                         (self.__class__.__name__, type(value)))
+      except (TypeError, ValueError) as e:
+        raise ValueError(
+            "Unable to initialize %s from type %s"
+            % (self.__class__.__name__, type(value))
+        ) from e
 
     self.content.Append(DataBlob().SetValue(value))
 

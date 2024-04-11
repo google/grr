@@ -13,8 +13,6 @@ session_id_map = {
         "ClientAlertHandler",
     str(rdfvalue.SessionID(flow_name="Foreman")):
         "ForemanHandler",
-    str(rdfvalue.SessionID(flow_name="NannyMessage")):
-        "NannyMessageHandler",
     str(rdfvalue.SessionID(flow_name="Startup")):
         "ClientStartupHandler",
     str(rdfvalue.SessionID(flow_name="TransferStore")):

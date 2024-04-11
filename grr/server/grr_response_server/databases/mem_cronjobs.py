@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for cron job handling."""
+
 from typing import Optional, Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
@@ -56,30 +57,32 @@ class InMemoryDBCronJobMixin(object):
     return res
 
   @utils.Synchronized
-  def UpdateCronJob(self,
-                    cronjob_id,
-                    last_run_status=db.Database.unchanged,
-                    last_run_time=db.Database.unchanged,
-                    current_run_id=db.Database.unchanged,
-                    state=db.Database.unchanged,
-                    forced_run_requested=db.Database.unchanged):
+  def UpdateCronJob(
+      self,
+      cronjob_id,
+      last_run_status=db.Database.UNCHANGED,
+      last_run_time=db.Database.UNCHANGED,
+      current_run_id=db.Database.UNCHANGED,
+      state=db.Database.UNCHANGED,
+      forced_run_requested=db.Database.UNCHANGED,
+  ):
     """Updates run information for an existing cron job."""
     job = self.cronjobs.get(cronjob_id)
     if job is None:
       raise db.UnknownCronJobError(f"Cron job {cronjob_id} not known.")
 
-    if last_run_status != db.Database.unchanged:
+    if last_run_status != db.Database.UNCHANGED:
       job.last_run_status = last_run_status
-    if last_run_time != db.Database.unchanged:
+    if last_run_time != db.Database.UNCHANGED:
       job.last_run_time = last_run_time.AsMicrosecondsSinceEpoch()
-    if current_run_id != db.Database.unchanged:
+    if current_run_id != db.Database.UNCHANGED:
       if current_run_id is None:
         job.ClearField("current_run_id")
       else:
         job.current_run_id = current_run_id
-    if state != db.Database.unchanged:
+    if state != db.Database.UNCHANGED:
       job.state.CopyFrom(state)
-    if forced_run_requested != db.Database.unchanged:
+    if forced_run_requested != db.Database.UNCHANGED:
       job.forced_run_requested = forced_run_requested
 
   @utils.Synchronized

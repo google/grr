@@ -24,6 +24,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
   This is used to create the /mock2/ client vfs branch which is utilized in the
   below tests.
   """
+
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
   filesystem = {
@@ -37,7 +38,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
       "/mock2/directory1/directory2/file.mp3": b"MP3 movie",
       "/mock2/directory3": ["file1.txt", "long_file.text"],
       "/mock2/directory3/file1.txt": b"A text file",
-      "/mock2/directory3/long_file.text": (b"space " * 100000 + b"A Secret")
+      "/mock2/directory3/long_file.text": b"space " * 100000 + b"A Secret",
   }
 
   def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
@@ -45,7 +46,8 @@ class MockVFSHandlerFind(vfs.VFSHandler):
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
 
     self.pathspec.Append(pathspec)
     self.path = self.pathspec.CollapsePath()
@@ -62,7 +64,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     if isinstance(self.content, list):
       raise IOError()
 
-    result = self.content[self.offset:self.offset + length]
+    result = self.content[self.offset : self.offset + length]
     self.offset = min(self.size, self.offset + len(result))
     return result
 
@@ -154,8 +156,9 @@ class FindTest(client_test_lib.EmptyActionTest):
     super().setUp()
 
     # Install the mock
-    vfs_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                              MockVFSHandlerFind)
+    vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind
+    )
     vfs_overrider.Start()
     self.addCleanup(vfs_overrider.Stop)
 
@@ -163,18 +166,28 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test the find action."""
     # First get all the files at once
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     request = rdf_client_fs.FindSpec(pathspec=pathspec, path_regex=".")
     result = self.RunAction(searching.Find, request)
-    self.assertCountEqual([r.pathspec.Basename() for r in result], [
-        "file1.txt", "file2.txt", "file.jpg", "file.mp3", "directory2",
-        "directory1", "directory3"
-    ])
+    self.assertCountEqual(
+        [r.pathspec.Basename() for r in result],
+        [
+            "file1.txt",
+            "file2.txt",
+            "file.jpg",
+            "file.mp3",
+            "directory2",
+            "directory1",
+            "directory3",
+        ],
+    )
 
   def testFindAction2(self):
     """Test the find action path regex."""
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     request = rdf_client_fs.FindSpec(pathspec=pathspec, path_regex=".*mp3")
     all_files = self.RunAction(searching.Find, request)
 
@@ -185,9 +198,11 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test the find action data regex."""
     # First get all the files at once
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, data_regex=b"Secret", cross_devs=True)
+        pathspec=pathspec, data_regex=b"Secret", cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -198,9 +213,11 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test the find action size limits."""
     # First get all the files at once
     request = rdf_client_fs.FindSpec(
-        min_file_size=4, max_file_size=15, cross_devs=True)
+        min_file_size=4, max_file_size=15, cross_devs=True
+    )
     request.pathspec.Append(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     results = self.RunAction(searching.Find, request)
     all_files = [r.pathspec.Basename() for r in results]
@@ -215,7 +232,8 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test the we get all files with no filters in place."""
     # First get all the files at once
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     request = rdf_client_fs.FindSpec(pathspec=pathspec, cross_devs=True)
     all_files = self.RunAction(searching.Find, request)
     self.assertLen(all_files, 9)
@@ -223,14 +241,17 @@ class FindTest(client_test_lib.EmptyActionTest):
   def testFindActionCrossDev(self):
     """Test that devices boundaries don't get crossed, also by default."""
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, cross_devs=True, path_regex=".")
+        pathspec=pathspec, cross_devs=True, path_regex="."
+    )
     all_files = self.RunAction(searching.Find, request)
     self.assertLen(all_files, 9)
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, cross_devs=False, path_regex=".")
+        pathspec=pathspec, cross_devs=False, path_regex="."
+    )
     all_files = self.RunAction(searching.Find, request)
     self.assertLen(all_files, 7)
 
@@ -242,12 +263,14 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test filtering based on file/folder permission happens correctly."""
 
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     # Look for files that match exact permissions
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", perm_mode=0o644, cross_devs=True)
+        pathspec=pathspec, path_regex=".", perm_mode=0o644, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -265,7 +288,8 @@ class FindTest(client_test_lib.EmptyActionTest):
         path_regex=".",
         perm_mode=0o4002,
         perm_mask=0o7002,
-        cross_devs=True)
+        cross_devs=True,
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -282,7 +306,8 @@ class FindTest(client_test_lib.EmptyActionTest):
         path_regex=".",
         perm_mode=0o0100001,
         perm_mask=0o0100001,
-        cross_devs=True)
+        cross_devs=True,
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -299,7 +324,8 @@ class FindTest(client_test_lib.EmptyActionTest):
         path_regex=".",
         perm_mode=0o0040010,
         perm_mask=0o0040010,
-        cross_devs=True)
+        cross_devs=True,
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 3)
@@ -311,12 +337,14 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test filtering based on uid happens correctly."""
 
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     # Look for files that have uid of 60
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", uid=60, cross_devs=True)
+        pathspec=pathspec, path_regex=".", uid=60, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -328,7 +356,8 @@ class FindTest(client_test_lib.EmptyActionTest):
     # Look for files that have uid of 0
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", uid=0, cross_devs=True)
+        pathspec=pathspec, path_regex=".", uid=0, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 3)
@@ -340,12 +369,14 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test filtering based on gid happens correctly."""
 
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     # Look for files that have gid of 500
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", gid=500, cross_devs=True)
+        pathspec=pathspec, path_regex=".", gid=500, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -357,7 +388,8 @@ class FindTest(client_test_lib.EmptyActionTest):
     # Look for files that have uid of 900
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", gid=900, cross_devs=True)
+        pathspec=pathspec, path_regex=".", gid=900, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -370,12 +402,14 @@ class FindTest(client_test_lib.EmptyActionTest):
     """Test filtering based on combination of uid and gid happens correctly."""
 
     pathspec = rdf_paths.PathSpec(
-        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     # Look for files that have uid of 90 and gid of 500
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", uid=90, gid=500, cross_devs=True)
+        pathspec=pathspec, path_regex=".", uid=90, gid=500, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertEmpty(all_files)
@@ -383,7 +417,8 @@ class FindTest(client_test_lib.EmptyActionTest):
     # Look for files that have uid of 50 and gid of 500
 
     request = rdf_client_fs.FindSpec(
-        pathspec=pathspec, path_regex=".", uid=50, gid=500, cross_devs=True)
+        pathspec=pathspec, path_regex=".", uid=50, gid=500, cross_devs=True
+    )
     all_files = self.RunAction(searching.Find, request)
 
     self.assertLen(all_files, 2)
@@ -399,21 +434,26 @@ class FindExtAttrsTest(client_test_lib.EmptyActionTest):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       foo_filepath = temp.TempFilePath(dir=temp_dirpath)
       filesystem_test_lib.SetExtAttr(
-          foo_filepath, name="user.quux", value="foo")
+          foo_filepath, name="user.quux", value="foo"
+      )
 
       bar_filepath = temp.TempFilePath(dir=temp_dirpath)
       filesystem_test_lib.SetExtAttr(
-          bar_filepath, name="user.quux", value="bar")
+          bar_filepath, name="user.quux", value="bar"
+      )
 
       baz_filepath = temp.TempFilePath(dir=temp_dirpath)
       filesystem_test_lib.SetExtAttr(
-          baz_filepath, name="user.quux", value="baz")
+          baz_filepath, name="user.quux", value="baz"
+      )
 
       request = rdf_client_fs.FindSpec(
           pathspec=rdf_paths.PathSpec(
-              path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS),
+              path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS
+          ),
           path_glob="*",
-          collect_ext_attrs=True)
+          collect_ext_attrs=True,
+      )
 
       hits = self.RunAction(searching.Find, request)
 
@@ -437,8 +477,9 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     super().setUp()
 
     # Install the mock
-    vfs_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                              MockVFSHandlerFind)
+    vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind
+    )
     vfs_overrider.Start()
     self.addCleanup(vfs_overrider.Stop)
     self.filename = "/mock2/directory1/grepfile.txt"
@@ -450,17 +491,40 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"10", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = os.path.join(self.base_path, "numbers.txt")
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
 
     result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
-    self.assertEqual(hits, [
-        18, 288, 292, 296, 300, 304, 308, 312, 316, 320, 324, 329, 729, 1129,
-        1529, 1929, 2329, 2729, 3129, 3529, 3888
-    ])
+    self.assertEqual(
+        hits,
+        [
+            18,
+            288,
+            292,
+            296,
+            300,
+            304,
+            308,
+            312,
+            316,
+            320,
+            324,
+            329,
+            729,
+            1129,
+            1529,
+            1929,
+            2329,
+            2729,
+            3129,
+            3529,
+            3888,
+        ],
+    )
     for x in result:
       self.assertIn(b"10", utils.Xor(x.data, self.XOR_OUT_KEY))
       self.assertEqual(request.target.path, x.pathspec.path)
@@ -475,14 +539,38 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
         start_offset=0,
         target=rdf_paths.PathSpec(
             path=os.path.join(self.base_path, "numbers.txt"),
-            pathtype=rdf_paths.PathSpec.PathType.OS))
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+        ),
+    )
 
     result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
-    self.assertEqual(hits, [
-        18, 288, 292, 296, 300, 304, 308, 312, 316, 320, 324, 329, 729, 1129,
-        1529, 1929, 2329, 2729, 3129, 3529, 3888
-    ])
+    self.assertEqual(
+        hits,
+        [
+            18,
+            288,
+            292,
+            296,
+            300,
+            304,
+            308,
+            312,
+            316,
+            320,
+            324,
+            329,
+            729,
+            1129,
+            1529,
+            1929,
+            2329,
+            2729,
+            3129,
+            3529,
+            3888,
+        ],
+    )
     for x in result:
       self.assertIn(b"10", utils.Xor(x.data, self.XOR_OUT_KEY))
 
@@ -494,7 +582,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
@@ -506,7 +595,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
@@ -523,7 +613,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
@@ -535,7 +626,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 5
@@ -548,7 +640,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 11
@@ -564,7 +657,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 11
@@ -582,7 +676,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
@@ -602,7 +697,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
       request = rdf_client_fs.GrepSpec(
           literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
           xor_in_key=self.XOR_IN_KEY,
-          xor_out_key=self.XOR_OUT_KEY)
+          xor_out_key=self.XOR_OUT_KEY,
+      )
       request.target.path = self.filename
       request.target.pathtype = rdf_paths.PathSpec.PathType.OS
       request.start_offset = 0
@@ -624,7 +720,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
         request = rdf_client_fs.GrepSpec(
             literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
             xor_in_key=self.XOR_IN_KEY,
-            xor_out_key=self.XOR_OUT_KEY)
+            xor_out_key=self.XOR_OUT_KEY,
+        )
         request.target.path = self.filename
         request.target.pathtype = rdf_paths.PathSpec.PathType.OS
         request.start_offset = 0
@@ -648,7 +745,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
       request = rdf_client_fs.GrepSpec(
           literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
           xor_in_key=self.XOR_IN_KEY,
-          xor_out_key=self.XOR_OUT_KEY)
+          xor_out_key=self.XOR_OUT_KEY,
+      )
       request.target.path = self.filename
       request.target.pathtype = rdf_paths.PathSpec.PathType.OS
       request.start_offset = 0
@@ -658,7 +756,7 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
       result = self.RunAction(searching.Grep, request)
       self.assertLen(result, 1)
       self.assertEqual(result[0].offset, offset)
-      expected = data[max(0, offset - 10):offset + 3 + 10]
+      expected = data[max(0, offset - 10) : offset + 3 + 10]
       self.assertLen(expected, result[0].length)
       self.assertEqual(utils.Xor(result[0].data, self.XOR_OUT_KEY), expected)
 
@@ -672,7 +770,8 @@ class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
     request = rdf_client_fs.GrepSpec(
         literal=utils.Xor(b"HIT", self.XOR_IN_KEY),
         xor_in_key=self.XOR_IN_KEY,
-        xor_out_key=self.XOR_OUT_KEY)
+        xor_out_key=self.XOR_OUT_KEY,
+    )
     request.target.path = self.filename
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0

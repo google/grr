@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with RDF wrappers for Protocol Buffers Well-Known Types."""
+
 from google.protobuf import timestamp_pb2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 

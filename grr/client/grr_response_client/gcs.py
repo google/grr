@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utilities for working with Google Cloud Storage."""
+
 import datetime
 from typing import Callable
 from typing import IO
@@ -72,6 +73,7 @@ class UploadSession(object):
       progress_interval: An upper bound on the time between the calls of the
         progress function (in seconds).
     """
+
     chunk_size: int = 8 * 1024 * 1024  # 8 MiB.
 
     retry_chunk_attempts: int = 30
@@ -229,7 +231,8 @@ class UploadSession(object):
               self.uri,
               data=chunk,
               headers=headers,
-              timeout=opts.progress_interval)
+              timeout=opts.progress_interval,
+          )
         except exceptions.RequestException as error:
           raise RequestError("Chunk transmission failure") from error
 

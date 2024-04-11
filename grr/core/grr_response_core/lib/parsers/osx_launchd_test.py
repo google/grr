@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.osx_launchd."""
 
-
-
 from absl import app
 
 from grr_response_core.lib.parsers import osx_launchd
@@ -42,7 +40,8 @@ class DarwinPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
   def testParse(self):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()
     serv_info = rdf_client.OSXServiceInformation(
-        label="blah", args=["/blah/test", "-v"])
+        label="blah", args=["/blah/test", "-v"]
+    )
     results = list(parser.ParseResponse(rdf_client.KnowledgeBase(), serv_info))
     self.assertEqual(results[0].pathspec.path, "/blah/test")
 

@@ -66,8 +66,12 @@ class TestPool(absltest.TestCase):
 
     bad_cursor_mock = mock.MagicMock()
     for m in [
-        'callproc', 'execute', 'executemany', 'fetchone', 'fetchmany',
-        'fetchall'
+        'callproc',
+        'execute',
+        'executemany',
+        'fetchone',
+        'fetchmany',
+        'fetchall',
     ]:
       getattr(bad_cursor_mock, m).side_effect = operational_error
 
@@ -80,10 +84,12 @@ class TestPool(absltest.TestCase):
     pool = mysql_pool.Pool(gen_bad, max_size=5)
 
     for op in [
-        lambda c: c.callproc('my_proc'), lambda c: c.
-        execute('SELECT foo FROM bar'), lambda c: c.executemany(
-            'INSERT INTO foo(bar) VALUES %s', ['A', 'B']), lambda c: c.fetchone(
-            ), lambda c: c.fetchmany(size=5), lambda c: c.fetchall()
+        lambda c: c.callproc('my_proc'),
+        lambda c: c.execute('SELECT foo FROM bar'),
+        lambda c: c.executemany('INSERT INTO foo(bar) VALUES %s', ['A', 'B']),
+        lambda c: c.fetchone(),
+        lambda c: c.fetchmany(size=5),
+        lambda c: c.fetchall(),
     ]:
       # If we can fail 10 times, then failed connections aren't consuming
       # pool capacity.
@@ -101,8 +107,12 @@ class TestPool(absltest.TestCase):
 
     good_cursor_mock = mock.MagicMock()
     for m in [
-        'callproc', 'execute', 'executemany', 'fetchone', 'fetchmany',
-        'fetchall'
+        'callproc',
+        'execute',
+        'executemany',
+        'fetchone',
+        'fetchmany',
+        'fetchall',
     ]:
       getattr(good_cursor_mock, m).return_value = m
 
@@ -117,11 +127,15 @@ class TestPool(absltest.TestCase):
     for m, op in [
         ('callproc', lambda c: c.callproc('my_proc')),
         ('execute', lambda c: c.execute('SELECT foo FROM bar')),
-        ('executemany',
-         lambda c: c.executemany('INSERT INTO foo(bar) VALUES %s', ['A', 'B'])),
+        (
+            'executemany',
+            lambda c: c.executemany(
+                'INSERT INTO foo(bar) VALUES %s', ['A', 'B']
+            ),
+        ),
         ('fetchone', lambda c: c.fetchone()),
         ('fetchmany', lambda c: c.fetchmany(size=5)),
-        ('fetchall', lambda c: c.fetchall())
+        ('fetchall', lambda c: c.fetchall()),
     ]:
       # If we can fail 10 times, then idling a connection doesn't consume pool
       # capacity.

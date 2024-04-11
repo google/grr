@@ -22,7 +22,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
@@ -168,7 +167,6 @@ class GRRBaseTest(absltest.TestCase):
       description=None,
       users=None,
       memory_size=None,
-      add_cert=True,
   ):
     """Prepares a test client mock to be used.
 
@@ -188,14 +186,12 @@ class GRRBaseTest(absltest.TestCase):
       description: string
       users: list of rdf_client.User objects.
       memory_size: bytes
-      add_cert: boolean
 
     Returns:
       the client_id: string
     """
     client = self._SetupTestClientObject(
         client_nr,
-        add_cert=add_cert,
         arch=arch,
         fqdn=fqdn,
         install_time=install_time,
@@ -256,7 +252,6 @@ class GRRBaseTest(absltest.TestCase):
   def _SetupTestClientObject(
       self,
       client_nr,
-      add_cert=True,
       arch="x86_64",
       fqdn=None,
       install_time=None,
@@ -304,14 +299,8 @@ class GRRBaseTest(absltest.TestCase):
       client.memory_size = memory_size
 
     ping = ping or rdfvalue.RDFDatetime.Now()
-    if add_cert:
-      cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
-    else:
-      cert = None
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id, last_ping=ping, certificate=cert
-    )
+    data_store.REL_DB.WriteClientMetadata(client_id, last_ping=ping)
 
     proto_client = mig_objects.ToProtoClientSnapshot(client)
     data_store.REL_DB.WriteClientSnapshot(proto_client)
@@ -327,12 +316,6 @@ class GRRBaseTest(absltest.TestCase):
   def AddClientLabel(self, client_id, owner, name):
     data_store.REL_DB.AddClientLabels(client_id, owner, [name])
     client_index.ClientIndex().AddClientLabels(client_id, [name])
-
-  def ClientCertFromPrivateKey(self, private_key):
-    common_name = rdf_client.ClientURN.FromPrivateKey(private_key)
-    csr = rdf_crypto.CertificateSigningRequest(
-        common_name=common_name, private_key=private_key)
-    return rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
 
 class ConfigOverrider(object):

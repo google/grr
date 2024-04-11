@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2010 Google Inc. All Rights Reserved.
 """Test client vfs."""
 
@@ -24,19 +23,21 @@ class FilehashTest(client_test_lib.EmptyActionTest):
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction(
         file_fingerprint.FingerprintFile,
-        rdf_client_action.FingerprintRequest(pathspec=p))
+        rdf_client_action.FingerprintRequest(pathspec=p),
+    )
     types = result[0].matching_types
     fingers = {}
     for f in result[0].results:
       fingers[f["name"]] = f
     generic_sha256 = fingers["generic"]["sha256"]
-    self.assertEqual(generic_sha256,
-                     hashlib.sha256(open(path, "rb").read()).digest())
+    self.assertEqual(
+        generic_sha256, hashlib.sha256(open(path, "rb").read()).digest()
+    )
 
     # Make sure all fingers are listed in types and vice versa.
     t_map = {
         rdf_client_action.FingerprintTuple.Type.FPT_GENERIC: "generic",
-        rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
+        rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: "pecoff",
     }
     ti_map = dict((v, k) for k, v in t_map.items())
     for t in types:
@@ -54,7 +55,8 @@ class FilehashTest(client_test_lib.EmptyActionTest):
         IOError,
         self.RunAction,
         file_fingerprint.FingerprintFile,
-        rdf_client_action.FingerprintRequest(pathspec=p))
+        rdf_client_action.FingerprintRequest(pathspec=p),
+    )
 
 
 def main(argv):

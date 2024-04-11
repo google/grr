@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 # TODO(hanuszczak): Implement basic unit tests for subactions.

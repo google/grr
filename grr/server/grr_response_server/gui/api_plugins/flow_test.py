@@ -78,6 +78,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=processes.ListProcesses)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
 
     self.assertEqual(flow_api_obj.client_id,
@@ -88,6 +89,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=flow_test_lib.DummyFlow)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
 
     flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
     self.assertIsNotNone(flow_api_obj.progress)
@@ -99,6 +101,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=flow_test_lib.DummyFlow)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
 
     flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
     self.assertIsNotNone(flow_api_obj.result_metadata)
@@ -109,6 +112,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=flow_test_lib.DummyFlowWithProgress)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
 
     flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
     self.assertIsNotNone(flow_api_obj.progress)
@@ -548,7 +552,7 @@ class ApiListFlowApplicableParsersHandler(absltest.TestCase):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = "NotArtifactCollector"
-    db.WriteFlowObject(flow_obj)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     args = flow_plugin.ApiListFlowApplicableParsersArgs()
     args.client_id = client_id
@@ -571,7 +575,7 @@ class ApiListFlowApplicableParsersHandler(absltest.TestCase):
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = collectors.ArtifactCollectorFlow.__name__
     flow_obj.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=True)
-    db.WriteFlowObject(flow_obj)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id
@@ -600,7 +604,7 @@ class ApiListFlowApplicableParsersHandler(absltest.TestCase):
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = collectors.ArtifactCollectorFlow.__name__
     flow_obj.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
-    db.WriteFlowObject(flow_obj)
+    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id

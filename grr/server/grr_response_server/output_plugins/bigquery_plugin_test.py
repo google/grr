@@ -29,16 +29,19 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super().setUp()
     self.client_id = self.SetupClient(0)
-    self.source_id = rdf_client.ClientURN(
-        self.client_id).Add("Results").RelativeName("aff4:/")
+    self.source_id = (
+        rdf_client.ClientURN(self.client_id)
+        .Add("Results")
+        .RelativeName("aff4:/")
+    )
 
-  def ProcessResponses(self,
-                       plugin_args=None,
-                       responses=None,
-                       process_responses_separately=False):
+  def ProcessResponses(
+      self, plugin_args=None, responses=None, process_responses_separately=False
+  ):
     plugin_cls = bigquery_plugin.BigQueryOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=self.source_id, args=plugin_args)
+        source_urn=self.source_id, args=plugin_args
+    )
 
     messages = []
     for response in responses:
@@ -62,8 +65,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     return [x[0] for x in mock_bigquery.return_value.InsertData.call_args_list]
 
   def CompareSchemaToKnownGood(self, schema):
-    expected_schema_path = os.path.join(config.CONFIG["Test.data_dir"],
-                                        "bigquery", "ExportedFile.schema")
+    expected_schema_path = os.path.join(
+        config.CONFIG["Test.data_dir"], "bigquery", "ExportedFile.schema"
+    )
     with open(expected_schema_path, mode="rt", encoding="utf-8") as file:
       expected_schema_data = json.load(file)
 
@@ -88,7 +92,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       responses.append(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
-                  path="/foo/bar/%d" % i, pathtype="OS"),
+                  path="/foo/bar/%d" % i, pathtype="OS"
+              ),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512,
@@ -99,28 +104,38 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
               st_atime=1336469177,
               st_mtime=1336129892,
               st_ctime=1336129892,
-              st_btime=1338111338))
+              st_btime=1338111338,
+          )
+      )
 
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
-        responses=responses)
+        responses=responses,
+    )
 
     self.assertLen(output, 1)
     _, stream, schema, job_id = output[0]
 
-    self.assertEqual(job_id,
-                     "C-1000000000000000_Results_ExportedFile_1445995873")
+    self.assertEqual(
+        job_id, "C-1000000000000000_Results_ExportedFile_1445995873"
+    )
 
     self.CompareSchemaToKnownGood(schema)
 
     actual_fd = gzip.GzipFile(
-        None, "r", bigquery_plugin.BigQueryOutputPlugin.GZIP_COMPRESSION_LEVEL,
-        stream)
+        None,
+        "r",
+        bigquery_plugin.BigQueryOutputPlugin.GZIP_COMPRESSION_LEVEL,
+        stream,
+    )
 
     # Compare to our stored data.
     expected_fd = open(
-        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.jsonlines"), "rb")
+        os.path.join(
+            config.CONFIG["Test.data_dir"], "bigquery", "ExportedFile.jsonlines"
+        ),
+        "rb",
+    )
 
     # Bigquery expects a newline separarted list of JSON dicts, but this isn't
     # valid JSON so we can't just load the whole thing and compare.
@@ -203,19 +218,25 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       row = json.loads(item.decode("utf-8"))
 
       if name == "ExportedFile":
-        self.assertEqual(row["metadata"]["client_urn"],
-                         "aff4:/%s" % self.client_id)
+        self.assertEqual(
+            row["metadata"]["client_urn"], "aff4:/%s" % self.client_id
+        )
         self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
-        self.assertEqual(row["metadata"]["mac_address"],
-                         "aabbccddee00\nbbccddeeff00")
+        self.assertEqual(
+            row["metadata"]["mac_address"], "aabbccddee00\nbbccddeeff00"
+        )
         self.assertEqual(row["metadata"]["source_urn"], source_urn)
-        self.assertEqual(row["urn"], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
+        self.assertEqual(
+            row["urn"], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id
+        )
       else:
-        self.assertEqual(row["metadata"]["client_urn"],
-                         "aff4:/%s" % self.client_id)
+        self.assertEqual(
+            row["metadata"]["client_urn"], "aff4:/%s" % self.client_id
+        )
         self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
-        self.assertEqual(row["metadata"]["mac_address"],
-                         "aabbccddee00\nbbccddeeff00")
+        self.assertEqual(
+            row["metadata"]["mac_address"], "aabbccddee00\nbbccddeeff00"
+        )
         self.assertEqual(row["metadata"]["source_urn"], source_urn)
         self.assertEqual(row["pid"], "42")
 
@@ -227,19 +248,26 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
-            rdf_client.Process(pid=42)
+                pathspec=rdf_paths.PathSpec(
+                    path="/中国新闻网新闻中", pathtype="OS"
+                )
+            ),
+            rdf_client.Process(pid=42),
         ],
-        process_responses_separately=True)
+        process_responses_separately=True,
+    )
 
     # Should have two separate output streams for the two types
     self.assertLen(output, 2)
 
     for name, stream, _, job_id in output:
-      self.assertIn(job_id, [
-          "C-1000000000000000_Results_ExportedFile_1445995873",
-          "C-1000000000000000_Results_ExportedProcess_1445995873"
-      ])
+      self.assertIn(
+          job_id,
+          [
+              "C-1000000000000000_Results_ExportedFile_1445995873",
+              "C-1000000000000000_Results_ExportedProcess_1445995873",
+          ],
+      )
       self._parseOutput(name, stream)
 
   @export_test_lib.WithAllExportConverters
@@ -249,7 +277,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       responses.append(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
-                  path="/foo/bar/%d" % i, pathtype="OS"),
+                  path="/foo/bar/%d" % i, pathtype="OS"
+              ),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512,
@@ -260,7 +289,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
               st_atime=1336469177,
               st_mtime=1336129892,
               st_ctime=1336129892,
-              st_btime=1338111338))
+              st_btime=1338111338,
+          )
+      )
 
     sizes = [37, 687, 722, 755, 788, 821, 684, 719, 752, 785]
 
@@ -274,7 +305,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       with mock.patch.object(os.path, "getsize", GetSize):
         output = self.ProcessResponses(
             plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
-            responses=responses)
+            responses=responses,
+        )
 
     self.assertLen(output, 2)
     # Check that the output is still consistent
@@ -287,8 +319,11 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # TODO(user): there needs to be a better way to generate these files on
     # change than breaking into the debugger.
     expected_fd = open(
-        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.jsonlines"), "rb")
+        os.path.join(
+            config.CONFIG["Test.data_dir"], "bigquery", "ExportedFile.jsonlines"
+        ),
+        "rb",
+    )
 
     # Check that the same entries we expect are spread across the two files.
     counter = 0

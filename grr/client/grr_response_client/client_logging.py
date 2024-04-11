@@ -15,7 +15,8 @@ _VERBOSE = flags.DEFINE_bool(
     "verbose",
     default=False,
     help="Turn on verbose logging.",
-    allow_override=True)
+    allow_override=True,
+)
 
 
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
@@ -30,7 +31,7 @@ class PreLoggingMemoryHandler(handlers.BufferingHandler):
     This is called when the buffer is really full, we just just drop one oldest
     message.
     """
-    self.buffer = self.buffer[-self.capacity:]
+    self.buffer = self.buffer[-self.capacity :]
 
 
 class RobustSysLogHandler(handlers.SysLogHandler):
@@ -133,7 +134,8 @@ def LogInit():
   # The root logger.
   logger = logging.getLogger()
   memory_handlers = [
-      m for m in logger.handlers
+      m
+      for m in logger.handlers
       if m.__class__.__name__ == "PreLoggingMemoryHandler"
   ]
 

@@ -38,7 +38,8 @@ class AuthorizationReader(object):
       auth_object = auth_class(**auth)
       if auth_object.key in self.auth_objects:
         raise InvalidAuthorization(
-            "Duplicate authorizations for %s" % auth_object.key)
+            "Duplicate authorizations for %s" % auth_object.key
+        )
       self.auth_objects[auth_object.key] = auth_object
 
   def GetAuthorizationForSubject(self, subject):
@@ -67,8 +68,9 @@ class AuthorizationManager(object):
 
   def __init__(self, group_access_manager=None):
     self.authorized_users = dict()
-    self.group_access_manager = (group_access_manager or
-                                 groups.CreateGroupAccessManager())
+    self.group_access_manager = (
+        group_access_manager or groups.CreateGroupAccessManager()
+    )
     self.Initialize()
 
   def Initialize(self):
@@ -100,9 +102,9 @@ class AuthorizationManager(object):
     """Checks if a given user has access to a given subject."""
 
     if subject in self.authorized_users:
-      return ((username in self.authorized_users[subject]) or
-              self.group_access_manager.MemberOfAuthorizedGroup(
-                  username, subject))
+      return (
+          username in self.authorized_users[subject]
+      ) or self.group_access_manager.MemberOfAuthorizedGroup(username, subject)
 
     # In case the subject is not found, the safest thing to do is to raise.
     # It's up to the users of this class to handle this exception and

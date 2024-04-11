@@ -13,6 +13,7 @@ from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -157,6 +158,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
     # Now open the last flow and check that it has the changes we made.
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=self.client_id)
+    flows = [mig_flow_objects.ToRDFFlow(f) for f in flows]
     flows.sort(key=lambda f: f.create_time)
     fobj = flows[-1]
 

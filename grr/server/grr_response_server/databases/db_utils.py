@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Utility functions/decorators for DB implementations."""
+
 import functools
 import logging
 import time
-
 from typing import Generic
 from typing import List
 from typing import Sequence
@@ -14,7 +14,6 @@ from typing import TypeVar
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
@@ -28,9 +27,11 @@ _T = TypeVar("_T")
 DB_REQUEST_LATENCY = metrics.Event(
     "db_request_latency",
     fields=[("call", str)],
-    bins=[0.05 * 1.2**x for x in range(30)])  # 50ms to ~10 secs
+    bins=[0.05 * 1.2**x for x in range(30)],
+)  # 50ms to ~10 secs
 DB_REQUEST_ERRORS = metrics.Counter(
-    "db_request_errors", fields=[("call", str), ("type", str)])
+    "db_request_errors", fields=[("call", str), ("type", str)]
+)
 
 
 class Error(Exception):
@@ -57,8 +58,31 @@ class InvalidTypeURLError(Error):
   pass
 
 
-def CallLoggedAndAccounted(f):
-  """Decorator to log and account for a DB call."""
+def CallLogged(f):
+  """Decorator used to add automatic logging of the database call."""
+
+  @functools.wraps(f)
+  def Decorator(*args, **kwargs):
+    try:
+      start_time = time.time()
+      result = f(*args, **kwargs)
+      latency = time.time() - start_time
+
+      logging.debug("DB request %s SUCCESS (%.3fs)", f.__name__, latency)
+
+      return result
+    except db.Error as e:
+      logging.debug("DB request %s GRR ERROR: %s", f.__name__, e)
+      raise
+    except Exception as e:
+      logging.debug("DB request %s INTERNAL DB ERROR : %s", f.__name__, e)
+      raise
+
+  return Decorator
+
+
+def CallAccounted(f):
+  """Decorator used to add automatic metric accounting of the database call."""
 
   @functools.wraps(f)
   def Decorator(*args, **kwargs):
@@ -68,18 +92,13 @@ def CallLoggedAndAccounted(f):
       latency = time.time() - start_time
 
       DB_REQUEST_LATENCY.RecordEvent(latency, fields=[f.__name__])
-      logging.debug("DB request %s SUCCESS (%.3fs)", f.__name__, latency)
 
       return result
-    except db.Error as e:
+    except db.Error:
       DB_REQUEST_ERRORS.Increment(fields=[f.__name__, "grr"])
-      logging.debug("DB request %s GRR ERROR: %s", f.__name__,
-                    utils.SmartUnicode(e))
       raise
-    except Exception as e:
+    except Exception:
       DB_REQUEST_ERRORS.Increment(fields=[f.__name__, "db"])
-      logging.debug("DB request %s INTERNAL DB ERROR : %s", f.__name__,
-                    utils.SmartUnicode(e))
       raise
 
   return Decorator
@@ -202,8 +221,9 @@ def MicrosToSeconds(ms):
   return ms / 1e6
 
 
-def ParseAndUnpackAny(payload_type: str,
-                      payload_bytes: bytes) -> rdf_structs.RDFProtoStruct:
+def ParseAndUnpackAny(
+    payload_type: str, payload_bytes: bytes
+) -> rdf_structs.RDFProtoStruct:
   """Parses a google.protobuf.Any payload and unpack it into RDFProtoStruct.
 
   Args:
@@ -227,7 +247,8 @@ def ParseAndUnpackAny(payload_type: str,
 
   if payload_type not in rdfvalue.RDFValue.classes:
     return rdf_objects.SerializedValueOfUnrecognizedType(
-        type_name=payload_type, value=payload_value_bytes)
+        type_name=payload_type, value=payload_value_bytes
+    )
 
   rdf_class = rdfvalue.RDFValue.classes[payload_type]
   return rdf_class.FromSerializedBytes(payload_value_bytes)
@@ -397,7 +418,9 @@ def RDFTypeNameToTypeURL(rdf_type_name: str) -> str:
     return f"type.googleapis.com/grr.{rdf_type_name}"
 
 
-_BYTES_VALUE_TYPE_URL = f"type.googleapis.com/{wrappers_pb2.BytesValue.DESCRIPTOR.full_name}"
+_BYTES_VALUE_TYPE_URL = (
+    f"type.googleapis.com/{wrappers_pb2.BytesValue.DESCRIPTOR.full_name}"
+)
 
 
 _RDF_TYPE_NAME_BY_WRAPPER_TYPE_NAME = {

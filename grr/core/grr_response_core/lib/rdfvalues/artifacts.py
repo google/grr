@@ -80,6 +80,7 @@ class ArtifactNotRegisteredError(Exception):
 
 class ArtifactSource(rdf_structs.RDFProtoStruct):
   """An ArtifactSource."""
+
   protobuf = artifact_pb2.ArtifactSource
   rdf_deps = [
       rdf_protodict.Dict,
@@ -90,69 +91,69 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
   TYPE_MAP = {
       artifact_pb2.ArtifactSource.GRR_CLIENT_ACTION: {
           "required_attributes": ["client_action"],
-          "output_type": OUTPUT_UNDEFINED
+          "output_type": OUTPUT_UNDEFINED,
       },
       artifact_pb2.ArtifactSource.FILE: {
           "required_attributes": ["paths"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.GREP: {
           "required_attributes": ["paths", "content_regex_list"],
-          "output_type": "BufferReference"
+          "output_type": "BufferReference",
       },
       # TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
       #
       # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
       artifact_pb2.ArtifactSource.DIRECTORY: {
           "required_attributes": ["paths"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.LIST_FILES: {
           "required_attributes": ["paths"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.PATH: {
           "required_attributes": ["paths"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.REGISTRY_KEY: {
           "required_attributes": ["keys"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.REGISTRY_VALUE: {
           "required_attributes": ["key_value_pairs"],
-          "output_type": "RDFString"
+          "output_type": "RDFString",
       },
       artifact_pb2.ArtifactSource.WMI: {
           "required_attributes": ["query"],
-          "output_type": "Dict"
+          "output_type": "Dict",
       },
       artifact_pb2.ArtifactSource.COMMAND: {
           "required_attributes": ["cmd", "args"],
-          "output_type": "ExecuteResponse"
+          "output_type": "ExecuteResponse",
       },
       # Running Rekall plugins is deprecated, we keep the type alive so we are
       # not surprised if an old artifact is encountered.
       # TODO(amoser): Remove this.
       artifact_pb2.ArtifactSource.REKALL_PLUGIN: {
           "required_attributes": ["plugin"],
-          "output_type": "RekallResponse"
+          "output_type": "RekallResponse",
       },
       # ARTIFACT is the legacy name for ARTIFACT_GROUP
       # per: https://github.com/ForensicArtifacts/artifacts/pull/143
       # TODO(user): remove legacy support after migration.
       artifact_pb2.ArtifactSource.ARTIFACT: {
           "required_attributes": ["names"],
-          "output_type": OUTPUT_UNDEFINED
+          "output_type": OUTPUT_UNDEFINED,
       },
       artifact_pb2.ArtifactSource.ARTIFACT_FILES: {
           "required_attributes": ["artifact_list"],
-          "output_type": "StatEntry"
+          "output_type": "StatEntry",
       },
       artifact_pb2.ArtifactSource.ARTIFACT_GROUP: {
           "required_attributes": ["names"],
-          "output_type": OUTPUT_UNDEFINED
-      }
+          "output_type": OUTPUT_UNDEFINED,
+      },
   }
 
   def __init__(self, initializer=None, **kwarg):
@@ -227,6 +228,7 @@ class ArtifactName(rdfvalue.RDFString):
 
 class Artifact(rdf_structs.RDFProtoStruct):
   """An RDFValue representation of an artifact."""
+
   protobuf = artifact_pb2.Artifact
   rdf_deps = [
       ArtifactName,
@@ -239,8 +241,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
       # must pass for it to run. OR operators should be implemented as their own
       # conditions.
       "conditions",
-      # A list of labels that help users find artifacts. Must be in the list
-      # ARTIFACT_LABELS.
+      # A list of labels that help users find artifacts.
       "labels",
       # Which OS are supported by the Artifact e.g. Linux, Windows, Darwin
       # Note that this can be implemented by conditions as well, but this
@@ -252,46 +253,8 @@ class Artifact(rdf_structs.RDFProtoStruct):
       # can supply.
       "provides",
       # List of alternate names.
-      "aliases"
+      "aliases",
   ]
-
-  # These labels represent the full set of labels that an Artifact can have.
-  # This set is tested on creation to ensure our list of labels doesn't get out
-  # of hand.
-  # Labels are used to logicaly group Artifacts for ease of use.
-
-  ARTIFACT_LABELS = {
-      "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
-      "Authentication": "Authentication artifacts.",
-      "Browser": "Web Browser artifacts.",
-      "Cloud": "Cloud applications artifacts.",
-      "Cloud Storage": "Cloud storage artifacts.",
-      "Configuration Files": "Configuration files artifacts.",
-      "Containerd": "Containerd artifacts",
-      "Docker": "Docker artifacts.",
-      "Execution": "Contain execution events.",
-      "ExternalAccount": ("Information about any user accounts e.g. username, "
-                          "account ID, etc."),
-      "External Media":
-          ("Contain external media data or events e.g. USB drives."),
-      "Hadoop": "Hadoop artifacts.",
-      "IM": "Instant Messaging / Chat applications artifacts.",
-      "iOS": "Artifacts related to iOS devices connected to the system.",
-      "History Files": "History files artifacts e.g. .bash_history.",
-      "KnowledgeBase": "Artifacts used in knowledge base generation.",
-      "Kubernetes": "Kubernetes artifacts",
-      "Logs": "Contain log files.",
-      "Mail": "Mail client applications artifacts.",
-      "Memory": "Artifacts retrieved from memory.",
-      "Network": "Describe networking state.",
-      "Plist": "Artifact that is a plist.",
-      "Processes": "Describe running processes.",
-      "Rekall": "Artifacts using the Rekall memory forensics framework.",
-      "Software": "Installed software.",
-      "SQLiteDB": "Artifact that is a SQLite database.",
-      "System": "Core system artifacts.",
-      "Users": "Information about users."
-  }
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
 
@@ -359,7 +322,8 @@ class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def FromParser(
-      cls, parser_cls: Type[parsers.Parser]) -> "ArtifactProcessorDescriptor":
+      cls, parser_cls: Type[parsers.Parser]
+  ) -> "ArtifactProcessorDescriptor":
     """Creates a descriptor corresponding to the given parser.
 
     Args:
@@ -379,7 +343,8 @@ class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
     return cls(
         name=parser_cls.__name__,
         description=description,
-        output_types=output_types)
+        output_types=output_types,
+    )
 
 
 class ArtifactDescriptor(rdf_structs.RDFProtoStruct):
@@ -409,18 +374,21 @@ class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
 
 class ArtifactProgress(rdf_structs.RDFProtoStruct):
   """Collection progress of an Artifact."""
+
   protobuf = flows_pb2.ArtifactProgress
   rdf_deps = []
 
 
 class ArtifactCollectorFlowProgress(rdf_structs.RDFProtoStruct):
   """Collection progress of ArtifactCollectorFlow."""
+
   protobuf = flows_pb2.ArtifactCollectorFlowProgress
   rdf_deps = [ArtifactProgress]
 
 
 class ClientActionResult(rdf_structs.RDFProtoStruct):
   """An RDFValue representing one type of response for a client action."""
+
   protobuf = artifact_pb2.ClientActionResult
 
   def GetValueClass(self):

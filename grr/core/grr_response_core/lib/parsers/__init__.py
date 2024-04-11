@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 """Generic parsers (for GRR server and client code)."""
-from typing import Iterator
-from typing import Text
-from typing import Type
-from typing import TypeVar
+
+from typing import Iterator, Type, TypeVar
 
 from grr_response_core.lib import factory
 from grr_response_core.lib import rdfvalue
@@ -23,37 +21,45 @@ _Factory = factory.Factory
 _RDFValue = rdfvalue.RDFValue
 
 SINGLE_RESPONSE_PARSER_FACTORY: _Factory[SingleResponseParser[_RDFValue]] = (
-    _Factory(SingleResponseParser[_RDFValue]))
+    _Factory(SingleResponseParser[_RDFValue])
+)
 
 MULTI_RESPONSE_PARSER_FACTORY: _Factory[MultiResponseParser[_RDFValue]] = (
-    _Factory(MultiResponseParser[_RDFValue]))
+    _Factory(MultiResponseParser[_RDFValue])
+)
 
-SINGLE_FILE_PARSER_FACTORY: _Factory[SingleFileParser[_RDFValue]] = (
-    _Factory(SingleFileParser[_RDFValue]))
+SINGLE_FILE_PARSER_FACTORY: _Factory[SingleFileParser[_RDFValue]] = _Factory(
+    SingleFileParser[_RDFValue]
+)
 
-MULTI_FILE_PARSER_FACTORY: _Factory[MultiFileParser[_RDFValue]] = (
-    _Factory(MultiFileParser[_RDFValue]))
+MULTI_FILE_PARSER_FACTORY: _Factory[MultiFileParser[_RDFValue]] = _Factory(
+    MultiFileParser[_RDFValue]
+)
 
 
 _P = TypeVar("_P", bound=Parser)
 
 
-class ArtifactParserFactory(object):
+class ArtifactParserFactory:
   """A factory wrapper class that yields parsers for specific artifact."""
 
-  def __init__(self, artifact_name: Text) -> None:
+  def __init__(self, artifact_name: str) -> None:
     """Initializes the artifact parser factory.
 
     Args:
       artifact_name: A name of the artifact this factory is supposed to provide
         parser instances for.
     """
-    precondition.AssertType(artifact_name, Text)
+    precondition.AssertType(artifact_name, str)
     self._artifact_name = artifact_name
 
   def HasParsers(self) -> bool:
-    return (self.HasSingleResponseParsers() or self.HasMultiResponseParsers() or
-            self.HasSingleFileParsers() or self.HasMultiFileParsers())
+    return (
+        self.HasSingleResponseParsers()
+        or self.HasMultiResponseParsers()
+        or self.HasSingleFileParsers()
+        or self.HasMultiFileParsers()
+    )
 
   def HasSingleResponseParsers(self) -> bool:
     return any(self.SingleResponseParserTypes())
@@ -65,7 +71,8 @@ class ArtifactParserFactory(object):
     return self._SupportedNames(SINGLE_RESPONSE_PARSER_FACTORY)
 
   def SingleResponseParserTypes(
-      self) -> Iterator[Type[SingleResponseParser[_RDFValue]]]:
+      self,
+  ) -> Iterator[Type[SingleResponseParser[_RDFValue]]]:
     return self._SupportedTypes(SINGLE_RESPONSE_PARSER_FACTORY)
 
   def HasMultiResponseParsers(self) -> bool:
@@ -78,7 +85,8 @@ class ArtifactParserFactory(object):
     return self._SupportedNames(MULTI_RESPONSE_PARSER_FACTORY)
 
   def MultiResponseParserTypes(
-      self) -> Iterator[Type[MultiResponseParser[_RDFValue]]]:
+      self,
+  ) -> Iterator[Type[MultiResponseParser[_RDFValue]]]:
     return self._SupportedTypes(MULTI_RESPONSE_PARSER_FACTORY)
 
   def HasSingleFileParsers(self) -> bool:
@@ -91,7 +99,8 @@ class ArtifactParserFactory(object):
     return self._SupportedNames(SINGLE_FILE_PARSER_FACTORY)
 
   def SingleFileParserTypes(
-      self) -> Iterator[Type[SingleFileParser[_RDFValue]]]:
+      self,
+  ) -> Iterator[Type[SingleFileParser[_RDFValue]]]:
     return self._SupportedTypes(SINGLE_FILE_PARSER_FACTORY)
 
   def HasMultiFileParsers(self) -> bool:

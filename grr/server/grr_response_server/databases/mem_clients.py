@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
-from typing import Collection, Mapping, Optional, Sequence, Tuple, TypedDict
+
+from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple, TypedDict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -42,7 +43,6 @@ class InMemoryDBClientMixin(object):
   def MultiWriteClientMetadata(
       self,
       client_ids: Collection[str],
-      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
@@ -52,9 +52,6 @@ class InMemoryDBClientMixin(object):
   ) -> None:
     """Writes metadata about the clients."""
     md = {}
-    if certificate is not None:
-      md["certificate"] = certificate
-
     if first_seen is not None:
       md["first_seen"] = first_seen
 
@@ -211,10 +208,12 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def ReadClientLastPings(self,
-                          min_last_ping=None,
-                          max_last_ping=None,
-                          batch_size=db.CLIENT_IDS_BATCH_SIZE):
+  def ReadClientLastPings(
+      self,
+      min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      max_last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      batch_size: int = db.CLIENT_IDS_BATCH_SIZE,
+  ) -> Iterator[Mapping[str, Optional[rdfvalue.RDFDatetime]]]:
     """Yields dicts of last-ping timestamps for clients in the DB."""
     last_pings = {}
     for client_id, metadata in self.metadatas.items():
@@ -501,10 +500,13 @@ class InMemoryDBClientMixin(object):
     for kw in self.keywords:
       self.keywords[kw].pop(client_id, None)
 
-  def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
-                              sort_order: rdf_search.SortOrder,
-                              continuation_token: bytes,
-                              number_of_results: int) -> db.SearchClientsResult:
+  def StructuredSearchClients(
+      self,
+      expression: rdf_search.SearchExpression,
+      sort_order: rdf_search.SortOrder,
+      continuation_token: bytes,
+      number_of_results: int,
+  ) -> db.SearchClientsResult:
     # Unused arguments
     del self, expression, sort_order, continuation_token, number_of_results
     raise NotImplementedError

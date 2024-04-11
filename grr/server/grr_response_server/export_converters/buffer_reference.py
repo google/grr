@@ -24,11 +24,14 @@ class BufferReferenceToExportedMatchConverter(base.ExportConverter):
   input_rdf_type = rdf_client.BufferReference
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      buffer_reference: rdf_client.BufferReference) -> Iterator[ExportedMatch]:
+      self,
+      metadata: base.ExportedMetadata,
+      buffer_reference: rdf_client.BufferReference,
+  ) -> Iterator[ExportedMatch]:
     yield ExportedMatch(
         metadata=metadata,
         offset=buffer_reference.offset,
         length=buffer_reference.length,
         data=buffer_reference.data,
-        urn=buffer_reference.pathspec.AFF4Path(metadata.client_urn))
+        urn=buffer_reference.pathspec.AFF4Path(metadata.client_urn),
+    )

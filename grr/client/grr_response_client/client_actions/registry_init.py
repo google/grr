@@ -26,8 +26,9 @@ from grr_response_client.client_actions.windows import pipes
 def RegisterClientActions():
   """Registers all client actions."""
 
-  client_actions.Register("CheckFreeGRRTempSpace",
-                          tempfiles.CheckFreeGRRTempSpace)
+  client_actions.Register(
+      "CheckFreeGRRTempSpace", tempfiles.CheckFreeGRRTempSpace
+  )
   client_actions.Register("CollectLargeFile", large_file.CollectLargeFileAction)
   client_actions.Register("DeleteGRRTempFiles", tempfiles.DeleteGRRTempFiles)
   client_actions.Register("Echo", admin.Echo)
@@ -50,8 +51,9 @@ def RegisterClientActions():
   client_actions.Register("HashFile", standard.HashFile)
   client_actions.Register("Kill", admin.Kill)
   client_actions.Register("ListDirectory", standard.ListDirectory)
-  client_actions.Register("ListNetworkConnections",
-                          network.ListNetworkConnections)
+  client_actions.Register(
+      "ListNetworkConnections", network.ListNetworkConnections
+  )
   client_actions.Register("ListProcesses", standard.ListProcesses)
   client_actions.Register("Osquery", osquery.Osquery)
   client_actions.Register("ReadBuffer", standard.ReadBuffer)
@@ -72,8 +74,9 @@ def RegisterClientActions():
     client_actions.Register("Dummy", dummy.Dummy)
     client_actions.Register("EnumerateFilesystems", linux.EnumerateFilesystems)
     client_actions.Register("EnumerateInterfaces", linux.EnumerateInterfaces)
-    client_actions.Register("EnumerateRunningServices",
-                            linux.EnumerateRunningServices)
+    client_actions.Register(
+        "EnumerateRunningServices", linux.EnumerateRunningServices
+    )
     client_actions.Register("EnumerateUsers", linux.EnumerateUsers)
     client_actions.Register("GetInstallDate", linux.GetInstallDate)
     client_actions.Register("UpdateAgent", linux.UpdateAgent)
@@ -82,8 +85,9 @@ def RegisterClientActions():
     from grr_response_client.client_actions.windows import windows  # pylint: disable=g-import-not-at-top
 
     client_actions.Register("Dummy", win_dummy.Dummy)
-    client_actions.Register("EnumerateFilesystems",
-                            windows.EnumerateFilesystems)
+    client_actions.Register(
+        "EnumerateFilesystems", windows.EnumerateFilesystems
+    )
     client_actions.Register("EnumerateInterfaces", windows.EnumerateInterfaces)
     client_actions.Register("GetInstallDate", windows.GetInstallDate)
     client_actions.Register("WmiQuery", windows.WmiQuery)
@@ -92,9 +96,11 @@ def RegisterClientActions():
 
   elif platform.system() == "Darwin":
     from grr_response_client.client_actions.osx import osx  # pylint: disable=g-import-not-at-top
+
     client_actions.Register("EnumerateFilesystems", osx.EnumerateFilesystems)
     client_actions.Register("EnumerateInterfaces", osx.EnumerateInterfaces)
     client_actions.Register("GetInstallDate", osx.GetInstallDate)
-    client_actions.Register("OSXEnumerateRunningServices",
-                            osx.OSXEnumerateRunningServices)
+    client_actions.Register(
+        "OSXEnumerateRunningServices", osx.OSXEnumerateRunningServices
+    )
     client_actions.Register("UpdateAgent", osx.UpdateAgent)

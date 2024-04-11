@@ -40,7 +40,7 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
-    location = [u"http://www.example1.com/", u"http://www.example2.com/"]
+    location = ["http://www.example1.com/", "http://www.example2.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
@@ -63,11 +63,11 @@ Client.server_urls:
 
   def testOnlyUpdatableFieldsAreUpdated(self):
     with test_lib.ConfigOverrider({
-        "Client.server_urls": [u"http://something.com/"],
-        "Client.server_serial_number": 1
+        "Client.server_urls": ["http://something.com/"],
+        "Client.server_serial_number": 1,
     }):
 
-      location = [u"http://www.example.com"]
+      location = ["http://www.example.com"]
       request = rdf_protodict.Dict()
       request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
@@ -76,14 +76,15 @@ Client.server_urls:
         self.RunAction(admin.UpdateConfiguration, request)
 
       # Nothing was updated.
-      self.assertEqual(config.CONFIG["Client.server_urls"],
-                       [u"http://something.com/"])
+      self.assertEqual(
+          config.CONFIG["Client.server_urls"], ["http://something.com/"]
+      )
       self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
-    location = [u"http://example.com/"]
+    location = ["http://example.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
@@ -130,7 +131,8 @@ class SendStartupInfoTest(client_test_lib.EmptyActionTest):
 
   def testDoesNotSendInterrogateRequestWhenTriggerFileIsMissing(self):
     with test_lib.ConfigOverrider(
-        {"Client.interrogate_trigger_path": "/none/existingpath"}):
+        {"Client.interrogate_trigger_path": "/none/existingpath"}
+    ):
       results = self._RunAction()
 
     self.assertLen(results, 1)
@@ -141,7 +143,8 @@ class SendStartupInfoTest(client_test_lib.EmptyActionTest):
       trigger_path = fd.name
 
     with test_lib.ConfigOverrider(
-        {"Client.interrogate_trigger_path": trigger_path}):
+        {"Client.interrogate_trigger_path": trigger_path}
+    ):
       results = self._RunAction()
 
     # Check that the trigger file got removed.
@@ -155,7 +158,8 @@ class SendStartupInfoTest(client_test_lib.EmptyActionTest):
       trigger_path = fd.name
 
     with test_lib.ConfigOverrider(
-        {"Client.interrogate_trigger_path": trigger_path}):
+        {"Client.interrogate_trigger_path": trigger_path}
+    ):
       results = self._RunAction()
 
       self.assertLen(results, 1)
@@ -172,7 +176,8 @@ class SendStartupInfoTest(client_test_lib.EmptyActionTest):
       trigger_path = fd.name
 
     with test_lib.ConfigOverrider(
-        {"Client.interrogate_trigger_path": trigger_path}):
+        {"Client.interrogate_trigger_path": trigger_path}
+    ):
       results = self._RunAction()
 
     self.assertLen(results, 1)

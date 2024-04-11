@@ -20,8 +20,9 @@ class WindowsServiceInformationConverter(base.ExportConverter):
   input_rdf_type = rdf_client.WindowsServiceInformation
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      i: rdf_client.WindowsServiceInformation
+      self,
+      metadata: base.ExportedMetadata,
+      i: rdf_client.WindowsServiceInformation,
   ) -> Iterator[ExportedWindowsServiceInformation]:
     wmi_components = []
     for key in sorted(i.wmi_information.keys()):

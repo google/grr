@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 from grr_response_core.lib.util import collection
@@ -195,46 +194,14 @@ class DictProductTest(absltest.TestCase):
   def testMultipleKeys(self):
     in_dicts = {"a": [1, 2], "b": [3, 4], "c": [5, 6]}
     out_dicts = [
-        {
-            "a": 1,
-            "b": 3,
-            "c": 5
-        },
-        {
-            "a": 1,
-            "b": 3,
-            "c": 6
-        },
-        {
-            "a": 1,
-            "b": 4,
-            "c": 5
-        },
-        {
-            "a": 1,
-            "b": 4,
-            "c": 6
-        },
-        {
-            "a": 2,
-            "b": 3,
-            "c": 5
-        },
-        {
-            "a": 2,
-            "b": 3,
-            "c": 6
-        },
-        {
-            "a": 2,
-            "b": 4,
-            "c": 5
-        },
-        {
-            "a": 2,
-            "b": 4,
-            "c": 6
-        },
+        {"a": 1, "b": 3, "c": 5},
+        {"a": 1, "b": 3, "c": 6},
+        {"a": 1, "b": 4, "c": 5},
+        {"a": 1, "b": 4, "c": 6},
+        {"a": 2, "b": 3, "c": 5},
+        {"a": 2, "b": 3, "c": 6},
+        {"a": 2, "b": 4, "c": 5},
+        {"a": 2, "b": 4, "c": 6},
     ]
 
     self.assertCountEqual(list(collection.DictProduct(in_dicts)), out_dicts)

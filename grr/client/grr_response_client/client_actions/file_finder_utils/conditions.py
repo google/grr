@@ -176,8 +176,11 @@ class ContentCondition(metaclass=abc.ABCMeta):
   OVERLAP_SIZE = 1024 * 1024
   CHUNK_SIZE = 10 * 1024 * 1024
 
-  def Scan(self, fd,
-           matcher: "Matcher") -> Iterator[rdf_client.BufferReference]:
+  def Scan(
+      self,
+      fd,
+      matcher: "Matcher",
+  ) -> Iterator[rdf_client.BufferReference]:
     """Scans given file searching for occurrences of given pattern.
 
     Args:
@@ -188,7 +191,8 @@ class ContentCondition(metaclass=abc.ABCMeta):
       `BufferReference` objects pointing to file parts with matching content.
     """
     streamer = streaming.Streamer(
-        chunk_size=self.CHUNK_SIZE, overlap_size=self.OVERLAP_SIZE)
+        chunk_size=self.CHUNK_SIZE, overlap_size=self.OVERLAP_SIZE
+    )
 
     offset = self.params.start_offset
     amount = self.params.length
@@ -199,9 +203,8 @@ class ContentCondition(metaclass=abc.ABCMeta):
         ctx_data = chunk.data[ctx_begin:ctx_end]
 
         yield rdf_client.BufferReference(
-            offset=chunk.offset + ctx_begin,
-            length=len(ctx_data),
-            data=ctx_data)
+            offset=chunk.offset + ctx_begin, length=len(ctx_data), data=ctx_data
+        )
 
         if self.params.mode == self.params.Mode.FIRST_HIT:
           return

@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {
@@ -213,8 +212,8 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.focus();
 
     const links = overlayContainerElement.querySelectorAll('flows-overview a');
-    const link = Array.from(links).find((l) =>
-      l.textContent?.includes('Forensic artifacts'),
+    const link = Array.from(links).find(
+      (l) => l.textContent?.includes('Forensic artifacts'),
     );
     assertNonNull(link);
     link.dispatchEvent(new MouseEvent('click'));
