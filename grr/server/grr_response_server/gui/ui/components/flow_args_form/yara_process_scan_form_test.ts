@@ -98,4 +98,24 @@ describe('YaraProcessScanForm', () => {
       }),
     );
   });
+
+  it('shows a context window input field', async () => {
+    const fixture = TestBed.createComponent(YaraProcessScanForm);
+    fixture.detectChanges();
+
+    const latestValue = latestValueFrom(fixture.componentInstance.flowArgs$);
+
+    const input = fixture.debugElement.query(
+      By.css('input[name=contextWindow]'),
+    );
+    input.nativeElement.value = 999;
+    input.triggerEventHandler('input', {target: input.nativeElement});
+    fixture.detectChanges();
+
+    expect(latestValue.get()).toEqual(
+      jasmine.objectContaining({
+        contextWindow: 999,
+      }),
+    );
+  });
 });

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with the definition of the abstract keystore."""
+
 import abc
 
 

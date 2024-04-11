@@ -16,7 +16,8 @@ _VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
-    help="Print the GRR worker version number and exit immediately.")
+    help="Print the GRR worker version number and exit immediately.",
+)
 
 
 def main(argv):
@@ -27,8 +28,9 @@ def main(argv):
     print("GRR worker {}".format(config_server.VERSION["packageversion"]))
     return
 
-  config.CONFIG.AddContext(contexts.WORKER_CONTEXT,
-                           "Context applied when running a worker.")
+  config.CONFIG.AddContext(
+      contexts.WORKER_CONTEXT, "Context applied when running a worker."
+  )
 
   # Initialise flows and config_lib
   server_startup.Init()

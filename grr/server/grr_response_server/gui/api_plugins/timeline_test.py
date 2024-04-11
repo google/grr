@@ -7,7 +7,6 @@ import zipfile
 
 from absl.testing import absltest
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
 from grr_response_proto import objects_pb2
@@ -43,8 +42,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = "NotTimelineFlow"
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-    data_store.REL_DB.WriteFlowObject(flow_obj)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -193,8 +191,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-    data_store.REL_DB.WriteFlowObject(flow_obj)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter([entry])))
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
@@ -286,8 +283,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     flow_obj.client_id = client_id
     flow_obj.flow_id = flow_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-    data_store.REL_DB.WriteFlowObject(flow_obj)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     entry_1 = rdf_timeline.TimelineEntry()
     entry_1.path = "/foo".encode("utf-8")

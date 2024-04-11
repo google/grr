@@ -3,7 +3,6 @@
 
 This code is based on the memorpy project:
 https://github.com/n1nj4sec/memorpy
-
 """
 
 import ctypes
@@ -79,22 +78,27 @@ class Process(object):
   def Open(self):
     self.task = ctypes.c_uint32()
     self.mytask = libc.mach_task_self()
-    ret = libc.task_for_pid(self.mytask, ctypes.c_int(self.pid),
-                            ctypes.pointer(self.task))
+    ret = libc.task_for_pid(
+        self.mytask, ctypes.c_int(self.pid), ctypes.pointer(self.task)
+    )
     if ret:
       if ret == 5:
         # Most likely this means access denied. This is not perfect
         # but there is no way to find out.
         raise process_error.ProcessError(
-            "Access denied (task_for_pid returned 5).")
+            "Access denied (task_for_pid returned 5)."
+        )
 
       raise process_error.ProcessError(
-          "task_for_pid failed with error code : %s" % ret)
+          "task_for_pid failed with error code : %s" % ret
+      )
 
-  def Regions(self,
-              skip_executable_regions=False,
-              skip_shared_regions=False,
-              skip_readonly_regions=False):
+  def Regions(
+      self,
+      skip_executable_regions=False,
+      skip_shared_regions=False,
+      skip_readonly_regions=False,
+  ):
     """Iterates over the readable regions for this process.
 
     We use mach_vm_region_recurse here to get a fine grained view of
@@ -135,11 +139,14 @@ class Process(object):
     while True:
       c_depth = ctypes.c_uint32(depth)
 
-      r = libc.mach_vm_region_recurse(self.task, ctypes.pointer(address),
-                                      ctypes.pointer(mapsize),
-                                      ctypes.pointer(c_depth),
-                                      ctypes.pointer(sub_info),
-                                      ctypes.pointer(count))
+      r = libc.mach_vm_region_recurse(
+          self.task,
+          ctypes.pointer(address),
+          ctypes.pointer(mapsize),
+          ctypes.pointer(c_depth),
+          ctypes.pointer(sub_info),
+          ctypes.pointer(count),
+      )
 
       # If we get told "invalid address", we have crossed into kernel land...
       if r == 1:
@@ -160,7 +167,9 @@ class Process(object):
         continue
 
       if skip_shared_regions and sub_info.share_mode in [
-          SM_COW, SM_SHARED, SM_TRUESHARED
+          SM_COW,
+          SM_SHARED,
+          SM_TRUESHARED,
       ]:
         address.value += mapsize.value
         continue
@@ -183,7 +192,8 @@ class Process(object):
             size=mapsize.value,
             is_readable=True,
             is_executable=is_executable,
-            is_writable=is_writable)
+            is_writable=is_writable,
+        )
         address.value += mapsize.value
 
   def ReadBytes(self, address, num_bytes):
@@ -191,9 +201,13 @@ class Process(object):
     pdata = ctypes.c_void_p(0)
     data_cnt = ctypes.c_uint32(0)
 
-    ret = libc.mach_vm_read(self.task, ctypes.c_ulonglong(address),
-                            ctypes.c_longlong(num_bytes), ctypes.pointer(pdata),
-                            ctypes.pointer(data_cnt))
+    ret = libc.mach_vm_read(
+        self.task,
+        ctypes.c_ulonglong(address),
+        ctypes.c_longlong(num_bytes),
+        ctypes.pointer(pdata),
+        ctypes.pointer(data_cnt),
+    )
     if ret:
       raise process_error.ProcessError("Error in mach_vm_read, ret=%s" % ret)
     buf = ctypes.string_at(pdata.value, data_cnt.value)
@@ -206,6 +220,7 @@ class Process(object):
 
   @classmethod
   def CreateFromSerializedFileDescriptor(
-      cls, serialized_file_descriptor: int) -> "Process":
+      cls, serialized_file_descriptor: int
+  ) -> "Process":
     del serialized_file_descriptor  # Unused
     return NotImplementedError()

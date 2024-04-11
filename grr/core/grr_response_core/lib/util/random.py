@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """A module with utilities for optimized pseudo-random number generation."""
+
 import os
 import struct
-
 import threading
 from typing import Callable, List
 
@@ -29,7 +29,8 @@ def UInt32() -> int:
     except IndexError:
       data = os.urandom(struct.calcsize("=L") * _random_buffer_size)
       _random_buffer.extend(
-          struct.unpack("=" + "L" * _random_buffer_size, data))
+          struct.unpack("=" + "L" * _random_buffer_size, data)
+      )
       return _random_buffer.pop()
 
 

@@ -3,7 +3,6 @@
 
 This code is based on the memorpy project:
 https://github.com/n1nj4sec/memorpy
-
 """
 
 import ctypes
@@ -46,37 +45,44 @@ MEM_FREE = 65536
 
 
 class SECURITY_DESCRIPTOR(ctypes.Structure):
-  _fields_ = [("SID", wintypes.DWORD), ("group", wintypes.DWORD),
-              ("dacl", wintypes.DWORD), ("sacl", wintypes.DWORD),
-              ("test", wintypes.DWORD)]
+  _fields_ = [
+      ("SID", wintypes.DWORD),
+      ("group", wintypes.DWORD),
+      ("dacl", wintypes.DWORD),
+      ("sacl", wintypes.DWORD),
+      ("test", wintypes.DWORD),
+  ]
 
 
 PSECURITY_DESCRIPTOR = ctypes.POINTER(SECURITY_DESCRIPTOR)
 
 
 class SYSTEM_INFO(ctypes.Structure):
-  _fields_ = [("wProcessorArchitecture",
-               wintypes.WORD), ("wReserved", wintypes.WORD), ("dwPageSize",
-                                                              wintypes.DWORD),
-              ("lpMinimumApplicationAddress",
-               wintypes.LPVOID), ("lpMaximumApplicationAddress",
-                                  wintypes.LPVOID), ("dwActiveProcessorMask",
-                                                     wintypes.WPARAM),
-              ("dwNumberOfProcessors", wintypes.DWORD), ("dwProcessorType",
-                                                         wintypes.DWORD),
-              ("dwAllocationGranularity",
-               wintypes.DWORD), ("wProcessorLevel",
-                                 wintypes.WORD), ("wProcessorRevision",
-                                                  wintypes.WORD)]
+  _fields_ = [
+      ("wProcessorArchitecture", wintypes.WORD),
+      ("wReserved", wintypes.WORD),
+      ("dwPageSize", wintypes.DWORD),
+      ("lpMinimumApplicationAddress", wintypes.LPVOID),
+      ("lpMaximumApplicationAddress", wintypes.LPVOID),
+      ("dwActiveProcessorMask", wintypes.WPARAM),
+      ("dwNumberOfProcessors", wintypes.DWORD),
+      ("dwProcessorType", wintypes.DWORD),
+      ("dwAllocationGranularity", wintypes.DWORD),
+      ("wProcessorLevel", wintypes.WORD),
+      ("wProcessorRevision", wintypes.WORD),
+  ]
 
 
 class MEMORY_BASIC_INFORMATION(ctypes.Structure):
-  _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase",
-                                                 ctypes.c_void_p),
-              ("AllocationProtect",
-               wintypes.DWORD), ("RegionSize",
-                                 ctypes.c_size_t), ("State", wintypes.DWORD),
-              ("Protect", wintypes.DWORD), ("Type", wintypes.DWORD)]
+  _fields_ = [
+      ("BaseAddress", ctypes.c_void_p),
+      ("AllocationBase", ctypes.c_void_p),
+      ("AllocationProtect", wintypes.DWORD),
+      ("RegionSize", ctypes.c_size_t),
+      ("State", wintypes.DWORD),
+      ("Protect", wintypes.DWORD),
+      ("Type", wintypes.DWORD),
+  ]
 
 
 CloseHandle = kernel32.CloseHandle
@@ -84,14 +90,19 @@ CloseHandle.argtypes = [ctypes.c_void_p]
 
 ReadProcessMemory = kernel32.ReadProcessMemory
 ReadProcessMemory.argtypes = [
-    wintypes.HANDLE, wintypes.LPCVOID, wintypes.LPVOID, ctypes.c_size_t,
-    ctypes.POINTER(ctypes.c_size_t)
+    wintypes.HANDLE,
+    wintypes.LPCVOID,
+    wintypes.LPVOID,
+    ctypes.c_size_t,
+    ctypes.POINTER(ctypes.c_size_t),
 ]
 
 VirtualQueryEx = kernel32.VirtualQueryEx
 VirtualQueryEx.argtypes = [
-    wintypes.HANDLE, wintypes.LPCVOID,
-    ctypes.POINTER(MEMORY_BASIC_INFORMATION), ctypes.c_size_t
+    wintypes.HANDLE,
+    wintypes.LPCVOID,
+    ctypes.POINTER(MEMORY_BASIC_INFORMATION),
+    ctypes.c_size_t,
 ]
 VirtualQueryEx.restype = ctypes.c_size_t
 
@@ -138,10 +149,12 @@ class Process(object):
       self.h_process = self._existing_handle
     else:
       self.h_process = kernel32.OpenProcess(
-          PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, self.pid)
+          PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, self.pid
+      )
     if not self.h_process:
       raise process_error.ProcessError(
-          "Failed to open process (pid %d)." % self.pid)
+          "Failed to open process (pid %d)." % self.pid
+      )
 
     if self.Is64bit():
       si = self.GetNativeSystemInfo()
@@ -176,16 +189,19 @@ class Process(object):
 
   def VirtualQueryEx(self, address):
     mbi = MEMORY_BASIC_INFORMATION()
-    res = VirtualQueryEx(self.h_process, address, ctypes.byref(mbi),
-                         ctypes.sizeof(mbi))
+    res = VirtualQueryEx(
+        self.h_process, address, ctypes.byref(mbi), ctypes.sizeof(mbi)
+    )
     if not res:
       raise process_error.ProcessError("Error VirtualQueryEx: 0x%08X" % address)
     return mbi
 
-  def Regions(self,
-              skip_special_regions=False,
-              skip_executable_regions=False,
-              skip_readonly_regions=False):
+  def Regions(
+      self,
+      skip_special_regions=False,
+      skip_executable_regions=False,
+      skip_readonly_regions=False,
+  ):
     """Returns an iterator over the readable regions for this process."""
     offset = self.min_addr
 
@@ -202,22 +218,40 @@ class Process(object):
           start=offset,
           size=mbi.RegionSize,
           is_readable=True,
-          is_writable=bool(protect
-                           & (PAGE_EXECUTE_READWRITE | PAGE_READWRITE
-                              | PAGE_EXECUTE_WRITECOPY | PAGE_WRITECOPY)),
-          is_executable=bool(protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ
-                                        | PAGE_EXECUTE_READWRITE
-                                        | PAGE_EXECUTE_WRITECOPY)))
+          is_writable=bool(
+              protect
+              & (
+                  PAGE_EXECUTE_READWRITE
+                  | PAGE_READWRITE
+                  | PAGE_EXECUTE_WRITECOPY
+                  | PAGE_WRITECOPY
+              )
+          ),
+          is_executable=bool(
+              protect
+              & (
+                  PAGE_EXECUTE
+                  | PAGE_EXECUTE_READ
+                  | PAGE_EXECUTE_READWRITE
+                  | PAGE_EXECUTE_WRITECOPY
+              )
+          ),
+      )
       is_special = (
-          protect & PAGE_NOCACHE or protect & PAGE_WRITECOMBINE or
-          protect & PAGE_GUARD)
+          protect & PAGE_NOCACHE
+          or protect & PAGE_WRITECOMBINE
+          or protect & PAGE_GUARD
+      )
 
       offset += chunk
 
-      if (state & MEM_FREE or state & MEM_RESERVE or
-          (skip_special_regions and is_special) or
-          (skip_executable_regions and region.is_executable) or
-          (skip_readonly_regions and not region.is_writable)):
+      if (
+          state & MEM_FREE
+          or state & MEM_RESERVE
+          or (skip_special_regions and is_special)
+          or (skip_executable_regions and region.is_executable)
+          or (skip_readonly_regions and not region.is_writable)
+      ):
         continue
 
       yield region
@@ -227,16 +261,17 @@ class Process(object):
     address = int(address)
     buf = ctypes.create_string_buffer(num_bytes)
     bytesread = ctypes.c_size_t(0)
-    res = ReadProcessMemory(self.h_process, address, buf, num_bytes,
-                            ctypes.byref(bytesread))
+    res = ReadProcessMemory(
+        self.h_process, address, buf, num_bytes, ctypes.byref(bytesread)
+    )
     if res == 0:
       err = ctypes.GetLastError()
       if err == 299:
         # Only part of ReadProcessMemory has been done, let's return it.
-        return buf.raw[:bytesread.value]
+        return buf.raw[: bytesread.value]
       raise process_error.ProcessError("Error in ReadProcessMemory: %d" % err)
 
-    return buf.raw[:bytesread.value]
+    return buf.raw[: bytesread.value]
 
   @property
   def serialized_file_descriptor(self) -> int:
@@ -244,5 +279,6 @@ class Process(object):
 
   @classmethod
   def CreateFromSerializedFileDescriptor(
-      cls, serialized_file_descriptor: int) -> "Process":
+      cls, serialized_file_descriptor: int
+  ) -> "Process":
     return Process(handle=serialized_file_descriptor)

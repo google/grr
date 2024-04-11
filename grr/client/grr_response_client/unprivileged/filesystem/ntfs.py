@@ -2,7 +2,7 @@
 """pyfsntfs implementation of a filesystem."""
 
 import os
-from typing import Optional, Iterable
+from typing import Iterable, Optional
 import pyfsntfs
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.proto import filesystem_pb2
@@ -35,9 +35,12 @@ class DeviceWrapper:
 class NtfsFile(filesystem.File):
   """pyfsntfs implementation of File."""
 
-  def __init__(self, filesystem_obj: filesystem.Filesystem,
-               fd: pyfsntfs.file_entry,
-               data_stream: Optional[pyfsntfs.data_stream]):
+  def __init__(
+      self,
+      filesystem_obj: filesystem.Filesystem,
+      fd: pyfsntfs.file_entry,
+      data_stream: Optional[pyfsntfs.data_stream],
+  ):
     super().__init__(filesystem_obj)
     self.fd = fd
     self.data_stream = data_stream
@@ -117,7 +120,8 @@ class NtfsFile(filesystem.File):
 
 def _get_data_stream(
     entry: pyfsntfs.file_entry,
-    stream_name: Optional[str]) -> Optional[pyfsntfs.data_stream]:
+    stream_name: Optional[str],
+) -> Optional[pyfsntfs.data_stream]:
   """Returns a data stream by name, or the default data stream."""
   if stream_name is None:
     if entry.has_default_data_stream():

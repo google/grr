@@ -2,9 +2,7 @@
 """A module with utilities for a very simple chunked serialization format."""
 
 import struct
-from typing import IO
-from typing import Iterator
-from typing import Optional
+from typing import IO, Iterator, Optional
 
 
 class Error(Exception):
@@ -34,8 +32,9 @@ def Write(buf: IO[bytes], chunk: bytes) -> None:
   buf.write(chunk)
 
 
-def Read(buf: IO[bytes],
-         max_chunk_size: Optional[int] = None) -> Optional[bytes]:
+def Read(
+    buf: IO[bytes], max_chunk_size: Optional[int] = None
+) -> Optional[bytes]:
   """Reads a single chunk from the input buffer.
 
   Args:
@@ -68,26 +67,29 @@ def Read(buf: IO[bytes],
   # informative exception message.
 
   if max_chunk_size is not None and count > max_chunk_size:
-    raise ChunkSizeTooBigError(f"Malformed input: chunk size {count} "
-                               f"is bigger than {max_chunk_size}")
+    raise ChunkSizeTooBigError(
+        f"Malformed input: chunk size {count} is bigger than {max_chunk_size}"
+    )
 
   chunk = buf.read(count)
   if len(chunk) != count:
     raise ChunkTruncatedError(
         f"Malformed input: chunk size {count} "
-        f"is bigger than actual number of bytes read {len(chunk)}")
+        f"is bigger than actual number of bytes read {len(chunk)}"
+    )
 
   return chunk
 
 
-def ReadAll(buf: IO[bytes],
-            max_chunk_size: Optional[int] = None) -> Iterator[bytes]:
+def ReadAll(
+    buf: IO[bytes], max_chunk_size: Optional[int] = None
+) -> Iterator[bytes]:
   """Reads all the chunks from the input buffer (until the end).
 
   Args:
     buf: An input buffer to read the chunks from.
     max_chunk_size: If set, will raise if chunk's size is larger than a given
-        value.
+      value.
 
   Yields:
     Chunks of bytes stored in the buffer.

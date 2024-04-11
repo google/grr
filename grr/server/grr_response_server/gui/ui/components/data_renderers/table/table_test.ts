@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatPaginatorHarness} from '@angular/material/paginator/testing';
@@ -133,9 +132,8 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const paginationHarness = await harnessLoader.getHarness(
-      MatPaginatorHarness,
-    );
+    const paginationHarness =
+      await harnessLoader.getHarness(MatPaginatorHarness);
     const pageSize = await paginationHarness.getPageSize();
 
     expect(resultSource.loadResults).toHaveBeenCalledOnceWith({
@@ -150,9 +148,8 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const paginationHarness = await harnessLoader.getHarness(
-      MatPaginatorHarness,
-    );
+    const paginationHarness =
+      await harnessLoader.getHarness(MatPaginatorHarness);
     await paginationHarness.goToNextPage();
 
     const pageSize = await paginationHarness.getPageSize();

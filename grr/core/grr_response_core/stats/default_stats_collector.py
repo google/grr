@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Default implementation for a stats-collector."""
 
-
 import abc
 
 from grr_response_core.lib import utils
@@ -43,18 +42,23 @@ class _Metric(metaclass=abc.ABCMeta):
   def Get(self, fields=None):
     """Gets the metric value corresponding to the given field values."""
     if not self._field_defs and fields:
-      raise ValueError("Metric was registered without fields, "
-                       "but following fields were provided: %s." % (fields,))
+      raise ValueError(
+          "Metric was registered without fields, "
+          "but following fields were provided: %s." % (fields,)
+      )
 
     if self._field_defs and not fields:
-      raise ValueError("Metric was registered with fields (%s), "
-                       "but no fields were provided." % self._field_defs)
+      raise ValueError(
+          "Metric was registered with fields (%s), but no fields were provided."
+          % self._field_defs
+      )
 
     if self._field_defs and fields and len(self._field_defs) != len(fields):
       raise ValueError(
           "Metric was registered with %d fields (%s), but "
-          "%d fields were provided (%s)." % (len(
-              self._field_defs), self._field_defs, len(fields), fields))
+          "%d fields were provided (%s)."
+          % (len(self._field_defs), self._field_defs, len(fields), fields)
+      )
 
     metric_value = self._metric_values.get(_FieldsToKey(fields))
     return self._DefaultValue() if metric_value is None else metric_value
@@ -74,7 +78,8 @@ class _CounterMetric(_Metric):
     """Increments counter value by a given delta."""
     if delta < 0:
       raise ValueError(
-          "Counter increment should not be < 0 (received: %d)" % delta)
+          "Counter increment should not be < 0 (received: %d)" % delta
+      )
 
     self._metric_values[_FieldsToKey(fields)] = self.Get(fields=fields) + delta
 
@@ -94,8 +99,29 @@ class _EventMetric(_Metric):
   def __init__(self, bins, fields):
     super().__init__(fields)
     self._bins = bins or [
-        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9,
-        10, 15, 20, 50, 100
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        15,
+        20,
+        50,
+        100,
     ]
 
   def _DefaultValue(self):
@@ -159,17 +185,21 @@ class DefaultStatsCollector(stats_collector.StatsCollector):
   def _InitializeMetric(self, metadata):
     """See base class."""
     field_defs = stats_utils.FieldDefinitionTuplesFromProtos(
-        metadata.fields_defs)
+        metadata.fields_defs
+    )
     if metadata.metric_type == rdf_stats.MetricMetadata.MetricType.COUNTER:
       self._counter_metrics[metadata.varname] = _CounterMetric(field_defs)
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:
       self._event_metrics[metadata.varname] = _EventMetric(
-          list(metadata.bins), field_defs)
+          list(metadata.bins), field_defs
+      )
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.GAUGE:
       value_type = stats_utils.PythonTypeFromMetricValueType(
-          metadata.value_type)
+          metadata.value_type
+      )
       self._gauge_metrics[metadata.varname] = _GaugeMetric(
-          value_type, field_defs)
+          value_type, field_defs
+      )
     else:
       raise ValueError("Unknown metric type: %s." % metadata.metric_type)
 

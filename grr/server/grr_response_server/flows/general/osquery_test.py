@@ -15,12 +15,12 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import osquery as osquery_flow
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -257,7 +257,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
             client_mock=action_mocks.OsqueryClientMock())
 
     flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(flow.flow_state, rdf_flow_objects.Flow.FlowState.ERROR)
+    self.assertEqual(flow.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn(stderr, flow.error_message)
 
   def testSmallerTruncationLimit(self):

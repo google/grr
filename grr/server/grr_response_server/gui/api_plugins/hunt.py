@@ -15,10 +15,13 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import mig_client
+from grr_response_core.lib.rdfvalues import mig_stats
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -43,6 +46,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -407,16 +411,21 @@ class ApiHuntError(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def InitFromFlowObject(self, fo):
-    """Initialize from rdf_flow_objects.Flow corresponding to a failed flow."""
+  @classmethod
+  def FromFlowErrorInfo(
+      cls,
+      client_id: str,
+      info: db.FlowErrorInfo,
+  ) -> "ApiHuntError":
+    result = cls()
+    result.client_id = client_id
+    result.log_message = info.message
+    result.timestamp = info.time
 
-    self.client_id = fo.client_id
-    if fo.HasField("backtrace"):
-      self.backtrace = fo.backtrace
-    self.log_message = fo.error_message
-    self.timestamp = fo.last_update_time
+    if info.backtrace is not None:
+      result.backtrace = info.backtrace
 
-    return self
+    return result
 
 
 class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):
@@ -431,6 +440,22 @@ class ApiListHuntsResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ApiHunt,
   ]
+
+
+def _ApiToObjectHuntStateProto(
+    state: ApiHunt.State,
+) -> hunts_pb2.Hunt.HuntState:
+  """Converts ApiHunt.State to hunts_pb2.Hunt.HuntState."""
+  if state == ApiHunt.State.PAUSED:
+    return hunts_pb2.Hunt.HuntState.PAUSED
+  elif state == ApiHunt.State.STARTED:
+    return hunts_pb2.Hunt.HuntState.STARTED
+  elif state == ApiHunt.State.STOPPED:
+    return hunts_pb2.Hunt.HuntState.STOPPED
+  elif state == ApiHunt.State.COMPLETED:
+    return hunts_pb2.Hunt.HuntState.COMPLETED
+  else:
+    return hunts_pb2.Hunt.HuntState.UNKNOWN
 
 
 class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
@@ -510,18 +535,6 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     else:
       return None
 
-  def _ApiToObjectHuntState(self, state):
-    if state == ApiHunt.State.PAUSED:
-      return rdf_hunt_objects.Hunt.HuntState.PAUSED
-    elif state == ApiHunt.State.STARTED:
-      return rdf_hunt_objects.Hunt.HuntState.STARTED
-    elif state == ApiHunt.State.STOPPED:
-      return rdf_hunt_objects.Hunt.HuntState.STOPPED
-    elif state == ApiHunt.State.COMPLETED:
-      return rdf_hunt_objects.Hunt.HuntState.COMPLETED
-    else:
-      return rdf_hunt_objects.Hunt.HuntState.UNKNOWN
-
   def Handle(self, args, context=None):
     if args.description_contains and not args.active_within:
       raise ValueError(
@@ -542,7 +555,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     if args.active_within:
       kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
     if args.with_state:
-      kw_args["with_states"] = [self._ApiToObjectHuntState(args.with_state)]
+      kw_args["with_states"] = [_ApiToObjectHuntStateProto(args.with_state)]
 
     # TODO(user): total_count is not returned by the current implementation.
     # It's not clear, if it's needed - GRR UI doesn't show total number of
@@ -553,18 +566,27 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       hunt_objects = data_store.REL_DB.ReadHuntObjects(
           args.offset, args.count or db.MAX_COUNT, **kw_args
       )
+      hunt_ids = [h.hunt_id for h in hunt_objects]
+      hunt_counters = data_store.REL_DB.ReadHuntsCounters(hunt_ids)
+
       items = []
       for hunt_obj in hunt_objects:
-        hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
+        hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
         items.append(
             ApiHunt().InitFromHuntObject(
-                hunt_obj, hunt_counters=hunt_counters, with_full_summary=True
+                hunt_obj,
+                hunt_counters=hunt_counters[hunt_obj.hunt_id],
+                with_full_summary=True,
             )
         )
+
     else:
       hunt_objects = data_store.REL_DB.ListHuntObjects(
           args.offset, args.count or db.MAX_COUNT, **kw_args
       )
+      hunt_objects = [
+          mig_hunt_objects.ToRDFHuntMetadata(h) for h in hunt_objects
+      ]
       items = [ApiHunt().InitFromHuntMetadata(h) for h in hunt_objects]
     return ApiListHuntsResult(items=items)
 
@@ -608,6 +630,7 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
     try:
       hunt_id = str(args.hunt_id)
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+      hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
       hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
 
       return ApiHunt().InitFromHuntObject(
@@ -691,6 +714,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
         str(args.hunt_id), with_type=args.with_type or None
     )
 
+    results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
     return ApiListHuntResultsResult(
         items=[ApiHuntResult().InitFromFlowResult(r) for r in results],
         total_count=total_count,
@@ -728,10 +752,9 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
         str(args.hunt_id),
         filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY,
     )
-
-    return ApiListHuntCrashesResult(
-        items=[f.client_crash_info for f in flows], total_count=total_count
-    )
+    crash_infos = [f.client_crash_info for f in flows]
+    crash_infos = [mig_client.ToRDFClientCrash(info) for info in crash_infos]
+    return ApiListHuntCrashesResult(items=crash_infos, total_count=total_count)
 
 
 class ApiGetHuntResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
@@ -802,6 +825,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       ) from ex
 
     for s in plugin_states:
+      s = mig_flow_runner.ToRDFOutputPluginState(s)
       name = s.plugin_descriptor.plugin_name
       plugin_id = "%s_%d" % (name, used_names[name])
       used_names[name] += 1
@@ -820,8 +844,9 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       if "success_count" in state and not state["success_count"]:
         del state["success_count"]
 
+      plugin_descriptor = s.plugin_descriptor
       api_plugin = api_output_plugin.ApiOutputPlugin(
-          id=plugin_id, plugin_descriptor=s.plugin_descriptor, state=state
+          id=plugin_id, plugin_descriptor=plugin_descriptor, state=state
       )
       result.append(api_plugin)
 
@@ -841,6 +866,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
 
   def Handle(self, args, context=None):
     h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
+    h = mig_hunt_objects.ToRDFHunt(h)
 
     if self.__class__.log_entry_type is None:
       raise ValueError(
@@ -984,38 +1010,44 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntErrorsArgs
   result_type = ApiListHuntErrorsResult
 
-  _FLOW_ATTRS_TO_MATCH = ["flow_id", "client_id", "error_message", "backtrace"]
-
-  def _MatchFlowAgainstFilter(self, flow_obj, filter_str):
-    for attr in self._FLOW_ATTRS_TO_MATCH:
-      if filter_str in flow_obj.Get(attr):
-        return True
-
-    return False
-
   def Handle(self, args, context=None):
     total_count = data_store.REL_DB.CountHuntFlows(
         str(args.hunt_id),
         filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY,
     )
+
+    errors = data_store.REL_DB.ReadHuntFlowErrors(
+        str(args.hunt_id),
+        args.offset,
+        args.count or db.MAX_COUNT,
+    )
+
     if args.filter:
-      flows = data_store.REL_DB.ReadHuntFlows(
-          str(args.hunt_id),
-          args.offset,
-          total_count,
-          filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY,
-      )
-      flows = [f for f in flows if self._MatchFlowAgainstFilter(f, args.filter)]
-    else:
-      flows = data_store.REL_DB.ReadHuntFlows(
-          str(args.hunt_id),
-          args.offset,
-          args.count or db.MAX_COUNT,
-          filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY,
-      )
+
+      def MatchesFilter(
+          client_id: str,
+          info: db.FlowErrorInfo,
+      ) -> bool:
+        if args.filter in client_id:
+          return True
+        if args.filter in info.message:
+          return True
+        if info.backtrace is not None and args.filter in info.backtrace:
+          return True
+
+        return False
+
+      errors = {
+          client_id: info
+          for client_id, info in errors.items()
+          if MatchesFilter(client_id, info)
+      }
 
     return ApiListHuntErrorsResult(
-        items=[ApiHuntError().InitFromFlowObject(f) for f in flows],
+        items=[
+            ApiHuntError.FromFlowErrorInfo(client_id, info)
+            for client_id, info in errors.items()
+        ],
         total_count=total_count,
     )
 
@@ -1229,6 +1261,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   ) -> Tuple[Iterable[rdf_flow_objects.FlowResult], str]:
     hunt_id = str(args.hunt_id)
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     hunt_api_object = ApiHunt().InitFromHuntObject(hunt_obj)
     description = (
         "Files downloaded by hunt %s (%s, '%s') created by user %s on %s"
@@ -1244,6 +1277,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     results = data_store.REL_DB.ReadHuntResults(
         hunt_id, offset=0, count=db.MAX_COUNT
     )
+    results = [mig_flow_objects.ToRDFFlowResult(res) for res in results]
     return results, description
 
   def Handle(
@@ -1337,6 +1371,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
         # get filled automatically from the hunt results and we check
         # later that the aff4_path we get is the same as the one that
         # was requested.
+        item = mig_flow_objects.ToRDFFlowResult(item)
         client_path = export.CollectionItemToClientPath(item, client_id=None)
       except export.ItemNotExportableError:
         continue
@@ -1388,6 +1423,7 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     del context  # Unused.
     stats = data_store.REL_DB.ReadHuntClientResourcesStats(str(args.hunt_id))
+    stats = mig_stats.ToRDFClientResourcesStats(stats)
     return ApiGetHuntStatsResult(stats=stats)
 
 
@@ -1461,6 +1497,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     hunt_id = str(args.hunt_id)
     h = data_store.REL_DB.ReadHuntObject(hunt_id)
+    h = mig_hunt_objects.ToRDFHunt(h)
     h_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     context = rdf_hunts.HuntContext(
         session_id=rdfvalue.RDFURN("hunts").Add(h.hunt_id),
@@ -1585,6 +1622,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
 
     try:
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+      hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
       if has_change:
         kw_args = {}
         if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
@@ -1607,6 +1645,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
 
         data_store.REL_DB.UpdateHuntObject(hunt_id, **kw_args)
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+        hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     except db.UnknownHuntError:
       raise HuntNotFoundError(
           "Hunt with id %s could not be found" % args.hunt_id
@@ -1630,7 +1669,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
           )
         hunt_obj = hunt.StopHunt(
             hunt_obj.hunt_id,
-            hunt_state_reason=rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER,
+            hunt_state_reason=hunts_pb2.Hunt.HuntStateReason.TRIGGERED_BY_USER,
             reason_comment=CANCELLED_BY_USER,
         )
 
@@ -1714,6 +1753,7 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
           break
 
         for r in results:
+          r = mig_flow_objects.ToRDFFlowResult(r)
           msg = r.AsLegacyGrrMessage()
           msg.source_urn = source_urn
           yield msg

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with the startup sink."""
+
 from grr_response_server import data_store
 from grr_response_server.sinks import abstract
 from grr_response_proto import rrg_pb2

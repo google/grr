@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import dummy as rdf_dummy
 from grr_response_proto import dummy_pb2
 

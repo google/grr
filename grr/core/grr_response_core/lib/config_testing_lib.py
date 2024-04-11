@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """Helper library for config testing."""
 
-
 import copy
 import logging
 from unittest import mock
-
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -17,12 +15,8 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
   """Base for config functionality tests."""
 
   exceptions = [
-      # Server configuration files do not normally have valid client keys.
-      "Client.private_key",
       # Those keys are maybe passphrase protected so we need to skip.
-      "PrivateKeys.ca_key",
       "PrivateKeys.executable_signing_private_key",
-      "PrivateKeys.server_key",
   ]
 
   # For all the resource filters to work you need the grr-response-templates
@@ -39,8 +33,9 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
       conf_obj = config.CONFIG.MakeNewConfig()
       conf_obj.Initialize(filename=config_file, reset=True)
 
-    with utils.MultiStubber((config, "CONFIG", conf_obj),
-                            (config_lib, "_CONFIG", conf_obj)):
+    with utils.MultiStubber(
+        (config, "CONFIG", conf_obj), (config_lib, "_CONFIG", conf_obj)
+    ):
       all_sections = conf_obj.GetSections()
       errors = conf_obj.Validate(sections=all_sections)
 
@@ -51,8 +46,9 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
     for filter_name in self.disabled_filters:
       test_filter_map[filter_name] = config_lib.ConfigFilter
 
-    with mock.patch.object(config_lib.ConfigFilter, "classes_by_name",
-                           test_filter_map):
+    with mock.patch.object(
+        config_lib.ConfigFilter, "classes_by_name", test_filter_map
+    ):
       for config_file in configs:
         errors = self.ValidateConfig(config_file)
 
@@ -65,5 +61,6 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
             logging.info("%s:", config_entry)
             logging.info("%s", error)
 
-          self.fail("Validation of %s returned errors: %s" % (config_file,
-                                                              errors))
+          self.fail(
+              "Validation of %s returned errors: %s" % (config_file, errors)
+          )

@@ -49,9 +49,11 @@ def compile_protos():
   """Builds necessary assets from sources."""
   # Using Popen to effectively suppress the output of the command below - no
   # need to fill in the logs with protoc's help.
-  p = subprocess.Popen([sys.executable, "-m", "grpc_tools.protoc", "--help"],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE)
+  p = subprocess.Popen(
+      [sys.executable, "-m", "grpc_tools.protoc", "--help"],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+  )
   p.communicate()
   # If protoc is not installed, install it. This seems to be the only reliable
   # way to make sure that grpcio-tools gets intalled, no matter which Python
@@ -62,9 +64,9 @@ def compile_protos():
     # version. Otherwise latest protobuf library will be installed with
     # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
     # and reinstalled to the version required by grr-response-proto.
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF
-    ])
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF]
+    )
 
   # If there's no makefile, we're likely installing from an sdist,
   # so there's no need to compile the protos (they should be already
@@ -73,8 +75,9 @@ def compile_protos():
     return
 
   # Only compile protobufs if we're inside GRR source tree.
-  subprocess.check_call([sys.executable, "makefile.py", "--clean"],
-                        cwd=THIS_DIRECTORY)
+  subprocess.check_call(
+      [sys.executable, "makefile.py", "--clean"], cwd=THIS_DIRECTORY
+  )
 
 
 VERSION = get_config()
@@ -89,7 +92,8 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
+        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+    )
 
   def run(self):
     compile_protos()

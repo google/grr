@@ -10,6 +10,7 @@ from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_server import data_store
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -37,7 +38,9 @@ def GetFileHashEntry(fd):
   path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
 
   path_info = data_store.REL_DB.ReadPathInfo(client_id, path_type, components)
-  return path_info.hash_entry
+  if path_info is None:
+    return None
+  return mig_objects.ToRDFPathInfo(path_info).hash_entry
 
 
 def GetClientKnowledgeBase(client_id):

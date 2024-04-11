@@ -41,22 +41,29 @@ class ProcessTest(test_lib.GRRBaseTest):
 
       raise OSError("Error in open.")
 
-    with utils.MultiStubber((builtins, "open", MockedOpen),
-                            (process, "open64", MockedOpen64)):
+    with utils.MultiStubber(
+        (builtins, "open", MockedOpen), (process, "open64", MockedOpen64)
+    ):
       with process.Process(pid=100) as proc:
         self.assertLen(list(proc.Regions()), 32)
         self.assertLen(list(proc.Regions(skip_mapped_files=True)), 10)
         self.assertLen(list(proc.Regions(skip_shared_regions=True)), 31)
         self.assertEqual(
-            len(list(proc.Regions(skip_executable_regions=True))), 27)
+            len(list(proc.Regions(skip_executable_regions=True))), 27
+        )
         self.assertEqual(
-            len(list(proc.Regions(skip_readonly_regions=True))), 10)
+            len(list(proc.Regions(skip_readonly_regions=True))), 10
+        )
         self.assertEqual(
             len(
                 list(
                     proc.Regions(
-                        skip_executable_regions=True,
-                        skip_shared_regions=True))), 26)
+                        skip_executable_regions=True, skip_shared_regions=True
+                    )
+                )
+            ),
+            26,
+        )
 
 
 def main(argv):

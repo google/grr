@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """RDF values related to events."""
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import random

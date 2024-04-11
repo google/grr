@@ -26,7 +26,8 @@ def _SerializeToYaml(value):
 
 
 class YamlInstantOutputPluginWithExportConversion(
-    instant_output_plugin.InstantOutputPluginWithExportConversion):
+    instant_output_plugin.InstantOutputPluginWithExportConversion
+):
   """Instant output plugin that flattens results into YAML."""
 
   plugin_name = "flattened-yaml-zip"
@@ -48,20 +49,26 @@ class YamlInstantOutputPluginWithExportConversion(
 
   def Start(self):
     self.archive_generator = utils.StreamingZipGenerator(
-        compression=zipfile.ZIP_DEFLATED)
+        compression=zipfile.ZIP_DEFLATED
+    )
     self.export_counts = {}
     return []
 
-  def ProcessSingleTypeExportedValues(self, original_value_type,
-                                      exported_values):
+  def ProcessSingleTypeExportedValues(
+      self, original_value_type, exported_values
+  ):
     first_value = next(exported_values, None)
     if not first_value:
       return
 
     yield self.archive_generator.WriteFileHeader(
-        "%s/%s/from_%s.yaml" % (self.path_prefix,
-                                first_value.__class__.__name__,
-                                original_value_type.__name__))
+        "%s/%s/from_%s.yaml"
+        % (
+            self.path_prefix,
+            first_value.__class__.__name__,
+            original_value_type.__name__,
+        )
+    )
 
     serialized_value_bytes = _SerializeToYaml(first_value).encode("utf-8")
     yield self.archive_generator.WriteFileChunk(serialized_value_bytes)
@@ -79,7 +86,8 @@ class YamlInstantOutputPluginWithExportConversion(
     yield self.archive_generator.WriteFileFooter()
 
     counts_for_original_type = self.export_counts.setdefault(
-        original_value_type.__name__, dict())
+        original_value_type.__name__, dict()
+    )
     counts_for_original_type[first_value.__class__.__name__] = counter
 
   def Finish(self):

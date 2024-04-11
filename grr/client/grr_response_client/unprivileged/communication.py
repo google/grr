@@ -8,7 +8,8 @@ import os
 import platform
 import struct
 import subprocess
-from typing import NamedTuple, Callable, Optional, List, BinaryIO, Set
+from typing import BinaryIO, Callable, List, NamedTuple, Optional, Set
+
 import psutil
 
 from grr_response_client.unprivileged import sandbox
@@ -156,10 +157,12 @@ class FileDescriptor:
   _handle: Optional[int] = None
   _mode: Optional[Mode] = None
 
-  def __init__(self,
-               file_descriptor: Optional[int] = None,
-               handle: Optional[int] = None,
-               mode: Optional[Mode] = None):
+  def __init__(
+      self,
+      file_descriptor: Optional[int] = None,
+      handle: Optional[int] = None,
+      mode: Optional[Mode] = None,
+  ):
     self._file_descriptor = file_descriptor
     self._handle = handle
     self._mode = mode
@@ -178,6 +181,7 @@ class FileDescriptor:
 
     if platform.system() == "Windows":
       import msvcrt  # pylint: disable=g-import-not-at-top
+
       if self._mode == Mode.READ:
         mode = os.O_RDONLY
       elif self._mode == Mode.WRITE:
@@ -247,7 +251,8 @@ class Channel(NamedTuple):
     """Creates a channel from serialized pipe file descriptors."""
     return Channel(
         FileDescriptor.FromSerialized(pipe_input, Mode.READ),
-        FileDescriptor.FromSerialized(pipe_output, Mode.WRITE))
+        FileDescriptor.FromSerialized(pipe_output, Mode.WRITE),
+    )
 
 
 ArgsFactory = Callable[[Channel], List[str]]
@@ -265,9 +270,11 @@ class SubprocessServer(Server):
 
   _started_instances: Set["SubprocessServer"] = set()
 
-  def __init__(self,
-               args_factory: ArgsFactory,
-               extra_file_descriptors: Optional[List[FileDescriptor]] = None):
+  def __init__(
+      self,
+      args_factory: ArgsFactory,
+      extra_file_descriptors: Optional[List[FileDescriptor]] = None,
+  ):
     """Constructor.
 
     Args:
@@ -303,14 +310,18 @@ class SubprocessServer(Server):
         from grr_response_client.unprivileged.windows import process  # pytype: disable=import-error
         # pylint: enable=g-import-not-at-top
         args = self._args_factory(
-            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj))
+            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj)
+        )
         extra_handles = [fd.ToHandle() for fd in self._extra_file_descriptors]
         self._process_win = process.Process(
-            args, [input_r_fd_obj.ToHandle(),
-                   output_w_fd_obj.ToHandle()] + extra_handles)
+            args,
+            [input_r_fd_obj.ToHandle(), output_w_fd_obj.ToHandle()]
+            + extra_handles,
+        )
       else:
         args = self._args_factory(
-            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj))
+            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj)
+        )
         extra_fds = [
             fd.ToFileDescriptor() for fd in self._extra_file_descriptors
         ]
@@ -346,12 +357,14 @@ class SubprocessServer(Server):
   @classmethod
   def TotalCpuTime(cls) -> float:
     return SubprocessServer._past_instances_total_cpu_time + sum(
-        [instance.cpu_time for instance in cls._started_instances])
+        [instance.cpu_time for instance in cls._started_instances]
+    )
 
   @classmethod
   def TotalSysTime(cls) -> float:
     return SubprocessServer._past_instances_total_sys_time + sum(
-        [instance.sys_time for instance in cls._started_instances])
+        [instance.sys_time for instance in cls._started_instances]
+    )
 
   @property
   def cpu_time(self) -> float:
@@ -375,8 +388,12 @@ class SubprocessServer(Server):
       raise ValueError("Can't determine process.")
 
 
-def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
-         group: str) -> None:
+def Main(
+    channel: Channel,
+    connection_handler: ConnectionHandler,
+    user: str,
+    group: str,
+) -> None:
   """The entry point of the server process.
 
   Args:
@@ -388,11 +405,11 @@ def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
   sandbox.EnterSandbox(user, group)
   assert channel.pipe_input is not None and channel.pipe_output is not None
   with os.fdopen(
-      channel.pipe_input.ToFileDescriptor(), "rb",
-      buffering=False) as pipe_input:
+      channel.pipe_input.ToFileDescriptor(), "rb", buffering=False
+  ) as pipe_input:
     with os.fdopen(
-        channel.pipe_output.ToFileDescriptor(), "wb",
-        buffering=False) as pipe_output:
+        channel.pipe_output.ToFileDescriptor(), "wb", buffering=False
+    ) as pipe_output:
       transport = PipeTransport(pipe_input, pipe_output)
       connection = Connection(transport)
       connection_handler(connection)

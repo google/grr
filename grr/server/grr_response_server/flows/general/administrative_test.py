@@ -2,6 +2,7 @@
 """Tests for administrative flows."""
 
 import datetime
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,7 @@ from unittest import mock
 from absl import app
 import psutil
 
+from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
@@ -19,6 +21,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import client_index
@@ -32,6 +35,7 @@ from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
@@ -51,6 +55,32 @@ class ClientActionRunner(flow_base.FlowBase):
   def Start(self):
     self.CallClient(
         action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End")
+
+
+class UpdateClientErrorAction(actions.ActionPlugin):
+  in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
+  out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
+
+  def Run(self, args: rdf_client_action.ExecuteBinaryRequest):
+    if not args.more_data:
+      self.SendReply(
+          rdf_client_action.ExecuteBinaryResponse(
+              exit_status=1, stdout=b"\xff\xff\xff\xff", stderr=b"foobar"
+          )
+      )
+
+
+class UpdateClientNoCrashAction(actions.ActionPlugin):
+  in_rdfvalue = rdf_client_action.ExecuteBinaryRequest
+  out_rdfvalues = [rdf_client_action.ExecuteBinaryResponse]
+
+  def Run(self, args: rdf_client_action.ExecuteBinaryRequest):
+    if not args.more_data:
+      self.SendReply(
+          rdf_client_action.ExecuteBinaryResponse(
+              exit_status=0, stdout=b"foobar", stderr=b"\xff\xff\xff\xff"
+          )
+      )
 
 
 class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
@@ -161,7 +191,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
 
     self.assertIn(client_id, email_message["title"])
     rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.CRASHED)
+    self.assertEqual(rel_flow_obj.flow_state, flows_pb2.Flow.FlowState.CRASHED)
 
     # Make sure client object is updated with the last crash.
     crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
@@ -414,7 +444,82 @@ magic_return_str = "foo(%s)"
           binary=binary_path,
           client_id=client_id,
           command_line="--bar --baz",
-          creator=self.test_username)
+          creator=self.test_username,
+      )
+
+  def testUpdateClient(self):
+    client_mock = action_mocks.ActionMock.With(
+        {"UpdateAgent": UpdateClientNoCrashAction}
+    )
+    fake_installer = b"FakeGRRDebInstaller" * 20
+    upload_path = (
+        signed_binary_utils.GetAFF4ExecutablesRoot()
+        .Add(config.CONFIG["Client.platform"])
+        .Add("test.deb")
+    )
+    maintenance_utils.UploadSignedConfigBlob(
+        fake_installer, aff4_path=upload_path, limit=100
+    )
+
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        upload_path
+    )
+    self.assertLen(list(blob_list), 4)
+
+    acl_test_lib.CreateAdminUser(self.test_username)
+
+    client_id = self.SetupClient(0, system="")
+    flow_id = flow_test_lib.TestFlowHelper(
+        administrative.UpdateClient.__name__,
+        client_mock,
+        client_id=client_id,
+        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
+        creator=self.test_username,
+    )
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(0, results[0].exit_status)
+    self.assertEqual(results[0].stdout, b"foobar")
+
+  def testUpdateClientFailure(self):
+    client_mock = action_mocks.ActionMock.With(
+        {"UpdateAgent": UpdateClientErrorAction}
+    )
+    fake_installer = b"FakeGRRDebInstaller" * 20
+    upload_path = (
+        signed_binary_utils.GetAFF4ExecutablesRoot()
+        .Add(config.CONFIG["Client.platform"])
+        .Add("test.deb")
+    )
+    maintenance_utils.UploadSignedConfigBlob(
+        fake_installer, aff4_path=upload_path, limit=100
+    )
+
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        upload_path
+    )
+    self.assertLen(list(blob_list), 4)
+
+    acl_test_lib.CreateAdminUser(self.test_username)
+
+    client_id = self.SetupClient(0, system="")
+    flow_id = flow_test_lib.TestFlowHelper(
+        administrative.UpdateClient.__name__,
+        client_mock,
+        client_id=client_id,
+        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
+        creator=self.test_username,
+        check_flow_errors=False,
+    )
+
+    rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(rel_flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    self.assertEmpty(results)
+    self.assertContainsInOrder(
+        ["stdout: b'\\xff\\xff\\xff\\xff'", "stderr: b'foobar'"],
+        rel_flow_obj.error_message,
+    )
 
   def testOnlineNotificationEmail(self):
     """Tests that the mail is sent in the OnlineNotification flow."""
@@ -599,11 +704,15 @@ magic_return_str = "foo(%s)"
       self._RunSendStartupInfo(client_id)
 
       data_store.REL_DB.WriteFlowObject(
-          rdf_flow_objects.Flow(
-              flow_id=flow.RandomFlowId(),
-              client_id=client_id,
-              flow_class_name=discovery.Interrogate.__name__,
-              flow_state=rdf_flow_objects.Flow.FlowState.RUNNING))
+          mig_flow_objects.ToProtoFlow(
+              rdf_flow_objects.Flow(
+                  flow_id=flow.RandomFlowId(),
+                  client_id=client_id,
+                  flow_class_name=discovery.Interrogate.__name__,
+                  flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+              )
+          )
+      )
 
       flows = data_store.REL_DB.ReadAllFlowObjects(
           client_id, include_child_flows=False)
@@ -628,11 +737,15 @@ magic_return_str = "foo(%s)"
       self._RunSendStartupInfo(client_id)
 
     data_store.REL_DB.WriteFlowObject(
-        rdf_flow_objects.Flow(
-            flow_id=flow.RandomFlowId(),
-            client_id=client_id,
-            flow_class_name=discovery.Interrogate.__name__,
-            flow_state=rdf_flow_objects.Flow.FlowState.FINISHED))
+        mig_flow_objects.ToProtoFlow(
+            rdf_flow_objects.Flow(
+                flow_id=flow.RandomFlowId(),
+                client_id=client_id,
+                flow_class_name=discovery.Interrogate.__name__,
+                flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+            )
+        )
+    )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id, include_child_flows=False)
@@ -651,55 +764,6 @@ magic_return_str = "foo(%s)"
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ]
     self.assertLen(interrogates, orig_count + 1)
-
-  def testNannyMessageHandler(self):
-    client_id = self.SetupClient(0)
-    nanny_message = "Oh no!"
-    email_dict = {}
-
-    def SendEmail(address, sender, title, message, **_):
-      email_dict.update(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-              payload=rdf_protodict.DataBlob(string=nanny_message),
-              request_id=0,
-              auth_state="AUTHENTICATED",
-              response_id=123))
-
-    self._CheckNannyEmail(client_id, nanny_message, email_dict)
-
-  def testNannyMessageHandlerForUnknownClient(self):
-    client_id = self.SetupClient(0)
-    nanny_message = "Oh no!"
-    email_dict = {}
-
-    def SendEmail(address, sender, title, message, **_):
-      email_dict.update(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-              payload=rdf_protodict.DataBlob(string=nanny_message),
-              request_id=0,
-              auth_state="AUTHENTICATED",
-              response_id=123))
-
-    # We expect the email to be sent.
-    self.assertEqual(
-        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
-
-    # Make sure the message is included in the email message.
-    self.assertIn(nanny_message, email_dict["message"])
-
-    self.assertIn(client_id, email_dict["title"])
 
   def testClientAlertHandler(self):
     client_id = self.SetupClient(0)

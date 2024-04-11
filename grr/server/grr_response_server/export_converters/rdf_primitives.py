@@ -28,8 +28,9 @@ class RDFBytesToExportedBytesConverter(base.ExportConverter):
 
   input_rdf_type = rdfvalue.RDFBytes
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              data: rdfvalue.RDFBytes) -> List[ExportedBytes]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, data: rdfvalue.RDFBytes
+  ) -> List[ExportedBytes]:
     """Converts a RDFBytes into a ExportedNetworkConnection.
 
     Args:
@@ -41,7 +42,8 @@ class RDFBytesToExportedBytesConverter(base.ExportConverter):
     """
 
     result = ExportedBytes(
-        metadata=metadata, data=data.SerializeToBytes(), length=len(data))
+        metadata=metadata, data=data.SerializeToBytes(), length=len(data)
+    )
     return [result]
 
 
@@ -50,8 +52,9 @@ class RDFStringToExportedStringConverter(base.ExportConverter):
 
   input_rdf_type = rdfvalue.RDFString
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              data: rdfvalue.RDFString) -> List[ExportedString]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, data: rdfvalue.RDFString
+  ) -> List[ExportedString]:
     """Converts a RDFString into a ExportedString.
 
     Args:

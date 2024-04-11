@@ -7,11 +7,9 @@ core/grr_response_core/config/output_plugins.py
 The specification for the indexing of documents is
 https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-index_.html
 """
+
 import json
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Text
+from typing import Any, Dict, List
 from urllib import parse as urlparse
 
 import requests
@@ -27,21 +25,22 @@ from grr_response_server import output_plugin
 from grr_response_server.export_converters import base
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 
 BULK_OPERATIONS_PATH = "_bulk"
 
 # TODO(user): Use the JSON type.
-JsonDict = Dict[Text, Any]
+JsonDict = Dict[str, Any]
 
 
 class ElasticsearchConfigurationError(Exception):
   """Error indicating a wrong or missing Elasticsearch configuration."""
-  pass
 
 
 class ElasticsearchOutputPluginArgs(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the arguments of ElasticsearchOutputPlugin."""
+
   protobuf = output_plugin_pb2.ElasticsearchOutputPluginArgs
   rdf_deps = []
 
@@ -66,7 +65,8 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
       raise ElasticsearchConfigurationError(
           "Cannot start ElasticsearchOutputPlugin, because Elasticsearch.url"
           "is not configured. Set it to the base URL of your Elasticsearch"
-          "installation, e.g. 'https://myelasticsearch.example.com:9200'.")
+          "installation, e.g. 'https://myelasticsearch.example.com:9200'."
+      )
 
     self._verify_https = config.CONFIG["Elasticsearch.verify_https"]
     self._token = config.CONFIG["Elasticsearch.token"]
@@ -90,32 +90,38 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
     client_ids = {msg.client_id for msg in responses}
     if len(client_ids) > 1:
-      raise AssertionError((
-          "ProcessResponses received messages from different Clients {}, which "
-          "violates OutputPlugin constraints.").format(client_ids))
+      raise AssertionError(
+          (
+              "ProcessResponses received messages from different Clients {},"
+              " which violates OutputPlugin constraints."
+          ).format(client_ids)
+      )
     return client_ids.pop()
 
-  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
     flow_ids = {msg.flow_id for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
-          ("ProcessResponses received messages from different Flows {}, which "
-           "violates OutputPlugin constraints.").format(flow_ids))
+          (
+              "ProcessResponses received messages from different Flows {},"
+              " which violates OutputPlugin constraints."
+          ).format(flow_ids)
+      )
     return flow_ids.pop()
 
-  def _GetClientMetadata(self, client_id: Text) -> base.ExportedMetadata:
+  def _GetClientMetadata(self, client_id: str) -> base.ExportedMetadata:
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     info = mig_objects.ToRDFClientFullInfo(info)
     metadata = export.GetMetadata(client_id, info)
     metadata.timestamp = None  # timestamp is sent outside of metadata.
     return metadata
 
-  def _GetFlowMetadata(self, client_id: Text,
-                       flow_id: Text) -> api_flow.ApiFlow:
+  def _GetFlowMetadata(self, client_id: str, flow_id: str) -> api_flow.ApiFlow:
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
   def _MakeEvent(
@@ -138,14 +144,13 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     return event
 
   def _SendEvents(self, events: List[JsonDict]) -> None:
-    """Uses the Elasticsearch bulk API to index all events in a single request.
-    """
+    """Uses the Elasticsearch bulk API to index all events in a single request."""
     # https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
 
     if self._token:
       headers = {
           "Authorization": "Basic {}".format(self._token),
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
       }
     else:
       headers = {"Content-Type": "application/json"}
@@ -155,15 +160,14 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     # Each index operation is two lines, the first defining the index settings,
     # the second is the actual document to be indexed
     data = (
-        "\n".join(
-            [
-                "{}\n{}".format(index_command, json.dumps(event, indent=None))
-                for event in events
-            ]
-        )
+        "\n".join([
+            "{}\n{}".format(index_command, json.dumps(event, indent=None))
+            for event in events
+        ])
         + "\n"
     )
 
     response = requests.post(
-        url=self._url, verify=self._verify_https, data=data, headers=headers)
+        url=self._url, verify=self._verify_https, data=data, headers=headers
+    )
     response.raise_for_status()

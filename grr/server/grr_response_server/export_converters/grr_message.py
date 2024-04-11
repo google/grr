@@ -101,15 +101,17 @@ class GrrMessageConverter(base.ExportConverter):
           # Create a dict of values for conversion keyed by type, so we can
           # apply the right converters to the right object types
           if cls_name not in data_by_type:
-            converters_classes = export_converters_registry.GetConvertersByValue(
-                message.payload)
+            converters_classes = (
+                export_converters_registry.GetConvertersByValue(message.payload)
+            )
             data_by_type[cls_name] = {
                 "converters": [cls(self.options) for cls in converters_classes],
-                "batch_data": [(new_metadata, message.payload)]
+                "batch_data": [(new_metadata, message.payload)],
             }
           else:
             data_by_type[cls_name]["batch_data"].append(
-                (new_metadata, message.payload))
+                (new_metadata, message.payload)
+            )
 
       except KeyError:
         pass

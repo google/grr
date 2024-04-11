@@ -3,17 +3,13 @@
 
 import contextlib
 import io
-from typing import IO
-from typing import Iterator
-from typing import Text
-from typing import Tuple
-
 import sqlite3
+from typing import IO, Iterator, Tuple
 
 from grr_response_core.lib.util import temp
 
 
-class ConnectionContext(object):
+class ConnectionContext:
   """A wrapper class around an SQLite connection object.
 
   This class wraps a low-level SQLite connection that is error-prone and does
@@ -28,7 +24,7 @@ class ConnectionContext(object):
     """
     self._conn = conn
 
-  def Query(self, query: Text) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
+  def Query(self, query: str) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
     """Queries the underlying database.
 
     Args:

@@ -90,9 +90,8 @@ message Artifact {
     description: "A list of artifact collectors.",
   }]; */
 
-  repeated string provides = 8 [(sem_type) = {
-    description: "A list of knowledgebase values this artifact provides.",
-  }];
+  reserved 8;
+  reserved "provides";
 
   repeated ArtifactSource sources = 9 [(sem_type) = {
     description: "A list of artifact sources.",

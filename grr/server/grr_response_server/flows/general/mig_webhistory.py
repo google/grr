@@ -4,34 +4,6 @@ from grr_response_proto import flows_pb2
 from grr_response_server.flows.general import webhistory
 
 
-def ToProtoChromeHistoryArgs(
-    rdf: webhistory.ChromeHistoryArgs,
-) -> flows_pb2.ChromeHistoryArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFChromeHistoryArgs(
-    proto: flows_pb2.ChromeHistoryArgs,
-) -> webhistory.ChromeHistoryArgs:
-  return webhistory.ChromeHistoryArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoFirefoxHistoryArgs(
-    rdf: webhistory.FirefoxHistoryArgs,
-) -> flows_pb2.FirefoxHistoryArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFirefoxHistoryArgs(
-    proto: flows_pb2.FirefoxHistoryArgs,
-) -> webhistory.FirefoxHistoryArgs:
-  return webhistory.FirefoxHistoryArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoCollectBrowserHistoryArgs(
     rdf: webhistory.CollectBrowserHistoryArgs,
 ) -> flows_pb2.CollectBrowserHistoryArgs:

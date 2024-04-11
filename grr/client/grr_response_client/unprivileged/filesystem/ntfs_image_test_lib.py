@@ -27,22 +27,35 @@ READ_ONLY_FILE_TXT_FILE_REF = 844424930132043
 HIDDEN_FILE_TXT_FILE_REF = 562949953421388
 CHINESE_FILE_FILE_REF = 844424930132045
 
-
 # Default StatEntry.ntfs values for files and directories
 S_DEFAULT_FILE = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE)  # pytype: disable=module-attr
+    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+)
 S_DEFAULT_DIR = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE)  # pytype: disable=module-attr
+    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+)
 
 S_MODE_ALL = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 S_MODE_DIR = stat.S_IFDIR | S_MODE_ALL
 S_MODE_DEFAULT = stat.S_IFREG | S_MODE_ALL
 S_MODE_READ_ONLY = (
-    stat.S_IFREG | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IXUSR
-    | stat.S_IXGRP | stat.S_IXOTH)
+    stat.S_IFREG
+    | stat.S_IRUSR
+    | stat.S_IRGRP
+    | stat.S_IROTH
+    | stat.S_IXUSR
+    | stat.S_IXGRP
+    | stat.S_IXOTH
+)
 S_MODE_HIDDEN = (
-    stat.S_IFREG | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH | stat.S_IXUSR
-    | stat.S_IXGRP | stat.S_IXOTH)
+    stat.S_IFREG
+    | stat.S_IWUSR
+    | stat.S_IWGRP
+    | stat.S_IWOTH
+    | stat.S_IXUSR
+    | stat.S_IXGRP
+    | stat.S_IXOTH
+)
 
 
 def _FormatTimestamp(timestamp: timestamp_pb2.Timestamp) -> str:
@@ -52,12 +65,8 @@ def _FormatTimestamp(timestamp: timestamp_pb2.Timestamp) -> str:
 
 def _ParseTimestamp(s: str) -> timestamp_pb2.Timestamp:
   default = datetime.datetime(  # pylint: disable=g-tzinfo-datetime
-      time.gmtime().tm_year,
-      1,
-      1,
-      0,
-      0,
-      tzinfo=dateutil.tz.tzutc())
+      time.gmtime().tm_year, 1, 1, 0, 0, tzinfo=dateutil.tz.tzutc()
+  )
   dt = dateutil.parser.parse(s, default=default)
   result = timestamp_pb2.Timestamp()
   result.FromDatetime(dt)
@@ -74,7 +83,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
 
   @abc.abstractmethod
   def _ExpectedStatEntry(
-      self, st: filesystem_pb2.StatEntry) -> filesystem_pb2.StatEntry:
+      self, st: filesystem_pb2.StatEntry
+  ) -> filesystem_pb2.StatEntry:
     """Fixes an expected StatEntry for the respective implementation."""
     pass
 
@@ -94,14 +104,18 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
     cls._exit_stack = contextlib.ExitStack()
 
     ntfs_image = cls._exit_stack.enter_context(
-        open(os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img"), "rb"))
+        open(os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img"), "rb")
+    )
     cls._server = server.CreateFilesystemServer(ntfs_image.fileno())
     cls._server.Start()
 
     cls._client = cls._exit_stack.enter_context(
-        client.CreateFilesystemClient(cls._server.Connect(),
-                                      cls._IMPLEMENTATION_TYPE,
-                                      client.FileDevice(ntfs_image)))
+        client.CreateFilesystemClient(
+            cls._server.Connect(),
+            cls._IMPLEMENTATION_TYPE,
+            client.FileDevice(ntfs_image),
+        )
+    )
 
   @classmethod
   def tearDownClass(cls):
@@ -114,7 +128,7 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
       data = file_obj.Read(offset=0, size=50)
       self.assertEqual(
           data,
-          b"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20"
+          b"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20",
       )
 
   def testNonExistent(self):
@@ -135,7 +149,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
 
   def testOpenByInode(self):
     with self._client.OpenByInode(
-        inode=self._FileRefToInode(A_B1_C1_D_FILE_REF)) as file_obj:
+        inode=self._FileRefToInode(A_B1_C1_D_FILE_REF)
+    ) as file_obj:
       self.assertEqual(file_obj.Read(0, 100), b"foo\n")
 
   def testOpenByInode_stale(self):
@@ -175,7 +190,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DIR,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="ads",
@@ -189,7 +205,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DIR,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="hidden_file.txt",
@@ -201,13 +218,15 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
                       flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
-                      | stat.FILE_ATTRIBUTE_HIDDEN),  # pytype: disable=module-attr
+                      | stat.FILE_ATTRIBUTE_HIDDEN,  # pytype: disable=module-attr
+                  ),
                   st_size=0,
                   st_gid=0,
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_HIDDEN,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="numbers.txt",
@@ -222,7 +241,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="read_only_file.txt",
@@ -234,13 +254,15 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
                       flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
-                      | stat.FILE_ATTRIBUTE_READONLY),  # pytype: disable=module-attr
+                      | stat.FILE_ATTRIBUTE_READONLY,  # pytype: disable=module-attr
+                  ),
                   st_size=0,
                   st_gid=0,
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_READ_ONLY,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="入乡随俗 海外春节别样过法.txt",
@@ -255,7 +277,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
       ]
       self.assertEqual(files, expected_files)
 
@@ -286,7 +309,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="ads.txt",
@@ -302,7 +326,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="ads.txt",
@@ -318,7 +343,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
       ]
       self.assertEqual(files, expected_files)
 
@@ -334,22 +360,26 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
       self.assertEqual(file_obj.Read(0, 100), b"Foo.\n")
 
     with self._client.Open(
-        path=self._Path("\\ads\\ads.txt"), stream_name="one") as file_obj:
+        path=self._Path("\\ads\\ads.txt"), stream_name="one"
+    ) as file_obj:
       self.assertEqual(file_obj.Read(0, 100), b"Bar..\n")
 
     with self._client.Open(
-        path=self._Path("\\ads\\ads.txt"), stream_name="two") as file_obj:
+        path=self._Path("\\ads\\ads.txt"), stream_name="two"
+    ) as file_obj:
       self.assertEqual(file_obj.Read(0, 100), b"Baz...\n")
 
   def testOpen_alternateDataStreams_invalid(self):
     with self.assertRaises(client.OperationError):
       self._client.Open(
-          path=self._Path("\\ads\\ads.txt"), stream_name="invalid")
+          path=self._Path("\\ads\\ads.txt"), stream_name="invalid"
+      )
 
   def testStat_alternateDataStreams(self):
 
     with self._client.Open(
-        path=self._Path("\\ads\\ads.txt"), stream_name="one") as file_obj:
+        path=self._Path("\\ads\\ads.txt"), stream_name="one"
+    ) as file_obj:
       s = file_obj.Stat()
       self.assertEqual(s.name, "ads.txt")
       self.assertEqual(s.stream_name, "one")
@@ -360,8 +390,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
 
   def testOpenByInode_alternateDataStreams(self):
     with self._client.OpenByInode(
-        inode=self._FileRefToInode(ADS_ADS_TXT_FILE_REF),
-        stream_name="one") as file_obj:
+        inode=self._FileRefToInode(ADS_ADS_TXT_FILE_REF), stream_name="one"
+    ) as file_obj:
       self.assertEqual(file_obj.Read(0, 100), b"Bar..\n")
 
   def testListFiles_alternateDataStreams_fileOnly(self):
@@ -385,7 +415,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
           self._ExpectedStatEntry(
               filesystem_pb2.StatEntry(
                   name="ads.txt",
@@ -401,17 +432,21 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_uid=48,
                   st_nlink=1,
                   st_mode=S_MODE_DEFAULT,
-              )),
+              )
+          ),
       ]
       self.assertEqual(files, expected_files)
 
   def testReadUnicode(self):
-    with self._client.Open(path=self._Path("\\入乡随俗 海外春节别样过法.txt")) as file_obj:
+    with self._client.Open(
+        path=self._Path("\\入乡随俗 海外春节别样过法.txt")
+    ) as file_obj:
       expected = "Chinese news\n中国新闻\n".encode("utf-8")
       self.assertEqual(file_obj.Read(0, 100), expected)
 
   def testRead_fromDirectoryRaises(self):
-    with self.assertRaisesRegex(client.OperationError,
-                                "Attempting to read from a directory"):
+    with self.assertRaisesRegex(
+        client.OperationError, "Attempting to read from a directory"
+    ):
       with self._client.Open(path=self._Path("\\a")) as file_obj:
         file_obj.Read(offset=0, size=1)

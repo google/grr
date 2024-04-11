@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Classes for exporting StatEntry."""
+
 import hashlib
 import logging
 import time
@@ -97,7 +98,8 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
 
       if auth.has_countersignature:
         result.cert_countersignature_chain_head_issuer = str(
-            auth.counter_chain_head[2])
+            auth.counter_chain_head[2]
+        )
 
       certs = []
       for (issuer, serial), cert in auth.certificates.items():
@@ -116,7 +118,9 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
                 serial=serial,
                 subject=subject_dn,
                 not_before_time=not_before_time_str,
-                not_after_time=not_after_time_str))
+                not_after_time=not_after_time_str,
+            )
+        )
       result.cert_certificates = str(certs)
 
     # Verify_sigs library can basically throw all kinds of exceptions so
@@ -143,8 +147,9 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
       result.pecoff_hash_sha1 = str(hash_obj.pecoff_sha1)
 
     if hash_obj.HasField("signed_data"):
-      StatEntryToExportedFileConverter.ParseSignedData(hash_obj.signed_data[0],
-                                                       result)
+      StatEntryToExportedFileConverter.ParseSignedData(
+          hash_obj.signed_data[0], result
+      )
 
   def Convert(self, metadata, stat_entry):
     """Converts StatEntry to ExportedFile.
@@ -190,7 +195,8 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
         st_blocks=stat_entry.st_blocks,
         st_blksize=stat_entry.st_blksize,
         st_rdev=stat_entry.st_rdev,
-        symlink=stat_entry.symlink)
+        symlink=stat_entry.symlink,
+    )
 
   _BATCH_SIZE = 5000
 
@@ -206,23 +212,27 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
           # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
           # client_id (to be added).
           client_paths.add(
-              db.ClientPath.FromPathSpec(metadata.client_urn.Basename(),
-                                         stat_entry.pathspec))
+              db.ClientPath.FromPathSpec(
+                  metadata.client_urn.Basename(), stat_entry.pathspec
+              )
+          )
 
         data_by_path = {}
         for chunk in file_store.StreamFilesChunks(
-            client_paths, max_size=self.MAX_CONTENT_SIZE):
+            client_paths, max_size=self.MAX_CONTENT_SIZE
+        ):
           data_by_path.setdefault(chunk.client_path, []).append(chunk.data)
 
       for metadata, stat_entry in fp_batch:
         result = self._CreateExportedFile(metadata, stat_entry)
-        clientpath = db.ClientPath.FromPathSpec(metadata.client_urn.Basename(),
-                                                stat_entry.pathspec)
+        clientpath = db.ClientPath.FromPathSpec(
+            metadata.client_urn.Basename(), stat_entry.pathspec
+        )
 
         if self.options.export_files_contents:
           try:
             data = data_by_path[clientpath]
-            result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
+            result.content = b"".join(data)[: self.MAX_CONTENT_SIZE]
             result.content_sha256 = hashlib.sha256(result.content).hexdigest()
           except KeyError:
             pass
@@ -271,10 +281,12 @@ class StatEntryToExportedRegistryKeyConverter(base.ExportConverter):
     result = ExportedRegistryKey(
         metadata=metadata,
         urn=stat_entry.AFF4Path(metadata.client_urn),
-        last_modified=stat_entry.st_mtime)
+        last_modified=stat_entry.st_mtime,
+    )
 
-    if (stat_entry.HasField("registry_type") and
-        stat_entry.HasField("registry_data")):
+    if stat_entry.HasField("registry_type") and stat_entry.HasField(
+        "registry_data"
+    ):
 
       result.type = stat_entry.registry_type
 
@@ -307,8 +319,10 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     file_pairs = []
     match_pairs = []
     for metadata, result in metadata_value_pairs:
-      if (result.stat_entry.pathspec.pathtype ==
-          rdf_paths.PathSpec.PathType.REGISTRY):
+      if (
+          result.stat_entry.pathspec.pathtype
+          == rdf_paths.PathSpec.PathType.REGISTRY
+      ):
         registry_pairs.append((metadata, result.stat_entry))
       else:
         file_pairs.append((metadata, result))
@@ -338,7 +352,6 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     similar to statentry exports, and share some code, but different because we
     already have the hash available without having to go back to the database to
     retrieve it from the aff4 object.
-
     """
     result_generator = self._BatchConvert(metadata_value_pairs)
 
@@ -349,7 +362,8 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
   def _BatchConvert(self, metadata_value_pairs):
     registry_pairs, file_pairs, match_pairs = self._SeparateTypes(
-        metadata_value_pairs)
+        metadata_value_pairs
+    )
     for fp_batch in collection.Batch(file_pairs, self._BATCH_SIZE):
 
       if self.options.export_files_contents:
@@ -358,15 +372,18 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
           # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
           # client_id (to be added).
           client_path = db.ClientPath.FromPathSpec(
-              metadata.client_urn.Basename(), ff_result.stat_entry.pathspec)
+              metadata.client_urn.Basename(), ff_result.stat_entry.pathspec
+          )
           pathspec_by_client_path[client_path] = ff_result.stat_entry.pathspec
 
         data_by_pathspec = {}
         for chunk in file_store.StreamFilesChunks(
-            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE):
+            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE
+        ):
           pathspec = pathspec_by_client_path[chunk.client_path]
-          data_by_pathspec.setdefault(pathspec.CollapsePath(),
-                                      []).append(chunk.data)
+          data_by_pathspec.setdefault(pathspec.CollapsePath(), []).append(
+              chunk.data
+          )
 
       for metadata, ff_result in fp_batch:
         result = self._CreateExportedFile(metadata, ff_result.stat_entry)
@@ -379,8 +396,9 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
         if self.options.export_files_contents:
           try:
             data = data_by_pathspec[
-                ff_result.stat_entry.pathspec.CollapsePath()]
-            result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
+                ff_result.stat_entry.pathspec.CollapsePath()
+            ]
+            result.content = b"".join(data)[: self.MAX_CONTENT_SIZE]
             result.content_sha256 = hashlib.sha256(result.content).hexdigest()
           except KeyError:
             pass
@@ -389,12 +407,14 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
     # Now export the registry keys
     for result in export.ConvertValuesWithMetadata(
-        registry_pairs, options=self.options):
+        registry_pairs, options=self.options
+    ):
       yield result
 
     # Now export the grep matches.
     for result in export.ConvertValuesWithMetadata(
-        match_pairs, options=self.options):
+        match_pairs, options=self.options
+    ):
       yield result
 
   def Convert(self, metadata, result):
@@ -410,30 +430,36 @@ class ArtifactFilesDownloaderResultConverter(base.ExportConverter):
     """Converts original result via given converter.."""
 
     exported_results = list(
-        converter.Convert(metadata or base.ExportedMetadata(), original_result))
+        converter.Convert(metadata or base.ExportedMetadata(), original_result)
+    )
 
     if not exported_results:
-      raise export.ExportError("Got 0 exported result when a single one "
-                               "was expected.")
+      raise export.ExportError(
+          "Got 0 exported result when a single one was expected."
+      )
 
     if len(exported_results) > 1:
-      raise export.ExportError("Got > 1 exported results when a single "
-                               "one was expected, seems like a logical bug.")
+      raise export.ExportError(
+          "Got > 1 exported results when a single "
+          "one was expected, seems like a logical bug."
+      )
 
     return exported_results[0]
 
   def IsRegistryStatEntry(self, original_result):
     """Checks if given RDFValue is a registry StatEntry."""
-    return (original_result.pathspec.pathtype ==
-            rdf_paths.PathSpec.PathType.REGISTRY)
+    return (
+        original_result.pathspec.pathtype
+        == rdf_paths.PathSpec.PathType.REGISTRY
+    )
 
   def IsFileStatEntry(self, original_result):
     """Checks if given RDFValue is a file StatEntry."""
-    return (original_result.pathspec.pathtype in [
+    return original_result.pathspec.pathtype in [
         rdf_paths.PathSpec.PathType.OS,
         rdf_paths.PathSpec.PathType.TSK,
         rdf_paths.PathSpec.PathType.NTFS,
-    ])
+    ]
 
   def BatchConvert(self, metadata_value_pairs):
     metadata_value_pairs = list(metadata_value_pairs)
@@ -449,16 +475,20 @@ class ArtifactFilesDownloaderResultConverter(base.ExportConverter):
         exported_registry_key = self.GetExportedResult(
             original_result,
             StatEntryToExportedRegistryKeyConverter(),
-            metadata=metadata)
+            metadata=metadata,
+        )
         result = ExportedArtifactFilesDownloaderResult(
-            metadata=metadata, original_registry_key=exported_registry_key)
+            metadata=metadata, original_registry_key=exported_registry_key
+        )
       elif self.IsFileStatEntry(original_result):
         exported_file = self.GetExportedResult(
             original_result,
             StatEntryToExportedFileConverter(),
-            metadata=metadata)
+            metadata=metadata,
+        )
         result = ExportedArtifactFilesDownloaderResult(
-            metadata=metadata, original_file=exported_file)
+            metadata=metadata, original_file=exported_file
+        )
       else:
         # TODO(user): if original_result is not a registry key or a file,
         # we should still somehow export the data, otherwise the user will get
@@ -501,7 +531,8 @@ class ArtifactFilesDownloaderResultConverter(base.ExportConverter):
     #   matter what type it has, we want it in the export output.
     original_pairs = [(m, v.original_result) for m, v in metadata_value_pairs]
     for result in export.ConvertValuesWithMetadata(
-        original_pairs, options=None):
+        original_pairs, options=None
+    ):
       yield result
 
   def Convert(self, metadata, value):

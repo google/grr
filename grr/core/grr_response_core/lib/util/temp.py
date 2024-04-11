@@ -6,7 +6,6 @@ import platform
 import shutil
 import tempfile
 from typing import Optional
-from typing import Text
 
 from absl import flags
 
@@ -15,7 +14,7 @@ from grr_response_core.lib.util import precondition
 FLAGS = flags.FLAGS
 
 
-def _TestTempRootPath() -> Optional[Text]:
+def _TestTempRootPath() -> Optional[str]:
   """Returns a default root path for storing temporary files during tests."""
   # `TEST_TMPDIR` and `FLAGS.test_tmpdir` are only defined only for test
   # environments. For non-test code, we use the default temporary directory.
@@ -36,7 +35,7 @@ def _TestTempRootPath() -> Optional[Text]:
   return test_tmpdir
 
 
-def TempDirPath(suffix: Text = "", prefix: Text = "tmp") -> Text:
+def TempDirPath(suffix: str = "", prefix: str = "tmp") -> str:
   """Creates a temporary directory based on the environment configuration.
 
   The directory will be placed in folder as specified by the `TEST_TMPDIR`
@@ -50,15 +49,17 @@ def TempDirPath(suffix: Text = "", prefix: Text = "tmp") -> Text:
   Returns:
     An absolute path to the created directory.
   """
-  precondition.AssertType(suffix, Text)
-  precondition.AssertType(prefix, Text)
+  precondition.AssertType(suffix, str)
+  precondition.AssertType(prefix, str)
 
   return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TestTempRootPath())
 
 
-def TempFilePath(suffix: Text = "",
-                 prefix: Text = "tmp",
-                 dir: Optional[Text] = None) -> Text:  # pylint: disable=redefined-builtin
+def TempFilePath(
+    suffix: str = "",
+    prefix: str = "tmp",
+    dir: Optional[str] = None,  # pylint: disable=redefined-builtin
+) -> str:
   """Creates a temporary file based on the environment configuration.
 
   If no directory is specified the file will be placed in folder as specified by
@@ -80,9 +81,9 @@ def TempFilePath(suffix: Text = "",
     ValueError: If the specified directory is not part of the default test
         temporary directory.
   """
-  precondition.AssertType(suffix, Text)
-  precondition.AssertType(prefix, Text)
-  precondition.AssertOptionalType(dir, Text)
+  precondition.AssertType(suffix, str)
+  precondition.AssertType(prefix, str)
+  precondition.AssertOptionalType(dir, str)
 
   root = _TestTempRootPath()
   if not dir:
@@ -98,7 +99,7 @@ def TempFilePath(suffix: Text = "",
   return path
 
 
-class AutoTempDirPath(object):
+class AutoTempDirPath:
   """Creates a temporary directory based on the environment configuration.
 
   The directory will be placed in folder as specified by the `TEST_TMPDIR`
@@ -108,29 +109,33 @@ class AutoTempDirPath(object):
   This object is a context manager and the directory is automatically removed
   when it goes out of scope.
 
-  Args:
-    suffix: A suffix to end the directory name with.
-    prefix: A prefix to begin the directory name with.
-    remove_non_empty: If set to `True` the directory removal will succeed even
-      if it is not empty.
-
   Returns:
     An absolute path to the created directory.
   """
 
-  def __init__(self,
-               suffix: Text = "",
-               prefix: Text = "tmp",
-               remove_non_empty: bool = False):
-    precondition.AssertType(suffix, Text)
-    precondition.AssertType(prefix, Text)
+  def __init__(
+      self,
+      suffix: str = "",
+      prefix: str = "tmp",
+      remove_non_empty: bool = False,
+  ):
+    """Creates a temporary directory based on the environment configuration.
+
+    Args:
+      suffix: A suffix to end the directory name with.
+      prefix: A prefix to begin the directory name with.
+      remove_non_empty: If set to `True` the directory removal will succeed even
+        if it is not empty.
+    """
+    precondition.AssertType(suffix, str)
+    precondition.AssertType(prefix, str)
     precondition.AssertType(remove_non_empty, bool)
 
     self.suffix = suffix
     self.prefix = prefix
     self.remove_non_empty = remove_non_empty
 
-  def __enter__(self) -> Text:
+  def __enter__(self) -> str:
     self.path = TempDirPath(suffix=self.suffix, prefix=self.prefix)
     return self.path
 
@@ -145,7 +150,7 @@ class AutoTempDirPath(object):
       os.rmdir(self.path)
 
 
-class AutoTempFilePath(object):
+class AutoTempFilePath:
   """Creates a temporary file based on the environment configuration.
 
   If no directory is specified the file will be placed in folder as specified by
@@ -158,11 +163,6 @@ class AutoTempFilePath(object):
   This object is a context manager and the associated file is automatically
   removed when it goes out of scope.
 
-  Args:
-    suffix: A suffix to end the file name with.
-    prefix: A prefix to begin the file name with.
-    dir: A directory to place the file in.
-
   Returns:
     An absolute path to the created file.
 
@@ -171,21 +171,32 @@ class AutoTempFilePath(object):
         temporary directory.
   """
 
-  def __init__(self,
-               suffix: Text = "",
-               prefix: Text = "tmp",
-               dir: Optional[Text] = None):  # pylint: disable=redefined-builtin
-    precondition.AssertType(prefix, Text)
-    precondition.AssertType(suffix, Text)
-    precondition.AssertOptionalType(dir, Text)
+  def __init__(
+      self,
+      suffix: str = "",
+      prefix: str = "tmp",
+      dir: Optional[str] = None,  # pylint: disable=redefined-builtin
+  ):
+    """Creates a temporary file based on the environment configuration.
+
+    Args:
+      suffix: A suffix to end the file name with.
+      prefix: A prefix to begin the file name with.
+      dir: A directory to place the file in.
+    """
+    precondition.AssertType(suffix, str)
+    precondition.AssertType(prefix, str)
+    precondition.AssertType(suffix, str)
+    precondition.AssertOptionalType(dir, str)
 
     self.suffix = suffix
     self.prefix = prefix
     self.dir = dir
 
-  def __enter__(self) -> Text:
+  def __enter__(self) -> str:
     self.path = TempFilePath(
-        suffix=self.suffix, prefix=self.prefix, dir=self.dir)
+        suffix=self.suffix, prefix=self.prefix, dir=self.dir
+    )
     return self.path
 
   def __exit__(self, exc_type, exc_value, traceback):

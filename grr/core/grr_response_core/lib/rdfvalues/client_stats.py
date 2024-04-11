@@ -1,23 +1,21 @@
 #!/usr/bin/env python
 """Stats-related client rdfvalues."""
 
-
-
 from grr_response_core.lib import rdfvalue
-
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto import jobs_pb2
 
 
 class CpuSeconds(rdf_structs.RDFProtoStruct):
   """CPU usage is reported as both a system and user components."""
+
   protobuf = jobs_pb2.CpuSeconds
 
 
 class CpuSample(rdf_structs.RDFProtoStruct):
   """A single CPU sample."""
+
   protobuf = jobs_pb2.CpuSample
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -47,7 +45,8 @@ class CpuSample(rdf_structs.RDFProtoStruct):
         timestamp=max(sample.timestamp for sample in samples),
         cpu_percent=cpu_percent,
         user_cpu_time=max(sample.user_cpu_time for sample in samples),
-        system_cpu_time=max(sample.system_cpu_time for sample in samples))
+        system_cpu_time=max(sample.system_cpu_time for sample in samples),
+    )
 
 
 class IOSample(rdf_structs.RDFProtoStruct):
@@ -79,11 +78,13 @@ class IOSample(rdf_structs.RDFProtoStruct):
         read_bytes=max(sample.read_bytes for sample in samples),
         read_count=max(sample.read_count for sample in samples),
         write_bytes=max(sample.write_bytes for sample in samples),
-        write_count=max(sample.write_count for sample in samples))
+        write_count=max(sample.write_count for sample in samples),
+    )
 
 
 class ClientStats(rdf_structs.RDFProtoStruct):
   """A client stat object."""
+
   protobuf = jobs_pb2.ClientStats
   rdf_deps = [
       CpuSample,
@@ -108,9 +109,11 @@ class ClientStats(rdf_structs.RDFProtoStruct):
 
     result = cls(stats)
     result.cpu_samples = cls._Downsample(
-        kind=CpuSample, samples=stats.cpu_samples, interval=interval)
+        kind=CpuSample, samples=stats.cpu_samples, interval=interval
+    )
     result.io_samples = cls._Downsample(
-        kind=IOSample, samples=stats.io_samples, interval=interval)
+        kind=IOSample, samples=stats.io_samples, interval=interval
+    )
     return result
 
   @classmethod
@@ -126,6 +129,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
 
 class ClientResources(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
+
   protobuf = jobs_pb2.ClientResources
   rdf_deps = [
       rdf_client.ClientURN,

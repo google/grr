@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Mixin tests for storing cronjob objects in the relational db."""
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.util import random
@@ -263,8 +262,9 @@ class DatabaseTestCronJobMixin(object):
       )
       self.assertTrue(leased)
 
-    with test_lib.FakeTime(current_time +
-                           rdfvalue.Duration.From(1, rdfvalue.MINUTES)):
+    with test_lib.FakeTime(
+        current_time + rdfvalue.Duration.From(1, rdfvalue.MINUTES)
+    ):
       self.db.ReturnLeasedCronJobs([leased[0]])
 
     returned_job = self.db.ReadCronJob(leased[0].cron_job_id)
@@ -279,13 +279,15 @@ class DatabaseTestCronJobMixin(object):
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
-          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES)
+      )
       self.assertLen(leased, 3)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10001)
     with test_lib.FakeTime(current_time):
       unleased_jobs = self.db.LeaseCronJobs(
-          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES)
+      )
       self.assertEmpty(unleased_jobs)
 
       self.db.ReturnLeasedCronJobs(leased)
@@ -375,7 +377,8 @@ class DatabaseTestCronJobMixin(object):
     self.db.WriteCronJob(job)
 
     fake_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        7, rdfvalue.DAYS)
+        7, rdfvalue.DAYS
+    )
     with test_lib.FakeTime(fake_time):
       run = flows_pb2.CronJobRun(
           cron_job_id=job_id,
@@ -385,7 +388,8 @@ class DatabaseTestCronJobMixin(object):
       self.db.WriteCronJobRun(run)
 
     fake_time_one_day_later = fake_time + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
     with test_lib.FakeTime(fake_time_one_day_later):
       run = flows_pb2.CronJobRun(
           cron_job_id=job_id,
@@ -395,7 +399,8 @@ class DatabaseTestCronJobMixin(object):
       self.db.WriteCronJobRun(run)
 
     fake_time_two_days_later = fake_time + rdfvalue.Duration.From(
-        2, rdfvalue.DAYS)
+        2, rdfvalue.DAYS
+    )
     with test_lib.FakeTime(fake_time_two_days_later):
       run = flows_pb2.CronJobRun(
           cron_job_id=job_id,

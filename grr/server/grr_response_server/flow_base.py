@@ -5,18 +5,20 @@ import functools
 import logging
 import re
 import traceback
-from typing import Any, Callable, Collection, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, Collection, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type, Union
 
 from google.protobuf import any_pb2
 from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import FlowRegistry
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import access_control
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -30,8 +32,9 @@ from grr_response_server import output_plugin as output_plugin_lib
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_flow_runner
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 
@@ -249,18 +252,8 @@ class FlowBase(metaclass=FlowRegistry):
           )
       )
       nr_responses_expected = len(responses) + 1
-      # No need to set needs_processing to True as we write the status
-      # message above. WriteFlowResponses implementation on all DBs
-      # will automatically issue a FlowProcessingRequest upon receiving a
-      # status message and seeing that all needed messages are in the
-      # database. Setting needs_processing to True here might lead to a race
-      # condition when a FlowProcessingRequest will be written and processed
-      # before FlowResponses corresponding to the FlowRequest are going to
-      # be written to the DB.
-      needs_processing = False
     else:
       nr_responses_expected = 0
-      needs_processing = True
 
     flow_request = rdf_flow_objects.FlowRequest(
         client_id=self.rdf_flow.client_id,
@@ -269,7 +262,7 @@ class FlowBase(metaclass=FlowRegistry):
         next_state=next_state,
         start_time=start_time,
         nr_responses_expected=nr_responses_expected,
-        needs_processing=needs_processing,
+        needs_processing=True,
     )
     self.flow_requests.append(flow_request)
 
@@ -738,15 +731,24 @@ class FlowBase(metaclass=FlowRegistry):
   def RunStateMethod(
       self,
       method_name: str,
-      request: Optional[rdf_flow_runner.RequestState] = None,
-      responses: Optional[Sequence[rdf_flow_objects.FlowMessage]] = None
+      request: Optional[rdf_flow_objects.FlowRequest] = None,
+      responses: Optional[
+          Sequence[
+              Union[
+                  rdf_flow_objects.FlowResponse,
+                  rdf_flow_objects.FlowStatus,
+                  rdf_flow_objects.FlowIterator,
+              ]
+          ]
+      ] = None,
   ) -> None:
     """Completes the request by calling the state method.
 
     Args:
       method_name: The name of the state method to call.
       request: A RequestState protobuf.
-      responses: A list of FlowMessages responding to the request.
+      responses: A list of FlowResponses, FlowStatuses, and FlowIterators
+        responding to the request.
 
     Raises:
       FlowError: Processing time for the flow has expired.
@@ -823,7 +825,8 @@ class FlowBase(metaclass=FlowRegistry):
     request_dict = data_store.REL_DB.ReadFlowRequestsReadyForProcessing(
         self.rdf_flow.client_id,
         self.rdf_flow.flow_id,
-        next_needed_request=self.rdf_flow.next_request_to_process)
+        next_needed_request=self.rdf_flow.next_request_to_process,
+    )
     if not request_dict:
       return (0, 0)
 
@@ -836,6 +839,7 @@ class FlowBase(metaclass=FlowRegistry):
     # response is kept in request's 'next_response_id' attribute to guarantee
     # that responses are going to be processed in the right order.
     for request_id, (request, responses) in list(request_dict.items()):
+      request = mig_flow_objects.ToRDFFlowRequest(request)
       if not self.IsRunning():
         break
 
@@ -848,7 +852,15 @@ class FlowBase(metaclass=FlowRegistry):
       to_process = []
       for r in responses:
         if r.response_id == next_response_id:
-          to_process.append(r)
+          if isinstance(r, flows_pb2.FlowResponse):
+            r = mig_flow_objects.ToRDFFlowResponse(r)
+            to_process.append(r)
+          if isinstance(r, flows_pb2.FlowStatus):
+            r = mig_flow_objects.ToRDFFlowStatus(r)
+            to_process.append(r)
+          if isinstance(r, flows_pb2.FlowIterator):
+            r = mig_flow_objects.ToRDFFlowIterator(r)
+            to_process.append(r)
         else:
           break
         next_response_id += 1
@@ -884,7 +896,21 @@ class FlowBase(metaclass=FlowRegistry):
     while (self.IsRunning() and
            self.rdf_flow.next_request_to_process in request_dict):
 
-      request, responses = request_dict[self.rdf_flow.next_request_to_process]
+      request, responses_proto = request_dict[
+          self.rdf_flow.next_request_to_process
+      ]
+      request = mig_flow_objects.ToRDFFlowRequest(request)
+      responses = []
+      for r in responses_proto:
+        if isinstance(r, flows_pb2.FlowResponse):
+          r = mig_flow_objects.ToRDFFlowResponse(r)
+          responses.append(r)
+        if isinstance(r, flows_pb2.FlowStatus):
+          r = mig_flow_objects.ToRDFFlowStatus(r)
+          responses.append(r)
+        if isinstance(r, flows_pb2.FlowIterator):
+          r = mig_flow_objects.ToRDFFlowIterator(r)
+          responses.append(r)
       if request.needs_processing:
         self.RunStateMethod(request.next_state, request, responses)
         self.rdf_flow.next_request_to_process += 1
@@ -935,11 +961,22 @@ class FlowBase(metaclass=FlowRegistry):
     # optimizing.
 
     if self.flow_requests:
-      data_store.REL_DB.WriteFlowRequests(self.flow_requests)
+      flow_requests_proto = [
+          mig_flow_objects.ToProtoFlowRequest(r) for r in self.flow_requests
+      ]
+      data_store.REL_DB.WriteFlowRequests(flow_requests_proto)
       self.flow_requests = []
 
     if self.flow_responses:
-      data_store.REL_DB.WriteFlowResponses(self.flow_responses)
+      flow_responses_proto = []
+      for r in self.flow_responses:
+        if isinstance(r, rdf_flow_objects.FlowResponse):
+          flow_responses_proto.append(mig_flow_objects.ToProtoFlowResponse(r))
+        if isinstance(r, rdf_flow_objects.FlowStatus):
+          flow_responses_proto.append(mig_flow_objects.ToProtoFlowStatus(r))
+        if isinstance(r, rdf_flow_objects.FlowIterator):
+          flow_responses_proto.append(mig_flow_objects.ToProtoFlowIterator(r))
+      data_store.REL_DB.WriteFlowResponses(flow_responses_proto)
       self.flow_responses = []
 
     if self.client_action_requests:
@@ -955,7 +992,21 @@ class FlowBase(metaclass=FlowRegistry):
     self.rrg_requests = []
 
     if self.completed_requests:
-      data_store.REL_DB.DeleteFlowRequests(self.completed_requests)
+      completed_requests_protos = []
+      for r in self.completed_requests:
+        if isinstance(r, flows_pb2.FlowResponse):
+          completed_requests_protos.append(
+              mig_flow_objects.ToProtoFlowResponse(r)
+          )
+        if isinstance(r, flows_pb2.FlowStatus):
+          completed_requests_protos.append(
+              mig_flow_objects.ToProtoFlowStatus(r)
+          )
+        if isinstance(r, flows_pb2.FlowIterator):
+          completed_requests_protos.append(
+              mig_flow_objects.ToProtoFlowIterator(r)
+          )
+      data_store.REL_DB.DeleteFlowRequests(completed_requests_protos)
       self.completed_requests = []
 
     if self.replies_to_write:
@@ -983,9 +1034,15 @@ class FlowBase(metaclass=FlowRegistry):
   ) -> None:
     """Applies output plugins to hunt results."""
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
     hunt_output_plugins_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
         self.rdf_flow.parent_hunt_id)
+
+    hunt_output_plugins_states = [
+        mig_flow_runner.ToRDFOutputPluginState(s)
+        for s in hunt_output_plugins_states
+    ]
     self.rdf_flow.output_plugins_states = hunt_output_plugins_states
 
     created_plugins = self._ProcessRepliesWithFlowOutputPlugins(replies)
@@ -1000,8 +1057,12 @@ class FlowBase(metaclass=FlowRegistry):
       plugin.UpdateState(s)
       if s != state.plugin_state:
 
-        def UpdateFn(plugin_state):
-          plugin.UpdateState(plugin_state)  # pylint: disable=cell-var-from-loop
+        def UpdateFn(
+            plugin_state: jobs_pb2.AttributedDict,
+        ) -> jobs_pb2.AttributedDict:
+          plugin_state_rdf = mig_protodict.ToRDFAttributedDict(plugin_state)
+          plugin.UpdateState(plugin_state_rdf)  # pylint: disable=cell-var-from-loop
+          plugin_state = mig_protodict.ToProtoAttributedDict(plugin_state_rdf)
           return plugin_state
 
         data_store.REL_DB.UpdateHuntOutputPluginState(hunt_obj.hunt_id, index,
@@ -1264,13 +1325,13 @@ def UseProto2AnyResponses(
 
 
 def _TerminateFlow(
-    rdf_flow: rdf_flow_objects.Flow,
+    proto_flow: flows_pb2.Flow,
     reason: Optional[str] = None,
-    flow_state: rdf_structs.EnumNamedValue = rdf_flow_objects.Flow.FlowState
-    .ERROR
+    flow_state: rdf_structs.EnumNamedValue = rdf_flow_objects.Flow.FlowState.ERROR,
 ) -> None:
   """Does the actual termination."""
-  flow_cls = FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
+  flow_cls = FlowRegistry.FlowClassByName(proto_flow.flow_class_name)
+  rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
   flow_obj = flow_cls(rdf_flow)
 
   if not flow_obj.IsRunning():
@@ -1283,16 +1344,18 @@ def _TerminateFlow(
   rdf_flow.flow_state = flow_state
   rdf_flow.error_message = reason
   flow_obj.NotifyCreatorOfError()
-
+  proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
   data_store.REL_DB.UpdateFlow(
-      rdf_flow.client_id,
-      rdf_flow.flow_id,
-      flow_obj=rdf_flow,
+      proto_flow.client_id,
+      proto_flow.flow_id,
+      flow_obj=proto_flow,
       processing_on=None,
       processing_since=None,
-      processing_deadline=None)
-  data_store.REL_DB.DeleteAllFlowRequestsAndResponses(rdf_flow.client_id,
-                                                      rdf_flow.flow_id)
+      processing_deadline=None,
+  )
+  data_store.REL_DB.DeleteAllFlowRequestsAndResponses(
+      proto_flow.client_id, proto_flow.flow_id
+  )
 
 
 def TerminateFlow(
@@ -1316,9 +1379,11 @@ def TerminateFlow(
 
   while to_terminate:
     next_to_terminate = []
-    for rdf_flow in to_terminate:
-      _TerminateFlow(rdf_flow, reason=reason, flow_state=flow_state)
+    for proto_flow in to_terminate:
+      _TerminateFlow(proto_flow, reason=reason, flow_state=flow_state)
       next_to_terminate.extend(
-          data_store.REL_DB.ReadChildFlowObjects(rdf_flow.client_id,
-                                                 rdf_flow.flow_id))
+          data_store.REL_DB.ReadChildFlowObjects(
+              proto_flow.client_id, proto_flow.flow_id
+          )
+      )
     to_terminate = next_to_terminate

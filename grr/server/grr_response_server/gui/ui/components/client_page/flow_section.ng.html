@@ -10,6 +10,7 @@
 
   <approval-card *ngIf="showApprovalView$ | async"
             [latestApproval]="latestApproval$ | async"
+            [requestApprovalStatus]="requestApprovalStatus$ | async"
             [urlTree]="(clientApprovalRoute$ | async) ?? []"
             [showDuration]="true"
             [editableDuration]="true"

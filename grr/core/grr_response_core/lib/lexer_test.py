@@ -66,7 +66,8 @@ or 'file name' contains "foo" and date before "2011-10" """).Parse()
     for expression in (
         """filename contains "foo""",  # Unterminated string
         """(filename contains "foo" """,  # Unbalanced parenthesis
-        """filename contains foo or """):  # empty right expression
+        """filename contains foo or """,
+    ):  # empty right expression
       parser = lexer.SearchParser(expression)
       self.assertRaises(lexer.ParseError, parser.Parse)
 

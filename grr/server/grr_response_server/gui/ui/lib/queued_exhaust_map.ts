@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {
   EMPTY,
   ObservableInput,
@@ -28,7 +27,10 @@ class SingleIndexTracker implements RequestTracker<number> {
 }
 
 class ValueWithTag<V, T> {
-  constructor(readonly value: V, readonly tag: T) {}
+  constructor(
+    readonly value: V,
+    readonly tag: T,
+  ) {}
 }
 
 function tagByIndex<V>(indexTracker: SingleIndexTracker) {

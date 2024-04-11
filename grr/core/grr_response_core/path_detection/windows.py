@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 """Windows paths detection classes."""
 
-
 import re
-
 
 from grr_response_core.path_detection import core
 
@@ -29,7 +27,7 @@ class RunDllExtractor(core.Extractor):
     if rundll_index == -1:
       return []
 
-    components = components[(rundll_index + 1):]
+    components = components[(rundll_index + 1) :]
 
     # We expect components after "rundll32.exe" to point at a DLL and a
     # function. For example:
@@ -43,8 +41,16 @@ class RunDllExtractor(core.Extractor):
 class ExecutableExtractor(core.Extractor):
   """Extractor for ordinary paths."""
 
-  EXECUTABLE_EXTENSIONS = ("exe", "com", "bat", "dll", "msi", "sys", "scr",
-                           "pif")
+  EXECUTABLE_EXTENSIONS = (
+      "exe",
+      "com",
+      "bat",
+      "dll",
+      "msi",
+      "sys",
+      "scr",
+      "pif",
+  )
 
   def Extract(self, components):
     """Extracts interesting paths from a given path.
@@ -58,7 +64,7 @@ class ExecutableExtractor(core.Extractor):
 
     for index, component in enumerate(components):
       if component.lower().endswith(self.EXECUTABLE_EXTENSIONS):
-        extracted_path = " ".join(components[0:index + 1])
+        extracted_path = " ".join(components[0 : index + 1])
         return [extracted_path]
 
     return []
@@ -80,15 +86,16 @@ class EnvVarsPostProcessor(core.PostProcessor):
 
     Args:
       vars_map: Dictionary of "string" -> "string|list", i.e. a mapping of
-          environment variables names to their suggested values or to lists
-          of their suggested values.
+        environment variables names to their suggested values or to lists of
+        their suggested values.
     """
     super(core.PostProcessor, self).__init__()
 
     self.vars_map = {}
     for var_name, value in vars_map.items():
       var_regex = re.compile(
-          re.escape("%" + var_name + "%"), flags=re.IGNORECASE)
+          re.escape("%" + var_name + "%"), flags=re.IGNORECASE
+      )
       self.vars_map[var_name.lower()] = (var_regex, value)
 
   def Process(self, path):
@@ -151,7 +158,8 @@ def CreateWindowsRegistryExecutablePathsDetector(vars_map=None):
   """
   return core.Detector(
       extractors=[RunDllExtractor(), ExecutableExtractor()],
-      post_processors=[EnvVarsPostProcessor(vars_map or {})],)
+      post_processors=[EnvVarsPostProcessor(vars_map or {})],
+  )
 
 
 def DetectExecutablePaths(source_values, vars_map=None):
@@ -160,8 +168,8 @@ def DetectExecutablePaths(source_values, vars_map=None):
   Args:
     source_values: A list of strings to detect paths in.
     vars_map: Dictionary of "string" -> "string|list", i.e. a mapping of
-          environment variables names to their suggested values or to lists
-          of their suggested values.
+      environment variables names to their suggested values or to lists of their
+      suggested values.
 
   Yields:
     A list of detected paths (as strings).

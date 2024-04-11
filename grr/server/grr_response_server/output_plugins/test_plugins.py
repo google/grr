@@ -47,11 +47,13 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
       messages = []
       for value in values:
         messages.append(
-            rdf_flows.GrrMessage(source=self.client_id, payload=value))
+            rdf_flows.GrrMessage(source=self.client_id, payload=value)
+        )
 
       # pylint: disable=cell-var-from-loop
       chunks.extend(
-          list(self.plugin.ProcessValues(value_cls, lambda: messages)))
+          list(self.plugin.ProcessValues(value_cls, lambda: messages))
+      )
       # pylint: enable=cell-var-from-loop
 
     chunks.extend(list(self.plugin.Finish()))
@@ -86,7 +88,8 @@ class TestInstantOutputPlugin(instant_output_plugin.InstantOutputPlugin):
 
 
 class TestInstantOutputPluginWithExportConverstion(
-    instant_output_plugin.InstantOutputPluginWithExportConversion):
+    instant_output_plugin.InstantOutputPluginWithExportConversion
+):
   """Test plugin with export conversion."""
 
   def Start(self):

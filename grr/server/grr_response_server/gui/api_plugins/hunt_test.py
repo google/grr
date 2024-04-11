@@ -15,6 +15,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server.databases import db
@@ -25,12 +27,13 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -493,7 +496,9 @@ class ApiGetHuntFileHandlerTest(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=results[0].timestamp
+        timestamp=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+            results[0].timestamp
+        )
         + rdfvalue.Duration.From(1, rdfvalue.SECONDS),
     )
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
@@ -504,16 +509,21 @@ class ApiGetHuntFileHandlerTest(
     original_result = results[0]
 
     with test_lib.FakeTime(
-        original_result.timestamp - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+            original_result.timestamp
+        )
+        - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     ):
-      wrong_result = original_result.Copy()
-      payload = wrong_result.payload
+      wrong_result = flows_pb2.FlowResult()
+      wrong_result.CopyFrom(original_result)
+      payload = flows_pb2.FileFinderResult()
+      wrong_result.payload.Unpack(payload)
       payload.stat_entry.pathspec.path += "blah"
-      data_store.REL_DB.WriteFlowResults(
-          [mig_flow_objects.ToProtoFlowResult(wrong_result)]
-      )
+      data_store.REL_DB.WriteFlowResults([wrong_result])
 
-    wrong_result_timestamp = wrong_result.timestamp
+    wrong_result_timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+        wrong_result.timestamp
+    )
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
@@ -533,14 +543,14 @@ class ApiGetHuntFileHandlerTest(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=timestamp,
+        timestamp=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(timestamp),
     )
 
     result = self.handler.Handle(args, context=self.context)
     self.assertTrue(hasattr(result, "GenerateContent"))
-    self.assertEqual(
-        result.content_length, results[0].payload.stat_entry.st_size
-    )
+    payload = flows_pb2.FileFinderResult()
+    results[0].payload.Unpack(payload)
+    self.assertEqual(result.content_length, payload.stat_entry.st_size)
 
 
 class ApiListHuntResultsHandlerTest(
@@ -799,15 +809,15 @@ class ApiModifyHuntHandlerTest(
     self.args = hunt_plugin.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
   def testDoesNothingIfArgsHaveNoChanges(self):
-    before = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    )
+    hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+    before = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
 
     self.handler.Handle(self.args, context=self.context)
 
-    after = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    )
+    hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+    after = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
 
     self.assertEqual(before, after)
 
@@ -847,7 +857,7 @@ class ApiModifyHuntHandlerTest(
     self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
     self.assertEqual(
         h.hunt_state_reason,
-        rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER,
+        hunts_pb2.Hunt.HuntStateReason.TRIGGERED_BY_USER,
     )
     self.assertEqual(h.hunt_state_comment, "Cancelled by user")
 
@@ -865,9 +875,9 @@ class ApiModifyHuntHandlerTest(
 
     self.handler.Handle(self.args, context=self.context)
 
-    after = hunt_plugin.ApiHunt().InitFromHuntObject(
-        data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    )
+    hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+    after = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
@@ -1020,6 +1030,181 @@ class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
 
     with self.assertRaises(ValueError):
       self.handler.Handle(args, self.context)
+
+
+class ListHuntErrorsHandlerTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testWithoutFilter(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+
+    client_id_1 = db_test_utils.InitializeClient(rel_db)
+    client_id_2 = db_test_utils.InitializeClient(rel_db)
+
+    flow_id_1 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_1,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+    flow_id_2 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_2,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    flow_obj_1 = rel_db.ReadFlowObject(client_id_1, flow_id_1)
+    flow_obj_1.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_1.error_message = "ERROR_1"
+    rel_db.UpdateFlow(client_id_1, flow_id_1, flow_obj_1)
+
+    flow_obj_2 = rel_db.ReadFlowObject(client_id_2, flow_id_2)
+    flow_obj_2.flow_state = rdf_flow_objects.Flow.FlowState.ERROR
+    flow_obj_2.error_message = "ERROR_2"
+    rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
+
+    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args.hunt_id = hunt_id
+
+    handler = hunt_plugin.ApiListHuntErrorsHandler()
+
+    results = handler.Handle(args)
+    self.assertLen(results.items, 2)
+
+    self.assertEqual(results.items[0].client_id, client_id_1)
+    self.assertEqual(results.items[0].log_message, "ERROR_1")
+
+    self.assertEqual(results.items[1].client_id, client_id_2)
+    self.assertEqual(results.items[1].log_message, "ERROR_2")
+
+  @db_test_lib.WithDatabase
+  def testWithFilterByClientID(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+
+    client_id_1 = db_test_utils.InitializeClient(rel_db)
+    client_id_2 = db_test_utils.InitializeClient(rel_db)
+
+    flow_id_1 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_1,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+    flow_id_2 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_2,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    flow_obj_1 = rel_db.ReadFlowObject(client_id_1, flow_id_1)
+    flow_obj_1.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_1.error_message = "ERROR_1"
+    rel_db.UpdateFlow(client_id_1, flow_id_1, flow_obj_1)
+
+    flow_obj_2 = rel_db.ReadFlowObject(client_id_2, flow_id_2)
+    flow_obj_2.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_2.error_message = "ERROR_2"
+    rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
+
+    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args.hunt_id = hunt_id
+    args.filter = client_id_2
+
+    handler = hunt_plugin.ApiListHuntErrorsHandler()
+
+    results = handler.Handle(args)
+    self.assertLen(results.items, 1)
+
+    self.assertEqual(results.items[0].client_id, client_id_2)
+    self.assertEqual(results.items[0].log_message, "ERROR_2")
+
+  @db_test_lib.WithDatabase
+  def testWithFilterByMessage(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+
+    client_id_1 = db_test_utils.InitializeClient(rel_db)
+    client_id_2 = db_test_utils.InitializeClient(rel_db)
+
+    flow_id_1 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_1,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+    flow_id_2 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_2,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    flow_obj_1 = rel_db.ReadFlowObject(client_id_1, flow_id_1)
+    flow_obj_1.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_1.error_message = "ERROR_1"
+    rel_db.UpdateFlow(client_id_1, flow_id_1, flow_obj_1)
+
+    flow_obj_2 = rel_db.ReadFlowObject(client_id_2, flow_id_2)
+    flow_obj_2.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_2.error_message = "ERROR_2"
+    rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
+
+    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args.hunt_id = hunt_id
+    args.filter = "_1"
+
+    handler = hunt_plugin.ApiListHuntErrorsHandler()
+
+    results = handler.Handle(args)
+    self.assertLen(results.items, 1)
+
+    self.assertEqual(results.items[0].client_id, client_id_1)
+    self.assertEqual(results.items[0].log_message, "ERROR_1")
+
+  @db_test_lib.WithDatabase
+  def testWithFilterByBacktrace(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+
+    client_id_1 = db_test_utils.InitializeClient(rel_db)
+    client_id_2 = db_test_utils.InitializeClient(rel_db)
+
+    flow_id_1 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_1,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+    flow_id_2 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_2,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    flow_obj_1 = rel_db.ReadFlowObject(client_id_1, flow_id_1)
+    flow_obj_1.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_1.error_message = "ERROR_1"
+    flow_obj_1.backtrace = "File 'foo_1.py', line 1, in 'foo'"
+    rel_db.UpdateFlow(client_id_1, flow_id_1, flow_obj_1)
+
+    flow_obj_2 = rel_db.ReadFlowObject(client_id_2, flow_id_2)
+    flow_obj_2.flow_state = flows_pb2.Flow.FlowState.ERROR
+    flow_obj_2.error_message = "ERROR_2"
+    flow_obj_2.backtrace = "File 'foo_2.py', line 1, in 'foo'"
+    rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
+
+    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args.hunt_id = hunt_id
+    args.filter = "foo_2.py"
+
+    handler = hunt_plugin.ApiListHuntErrorsHandler()
+
+    results = handler.Handle(args)
+    self.assertLen(results.items, 1)
+
+    self.assertEqual(results.items[0].client_id, client_id_2)
+    self.assertEqual(results.items[0].log_message, "ERROR_2")
 
 
 def main(argv):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementation of anomaly types.
 
-
 Anomalies are things discovered during analysis of a system that are outside
 expected norms. In the case of incident response or forensics these can
 represent any number of things that may be of interest to an investigator.
@@ -59,9 +58,7 @@ anomaly and knowledge_base using object filter syntax. E.g.
 (kb.os = "Windows" and
  anomaly.generated_by contains "Antivirus" and
  anomaly.description contains "eicar")
-
 """
-
 
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -70,6 +67,7 @@ from grr_response_proto import anomaly_pb2
 
 class Anomaly(rdf_structs.RDFProtoStruct):
   """An RDFValue representation of an artifact."""
+
   protobuf = anomaly_pb2.Anomaly
   rdf_deps = [
       rdf_paths.PathSpec,

@@ -16,6 +16,7 @@ from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 
 from google.protobuf import json_format
+from google.protobuf import message
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
@@ -303,7 +304,18 @@ class HttpRequestHandler(object):
   def CallApiHandler(handler, args, context=None):
     """Handles API call to a given handler with given args and context."""
 
-    result = handler.Handle(args, context=context)
+    if handler.proto_args_type:
+      result = handler.Handle(args.AsPrimitiveProto(), context=context)
+    else:
+      result = handler.Handle(args, context=context)
+
+    # TODO: Once all ApiCallHandlers are migrated this code
+    # can likely be moved to the result json formatter (legacy UI formatting
+    # currently relies on RDFValue).
+    if isinstance(result, message.Message):
+      rdf_cls = handler.result_type
+      proto_bytes = result.SerializeToString()
+      result = rdf_cls.FromSerializedBytes(proto_bytes)
 
     expected_type = handler.result_type
     if expected_type is None:

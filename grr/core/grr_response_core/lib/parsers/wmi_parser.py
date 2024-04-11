@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 """Simple parsers for the output of WMI queries."""
 
-
 import calendar
 import struct
 import time
 
-
 from grr_response_core.lib import parser
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 from grr_response_core.lib.util import precondition
 
 
@@ -42,7 +37,7 @@ def BinarySIDtoStringSID(sid):
   precondition.AssertType(sid, bytes)
 
   if not sid:
-    return u""
+    return ""
 
   str_sid_components = [sid[0]]
   # Now decode the 48-byte portion
@@ -57,87 +52,22 @@ def BinarySIDtoStringSID(sid):
 
     start = 8
     for i in range(subauthority_count):
-      authority = sid[start:start + 4]
+      authority = sid[start : start + 4]
       if not authority:
         break
 
       if len(authority) < 4:
-        message = ("In binary SID '%s', component %d has been truncated. "
-                   "Expected 4 bytes, found %d: (%s)")
+        message = (
+            "In binary SID '%s', component %d has been truncated. "
+            "Expected 4 bytes, found %d: (%s)"
+        )
         message %= (sid, i, len(authority), authority)
         raise ValueError(message)
 
       str_sid_components.append(struct.unpack("<L", authority)[0])
       start += 4
 
-  return u"S-%s" % (u"-".join(map(str, str_sid_components)))
-
-
-class WMIEventConsumerParser(parser.WMIQueryParser):
-  """Base class for WMI EventConsumer Parsers."""
-
-  __abstract = True  # pylint: disable=invalid-name
-
-  def ParseMultiple(self, result_dicts):
-    """Parse WMI Event Consumers."""
-    for result_dict in result_dicts:
-      wmi_dict = result_dict.ToDict()
-
-      try:
-        creator_sid_bytes = bytes(wmi_dict["CreatorSID"])
-        wmi_dict["CreatorSID"] = BinarySIDtoStringSID(creator_sid_bytes)
-      except ValueError:
-        # We recover from corrupt SIDs by outputting it raw as a string
-        wmi_dict["CreatorSID"] = repr(wmi_dict["CreatorSID"])
-      except KeyError:
-        pass
-
-      for output_type in self.output_types:
-        anomalies = []
-
-        output = rdfvalue.RDFValue.classes[output_type.__name__]()
-        for k, v in wmi_dict.items():
-          try:
-            output.Set(k, v)
-          except AttributeError as e:
-            # Skip any attribute we don't know about
-            anomalies.append("Unknown field %s, with value %s" % (k, v))
-          except ValueError as e:
-            anomalies.append("Invalid value %s for field %s: %s" % (v, k, e))
-
-        # Yield anomalies first to help with debugging
-        if anomalies:
-          yield rdf_anomaly.Anomaly(
-              type="PARSER_ANOMALY",
-              generated_by=self.__class__.__name__,
-              finding=anomalies)
-
-        # Raise if the parser generated no output but there were fields.
-        if wmi_dict and not output:
-          raise ValueError("Non-empty dict %s returned empty output." %
-                           wmi_dict)
-
-        yield output
-
-
-class WMIActiveScriptEventConsumerParser(WMIEventConsumerParser):
-  """Parser for WMI ActiveScriptEventConsumers.
-
-  https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
-  """
-
-  output_types = [rdf_wmi.WMIActiveScriptEventConsumer]
-  supported_artifacts = ["WMIEnumerateASEC"]
-
-
-class WMICommandLineEventConsumerParser(WMIEventConsumerParser):
-  """Parser for WMI CommandLineEventConsumers.
-
-  https://msdn.microsoft.com/en-us/library/aa389231(v=vs.85).aspx
-  """
-
-  output_types = [rdf_wmi.WMICommandLineEventConsumer]
-  supported_artifacts = ["WMIEnumerateCLEC"]
+  return "S-%s" % "-".join(map(str, str_sid_components))
 
 
 class WMIInstalledSoftwareParser(parser.WMIQueryParser):
@@ -154,7 +84,9 @@ class WMIInstalledSoftwareParser(parser.WMIQueryParser):
           rdf_client.SoftwarePackage.Installed(
               name=result_dict["Name"],
               description=result_dict["Description"],
-              version=result_dict["Version"]))
+              version=result_dict["Version"],
+          )
+      )
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
@@ -187,7 +119,9 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
               name=result.get("HotFixID"),
               description=result.get("Caption"),
               installed_by=result.get("InstalledBy"),
-              installed_on=installed_on))
+              installed_on=installed_on,
+          )
+      )
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
@@ -198,7 +132,9 @@ class WMIUserParser(parser.WMIQueryParser):
 
   output_types = [rdf_client.User]
   supported_artifacts = [
-      "WMIProfileUsersHomeDir", "WMIAccountUsersDomain", "WMIUsers"
+      "WMIProfileUsersHomeDir",
+      "WMIAccountUsersDomain",
+      "WMIUsers",
   ]
 
   account_mapping = {
@@ -207,7 +143,7 @@ class WMIUserParser(parser.WMIQueryParser):
       "Domain": "userdomain",
       "SID": "sid",
       # Win32_UserProfile
-      "LocalPath": "homedir"
+      "LocalPath": "homedir",
   }
 
   def ParseMultiple(self, result_dicts):
@@ -239,7 +175,8 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
       result = result_dict.ToDict()
       winvolume = rdf_client_fs.WindowsVolume(
           drive_letter=result.get("DeviceID"),
-          drive_type=result.get("DriveType"))
+          drive_type=result.get("DriveType"),
+      )
 
       try:
         size = int(result.get("Size"))
@@ -260,7 +197,8 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
           sectors_per_allocation_unit=1,
           bytes_per_sector=1,
           total_allocation_units=size,
-          actual_available_allocation_units=free_space)
+          actual_available_allocation_units=free_space,
+      )
 
 
 class WMIComputerSystemProductParser(parser.WMIQueryParser):
@@ -279,4 +217,5 @@ class WMIComputerSystemProductParser(parser.WMIQueryParser):
 
       yield rdf_client.HardwareInfo(
           serial_number=result_dict["IdentifyingNumber"],
-          system_manufacturer=result_dict["Vendor"])
+          system_manufacturer=result_dict["Vendor"],
+      )

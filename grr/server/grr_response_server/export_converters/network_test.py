@@ -11,7 +11,8 @@ from grr.test_lib import test_lib
 
 
 class NetworkConnectionToExportedNetworkConnectionConverterTest(
-    export_test_lib.ExportTestBase):
+    export_test_lib.ExportTestBase
+):
 
   def testBasicConversion(self):
     conn = rdf_client_network.NetworkConnection(
@@ -20,26 +21,34 @@ class NetworkConnectionToExportedNetworkConnectionConverterTest(
         local_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
         remote_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
-        ctime=123)
+        ctime=123,
+    )
 
     converter = network.NetworkConnectionToExportedNetworkConnectionConverter()
     results = list(converter.Convert(self.metadata, conn))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].state,
-                     rdf_client_network.NetworkConnection.State.LISTEN)
-    self.assertEqual(results[0].type,
-                     rdf_client_network.NetworkConnection.Type.SOCK_STREAM)
-    self.assertEqual(results[0].local_address,
-                     rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22))
-    self.assertEqual(results[0].remote_address,
-                     rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0))
+    self.assertEqual(
+        results[0].state, rdf_client_network.NetworkConnection.State.LISTEN
+    )
+    self.assertEqual(
+        results[0].type, rdf_client_network.NetworkConnection.Type.SOCK_STREAM
+    )
+    self.assertEqual(
+        results[0].local_address,
+        rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
+    )
+    self.assertEqual(
+        results[0].remote_address,
+        rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
+    )
     self.assertEqual(results[0].pid, 2136)
     self.assertEqual(results[0].ctime, 123)
 
 
 class InterfaceToExportedNetworkInterfaceConverterTest(
-    export_test_lib.ExportTestBase):
+    export_test_lib.ExportTestBase
+):
 
   def testInterfaceToExportedNetworkInterfaceConverter(self):
     mac_address_bytes = b"123456"
@@ -59,10 +68,12 @@ class InterfaceToExportedNetworkInterfaceConverterTest(
             ),
             rdf_client_network.NetworkAddress(
                 address_type=rdf_client_network.NetworkAddress.Family.INET6,
-                packed_bytes=socket.inet_pton(socket.AF_INET6,
-                                              "2001:720:1500:1::a100"),
-            )
-        ])
+                packed_bytes=socket.inet_pton(
+                    socket.AF_INET6, "2001:720:1500:1::a100"
+                ),
+            ),
+        ],
+    )
 
     converter = network.InterfaceToExportedNetworkInterfaceConverter()
     results = list(converter.Convert(self.metadata, interface))
@@ -74,13 +85,15 @@ class InterfaceToExportedNetworkInterfaceConverterTest(
 
 
 class DNSClientConfigurationToExportedDNSClientConfigurationTest(
-    export_test_lib.ExportTestBase):
+    export_test_lib.ExportTestBase
+):
 
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
     dns_servers = ["192.168.1.1", "8.8.8.8"]
     dns_suffixes = ["internal.company.com", "company.com"]
     config = rdf_client_network.DNSClientConfiguration(
-        dns_server=dns_servers, dns_suffix=dns_suffixes)
+        dns_server=dns_servers, dns_suffix=dns_suffixes
+    )
 
     converter = network.DNSClientConfigurationToExportedDNSClientConfiguration()
     results = list(converter.Convert(self.metadata, config))

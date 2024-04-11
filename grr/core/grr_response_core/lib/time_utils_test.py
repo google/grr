@@ -12,14 +12,17 @@ from grr.test_lib import test_lib
 class TimeUtilsTest(absltest.TestCase):
 
   def testInvalidTimeRange(self):
-    with self.assertRaisesWithLiteralMatch(ValueError,
-                                           "Invalid time-range: 2000 > 1000."):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, "Invalid time-range: 2000 > 1000."
+    ):
       time_utils.TimeRange(
-          rdfvalue.RDFDatetime(2000), rdfvalue.RDFDatetime(1000))
+          rdfvalue.RDFDatetime(2000), rdfvalue.RDFDatetime(1000)
+      )
 
   def testIncludesTimeRange(self):
     time_range = time_utils.TimeRange(
-        rdfvalue.RDFDatetime(1000), rdfvalue.RDFDatetime(2000))
+        rdfvalue.RDFDatetime(1000), rdfvalue.RDFDatetime(2000)
+    )
     self.assertFalse(time_range.Includes(rdfvalue.RDFDatetime(500)))
     self.assertTrue(time_range.Includes(rdfvalue.RDFDatetime(1000)))
     self.assertTrue(time_range.Includes(rdfvalue.RDFDatetime(1500)))

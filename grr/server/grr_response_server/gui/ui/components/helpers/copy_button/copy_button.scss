@@ -31,6 +31,10 @@ $transition-time: 200ms;
     }
   }
 
+  .multiline {
+    white-space: normal;
+  }
+
   .icon-container {
     display: flex;
     align-items: center;

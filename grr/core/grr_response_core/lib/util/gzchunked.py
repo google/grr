@@ -5,7 +5,6 @@ import gzip
 import io
 import os
 import struct
-
 from typing import Iterator
 
 from grr_response_core.lib.util import chunked

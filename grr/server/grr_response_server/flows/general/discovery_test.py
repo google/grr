@@ -212,27 +212,20 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     return client_id
 
-  @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
     client_id = self._SetupMinimalClient()
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
-      with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": [
-              "LinuxWtmp",
-              "NetgroupConfiguration",
-          ],
-          "Artifacts.netgroup_filter_regexes": [r"^login$"],
-      }):
-        client_mock = action_mocks.InterrogatedClient()
-        client_mock.InitializeClient()
-        with test_lib.SuppressLogs():
-          flow_test_lib.TestFlowHelper(
-              discovery.Interrogate.__name__,
-              client_mock,
-              creator=self.test_username,
-              client_id=client_id)
+      client_mock = action_mocks.InterrogatedClient()
+      client_mock.InitializeClient()
+
+      flow_test_lib.TestFlowHelper(
+          discovery.Interrogate.__name__,
+          client_mock,
+          creator=self.test_username,
+          client_id=client_id,
+      )
 
     client = self._OpenClient(client_id)
     self._CheckCloudMetadata(client)

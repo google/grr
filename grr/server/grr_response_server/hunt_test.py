@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import foreman
@@ -25,6 +26,7 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -189,12 +191,10 @@ class HuntTest(
     )
 
     hunt_obj2 = data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
-    self.assertEqual(
-        hunt_obj2.hunt_state, rdf_hunt_objects.Hunt.HuntState.STOPPED
-    )
+    self.assertEqual(hunt_obj2.hunt_state, hunts_pb2.Hunt.HuntState.STOPPED)
     self.assertEqual(
         hunt_obj2.hunt_state_reason,
-        rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
+        hunts_pb2.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
     )
     self.assertEqual(hunt_obj2.hunt_state_comment, "not working")
 
@@ -320,12 +320,10 @@ class HuntTest(
     )
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(
-        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.PAUSED
-    )
+    self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.PAUSED)
     self.assertEqual(
         hunt_obj.hunt_state_reason,
-        rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_CLIENTS_EXCEEDED,
+        hunts_pb2.Hunt.HuntStateReason.TOTAL_CLIENTS_EXCEEDED,
     )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
@@ -349,7 +347,10 @@ class HuntTest(
     self.assertLen(requests, 9)
     for i, (r, client_id) in enumerate(zip(requests, client_ids[1:])):
       self.assertEqual(r.client_id, client_id)
-      time_diff = r.delivery_time - (
+      delivery_time = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          r.delivery_time
+      )
+      time_diff = delivery_time - (
           now + rdfvalue.Duration.From(1, rdfvalue.MINUTES) * (i + 1)
       )
       self.assertLess(time_diff, rdfvalue.Duration.From(5, rdfvalue.SECONDS))
@@ -423,10 +424,10 @@ class HuntTest(
     results = data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
     self.assertLen(results, 5)
     for r in results:
-      self.assertIsInstance(r.payload, rdf_file_finder.FileFinderResult)
-      self.assertEqual(
-          r.payload.stat_entry.pathspec.CollapsePath(), "/tmp/evil.txt"
-      )
+      self.assertTrue(r.payload.Is(flows_pb2.FileFinderResult.DESCRIPTOR))
+      ff_result = flows_pb2.FileFinderResult()
+      r.payload.Unpack(ff_result)
+      self.assertEqual(ff_result.stat_entry.pathspec.path, "/tmp/evil.txt")
 
   def testOutputPluginsAreCorrectlyAppliedAndTheirStatusCanBeRead(self):
     hunt_test_lib.StatefulDummyHuntOutputPlugin.data = []
@@ -662,16 +663,12 @@ class HuntTest(
     self._RunHunt(client_ids[:2], client_mock=client_mock)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(
-        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
-    )
+    self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.STARTED)
 
     self._RunHunt(client_ids[2:], client_mock=client_mock)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(
-        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STOPPED
-    )
+    self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.STOPPED)
 
     self._CheckHuntStoppedNotification("reached the crashes limit")
 
@@ -705,7 +702,7 @@ class HuntTest(
 
       # Hunt should still be running: we got 1 response from 2 clients. We need
       # at least 3 clients to start calculating the average.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 2)
 
       self._RunHunt(
           [client_ids[2]],
@@ -715,7 +712,7 @@ class HuntTest(
       # Hunt should still be running: we got 1 response for first 2 clients and
       # 2 responses for the third. This is over the limit but we need at least 4
       # clients to start applying thresholds.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4)
 
       self._RunHunt(
           [client_ids[3]], client_mock=action_mocks.ListProcessesMock([])
@@ -724,7 +721,7 @@ class HuntTest(
       # Hunt should still be running: we got 1 response for first 2 clients,
       # 2 responses for the third and zero for the 4th. This makes it 1 result
       # per client on average. This is within the limit of 1.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4)
 
       self._RunHunt(
           client_ids[4:5],
@@ -735,7 +732,7 @@ class HuntTest(
       # That's more than the allowed average of 1.
       # Note that this check also implicitly checks that the 6th client didn't
       # run at all (otherwise total number of results would be 8, not 6).
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STOPPED, 6)
+      CheckState(hunts_pb2.Hunt.HuntState.STOPPED, 6)
 
       self._CheckHuntStoppedNotification(
           "reached the average results per client"
@@ -770,7 +767,7 @@ class HuntTest(
 
       # Hunt should still be running: we need at least 3 clients to start
       # calculating the average.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2, 4)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 2, 4)
 
       self._RunHunt(
           [client_ids[2]],
@@ -781,7 +778,7 @@ class HuntTest(
 
       # Hunt should still be running: even though the average is higher than the
       # limit, number of clients is not enough.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4, 8)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4, 8)
 
       self._RunHunt(
           [client_ids[3]],
@@ -794,7 +791,7 @@ class HuntTest(
       # average per-client CPU usage. But 4 user cpu + 8 system cpu seconds for
       # 4 clients make an average of 3 seconds per client - this is within the
       # limit.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4, 8)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4, 8)
 
       self._RunHunt(
           [client_ids[4]],
@@ -841,7 +838,7 @@ class HuntTest(
 
       # Hunt should still be running: we need at least 3 clients to start
       # calculating the average.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 2)
 
       self._RunHunt(
           [client_ids[2]],
@@ -852,7 +849,7 @@ class HuntTest(
 
       # Hunt should still be running: even though the average is higher than the
       # limit, number of clients is not enough.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4)
 
       self._RunHunt(
           [client_ids[3]],
@@ -864,7 +861,7 @@ class HuntTest(
       # Hunt should still be running: we got 4 clients, which is enough to check
       # average per-client network bytes usage, but 4 bytes for 4 clients is
       # within the limit of 1 byte per client on average.
-      CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+      CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4)
 
       self._RunHunt(
           [client_ids[4]],
@@ -906,7 +903,7 @@ class HuntTest(
     )
 
     # 4 is lower than the total limit. The hunt should still be running.
-    CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 4)
+    CheckState(hunts_pb2.Hunt.HuntState.STARTED, 4)
 
     self._RunHunt(
         [client_ids[2]],
@@ -915,7 +912,7 @@ class HuntTest(
 
     # 5 is equal to the total limit. Total network bytes sent should
     # go over the limit in order for the hunt to be stopped.
-    CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 5)
+    CheckState(hunts_pb2.Hunt.HuntState.STARTED, 5)
 
     self._RunHunt(
         [client_ids[3]],
@@ -926,7 +923,7 @@ class HuntTest(
     # run with approximate limits (flow not persisted in the DB every time).
 
     # # 6 is greater than the total limit. The hunt should be stopped now.
-    # CheckState(rdf_hunt_objects.Hunt.HuntState.STOPPED, 6)
+    # CheckState(hunts_pb2.Hunt.HuntState.STOPPED, 6)
 
     # self._RunHunt([client_ids[4]],
     #               client_mock=hunt_test_lib.SampleHuntMock(
@@ -958,18 +955,14 @@ class HuntTest(
       foreman_obj.AssignTasksToClient(client_ids[0])
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(
-        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
-    )
+    self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.STARTED)
 
     with test_lib.FakeTime(
         expiry_time - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     ):
       foreman_obj.AssignTasksToClient(client_ids[1])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-      self.assertEqual(
-          hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.STARTED
-      )
+      self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.STARTED)
       hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
       self.assertEqual(hunt_counters.num_clients, 2)
 
@@ -996,9 +989,7 @@ class HuntTest(
 
     self._RunHunt(client_ids[:2])
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(
-        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.PAUSED
-    )
+    self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.PAUSED)
     # There should be only one client, due to the limit
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients, 1)
@@ -1023,15 +1014,15 @@ class HuntTest(
 
     # Values below are calculated based on SampleHuntMock's behavior.
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
-    self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 5.5)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.sum, 55)
     self.assertAlmostEqual(usage_stats.user_cpu_stats.stddev, 2.8722813)
 
     self.assertEqual(usage_stats.system_cpu_stats.num, 10)
-    self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 11)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.sum, 110)
     self.assertAlmostEqual(usage_stats.system_cpu_stats.stddev, 5.7445626)
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
-    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 16.5)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.sum, 165)
     self.assertAlmostEqual(
         usage_stats.network_bytes_sent_stats.stddev, 8.61684396
     )
@@ -1193,8 +1184,9 @@ class HuntTest(
         self.assertEqual(
             all_flows[0].flow_class_name, transfer.GetFile.__name__
         )
+        rdf_flow = mig_flow_objects.ToRDFFlow(all_flows[0])
         self.assertEqual(
-            all_flows[0].args.pathspec.path, "/tmp/evil_%d.txt" % index
+            rdf_flow.args.pathspec.path, "/tmp/evil_%d.txt" % index
         )
 
   def testHuntIDFromURN(self):
