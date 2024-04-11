@@ -20,8 +20,9 @@ class ExecuteResponseConverter(base.ExportConverter):
   input_rdf_type = rdf_client_action.ExecuteResponse
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      r: rdf_client_action.ExecuteResponse
+      self,
+      metadata: base.ExportedMetadata,
+      r: rdf_client_action.ExecuteResponse,
   ) -> Iterator[ExportedExecuteResponse]:
     yield ExportedExecuteResponse(
         metadata=metadata,
@@ -32,4 +33,5 @@ class ExecuteResponseConverter(base.ExportConverter):
         stderr=r.stderr,
         # ExecuteResponse is uint32 (for a reason unknown): to be on the safe
         # side, making sure it's not negative.
-        time_used_us=max(0, r.time_used))
+        time_used_us=max(0, r.time_used),
+    )

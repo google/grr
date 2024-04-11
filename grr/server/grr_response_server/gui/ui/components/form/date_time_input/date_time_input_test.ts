@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {
@@ -119,9 +118,8 @@ describe('DateTimeInput Component', () => {
     calendarButton.nativeElement.click();
     fixture.detectChanges();
 
-    const calendar = await loader.getHarness<MatCalendarHarness>(
-      MatCalendarHarness,
-    );
+    const calendar =
+      await loader.getHarness<MatCalendarHarness>(MatCalendarHarness);
     const cells = await calendar.getCells();
     await calendar.selectCell({text: await cells[0].getText()});
     fixture.detectChanges();
@@ -168,9 +166,8 @@ describe('DateTimeInput Component', () => {
     calendarButton.nativeElement.click();
     fixture.detectChanges();
 
-    const calendar = await loader.getHarness<MatCalendarHarness>(
-      MatCalendarHarness,
-    );
+    const calendar =
+      await loader.getHarness<MatCalendarHarness>(MatCalendarHarness);
     const cells = await calendar.getCells();
     await calendar.selectCell({text: await cells[0].getText()});
     fixture.detectChanges();

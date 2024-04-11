@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   db:
     image: mysql:8.2
@@ -26,37 +27,48 @@ services:
       retries: 10
 
   grr-admin-ui:
-    image: ghcr.io/google/grr:docker-compose-testing
+    image: ghcr.io/google/grr:latest
     container_name: grr-admin-ui
     hostname: admin-ui
-    restart: always
     depends_on:
       db:
         condition: service_healthy
+      fleetspeak-admin:
+        condition: service_started
     volumes:
-      - ./docker_config_files/server:/configs/
+      - ./docker_config_files:/configs/
+      # Mount a directory for the repacked client installers, so they
+      # can be used in the grr-client container which mounts the same volume.
+      - client_installers:/client_installers
     ports:
       - "8000:8000"
     expose:
       - "8000"
     networks:
       - server-network
-    command:
-      - -component
-      - admin_ui
-      - -config
-      - /configs/grr.server.yaml
-      - --verbose
+    entrypoint: [
+      "/bin/bash",
+      "-c",
+      "/configs/server/repack_clients.sh && grr_server -component admin_ui -config /configs/server/grr.server.yaml --verbose"
+    ]
+    healthcheck:
+      test: |
+        if [[ "$(ls -l /client_installers | wc -l)" == "0" ]]; then
+          echo "Healthckeck: GRR client installer not available"
+          exit 1
+        fi
+      timeout: 10s
+      retries: 10
 
   grr-fleetspeak-frontend:
-    image: ghcr.io/google/grr:docker-compose-testing
+    image: ghcr.io/google/grr:latest
     container_name: grr-fleetspeak-frontend
     hostname: grr-fleetspeak-frontend
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ./docker_config_files/server/:/configs/
+      - ./docker_config_files:/configs
     expose:
       - "11111"
     restart: always
@@ -66,11 +78,11 @@ services:
       - -component
       - frontend
       - -config
-      - /configs/grr.server.yaml
+      - /configs/server/grr.server.yaml
       - --verbose
 
   fleetspeak-admin:
-    image: ghcr.io/google/fleetspeak:cl-601031487
+    image: ghcr.io/google/fleetspeak:latest
     container_name: fleetspeak-admin
     hostname: fleetspeak-admin
     depends_on:
@@ -81,20 +93,20 @@ services:
     expose:
       - "4444"
     volumes:
-      - ./docker_config_files/server/:/configs/
+      - ./docker_config_files:/configs
     entrypoint: [
       "server",
       "-components_config",
-      "/configs/textservices/admin.components.config",
+      "/configs/server/textservices/admin.components.config",
       "-services_config",
-      "/configs/grr_frontend.service",
+      "/configs/server/grr_frontend.service",
       "-alsologtostderr",
       "-v",
       "1000"
     ]
 
   fleetspeak-frontend:
-    image: ghcr.io/google/fleetspeak:cl-601031487
+    image: ghcr.io/google/fleetspeak:latest
     container_name: fleetspeak-frontend
     hostname: fleetspeak-frontend
     depends_on:
@@ -106,23 +118,23 @@ services:
       - "4443"
       - "10000"
     volumes:
-      - ./docker_config_files/server/:/configs/
+      - ./docker_config_files:/configs
     entrypoint: [
       "server",
       "-components_config",
-      "/configs/textservices/frontend.components.config",
+      "/configs/server/textservices/frontend.components.config",
       "-services_config",
-      "/configs/grr_frontend.service",
+      "/configs/server/grr_frontend.service",
       "-alsologtostderr",
       "-v",
       "1000"
     ]
 
   grr-worker:
-    image: ghcr.io/google/grr:docker-compose-testing
+    image: ghcr.io/google/grr:latest
     container_name: grr-worker
     volumes:
-      - ./docker_config_files/server/:/configs/
+      - ./docker_config_files:/configs
     hostname: grr-worker
     depends_on:
       db:
@@ -134,27 +146,34 @@ services:
       - -component
       - worker
       - -config
-      - /configs/grr.server.yaml
+      - /configs/server/grr.server.yaml
       - --verbose
 
   grr-client:
-    image: ghcr.io/google/grr:docker-compose-testing
+    image: ubuntu:22.04
     container_name: grr-client
-    restart: always
     depends_on:
-      - db
-      - fleetspeak-frontend
+      db:
+        condition: service_healthy
+      fleetspeak-frontend:
+        condition: service_started
+      grr-admin-ui:
+        # Service is healthy as soon as client installers are repacked.
+        condition: service_healthy
     volumes:
-      - ./docker_config_files/client/:/configs/
-      # Mount the client_installers folder, to preserve
-      # the repacked templates across restarts.
+      - ./docker_config_files:/configs
+      # Mount the client_installers folder which contains the
+      # repacked templates written by the grr-admin-ui container
       - client_installers:/client_installers
+      # Mount the client_state volume to preserve the clients state
+      # including the client_id across restarts.
+      - client_state:/client_state
     networks:
       - server-network
     entrypoint: [
       "/bin/bash",
       "-c",
-      "/configs/repack_install_client.sh && fleetspeak-client -config /configs/client.config"
+      "/configs/client/install_client.sh && fleetspeak-client -config /configs/client/client.config"
     ]
     healthcheck:
       test: |
@@ -168,5 +187,6 @@ services:
 volumes:
   db_data:
   client_installers:
+  client_state:
 networks:
   server-network:

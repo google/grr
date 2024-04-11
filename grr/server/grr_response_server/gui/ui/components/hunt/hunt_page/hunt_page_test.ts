@@ -1,5 +1,11 @@
 import {Location} from '@angular/common';
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {
+  TestBed,
+  discardPeriodicTasks,
+  fakeAsync,
+  tick,
+  waitForAsync,
+} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
@@ -15,7 +21,7 @@ import {HttpApiService} from '../../../lib/api/http_api_service';
 import {mockHttpApiService} from '../../../lib/api/http_api_service_test_util';
 import {translateHuntApproval} from '../../../lib/api_translation/hunt';
 import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
-import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
+import {HuntState, getHuntTitle} from '../../../lib/models/hunt';
 import {
   newFlowDescriptorMap,
   newHunt,
@@ -33,8 +39,8 @@ import {
   mockHuntResultDetailsGlobalStore,
 } from '../../../store/hunt_result_details_global_store_test_util';
 import {
-  injectMockStore,
   STORE_PROVIDERS,
+  injectMockStore,
 } from '../../../store/store_test_providers';
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {mockUserGlobalStore} from '../../../store/user_global_store_test_util';
@@ -50,6 +56,9 @@ const TEST_HUNT = newHunt({
   huntId: '1984',
   description: 'Ghost',
   creator: 'buster',
+  created: new Date('1970-01-12 13:46:39 UTC'),
+  initStartTime: new Date('1980-01-12 13:46:39 UTC'),
+  lastStartTime: undefined,
   flowName: 'MadeUpFlow',
   resourceUsage: {
     totalCPUTime: 0.7999999821186066,
@@ -138,6 +147,9 @@ describe('hunt page test', () => {
     const text = overviewSection.nativeElement.textContent;
     expect(text).toContain('1984');
     expect(text).toContain('buster');
+    expect(text).toContain('1970-01-12 13:46:39 UTC');
+    expect(text).toContain('1980-01-12 13:46:39 UTC');
+    expect(text).toContain('never started');
     expect(text).toContain('MadeUpFlow');
     expect(text).toContain('View flow arguments');
     expect(text).toContain('1 s');
@@ -441,6 +453,7 @@ describe('hunt page test', () => {
     tick(); // after tick(), URL changes will have taken into effect.
 
     expect(location.path()).toBe('/hunts/1984(drawer:modify-hunt)');
+    discardPeriodicTasks();
   }));
 
   it('Copy button navigates to new hunt page with correct param', fakeAsync(async () => {
@@ -458,6 +471,8 @@ describe('hunt page test', () => {
     tick(); // after tick(), URL changes will have taken into effect.
 
     expect(location.path()).toBe('/new-hunt?huntId=1984');
+
+    discardPeriodicTasks();
   }));
 
   it('does not display approval component if disabled', async () => {

@@ -25,11 +25,13 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a cronjob to the database."""
-    query = ("INSERT INTO cron_jobs "
-             "(job_id, job, create_time, enabled) "
-             "VALUES (%s, %s, FROM_UNIXTIME(%s), %s) "
-             "ON DUPLICATE KEY UPDATE "
-             "enabled=VALUES(enabled)")
+    query = (
+        "INSERT INTO cron_jobs "
+        "(job_id, job, create_time, enabled) "
+        "VALUES (%s, %s, FROM_UNIXTIME(%s), %s) "
+        "ON DUPLICATE KEY UPDATE "
+        "enabled=VALUES(enabled)"
+    )
 
     create_time_str = mysql_utils.RDFDatetimeToTimestamp(
         rdfvalue.RDFDatetime().FromMicrosecondsSinceEpoch(cronjob.created_at)
@@ -173,30 +175,32 @@ class MySQLDBCronJobMixin(object):
     cursor.execute(query, args)
 
   @mysql_utils.WithTransaction()
-  def UpdateCronJob(self,
-                    cronjob_id,
-                    last_run_status=db.Database.unchanged,
-                    last_run_time=db.Database.unchanged,
-                    current_run_id=db.Database.unchanged,
-                    state=db.Database.unchanged,
-                    forced_run_requested=db.Database.unchanged,
-                    cursor=None):
+  def UpdateCronJob(
+      self,
+      cronjob_id,
+      last_run_status=db.Database.UNCHANGED,
+      last_run_time=db.Database.UNCHANGED,
+      current_run_id=db.Database.UNCHANGED,
+      state=db.Database.UNCHANGED,
+      forced_run_requested=db.Database.UNCHANGED,
+      cursor=None,
+  ):
     """Updates run information for an existing cron job."""
     updates = []
     args = []
-    if last_run_status != db.Database.unchanged:
+    if last_run_status != db.Database.UNCHANGED:
       updates.append("last_run_status=%s")
       args.append(int(last_run_status))
-    if last_run_time != db.Database.unchanged:
+    if last_run_time != db.Database.UNCHANGED:
       updates.append("last_run_time=FROM_UNIXTIME(%s)")
       args.append(mysql_utils.RDFDatetimeToTimestamp(last_run_time))
-    if current_run_id != db.Database.unchanged:
+    if current_run_id != db.Database.UNCHANGED:
       updates.append("current_run_id=%s")
       args.append(db_utils.CronJobRunIDToInt(current_run_id))
-    if state != db.Database.unchanged:
+    if state != db.Database.UNCHANGED:
       updates.append("state=%s")
       args.append(state.SerializeToString())
-    if forced_run_requested != db.Database.unchanged:
+    if forced_run_requested != db.Database.UNCHANGED:
       updates.append("forced_run_requested=%s")
       args.append(forced_run_requested)
 
@@ -322,7 +326,8 @@ class MySQLDBCronJobMixin(object):
       )
     except MySQLdb.IntegrityError as e:
       raise db.UnknownCronJobError(
-          "CronJob with id %s not found." % run_object.cron_job_id, cause=e)
+          "CronJob with id %s not found." % run_object.cron_job_id, cause=e
+      )
 
   def _CronJobRunFromRow(
       self, row: Tuple[bytes, float]

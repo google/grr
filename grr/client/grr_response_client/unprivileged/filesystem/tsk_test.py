@@ -11,7 +11,8 @@ class TskTest(ntfs_image_test_lib.NtfsImageTest):
   _IMPLEMENTATION_TYPE = filesystem_pb2.TSK
 
   def _ExpectedStatEntry(
-      self, st: filesystem_pb2.StatEntry) -> filesystem_pb2.StatEntry:
+      self, st: filesystem_pb2.StatEntry
+  ) -> filesystem_pb2.StatEntry:
     """Clears the fields which are not returned by TSK."""
     if st.HasField("ntfs"):
       st.ClearField("ntfs")

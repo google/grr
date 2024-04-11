@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
+
   in_rdfvalue = rdf_client_action.EchoRequest
   out_rdfvalues = [rdf_client_action.EchoRequest]
 
@@ -54,6 +55,7 @@ class GetHostname(actions.ActionPlugin):
 
 class GetPlatformInfo(actions.ActionPlugin):
   """Retrieves platform information."""
+
   out_rdfvalues = [rdf_client.Uname]
 
   def Run(self, unused_args):
@@ -66,6 +68,7 @@ class Kill(actions.ActionPlugin):
 
   Used for testing process respawn.
   """
+
   out_rdfvalues = [rdf_flows.GrrMessage]
 
   def Run(self, unused_arg):
@@ -85,24 +88,20 @@ class Kill(actions.ActionPlugin):
 
 class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
+
   in_rdfvalue = None
   out_rdfvalues = [rdf_protodict.Dict]
-
-  BLOCKED_PARAMETERS = ["Client.private_key"]
 
   def Run(self, unused_arg):
     """Retrieve the configuration except for the blocked parameters."""
 
     out = self.out_rdfvalues[0]()
     for descriptor in config.CONFIG.type_infos:
-      if descriptor.name in self.BLOCKED_PARAMETERS:
-        value = "[Redacted]"
-      else:
-        try:
-          value = config.CONFIG.Get(descriptor.name, default=None)
-        except (config_lib.Error, KeyError, AttributeError, ValueError) as e:
-          logging.info("Config reading error: %s", e)
-          continue
+      try:
+        value = config.CONFIG.Get(descriptor.name, default=None)
+      except (config_lib.Error, KeyError, AttributeError, ValueError) as e:
+        logging.info("Config reading error: %s", e)
+        continue
 
       if value is not None:
         out[descriptor.name] = value
@@ -112,6 +111,7 @@ class GetConfiguration(actions.ActionPlugin):
 
 class GetLibraryVersions(actions.ActionPlugin):
   """Retrieves version information for installed libraries."""
+
   in_rdfvalue = None
   out_rdfvalues = [rdf_protodict.Dict]
 
@@ -160,6 +160,7 @@ class GetLibraryVersions(actions.ActionPlugin):
 
 class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
+
   in_rdfvalue = rdf_protodict.Dict
 
   UPDATABLE_FIELDS = {"Client.foreman_check_frequency",
@@ -190,13 +191,16 @@ class UpdateConfiguration(actions.ActionPlugin):
     smart_arg = {str(field): value for field, value in arg.items()}
 
     disallowed_fields = [
-        field for field in smart_arg
+        field
+        for field in smart_arg
         if field not in UpdateConfiguration.UPDATABLE_FIELDS
     ]
 
     if disallowed_fields:
-      raise ValueError("Received an update request for restricted field(s) %s."
-                       % ",".join(disallowed_fields))
+      raise ValueError(
+          "Received an update request for restricted field(s) %s."
+          % ",".join(disallowed_fields)
+      )
 
     if platform.system() != "Windows":
       # Check config validity before really applying the changes. This isn't
@@ -237,11 +241,13 @@ def GetClientInformation() -> rdf_client.ClientInformation:
       build_time=config.CONFIG["Client.build_time"],
       labels=config.CONFIG.Get("Client.labels", default=None),
       timeline_btime_support=timeline.BTIME_SUPPORT,
-      sandbox_support=sandbox.IsSandboxInitialized())
+      sandbox_support=sandbox.IsSandboxInitialized(),
+  )
 
 
 class GetClientInfo(actions.ActionPlugin):
   """Obtains information about the GRR client installed."""
+
   out_rdfvalues = [rdf_client.ClientInformation]
 
   def Run(self, unused_args):
@@ -259,16 +265,20 @@ class SendStartupInfo(actions.ActionPlugin):
     interrogate_trigger_path = config.CONFIG["Client.interrogate_trigger_path"]
     if not interrogate_trigger_path:
       logging.info(
-          "Client.interrogate_trigger_path not set, skipping the check.")
+          "Client.interrogate_trigger_path not set, skipping the check."
+      )
       return False
 
     if not os.path.exists(interrogate_trigger_path):
-      logging.info("Interrogate trigger file (%s) does not exist.",
-                   interrogate_trigger_path)
+      logging.info(
+          "Interrogate trigger file (%s) does not exist.",
+          interrogate_trigger_path,
+      )
       return False
 
-    logging.info("Interrogate trigger file exists: %s",
-                 interrogate_trigger_path)
+    logging.info(
+        "Interrogate trigger file exists: %s", interrogate_trigger_path
+    )
 
     # First try to remove the file and return True only if the removal
     # is successful. This is to prevent a permission error + a crash loop from
@@ -278,7 +288,10 @@ class SendStartupInfo(actions.ActionPlugin):
     except (OSError, IOError) as e:
       logging.exception(
           "Not triggering interrogate - failed to remove the "
-          "interrogate trigger file (%s): %s", interrogate_trigger_path, e)
+          "interrogate trigger file (%s): %s",
+          interrogate_trigger_path,
+          e,
+      )
       return False
 
     return True
@@ -300,4 +313,5 @@ class SendStartupInfo(actions.ActionPlugin):
         response_id=0,
         request_id=0,
         message_type=rdf_flows.GrrMessage.Type.MESSAGE,
-        ttl=ttl)
+        ttl=ttl,
+    )

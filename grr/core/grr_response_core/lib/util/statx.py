@@ -6,6 +6,7 @@ depending on platform capabilities (e.g. on Linux it will use `statx` [1] call.
 
 [1]: https://www.man7.org/linux/man-pages/man2/statx.2.html
 """
+
 import ctypes
 import functools
 import operator
@@ -21,6 +22,7 @@ BTIME_SUPPORT: bool
 # TODO(hanuszczak): Migrate to data classes on support for 3.7 is available.
 class Result(NamedTuple):
   """A result of extended stat collection."""
+
   # A bitmask with extra file attributes.
   attributes: int
   # A number of hard links.
@@ -115,13 +117,13 @@ class _StatxStruct(ctypes.Structure):
   def rdev(self) -> int:
     """Device identifier (if the file represents a device)."""
     # https://elixir.bootlin.com/linux/v5.6/source/tools/include/nolibc/nolibc.h
-    return ((self.stx_rdev_major & 0xfff) << 8) | (self.stx_rdev_minor & 0xff)
+    return ((self.stx_rdev_major & 0xFFF) << 8) | (self.stx_rdev_minor & 0xFF)
 
   @property
   def dev(self) -> int:
     """Device identifier of the filesystem the file resides on."""
     # https://elixir.bootlin.com/linux/v5.6/source/tools/include/nolibc/nolibc.h
-    return ((self.stx_dev_major & 0xfff) << 8) | (self.stx_dev_minor & 0xff)
+    return ((self.stx_dev_major & 0xFFF) << 8) | (self.stx_dev_minor & 0xFF)
 
 
 # https://elixir.bootlin.com/linux/v3.4/source/include/linux/fcntl.h
@@ -139,18 +141,22 @@ _STATX_MTIME = 0x00000040
 _STATX_CTIME = 0x00000080
 _STATX_INO = 0x00000100
 _STATX_SIZE = 0x00000200
-_STATX_ALL = functools.reduce(operator.__or__, [
-    _STATX_MODE,
-    _STATX_NLINK,
-    _STATX_UID,
-    _STATX_GID,
-    _STATX_ATIME,
-    _STATX_BTIME,
-    _STATX_MTIME,
-    _STATX_CTIME,
-    _STATX_INO,
-    _STATX_SIZE,
-], 0)
+_STATX_ALL = functools.reduce(
+    operator.__or__,
+    [
+        _STATX_MODE,
+        _STATX_NLINK,
+        _STATX_UID,
+        _STATX_GID,
+        _STATX_ATIME,
+        _STATX_BTIME,
+        _STATX_MTIME,
+        _STATX_CTIME,
+        _STATX_INO,
+        _STATX_SIZE,
+    ],
+    0,
+)
 
 if platform.system() == "Linux":
 
@@ -178,8 +184,13 @@ if platform.system() == "Linux":
     def _GetImplLinuxStatx(path: bytes) -> Result:
       """A Linux-specific stat implementation through `statx`."""
       c_result = _StatxStruct()
-      c_status = _statx(0, path, _AT_SYMLINK_NOFOLLOW | _AT_STATX_SYNC_AS_STAT,
-                        _STATX_ALL, ctypes.pointer(c_result))
+      c_status = _statx(
+          0,
+          path,
+          _AT_SYMLINK_NOFOLLOW | _AT_STATX_SYNC_AS_STAT,
+          _STATX_ALL,
+          ctypes.pointer(c_result),
+      )
 
       if c_status != 0:
         raise OSError(f"Failed to stat '{path}', error code: {c_status}")
@@ -197,7 +208,8 @@ if platform.system() == "Linux":
           ctime_ns=c_result.stx_ctime.nanos,
           mtime_ns=c_result.stx_mtime.nanos,
           rdev=c_result.rdev,
-          dev=c_result.dev)
+          dev=c_result.dev,
+      )
 
     _GetImpl = _GetImplLinuxStatx
     BTIME_SUPPORT = True
@@ -220,7 +232,8 @@ if platform.system() == "Linux":
           ctime_ns=stat_obj.st_ctime_ns,
           mtime_ns=stat_obj.st_mtime_ns,
           rdev=stat_obj.st_rdev,
-          dev=stat_obj.st_dev)
+          dev=stat_obj.st_dev,
+      )
 
     _GetImpl = _GetImplLinux
     BTIME_SUPPORT = False
@@ -247,7 +260,8 @@ elif platform.system() == "Darwin":
         ctime_ns=stat_obj.st_ctime_ns,
         mtime_ns=stat_obj.st_mtime_ns,
         rdev=stat_obj.st_rdev,
-        dev=stat_obj.st_dev)
+        dev=stat_obj.st_dev,
+    )
 
   _GetImpl = _GetImplMacos
   BTIME_SUPPORT = True
@@ -278,7 +292,8 @@ elif platform.system() == "Windows":
         ctime_ns=stat_obj.st_ctime_ns,
         mtime_ns=stat_obj.st_mtime_ns,
         rdev=0,  # Not available.
-        dev=stat_obj.st_dev)
+        dev=stat_obj.st_dev,
+    )
 
   _GetImpl = _GetImplWindows
   BTIME_SUPPORT = True

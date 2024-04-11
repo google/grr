@@ -110,6 +110,9 @@ export class ApprovalPage implements OnDestroy {
               watermark.setDate(
                 watermark.getDate() + this.defaultAccessDurationDays,
               );
+              // TODO: Use a daylight saving time resistant time
+              // measurement.
+              watermark.setHours(watermark.getHours() + 1);
 
               this.longExpiration = approval.expirationTime > watermark;
             });

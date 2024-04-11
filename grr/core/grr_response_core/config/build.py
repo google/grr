@@ -297,65 +297,11 @@ config_lib.DEFINE_option(
         default="%(executables@grr-response-core|resource)",
         description="The path to the grr executables directory."))
 
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.unzipsfx_stub_dir",
-        must_exist=False,
-        default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
-                 "/templates/unzipsfx"),
-        description="The directory that contains the zip self extracting "
-        "stub."))
-
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.unzipsfx_stub",
-        must_exist=False,
-        default=(
-            "%(ClientBuilder.unzipsfx_stub_dir)/unzipsfx-%(Client.arch).exe"),
-        description="The full path to the zip self extracting stub."))
-
 config_lib.DEFINE_string(
     name="ClientBuilder.config_filename",
     default="%(Client.binary_name).yaml",
     help=("The name of the configuration file which will be embedded in the "
           "deployable binary."))
-
-config_lib.DEFINE_string(
-    name="ClientBuilder.autorun_command_line",
-    default=("%(Client.binary_name) --install "
-             "--config %(ClientBuilder.config_filename)"),
-    help=("The command that the installer will execute after "
-          "unpacking the package."))
-
-config_lib.DEFINE_list(
-    name="ClientBuilder.plugins",
-    default=[],
-    help="Plugins that will copied to the client installation file and run when"
-    "the client is running.")
-
-config_lib.DEFINE_string(
-    name="ClientBuilder.client_logging_filename",
-    default="%(Logging.path)/%(Client.name)_log.txt",
-    help="Filename for logging, to be copied to Client section in the client "
-    "that gets built.")
-
-config_lib.DEFINE_string(
-    name="ClientBuilder.client_logging_path",
-    default="/tmp",
-    help="Filename for logging, to be copied to Client section in the client "
-    "that gets built.")
-
-config_lib.DEFINE_list(
-    name="ClientBuilder.client_logging_engines",
-    default=["stderr", "file"],
-    help="Enabled logging engines, to be copied to Logging.engines in client "
-    "configuration.")
-
-config_lib.DEFINE_string(
-    name="ClientBuilder.client_installer_logfile",
-    default="%(Logging.path)/%(Client.name)_installer.txt",
-    help="Logfile for logging the client installation process, to be copied to"
-    " Installer.logfile in client built.")
 
 config_lib.DEFINE_string(
     name="ClientBuilder.maintainer",
@@ -464,12 +410,6 @@ config_lib.DEFINE_multichoice(
         "windows_i386_exe"
     ],
     help="Platforms that will be built by client_build buildandrepack")
-
-config_lib.DEFINE_list(
-    name="ClientBuilder.BuildTargets",
-    default=[],
-    help="List of context names that should be built by "
-    "buildandrepack")
 
 config_lib.DEFINE_string(
     "ClientBuilder.rpm_signing_key_public_keyfile",

@@ -3,15 +3,13 @@
 
 import logging
 import re
-from typing import Text
-
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
 
 
-class Token(object):
+class Token:
   """A token action."""
 
   state_regex = None
@@ -20,20 +18,20 @@ class Token(object):
     """Constructor.
 
     Args:
-
       state_regex: If this regular expression matches the current state this
-                   rule is considered.
+        rule is considered.
       regex: A regular expression to try and match from the current point.
       actions: A command separated list of method names in the Lexer to call.
       next_state: The next state we transition to if this Token matches.
       flags: re flags.
     """
-    precondition.AssertType(regex, Text)
-    precondition.AssertOptionalType(state_regex, Text)
+    precondition.AssertType(regex, str)
+    precondition.AssertOptionalType(state_regex, str)
 
     if state_regex:
-      self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | re.U
-                                    | flags)
+      self.state_regex = re.compile(
+          state_regex, re.DOTALL | re.M | re.S | re.U | flags
+      )
     self.regex = re.compile(regex, re.DOTALL | re.M | re.S | re.U | flags)
 
     self.re_str = regex
@@ -55,15 +53,16 @@ class ParseError(Error):
   """A parse error occurred."""
 
 
-class Lexer(object):
+class Lexer:
   """A generic feed lexer."""
+
   # A list of Token() instances.
   tokens = []
   # Regex flags
   flags = 0
 
   def __init__(self, data=""):
-    precondition.AssertType(data, Text)
+    precondition.AssertType(data, str)
     # Set the lexer up to process a new data feed.
     self.Reset()
     # Populate internal token list with class tokens, if defined.
@@ -99,8 +98,12 @@ class Lexer(object):
         continue
 
       if self.verbose:
-        logging.debug("%s: Trying to match %r with %r", self.state,
-                      self.buffer[:10], token.re_str)
+        logging.debug(
+            "%s: Trying to match %r with %r",
+            self.state,
+            self.buffer[:10],
+            token.re_str,
+        )
 
       # Try to match the rule
       m = token.regex.match(self.buffer)
@@ -117,8 +120,8 @@ class Lexer(object):
 
       # The match consumes the data off the buffer (the handler can put it back
       # if it likes)
-      self.processed_buffer += self.buffer[:m.end()]
-      self.buffer = self.buffer[m.end():]
+      self.processed_buffer += self.buffer[: m.end()]
+      self.buffer = self.buffer[m.end() :]
       self.processed += m.end()
 
       next_state = token.next_state
@@ -154,7 +157,7 @@ class Lexer(object):
     return "Error"
 
   def Feed(self, data):
-    precondition.AssertType(data, Text)
+    precondition.AssertType(data, str)
     self.buffer += data
 
   def Empty(self):
@@ -187,9 +190,9 @@ class Lexer(object):
 
   def PushBack(self, string="", **_):
     """Push the match back on the stream."""
-    precondition.AssertType(string, Text)
+    precondition.AssertType(string, str)
     self.buffer = string + self.buffer
-    self.processed_buffer = self.processed_buffer[:-len(string)]
+    self.processed_buffer = self.processed_buffer[: -len(string)]
 
   def Close(self):
     """A convenience function to force us to parse all the data."""
@@ -198,8 +201,9 @@ class Lexer(object):
         return
 
 
-class Expression(object):
+class Expression:
   """A class representing an expression."""
+
   attribute = None
   args = None
   operator = None
@@ -238,8 +242,11 @@ class Expression(object):
     return False
 
   def __str__(self):
-    return "Expression: (%s) (%s) %s" % (self.attribute, self.operator,
-                                         self.args)
+    return "Expression: (%s) (%s) %s" % (
+        self.attribute,
+        self.operator,
+        self.args,
+    )
 
   def PrintTree(self, depth=""):
     return "%s %s" % (depth, self)
@@ -247,7 +254,8 @@ class Expression(object):
   def Compile(self, filter_implemention):
     """Given a filter implementation, compile this expression."""
     raise NotImplementedError(
-        "%s does not implement Compile." % self.__class__.__name__)
+        "%s does not implement Compile." % self.__class__.__name__
+    )
 
 
 class BinaryExpression(Expression):
@@ -260,9 +268,11 @@ class BinaryExpression(Expression):
       self.args.append(part)
     super().__init__()
 
-  def __str__(self) -> Text:
-    return "Binary Expression: %s %s" % (self.operator,
-                                         [str(x) for x in self.args])
+  def __str__(self) -> str:
+    return "Binary Expression: %s %s" % (
+        self.operator,
+        [str(x) for x in self.args],
+    )
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):
@@ -270,7 +280,8 @@ class BinaryExpression(Expression):
       self.args.append(rhs)
     else:
       raise ParseError(
-          "Expected expression, got %s %s %s" % (lhs, self.operator, rhs))
+          "Expected expression, got %s %s %s" % (lhs, self.operator, rhs)
+      )
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)
@@ -316,15 +327,13 @@ class SearchParser(Lexer):
 
   tokens = [
       # Double quoted string
-      Token("STRING", "\"", "PopState,StringFinish", None),
+      Token("STRING", '"', "PopState,StringFinish", None),
       Token("STRING", r"\\(.)", "StringEscape", None),
       Token("STRING", r"[^\\\"]+", "StringInsert", None),
-
       # Single quoted string
       Token("SQ_STRING", "'", "PopState,StringFinish", None),
       Token("SQ_STRING", r"\\(.)", "StringEscape", None),
       Token("SQ_STRING", r"[^\\']+", "StringInsert", None),
-
       # TODO(user): Implement a unary not operator.
       # The first thing we see in the initial state takes up to the ATTRIBUTE
       Token("INITIAL", r"(and|or|\&\&|\|\|)", "BinaryOperator", None),
@@ -332,15 +341,14 @@ class SearchParser(Lexer):
       Token("INITIAL", r"\(", "BracketOpen", None),
       Token("INITIAL", r"\)", "BracketClose", None),
       Token("ATTRIBUTE", r"[\w._0-9]+", "StoreAttribute", "OPERATOR"),
-      Token("OPERATOR", r"[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator",
-            "ARG_LIST"),
+      Token(
+          "OPERATOR", r"[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator", "ARG_LIST"
+      ),
       Token("OPERATOR", "(!=|[<>=])", "StoreSpecialOperator", "ARG_LIST"),
       Token("ARG_LIST", r"[^\s'\"]+", "InsertArg", None),
-
       # Start a string.
-      Token(".", "\"", "PushState,StringStart", "STRING"),
+      Token(".", '"', "PushState,StringStart", "STRING"),
       Token(".", "'", "PushState,StringStart", "SQ_STRING"),
-
       # Skip whitespace.
       Token(".", r"\s+", None, None),
   ]
@@ -376,7 +384,7 @@ class SearchParser(Lexer):
        string: The string that matched.
        match: The match object (m.group(1) is the escaped code)
     """
-    precondition.AssertType(string, Text)
+    precondition.AssertType(string, str)
     if match.group(1) in "'\"rnbt":
       self.string += text.Unescape(string)
     else:
@@ -423,9 +431,12 @@ class SearchParser(Lexer):
   def _CombineBinaryExpressions(self, operator):
     for i in range(1, len(self.stack) - 1):
       item = self.stack[i]
-      if (isinstance(item, BinaryExpression) and item.operator == operator and
-          isinstance(self.stack[i - 1], Expression) and
-          isinstance(self.stack[i + 1], Expression)):
+      if (
+          isinstance(item, BinaryExpression)
+          and item.operator == operator
+          and isinstance(self.stack[i - 1], Expression)
+          and isinstance(self.stack[i + 1], Expression)
+      ):
         lhs = self.stack[i - 1]
         rhs = self.stack[i + 1]
 
@@ -437,8 +448,11 @@ class SearchParser(Lexer):
 
   def _CombineParenthesis(self):
     for i in range(len(self.stack) - 2):
-      if (self.stack[i] == "(" and self.stack[i + 2] == ")" and
-          isinstance(self.stack[i + 1], Expression)):
+      if (
+          self.stack[i] == "("
+          and self.stack[i + 2] == ")"
+          and isinstance(self.stack[i + 1], Expression)
+      ):
         self.stack[i] = None
         self.stack[i + 2] = None
 
@@ -468,9 +482,15 @@ class SearchParser(Lexer):
     return self.stack[0]
 
   def Error(self, message=None, weight=1):
-    raise ParseError(u"%s in position %s: %s <----> %s )" %
-                     (utils.SmartUnicode(message), len(self.processed_buffer),
-                      self.processed_buffer, self.buffer))
+    raise ParseError(
+        "%s in position %s: %s <----> %s )"
+        % (
+            utils.SmartUnicode(message),
+            len(self.processed_buffer),
+            self.processed_buffer,
+            self.buffer,
+        )
+    )
 
   def Parse(self):
     if not self.filter_string:

@@ -29,7 +29,8 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   def testPop(self):
     """Test we can pop arbitrary elements from the pathspec."""
     sample = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
 
     for i in range(5):
       sample.Append(path=str(i), pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -54,7 +55,8 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     pathspec_pb.nested_path.pathtype = 2
 
     reference_pathspec = rdf_paths.PathSpec.FromSerializedBytes(
-        pathspec_pb.SerializeToString())
+        pathspec_pb.SerializeToString()
+    )
 
     # Create a new RDFPathspec from scratch.
     pathspec = rdf_paths.PathSpec()
@@ -107,14 +109,15 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testUnicodePaths(self):
     """Test that we can manipulate paths in unicode."""
-    sample = rdf_paths.PathSpec(pathtype=1, path=u"/dev/c/msn升级程序[1].exe")
+    sample = rdf_paths.PathSpec(pathtype=1, path="/dev/c/msn升级程序[1].exe")
 
     # Ensure we can convert to a string.
     str(sample)
 
   def testCopy(self):
     sample = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     sample.Append(path="foo", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Make a copy of the original and change it.
@@ -165,18 +168,21 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     glob_expression = rdf_paths.GlobExpression()
 
     interpolated = glob_expression.InterpolateGrouping("/home/*.{sh,deb}")
-    self.assertCountEqual(interpolated, [u"/home/*.deb", u"/home/*.sh"])
+    self.assertCountEqual(interpolated, ["/home/*.deb", "/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping("/home/*.{sh, deb}")
-    self.assertCountEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
+    self.assertCountEqual(interpolated, ["/home/*. deb", "/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping(
-        "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}")
+        "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"
+    )
     self.assertCountEqual(
         interpolated,
-        [u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"])
+        ["HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"],
+    )
 
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(
-        "/home/%%users.username%%/**/.mozilla/")
+        "/home/%%users.username%%/**/.mozilla/"
+    )
     glob_expression.Validate()
 
     glob_expression = rdf_paths.GlobExpression("/home/**/**")
@@ -259,28 +265,33 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertFalse(regex.Match("/foo/bar2/blah.COM"))
 
   def testGlobExpressionSplitsIntoExplainableComponents(self):
-    kb = rdf_client.KnowledgeBase(users=[
-        rdf_client.User(homedir="/home/foo"),
-        rdf_client.User(homedir="/home/bar"),
-        rdf_client.User(homedir="/home/baz"),
-    ])
+    kb = rdf_client.KnowledgeBase(
+        users=[
+            rdf_client.User(homedir="/home/foo"),
+            rdf_client.User(homedir="/home/bar"),
+            rdf_client.User(homedir="/home/baz"),
+        ]
+    )
 
     # Test for preservation of **/ because it behaves different to **.
     ge = rdf_paths.GlobExpression("/foo/**/{bar,baz}/bar?/.*baz")
     components = ge.ExplainComponents(2, kb)
     self.assertEqual(
         [c.glob_expression for c in components],
-        ["/foo/", "**/", "{bar,baz}", "/bar", "?", "/.", "*", "baz"])
+        ["/foo/", "**/", "{bar,baz}", "/bar", "?", "/.", "*", "baz"],
+    )
 
     ge = rdf_paths.GlobExpression("/foo/**bar")
     components = ge.ExplainComponents(2, kb)
-    self.assertEqual([c.glob_expression for c in components],
-                     ["/foo/", "**", "bar"])
+    self.assertEqual(
+        [c.glob_expression for c in components], ["/foo/", "**", "bar"]
+    )
 
     ge = rdf_paths.GlobExpression("/foo/**10bar")
     components = ge.ExplainComponents(2, kb)
-    self.assertEqual([c.glob_expression for c in components],
-                     ["/foo/", "**10", "bar"])
+    self.assertEqual(
+        [c.glob_expression for c in components], ["/foo/", "**10", "bar"]
+    )
 
     ge = rdf_paths.GlobExpression("/{foo,bar,baz}")
     components = ge.ExplainComponents(2, kb)
@@ -288,8 +299,9 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     ge = rdf_paths.GlobExpression("%%users.homedir%%/foo")
     components = ge.ExplainComponents(2, kb)
-    self.assertEqual([c.glob_expression for c in components],
-                     ["%%users.homedir%%", "/foo"])
+    self.assertEqual(
+        [c.glob_expression for c in components], ["%%users.homedir%%", "/foo"]
+    )
     self.assertEqual(components[0].examples, ["/home/foo", "/home/bar"])
 
   def testExplainComponentsReturnsEmptyExamplesOnKbError(self):
@@ -300,7 +312,8 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(components[0].examples, [])
 
   def _testAFF4Path_mountPointResolution(
-      self, pathtype: rdf_paths.PathSpec.PathType) -> None:
+      self, pathtype: rdf_paths.PathSpec.PathType
+  ) -> None:
     path = rdf_paths.PathSpec(
         path="\\\\.\\Volume{1234}\\",
         pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -308,11 +321,13 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         nested_path=rdf_paths.PathSpec(
             path="/windows/",
             pathtype=pathtype,
-        ))
+        ),
+    )
     prefix = rdf_paths.PathSpec.AFF4_PREFIXES[pathtype]
     self.assertEqual(
         str(path.AFF4Path(rdf_client.ClientURN("C.0000000000000001"))),
-        f"aff4:/C.0000000000000001{prefix}/\\\\.\\Volume{{1234}}\\/windows")
+        f"aff4:/C.0000000000000001{prefix}/\\\\.\\Volume{{1234}}\\/windows",
+    )
 
   def testAFF4Path_mountPointResolution_TSK(self):
     self._testAFF4Path_mountPointResolution(rdf_paths.PathSpec.PathType.TSK)

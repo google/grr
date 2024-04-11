@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Interface to Objective C libraries on OS X."""
+
 import ctypes
 import ctypes.util
 from typing import Text
@@ -95,6 +96,7 @@ def _SetCTypesForLibrary(libname, fn_table):
   Args:
     libname: Library name string
     fn_table: List of (function, [arg types], return types) tuples
+
   Returns:
     ctypes.CDLL with types set according to fn_table
   Raises:
@@ -103,7 +105,7 @@ def _SetCTypesForLibrary(libname, fn_table):
   lib = LoadLibrary(libname)
 
   # We need to define input / output parameters for all functions we use
-  for (function, args, result) in fn_table:
+  for function, args, result in fn_table:
     f = getattr(lib, function)
     f.argtypes = args
     f.restype = result
@@ -170,8 +172,9 @@ class Foundation(object):
     if not isinstance(num, int):
       raise TypeError('CFNumber can only be created from int')
     c_num = ctypes.c_int64(num)
-    cf_number = self.dll.CFNumberCreate(CF_DEFAULT_ALLOCATOR, INT64,
-                                        ctypes.byref(c_num))
+    cf_number = self.dll.CFNumberCreate(
+        CF_DEFAULT_ALLOCATOR, INT64, ctypes.byref(c_num)
+    )
     return cf_number
 
   def CFNumToInt32(self, num):
@@ -191,14 +194,16 @@ class Foundation(object):
     return self.dll.CFDictionaryGetValue(dictionary, ptr)
 
   def PyStringToCFString(self, pystring):
-    return self.dll.CFStringCreateWithCString(CF_DEFAULT_ALLOCATOR,
-                                              pystring.encode('utf8'), UTF8)
+    return self.dll.CFStringCreateWithCString(
+        CF_DEFAULT_ALLOCATOR, pystring.encode('utf8'), UTF8
+    )
 
   def WrapCFTypeInPython(self, obj):
     """Package a CoreFoundation object in a Python wrapper.
 
     Args:
       obj: The CoreFoundation object.
+
     Returns:
       One of CFBoolean, CFNumber, CFString, CFDictionary, CFArray.
     Raises:
@@ -228,8 +233,9 @@ class SystemConfiguration(Foundation):
 
   def __init__(self):
     super().__init__()
-    self.cftable.append(('SCDynamicStoreCopyProxies', [ctypes.c_void_p],
-                         ctypes.c_void_p))
+    self.cftable.append(
+        ('SCDynamicStoreCopyProxies', [ctypes.c_void_p], ctypes.c_void_p)
+    )
 
     self.dll = _SetCTypesForLibrary('SystemConfiguration', self.cftable)
 
@@ -245,7 +251,8 @@ class ServiceManagement(Foundation):
     super().__init__()
     self.cftable.append(
         # Only available 10.6 and later
-        ('SMCopyAllJobDictionaries', [ctypes.c_void_p], ctypes.c_void_p),)
+        ('SMCopyAllJobDictionaries', [ctypes.c_void_p], ctypes.c_void_p),
+    )
 
     self.dll = _SetCTypesForLibrary('ServiceManagement', self.cftable)
 
@@ -253,8 +260,8 @@ class ServiceManagement(Foundation):
     """Copy all Job Dictionaries from the ServiceManagement.
 
     Args:
-      domain: The name of a constant in Foundation referencing the domain.
-              Will copy all launchd services by default.
+      domain: The name of a constant in Foundation referencing the domain. Will
+        copy all launchd services by default.
 
     Returns:
       A marshalled python list of dicts containing the job dictionaries.
@@ -320,7 +327,8 @@ class CFNumber(CFType):
       self.ref = ctypes.c_void_p(self.IntToCFNumber(obj))
     else:
       raise TypeError(
-          'CFNumber initializer must be python int or objc CFNumber.')
+          'CFNumber initializer must be python int or objc CFNumber.'
+      )
 
   def __int__(self):
     return self.value
@@ -375,9 +383,9 @@ class CFArray(CFType):
     if not isinstance(index, int):
       raise TypeError('index must be an integer')
     if (index < 0) or (index >= len(self)):
-      raise IndexError('index must be between {0} and {1}'.format(
-          0,
-          len(self) - 1))
+      raise IndexError(
+          'index must be between {0} and {1}'.format(0, len(self) - 1)
+      )
     obj = self.dll.CFArrayGetValueAtIndex(self.ref, index)
     return self.WrapCFTypeInPython(obj)
 
@@ -410,7 +418,8 @@ class CFDictionary(CFType):
       cftype_key = key
     else:
       raise TypeError(
-          'CFDictionary wrapper only supports string, int and objc values')
+          'CFDictionary wrapper only supports string, int and objc values'
+      )
     obj = ctypes.c_void_p(self.dll.CFDictionaryGetValue(self, cftype_key))
 
     # Detect null pointers and avoid crashing WrapCFTypeInPython
@@ -431,7 +440,8 @@ class CFDictionary(CFType):
       key: string. Dictionary key to look up.
       default: string. Return this value if key not found.
       stringify: bool. Force all return values to string for compatibility
-                 reasons.
+        reasons.
+
     Returns:
       python-wrapped CF object or default if not found.
     """

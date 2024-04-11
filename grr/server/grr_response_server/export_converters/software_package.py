@@ -22,19 +22,24 @@ class SoftwarePackageConverter(base.ExportConverter):
   input_rdf_type = rdf_client.SoftwarePackage
 
   _INSTALL_STATE_MAP = {
-      rdf_client.SoftwarePackage.InstallState.INSTALLED:
-          ExportedSoftwarePackage.InstallState.INSTALLED,
-      rdf_client.SoftwarePackage.InstallState.PENDING:
-          ExportedSoftwarePackage.InstallState.PENDING,
-      rdf_client.SoftwarePackage.InstallState.UNINSTALLED:
-          ExportedSoftwarePackage.InstallState.UNINSTALLED,
-      rdf_client.SoftwarePackage.InstallState.UNKNOWN:
+      rdf_client.SoftwarePackage.InstallState.INSTALLED: (
+          ExportedSoftwarePackage.InstallState.INSTALLED
+      ),
+      rdf_client.SoftwarePackage.InstallState.PENDING: (
+          ExportedSoftwarePackage.InstallState.PENDING
+      ),
+      rdf_client.SoftwarePackage.InstallState.UNINSTALLED: (
+          ExportedSoftwarePackage.InstallState.UNINSTALLED
+      ),
+      rdf_client.SoftwarePackage.InstallState.UNKNOWN: (
           ExportedSoftwarePackage.InstallState.UNKNOWN
+      ),
   }
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      software_package: rdf_client.SoftwarePackage
+      self,
+      metadata: base.ExportedMetadata,
+      software_package: rdf_client.SoftwarePackage,
   ) -> Iterator[ExportedSoftwarePackage]:
     yield ExportedSoftwarePackage(
         metadata=metadata,
@@ -45,7 +50,8 @@ class SoftwarePackageConverter(base.ExportConverter):
         install_state=self._INSTALL_STATE_MAP[software_package.install_state],
         description=software_package.description,
         installed_on=software_package.installed_on,
-        installed_by=software_package.installed_by)
+        installed_by=software_package.installed_by,
+    )
 
 
 class SoftwarePackagesConverter(base.ExportConverter):
@@ -54,8 +60,9 @@ class SoftwarePackagesConverter(base.ExportConverter):
   input_rdf_type = rdf_client.SoftwarePackages
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      software_packages: rdf_client.SoftwarePackages
+      self,
+      metadata: base.ExportedMetadata,
+      software_packages: rdf_client.SoftwarePackages,
   ) -> Iterator[ExportedSoftwarePackage]:
     conv = SoftwarePackageConverter(options=self.options)
     for p in software_packages.packages:

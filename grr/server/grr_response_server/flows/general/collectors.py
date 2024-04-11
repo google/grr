@@ -457,6 +457,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         artifact_list=artifact_list,
         use_raw_filesystem_access=self.args.use_raw_filesystem_access,
         apply_parsers=self.args.apply_parsers,
+        implementation_type=self.args.implementation_type,
         max_file_size=self.args.max_file_size,
         ignore_interpolation_errors=self.args.ignore_interpolation_errors,
         dependencies=self.args.dependencies,

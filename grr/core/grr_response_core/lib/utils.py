@@ -18,7 +18,7 @@ import tarfile
 import tempfile
 import threading
 import time
-from typing import Generic, Iterable, Optional, Text, TypeVar
+from typing import Generic, Iterable, Optional, TypeVar
 import weakref
 import zipfile
 
@@ -44,7 +44,7 @@ def Proxy(f):
   return Wrapped
 
 
-class TempDirectory(object):
+class TempDirectory:
   """A self cleaning temporary directory.
 
   Do not use this function for any client related temporary files! Use
@@ -75,13 +75,15 @@ def Synchronized(f):
 class InterruptableThread(threading.Thread):
   """A class which exits once the main thread exits."""
 
-  def __init__(self,
-               target=None,
-               args=None,
-               kwargs=None,
-               sleep_time=10,
-               name: Optional[Text] = None,
-               **kw):
+  def __init__(
+      self,
+      target=None,
+      args=None,
+      kwargs=None,
+      sleep_time=10,
+      name: Optional[str] = None,
+      **kw,
+  ):
     self.exit = False
     self.last_run = 0
     self.target = target
@@ -121,13 +123,13 @@ class InterruptableThread(threading.Thread):
       self.last_run = now()
 
       # Exit if the main thread disappears.
-      while (time and not self.exit and
-             now() < self.last_run + self.sleep_time):
+      while time and not self.exit and now() < self.last_run + self.sleep_time:
         sleep(1)
 
 
-class Node(object):
+class Node:
   """An entry to a linked list."""
+
   next = None
   prev = None
   data = None
@@ -146,7 +148,7 @@ class Node(object):
 # TODO(user):pytype: self.next and self.prev are assigned to self but then
 # are used in AppendNode in a very different way. Should be redesigned.
 # pytype: disable=attribute-error
-class LinkedList(object):
+class LinkedList:
   """A simple doubly linked list used for fast caches."""
 
   def __init__(self):
@@ -211,7 +213,7 @@ class LinkedList(object):
 # pytype: enable=attribute-error
 
 
-class FastStore(object):
+class FastStore:
   """This is a cache which expires objects in oldest first manner.
 
   This implementation first appeared in PyFlag.
@@ -408,7 +410,8 @@ class TimeBasedCache(FastStore):
       TimeBasedCache.active_caches = weakref.WeakSet()
       # This thread is designed to never finish.
       TimeBasedCache.house_keeper_thread = InterruptableThread(
-          name="HouseKeeperThread", target=HouseKeeper)
+          name="HouseKeeperThread", target=HouseKeeper
+      )
       TimeBasedCache.house_keeper_thread.start()
     TimeBasedCache.active_caches.add(self)
 
@@ -445,12 +448,12 @@ class AgeBasedCache(TimeBasedCache):
     return stored.value
 
 
-class Struct(object):
+class Struct:
   """A baseclass for parsing binary Structs."""
 
   # Derived classes must initialize this into an array of (format,
   # name) tuples.
-  _fields = None
+  _fields: list[tuple[str, str]]
 
   def __init__(self, data):
     """Parses ourselves from data."""
@@ -458,7 +461,7 @@ class Struct(object):
     self.size = struct.calcsize(format_str)
 
     try:
-      parsed_data = struct.unpack(format_str, data[:self.size])
+      parsed_data = struct.unpack(format_str, data[: self.size])
 
     except struct.error:
       raise ParsingError("Unable to parse")
@@ -492,7 +495,7 @@ def SmartUnicode(string):
   Returns:
     a unicode object.
   """
-  if isinstance(string, Text):
+  if isinstance(string, str):
     return string
 
   if isinstance(string, bytes):
@@ -518,14 +521,14 @@ def FormatAsHexString(num, width=None, prefix="0x"):
   return "%s%s" % (prefix, hex_str)
 
 
-def FormatAsTimestamp(timestamp: int) -> Text:
+def FormatAsTimestamp(timestamp: int) -> str:
   if not timestamp:
     return "-"
 
   return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
-def NormalizePath(path: Text, sep: Text = "/") -> Text:
+def NormalizePath(path: str, sep: str = "/") -> str:
   """A sane implementation of os.path.normpath.
 
   The standard implementation treats leading / and // as different leading to
@@ -544,8 +547,8 @@ def NormalizePath(path: Text, sep: Text = "/") -> Text:
      that would result in the system opening the same physical file will produce
      the same normalized path.
   """
-  precondition.AssertType(path, Text)
-  precondition.AssertType(sep, Text)
+  precondition.AssertType(path, str)
+  precondition.AssertType(sep, str)
 
   if not path:
     return sep
@@ -586,7 +589,7 @@ def NormalizePath(path: Text, sep: Text = "/") -> Text:
 
 # TODO(hanuszczak): The linter complains for a reason here, the signature of
 # this function should be fixed as soon as possible.
-def JoinPath(stem: Text = "", *parts: Text) -> Text:  # pylint: disable=keyword-arg-before-vararg
+def JoinPath(stem: str = "", *parts: str) -> str:  # pylint: disable=keyword-arg-before-vararg
   """A sane version of os.path.join.
 
   The intention here is to append the stem to the path. The standard module
@@ -600,8 +603,8 @@ def JoinPath(stem: Text = "", *parts: Text) -> Text:  # pylint: disable=keyword-
   Returns:
      a normalized path.
   """
-  precondition.AssertIterableType(parts, Text)
-  precondition.AssertType(stem, Text)
+  precondition.AssertIterableType(parts, str)
+  precondition.AssertType(stem, str)
 
   result = (stem + NormalizePath("/".join(parts))).replace("//", "/")
   result = result.rstrip("/")
@@ -637,9 +640,9 @@ def GeneratePassphrase(length=20):
   return "".join(random.choice(valid_chars) for i in range(length))
 
 
-def PassphraseCallback(verify=False,
-                       prompt1="Enter passphrase:",
-                       prompt2="Verify passphrase:"):
+def PassphraseCallback(
+    verify=False, prompt1="Enter passphrase:", prompt2="Verify passphrase:"
+):
   """A utility function to read a passphrase from stdin."""
   while 1:
     try:
@@ -664,7 +667,7 @@ def FormatNumberAsString(num):
   return "%3.1f%s" % (num, "TB")
 
 
-class NotAValue(object):
+class NotAValue:
   pass
 
 
@@ -714,7 +717,8 @@ class RollingMemoryStream(object):
     """Gets stream buffer since the last GetValueAndReset() call."""
     if not self._stream:
       raise ArchiveAlreadyClosedError(
-          "Attempting to get a value from a closed stream.")
+          "Attempting to get a value from a closed stream."
+      )
 
     value = self._stream.getvalue()
     self._stream.seek(0)
@@ -736,7 +740,8 @@ class StreamingZipGenerator(object):
     self._compression = compression
     self._stream = RollingMemoryStream()
     self._zipfile = zipfile.ZipFile(
-        self._stream, mode="w", compression=compression, allowZip64=True)
+        self._stream, mode="w", compression=compression, allowZip64=True
+    )
 
     self._zipopen = None
 
@@ -800,7 +805,8 @@ class StreamingZipGenerator(object):
   def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
     """A convenience method for adding an entire file to the ZIP archive."""
     yield self.WriteFileHeader(
-        arcname=arcname, compress_type=compress_type, st=st)
+        arcname=arcname, compress_type=compress_type, st=st
+    )
 
     while True:
       buf = src_fd.read(1024 * 1024)
@@ -835,7 +841,8 @@ class StreamingTarGenerator(object):
     # TODO(user):pytype: self._stream should be a valid IO object.
     # pytype: disable=wrong-arg-types
     self._tar_fd = tarfile.open(
-        mode="w:gz", fileobj=self._stream, encoding="utf-8")
+        mode="w:gz", fileobj=self._stream, encoding="utf-8"
+    )
     # pytype: enable=wrong-arg-types
 
     self._ResetState()
@@ -860,7 +867,7 @@ class StreamingTarGenerator(object):
 
   def WriteFileHeader(self, arcname=None, st=None):
     """Writes file header."""
-    precondition.AssertType(arcname, Text)
+    precondition.AssertType(arcname, str)
 
     if st is None:
       raise ValueError("Stat object can't be None.")
@@ -888,10 +895,14 @@ class StreamingTarGenerator(object):
 
   def WriteFileFooter(self):
     """Writes file footer (finishes the file)."""
+    if self.cur_info is None:
+      raise ValueError("WriteFileHeader() must be called first.")
 
     if self.cur_file_size != self.cur_info.size:
-      raise IOError("Incorrect file size: st_size=%d, but written %d bytes." %
-                    (self.cur_info.size, self.cur_file_size))
+      raise IOError(
+          "Incorrect file size: st_size=%d, but written %d bytes."
+          % (self.cur_info.size, self.cur_file_size)
+      )
 
     # TODO(user):pytype: BLOCKSIZE/NUL constants are not visible to type
     # checker.
@@ -944,7 +955,7 @@ class StreamingTarGenerator(object):
     return self._stream.tell()
 
 
-class Stubber(object):
+class Stubber:
   """A context manager for doing simple stubs."""
 
   def __init__(self, module, target_name, stub):
@@ -1018,8 +1029,9 @@ def MergeDirectories(src: str, dst: str) -> None:
 
 def ResolveHostnameToIP(host, port):
   """Resolves a hostname to an IP address."""
-  ip_addrs = socket.getaddrinfo(host, port, socket.AF_UNSPEC, 0,
-                                socket.IPPROTO_TCP)
+  ip_addrs = socket.getaddrinfo(
+      host, port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP
+  )
   # getaddrinfo returns tuples (family, socktype, proto, canonname, sockaddr).
   # We are interested in sockaddr which is in turn a tuple
   # (address, port) for IPv4 or (address, port, flow info, scope id)
@@ -1032,8 +1044,11 @@ def ResolveHostnameToIP(host, port):
 
 
 def ProcessIdString():
-  return "%s@%s:%d" % (psutil.Process().name(), socket.gethostname(),
-                       os.getpid())
+  return "%s@%s:%d" % (
+      psutil.Process().name(),
+      socket.gethostname(),
+      os.getpid(),
+  )
 
 
 def RegexListDisjunction(regex_list: Iterable[bytes]):

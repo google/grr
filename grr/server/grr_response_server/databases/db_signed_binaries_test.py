@@ -46,7 +46,8 @@ class DatabaseTestSignedBinariesMixin(object):
     self.assertEqual(stored_references1, _test_references1)
     self.db.WriteSignedBinaryReferences(_test_id1, _test_references2)
     stored_references2, timestamp2 = self.db.ReadSignedBinaryReferences(
-        _test_id1)
+        _test_id1
+    )
     self.assertEqual(stored_references2, _test_references2)
     self.assertGreater(timestamp2, timestamp1)
 

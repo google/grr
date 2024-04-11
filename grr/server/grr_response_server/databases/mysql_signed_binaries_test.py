@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl import app
 from absl.testing import absltest
 
@@ -10,7 +9,9 @@ from grr.test_lib import test_lib
 
 class MysqlSignedBinariesTest(
     db_signed_binaries_test.DatabaseTestSignedBinariesMixin,
-    mysql_test.MysqlTestBase, absltest.TestCase):
+    mysql_test.MysqlTestBase,
+    absltest.TestCase,
+):
   pass
 
 

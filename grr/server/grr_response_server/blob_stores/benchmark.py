@@ -77,7 +77,8 @@ def _PrintStats(size, size_b, durations):
           p90=np.percentile(durations_ms, 90),
           p95=np.percentile(durations_ms, 95),
           p99=np.percentile(durations_ms, 99),
-      ))
+      )
+  )
 
 
 def _RunBenchmark(bs, size_b, duration_sec, random_fd):

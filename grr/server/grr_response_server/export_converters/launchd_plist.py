@@ -15,12 +15,14 @@ class ExportedLaunchdPlist(rdf_structs.RDFProtoStruct):
 
 
 def _CalendarIntervalToString(
-    i: rdf_plist.LaunchdStartCalendarIntervalEntry) -> str:
+    i: rdf_plist.LaunchdStartCalendarIntervalEntry,
+) -> str:
   return f"{i.Month}-{i.Weekday}-{i.Day}-{i.Hour}-{i.Minute}"
 
 
-def _DictEntryToString(e: Union[rdf_plist.PlistStringDictEntry,
-                                rdf_plist.PlistBoolDictEntry]):
+def _DictEntryToString(
+    e: Union[rdf_plist.PlistStringDictEntry, rdf_plist.PlistBoolDictEntry],
+):
   return f"{e.name}={e.value}"
 
 
@@ -29,8 +31,9 @@ class LaunchdPlistConverter(base.ExportConverter):
 
   input_rdf_type = rdf_plist.LaunchdPlist
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              l: rdf_plist.LaunchdPlist) -> Iterator[ExportedLaunchdPlist]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, l: rdf_plist.LaunchdPlist
+  ) -> Iterator[ExportedLaunchdPlist]:
     yield ExportedLaunchdPlist(
         metadata=metadata,
         launchd_file_path=l.path,
@@ -45,16 +48,19 @@ class LaunchdPlistConverter(base.ExportConverter):
         on_demand=l.OnDemand,
         run_at_load=l.RunAtLoad,
         start_calendar_interval=" ".join(
-            _CalendarIntervalToString(i) for i in l.StartCalendarInterval),
+            _CalendarIntervalToString(i) for i in l.StartCalendarInterval
+        ),
         environment_variables=" ".join(
-            _DictEntryToString(e) for e in l.EnvironmentVariables),
+            _DictEntryToString(e) for e in l.EnvironmentVariables
+        ),
         standard_in_path=l.StandardInPath,
         standard_out_path=l.StandardOutPath,
         standard_error_path=l.StandardErrorPath,
         limit_load_to_hosts=" ".join(i for i in l.LimitLoadToHosts),
         limit_load_from_hosts=" ".join(i for i in l.LimitLoadFromHosts),
         limit_load_to_session_type=" ".join(
-            i for i in l.LimitLoadToSessionType),
+            i for i in l.LimitLoadToSessionType
+        ),
         enable_globbing=l.EnableGlobbing,
         enable_transactions=l.EnableTransactions,
         umask=l.Umask,
@@ -81,7 +87,9 @@ class LaunchdPlistConverter(base.ExportConverter):
         keep_alive_successful_exit=l.KeepAliveDict.SuccessfulExit,
         keep_alive_network_state=l.KeepAliveDict.NetworkState,
         keep_alive_path_state=" ".join(
-            _DictEntryToString(e) for e in l.KeepAliveDict.PathState),
+            _DictEntryToString(e) for e in l.KeepAliveDict.PathState
+        ),
         keep_alive_other_job_enabled=" ".join(
-            _DictEntryToString(e) for e in l.KeepAliveDict.OtherJobEnabled),
+            _DictEntryToString(e) for e in l.KeepAliveDict.OtherJobEnabled
+        ),
     )

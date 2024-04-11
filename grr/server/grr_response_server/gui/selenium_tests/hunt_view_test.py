@@ -11,6 +11,7 @@ from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import test_lib
 
 
@@ -123,11 +124,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         client_id=client_id,
         flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
     )
     rdf_flow.cpu_time_used.user_cpu_time = 5000
     rdf_flow.network_bytes_sent = 1000000
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(rdf_flow))
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/legacy")
@@ -150,11 +150,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         client_id=client_id,
         flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
     )
     rdf_flow.cpu_time_used.user_cpu_time = 5000
     rdf_flow.network_bytes_sent = 1000000
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(rdf_flow))
 
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
@@ -173,11 +172,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         client_id=client_id,
         flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
     )
     rdf_flow.cpu_time_used.user_cpu_time = 1000
     rdf_flow.network_bytes_sent = 10000000
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(rdf_flow))
 
     self.WaitUntil(self.IsTextPresent, "1h 40m")
     self.WaitUntil(self.IsTextPresent, "10.5MiB")

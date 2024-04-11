@@ -23,6 +23,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   We make the regexes used to check that data customizable from the server side
   so we can adapt to minor changes without updating the client.
   """
+
   in_rdfvalue = rdf_cloud.CloudMetadataRequests
   out_rdfvalues = [rdf_cloud.CloudMetadataResponses]
 
@@ -62,6 +63,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
 
     Args:
       request: CloudMetadataRequest object
+
     Returns:
       rdf_cloud.CloudMetadataResponse object
     Raises:
@@ -72,7 +74,8 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     if request.timeout == 0:
       raise ValueError("Requests library can't handle timeout of 0")
     result = requests.request(
-        "GET", request.url, headers=request.headers, timeout=request.timeout)
+        "GET", request.url, headers=request.headers, timeout=request.timeout
+    )
     # By default requests doesn't raise on HTTP error codes.
     result.raise_for_status()
 
@@ -82,14 +85,16 @@ class GetCloudVMMetadata(actions.ActionPlugin):
       raise requests.RequestException(response=result)
 
     return rdf_cloud.CloudMetadataResponse(
-        label=request.label or request.url, text=result.text)
+        label=request.label or request.url, text=result.text
+    )
 
   def GetAWSMetadataToken(self) -> str:
     """Get the session token for IMDSv2."""
     result = requests.put(
         self.AMAZON_TOKEN_URL,
         headers=self.AMAZON_TOKEN_REQUEST_HEADERS,
-        timeout=1.0)
+        timeout=1.0,
+    )
     result.raise_for_status()
 
     # Requests does not always raise an exception when an incorrect response
@@ -128,8 +133,18 @@ class GetCloudVMMetadata(actions.ActionPlugin):
           if not aws_metadata_token:
             aws_metadata_token = self.GetAWSMetadataToken()
           request.headers[self.AMAZON_TOKEN_HEADER] = aws_metadata_token
-        result_list.append(self.GetMetaData(request))
+
+        try:
+          result_list.append(self.GetMetaData(request))
+        except requests.RequestException:
+          if request.ignore_http_errors:
+            continue
+          else:
+            raise
+
     if result_list:
       self.SendReply(
           rdf_cloud.CloudMetadataResponses(
-              responses=result_list, instance_type=instance_type))
+              responses=result_list, instance_type=instance_type
+          )
+      )

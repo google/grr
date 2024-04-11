@@ -22,45 +22,57 @@ from grr_response_server.export_converters import windows_service_info
 # TODO: Test that this function contains all inheritors.
 def RegisterExportConverters():
   """Registers all ExportConverters."""
-  # keep-sorted start
   export_converters_registry.Register(
-      buffer_reference.BufferReferenceToExportedMatchConverter)
+      buffer_reference.BufferReferenceToExportedMatchConverter
+  )
   export_converters_registry.Register(
-      client_summary.ClientSummaryToExportedClientConverter)
+      client_summary.ClientSummaryToExportedClientConverter
+  )
   export_converters_registry.Register(
-      client_summary.ClientSummaryToExportedNetworkInterfaceConverter)
+      client_summary.ClientSummaryToExportedNetworkInterfaceConverter
+  )
   export_converters_registry.Register(cron_tab_file.CronTabFileConverter)
   export_converters_registry.Register(execute_response.ExecuteResponseConverter)
   export_converters_registry.Register(
-      file.ArtifactFilesDownloaderResultConverter)
+      file.ArtifactFilesDownloaderResultConverter
+  )
   export_converters_registry.Register(file.FileFinderResultConverter)
   export_converters_registry.Register(file.StatEntryToExportedFileConverter)
   export_converters_registry.Register(
-      file.StatEntryToExportedRegistryKeyConverter)
+      file.StatEntryToExportedRegistryKeyConverter
+  )
   export_converters_registry.Register(grr_message.GrrMessageConverter)
   export_converters_registry.Register(launchd_plist.LaunchdPlistConverter)
   export_converters_registry.Register(memory.ProcessMemoryErrorConverter)
   export_converters_registry.Register(memory.YaraProcessScanMatchConverter)
   export_converters_registry.Register(
-      network.DNSClientConfigurationToExportedDNSClientConfiguration)
+      network.DNSClientConfigurationToExportedDNSClientConfiguration
+  )
   export_converters_registry.Register(
-      network.InterfaceToExportedNetworkInterfaceConverter)
+      network.InterfaceToExportedNetworkInterfaceConverter
+  )
   export_converters_registry.Register(
-      network.NetworkConnectionToExportedNetworkConnectionConverter)
+      network.NetworkConnectionToExportedNetworkConnectionConverter
+  )
   export_converters_registry.Register(osquery.OsqueryExportConverter)
   export_converters_registry.Register(
-      process.ProcessToExportedNetworkConnectionConverter)
+      process.ProcessToExportedNetworkConnectionConverter
+  )
   export_converters_registry.Register(
-      process.ProcessToExportedOpenFileConverter)
+      process.ProcessToExportedOpenFileConverter
+  )
   export_converters_registry.Register(process.ProcessToExportedProcessConverter)
   export_converters_registry.Register(rdf_dict.DictToExportedDictItemsConverter)
   export_converters_registry.Register(
-      rdf_primitives.RDFBytesToExportedBytesConverter)
+      rdf_primitives.RDFBytesToExportedBytesConverter
+  )
   export_converters_registry.Register(
-      rdf_primitives.RDFStringToExportedStringConverter)
+      rdf_primitives.RDFStringToExportedStringConverter
+  )
   export_converters_registry.Register(software_package.SoftwarePackageConverter)
   export_converters_registry.Register(
-      software_package.SoftwarePackagesConverter)
+      software_package.SoftwarePackagesConverter
+  )
   export_converters_registry.Register(
-      windows_service_info.WindowsServiceInformationConverter)
-  # keep-sorted end
+      windows_service_info.WindowsServiceInformationConverter
+  )

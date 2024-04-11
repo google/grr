@@ -128,7 +128,7 @@ class VfsFile(io.BufferedIOBase):
   def readable(self) -> bool:
     return True
 
-  def read(self, size: int = -1) -> bytes:
+  def read(self, size: int = -1) -> bytes:  # pytype: disable=signature-mismatch
     self._ensure_not_closed()
     size = size or -1
 

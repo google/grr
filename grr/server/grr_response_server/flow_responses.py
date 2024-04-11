@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The class encapsulating flow responses."""
 
-from typing import Any, Iterable, Iterator, Optional, Sequence, TypeVar
+from typing import Any, Iterable, Iterator, Optional, Sequence, TypeVar, Union
 
 from google.protobuf import any_pb2
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -46,7 +46,13 @@ class Responses(Iterable[T]):
   @classmethod
   def FromResponsesProto2Any(
       cls,
-      responses: Sequence[rdf_flow_objects.FlowMessage],
+      responses: Sequence[
+          Union[
+              rdf_flow_objects.FlowResponse,
+              rdf_flow_objects.FlowStatus,
+              rdf_flow_objects.FlowIterator,
+          ],
+      ],
   ) -> "Responses[any_pb2.Any]":
     # pytype: enable=name-error
     """Creates a `Response` object from raw flow responses.

@@ -19,6 +19,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import notification
 from grr_response_server import server_stubs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
@@ -82,7 +83,10 @@ def WriteStatEntries(stat_entries, client_id):
       stat_response.st_mode &= ~stat_type_mask
       stat_response.st_mode |= stat.S_IFREG
 
-  path_infos = [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
+  path_infos = _FilterOutPathInfoDuplicates(
+      [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
+  )
+  proto_path_infos = [mig_objects.ToProtoPathInfo(pi) for pi in path_infos]
   # NOTE: TSK may return duplicate entries. This is may be either due to
   # a bug in TSK implementation, or due to the fact that TSK is capable
   # of returning deleted files information. Our VFS data model only supports
@@ -93,8 +97,7 @@ def WriteStatEntries(stat_entries, client_id):
   # Current behaviour is to simply drop excessive version before the
   # WritePathInfo call. This way files returned by TSK will still make it
   # into the flow's results, but not into the VFS data.
-  data_store.REL_DB.WritePathInfos(client_id,
-                                   _FilterOutPathInfoDuplicates(path_infos))
+  data_store.REL_DB.WritePathInfos(client_id, proto_path_infos)
 
 
 def WriteFileFinderResults(
@@ -123,6 +126,8 @@ def WriteFileFinderResults(
       path_info.hash_entry = r.hash_entry
     path_infos.append(path_info)
 
+  path_infos = _FilterOutPathInfoDuplicates(path_infos)
+  proto_path_infos = [mig_objects.ToProtoPathInfo(pi) for pi in path_infos]
   # NOTE: TSK may return duplicate entries. This is may be either due to
   # a bug in TSK implementation, or due to the fact that TSK is capable
   # of returning deleted files information. Our VFS data model only supports
@@ -133,9 +138,7 @@ def WriteFileFinderResults(
   # Current behaviour is to simply drop excessive version before the
   # WritePathInfo call. This way files returned by TSK will still make it
   # into the flow's results, but not into the VFS data.
-  data_store.REL_DB.WritePathInfos(
-      client_id, _FilterOutPathInfoDuplicates(path_infos)
-  )
+  data_store.REL_DB.WritePathInfos(client_id, proto_path_infos)
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -253,7 +256,9 @@ class ListDirectory(flow_base.FlowBase):
     self.Log("Listed %s", self.state.urn)
 
     path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     stat_entries = list(map(rdf_client_fs.StatEntry, responses))
     WriteStatEntries(stat_entries, client_id=self.client_id)

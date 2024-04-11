@@ -372,6 +372,7 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     return ApiFlow().InitFromFlowObject(
         flow_obj, with_state_and_context=True, with_progress=True)
 
@@ -417,10 +418,17 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
       api_request = ApiFlowRequest(
           request_id=str(request.request_id), request_state=request_state)
 
+      responses = []
       if response_dict:
-        responses = [
-            response_dict[i].AsLegacyGrrMessage() for i in sorted(response_dict)
-        ]
+        for _, response in sorted(response_dict.items()):
+          if isinstance(response, flows_pb2.FlowResponse):
+            response = mig_flow_objects.ToRDFFlowResponse(response)
+          if isinstance(response, flows_pb2.FlowStatus):
+            response = mig_flow_objects.ToRDFFlowStatus(response)
+          if isinstance(response, flows_pb2.FlowIterator):
+            response = mig_flow_objects.ToRDFFlowIterator(response)
+          responses.append(response.AsLegacyGrrMessage())
+
         for r in responses:
           r.ClearPayload()
 
@@ -518,6 +526,7 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     flow_id = str(args.flow_id)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     if flow_obj.flow_class_name != collectors.ArtifactCollectorFlow.__name__:
       message = "Not an artifact-collector flow: {}"
       raise ValueError(message.format(flow_obj.flow_class_name))
@@ -612,6 +621,7 @@ class ApiListFlowApplicableParsersHandler(api_call_handler_base.ApiCallHandler):
     flow_id = str(args.flow_id)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     if flow_obj.flow_class_name != collectors.ArtifactCollectorFlow.__name__:
       message = "Not an artifact-collector flow: {}"
       raise ValueError(message.format(flow_obj.flow_class_name))
@@ -850,6 +860,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     flow_results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                                      db.MAX_COUNT)
     flow_results = [mig_flow_objects.ToRDFFlowResult(r) for r in flow_results]
@@ -929,6 +940,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     output_plugins_states = flow_obj.output_plugins_states
 
     type_indices = {}
@@ -1011,6 +1023,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
   def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
 
     index = GetOutputPluginIndex(flow_obj.output_plugins, args.plugin_id)
     output_plugin_id = "%d" % index
@@ -1118,6 +1131,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         include_child_flows=False,
         not_created_by=access_control.SYSTEM_USERS
         if args.human_flows_only else None)
+    top_flows = [mig_flow_objects.ToRDFFlow(f) for f in top_flows]
     result = [
         ApiFlow().InitFromFlowObject(
             f_data, with_args=True, with_progress=True) for f_data in top_flows
@@ -1138,6 +1152,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         include_child_flows=True,
         not_created_by=access_control.SYSTEM_USERS
         if args.human_flows_only else None)
+    all_flows = [mig_flow_objects.ToRDFFlow(f) for f in all_flows]
     api_flow_dict = {
         rdf_flow.flow_id:
         ApiFlow().InitFromFlowObject(rdf_flow, with_args=False)
@@ -1245,6 +1260,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         output_plugins=runner_args.output_plugins,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
 
     res = ApiFlow().InitFromFlowObject(flow_obj)
     res.context = None
@@ -1271,6 +1287,7 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     return ApiFlow().InitFromFlowObject(flow_obj)
 
 

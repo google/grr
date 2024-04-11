@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {Component, OnDestroy} from '@angular/core';
 import {AbstractControl, FormGroup} from '@angular/forms';
 import {map} from 'rxjs/operators';
@@ -45,10 +44,10 @@ export declare type ControlValues<
     ? // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
       T[K]['value']
     : T[K] extends undefined | infer C extends AbstractControl
-    ? // For optional {key?: FormControl<X>()} mappings, the type is
-      // {key: X|undefined}.
-      C['value'] | undefined
-    : never;
+      ? // For optional {key?: FormControl<X>()} mappings, the type is
+        // {key: X|undefined}.
+        C['value'] | undefined
+      : never;
 };
 
 /** Form component to configure arguments for a Flow. */

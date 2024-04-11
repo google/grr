@@ -65,7 +65,8 @@ describe('ApprovalPage Component', () => {
     fixture.detectChanges();
 
     const twentyEightDaysFromNow = new Date(
-      Date.now() + 28 * 24 * 60 * 60 * 1000 - 1000,
+      // 28 days minus 1 hour in ms.
+      Date.now() + 28 * 24 * 60 * 60 * 1000 - 1000 * 60 * 60,
     );
 
     injectMockStore(ApprovalPageGlobalStore).mockedObservables.approval$.next(
@@ -145,7 +146,7 @@ describe('ApprovalPage Component', () => {
     );
     expect(timestampChip).not.toBeNull();
     expect(timestampChip.textContent).toEqual(
-      'warning This duration is longer then the default of 28 days. ',
+      'warning This duration is longer than the default of 28 days. ',
     );
   });
 

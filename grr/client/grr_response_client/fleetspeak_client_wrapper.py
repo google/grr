@@ -39,18 +39,21 @@ def _CreateClientConfig(tmp_dir: str) -> str:
     return os.path.join(tmp_dir, *args)
 
   server_config_dir = package.ResourcePath(
-      "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server")
+      "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server"
+  )
   if not os.path.exists(server_config_dir):
     raise Error(
         f"Fleetspeak server config dir not found: {server_config_dir}. "
-        "Please make sure `grr_config_updater initialize` has been run.")
+        "Please make sure `grr_config_updater initialize` has been run."
+    )
   client_config_name = {
       "Linux": "linux_client.config",
       "Windows": "windows_client.config",
       "Darwin": "darwin_client.config",
   }
-  client_config_path = os.path.join(server_config_dir,
-                                    client_config_name[platform.system()])
+  client_config_path = os.path.join(
+      server_config_dir, client_config_name[platform.system()]
+  )
   with open(client_config_path, "r") as f:
     client_config = text_format.Parse(f.read(), fs_cli_config_pb2.Config())
   if client_config.HasField("filesystem_handler"):
@@ -62,7 +65,8 @@ def _CreateClientConfig(tmp_dir: str) -> str:
     #    re-runs of this command. Otherwise the client ID of the client would
     #    change at each re-run.
     client_config.filesystem_handler.state_file = os.path.join(
-        config.CONFIG["Logging.path"], "fleetspeak-client.state")
+        config.CONFIG["Logging.path"], "fleetspeak-client.state"
+    )
   with open(TmpPath("config"), "w") as f:
     f.write(text_format.MessageToString(client_config))
   return TmpPath("config")
@@ -73,8 +77,9 @@ def _CreateServiceConfig(config_dir: str) -> None:
   service_config_path = config.CONFIG["ClientBuilder.fleetspeak_config_path"]
   with open(service_config_path, "r") as f:
     data = config.CONFIG.InterpolateValue(f.read())
-    service_config = text_format.Parse(data,
-                                       fs_system_pb2.ClientServiceConfig())
+    service_config = text_format.Parse(
+        data, fs_system_pb2.ClientServiceConfig()
+    )
   daemon_config = fs_daemon_config_pb2.Config()
   service_config.config.Unpack(daemon_config)
   del daemon_config.argv[:]
@@ -83,8 +88,9 @@ def _CreateServiceConfig(config_dir: str) -> None:
   ])
   service_config.config.Pack(daemon_config)
   utils.EnsureDirExists(os.path.join(config_dir, "textservices"))
-  with open(os.path.join(config_dir, "textservices", "GRR.textproto"),
-            "w") as f:
+  with open(
+      os.path.join(config_dir, "textservices", "GRR.textproto"), "w"
+  ) as f:
     f.write(text_format.MessageToString(service_config))
 
 
@@ -93,13 +99,14 @@ def _RunClient(tmp_dir: str) -> None:
   config_path = _CreateClientConfig(tmp_dir)
   _CreateServiceConfig(tmp_dir)
   fleetspeak_client = package.ResourcePath(
-      "fleetspeak-client-bin",
-      "fleetspeak-client-bin/usr/bin/fleetspeak-client")
+      "fleetspeak-client-bin", "fleetspeak-client-bin/usr/bin/fleetspeak-client"
+  )
   if not fleetspeak_client or not os.path.exists(fleetspeak_client):
     raise Error(
         f"Fleetspeak client binary not found: {fleetspeak_client}."
         "Please make sure that the package `fleetspeak-client-bin` has been "
-        "installed.")
+        "installed."
+    )
   command = [
       fleetspeak_client,
       "--logtostderr",

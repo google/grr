@@ -7,8 +7,11 @@ from grr_response_server.databases import mem_test_base
 from grr.test_lib import test_lib
 
 
-class MemoryDBFlowTest(db_flows_test.DatabaseTestFlowMixin,
-                       mem_test_base.MemoryDBTestBase, absltest.TestCase):
+class MemoryDBFlowTest(
+    db_flows_test.DatabaseTestFlowMixin,
+    mem_test_base.MemoryDBTestBase,
+    absltest.TestCase,
+):
   pass
 
 

@@ -4,7 +4,6 @@
 import hashlib
 import os
 import stat as stat_mode
-
 from typing import Iterator
 from typing import Optional
 

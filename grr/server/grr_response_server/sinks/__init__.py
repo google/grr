@@ -19,6 +19,7 @@ if the agent is able to send only flow replies to the server there is no way to
 do that. This is where the startup sink comes into play and allows the agent to
 send information about its startup.
 """
+
 from typing import Mapping
 
 from grr_response_server.sinks import abstract

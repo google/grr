@@ -24,7 +24,8 @@ class CachedKeystoreTest(
     # We create a keystore where all the keys expire after 128 weeks (so, enough
     # for the test to execute without expiring anything.
     cached_ks = cached.CachedKeystore(
-        mem_ks, validity_duration=datetime.timedelta(weeks=128))
+        mem_ks, validity_duration=datetime.timedelta(weeks=128)
+    )
 
     crypter_1 = cached_ks.Crypter("foo")
     crypter_2 = cached_ks.Crypter("foo")
@@ -36,7 +37,8 @@ class CachedKeystoreTest(
     # We create a keystore where all the keys have no validity duration (meaning
     # the keystore should expire them all the time).
     cached_ks = cached.CachedKeystore(
-        mem_ks, validity_duration=datetime.timedelta(0))
+        mem_ks, validity_duration=datetime.timedelta(0)
+    )
 
     crypter_1 = cached_ks.Crypter("foo")
     crypter_2 = cached_ks.Crypter("foo")

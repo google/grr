@@ -43,8 +43,10 @@ class GRRConfigParser(metaclass=abc.ABCMeta):
     self._config_path = config_path
 
   def __str__(self) -> str:
-    return "<%s config_path=\"%s\">" % (self.__class__.__name__,
-                                        self._config_path)
+    return '<%s config_path="%s">' % (
+        self.__class__.__name__,
+        self._config_path,
+    )
 
   @property
   def config_path(self) -> str:
@@ -103,8 +105,9 @@ class GRRConfigFileParser(GRRConfigParser):
   def RawDataFromBytes(self, b: bytes) -> Dict[str, Any]:
     raise NotImplementedError()
 
-  def SaveDataToFD(self, raw_data: Dict[str, Any],
-                   fd: io.BufferedWriter) -> None:
+  def SaveDataToFD(
+      self, raw_data: Dict[str, Any], fd: io.BufferedWriter
+  ) -> None:
     fd.write(self.RawDataToBytes(raw_data))
 
   def ReadDataFromFD(self, fd: BinaryIO) -> Dict[str, Any]:
@@ -131,10 +134,12 @@ class GRRConfigFileParser(GRRConfigParser):
         config_file.write(self.RawDataToBytes(raw_data))
 
     except OSError as e:
-      logging.exception("Unable to write config file %s: %s.", self.config_path,
-                        e)
+      logging.exception(
+          "Unable to write config file %s: %s.", self.config_path, e
+      )
       raise SaveDataError(
-          f"Unable to write config file {self.config_path}: {e}.") from e
+          f"Unable to write config file {self.config_path}: {e}."
+      ) from e
 
   def ReadData(self) -> Dict[str, Any]:
     if not self.config_path:

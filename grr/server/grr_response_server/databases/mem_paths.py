@@ -13,13 +13,11 @@ from typing import Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_core.lib.util import collection
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.models import paths
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -163,7 +161,7 @@ class InMemoryDBPathMixin(object):
 
   # Maps (client_id, path_type, components) to a path record.
   path_records: dict[
-      Tuple[str, "rdf_objects.PathInfo.PathType", Tuple[str, ...]], _PathRecord
+      Tuple[str, "objects_pb2.PathInfo.PathType", Tuple[str, ...]], _PathRecord
   ]
 
   # Maps client_id to client metadata.
@@ -178,16 +176,14 @@ class InMemoryDBPathMixin(object):
   def ReadPathInfo(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> rdf_objects.PathInfo:
+  ) -> objects_pb2.PathInfo:
     """Retrieves a path info record for a given path."""
     try:
       path_record = self.path_records[(client_id, path_type, tuple(components))]
-      return mig_objects.ToRDFPathInfo(
-          path_record.GetPathInfo(timestamp=timestamp)
-      )
+      return path_record.GetPathInfo(timestamp=timestamp)
     except KeyError:
       raise db.UnknownPathError(
           client_id=client_id, path_type=path_type, components=components
@@ -197,9 +193,9 @@ class InMemoryDBPathMixin(object):
   def ReadPathInfos(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components_list: Collection[Sequence[str]],
-  ) -> dict[Sequence[str], Optional[rdf_objects.PathInfo]]:
+  ) -> dict[tuple[str, ...], Optional[objects_pb2.PathInfo]]:
     """Retrieves path info records for given paths."""
     result = {}
 
@@ -208,11 +204,9 @@ class InMemoryDBPathMixin(object):
         path_record = self.path_records[
             (client_id, path_type, tuple(components))
         ]
-        result[components] = mig_objects.ToRDFPathInfo(
-            path_record.GetPathInfo()
-        )
+        result[tuple(components)] = path_record.GetPathInfo()
       except KeyError:
-        result[components] = None
+        result[tuple(components)] = None
 
     return result
 
@@ -220,11 +214,11 @@ class InMemoryDBPathMixin(object):
   def ListDescendantPathInfos(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_depth: Optional[int] = None,
-  ) -> Sequence[rdf_objects.PathInfo]:
+  ) -> Sequence[objects_pb2.PathInfo]:
     """Lists path info records that correspond to children of given path."""
     result = []
     root_dir_exists = False
@@ -247,8 +241,10 @@ class InMemoryDBPathMixin(object):
         continue
       if not collection.StartsWith(other_components, components):
         continue
-      if (max_depth is not None and
-          len(other_components) - len(components) > max_depth):
+      if (
+          max_depth is not None
+          and len(other_components) - len(components) > max_depth
+      ):
         continue
 
       result.append(path_info)
@@ -257,10 +253,7 @@ class InMemoryDBPathMixin(object):
       raise db.UnknownPathError(client_id, path_type, components)
 
     if timestamp is None:
-      return [
-          mig_objects.ToRDFPathInfo(info)
-          for info in sorted(result, key=lambda _: tuple(_.components))
-      ]
+      return sorted(result, key=lambda _: tuple(_.components))
 
     # We need to filter implicit path infos if specific timestamp is given.
 
@@ -280,9 +273,9 @@ class InMemoryDBPathMixin(object):
         components = path_info.components
         if idx == len(components):
           self.path_info = path_info
-          self.explicit |= (
-              path_info.HasField("stat_entry") or
-              path_info.HasField("hash_entry"))
+          self.explicit |= path_info.HasField(
+              "stat_entry"
+          ) or path_info.HasField("hash_entry")
         else:
           child = self.children.setdefault(components[idx], TrieNode())
           child.Add(path_info, idx=idx + 1)
@@ -301,7 +294,7 @@ class InMemoryDBPathMixin(object):
 
     explicit_path_infos = []
     trie.Collect(explicit_path_infos)
-    return [mig_objects.ToRDFPathInfo(info) for info in explicit_path_infos]
+    return explicit_path_infos
 
   def _GetPathRecord(
       self, client_id: str, path_info: objects_pb2.PathInfo
@@ -324,27 +317,25 @@ class InMemoryDBPathMixin(object):
   def WritePathInfos(
       self,
       client_id: str,
-      path_infos: Iterable[rdf_objects.PathInfo],
+      path_infos: Iterable[objects_pb2.PathInfo],
   ) -> None:
     """Writes a collection of path_info records for a client."""
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
     for path_info in path_infos:
-      self._WritePathInfo(client_id, mig_objects.ToProtoPathInfo(path_info))
-      for ancestor_path_info in path_info.GetAncestors():
-        self._WritePathInfo(
-            client_id, mig_objects.ToProtoPathInfo(ancestor_path_info)
-        )
+      self._WritePathInfo(client_id, path_info)
+      for ancestor_path_info in paths.GetAncestorPathInfos(path_info):
+        self._WritePathInfo(client_id, ancestor_path_info)
 
   @utils.Synchronized
   def ReadPathInfosHistories(
       self,
       client_id: Text,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components_list: Iterable[Sequence[Text]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
+  ) -> dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""
     results = {}
 
@@ -385,9 +376,7 @@ class InMemoryDBPathMixin(object):
         if cutoff is not None and timestamp > cutoff_micros:
           continue
 
-        results[components].append(
-            mig_objects.ToRDFPathInfo(entries_by_ts[timestamp])
-        )
+        results[components].append(entries_by_ts[timestamp])
 
     return results
 
@@ -396,7 +385,7 @@ class InMemoryDBPathMixin(object):
       self,
       client_paths: Collection[db.ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[db.ClientPath, Optional[rdf_objects.PathInfo]]:
+  ) -> Dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
     """Returns PathInfos that have corresponding HashBlobReferences."""
 
     results = {}
@@ -423,23 +412,20 @@ class InMemoryDBPathMixin(object):
         ):
           continue
 
-        rdf_hash_entry = mig_crypto.ToRDFHash(hash_entry)
-        # TODO: Use protos below when changing signature and
-        # `blob_refs_by_hashes` is migrated to protos.
         hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
-            rdf_hash_entry.sha256.AsBytes()
+            hash_entry.sha256
         )
         if hash_id not in self.blob_refs_by_hashes:
           continue
 
-        pi = rdf_objects.PathInfo(
+        pi = objects_pb2.PathInfo(
             path_type=cp.path_type,
             components=tuple(cp.components),
             timestamp=ts,
-            hash_entry=rdf_hash_entry,
         )
+        pi.hash_entry.CopyFrom(hash_entry)
         try:
-          pi.stat_entry = mig_client_fs.ToRDFStatEntry(stat_entries_by_ts[ts])
+          pi.stat_entry.CopyFrom(stat_entries_by_ts[ts])
         except KeyError:
           pass
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
-from typing import Callable, Text, Iterator
+from typing import Callable, Iterator, Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -27,9 +27,11 @@ class VfsFileFinder(actions.ActionPlugin):
   def Run(self, args: rdf_file_finder.FileFinderArgs):
     action = self._ParseAction(args)
     content_conditions = list(
-        conditions.ContentCondition.Parse(args.conditions))
+        conditions.ContentCondition.Parse(args.conditions)
+    )
     metadata_conditions = list(
-        conditions.MetadataCondition.Parse(args.conditions))
+        conditions.MetadataCondition.Parse(args.conditions)
+    )
 
     for path in _GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
@@ -56,7 +58,9 @@ class VfsFileFinder(actions.ActionPlugin):
         self.SendReply(result)
 
   def _ParseAction(
-      self, args: rdf_file_finder.FileFinderArgs) -> vfs_subactions.Action:
+      self,
+      args: rdf_file_finder.FileFinderArgs,
+  ) -> vfs_subactions.Action:
     action_type = args.action.action_type
     if action_type == rdf_file_finder.FileFinderAction.Action.HASH:
       return vfs_subactions.HashAction(self, args.action.hash)
@@ -99,7 +103,8 @@ def _GetExpandedPaths(
   opts = globbing.PathOpts(
       follow_links=args.follow_links,
       pathtype=args.pathtype,
-      implementation_type=implementation_type)
+      implementation_type=implementation_type,
+  )
 
   for path in args.paths:
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
@@ -119,6 +124,7 @@ def RegistryKeyFromClient(args: rdf_file_finder.FileFinderArgs):
   """
   for path in _GetExpandedPaths(args):
     pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY
+    )
     with vfs.VFSOpen(pathspec) as file_obj:
       yield file_obj.Stat()

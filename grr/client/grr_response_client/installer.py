@@ -50,8 +50,10 @@ def RunInstaller():
   # the configuration from the flag and ignore the Config.writeback
   # location.
   config.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
-  config.CONFIG.AddContext(contexts.INSTALLER_CONTEXT,
-                           "Context applied when we run the client installer.")
+  config.CONFIG.AddContext(
+      contexts.INSTALLER_CONTEXT,
+      "Context applied when we run the client installer.",
+  )
 
   if installers is None:
     logging.info("No installers found for %s.", sys.platform)

@@ -67,6 +67,12 @@ class ApiCallHandler:
   # that implement Handle() method.
   result_type = None
 
+  # Proto type used as input to the handler Handle() method.
+  proto_args_type = None
+
+  # Proto type returned by the handler Handle() method.
+  proto_result_type = None
+
   # This is a maximum time in seconds the renderer is allowed to run. Renderers
   # exceeding this time are killed softly (i.e. the time is not a guaranteed
   # maximum, but will be used as a guide).

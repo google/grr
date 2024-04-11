@@ -9,15 +9,14 @@ import sys
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "--clean",
-    action="store_true",
-    default=False,
-    help="Clean compiled protos.")
+    "--clean", action="store_true", default=False, help="Clean compiled protos."
+)
 
 parser.add_argument(
     "--mypy-protobuf",
     default="",
-    help="A path to the mypy protobuf generator plugin.")
+    help="A path to the mypy protobuf generator plugin.",
+)
 
 args = parser.parse_args()
 

@@ -2685,7 +2685,7 @@
                 "userCpuTime": 1.0
               },
               "networkBytesSent": "3",
-              "sessionId": "<replaced session value>"
+              "sessionId": "aff4:/C.1000000000000000/H:123456"
             }
           ]
         }

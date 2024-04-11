@@ -15,7 +15,8 @@ class NetstatActionTest(client_test_lib.EmptyActionTest):
   def testListNetworkConnections(self):
     result = self.RunAction(
         network.ListNetworkConnections,
-        arg=rdf_client_action.ListNetworkConnectionsArgs())
+        arg=rdf_client_action.ListNetworkConnectionsArgs(),
+    )
     for r in result:
       self.assertTrue(r.process_name)
       self.assertTrue(r.local_address)
@@ -23,7 +24,8 @@ class NetstatActionTest(client_test_lib.EmptyActionTest):
   def testListNetworkConnectionsFilter(self):
     result = self.RunAction(
         network.ListNetworkConnections,
-        arg=rdf_client_action.ListNetworkConnectionsArgs(listening_only=True))
+        arg=rdf_client_action.ListNetworkConnectionsArgs(listening_only=True),
+    )
     for r in result:
       self.assertTrue(r.process_name)
       self.assertTrue(r.local_address)

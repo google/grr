@@ -8,12 +8,14 @@ from grr.test_lib import export_test_lib
 from grr.test_lib import test_lib
 
 
-class BufferReferenceToExportedMatchConverterTest(export_test_lib.ExportTestBase
-                                                 ):
+class BufferReferenceToExportedMatchConverterTest(
+    export_test_lib.ExportTestBase
+):
 
   def testBasicConversion(self):
     pathspec = rdf_paths.PathSpec(
-        path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
+        path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS
+    )
     buffer = rdf_client.BufferReference(
         length=123,
         offset=456,

@@ -14,8 +14,10 @@ from absl.testing import absltest
 from grr_response_client.unprivileged import sandbox
 
 
-@unittest.skipIf(platform.system() != "Linux" or os.getuid() != 0,
-                 "Skipping Linux-only root test.")
+@unittest.skipIf(
+    platform.system() != "Linux" or os.getuid() != 0,
+    "Skipping Linux-only root test.",
+)
 class LinuxSandboxTest(absltest.TestCase):
 
   @classmethod

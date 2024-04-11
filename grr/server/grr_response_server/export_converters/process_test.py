@@ -16,7 +16,8 @@ class ProcessToExportedProcessConverter(export_test_lib.ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     converter = process.ProcessToExportedProcessConverter()
     results = list(converter.Convert(self.metadata, proc))
@@ -38,7 +39,8 @@ class ProcessToExportedOpenFileConverterTest(export_test_lib.ExportTestBase):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        open_files=["/some/a", "/some/b"])
+        open_files=["/some/a", "/some/b"],
+    )
 
     converter = process.ProcessToExportedOpenFileConverter()
     results = list(converter.Convert(self.metadata, proc))
@@ -51,7 +53,8 @@ class ProcessToExportedOpenFileConverterTest(export_test_lib.ExportTestBase):
 
 
 class ProcessToExportedNetworkConnectionConverterTest(
-    export_test_lib.ExportTestBase):
+    export_test_lib.ExportTestBase
+):
 
   def testBasicConversion(self):
     conn1 = rdf_client_network.NetworkConnection(
@@ -60,16 +63,20 @@ class ProcessToExportedNetworkConnectionConverterTest(
         local_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
         remote_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
-        ctime=0)
+        ctime=0,
+    )
     conn2 = rdf_client_network.NetworkConnection(
         state=rdf_client_network.NetworkConnection.State.LISTEN,
         type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
         local_address=rdf_client_network.NetworkEndpoint(
-            ip="192.168.1.1", port=31337),
+            ip="192.168.1.1", port=31337
+        ),
         remote_address=rdf_client_network.NetworkEndpoint(
-            ip="1.2.3.4", port=6667),
+            ip="1.2.3.4", port=6667
+        ),
         pid=1,
-        ctime=0)
+        ctime=0,
+    )
 
     proc = rdf_client.Process(
         pid=2,
@@ -77,16 +84,19 @@ class ProcessToExportedNetworkConnectionConverterTest(
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        connections=[conn1, conn2])
+        connections=[conn1, conn2],
+    )
 
     converter = process.ProcessToExportedNetworkConnectionConverter()
     results = list(converter.Convert(self.metadata, proc))
 
     self.assertLen(results, 2)
-    self.assertEqual(results[0].state,
-                     rdf_client_network.NetworkConnection.State.LISTEN)
-    self.assertEqual(results[0].type,
-                     rdf_client_network.NetworkConnection.Type.SOCK_STREAM)
+    self.assertEqual(
+        results[0].state, rdf_client_network.NetworkConnection.State.LISTEN
+    )
+    self.assertEqual(
+        results[0].type, rdf_client_network.NetworkConnection.Type.SOCK_STREAM
+    )
     self.assertEqual(results[0].local_address.ip, "0.0.0.0")
     self.assertEqual(results[0].local_address.port, 22)
     self.assertEqual(results[0].remote_address.ip, "0.0.0.0")
@@ -94,10 +104,12 @@ class ProcessToExportedNetworkConnectionConverterTest(
     self.assertEqual(results[0].pid, 2136)
     self.assertEqual(results[0].ctime, 0)
 
-    self.assertEqual(results[1].state,
-                     rdf_client_network.NetworkConnection.State.LISTEN)
-    self.assertEqual(results[1].type,
-                     rdf_client_network.NetworkConnection.Type.SOCK_STREAM)
+    self.assertEqual(
+        results[1].state, rdf_client_network.NetworkConnection.State.LISTEN
+    )
+    self.assertEqual(
+        results[1].type, rdf_client_network.NetworkConnection.Type.SOCK_STREAM
+    )
     self.assertEqual(results[1].local_address.ip, "192.168.1.1")
     self.assertEqual(results[1].local_address.port, 31337)
     self.assertEqual(results[1].remote_address.ip, "1.2.3.4")

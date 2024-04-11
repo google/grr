@@ -19,9 +19,15 @@ class VfsTskTest(tsk_test_lib.TSKTest):
     self.addCleanup(stack.close)
 
     stack.enter_context(
-        mock.patch.dict(client_vfs.VFS_HANDLERS, {
-            vfs.UnprivilegedTskFile.supported_pathtype: vfs.UnprivilegedTskFile,
-        }))
+        mock.patch.dict(
+            client_vfs.VFS_HANDLERS,
+            {
+                vfs.UnprivilegedTskFile.supported_pathtype: (
+                    vfs.UnprivilegedTskFile
+                ),
+            },
+        )
+    )
 
 
 def setUpModule():
