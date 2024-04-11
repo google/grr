@@ -248,6 +248,7 @@ jobs:
       - name: Start docker compose stack
         shell: bash
         run: |
+          ./docker_config_files/init_certs.sh
           docker compose \
             -f docker-compose.yaml \
             -f docker-compose.testing.yaml \
