@@ -248,6 +248,7 @@ jobs:
       - name: Start docker compose stack
         shell: bash
         run: |
+          ./docker_config_files/init_certs.sh
           docker compose \
             -f docker-compose.yaml \
             -f docker-compose.testing.yaml \
@@ -255,7 +256,7 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          docker compose exec grr-client bash /configs/create_fake_user.sh
+          docker compose exec grr-client bash /configs/client/create_fake_user.sh
           docker run \
             --add-host=host.docker.internal:host-gateway \
             -v $(pwd):/github_workspace \
