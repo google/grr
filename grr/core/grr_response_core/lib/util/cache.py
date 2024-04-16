@@ -49,8 +49,8 @@ def WithLimitedCallFrequency(
   NOTE 2: all decorated functions' arguments have to be hashable.
 
   Args:
-    min_time_between_calls: An rdfvalue.Duration specifying the minimal
-    time to pass between 2 consecutive function calls with same arguments.
+    min_time_between_calls: An rdfvalue.Duration specifying the minimal time to
+      pass between 2 consecutive function calls with same arguments.
 
   Returns:
     A Python function decorator.

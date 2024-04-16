@@ -35,7 +35,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
       responses.append(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec(
-                  path="/foo/bar/%d" % i, pathtype="OS"),
+                  path="/foo/bar/%d" % i, pathtype="OS"
+              ),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512,
@@ -45,24 +46,25 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
               st_size=0,
               st_atime=1336469177,
               st_mtime=1336129892,
-              st_ctime=1336129892))
+              st_ctime=1336129892,
+          )
+      )
 
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: responses})
+        {rdf_client_fs.StatEntry: responses}
+    )
     self.assertEqual(
         set(zip_fd.namelist()),
         set([
             "%s/MANIFEST" % prefix,
-            "%s/ExportedFile/from_StatEntry.csv" % prefix
-        ]))
+            "%s/ExportedFile/from_StatEntry.csv" % prefix,
+        ]),
+    )
 
     parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest,
-                     {"export_stats": {
-                         "StatEntry": {
-                             "ExportedFile": 10
-                         }
-                     }})
+    self.assertEqual(
+        parsed_manifest, {"export_stats": {"StatEntry": {"ExportedFile": 10}}}
+    )
 
     with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
       content = filedesc.read().decode("utf-8")
@@ -71,19 +73,27 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(parsed_output, 10)
     for i in range(10):
       # Make sure metadata is filled in.
-      self.assertEqual(parsed_output[i]["metadata.client_urn"],
-                       "aff4:/%s" % self.client_id)
-      self.assertEqual(parsed_output[i]["metadata.hostname"],
-                       "Host-0.example.com")
-      self.assertEqual(parsed_output[i]["metadata.mac_address"],
-                       "aabbccddee00\nbbccddeeff00")
-      self.assertEqual(parsed_output[i]["metadata.source_urn"],
-                       self.results_urn)
-      self.assertEqual(parsed_output[i]["metadata.hardware_info.bios_version"],
-                       "Bios-Version-0")
+      self.assertEqual(
+          parsed_output[i]["metadata.client_urn"], "aff4:/%s" % self.client_id
+      )
+      self.assertEqual(
+          parsed_output[i]["metadata.hostname"], "Host-0.example.com"
+      )
+      self.assertEqual(
+          parsed_output[i]["metadata.mac_address"], "aabbccddee00\nbbccddeeff00"
+      )
+      self.assertEqual(
+          parsed_output[i]["metadata.source_urn"], self.results_urn
+      )
+      self.assertEqual(
+          parsed_output[i]["metadata.hardware_info.bios_version"],
+          "Bios-Version-0",
+      )
 
-      self.assertEqual(parsed_output[i]["urn"],
-                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
+      self.assertEqual(
+          parsed_output[i]["urn"],
+          "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i),
+      )
       self.assertEqual(parsed_output[i]["st_mode"], "-rw-r-----")
       self.assertEqual(parsed_output[i]["st_ino"], "1063090")
       self.assertEqual(parsed_output[i]["st_dev"], "64512")
@@ -103,30 +113,30 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS")
+            )
         ],
-        rdf_client.Process: [rdf_client.Process(pid=42)]
+        rdf_client.Process: [rdf_client.Process(pid=42)],
     })
     self.assertEqual(
         set(zip_fd.namelist()),
         set([
             "%s/MANIFEST" % prefix,
             "%s/ExportedFile/from_StatEntry.csv" % prefix,
-            "%s/ExportedProcess/from_Process.csv" % prefix
-        ]))
+            "%s/ExportedProcess/from_Process.csv" % prefix,
+        ]),
+    )
 
     parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(
-        parsed_manifest, {
+        parsed_manifest,
+        {
             "export_stats": {
-                "StatEntry": {
-                    "ExportedFile": 1
-                },
-                "Process": {
-                    "ExportedProcess": 1
-                }
+                "StatEntry": {"ExportedFile": 1},
+                "Process": {"ExportedProcess": 1},
             }
-        })
+        },
+    )
 
     with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
       content = filedesc.read().decode("utf-8")
@@ -135,15 +145,19 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(parsed_output, 1)
 
     # Make sure metadata is filled in.
-    self.assertEqual(parsed_output[0]["metadata.client_urn"],
-                     "aff4:/%s" % self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"],
-                     "Host-0.example.com")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"],
-                     "aabbccddee00\nbbccddeeff00")
+    self.assertEqual(
+        parsed_output[0]["metadata.client_urn"], "aff4:/%s" % self.client_id
+    )
+    self.assertEqual(
+        parsed_output[0]["metadata.hostname"], "Host-0.example.com"
+    )
+    self.assertEqual(
+        parsed_output[0]["metadata.mac_address"], "aabbccddee00\nbbccddeeff00"
+    )
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
-    self.assertEqual(parsed_output[0]["urn"],
-                     "aff4:/%s/fs/os/foo/bar" % self.client_id)
+    self.assertEqual(
+        parsed_output[0]["urn"], "aff4:/%s/fs/os/foo/bar" % self.client_id
+    )
 
     filepath = "%s/ExportedProcess/from_Process.csv" % prefix
     with zip_fd.open(filepath) as filedesc:
@@ -152,12 +166,15 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, 1)
 
-    self.assertEqual(parsed_output[0]["metadata.client_urn"],
-                     "aff4:/%s" % self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"],
-                     "Host-0.example.com")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"],
-                     "aabbccddee00\nbbccddeeff00")
+    self.assertEqual(
+        parsed_output[0]["metadata.client_urn"], "aff4:/%s" % self.client_id
+    )
+    self.assertEqual(
+        parsed_output[0]["metadata.hostname"], "Host-0.example.com"
+    )
+    self.assertEqual(
+        parsed_output[0]["metadata.mac_address"], "aabbccddee00\nbbccddeeff00"
+    )
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["pid"], "42")
 
@@ -166,15 +183,19 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
             rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS"))
+                pathspec=rdf_paths.PathSpec(
+                    path="/中国新闻网新闻中", pathtype="OS"
+                )
+            )
         ]
     })
     self.assertEqual(
         set(zip_fd.namelist()),
         set([
             "%s/MANIFEST" % prefix,
-            "%s/ExportedFile/from_StatEntry.csv" % prefix
-        ]))
+            "%s/ExportedFile/from_StatEntry.csv" % prefix,
+        ]),
+    )
 
     data = zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)
     data = io.TextIOWrapper(data, encoding="utf-8")
@@ -220,11 +241,13 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     for i in range(num_rows):
       responses.append(
           rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec(
-                  path="/foo/bar/%d" % i, pathtype="OS")))
+              pathspec=rdf_paths.PathSpec(path="/foo/bar/%d" % i, pathtype="OS")
+          )
+      )
 
     zip_fd, prefix = self.ProcessValuesToZip(
-        {rdf_client_fs.StatEntry: responses})
+        {rdf_client_fs.StatEntry: responses}
+    )
 
     with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
       content = filedesc.read().decode("utf-8")
@@ -232,8 +255,10 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
-      self.assertEqual(parsed_output[i]["urn"],
-                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
+      self.assertEqual(
+          parsed_output[i]["urn"],
+          "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i),
+      )
 
 
 def main(argv):

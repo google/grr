@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in memory database methods for GRR users and approval handling."""
+
 import os
 from typing import Optional, Sequence, Tuple
 
@@ -131,9 +132,10 @@ class InMemoryDBUsersMixin(object):
       res = objects_pb2.ApprovalRequest()
       res.CopyFrom(self.approvals_by_username[requestor_username][approval_id])
       return res
-    except KeyError:
-      raise db.UnknownApprovalRequestError("Can't find approval with id: %s" %
-                                           approval_id)
+    except KeyError as e:
+      raise db.UnknownApprovalRequestError(
+          "Can't find approval with id: %s" % approval_id
+      ) from e
 
   @utils.Synchronized
   def ReadApprovalRequests(

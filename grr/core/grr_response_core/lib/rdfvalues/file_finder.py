@@ -67,7 +67,8 @@ class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
     # The literal must not be empty in the literal match condition.
     if not self.HasField("literal") or not self.literal:
       raise ValueError(
-          "No literal provided to FileFinderContentsLiteralMatchCondition.")
+          "No literal provided to FileFinderContentsLiteralMatchCondition."
+      )
 
 
 class FileFinderCondition(rdf_structs.RDFProtoStruct):
@@ -218,6 +219,7 @@ class FileFinderAction(rdf_structs.RDFProtoStruct):
 
 class FileFinderArgs(rdf_structs.RDFProtoStruct):
   """An RDF value representing file finder flow arguments."""
+
   protobuf = flows_pb2.FileFinderArgs
   rdf_deps = [
       FileFinderAction,
@@ -244,12 +246,14 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
 
 class CollectFilesByKnownPathArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectFilesByKnownPath."""
+
   protobuf = flows_pb2.CollectFilesByKnownPathArgs
   rdf_deps = []
 
 
 class CollectFilesByKnownPathResult(rdf_structs.RDFProtoStruct):
   """Result returned by CollectFilesByKnownPath."""
+
   protobuf = flows_pb2.CollectFilesByKnownPathResult
   rdf_deps = [
       rdf_crypto.Hash,
@@ -259,12 +263,14 @@ class CollectFilesByKnownPathResult(rdf_structs.RDFProtoStruct):
 
 class CollectFilesByKnownPathProgress(rdf_structs.RDFProtoStruct):
   """Progress returned by CollectFilesByKnownPath."""
+
   protobuf = flows_pb2.CollectFilesByKnownPathProgress
   rdf_deps = []
 
 
 class CollectMultipleFilesArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectMultipleFiles."""
+
   protobuf = flows_pb2.CollectMultipleFilesArgs
   rdf_deps = [
       rdf_paths.GlobExpression,
@@ -280,6 +286,7 @@ class CollectMultipleFilesArgs(rdf_structs.RDFProtoStruct):
 
 class CollectMultipleFilesResult(rdf_structs.RDFProtoStruct):
   """Result returned by CollectMultipleFiles."""
+
   protobuf = flows_pb2.CollectMultipleFilesResult
   rdf_deps = [
       rdf_crypto.Hash,
@@ -289,6 +296,7 @@ class CollectMultipleFilesResult(rdf_structs.RDFProtoStruct):
 
 class CollectMultipleFilesProgress(rdf_structs.RDFProtoStruct):
   """Progress returned by CollectMultipleFiles."""
+
   protobuf = flows_pb2.CollectMultipleFilesProgress
   rdf_deps = []
 

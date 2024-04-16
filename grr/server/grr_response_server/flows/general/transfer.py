@@ -30,6 +30,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.models import blobs as blob_models
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
@@ -157,7 +158,8 @@ class GetFileThroughRRG(flow_base.FlowBase):
 
     path_info.hash_entry.sha256 = hash_id.AsBytes()
     path_info.hash_entry.num_bytes = sum(_.size for _ in blob_refs)
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    proto_path_info = mig_objects.ToProtoPathInfo(path_info)
+    data_store.REL_DB.WritePathInfos(self.client_id, [proto_path_info])
 
     self.SendReply(path_info.stat_entry)
 
@@ -310,7 +312,8 @@ class GetFile(flow_base.FlowBase):
     path_info.hash_entry.sha256 = hash_id.AsBytes()
     path_info.hash_entry.num_bytes = offset
 
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    proto_path_info = mig_objects.ToProtoPathInfo(path_info)
+    data_store.REL_DB.WritePathInfos(self.client_id, [proto_path_info])
 
     # Save some space.
     del self.state["blobs"]
@@ -818,7 +821,8 @@ class MultiGetFileLogic(object):
         stat_entry = file_tracker["stat_entry"]
         path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
         path_info.hash_entry = file_tracker["hash_obj"]
-        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+        proto_path_info = mig_objects.ToProtoPathInfo(path_info)
+        data_store.REL_DB.WritePathInfos(self.client_id, [proto_path_info])
 
         # Report this hit to the flow's caller.
         self._ReceiveFetchedFile(file_tracker, is_duplicate=True)
@@ -988,7 +992,8 @@ class MultiGetFileLogic(object):
       path_info.hash_entry.sha256 = hash_id.AsBytes()
       path_info.hash_entry.num_bytes = offset
 
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    proto_path_info = mig_objects.ToProtoPathInfo(path_info)
+    data_store.REL_DB.WritePathInfos(self.client_id, [proto_path_info])
 
     # Save some space.
     del file_tracker["blobs"]

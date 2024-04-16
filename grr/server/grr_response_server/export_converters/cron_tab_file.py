@@ -20,8 +20,9 @@ class CronTabFileConverter(base.ExportConverter):
   input_rdf_type = rdf_cronjobs.CronTabFile
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      cron_tab_file: rdf_cronjobs.CronTabFile
+      self,
+      metadata: base.ExportedMetadata,
+      cron_tab_file: rdf_cronjobs.CronTabFile,
   ) -> Iterator[ExportedCronTabEntry]:
     for j in cron_tab_file.jobs:
       yield ExportedCronTabEntry(
@@ -33,4 +34,5 @@ class CronTabFileConverter(base.ExportConverter):
           month=j.month,
           dayofweek=j.dayofweek,
           command=j.command,
-          comment=j.comment)
+          comment=j.comment,
+      )

@@ -14,7 +14,8 @@ from grr_response_core.stats import metrics
 GRR_DECODING_ERROR = metrics.Counter("grr_decoding_error")
 GRR_DECRYPTION_ERROR = metrics.Counter("grr_decryption_error")
 GRR_LEGACY_CLIENT_DECRYPTION_ERROR = metrics.Counter(
-    "grr_legacy_client_decryption_error")
+    "grr_legacy_client_decryption_error"
+)
 GRR_RSA_OPERATIONS = metrics.Counter("grr_rsa_operations")
 
 
@@ -46,8 +47,9 @@ class LegacyClientDecryptionError(DecryptionError):
     super().__init__(message)
 
 
-class Cipher(object):
+class Cipher:
   """Holds keying information."""
+
   cipher_name = "aes_128_cbc"
   key_size = 128
   iv_size = 128
@@ -70,7 +72,8 @@ class Cipher(object):
         key=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
         metadata_iv=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
         hmac_key=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
-        hmac_type="FULL_HMAC")
+        hmac_type="FULL_HMAC",
+    )
 
     serialized_cipher = self.cipher.SerializeToBytes()
 
@@ -85,7 +88,8 @@ class Cipher(object):
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
-        self.cipher_metadata.SerializeToBytes(), self.cipher.metadata_iv)
+        self.cipher_metadata.SerializeToBytes(), self.cipher.metadata_iv
+    )
 
   def Encrypt(self, data, iv=None):
     """Symmetrically encrypt the data using the optional iv."""
@@ -112,18 +116,23 @@ class ReceivedCipher(Cipher):
   """A cipher which we received from our peer."""
 
   # pylint: disable=super-init-not-called
-  def __init__(self, response_comms: rdf_flows.ClientCommunication,
-               private_key):
+  def __init__(
+      self, response_comms: rdf_flows.ClientCommunication, private_key
+  ):
     self.private_key = private_key
     self.response_comms = response_comms
 
     if response_comms.api_version not in [3]:
-      raise DecryptionError("Unsupported api version: %s, expected 3." %
-                            response_comms.api_version)
+      raise DecryptionError(
+          "Unsupported api version: %s, expected 3."
+          % response_comms.api_version
+      )
 
     if not response_comms.encrypted_cipher:
-      logging.error("No encrypted_cipher. orig_request=%s",
-                    str(response_comms.orig_request)[:1000])
+      logging.error(
+          "No encrypted_cipher. orig_request=%s",
+          str(response_comms.orig_request)[:1000],
+      )
       # The message is not encrypted. We do not allow unencrypted
       # messages:
       raise DecryptionError("Message is not encrypted.")
@@ -131,16 +140,20 @@ class ReceivedCipher(Cipher):
     try:
       # The encrypted_cipher contains the session key, iv and hmac_key.
       self.serialized_cipher = private_key.Decrypt(
-          response_comms.encrypted_cipher)
+          response_comms.encrypted_cipher
+      )
 
       # If we get here we have the session keys.
       self.cipher = rdf_flows.CipherProperties.FromSerializedBytes(
-          self.serialized_cipher)
+          self.serialized_cipher
+      )
 
       # Check the key lengths.
-      if (len(self.cipher.key) * 8 != self.key_size or
-          len(self.cipher.metadata_iv) * 8 != self.iv_size or
-          len(self.cipher.hmac_key) * 8 != self.key_size):
+      if (
+          len(self.cipher.key) * 8 != self.key_size
+          or len(self.cipher.metadata_iv) * 8 != self.iv_size
+          or len(self.cipher.hmac_key) * 8 != self.key_size
+      ):
         raise DecryptionError("Invalid cipher.")
 
       self.VerifyHMAC()
@@ -150,9 +163,11 @@ class ReceivedCipher(Cipher):
       # digest of the serialized CipherProperties(). It is stored inside the
       # encrypted payload.
       serialized_metadata = self.Decrypt(
-          response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv)
+          response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv
+      )
       self.cipher_metadata = rdf_flows.CipherMetadata.FromSerializedBytes(
-          serialized_metadata)
+          serialized_metadata
+      )
 
     except (rdf_crypto.InvalidSignature, rdf_crypto.CipherError) as e:
       if "Ciphertext length must be equal to key size" in str(e):
@@ -191,7 +206,6 @@ class ReceivedCipher(Cipher):
 
     Returns:
       True
-
     """
     return self._VerifyHMAC(self.response_comms)
 
@@ -209,7 +223,6 @@ class ReceivedCipher(Cipher):
 
     Returns:
       True
-
     """
     # Check the encrypted message integrity using HMAC.
     if self.hmac_type == "SIMPLE_HMAC":
@@ -217,10 +230,11 @@ class ReceivedCipher(Cipher):
       digest = comms.hmac
     elif self.hmac_type == "FULL_HMAC":
       msg = b"".join([
-          comms.encrypted, comms.encrypted_cipher,
+          comms.encrypted,
+          comms.encrypted_cipher,
           comms.encrypted_cipher_metadata,
           comms.packet_iv.SerializeToBytes(),
-          struct.pack("<I", comms.api_version)
+          struct.pack("<I", comms.api_version),
       ])
       digest = comms.full_hmac
     else:
@@ -247,10 +261,10 @@ class ReceivedCipher(Cipher):
     Raises:
       rdf_crypto.VerificationError: A signature and a key were both given but
                                     verification fails.
-
     """
     if self.cipher_metadata.signature and remote_public_key:
       GRR_RSA_OPERATIONS.Increment()
-      remote_public_key.Verify(self.serialized_cipher,
-                               self.cipher_metadata.signature)
+      remote_public_key.Verify(
+          self.serialized_cipher, self.cipher_metadata.signature
+      )
       return True

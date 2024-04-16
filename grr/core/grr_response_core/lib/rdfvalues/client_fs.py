@@ -4,7 +4,6 @@
 import stat
 from typing import Text
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -22,6 +21,7 @@ class Filesystem(rdf_structs.RDFProtoStruct):
 
   This class describes a filesystem mounted on the client.
   """
+
   protobuf = sysinfo_pb2.Filesystem
   rdf_deps = [
       rdf_protodict.AttributedDict,
@@ -33,6 +33,7 @@ class Filesystems(rdf_protodict.RDFValueArray):
 
   This is used to represent the list of valid filesystems on the client.
   """
+
   rdf_type = Filesystem
 
 
@@ -44,21 +45,25 @@ class FolderInformation(rdf_structs.RDFProtoStruct):
   the location of user specific items, e.g. the Temporary folder, or the
   Internet cache.
   """
+
   protobuf = jobs_pb2.FolderInformation
 
 
 class WindowsVolume(rdf_structs.RDFProtoStruct):
   """A disk volume on a windows client."""
+
   protobuf = sysinfo_pb2.WindowsVolume
 
 
 class UnixVolume(rdf_structs.RDFProtoStruct):
   """A disk volume on a unix client."""
+
   protobuf = sysinfo_pb2.UnixVolume
 
 
 class Volume(rdf_structs.RDFProtoStruct):
   """A disk volume on the client."""
+
   protobuf = sysinfo_pb2.Volume
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -68,8 +73,9 @@ class Volume(rdf_structs.RDFProtoStruct):
 
   def FreeSpacePercent(self):
     try:
-      return (self.actual_available_allocation_units /
-              self.total_allocation_units) * 100.0
+      return (
+          self.actual_available_allocation_units / self.total_allocation_units
+      ) * 100.0
     except ZeroDivisionError:
       return 100
 
@@ -78,8 +84,11 @@ class Volume(rdf_structs.RDFProtoStruct):
 
   def AUToBytes(self, allocation_units):
     """Convert a number of allocation units to bytes."""
-    return (allocation_units * self.sectors_per_allocation_unit *
-            self.bytes_per_sector)
+    return (
+        allocation_units
+        * self.sectors_per_allocation_unit
+        * self.bytes_per_sector
+    )
 
   def AUToGBytes(self, allocation_units):
     """Convert a number of allocation units to GigaBytes."""
@@ -87,8 +96,13 @@ class Volume(rdf_structs.RDFProtoStruct):
 
   def Name(self):
     """Return the best available name for this volume."""
-    return (self.name or self.device_path or self.windowsvolume.drive_letter or
-            self.unixvolume.mount_point or None)
+    return (
+        self.name
+        or self.device_path
+        or self.windowsvolume.drive_letter
+        or self.unixvolume.mount_point
+        or None
+    )
 
 
 class DiskUsage(rdf_structs.RDFProtoStruct):
@@ -97,11 +111,13 @@ class DiskUsage(rdf_structs.RDFProtoStruct):
 
 class Volumes(rdf_protodict.RDFValueArray):
   """A list of disk volumes on the client."""
+
   rdf_type = Volume
 
 
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
+
   protobuf_type = "unsigned_integer"
 
   def __str__(self) -> Text:
@@ -131,9 +147,9 @@ class StatMode(rdfvalue.RDFInteger):
     bin_mode = "0" * (9 - len(bin_mode)) + bin_mode
 
     bits = []
-    for i in range(len(mode_template)):
+    for i, mode_ in enumerate(mode_template):
       if bin_mode[i] == "1":
-        bit = mode_template[i]
+        bit = mode_
       else:
         bit = "-"
 
@@ -172,6 +188,7 @@ class ExtAttr(rdf_structs.RDFProtoStruct):
 
 class StatEntry(rdf_structs.RDFProtoStruct):
   """Represent an extended stat response."""
+
   protobuf = jobs_pb2.StatEntry
   rdf_deps = [
       rdf_protodict.DataBlob,
@@ -189,6 +206,7 @@ class StatEntry(rdf_structs.RDFProtoStruct):
 
 class FindSpec(rdf_structs.RDFProtoStruct):
   """A find specification."""
+
   protobuf = jobs_pb2.FindSpec
   rdf_deps = [
       rdfvalue.RDFBytes,
@@ -205,17 +223,23 @@ class FindSpec(rdf_structs.RDFProtoStruct):
     """Ensure the pathspec is valid."""
     self.pathspec.Validate()
 
-    if (self.HasField("start_time") and self.HasField("end_time") and
-        self.start_time > self.end_time):
+    if (
+        self.HasField("start_time")
+        and self.HasField("end_time")
+        and self.start_time > self.end_time
+    ):
       raise ValueError("Start time must be before end time.")
 
     if not self.path_regex and not self.data_regex and not self.path_glob:
-      raise ValueError("A Find specification can not contain both an empty "
-                       "path regex and an empty data regex")
+      raise ValueError(
+          "A Find specification can not contain both an empty "
+          "path regex and an empty data regex"
+      )
 
 
 class BareGrepSpec(rdf_structs.RDFProtoStruct):
   """A GrepSpec without a target."""
+
   protobuf = flows_pb2.BareGrepSpec
   rdf_deps = [
       rdf_standard.LiteralExpression,

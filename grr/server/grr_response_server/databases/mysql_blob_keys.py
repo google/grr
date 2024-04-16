@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with MySQL implementation of blobstore encryption keys methods."""
+
 from __future__ import annotations
 
 from typing import Collection

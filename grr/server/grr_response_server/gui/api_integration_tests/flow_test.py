@@ -105,7 +105,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
-    self.assertEqual(flows[0].args, args)
+    flow = mig_flow_objects.ToRDFFlow(flows[0])
+    self.assertEqual(flow.args, args)
 
   def testCreateFlowFromClientObject(self):
     client_id = self.SetupClient(0)
@@ -121,7 +122,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
-    self.assertEqual(flows[0].args, args)
+    flow = mig_flow_objects.ToRDFFlow(flows[0])
+    self.assertEqual(flow.args, args)
 
   def testRunInterrogateFlow(self):
     client_id = self.SetupClient(0)
@@ -167,7 +169,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     flow.flow_class_name = collectors.ArtifactCollectorFlow.__name__
     flow.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
     flow.persistent_data = {"knowledge_base": rdf_client.KnowledgeBase()}
-    data_store.REL_DB.WriteFlowObject(flow)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     result = rdf_flow_objects.FlowResult()
     result.client_id = client_id
@@ -227,7 +229,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     flow.flow_id = flow_id
     flow.flow_class_name = collectors.ArtifactCollectorFlow.__name__
     flow.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
-    data_store.REL_DB.WriteFlowObject(flow)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
 
     result = rdf_flow_objects.FlowResult()
     result.client_id = client_id

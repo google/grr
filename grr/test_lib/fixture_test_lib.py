@@ -105,10 +105,13 @@ class ClientFixture(object):
             offset=0, size=len(content), blob_id=bytes(blob_id)
         )
         hash_id = file_store.AddFileWithUnknownHash(
-            db.ClientPath.FromPathInfo(self.client_id, path_info), [blob_ref])
+            db.ClientPath.FromPathInfo(self.client_id, path_info), [blob_ref]
+        )
         path_info.hash_entry.num_bytes = len(content)
         path_info.hash_entry.sha256 = hash_id.AsBytes()
 
       if path_info is not None:
         data_store.REL_DB.WritePathInfos(
-            client_id=self.client_id, path_infos=[path_info])
+            client_id=self.client_id,
+            path_infos=[mig_objects.ToProtoPathInfo(path_info)],
+        )

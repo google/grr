@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with the blob sink."""
+
 import logging
 
 from grr_response_server import data_store

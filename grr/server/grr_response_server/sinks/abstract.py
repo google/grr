@@ -3,6 +3,7 @@
 
 See documentation for the root `sinks` module for more details.
 """
+
 import abc
 
 from grr_response_proto import rrg_pb2

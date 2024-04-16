@@ -3,6 +3,7 @@
 
 from absl import app
 
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import test_lib
@@ -20,7 +21,7 @@ class AuditTest(api_integration_test_lib.ApiIntegrationTest):
 
     self.assertEqual(entry.http_request_path,
                      "/api/v2/clients?count=50&offset=0&query=.")
-    self.assertEqual(entry.response_code, "OK")
+    self.assertEqual(entry.response_code, objects_pb2.APIAuditEntry.Code.OK)
     self.assertEqual(entry.router_method_name, "SearchClients")
     self.assertEqual(entry.username, "api_test_robot_user")
 

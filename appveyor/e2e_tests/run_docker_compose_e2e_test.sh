@@ -1,18 +1,18 @@
 #!/bin/bash
 #
-# Runs the e2e tests in the docker-compose stack.
+# Runs the e2e tests in the Docker Compose stack.
 #
-# This script is executed in the grr docker container or in an
+# This script is executed in the grr Docker container or in an
 # environment with the grr src and develpment environment
 # (grr-python-api, grr-test) available. And assumes the
-# docker-compose stack to be running with exposed ports for
+# Docker Compose stack to be running with exposed ports for
 # the admin API and GRR database.
 #
 # Running this test (from the main folder):
-# - Start the docker compose stack with:
-#     $ docker-compose up
+# - Start the Docker Compose stack with:
+#     $ docker compose up
 #
-# - Build and run the GRR docker container and set the entrypoint
+# - Build and run the GRR Docker container and set the entrypoint
 #   to this script:
 #     $ docker build -f ./Dockerfile . -t local-grr-container
 #     $ docker run \
@@ -25,7 +25,7 @@
 
 set -ex
 
-# The IP address of the client inside the docker-compose stack.
+# The IP address of the client inside the Docker Compose stack.
 readonly CLIENT_IP=${1}
 
 readonly GRR_API="http://host.docker.internal:8000"

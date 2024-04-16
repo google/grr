@@ -13,6 +13,7 @@ from grr_response_server.flows.general import dummy
 from grr_response_server.flows.general import export
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import hardware
 from grr_response_server.flows.general import large_file
 from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import network

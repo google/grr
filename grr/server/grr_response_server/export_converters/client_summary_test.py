@@ -15,34 +15,44 @@ from grr.test_lib import test_lib
 
 
 class ClientSummaryToExportedNetworkInterfaceConverterTest(
-    export_test_lib.ExportTestBase):
+    export_test_lib.ExportTestBase
+):
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
     mac_address_bytes = b"123456"
     mac_address = text.Hexify(mac_address_bytes)
 
-    summary = rdf_client.ClientSummary(interfaces=[
-        rdf_client_network.Interface(
-            mac_address=mac_address_bytes,
-            ifname="eth0",
-            addresses=[
-                rdf_client_network.NetworkAddress(
-                    address_type=rdf_client_network.NetworkAddress.Family.INET,
-                    packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
-                ),
-                rdf_client_network.NetworkAddress(
-                    address_type=rdf_client_network.NetworkAddress.Family.INET,
-                    packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
-                ),
-                rdf_client_network.NetworkAddress(
-                    address_type=rdf_client_network.NetworkAddress.Family.INET6,
-                    packed_bytes=socket.inet_pton(socket.AF_INET6,
-                                                  "2001:720:1500:1::a100"),
-                )
-            ])
-    ])
+    summary = rdf_client.ClientSummary(
+        interfaces=[
+            rdf_client_network.Interface(
+                mac_address=mac_address_bytes,
+                ifname="eth0",
+                addresses=[
+                    rdf_client_network.NetworkAddress(
+                        address_type=rdf_client_network.NetworkAddress.Family.INET,
+                        packed_bytes=socket.inet_pton(
+                            socket.AF_INET, "127.0.0.1"
+                        ),
+                    ),
+                    rdf_client_network.NetworkAddress(
+                        address_type=rdf_client_network.NetworkAddress.Family.INET,
+                        packed_bytes=socket.inet_pton(
+                            socket.AF_INET, "10.0.0.1"
+                        ),
+                    ),
+                    rdf_client_network.NetworkAddress(
+                        address_type=rdf_client_network.NetworkAddress.Family.INET6,
+                        packed_bytes=socket.inet_pton(
+                            socket.AF_INET6, "2001:720:1500:1::a100"
+                        ),
+                    ),
+                ],
+            )
+        ]
+    )
 
-    converter = client_summary.ClientSummaryToExportedNetworkInterfaceConverter(
+    converter = (
+        client_summary.ClientSummaryToExportedNetworkInterfaceConverter()
     )
     results = list(converter.Convert(self.metadata, summary))
     self.assertLen(results, 1)
@@ -52,8 +62,9 @@ class ClientSummaryToExportedNetworkInterfaceConverterTest(
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
 
 
-class ClientSummaryToExportedClientConverterTest(export_test_lib.ExportTestBase
-                                                ):
+class ClientSummaryToExportedClientConverterTest(
+    export_test_lib.ExportTestBase
+):
 
   def testClientSummaryToExportedClientConverter(self):
     summary = rdf_client.ClientSummary()

@@ -10,7 +10,6 @@ import {RouterModule} from '@angular/router';
 
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
-import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {TextWithLinksModule} from '../helpers/text_with_links/text_with_links_module';
 import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {TimestampModule} from '../timestamp/module';
@@ -26,7 +25,6 @@ import {ApprovalPage} from './approval_page';
     ClientDetailsModule,
     ClientOverviewModule,
     CommonModule,
-    DrawerLinkModule,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,

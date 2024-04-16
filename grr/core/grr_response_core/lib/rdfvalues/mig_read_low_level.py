@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
 from grr_response_proto import read_low_level_pb2
 

@@ -20,7 +20,8 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     temp_file.write_bytes(b"123456")
 
     request1 = rdf_read_low_level.ReadLowLevelRequest(
-        path=temp_file.full_path, length=1)  # offset should default to 0
+        path=temp_file.full_path, length=1
+    )  # offset should default to 0
 
     # We call ExecuteAction rather than RunAction because we need the
     # the ClientAction `message` set in order to call `ChargeBytesToSession`.
@@ -44,7 +45,8 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     temp_file.write_bytes(b"123456")
 
     request23 = rdf_read_low_level.ReadLowLevelRequest(
-        path=temp_file.full_path, length=2, offset=1)
+        path=temp_file.full_path, length=2, offset=1
+    )
 
     # We call ExecuteAction rather than RunAction because we need the
     # the ClientAction `message` set in order to call `ChargeBytesToSession`.
@@ -58,7 +60,8 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     self.assertEqual(0, results[0].blob.offset)
     self.assertEqual(hashlib.sha256(b"23").digest(), results[0].blob.data)
     self.assertEqual(
-        hashlib.sha256(b"23").digest(), results[0].accumulated_hash)
+        hashlib.sha256(b"23").digest(), results[0].accumulated_hash
+    )
 
     self.assertIsInstance(results[1], rdf_flows.GrrStatus)
     self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[1].status)
@@ -72,7 +75,8 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     # 2 and 3.
     # TODO: Update test when blob size is also "aligned"
     request23_2blobs = rdf_read_low_level.ReadLowLevelRequest(
-        path=temp_file.full_path, length=2, offset=1, blob_size=1)
+        path=temp_file.full_path, length=2, offset=1, blob_size=1
+    )
 
     # We call ExecuteAction rather than RunAction because we need the
     # the ClientAction `message` set in order to call `ChargeBytesToSession`.
@@ -92,7 +96,8 @@ class ReadLowLevelTest(client_test_lib.EmptyActionTest):
     self.assertEqual(1, results[1].blob.offset)  # 'corrected' offset
     self.assertEqual(hashlib.sha256(b"3").digest(), results[1].blob.data)
     self.assertEqual(
-        hashlib.sha256(b"23").digest(), results[1].accumulated_hash)
+        hashlib.sha256(b"23").digest(), results[1].accumulated_hash
+    )
 
     self.assertIsInstance(results[2], rdf_flows.GrrStatus)
     self.assertEqual(rdf_flows.GrrStatus.ReturnedStatus.OK, results[2].status)

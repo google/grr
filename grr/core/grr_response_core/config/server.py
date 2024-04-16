@@ -5,7 +5,6 @@
 from grr_response_core import version
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 VERSION = version.Version()
@@ -56,24 +55,8 @@ config_lib.DEFINE_string("Worker.smtp_user", None,
 config_lib.DEFINE_string("Worker.smtp_password", None,
                          "Password for the smtp connection.")
 
-# Server Cryptographic settings.
-config_lib.DEFINE_semantic_value(
-    rdf_crypto.RSAPrivateKey,
-    "PrivateKeys.ca_key",
-    help="CA private key. Used to sign for client enrollment.")
-
-config_lib.DEFINE_semantic_value(
-    rdf_crypto.RSAPrivateKey,
-    "PrivateKeys.server_key",
-    help="Private key for the front end server.")
-
 config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
                           "The length of the server rsa key in bits.")
-
-config_lib.DEFINE_semantic_value(
-    rdf_crypto.RDFX509Cert,
-    "Frontend.certificate",
-    help="An X509 certificate for the frontend server.")
 
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")

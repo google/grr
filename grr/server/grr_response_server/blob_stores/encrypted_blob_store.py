@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An module with implementation of the encrypted blobstore."""
+
 import logging
 from typing import Iterable
 from typing import Optional
@@ -52,8 +53,12 @@ class EncryptedBlobStore(blob_store.BlobStore):
       encrypted_blobs[blob_id] = crypter.Encrypt(blob, bytes(blob_id))
       key_names[blob_id] = self._key_name
 
-    logging.info("Writing %s encrypted blobs using key '%s' (%s)", len(blobs),
-                 self._key_name, ", ".join(map(str, blobs)))
+    logging.info(
+        "Writing %s encrypted blobs using key '%s' (%s)",
+        len(blobs),
+        self._key_name,
+        ", ".join(map(str, blobs)),
+    )
 
     self._bs.WriteBlobs(encrypted_blobs)
     self._db.WriteBlobEncryptionKeys(key_names)

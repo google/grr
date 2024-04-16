@@ -37,17 +37,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def _GetRelativeResults(self, raw_results, base_path=None):
     base_path = base_path or self.base_path
     return [
-        result.stat_entry.pathspec.path[len(base_path) + 1:]
+        result.stat_entry.pathspec.path[len(base_path) + 1 :]
         for result in raw_results
     ]
 
-  def _RunFileFinder(self,
-                     paths,
-                     action,
-                     conditions=None,
-                     follow_links=True,
-                     process_non_regular_files=True,
-                     **kw):
+  def _RunFileFinder(
+      self,
+      paths,
+      action,
+      conditions=None,
+      follow_links=True,
+      process_non_regular_files=True,
+      **kw,
+  ):
     return self.RunAction(
         client_file_finder.FileFinderOS,
         arg=rdf_file_finder.FileFinderArgs(
@@ -56,20 +58,24 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
             conditions=conditions,
             process_non_regular_files=process_non_regular_files,
             follow_links=follow_links,
-            **kw))
+            **kw,
+        ),
+    )
 
   def testFileFinder(self):
     paths = [self.base_path + "/*"]
     results = self._RunFileFinder(paths, self.stat_action)
     self.assertEqual(
-        self._GetRelativeResults(results), os.listdir(self.base_path))
+        self._GetRelativeResults(results), os.listdir(self.base_path)
+    )
 
     profiles_path = os.path.join(self.base_path, "profiles/v1.0")
     paths = [os.path.join(self.base_path, "profiles/v1.0") + "/*"]
     results = self._RunFileFinder(paths, self.stat_action)
     self.assertEqual(
         self._GetRelativeResults(results, base_path=profiles_path),
-        os.listdir(profiles_path))
+        os.listdir(profiles_path),
+    )
 
   def testNonExistentPath(self):
     paths = [self.base_path + "/does/not/exist/**"]
@@ -81,8 +87,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
     progress = mock.MagicMock()
 
-    with mock.patch.object(client_file_finder.FileFinderOS, "Progress",
-                           progress):
+    with mock.patch.object(
+        client_file_finder.FileFinderOS, "Progress", progress
+    ):
       results = self._RunFileFinder(paths, self.stat_action)
     self.assertEmpty(results)
 
@@ -189,17 +196,20 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       paths = [self.temp_dir + "/**"]
       condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-          literal=b"sometext")
+          literal=b"sometext"
+      )
 
       results = self._RunFileFinder(
-          paths, self.stat_action, conditions=[condition], follow_links=True)
+          paths, self.stat_action, conditions=[condition], follow_links=True
+      )
       self.assertLen(results, 2)
       relative_results = self._GetRelativeResults(results, base_path=test_dir)
       self.assertIn("lnk_target/contents", relative_results)
       self.assertIn("lnk/contents", relative_results)
 
       results = self._RunFileFinder(
-          paths, self.stat_action, conditions=[condition], follow_links=False)
+          paths, self.stat_action, conditions=[condition], follow_links=False
+      )
       self.assertLen(results, 1)
       self.assertEqual(results[0].stat_entry.pathspec.path, contents)
 
@@ -276,20 +286,24 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
     return test_dir
 
-  def RunAndCheck(self,
-                  paths,
-                  action=None,
-                  conditions=None,
-                  expected=None,
-                  unexpected=None,
-                  base_path=None,
-                  **kw):
+  def RunAndCheck(
+      self,
+      paths,
+      action=None,
+      conditions=None,
+      expected=None,
+      unexpected=None,
+      base_path=None,
+      **kw,
+  ):
     action = action or self.stat_action
 
     raw_results = self._RunFileFinder(
-        paths, action, conditions=conditions, **kw)
+        paths, action, conditions=conditions, **kw
+    )
     relative_results = self._GetRelativeResults(
-        raw_results, base_path=base_path)
+        raw_results, base_path=base_path
+    )
 
     for f in unexpected:
       self.assertNotIn(f, relative_results)
@@ -305,12 +319,15 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     bytes_after = 20
 
     condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-        literal=literal, bytes_before=bytes_before, bytes_after=bytes_after)
+        literal=literal, bytes_before=bytes_before, bytes_after=bytes_after
+    )
 
     raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition])
+        paths, self.stat_action, conditions=[condition]
+    )
     relative_results = self._GetRelativeResults(
-        raw_results, base_path=searching_path)
+        raw_results, base_path=searching_path
+    )
     self.assertLen(relative_results, 1)
     self.assertIn("auth.log", relative_results)
     self.assertLen(raw_results[0].matches, 1)
@@ -321,8 +338,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
     self.assertLen(buffer_ref.data, bytes_before + len(literal) + bytes_after)
     self.assertEqual(
-        orig_data[buffer_ref.offset:buffer_ref.offset + buffer_ref.length],
-        buffer_ref.data)
+        orig_data[buffer_ref.offset : buffer_ref.offset + buffer_ref.length],
+        buffer_ref.data,
+    )
 
   def testLiteralMatchConditionAllHits(self):
     searching_path = os.path.join(self.base_path, "searching")
@@ -336,15 +354,18 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         literal=literal,
         mode="ALL_HITS",
         bytes_before=bytes_before,
-        bytes_after=bytes_after)
+        bytes_after=bytes_after,
+    )
 
     raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition])
+        paths, self.stat_action, conditions=[condition]
+    )
     self.assertLen(raw_results, 1)
     self.assertLen(raw_results[0].matches, 6)
     for buffer_ref in raw_results[0].matches:
       self.assertEqual(
-          buffer_ref.data[bytes_before:bytes_before + len(literal)], literal)
+          buffer_ref.data[bytes_before : bytes_before + len(literal)], literal
+      )
 
   def testLiteralMatchConditionLargeFile(self):
     paths = [os.path.join(self.base_path, "new_places.sqlite")]
@@ -357,10 +378,12 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         literal=literal,
         mode="ALL_HITS",
         bytes_before=bytes_before,
-        bytes_after=bytes_after)
+        bytes_after=bytes_after,
+    )
 
     raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition])
+        paths, self.stat_action, conditions=[condition]
+    )
     self.assertLen(raw_results, 1)
     self.assertLen(raw_results[0].matches, 1)
     buffer_ref = raw_results[0].matches[0]
@@ -368,23 +391,27 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       fd.seek(buffer_ref.offset)
       self.assertEqual(buffer_ref.data, fd.read(buffer_ref.length))
       self.assertEqual(
-          buffer_ref.data[bytes_before:bytes_before + len(literal)], literal)
+          buffer_ref.data[bytes_before : bytes_before + len(literal)], literal
+      )
 
   def testRegexMatchCondition(self):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    regex = br"pa[nm]_o?unix\(s{2}h"
+    regex = rb"pa[nm]_o?unix\(s{2}h"
     bytes_before = 10
     bytes_after = 20
 
     condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
-        regex=regex, bytes_before=bytes_before, bytes_after=bytes_after)
+        regex=regex, bytes_before=bytes_before, bytes_after=bytes_after
+    )
 
     raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition])
+        paths, self.stat_action, conditions=[condition]
+    )
     relative_results = self._GetRelativeResults(
-        raw_results, base_path=searching_path)
+        raw_results, base_path=searching_path
+    )
     self.assertLen(relative_results, 1)
     self.assertIn("auth.log", relative_results)
     self.assertLen(raw_results[0].matches, 1)
@@ -394,14 +421,15 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       orig_data = filedesc.read()
 
     self.assertEqual(
-        orig_data[buffer_ref.offset:buffer_ref.offset + buffer_ref.length],
-        buffer_ref.data)
+        orig_data[buffer_ref.offset : buffer_ref.offset + buffer_ref.length],
+        buffer_ref.data,
+    )
 
   def testRegexMatchConditionAllHits(self):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    regex = br"mydo....\.com"
+    regex = rb"mydo....\.com"
     bytes_before = 10
     bytes_after = 20
 
@@ -409,16 +437,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         regex=regex,
         mode="ALL_HITS",
         bytes_before=bytes_before,
-        bytes_after=bytes_after)
+        bytes_after=bytes_after,
+    )
 
     raw_results = self._RunFileFinder(
-        paths, self.stat_action, conditions=[condition])
+        paths, self.stat_action, conditions=[condition]
+    )
     self.assertLen(raw_results, 1)
     self.assertLen(raw_results[0].matches, 6)
     for buffer_ref in raw_results[0].matches:
       needle = b"mydomain.com"
-      self.assertEqual(buffer_ref.data[bytes_before:bytes_before + len(needle)],
-                       needle)
+      self.assertEqual(
+          buffer_ref.data[bytes_before : bytes_before + len(needle)], needle
+      )
 
   def testContentMatchIgnoreDirsWildcard(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -435,18 +466,36 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         filedesc.write(b"thudfoobaz")
 
       condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
-          literal=b"fooba")
+          literal=b"fooba"
+      )
 
       results = self._RunFileFinder(
           paths=[os.path.join(temp_dirpath, "*")],
           action=rdf_file_finder.FileFinderAction.Stat(),
-          conditions=[condition])
+          conditions=[condition],
+      )
 
       result_paths = [result.stat_entry.pathspec.path for result in results]
-      self.assertCountEqual(result_paths, [
-          os.path.join(temp_dirpath, "quux"),
-          os.path.join(temp_dirpath, "thud"),
-      ])
+      self.assertCountEqual(
+          result_paths,
+          [
+              os.path.join(temp_dirpath, "quux"),
+              os.path.join(temp_dirpath, "thud"),
+          ],
+      )
+
+  def testContentMatchIgnoresReadError(self):
+    condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+        regex=b"\\d+"
+    )
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      results = self._RunFileFinder(
+          paths=[os.path.join(temp_dirpath, "/**4/nonexistent")],
+          action=rdf_file_finder.FileFinderAction.Stat(),
+          conditions=[condition],
+      )
+
+    self.assertEmpty(results)
 
   def testContentMatchIgnoreDirsRecursive(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -469,18 +518,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         filedesc.write(b"456")
 
       condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
-          regex=b"\\d+")
+          regex=b"\\d+"
+      )
 
       results = self._RunFileFinder(
           paths=[os.path.join(temp_dirpath, "**", "*")],
           action=rdf_file_finder.FileFinderAction.Stat(),
-          conditions=[condition])
+          conditions=[condition],
+      )
 
       result_paths = [result.stat_entry.pathspec.path for result in results]
-      self.assertCountEqual(result_paths, [
-          os.path.join(temp_dirpath, "foo", "bar", "norf"),
-          os.path.join(temp_dirpath, "foo", "bar", "ztesch"),
-      ])
+      self.assertCountEqual(
+          result_paths,
+          [
+              os.path.join(temp_dirpath, "foo", "bar", "norf"),
+              os.path.join(temp_dirpath, "foo", "bar", "ztesch"),
+          ],
+      )
 
   def testHashAction(self):
     paths = [os.path.join(self.base_path, "win_hello.exe")]
@@ -491,15 +545,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     res = results[0]
     data = open(paths[0], "rb").read()
     self.assertLen(data, res.hash_entry.num_bytes)
-    self.assertEqual(res.hash_entry.md5.HexDigest(),
-                     hashlib.md5(data).hexdigest())
-    self.assertEqual(res.hash_entry.sha1.HexDigest(),
-                     hashlib.sha1(data).hexdigest())
-    self.assertEqual(res.hash_entry.sha256.HexDigest(),
-                     hashlib.sha256(data).hexdigest())
+    self.assertEqual(
+        res.hash_entry.md5.HexDigest(), hashlib.md5(data).hexdigest()
+    )
+    self.assertEqual(
+        res.hash_entry.sha1.HexDigest(), hashlib.sha1(data).hexdigest()
+    )
+    self.assertEqual(
+        res.hash_entry.sha256.HexDigest(), hashlib.sha256(data).hexdigest()
+    )
 
     hash_action = rdf_file_finder.FileFinderAction.Hash(
-        max_size=100, oversized_file_policy="SKIP")
+        max_size=100, oversized_file_policy="SKIP"
+    )
 
     results = self._RunFileFinder(paths, hash_action)
     self.assertLen(results, 1)
@@ -507,19 +565,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertFalse(res.HasField("hash"))
 
     hash_action = rdf_file_finder.FileFinderAction.Hash(
-        max_size=100, oversized_file_policy="HASH_TRUNCATED")
+        max_size=100, oversized_file_policy="HASH_TRUNCATED"
+    )
 
     results = self._RunFileFinder(paths, hash_action)
     self.assertLen(results, 1)
     res = results[0]
     data = open(paths[0], "rb").read()[:100]
     self.assertLen(data, res.hash_entry.num_bytes)
-    self.assertEqual(res.hash_entry.md5.HexDigest(),
-                     hashlib.md5(data).hexdigest())
-    self.assertEqual(res.hash_entry.sha1.HexDigest(),
-                     hashlib.sha1(data).hexdigest())
-    self.assertEqual(res.hash_entry.sha256.HexDigest(),
-                     hashlib.sha256(data).hexdigest())
+    self.assertEqual(
+        res.hash_entry.md5.HexDigest(), hashlib.md5(data).hexdigest()
+    )
+    self.assertEqual(
+        res.hash_entry.sha1.HexDigest(), hashlib.sha1(data).hexdigest()
+    )
+    self.assertEqual(
+        res.hash_entry.sha256.HexDigest(), hashlib.sha256(data).hexdigest()
+    )
 
   def testHashDirectory(self):
     action = rdf_file_finder.FileFinderAction.Hash()
@@ -546,7 +608,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     args = rdf_file_finder.FileFinderArgs(
         action=action,
         paths=[os.path.join(self.base_path, "win_hello.exe")],
-        process_non_regular_files=True)
+        process_non_regular_files=True,
+    )
 
     transfer_store = MockTransferStore()
     executor = ClientActionExecutor()
@@ -561,11 +624,13 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testDownloadActionSkip(self):
     action = rdf_file_finder.FileFinderAction.Download(
-        max_size=0, oversized_file_policy="SKIP")
+        max_size=0, oversized_file_policy="SKIP"
+    )
     args = rdf_file_finder.FileFinderArgs(
         action=action,
         paths=[os.path.join(self.base_path, "win_hello.exe")],
-        process_non_regular_files=True)
+        process_non_regular_files=True,
+    )
 
     transfer_store = MockTransferStore()
     executor = ClientActionExecutor()
@@ -579,11 +644,13 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testDownloadActionTruncate(self):
     action = rdf_file_finder.FileFinderAction.Download(
-        max_size=42, oversized_file_policy="DOWNLOAD_TRUNCATED")
+        max_size=42, oversized_file_policy="DOWNLOAD_TRUNCATED"
+    )
     args = rdf_file_finder.FileFinderArgs(
         action=action,
         paths=[os.path.join(self.base_path, "win_hello.exe")],
-        process_non_regular_files=True)
+        process_non_regular_files=True,
+    )
 
     transfer_store = MockTransferStore()
     executor = ClientActionExecutor()
@@ -598,11 +665,13 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testDownloadActionHash(self):
     action = rdf_file_finder.FileFinderAction.Download(
-        max_size=42, oversized_file_policy="HASH_TRUNCATED")
+        max_size=42, oversized_file_policy="HASH_TRUNCATED"
+    )
     args = rdf_file_finder.FileFinderArgs(
         action=action,
         paths=[os.path.join(self.base_path, "win_hello.exe")],
-        process_non_regular_files=True)
+        process_non_regular_files=True,
+    )
 
     transfer_store = MockTransferStore()
     executor = ClientActionExecutor()
@@ -635,9 +704,11 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def testStatExtAttrs(self):
     with temp.AutoTempFilePath() as temp_filepath:
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name=b"user.foo", value=b"norf")
+          temp_filepath, name=b"user.foo", value=b"norf"
+      )
       filesystem_test_lib.SetExtAttr(
-          temp_filepath, name=b"user.bar", value=b"quux")
+          temp_filepath, name=b"user.bar", value=b"quux"
+      )
 
       action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=True)
       results = self._RunFileFinder([temp_filepath], action)
@@ -724,10 +795,13 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     paths = [lnk]
     link_size = os.lstat(lnk).st_size
     target_size = os.stat(lnk).st_size
-    for expected_size, resolve_links in [(link_size, False),
-                                         (target_size, True)]:
+    for expected_size, resolve_links in [
+        (link_size, False),
+        (target_size, True),
+    ]:
       stat_action = rdf_file_finder.FileFinderAction.Stat(
-          resolve_links=resolve_links)
+          resolve_links=resolve_links
+      )
       results = self._RunFileFinder(paths, stat_action)
       self.assertLen(results, 1)
       res = results[0]
@@ -746,15 +820,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       paths = [lnk]
       link_size = os.lstat(lnk).st_size
       target_size = os.stat(lnk).st_size
-      for expected_size, resolve_links in [(link_size, False),
-                                           (target_size, True)]:
+      for expected_size, resolve_links in [
+          (link_size, False),
+          (target_size, True),
+      ]:
         stat_action = rdf_file_finder.FileFinderAction.Stat(
-            resolve_links=resolve_links)
+            resolve_links=resolve_links
+        )
         results = self._RunFileFinder(
             paths,
             stat_action,
             follow_links=False,
-            process_non_regular_files=False)
+            process_non_regular_files=False,
+        )
         self.assertLen(results, 1)
         res = results[0]
         self.assertEqual(res.stat_entry.st_size, expected_size)
@@ -775,25 +853,29 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       paths = [os.path.join(temp_dirpath, "{{{}}}".format(",".join(files)))]
 
       condition = rdf_file_finder.FileFinderCondition.ModificationTime(
-          max_last_modified_time=change_time)
+          max_last_modified_time=change_time
+      )
 
       self.RunAndCheck(
           paths,
           conditions=[condition],
           expected=files[:2],
           unexpected=files[2:],
-          base_path=temp_dirpath)
+          base_path=temp_dirpath,
+      )
 
       # Now just the file from 2022.
       condition = rdf_file_finder.FileFinderCondition.ModificationTime(
-          min_last_modified_time=change_time)
+          min_last_modified_time=change_time
+      )
 
       self.RunAndCheck(
           paths,
           conditions=[condition],
           expected=files[2:],
           unexpected=files[:2],
-          base_path=temp_dirpath)
+          base_path=temp_dirpath,
+      )
 
   def testAccessTimeCondition(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -811,25 +893,29 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       # Check we can get the normal files.
       condition = rdf_file_finder.FileFinderCondition.AccessTime(
-          max_last_access_time=change_time)
+          max_last_access_time=change_time
+      )
 
       self.RunAndCheck(
           paths,
           conditions=[condition],
           expected=files[:2],
           unexpected=files[2:],
-          base_path=temp_dirpath)
+          base_path=temp_dirpath,
+      )
 
       # Now just the file from 2022.
       condition = rdf_file_finder.FileFinderCondition.AccessTime(
-          min_last_access_time=change_time)
+          min_last_access_time=change_time
+      )
 
       self.RunAndCheck(
           paths,
           conditions=[condition],
           expected=files[2:],
           unexpected=files[:2],
-          base_path=temp_dirpath)
+          base_path=temp_dirpath,
+      )
 
   # TODO(hanuszczak): Add tests for change metadata time conditions.
 
@@ -847,7 +933,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         conditions=[condition],
         expected=["auth.log"],
         unexpected=["dpkg.log", "dpkg_false.log"],
-        base_path=test_dir)
+        base_path=test_dir,
+    )
 
     condition = rdf_file_finder.FileFinderCondition.Size(max_file_size=700)
 
@@ -856,7 +943,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         conditions=[condition],
         expected=["dpkg.log", "dpkg_false.log"],
         unexpected=["auth.log"],
-        base_path=test_dir)
+        base_path=test_dir,
+    )
 
   def testXDEV(self):
     test_dir = os.path.join(self.temp_dir, "xdev_test")
@@ -910,30 +998,37 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
     with utils.MultiStubber(
         (os, "stat", MyStat),
-        (globbing, "_GetAllowedDevices", MyGetAllowedDevices)):
+        (globbing, "_GetAllowedDevices", MyGetAllowedDevices),
+    ):
       paths = [test_dir + "/**5"]
       self.RunAndCheck(
           paths,
           expected=[
-              "local_dev", "local_dev/local_file", "net_dev", "net_dev/net_file"
+              "local_dev",
+              "local_dev/local_file",
+              "net_dev",
+              "net_dev/net_file",
           ],
           unexpected=[],
           base_path=test_dir,
-          xdev="ALWAYS")
+          xdev="ALWAYS",
+      )
 
       self.RunAndCheck(
           paths,
           expected=["local_dev", "local_dev/local_file", "net_dev"],
           unexpected=["net_dev/net_file"],
           base_path=test_dir,
-          xdev="LOCAL")
+          xdev="LOCAL",
+      )
 
       self.RunAndCheck(
           paths,
           expected=["local_dev", "net_dev"],
           unexpected=["local_dev/local_file", "net_dev/net_file"],
           base_path=test_dir,
-          xdev="NEVER")
+          xdev="NEVER",
+      )
 
 
 # TODO(hanuszczak): Revist this class after refactoring the GRR client worker
@@ -952,9 +1047,9 @@ class ClientActionExecutor(object):
   def Execute(self, action_cls, args):
     responses = list()
 
-    def SendReply(value,
-                  session_id=None,
-                  message_type=rdf_flows.GrrMessage.Type.MESSAGE):
+    def SendReply(
+        value, session_id=None, message_type=rdf_flows.GrrMessage.Type.MESSAGE
+    ):
       if message_type != rdf_flows.GrrMessage.Type.MESSAGE:
         return
 
@@ -963,7 +1058,8 @@ class ClientActionExecutor(object):
             name=action_cls.__name__,
             payload=value,
             auth_state="AUTHENTICATED",
-            session_id=session_id)
+            session_id=session_id,
+        )
         self.wkfs[str(session_id)].ProcessMessage(message)
       else:
         responses.append(value)
@@ -972,7 +1068,8 @@ class ClientActionExecutor(object):
         name=action_cls.__name__,
         payload=args,
         auth_state="AUTHENTICATED",
-        session_id=rdfvalue.SessionID())
+        session_id=rdfvalue.SessionID(),
+    )
 
     action = action_cls(grr_worker=worker_mocks.FakeClientWorker())
     action.SendReply = SendReply
@@ -1020,7 +1117,8 @@ class MockTransferStore(object):
       blob = RichBlob(
           data=self.blobs[chunk.digest],
           offset=chunk.offset,
-          length=chunk.length)
+          length=chunk.length,
+      )
       blobs.append(blob)
     blobs.sort(key=lambda blob: blob.offset)
 

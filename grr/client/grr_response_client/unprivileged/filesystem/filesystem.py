@@ -2,19 +2,20 @@
 """Common code and abstractions for filesystem implementations."""
 
 import abc
-
-from typing import Dict, Optional, Iterable
+from typing import Dict, Iterable, Optional
 
 from grr_response_client.unprivileged.proto import filesystem_pb2
 
 
 class Error(Exception):
   """Base class for filesystem error."""
+
   pass
 
 
 class StaleInodeError(Error):
   """The inode provided to open a file is stale / outdated."""
+
   pass
 
 
@@ -75,6 +76,7 @@ class File(abc.ABC):
 
     Args:
       name: Case-insensitive name to match.
+
     Returns: the case-literal name or None if the case-insensitive name couldn't
       be found.
     """

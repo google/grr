@@ -242,24 +242,10 @@ def ValidateEndConfig(config_obj, errors_fatal=True, context=None):
       if not url.startswith("http"):
         errors.append("Bad Client.server_urls specified %s" % url)
 
-    certificate = config_obj.GetRaw(
-        "CA.certificate", default=None, context=context)
-    if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
-      errors.append("CA certificate missing from config.")
-
-  key_data = config_obj.GetRaw(
-      "Client.executable_signing_public_key", default=None, context=context)
-  if key_data is None:
+  if not config_obj.Get(
+      "Client.executable_signing_public_key", context=context
+  ):
     errors.append("Missing Client.executable_signing_public_key.")
-  elif not key_data.startswith("-----BEGIN PUBLIC"):
-    errors.append("Invalid Client.executable_signing_public_key: %s" % key_data)
-  else:
-    rdf_crypto.RSAPublicKey.FromHumanReadable(key_data)
-
-  for bad_opt in ["Client.private_key"]:
-    if config_obj.Get(bad_opt, context=context, default=""):
-      errors.append("Client cert in conf, this should be empty at deployment"
-                    " %s" % bad_opt)
 
   if errors_fatal and errors:
     for error in errors:
@@ -271,12 +257,15 @@ def ValidateEndConfig(config_obj, errors_fatal=True, context=None):
 
 # Config options that have to make it to a deployable binary.
 _CONFIG_SECTIONS = [
-    "CA", "Client", "ClientRepacker", "Logging", "Config", "Nanny", "Osquery",
-    "Installer", "Template"
+    "Client",
+    "ClientRepacker",
+    "Logging",
+    "Config",
+    "Nanny",
+    "Osquery",
+    "Installer",
+    "Template",
 ]
-
-# Config options that should never make it to a deployable binary.
-_SKIP_OPTION_LIST = ["Client.private_key"]
 
 
 def GetClientConfig(context, validate=True, deploy_timestamp=True):
@@ -299,9 +288,6 @@ def GetClientConfig(context, validate=True, deploy_timestamp=True):
     while contexts.CLIENT_BUILD_CONTEXT in client_context:
       client_context.remove(contexts.CLIENT_BUILD_CONTEXT)
     for descriptor in sorted(config.CONFIG.type_infos, key=lambda x: x.name):
-      if descriptor.name in _SKIP_OPTION_LIST:
-        continue
-
       if descriptor.section in _CONFIG_SECTIONS:
         value = config.CONFIG.GetRaw(
             descriptor.name, context=client_context, default=None)

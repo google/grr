@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 from grr_response_server.databases import db_yara_test_lib

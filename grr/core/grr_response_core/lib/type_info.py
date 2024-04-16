@@ -7,9 +7,7 @@ starting flows and for validating arguments.
 """
 
 import logging
-from typing import Iterable
-from typing import Optional
-from typing import Text
+from typing import Iterable, Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
@@ -37,12 +35,14 @@ class TypeInfoObject(metaclass=MetaclassRegistry):
   # The delegate type this TypeInfoObject manages.
   _type = None
 
-  def __init__(self,
-               name="",
-               default=None,
-               description="",
-               friendly_name="",
-               hidden=False):
+  def __init__(
+      self,
+      name="",
+      default=None,
+      description="",
+      friendly_name="",
+      hidden=False,
+  ):
     """Build a TypeInfo type descriptor.
 
     Args:
@@ -99,9 +99,11 @@ class TypeInfoObject(metaclass=MetaclassRegistry):
 
   def Help(self):
     """Returns a helpful string describing this type info."""
-    return "%s\n   Description: %s\n   Default: %s" % (self.name,
-                                                       self.description,
-                                                       self.GetDefault())
+    return "%s\n   Description: %s\n   Default: %s" % (
+        self.name,
+        self.description,
+        self.GetDefault(),
+    )
 
 
 class RDFValueType(TypeInfoObject):
@@ -141,9 +143,11 @@ class RDFValueType(TypeInfoObject):
       # Try to coerce the type to the correct rdf_class.
       try:
         return self.rdfclass(value)
-      except rdfvalue.InitializeError:
-        raise TypeValueError("Value for arg %s should be an %s" %
-                             (self.name, self.rdfclass.__name__))
+      except rdfvalue.InitializeError as e:
+        raise TypeValueError(
+            "Value for arg %s should be an %s"
+            % (self.name, self.rdfclass.__name__)
+        ) from e
 
     return value
 
@@ -211,12 +215,14 @@ class RDFStructDictType(TypeInfoObject):
         r = self.rdfclass()
         r.FromDict(value)
         return r
-      except (AttributeError, TypeError, rdfvalue.InitializeError):
+      except (AttributeError, TypeError, rdfvalue.InitializeError) as e:
         # AttributeError is raised if value contains items that don't
         # belong to the given rdfstruct.
         # TypeError will be raised if value is not a dict-like object.
-        raise TypeValueError("Value for arg %s should be an %s" %
-                             (self.name, self.rdfclass.__name__))
+        raise TypeValueError(
+            "Value for arg %s should be an %s"
+            % (self.name, self.rdfclass.__name__)
+        ) from e
 
     return value
 
@@ -250,10 +256,13 @@ class TypeDescriptorSet(Iterable[TypeInfoObject]):
 
   def __str__(self):
     result = "\n ".join(
-        ["%s: %s" % (x.name, x.description) for x in self.descriptors])
+        ["%s: %s" % (x.name, x.description) for x in self.descriptors]
+    )
 
     return "<TypeDescriptorSet for %s>\n %s\n</TypeDescriptorSet>\n" % (
-        self.__class__.__name__, result)
+        self.__class__.__name__,
+        result,
+    )
 
   def __add__(self, other):
     return self.Add(other)
@@ -288,8 +297,7 @@ class TypeDescriptorSet(Iterable[TypeInfoObject]):
       new_descriptor_map.pop(name, None)
 
     new_descriptors = [
-        desc for desc in self.descriptors
-        if desc in new_descriptor_map.values()
+        desc for desc in self.descriptors if desc in new_descriptor_map.values()
     ]
     return TypeDescriptorSet(*new_descriptors)
 
@@ -385,24 +393,24 @@ class List(TypeInfoObject):
 class String(TypeInfoObject):
   """A String type."""
 
-  _type = Text
+  _type = str
 
-  def __init__(self, default: Text = "", **kwargs):
-    precondition.AssertType(default, Text)
+  def __init__(self, default: str = "", **kwargs):
+    precondition.AssertType(default, str)
     super().__init__(default=default, **kwargs)
 
-  def Validate(self, value: Text) -> Text:
-    if not isinstance(value, Text):
+  def Validate(self, value: str) -> str:
+    if not isinstance(value, str):
       raise TypeValueError("'{}' is not a valid string".format(value))
 
     return value
 
-  def FromString(self, string: Text) -> Text:
-    precondition.AssertType(string, Text)
+  def FromString(self, string: str) -> str:
+    precondition.AssertType(string, str)
     return string
 
-  def ToString(self, value: Text) -> Text:
-    precondition.AssertType(value, Text)
+  def ToString(self, value: str) -> str:
+    precondition.AssertType(value, str)
     return value
 
 
@@ -421,11 +429,11 @@ class Bytes(TypeInfoObject):
 
     return value
 
-  def FromString(self, string: Text) -> bytes:
-    precondition.AssertType(string, Text)
+  def FromString(self, string: str) -> bytes:
+    precondition.AssertType(string, str)
     return string.encode("utf-8")
 
-  def ToString(self, value: bytes) -> Text:
+  def ToString(self, value: bytes) -> str:
     precondition.AssertType(value, bytes)
     return value.decode("utf-8")
 
@@ -453,6 +461,7 @@ class Integer(TypeInfoObject):
 
 class Float(Integer):
   """Type info describing a float."""
+
   _type = float
 
   def Validate(self, value):
@@ -496,7 +505,7 @@ class MultiChoice(TypeInfoObject):
     Args:
       choices: list of available choices
       validator: validator to use for each of the list *items* the validator for
-                 the top level is a list.
+        the top level is a list.
       **kwargs: passed through to parent class.
     """
     self.choices = choices

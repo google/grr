@@ -70,13 +70,6 @@ class YaraProcessScan(flow_base.FlowBase):
   def Start(self):
     """See base class."""
     self._ValidateFlowArgs()
-    if self.client_version < 3306:
-      # TODO(user): Remove when support ends for old clients (Jan 1 2022).
-      self.CallClient(
-          server_stubs.YaraProcessScan,
-          request=self.args,
-          next_state=self.ProcessScanResults.__name__)
-      return
 
     if self.args.scan_runtime_limit_us:
       # Back up original runtime limit. Override it for YaraProcessScan action
@@ -141,6 +134,8 @@ class YaraProcessScan(flow_base.FlowBase):
               regions_to_dump[match.process.pid].add(string_match.offset)
 
       for error in response.errors:
+        # TODO: Remove server side filtering for errors after
+        # clients adopted to the new version.
         if self._ShouldIncludeError(error):
           self.SendReply(error)
 

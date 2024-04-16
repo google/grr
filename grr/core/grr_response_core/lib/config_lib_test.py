@@ -42,7 +42,8 @@ class YamlConfigTest(absltest.TestCase):
         parser=config_parser.YamlConfigFileParser,
         data="""
                       Section2.test: 2
-                      """)
+                      """,
+    )
 
     conf.DEFINE_string("Section2.test", "", "A string")
     conf.DEFINE_context("Client Context")
@@ -67,7 +68,8 @@ Windows Context:
   Section1.test: 5
   Section1.test2: 2
 
-""")
+""",
+    )
 
     self.assertEqual(conf["Section1.test"], 2)
 
@@ -77,8 +79,10 @@ Windows Context:
 
     self.assertEqual(
         conf.Get(
-            "Section1.test_list", context=["Client Context",
-                                           "Windows Context"]), ["x", "y"])
+            "Section1.test_list", context=["Client Context", "Windows Context"]
+        ),
+        ["x", "y"],
+    )
 
     # Test that contexts affect option selection.
     self.assertEqual(conf.Get("Section1.test", context=["Client Context"]), 6)
@@ -114,7 +118,8 @@ Platform:Windows:
 
 Extra Context:
   Section1.test: 15
-""")
+""",
+    )
 
     # Without contexts.
     self.assertEqual(conf.Get("Section1.test"), 2)
@@ -128,12 +133,17 @@ Extra Context:
     # since they are added last.
     self.assertEqual(
         conf.Get(
-            "Section1.test", context=["Client Context", "Platform:Windows"]),
-        10)
+            "Section1.test", context=["Client Context", "Platform:Windows"]
+        ),
+        10,
+    )
 
     self.assertEqual(
         conf.Get(
-            "Section1.test", context=["Platform:Windows", "Client Context"]), 6)
+            "Section1.test", context=["Platform:Windows", "Client Context"]
+        ),
+        6,
+    )
 
   def testRemoveContext(self):
     """Test that conflicting contexts are resolved by precedence."""
@@ -159,7 +169,8 @@ Platform:Windows:
 
 Extra Context:
   Section1.test: 15
-""")
+""",
+    )
 
     # Should be defaults, no contexts added
     self.assertEqual(conf.Get("Section1.test"), 2)
@@ -196,7 +207,8 @@ Extra Context:
         data="""
 Client Context:
   Section1.test: 6
-""")
+""",
+    )
 
     # Should be defaults, no contexts added
     self.assertFalse(conf.ContextApplied("Client Context"))
@@ -225,7 +237,8 @@ Section1.parameter2: |
 
 Section1.parameter3: |
    \%(a\\b\\c\\d\)
-""")
+""",
+    )
 
     self.assertEqual(conf.Get("Section1.parameter"), "a\\b\\c\\d")
     self.assertEqual(conf.Get("Section1.parameter2"), "a\\b\\c\\d\\e")
@@ -233,13 +246,15 @@ Section1.parameter3: |
 
   def testSemanticValueType(self):
     conf = config_lib.GrrConfigManager()
-    conf.DEFINE_semantic_value(rdfvalue.DurationSeconds, "Section1.foobar",
-                               None, "Sample help.")
+    conf.DEFINE_semantic_value(
+        rdfvalue.DurationSeconds, "Section1.foobar", None, "Sample help."
+    )
     conf.Initialize(
         parser=config_parser.YamlConfigFileParser,
         data="""
 Section1.foobar: 6d
-""")
+""",
+    )
 
     value = conf.Get("Section1.foobar")
     self.assertIsInstance(value, rdfvalue.DurationSeconds)
@@ -248,8 +263,9 @@ Section1.foobar: 6d
   def testSemanticStructType(self):
     conf = config_lib.GrrConfigManager()
 
-    conf.DEFINE_semantic_struct(rdf_file_finder.FileFinderArgs,
-                                "Section1.foobar", [], "Sample help.")
+    conf.DEFINE_semantic_struct(
+        rdf_file_finder.FileFinderArgs, "Section1.foobar", [], "Sample help."
+    )
     conf.Initialize(
         parser=config_parser.YamlConfigFileParser,
         data="""
@@ -258,7 +274,8 @@ Section1.foobar:
     - "a/b"
     - "b/c"
   pathtype: "TSK"
-""")
+""",
+    )
 
     values = conf.Get("Section1.foobar")
     self.assertIsInstance(values, rdf_file_finder.FileFinderArgs)
@@ -271,9 +288,11 @@ Section1.foobar:
     conf.DEFINE_semantic_enum(
         enum_container=rdf_paths.PathSpec.PathType,
         name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK)
+        default=rdf_paths.PathSpec.PathType.TSK,
+    )
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: NTFS")
+        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: NTFS"
+    )
 
     value = conf.Get("Foo.Bar")
     self.assertIsInstance(value, rdf_structs.EnumNamedValue)
@@ -286,7 +305,8 @@ Section1.foobar:
     conf.DEFINE_semantic_enum(
         enum_container=rdf_paths.PathSpec.PathType,
         name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK)
+        default=rdf_paths.PathSpec.PathType.TSK,
+    )
     conf.Initialize(parser=config_parser.YamlConfigFileParser, data="")
 
     value = conf.Get("Foo.Bar")
@@ -299,9 +319,11 @@ Section1.foobar:
     conf.DEFINE_semantic_enum(
         enum_container=rdf_paths.PathSpec.PathType,
         name="Foo.Bar",
-        default=rdf_paths.PathSpec.PathType.TSK)
+        default=rdf_paths.PathSpec.PathType.TSK,
+    )
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: Invalid")
+        parser=config_parser.YamlConfigFileParser, data="Foo.Bar: Invalid"
+    )
 
     with self.assertRaises(ValueError):
       conf.Get("Foo.Bar")
@@ -333,12 +355,18 @@ Platform:Windows:
     self.assertEqual(
         conf.Get(
             "MemoryDriver.device_path",
-            context=("Client Context", "Platform:Linux")), "/dev/pmem")
+            context=("Client Context", "Platform:Linux"),
+        ),
+        "/dev/pmem",
+    )
 
     self.assertEqual(
         conf.Get(
             "MemoryDriver.device_path",
-            context=("Client Context", "Platform:Windows")), r"\\.\pmem")
+            context=("Client Context", "Platform:Windows"),
+        ),
+        r"\\.\pmem",
+    )
 
   def testSet(self):
     """Test setting options."""
@@ -371,33 +399,33 @@ Platform:Windows:
 
   def testQuotes(self):
     conf = config_lib.GrrConfigManager()
-    conf.DEFINE_string(name="foo.bar", default="\"baz\"", help="Bar.")
-    conf.DEFINE_string(name="foo.quux", default="\"%(foo.bar)\"", help="Quux.")
+    conf.DEFINE_string(name="foo.bar", default='"baz"', help="Bar.")
+    conf.DEFINE_string(name="foo.quux", default='"%(foo.bar)"', help="Quux.")
 
     conf.Initialize(data="")
 
-    self.assertEqual(conf["foo.bar"], "\"baz\"")
-    self.assertEqual(conf["foo.quux"], "\"\"baz\"\"")
+    self.assertEqual(conf["foo.bar"], '"baz"')
+    self.assertEqual(conf["foo.quux"], '""baz""')
 
   def testWritebackQuotes(self):
 
     def Config():
       conf = config_lib.GrrConfigManager()
       conf.DEFINE_string(name="foo.bar", default="", help="Bar.")
-      conf.DEFINE_string(name="foo.baz", default="\"%(foo.bar)\"", help="Baz.")
+      conf.DEFINE_string(name="foo.baz", default='"%(foo.bar)"', help="Baz.")
       return conf
 
     with temp.AutoTempFilePath(suffix=".yaml") as confpath:
       writeback_conf = Config()
       writeback_conf.SetWriteBack(confpath)
-      writeback_conf.Set("foo.bar", "\"quux\"")
+      writeback_conf.Set("foo.bar", '"quux"')
       writeback_conf.Write()
 
       loaded_conf = Config()
       loaded_conf.Initialize(filename=confpath)
 
-    self.assertEqual(loaded_conf["foo.bar"], "\"quux\"")
-    self.assertEqual(loaded_conf["foo.baz"], "\"\"quux\"\"")
+    self.assertEqual(loaded_conf["foo.bar"], '"quux"')
+    self.assertEqual(loaded_conf["foo.baz"], '""quux""')
 
   def _SetupConfig(self, value):
     conf = config_lib.GrrConfigManager()
@@ -480,11 +508,13 @@ Platform:Windows:
 
     conf = config_lib.GrrConfigManager()
     conf.DEFINE_string("Valid.file", "%%(%s|file)" % filename, "test")
-    conf.DEFINE_string("Valid.optionalfile", "%%(%s|optionalfile)" % filename,
-                       "test")
+    conf.DEFINE_string(
+        "Valid.optionalfile", "%%(%s|optionalfile)" % filename, "test"
+    )
     conf.DEFINE_string("Invalid.file", "%(notafile|file)", "test")
-    conf.DEFINE_string("Invalid.optionalfile", "%(notafile|optionalfile)",
-                       "test")
+    conf.DEFINE_string(
+        "Invalid.optionalfile", "%(notafile|optionalfile)", "test"
+    )
 
     conf.Initialize(data="")
 
@@ -509,8 +539,9 @@ test = val2"""
 
     # This should raise since the config file is incorrect.
     errors = conf.Validate("Section1")
-    self.assertIn("Invalid value val2 for Integer",
-                  str(errors["Section1.test"]))
+    self.assertIn(
+        "Invalid value val2 for Integer", str(errors["Section1.test"])
+    )
 
   def testCopyConfig(self):
     """Check we can copy a config and use it without affecting the old one."""
@@ -569,9 +600,9 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
     self.assertEqual(errors, {})
-    self.assertIsInstance(conf["Client.executable_signing_public_key"],
-                          rdf_crypto.RSAPublicKey)
-    self.assertIsInstance(conf["Client.private_key"], rdf_crypto.RSAPrivateKey)
+    self.assertIsInstance(
+        conf["Client.executable_signing_public_key"], rdf_crypto.RSAPublicKey
+    )
 
   def testGet(self):
     conf = config_lib.GrrConfigManager()
@@ -630,8 +661,9 @@ interpolated = %(%(Section1.foobar)|lower)Y
 
     # The default value is invalid.
     errors = conf.Validate("Section1")
-    self.assertIn("Invalid value string for Integer",
-                  str(errors["Section1.broken_int"]))
+    self.assertIn(
+        "Invalid value string for Integer", str(errors["Section1.broken_int"])
+    )
 
     # Section not specified:
     self.assertRaises(config_lib.UnknownOption, conf.__getitem__, "a")
@@ -672,10 +704,18 @@ const = New string
 
     # Once the config file is loaded and initialized, modification of constant
     # values is an error.
-    self.assertRaises(config_lib.ConstModificationError, conf.Set,
-                      "Section1.const", "New string")
-    self.assertRaises(config_lib.ConstModificationError, conf.SetRaw,
-                      "Section1.const", "New string")
+    self.assertRaises(
+        config_lib.ConstModificationError,
+        conf.Set,
+        "Section1.const",
+        "New string",
+    )
+    self.assertRaises(
+        config_lib.ConstModificationError,
+        conf.SetRaw,
+        "Section1.const",
+        "New string",
+    )
 
   @flagsaver.flagsaver(disallow_missing_config_definitions=True)
   def testBadConfigRaises(self):
@@ -691,8 +731,9 @@ Section1.test: 2
   def testBadFilterRaises(self):
     """Checks that bad filter directive raise."""
     conf = config_lib.GrrConfigManager()
-    conf.DEFINE_string("Section1.foo6", "%(somefile@somepackage|resource)",
-                       "test")
+    conf.DEFINE_string(
+        "Section1.foo6", "%(somefile@somepackage|resource)", "test"
+    )
     conf.DEFINE_string("Section1.foo1", "%(Section1.foo6)/bar", "test")
     conf.Initialize(data="")
 
@@ -710,8 +751,9 @@ Section1.test: 2
     conf = config.CONFIG.MakeNewConfig()
 
     # Check our actual config validates
-    configpath = package.ResourcePath("grr-response-core",
-                                      "install_data/etc/grr-server.yaml")
+    configpath = package.ResourcePath(
+        "grr-response-core", "install_data/etc/grr-server.yaml"
+    )
     conf.Initialize(filename=configpath)
 
   def _DefineStringName(self, conf, name):
@@ -720,9 +762,17 @@ Section1.test: 2
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
     name_list = [
-        "Section1.foobar", "Section1.foo", "Section1.foo1", "Section1.foo2",
-        "Section1.foo3", "Section1.foo4", "Section1.foo5", "Section1.foo6",
-        "Section1.interpolation1", "Section1.interpolation2", "Section1.literal"
+        "Section1.foobar",
+        "Section1.foo",
+        "Section1.foo1",
+        "Section1.foo2",
+        "Section1.foo3",
+        "Section1.foo4",
+        "Section1.foo5",
+        "Section1.foo6",
+        "Section1.interpolation1",
+        "Section1.interpolation2",
+        "Section1.literal",
     ]
     for name in name_list:
       self._DefineStringName(conf, name)
@@ -760,19 +810,22 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
     # Test direct access.
     self.assertEqual(conf["Section1.foo"], "X")
-    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
-                      "Section1.foo1")
+    self.assertRaises(
+        config_lib.ConfigFormatError, conf.__getitem__, "Section1.foo1"
+    )
 
-    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
-                      "Section1.foo2")
+    self.assertRaises(
+        config_lib.ConfigFormatError, conf.__getitem__, "Section1.foo2"
+    )
 
     self.assertEqual(conf["Section1.foo3"], "foo)")
 
     # Test literal expansion.
     self.assertEqual(conf["Section1.foo4"], "%(hello)")
 
-    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
-                      "Section1.foo5")
+    self.assertRaises(
+        config_lib.ConfigFormatError, conf.__getitem__, "Section1.foo5"
+    )
 
     self.assertEqual(conf["Section1.foo6"], "foo)")
 
@@ -794,20 +847,23 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     self.assertEqual(conf["Section1.foo6"], "foo)")
 
     # A complex regex which gets literally expanded.
-    self.assertEqual(conf["Section1.literal"],
-                     r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)")
+    self.assertEqual(
+        conf["Section1.literal"], r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)"
+    )
 
   def testDataTypes(self):
     conf = config_lib.GrrConfigManager()
     conf.DEFINE_float("Section1.float", 0, "A float")
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Section1.float: abc")
+        parser=config_parser.YamlConfigFileParser, data="Section1.float: abc"
+    )
     errors = conf.Validate("Section1")
     self.assertIn("Invalid value abc for Float", str(errors["Section1.float"]))
 
     self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Section1.float: 2")
+        parser=config_parser.YamlConfigFileParser, data="Section1.float: 2"
+    )
 
     # Should have no errors now. Validate should normalize the value to a float.
     self.assertEqual(conf.Validate("Section1"), {})
@@ -819,7 +875,8 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.DEFINE_list("Section1.list", default=[], help="A list")
     conf.DEFINE_list("Section1.list2", default=["a", "2"], help="A list")
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Section1.int: 2.0")
+        parser=config_parser.YamlConfigFileParser, data="Section1.int: 2.0"
+    )
 
     errors = conf.Validate("Section1")
 
@@ -828,7 +885,8 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(
-        parser=config_parser.YamlConfigFileParser, data="Section1.int: '2'")
+        parser=config_parser.YamlConfigFileParser, data="Section1.int: '2'"
+    )
 
     conf.Validate("Section1")
     self.assertEqual(type(conf.Get("Section1.int")), int)
@@ -888,7 +946,8 @@ Section1.int: 3
       # Using filename
       conf = self._GetNewConf()
       conf.Initialize(
-          parser=config_parser.YamlConfigFileParser, filename=configone)
+          parser=config_parser.YamlConfigFileParser, filename=configone
+      )
       self._CheckConf(conf)
 
       # Using fd with no fd.name should raise because there is no way to resolve
@@ -899,7 +958,8 @@ Section1.int: 3
           config_lib.ConfigFileNotFound,
           conf.Initialize,
           parser=config_parser.YamlConfigFileParser,
-          fd=fd)
+          fd=fd,
+      )
 
       # Using data
       conf = self._GetNewConf()
@@ -907,7 +967,8 @@ Section1.int: 3
           config_lib.ConfigFileNotFound,
           conf.Initialize,
           parser=config_parser.YamlConfigFileParser,
-          data=one)
+          data=one,
+      )
 
   def testConfigFileInclusionCanBeTurnedOff(self):
     one = r"""
@@ -934,7 +995,8 @@ Section1.int: 2
       conf.Initialize(
           parser=config_parser.YamlConfigFileParser,
           filename=configone,
-          process_includes=False)
+          process_includes=False,
+      )
 
       self.assertFalse(conf.Get("SecondaryFileIncluded"))
       self.assertEqual(conf.Get("Section1.int"), 1)
@@ -948,16 +1010,17 @@ Section1.int: 1
       with io.open(configone, "w") as fd:
         fd.write(one)
 
-      absolute_include = (r"""
+      absolute_include = r"""
 Config.includes:
   - %s
 
 Section1.int: 2
-""" % configone)
+""" % configone
 
       conf = self._GetNewConf()
       conf.Initialize(
-          parser=config_parser.YamlConfigFileParser, data=absolute_include)
+          parser=config_parser.YamlConfigFileParser, data=absolute_include
+      )
       self.assertEqual(conf["Section1.int"], 1)
 
       relative_include = r"""
@@ -972,7 +1035,8 @@ Section1.int: 2
           config_lib.ConfigFileNotFound,
           conf.Initialize,
           parser=config_parser.YamlConfigFileParser,
-          data=relative_include)
+          data=relative_include,
+      )
 
       # If we write it to a file it should work though.
       configtwo = os.path.join(temp_dir, "2.yaml")
@@ -980,7 +1044,8 @@ Section1.int: 2
         fd.write(relative_include)
 
       conf.Initialize(
-          parser=config_parser.YamlConfigFileParser, filename=configtwo)
+          parser=config_parser.YamlConfigFileParser, filename=configtwo
+      )
       self.assertEqual(conf["Section1.int"], 1)
 
   def testConfigFileInclusionWindowsPaths(self):
@@ -1017,8 +1082,9 @@ SecondaryFileIncluded: true
     # testing.
     #
     # We need to also use the nt path manipulation modules.
-    with utils.MultiStubber((io, "open", MockedWindowsOpen),
-                            (os, "path", ntpath)):
+    with utils.MultiStubber(
+        (io, "open", MockedWindowsOpen), (os, "path", ntpath)
+    ):
       conf = self._GetNewConf()
       conf.Initialize(filename=ntpath.join(config_path, "1.yaml"))
       self.assertEqual(conf["Section1.int"], 2)
@@ -1048,7 +1114,8 @@ SecondaryFileIncluded: true
       # Without specifying the context the includes are not processed.
       conf = self._GetNewConf()
       conf.Initialize(
-          parser=config_parser.YamlConfigFileParser, filename=configone)
+          parser=config_parser.YamlConfigFileParser, filename=configone
+      )
       self.assertEqual(conf["Section1.int"], 1)
 
       # Only one config is loaded.
@@ -1058,7 +1125,8 @@ SecondaryFileIncluded: true
       conf = self._GetNewConf()
       conf.AddContext("Client Context")
       conf.Initialize(
-          parser=config_parser.YamlConfigFileParser, filename=configone)
+          parser=config_parser.YamlConfigFileParser, filename=configone
+      )
 
       # Both config files were loaded. Note that load order is important and
       # well defined.
@@ -1089,10 +1157,12 @@ Test3 Context:
     conf.DEFINE_context("Test3 Context")
     conf.Initialize(parser=config_parser.YamlConfigFileParser, data=context)
     conf.AddContext("Test1 Context")
-    result_map = [(("linux", "amd64", "deb"), True),
-                  (("linux", "i386", "deb"), True),
-                  (("windows", "amd64", "exe"), True),
-                  (("windows", "i386", "exe"), False)]
+    result_map = [
+        (("linux", "amd64", "deb"), True),
+        (("linux", "i386", "deb"), True),
+        (("windows", "amd64", "exe"), True),
+        (("windows", "i386", "exe"), False),
+    ]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
 
@@ -1118,8 +1188,8 @@ Test1 Context:
     conf = config.CONFIG.MakeNewConfig()
     config_file = os.path.join(self.temp_dir, "writeback.yaml")
     conf.SetWriteBack(config_file)
-    conf.DEFINE_string("NewSection1.new_option1", u"Default Value", "Help")
-    conf.Set(str("NewSection1.new_option1"), u"New Value1")
+    conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+    conf.Set(str("NewSection1.new_option1"), "New Value1")
     conf.Write()
 
     data = io.open(config_file).read()

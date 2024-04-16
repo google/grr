@@ -22,7 +22,7 @@ class VfsImplementationTypeTest(absltest.TestCase):
       self,
       path: str,
       implementation_type: Optional[rdf_structs.EnumNamedValue],
-      path_options: Optional[rdf_structs.EnumNamedValue] = None
+      path_options: Optional[rdf_structs.EnumNamedValue] = None,
   ) -> rdf_paths.PathSpec:
     ntfs_img_path = os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img")
 
@@ -35,11 +35,14 @@ class VfsImplementationTypeTest(absltest.TestCase):
             path=path,
             pathtype=rdf_paths.PathSpec.PathType.NTFS,
             path_options=path_options,
-        ))
+        ),
+    )
 
   def _CheckHasImplementationType(
-      self, pathspec: rdf_paths.PathSpec,
-      implementation_type: rdf_paths.PathSpec.ImplementationType) -> None:
+      self,
+      pathspec: rdf_paths.PathSpec,
+      implementation_type: rdf_paths.PathSpec.ImplementationType,
+  ) -> None:
     if implementation_type is None:
       self.assertFalse(pathspec.HasField("implementation_type"))
     else:
@@ -49,8 +52,10 @@ class VfsImplementationTypeTest(absltest.TestCase):
         self.assertFalse(component.HasField("implementation_type"))
 
   def _OpenAndCheckImplementationType(
-      self, pathspec: rdf_paths.PathSpec,
-      implementation_type: rdf_paths.PathSpec.ImplementationType) -> None:
+      self,
+      pathspec: rdf_paths.PathSpec,
+      implementation_type: rdf_paths.PathSpec.ImplementationType,
+  ) -> None:
     with vfs.VFSOpen(pathspec) as f:
       self._CheckHasImplementationType(f.pathspec, implementation_type)
       self._CheckHasImplementationType(f.Stat().pathspec, implementation_type)
@@ -67,49 +72,64 @@ class VfsImplementationTypeTest(absltest.TestCase):
 
   def testVfsOpen_direct_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
-        "/", rdf_paths.PathSpec.ImplementationType.DIRECT)
+        "/", rdf_paths.PathSpec.ImplementationType.DIRECT
+    )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT)
+        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+    )
 
   def testVfsOpen_direct_caseLiteral_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
-        "/", rdf_paths.PathSpec.ImplementationType.DIRECT,
-        rdf_paths.PathSpec.Options.CASE_LITERAL)
+        "/",
+        rdf_paths.PathSpec.ImplementationType.DIRECT,
+        rdf_paths.PathSpec.Options.CASE_LITERAL,
+    )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT)
+        pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+    )
 
   def testVfsOpen_sandbox_nestedPath(self):
     pathspec = self._CreateNestedPathSpec(
-        "/", rdf_paths.PathSpec.ImplementationType.SANDBOX)
+        "/", rdf_paths.PathSpec.ImplementationType.SANDBOX
+    )
     self._OpenAndCheckImplementationType(
-        pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX)
+        pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX
+    )
 
   def testVfsOpen_default_rawPath(self):
     with mock.patch.object(
-        client_utils, "GetRawDevice", new=self._MockGetRawDevice):
+        client_utils, "GetRawDevice", new=self._MockGetRawDevice
+    ):
       pathspec = rdf_paths.PathSpec(
-          path="/", pathtype=rdf_paths.PathSpec.PathType.NTFS)
+          path="/", pathtype=rdf_paths.PathSpec.PathType.NTFS
+      )
       self._OpenAndCheckImplementationType(pathspec, None)
 
   def testVfsOpen_direct_rawPath(self):
     with mock.patch.object(
-        client_utils, "GetRawDevice", new=self._MockGetRawDevice):
+        client_utils, "GetRawDevice", new=self._MockGetRawDevice
+    ):
       pathspec = rdf_paths.PathSpec(
           path="/",
           pathtype=rdf_paths.PathSpec.PathType.NTFS,
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
+          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+      )
       self._OpenAndCheckImplementationType(
-          pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT)
+          pathspec, rdf_paths.PathSpec.ImplementationType.DIRECT
+      )
 
   def testVfsOpen_sandbox_rawPath(self):
     with mock.patch.object(
-        client_utils, "GetRawDevice", new=self._MockGetRawDevice):
+        client_utils, "GetRawDevice", new=self._MockGetRawDevice
+    ):
       pathspec = rdf_paths.PathSpec(
           path="/",
           pathtype=rdf_paths.PathSpec.PathType.NTFS,
-          implementation_type=rdf_paths.PathSpec.ImplementationType.SANDBOX)
+          implementation_type=rdf_paths.PathSpec.ImplementationType.SANDBOX,
+      )
       self._OpenAndCheckImplementationType(
-          pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX)
+          pathspec, rdf_paths.PathSpec.ImplementationType.SANDBOX
+      )
 
 
 def setUpModule() -> None:

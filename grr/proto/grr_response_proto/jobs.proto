@@ -508,10 +508,20 @@ message RequestState {
 }
 
 message CpuSeconds {
-  optional float user_cpu_time = 1 [(sem_type) = {
+  // TODO: Remove `deprecated` fields.
+  // DEPRECATED: Use user_cpu_seconds instead.
+  optional float deprecated_user_cpu_time = 1 [(sem_type) = {
     friendly_name: "User cpu seconds used",
   }];
-  optional float system_cpu_time = 2 [(sem_type) = {
+  // DEPRECATED: Use system_cpu_seconds instead.
+  optional float deprecated_system_cpu_time = 2 [(sem_type) = {
+    friendly_name: "System cpu seconds used",
+  }];
+
+  optional double user_cpu_time = 3 [(sem_type) = {
+    friendly_name: "User cpu seconds used",
+  }];
+  optional double system_cpu_time = 4 [(sem_type) = {
     friendly_name: "System cpu seconds used",
   }];
 }

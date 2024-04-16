@@ -58,7 +58,7 @@ class IsExecutionAllowedTest(absltest.TestCase):
             "'/foo bar/\"quux norf\"/thud' -x '1 3 3 7' -y \"42\"",
         ],
     }):
-      command = "/foo bar/\"quux norf\"/thud"
+      command = '/foo bar/"quux norf"/thud'
       args = ["-x", "1 3 3 7", "-y", "42"]
       self.assertTrue(self.is_execution_allowed(command, args))
 
@@ -124,16 +124,19 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
 @mock.patch(
     "grr_response_client.client_utils_osx"
     ".platform.mac_ver",
-    return_value=("10.8.1", ("", "", ""), "x86_64"))
+    return_value=("10.8.1", ("", "", ""), "x86_64"),
+)
 class OSXVersionTests(test_lib.GRRBaseTest):
 
   def testVersionAsIntArray(self, _):
     from grr_response_client import client_utils_osx  # pylint: disable=g-import-not-at-top
+
     osversion = client_utils_osx.OSXVersion()
     self.assertEqual(osversion.VersionAsMajorMinor(), [10, 8])
 
   def testVersionString(self, _):
     from grr_response_client import client_utils_osx  # pylint: disable=g-import-not-at-top
+
     osversion = client_utils_osx.OSXVersion()
     self.assertEqual(osversion.VersionString(), "10.8.1")
 
@@ -209,7 +212,8 @@ class MultiHasherTest(absltest.TestCase):
     fs_stat = filesystem.Stat("/foo", stat_obj)
     pathspec = rdf_paths.PathSpec(path="/foo", pathtype="OS")
     stat_entry = client_utils.StatEntryFromStat(
-        fs_stat, pathspec, ext_attrs=False)
+        fs_stat, pathspec, ext_attrs=False
+    )
     self.assertEqual(stat_obj, client_utils.StatResultFromStatEntry(stat_entry))
 
 

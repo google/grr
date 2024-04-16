@@ -7,8 +7,11 @@ from grr_response_server.databases import mysql_test
 from grr.test_lib import test_lib
 
 
-class MysqlClientsTest(db_clients_test.DatabaseTestClientsMixin,
-                       mysql_test.MysqlTestBase, absltest.TestCase):
+class MysqlClientsTest(
+    db_clients_test.DatabaseTestClientsMixin,
+    mysql_test.MysqlTestBase,
+    absltest.TestCase,
+):
 
   # TODO: Enforce foreign key constraint on the `users` table.
   def testMultiAddClientLabelsUnknownUser(self):

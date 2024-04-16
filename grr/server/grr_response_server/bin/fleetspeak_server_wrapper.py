@@ -10,6 +10,7 @@ Requirements for running this script:
  * `grr_config_updater initialize` has been run.
  * Fleetspeak has been enabled.
 """
+
 import os
 import subprocess
 
@@ -24,19 +25,22 @@ class Error(Exception):
 
 def main(argv):
   config_dir = package.ResourcePath(
-      "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server")
+      "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server"
+  )
   if not os.path.exists(config_dir):
     raise Error(
         f"Configuration directory not found: {config_dir}. "
-        "Please make sure `grr_config_updater initialize` has been run.")
+        "Please make sure `grr_config_updater initialize` has been run."
+    )
   fleetspeak_server = package.ResourcePath(
-      "fleetspeak-server-bin",
-      "fleetspeak-server-bin/usr/bin/fleetspeak-server")
+      "fleetspeak-server-bin", "fleetspeak-server-bin/usr/bin/fleetspeak-server"
+  )
   if not os.path.exists(fleetspeak_server):
     raise Error(
         f"Fleetspeak server binary not found: {fleetspeak_server}. "
         "Please make sure that the package `fleetspeak-server-bin` has been "
-        "installed.")
+        "installed."
+    )
   command = [
       fleetspeak_server,
       "--logtostderr",

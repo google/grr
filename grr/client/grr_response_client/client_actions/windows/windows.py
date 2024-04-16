@@ -7,6 +7,11 @@ libs/server_stubs.py
 """
 
 import binascii
+import logging
+import os
+import subprocess
+import time
+import winreg
 
 import pythoncom
 import win32api
@@ -14,11 +19,11 @@ import win32com.client
 import win32file
 import win32service
 import win32serviceutil
-import winreg
 import wmi
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
+from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -29,21 +34,32 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
 IGNORE_PROPS = [
-    "CSCreationClassName", "CreationClassName", "OSName", "OSCreationClassName",
-    "WindowsVersion", "CSName", "__NAMESPACE", "__SERVER", "__PATH"
+    "CSCreationClassName",
+    "CreationClassName",
+    "OSName",
+    "OSCreationClassName",
+    "WindowsVersion",
+    "CSName",
+    "__NAMESPACE",
+    "__SERVER",
+    "__PATH",
 ]
 
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
+
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
     """Estimate the install date of this system."""
     # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-    subkey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                            "Software\\Microsoft\\Windows NT\\CurrentVersion",
-                            0, winreg.KEY_READ)
+    subkey = winreg.OpenKey(
+        winreg.HKEY_LOCAL_MACHINE,
+        "Software\\Microsoft\\Windows NT\\CurrentVersion",
+        0,
+        winreg.KEY_READ,
+    )
     install_date = winreg.QueryValueEx(subkey, "InstallDate")
     self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(install_date[0]))
 
@@ -60,16 +76,18 @@ def EnumerateInterfacesFromClient(args):
   del args  # Unused.
 
   pythoncom.CoInitialize()
-  for interface in (wmi.WMI().Win32_NetworkAdapterConfiguration() or []):
+  for interface in wmi.WMI().Win32_NetworkAdapterConfiguration() or []:
     addresses = []
     for ip_address in interface.IPAddress or []:
       addresses.append(
-          rdf_client_network.NetworkAddress(human_readable_address=ip_address))
+          rdf_client_network.NetworkAddress(human_readable_address=ip_address)
+      )
 
     response = rdf_client_network.Interface(ifname=interface.Description)
     if interface.MACAddress:
       response.mac_address = binascii.unhexlify(
-          interface.MACAddress.replace(":", ""))
+          interface.MACAddress.replace(":", "")
+      )
     if addresses:
       response.addresses = addresses
 
@@ -82,6 +100,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
   Win32_NetworkAdapterConfiguration definition:
     http://msdn.microsoft.com/en-us/library/aa394217(v=vs.85).aspx
   """
+
   out_rdfvalues = [rdf_client_network.Interface]
 
   def Run(self, args):
@@ -103,14 +122,13 @@ def EnumerateFilesystemsFromClient(args):
       continue
 
     yield rdf_client_fs.Filesystem(
-        device=volume,
-        mount_point="/%s:/" % drive[0],
-        type=fs_type,
-        label=label)
+        device=volume, mount_point="/%s:/" % drive[0], type=fs_type, label=label
+    )
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
+
   out_rdfvalues = [rdf_client_fs.Filesystem]
 
   def Run(self, args):
@@ -120,12 +138,14 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
 def QueryService(svc_name):
   """Query service and get its config."""
-  hscm = win32service.OpenSCManager(None, None,
-                                    win32service.SC_MANAGER_ALL_ACCESS)
+  hscm = win32service.OpenSCManager(
+      None, None, win32service.SC_MANAGER_ALL_ACCESS
+  )
   result = None
   try:
-    hs = win32serviceutil.SmartOpenService(hscm, svc_name,
-                                           win32service.SERVICE_ALL_ACCESS)
+    hs = win32serviceutil.SmartOpenService(
+        hscm, svc_name, win32service.SERVICE_ALL_ACCESS
+    )
     result = win32service.QueryServiceConfig(hs)
     win32service.CloseServiceHandle(hs)
   finally:
@@ -148,6 +168,7 @@ def WmiQueryFromClient(args):
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
+
   in_rdfvalue = rdf_client_action.WMIRequest
   out_rdfvalues = [rdf_protodict.Dict]
 
@@ -177,15 +198,17 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   try:
     query_results = wmi_obj.ExecQuery(query)
   except pythoncom.com_error as e:
-    raise RuntimeError("Failed to run WMI query \'%s\' err was %s" % (query, e))
+    raise RuntimeError(
+        "Failed to run WMI query '%s' err was %s" % (query, e)
+    ) from e
 
   # Extract results from the returned COMObject and return dicts.
   try:
     for result in query_results:
       response = rdf_protodict.Dict()
-      properties = (
-          list(result.Properties_) +
-          list(getattr(result, "SystemProperties_", [])))
+      properties = list(result.Properties_) + list(
+          getattr(result, "SystemProperties_", [])
+      )
 
       for prop in properties:
         if prop.Name not in IGNORE_PROPS:
@@ -196,11 +219,48 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
       yield response
 
   except pythoncom.com_error as e:
-    raise RuntimeError("WMI query data error on query \'%s\' err was %s" %
-                       (e, query))
+    raise RuntimeError(
+        "WMI query data error on query '%s' err was %s" % (e, query)
+    ) from e
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  # For Windows this is just an alias to ExecuteBinaryCommand.
+  def ProcessFile(self, path, args):
+    if path.endswith(".msi"):
+      self._InstallMsi(path)
+    else:
+      raise ValueError(f"Unknown suffix for file {path}.")
+
+  def _InstallMsi(self, path: bytes):
+    # misexec won't log to stdout/stderr. Write to a log file insetad.
+    with tempfiles.CreateGRRTempFile(filename="GRRInstallLog.txt") as f:
+      log_path = f.name
+
+    try:
+      start = time.monotonic()
+      cmd = ["msiexec", "/i", path, "/qn", "/l*", log_path]
+      # Detach from process group and console session to help ensure the child
+      # process won't die when the parent process dies.
+      creationflags = (
+          subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+      )
+      p = subprocess.run(cmd, check=False, creationflags=creationflags)
+
+      with open(log_path, "rb") as f:
+        # Limit output to fit within 2MiB fleetspeak message limit.
+        msiexec_log_output = f.read(512 * 1024)
+    finally:
+      os.remove(log_path)
+    logging.error("Installer ran, but the old GRR client is still running")
+
+    self.SendReply(
+        rdf_client_action.ExecuteBinaryResponse(
+            stdout=b"",
+            stderr=msiexec_log_output,
+            exit_status=p.returncode,
+            # We have to return microseconds.
+            time_used=int(1e6 * time.monotonic() - start),
+        )
+    )

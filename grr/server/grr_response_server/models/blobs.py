@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Module with data models and helpers related to blobs."""
+
 import binascii
 import hashlib
 

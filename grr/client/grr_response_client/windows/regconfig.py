@@ -12,7 +12,6 @@ import collections
 import logging
 from typing import Any, Dict, Text
 from urllib import parse as urlparse
-
 import winreg
 
 from grr_response_core.lib import config_parser
@@ -20,7 +19,8 @@ from grr_response_core.lib.util import precondition
 
 
 class RegistryKeySpec(
-    collections.namedtuple("RegistryKey", ["hive", "winreg_hive", "path"])):
+    collections.namedtuple("RegistryKey", ["hive", "winreg_hive", "path"])
+):
   __slots__ = ()
 
   def __str__(self):
@@ -32,7 +32,8 @@ def ParseRegistryURI(uri):
   return RegistryKeySpec(
       hive=url.netloc,
       winreg_hive=getattr(winreg, url.netloc),
-      path=url.path.replace("/", "\\").lstrip("\\"))
+      path=url.path.replace("/", "\\").lstrip("\\"),
+  )
 
 
 class RegistryConfigParser(config_parser.GRRConfigParser):
@@ -58,9 +59,12 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
   def _AccessRootKey(self):
     if self._root_key is None:
       # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self._root_key = winreg.CreateKeyEx(self._key_spec.winreg_hive,
-                                          self._key_spec.path, 0,
-                                          winreg.KEY_ALL_ACCESS)
+      self._root_key = winreg.CreateKeyEx(
+          self._key_spec.winreg_hive,
+          self._key_spec.path,
+          0,
+          winreg.KEY_ALL_ACCESS,
+      )
       self.parsed = self._key_spec.path
     return self._root_key
 
@@ -99,8 +103,9 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
           str_value = value.decode("ascii")
         else:
           str_value = str(value)
-        winreg.SetValueEx(self._AccessRootKey(), key, 0, winreg.REG_SZ,
-                          str_value)
+        winreg.SetValueEx(
+            self._AccessRootKey(), key, 0, winreg.REG_SZ, str_value
+        )
 
     finally:
       # Make sure changes hit the disk.

@@ -16,7 +16,6 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.models import paths
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -27,21 +26,22 @@ class MySQLDBPathMixin(object):
   def ReadPathInfo(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> rdf_objects.PathInfo:
+  ) -> objects_pb2.PathInfo:
     """Retrieves a path info record for a given path."""
     assert cursor is not None
 
     if timestamp is None:
       path_infos = self.ReadPathInfos(client_id, path_type, [components])
 
-      path_info = path_infos[components]
+      path_info = path_infos[tuple(components)]
       if path_info is None:
         raise db.UnknownPathError(
-            client_id=client_id, path_type=path_type, components=components)
+            client_id=client_id, path_type=path_type, components=components
+        )
       return path_info
 
     # If/when support for MySQL 5.x is dropped, this query can be cleaned up
@@ -111,7 +111,8 @@ class MySQLDBPathMixin(object):
     row = cursor.fetchone()
     if row is None:
       raise db.UnknownPathError(
-          client_id=client_id, path_type=path_type, components=components)
+          client_id=client_id, path_type=path_type, components=components
+      )
 
     # pyformat: disable
     (directory, timestamp,
@@ -119,7 +120,7 @@ class MySQLDBPathMixin(object):
      hash_entry_bytes, last_hash_entry_timestamp) = row
     # pyformat: enable
 
-    proto_path_info = objects_pb2.PathInfo(
+    path_info = objects_pb2.PathInfo(
         path_type=objects_pb2.PathInfo.PathType.Name(path_type),
         components=components,
         directory=directory,
@@ -127,31 +128,27 @@ class MySQLDBPathMixin(object):
 
     datetime = mysql_utils.TimestampToMicrosecondsSinceEpoch
     if timestamp is not None:
-      proto_path_info.timestamp = datetime(timestamp)
+      path_info.timestamp = datetime(timestamp)
     if last_stat_entry_timestamp is not None:
-      proto_path_info.last_stat_entry_timestamp = datetime(
-          last_stat_entry_timestamp
-      )
+      path_info.last_stat_entry_timestamp = datetime(last_stat_entry_timestamp)
     if last_hash_entry_timestamp is not None:
-      proto_path_info.last_hash_entry_timestamp = datetime(
-          last_hash_entry_timestamp
-      )
+      path_info.last_hash_entry_timestamp = datetime(last_hash_entry_timestamp)
 
     if stat_entry_bytes is not None:
-      proto_path_info.stat_entry.ParseFromString(stat_entry_bytes)
+      path_info.stat_entry.ParseFromString(stat_entry_bytes)
     if hash_entry_bytes is not None:
-      proto_path_info.hash_entry.ParseFromString(hash_entry_bytes)
+      path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-    return mig_objects.ToRDFPathInfo(proto_path_info)
+    return path_info
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfos(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components_list: Collection[Sequence[str]],
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> dict[Sequence[str], Optional[rdf_objects.PathInfo]]:
+  ) -> dict[tuple[str, ...], Optional[objects_pb2.PathInfo]]:
     """Retrieves path info records for given paths."""
     assert cursor is not None
 
@@ -160,7 +157,7 @@ class MySQLDBPathMixin(object):
 
     path_ids = list(map(rdf_objects.PathID.FromComponents, components_list))
 
-    path_infos = {components: None for components in components_list}
+    path_infos = {tuple(components): None for components in components_list}
 
     query = """
     SELECT p.path, p.directory, UNIX_TIMESTAMP(p.timestamp),
@@ -203,7 +200,7 @@ class MySQLDBPathMixin(object):
       # pyformat: enable
 
       components = mysql_utils.PathToComponents(path)
-      proto_path_info = objects_pb2.PathInfo(
+      path_info = objects_pb2.PathInfo(
           path_type=objects_pb2.PathInfo.PathType.Name(path_type),
           components=components,
           directory=directory,
@@ -211,22 +208,22 @@ class MySQLDBPathMixin(object):
 
       datetime = mysql_utils.TimestampToMicrosecondsSinceEpoch
       if timestamp is not None:
-        proto_path_info.timestamp = datetime(timestamp)
+        path_info.timestamp = datetime(timestamp)
       if last_stat_entry_timestamp is not None:
-        proto_path_info.last_stat_entry_timestamp = datetime(
+        path_info.last_stat_entry_timestamp = datetime(
             last_stat_entry_timestamp
         )
       if last_hash_entry_timestamp is not None:
-        proto_path_info.last_hash_entry_timestamp = datetime(
+        path_info.last_hash_entry_timestamp = datetime(
             last_hash_entry_timestamp
         )
 
       if stat_entry_bytes is not None:
-        proto_path_info.stat_entry.ParseFromString(stat_entry_bytes)
+        path_info.stat_entry.ParseFromString(stat_entry_bytes)
       if hash_entry_bytes is not None:
-        proto_path_info.hash_entry.ParseFromString(hash_entry_bytes)
+        path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      path_infos[components] = mig_objects.ToRDFPathInfo(proto_path_info)
+      path_infos[tuple(components)] = path_info
 
     return path_infos
 
@@ -234,21 +231,18 @@ class MySQLDBPathMixin(object):
   def WritePathInfos(
       self,
       client_id: str,
-      path_infos: Sequence[rdf_objects.PathInfo],
+      path_infos: Sequence[objects_pb2.PathInfo],
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a collection of path_info records for a client."""
     assert cursor is not None
     now = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
 
-    proto_path_infos = [
-        mig_objects.ToProtoPathInfo(info) for info in path_infos
-    ]
     int_client_id = db_utils.ClientIDToInt(client_id)
 
     # Since we need to validate client id even if there are no paths given, we
     # cannot rely on foreign key constraints and have to special-case this.
-    if not proto_path_infos:
+    if not path_infos:
       query = "SELECT client_id FROM clients WHERE client_id = %(client_id)s"
       cursor.execute(query, {"client_id": int_client_id})
       if not cursor.fetchall():
@@ -263,41 +257,39 @@ class MySQLDBPathMixin(object):
     hash_entry_keys = []
     hash_entry_values = []
 
-    for proto_path_info in proto_path_infos:
-      path = mysql_utils.ComponentsToPath(proto_path_info.components)
+    for path_info in path_infos:
+      path = mysql_utils.ComponentsToPath(path_info.components)
 
       key = (
           int_client_id,
-          int(proto_path_info.path_type),
-          rdf_objects.PathID.FromComponents(
-              proto_path_info.components
-          ).AsBytes(),
+          int(path_info.path_type),
+          rdf_objects.PathID.FromComponents(path_info.components).AsBytes(),
       )
       details = (
           now,
           path,
-          bool(proto_path_info.directory),
-          len(proto_path_info.components),
+          bool(path_info.directory),
+          len(path_info.components),
       )
       path_info_values.append(key + details)
 
-      if proto_path_info.HasField("stat_entry"):
+      if path_info.HasField("stat_entry"):
         stat_entry_keys.extend(key)
-        details = (now, proto_path_info.stat_entry.SerializeToString())
+        details = (now, path_info.stat_entry.SerializeToString())
         stat_entry_values.append(key + details)
 
-      if proto_path_info.HasField("hash_entry"):
+      if path_info.HasField("hash_entry"):
         hash_entry_keys.extend(key)
         details = (
             now,
-            proto_path_info.hash_entry.SerializeToString(),
-            proto_path_info.hash_entry.sha256,
+            path_info.hash_entry.SerializeToString(),
+            path_info.hash_entry.sha256,
         )
         hash_entry_values.append(key + details)
 
       # TODO(hanuszczak): Implement a trie in order to avoid inserting
       # duplicated records.
-      for parent_path_info in paths.GetAncestorPathInfos(proto_path_info):
+      for parent_path_info in paths.GetAncestorPathInfos(path_info):
         path = mysql_utils.ComponentsToPath(parent_path_info.components)
         parent_key = (
             int_client_id,
@@ -361,15 +353,15 @@ class MySQLDBPathMixin(object):
   def ListDescendantPathInfos(
       self,
       client_id: str,
-      path_type: "rdf_objects.PathInfo.PathType",
+      path_type: objects_pb2.PathInfo.PathType,
       components: Sequence[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_depth: Optional[int] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Sequence[rdf_objects.PathInfo]:
+  ) -> Sequence[objects_pb2.PathInfo]:
     """Lists path info records that correspond to descendants of given path."""
     assert cursor is not None
-    proto_path_infos = []
+    path_infos = []
 
     query = ""
 
@@ -471,7 +463,7 @@ class MySQLDBPathMixin(object):
 
       path_components = mysql_utils.PathToComponents(path)
 
-      proto_path_info = objects_pb2.PathInfo(
+      path_info = objects_pb2.PathInfo(
           path_type=objects_pb2.PathInfo.PathType.Name(path_type),
           components=path_components,
           directory=directory,
@@ -479,72 +471,70 @@ class MySQLDBPathMixin(object):
 
       datetime = mysql_utils.TimestampToMicrosecondsSinceEpoch
       if timestamp is not None:
-        proto_path_info.timestamp = datetime(timestamp)
+        path_info.timestamp = datetime(timestamp)
       if last_stat_entry_timestamp is not None:
-        proto_path_info.last_stat_entry_timestamp = datetime(
+        path_info.last_stat_entry_timestamp = datetime(
             last_stat_entry_timestamp
         )
       if last_hash_entry_timestamp is not None:
-        proto_path_info.last_hash_entry_timestamp = datetime(
+        path_info.last_hash_entry_timestamp = datetime(
             last_hash_entry_timestamp
         )
 
       if stat_entry_bytes is not None:
-        proto_path_info.stat_entry.ParseFromString(stat_entry_bytes)
+        path_info.stat_entry.ParseFromString(stat_entry_bytes)
       if hash_entry_bytes is not None:
-        proto_path_info.hash_entry.ParseFromString(hash_entry_bytes)
+        path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      proto_path_infos.append(proto_path_info)
+      path_infos.append(path_info)
 
-    proto_path_infos.sort(key=lambda _: tuple(_.components))
+    path_infos.sort(key=lambda _: tuple(_.components))
 
     # The first entry should be always the base directory itself unless it is a
     # root directory that was never collected.
-    if not proto_path_infos and components:
+    if not path_infos and components:
       raise db.UnknownPathError(client_id, path_type, components)
 
-    if proto_path_infos and not proto_path_infos[0].directory:
+    if path_infos and not path_infos[0].directory:
       raise db.NotDirectoryPathError(client_id, path_type, components)
 
-    proto_path_infos = proto_path_infos[1:]
+    path_infos = path_infos[1:]
 
     # For specific timestamp, we return information only about explicit paths
     # (paths that have associated stat or hash entry or have an ancestor that is
     # explicit).
     if not only_explicit:
-      return [mig_objects.ToRDFPathInfo(pi) for pi in proto_path_infos]
+      return path_infos
 
     explicit_path_infos = []
     has_explicit_ancestor = set()
 
     # This list is sorted according to the keys component, so by traversing it
     # in the reverse order we make sure that we process deeper paths first.
-    for proto_path_info in reversed(proto_path_infos):
-      path_components = tuple(proto_path_info.components)
+    for path_info in reversed(path_infos):
+      path_components = tuple(path_info.components)
 
       if (
-          proto_path_info.HasField("stat_entry")
-          or proto_path_info.HasField("hash_entry")
+          path_info.HasField("stat_entry")
+          or path_info.HasField("hash_entry")
           or path_components in has_explicit_ancestor
       ):
-        explicit_path_infos.append(proto_path_info)
+        explicit_path_infos.append(path_info)
         has_explicit_ancestor.add(path_components[:-1])
 
     # Since we collected explicit paths in reverse order, we need to reverse it
     # again to conform to the interface.
-    return list(
-        reversed([mig_objects.ToRDFPathInfo(pi) for pi in explicit_path_infos])
-    )
+    return list(reversed(explicit_path_infos))
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfosHistories(
       self,
       client_id: Text,
-      path_type: rdf_objects.PathInfo.PathType,
+      path_type: objects_pb2.PathInfo.PathType,
       components_list: Iterable[Sequence[Text]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
-      cursor: Optional[MySQLdb.cursors.Cursor] = None
-  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""
     assert cursor is not None
 
@@ -552,12 +542,12 @@ class MySQLDBPathMixin(object):
     if not components_list:
       return {}
 
-    path_infos = {components: [] for components in components_list}
+    path_infos = {tuple(components): [] for components in components_list}
 
-    path_id_components = {}
+    path_id_components: dict[rdf_objects.PathID, tuple[str, ...]] = {}
     for components in components_list:
       path_id = rdf_objects.PathID.FromComponents(components)
-      path_id_components[path_id] = components
+      path_id_components[path_id] = tuple(components)
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
@@ -613,7 +603,8 @@ class MySQLDBPathMixin(object):
     """.format(
         stat_entry_timestamp_condition=stat_entry_timestamp_condition,
         hash_entry_timestamp_condition=hash_entry_timestamp_condition,
-        path_id_placeholders=path_id_placeholders)
+        path_id_placeholders=path_id_placeholders,
+    )
 
     cursor.execute(query, params)
     for row in cursor.fetchall():
@@ -624,29 +615,29 @@ class MySQLDBPathMixin(object):
 
       path_id_bytes = stat_entry_path_id_bytes or hash_entry_path_id_bytes
       path_id = rdf_objects.PathID.FromSerializedBytes(path_id_bytes)
-      components = path_id_components[path_id]
+      components: tuple[str, ...] = tuple(path_id_components[path_id])
 
       timestamp = stat_entry_timestamp or hash_entry_timestamp
 
-      proto_path_info = objects_pb2.PathInfo(
+      path_info = objects_pb2.PathInfo(
           path_type=objects_pb2.PathInfo.PathType.Name(path_type),
           components=components,
       )
 
       if timestamp is not None:
-        proto_path_info.timestamp = (
-            mysql_utils.TimestampToMicrosecondsSinceEpoch(timestamp)
+        path_info.timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+            timestamp
         )
 
       if stat_entry_bytes is not None:
-        proto_path_info.stat_entry.ParseFromString(stat_entry_bytes)
+        path_info.stat_entry.ParseFromString(stat_entry_bytes)
       if hash_entry_bytes is not None:
-        proto_path_info.hash_entry.ParseFromString(hash_entry_bytes)
+        path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      path_infos[components].append(mig_objects.ToRDFPathInfo(proto_path_info))
+      path_infos[components].append(path_info)
 
-    for components in components_list:
-      path_infos[components].sort(key=lambda path_info: path_info.timestamp)
+    for comps in components_list:
+      path_infos[tuple(comps)].sort(key=lambda path_info: path_info.timestamp)
 
     return path_infos
 
@@ -656,7 +647,7 @@ class MySQLDBPathMixin(object):
       client_paths: Collection[db.ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Dict[db.ClientPath, Optional[rdf_objects.PathInfo]]:
+  ) -> Dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
     """Returns PathInfos that have corresponding HashBlobReferences."""
     assert cursor is not None
     path_infos = {client_path: None for client_path in client_paths}
@@ -716,22 +707,23 @@ class MySQLDBPathMixin(object):
       client_path = db.ClientPath(
           client_id=db_utils.IntToClientID(client_id),
           path_type=path_type,
-          components=path_id_components[path_id])
+          components=path_id_components[path_id],
+      )
 
-      proto_path_info = objects_pb2.PathInfo(
+      path_info = objects_pb2.PathInfo(
           path_type=objects_pb2.PathInfo.PathType.Name(path_type),
           components=components,
       )
 
       datetime = mysql_utils.TimestampToMicrosecondsSinceEpoch
       if timestamp is not None:
-        proto_path_info.timestamp = datetime(timestamp)
+        path_info.timestamp = datetime(timestamp)
 
       if stat_entry_bytes is not None:
-        proto_path_info.stat_entry.ParseFromString(stat_entry_bytes)
+        path_info.stat_entry.ParseFromString(stat_entry_bytes)
       if hash_entry_bytes is not None:
-        proto_path_info.hash_entry.ParseFromString(hash_entry_bytes)
+        path_info.hash_entry.ParseFromString(hash_entry_bytes)
 
-      path_infos[client_path] = mig_objects.ToRDFPathInfo(proto_path_info)
+      path_infos[client_path] = path_info
 
     return path_infos

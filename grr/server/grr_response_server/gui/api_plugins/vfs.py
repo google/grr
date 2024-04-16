@@ -34,6 +34,8 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Files can only be accessed if their first path component is from this list.
@@ -303,24 +305,30 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     client_id = str(args.client_id)
 
     try:
-      path_info = data_store.REL_DB.ReadPathInfo(
+      proto_path_info = data_store.REL_DB.ReadPathInfo(
           client_id=client_id,
           path_type=path_type,
           components=components,
-          timestamp=args.timestamp)
+          timestamp=args.timestamp,
+      )
     except db.UnknownPathError:
       raise FileNotFoundError(
           client_id=client_id, path_type=path_type, components=components)
 
+    path_info = None
+    if proto_path_info is not None:
+      path_info = mig_objects.ToRDFPathInfo(proto_path_info)
     last_collection_pi = file_store.GetLastCollectionPathInfo(
         db.ClientPath.FromPathInfo(client_id, path_info),
         max_timestamp=args.timestamp)
 
-    history = data_store.REL_DB.ReadPathInfoHistory(
+    proto_history = data_store.REL_DB.ReadPathInfoHistory(
         client_id=client_id,
         path_type=path_type,
         components=components,
-        cutoff=args.timestamp)
+        cutoff=args.timestamp,
+    )
+    history = [mig_objects.ToRDFPathInfo(pi) for pi in proto_history]
     history.reverse()
 
     # It might be the case that we do not have any history about the file, but
@@ -471,18 +479,21 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     # TODO: This API handler should return a 404 response if the
     # path is not found. Currently, 500 is returned.
-    child_path_infos = data_store.REL_DB.ListChildPathInfos(
+    proto_child_path_infos = data_store.REL_DB.ListChildPathInfos(
         client_id=args.client_id.ToString(),
         path_type=path_type,
         components=components,
-        timestamp=args.timestamp)
+        timestamp=args.timestamp,
+    )
 
     items = []
 
-    for child_path_info in child_path_infos:
+    for child_path_info in proto_child_path_infos:
       if args.directories_only and not child_path_info.directory:
         continue
-      items.append(_PathInfoToApiFile(child_path_info))
+      items.append(
+          _PathInfoToApiFile(mig_objects.ToRDFPathInfo(child_path_info))
+      )
 
     # TODO(hanuszczak): Instead of getting the whole list from the database and
     # then filtering the results we should do the filtering directly in the
@@ -577,7 +588,8 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
                       cur_path_infos: Collection[rdf_objects.PathInfo]) -> None:
     """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
 
-    for pi in cur_path_infos:
+    for proto_pi in cur_path_infos:
+      pi = mig_objects.ToRDFPathInfo(proto_pi)
       existing = path_infos.get(pi.basename)
       # If the VFS has the same file in two PathTypes, use the latest collected
       # version.
@@ -774,8 +786,10 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
       # empty response.
       return ApiGetFileVersionTimesResult(times=[])
 
-    history = data_store.REL_DB.ReadPathInfoHistory(
-        str(args.client_id), path_type, components)
+    proto_history = data_store.REL_DB.ReadPathInfoHistory(
+        str(args.client_id), path_type, components
+    )
+    history = [mig_objects.ToRDFPathInfo(pi) for pi in proto_history]
     times = reversed([pi.timestamp for pi in history])
 
     return ApiGetFileVersionTimesResult(times=times)
@@ -872,6 +886,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       path_info = res[k]
       if path_info is None:
         raise FileNotFoundError(args.client_id, path_type, components)
+      path_info = mig_objects.ToRDFPathInfo(path_info)
       if path_info.stat_entry and path_info.stat_entry.pathspec:
         ps = path_info.stat_entry.pathspec
 
@@ -945,16 +960,19 @@ class ApiGetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler
 
   def Handle(self, args, context=None):
     try:
-      rdf_flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.operation_id))
+      flow_obj = data_store.REL_DB.ReadFlowObject(
+          str(args.client_id), str(args.operation_id)
+      )
     except db.UnknownFlowError:
       self._RaiseOperationNotFoundError(args)
 
-    if rdf_flow.flow_class_name not in [
-        "RecursiveListDirectory", "ListDirectory"
+    if flow_obj.flow_class_name not in [
+        "RecursiveListDirectory",
+        "ListDirectory",
     ]:
       self._RaiseOperationNotFoundError(args)
 
+    rdf_flow = mig_flow_objects.ToRDFFlow(flow_obj)
     complete = rdf_flow.flow_state != "RUNNING"
     result = ApiGetVfsRefreshOperationStateResult()
     if complete:
@@ -972,35 +990,45 @@ def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
   client_id = str(api_client_id)
 
   try:
-    root_path_info = data_store.REL_DB.ReadPathInfo(client_id, path_type,
-                                                    components)
+    proto_root_path_info = data_store.REL_DB.ReadPathInfo(
+        client_id, path_type, components
+    )
   except db.UnknownPathError:
     return
 
   path_infos = []
-  for path_info in itertools.chain(
-      [root_path_info],
-      data_store.REL_DB.ListDescendantPathInfos(client_id, path_type,
-                                                components),
+  for proto_path_info in itertools.chain(
+      [proto_root_path_info],
+      data_store.REL_DB.ListDescendantPathInfos(
+          client_id, path_type, components
+      ),
   ):
+    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
+
     # TODO(user): this is to keep the compatibility with current
     # AFF4 implementation. Check if this check is needed.
     if path_info.directory:
       continue
 
-    categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
-                                                     path_info.components)
+    categorized_path = rdf_objects.ToCategorizedPath(
+        path_info.path_type, path_info.components
+    )
     if with_history:
       path_infos.append(path_info)
     else:
       yield categorized_path, path_info.stat_entry, path_info.hash_entry
 
   if with_history:
-    hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
-        client_id, path_type, [tuple(pi.components) for pi in path_infos])
-    for path_info in itertools.chain.from_iterable(hist_path_infos.values()):
-      categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
-                                                       path_info.components)
+    proto_hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
+        client_id, path_type, [tuple(pi.components) for pi in path_infos]
+    )
+    for proto_path_info in itertools.chain.from_iterable(
+        proto_hist_path_infos.values()
+    ):
+      path_info = mig_objects.ToRDFPathInfo(proto_path_info)
+      categorized_path = rdf_objects.ToCategorizedPath(
+          path_info.path_type, path_info.components
+      )
       yield categorized_path, path_info.stat_entry, path_info.hash_entry
 
 
@@ -1191,8 +1219,10 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
-    path_info = data_store.REL_DB.ReadPathInfo(
-        str(args.client_id), path_type, components)
+    proto_path_info = data_store.REL_DB.ReadPathInfo(
+        str(args.client_id), path_type, components
+    )
+    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
 
     if (not path_info or not path_info.stat_entry or
         not path_info.stat_entry.pathspec):
@@ -1234,17 +1264,19 @@ class ApiGetVfsFileContentUpdateStateHandler(
 
   def Handle(self, args, context=None):
     try:
-      rdf_flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.operation_id))
+      proto_flow = data_store.REL_DB.ReadFlowObject(
+          str(args.client_id), str(args.operation_id)
+      )
     except db.UnknownFlowError:
       raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
                                               args.operation_id)
 
-    if rdf_flow.flow_class_name != "MultiGetFile":
+    if proto_flow.flow_class_name != "MultiGetFile":
       raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
                                               args.operation_id)
 
     result = ApiGetVfsFileContentUpdateStateResult()
+    rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
     if rdf_flow.flow_state == "RUNNING":
       result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
     else:

@@ -2,12 +2,12 @@
 """Client repacking library."""
 
 import getpass
+import glob
 import logging
 import os
 import platform
 import sys
 import zipfile
-
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
@@ -223,24 +223,29 @@ class TemplateRepacker(object):
 
     return result_path
 
-  def RepackAllTemplates(self, upload=False):
-    """Repack all the templates in ClientBuilder.template_dir."""
-    for template in os.listdir(config.CONFIG["ClientBuilder.template_dir"]):
-      template_path = os.path.join(config.CONFIG["ClientBuilder.template_dir"],
-                                   template)
+  def RepackAllTemplates(self, upload: bool = False):
+    """Repack all the templates in ClientBuilder.template_dir including subfolders."""
 
+    template_dir = config.CONFIG.Get("ClientBuilder.template_dir", default="")
+    template_paths = glob.glob(
+        os.path.join(template_dir, "**/*.zip"), recursive=True
+    )
+    executables_dir = config.CONFIG.Get(
+        "ClientBuilder.executables_dir", default="."
+    )
+    for template_path in template_paths:
       self.RepackTemplate(
           template_path,
-          os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
-                       "installers"),
-          upload=upload)
+          executables_dir,
+          upload=upload,
+      )
       # If it's windows also repack a debug version.
       if template_path.endswith(".exe.zip") or template_path.endswith(
           ".msi.zip"):
         print("Repacking as debug installer: %s." % template_path)
         self.RepackTemplate(
             template_path,
-            os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
-                         "installers"),
+            executables_dir,
             upload=upload,
-            context=["DebugClientBuild Context"])
+            context=["DebugClientBuild Context"],
+        )

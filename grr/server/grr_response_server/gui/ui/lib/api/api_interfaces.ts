@@ -2087,7 +2087,6 @@ export declare interface Artifact {
   readonly doc?: string;
   readonly supportedOs?: readonly string[];
   readonly urls?: readonly string[];
-  readonly provides?: readonly string[];
   readonly sources?: readonly ArtifactSource[];
   readonly errorMessage?: string;
   readonly aliases?: readonly string[];
@@ -2295,14 +2294,6 @@ export declare interface BufferReference {
   readonly pathspec?: PathSpec;
 }
 
-/** ChromeHistoryArgs proto mapping. */
-export declare interface ChromeHistoryArgs {
-  readonly pathtype?: PathSpecPathType;
-  readonly getArchive?: boolean;
-  readonly username?: string;
-  readonly historyPath?: string;
-}
-
 /** ClientCrash proto mapping. */
 export declare interface ClientCrash {
   readonly clientId?: string;
@@ -2505,8 +2496,10 @@ export enum ConditionExpressionConditionType {
 
 /** CpuSeconds proto mapping. */
 export declare interface CpuSeconds {
-  readonly userCpuTime?: ProtoFloat;
-  readonly systemCpuTime?: ProtoFloat;
+  readonly deprecatedUserCpuTime?: ProtoFloat;
+  readonly deprecatedSystemCpuTime?: ProtoFloat;
+  readonly userCpuTime?: ProtoDouble;
+  readonly systemCpuTime?: ProtoDouble;
 }
 
 /** CronJobAction proto mapping. */
@@ -2822,14 +2815,6 @@ export declare interface FileFinderSizeCondition {
 export declare interface FileFinderStatActionOptions {
   readonly resolveLinks?: boolean;
   readonly collectExtAttrs?: boolean;
-}
-
-/** FirefoxHistoryArgs proto mapping. */
-export declare interface FirefoxHistoryArgs {
-  readonly pathtype?: PathSpecPathType;
-  readonly getArchive?: boolean;
-  readonly username?: string;
-  readonly historyPath?: string;
 }
 
 /** FleetspeakValidationInfo proto mapping. */
@@ -3929,6 +3914,11 @@ export declare interface UnixVolume {
   readonly options?: string;
 }
 
+/** UpdateClientArgs proto mapping. */
+export declare interface UpdateClientArgs {
+  readonly binaryPath?: string;
+}
+
 /** UpdateConfigurationArgs proto mapping. */
 export declare interface UpdateConfigurationArgs {
   readonly config?: Dict;
@@ -4070,6 +4060,7 @@ export declare interface YaraProcessDumpArgs {
   readonly skipExecutableRegions?: boolean;
   readonly skipReadonlyRegions?: boolean;
   readonly prioritizeOffsets?: readonly ProtoUint64[];
+  readonly ignoreParentProcesses?: boolean;
 }
 
 /** YaraProcessDumpInformation proto mapping. */
@@ -4113,6 +4104,7 @@ export declare interface YaraProcessScanRequest {
   readonly includeErrorsInResults?: YaraProcessScanRequestErrorPolicy;
   readonly includeMissesInResults?: boolean;
   readonly ignoreGrrProcess?: boolean;
+  readonly ignoreParentProcesses?: boolean;
   readonly perProcessTimeout?: ProtoUint32;
   readonly chunkSize?: ProtoUint64;
   readonly overlapSize?: ProtoUint64;
@@ -4125,6 +4117,7 @@ export declare interface YaraProcessScanRequest {
   readonly maxResultsPerProcess?: ProtoUint32;
   readonly processDumpSizeLimit?: ByteSize;
   readonly scanRuntimeLimitUs?: Duration;
+  readonly contextWindow?: ProtoUint32;
   readonly implementationType?: YaraProcessScanRequestImplementationType;
 }
 
@@ -4153,6 +4146,7 @@ export declare interface YaraStringMatch {
   readonly stringId?: string;
   readonly offset?: ProtoUint64;
   readonly data?: ProtoBytes;
+  readonly context?: ProtoBytes;
 }
 
 /** protobuf2.TYPE_BOOL proto mapping. */

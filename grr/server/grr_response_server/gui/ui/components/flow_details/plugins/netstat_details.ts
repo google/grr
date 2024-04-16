@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {
   ChangeDetectionStrategy,
   Component,
@@ -66,11 +65,12 @@ export class NetstatDetails extends Plugin implements OnDestroy {
 
   readonly netstatResults$: Observable<readonly ConnectionRow[]> =
     this.flowResultsLocalStore.results$.pipe(
-      map((results) =>
-        results?.map((data) => data.payload as NetworkConnection),
+      map(
+        (results) => results?.map((data) => data.payload as NetworkConnection),
       ),
-      map((connections) =>
-        connections?.map((connection) => asConnectionRow(connection)),
+      map(
+        (connections) =>
+          connections?.map((connection) => asConnectionRow(connection)),
       ),
     );
 

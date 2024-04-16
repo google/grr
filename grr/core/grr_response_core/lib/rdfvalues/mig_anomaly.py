@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_proto import anomaly_pb2
 

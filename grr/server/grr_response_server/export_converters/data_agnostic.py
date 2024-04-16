@@ -44,33 +44,46 @@ class DataAgnosticExportConverter(base.ExportConverter):
     # Metadata is always the first field of exported data.
     descriptors.append(
         rdf_structs.ProtoEmbedded(
-            name="metadata", field_number=1, nested=base.ExportedMetadata))
+            name="metadata", field_number=1, nested=base.ExportedMetadata
+        )
+    )
 
     for number, desc in sorted(value.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       if desc.name == "metadata":
-        logging.debug("Ignoring 'metadata' field in %s.",
-                      value.__class__.__name__)
+        logging.debug(
+            "Ignoring 'metadata' field in %s.", value.__class__.__name__
+        )
         continue
 
       # Copy descriptors for primivie values as-is, just make sure their
       # field number is correct.
-      if isinstance(desc, (rdf_structs.ProtoBinary, rdf_structs.ProtoString,
-                           rdf_structs.ProtoUnsignedInteger,
-                           rdf_structs.ProtoRDFValue, rdf_structs.ProtoEnum)):
+      if isinstance(
+          desc,
+          (
+              rdf_structs.ProtoBinary,
+              rdf_structs.ProtoString,
+              rdf_structs.ProtoUnsignedInteger,
+              rdf_structs.ProtoRDFValue,
+              rdf_structs.ProtoEnum,
+          ),
+      ):
         # Incrementing field number by 1, as 1 is always occuppied by metadata.
         descriptors.append(desc.Copy(field_number=number + 1))
 
-      if (isinstance(desc, rdf_structs.ProtoEnum) and
-          not isinstance(desc, rdf_structs.ProtoBoolean)):
+      if isinstance(desc, rdf_structs.ProtoEnum) and not isinstance(
+          desc, rdf_structs.ProtoBoolean
+      ):
         # Attach the enum container to the class for easy reference:
         enums[desc.enum_name] = desc.enum_container
 
     # Create the class as late as possible. This will modify a
     # metaclass registry, we need to make sure there are no problems.
     output_class = type(
-        self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
-        dict(Flatten=Flatten))
+        self.ExportedClassNameForValue(value),
+        (AutoExportedProtoStruct,),
+        dict(Flatten=Flatten),
+    )
 
     for descriptor in descriptors:
       output_class.AddDescriptor(descriptor)

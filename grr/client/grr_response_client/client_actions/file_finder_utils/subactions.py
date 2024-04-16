@@ -52,7 +52,8 @@ class StatAction(Action):
 
     stat = stat_cache.Get(filepath, follow_symlink=self.opts.resolve_links)
     result.stat_entry = client_utils.StatEntryFromStatPathSpec(
-        stat, ext_attrs=self.opts.collect_ext_attrs)
+        stat, ext_attrs=self.opts.collect_ext_attrs
+    )
 
 
 class HashAction(Action):
@@ -74,7 +75,8 @@ class HashAction(Action):
   def Execute(self, filepath, result):
     stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
     result.stat_entry = client_utils.StatEntryFromStatPathSpec(
-        stat, ext_attrs=self.opts.collect_ext_attrs)
+        stat, ext_attrs=self.opts.collect_ext_attrs
+    )
 
     if stat.IsDirectory():
       return
@@ -110,7 +112,8 @@ class DownloadAction(Action):
   def Execute(self, filepath, result):
     stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
     result.stat_entry = client_utils.StatEntryFromStatPathSpec(
-        stat, ext_attrs=self.opts.collect_ext_attrs)
+        stat, ext_attrs=self.opts.collect_ext_attrs
+    )
 
     if stat.IsDirectory():
       return

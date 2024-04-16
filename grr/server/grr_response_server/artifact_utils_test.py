@@ -88,60 +88,19 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     for result in results:
       self.assertFalse(ar.GetArtifactPathDependencies(result))
 
-    # Check provides filtering
-    results = registry.GetArtifacts(
-        os_name="Windows", provides=["users.homedir", "domain"])
-    for result in results:
-      # provides contains at least one of the filter strings
-      self.assertGreaterEqual(
-          len(set(result.provides).union(set(["users.homedir", "domain"]))), 1)
-
-    results = registry.GetArtifacts(
-        os_name="Windows", provides=["nothingprovidesthis"])
-    self.assertEmpty(results)
-
   @artifact_test_lib.PatchDefaultArtifactRegistry
   def testGetArtifactNames(self, registry):
     registry.AddFileSource(self.test_artifacts_file)
 
-    result_objs = registry.GetArtifacts(
-        os_name="Windows", provides=["users.homedir", "domain"])
+    result_objs = registry.GetArtifacts(os_name="Windows")
 
-    results_names = registry.GetArtifactNames(
-        os_name="Windows", provides=["users.homedir", "domain"])
+    results_names = registry.GetArtifactNames(os_name="Windows")
 
     self.assertCountEqual(set([a.name for a in result_objs]), results_names)
     self.assertNotEmpty(results_names)
 
-    results_names = registry.GetArtifactNames(
-        os_name="Darwin", provides=["users.username"])
+    results_names = registry.GetArtifactNames(os_name="Darwin")
     self.assertIn("UsersDirectory", results_names)
-
-  @artifact_test_lib.PatchCleanArtifactRegistry
-  def testSearchDependencies(self, registry):
-    registry.AddFileSource(self.test_artifacts_file)
-
-    names, expansions = registry.SearchDependencies(
-        "Windows", [u"TestAggregationArtifactDeps", u"DepsParent"])
-
-    # This list contains all artifacts that can provide the dependency, e.g.
-    # DepsHomedir and DepsHomedir2 both provide
-    # users.homedir.
-    self.assertCountEqual(names, [
-        u"DepsHomedir", u"DepsHomedir2", u"DepsDesktop", u"DepsParent",
-        u"DepsWindir", u"DepsWindirRegex", u"DepsControlSet",
-        u"TestAggregationArtifactDeps"
-    ])
-
-    self.assertCountEqual(expansions, [
-        "current_control_set", "users.homedir", "users.desktop",
-        "environ_windir", "users.username"
-    ])
-
-    # None of these match the OS, so we should get an empty list.
-    names, expansions = registry.SearchDependencies(
-        "Darwin", [u"TestCmdArtifact", u"TestFileArtifact"])
-    self.assertCountEqual(names, [])
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testArtifactConversion(self, registry):
@@ -396,7 +355,6 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     result = rdf_artifacts.Artifact(
         name="artifact%s" % number,
         doc="Doco",
-        provides="environ_windir",
         supported_os="Windows",
         urls="http://blah")
     return result
@@ -430,7 +388,6 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     artifact = rdf_artifacts.Artifact(
         name="artifact",
         doc="Doco",
-        provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
@@ -465,29 +422,10 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     artifact = rdf_artifacts.Artifact(
         name="good",
         doc="Doco",
-        provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
     ar.ValidateSyntax(artifact)
-
-  def testValidateSyntaxBadProvides(self):
-    sources = [{
-        "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-        "attributes": {
-            "paths": [r"%%environ_systemdrive%%\Temp"]
-        }
-    }]
-
-    artifact = rdf_artifacts.Artifact(
-        name="bad",
-        doc="Doco",
-        provides=["windir"],
-        supported_os=["Windows"],
-        urls=["http://blah"],
-        sources=sources)
-    with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
-      ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadPathDependency(self):
     sources = [{
@@ -500,7 +438,6 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     artifact = rdf_artifacts.Artifact(
         name="bad",
         doc="Doco",
-        provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["http://blah"],
         sources=sources)
