@@ -7,8 +7,11 @@ from grr_response_server.databases import mysql_test
 from grr.test_lib import test_lib
 
 
-class MysqlFlowTest(db_flows_test.DatabaseLargeTestFlowMixin,
-                    mysql_test.MysqlTestBase, absltest.TestCase):
+class MysqlFlowTest(
+    db_flows_test.DatabaseLargeTestFlowMixin,
+    mysql_test.MysqlTestBase,
+    absltest.TestCase,
+):
 
   pass
 

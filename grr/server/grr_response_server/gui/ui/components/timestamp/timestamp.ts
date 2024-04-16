@@ -60,6 +60,9 @@ export class Timestamp implements OnDestroy {
   get date() {
     return this.date$.value;
   }
+
+  @Input() multiline: boolean | null | undefined = undefined;
+
   @Input() relativeTimestamp: RelativeTimestampVisibility = 'tooltip';
   readonly timezone: string = 'UTC';
 

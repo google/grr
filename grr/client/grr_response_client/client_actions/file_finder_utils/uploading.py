@@ -47,7 +47,8 @@ class TransferStoreUploader(object):
       A `BlobImageDescriptor` object.
     """
     return self._UploadChunkStream(
-        self._streamer.StreamFilePath(filepath, offset=offset, amount=amount))
+        self._streamer.StreamFilePath(filepath, offset=offset, amount=amount)
+    )
 
   def UploadFile(self, fd, offset=0, amount=None):
     """Uploads chunks of a given file descriptor to the transfer store flow.
@@ -62,7 +63,8 @@ class TransferStoreUploader(object):
       A `BlobImageDescriptor` object.
     """
     return self._UploadChunkStream(
-        self._streamer.StreamFile(fd, offset=offset, amount=amount))
+        self._streamer.StreamFile(fd, offset=offset, amount=amount)
+    )
 
   def _UploadChunkStream(self, chunk_stream):
     chunks = []
@@ -70,7 +72,8 @@ class TransferStoreUploader(object):
       chunks.append(self._UploadChunk(chunk))
 
     return rdf_client_fs.BlobImageDescriptor(
-        chunks=chunks, chunk_size=self._streamer.chunk_size)
+        chunks=chunks, chunk_size=self._streamer.chunk_size
+    )
 
   def _UploadChunk(self, chunk):
     """Uploads a single chunk to the transfer store flow.
@@ -89,10 +92,12 @@ class TransferStoreUploader(object):
     return rdf_client_fs.BlobImageChunkDescriptor(
         digest=hashlib.sha256(chunk.data).digest(),
         offset=chunk.offset,
-        length=len(chunk.data))
+        length=len(chunk.data),
+    )
 
 
 def _CompressedDataBlob(chunk):
   return rdf_protodict.DataBlob(
       data=zlib.compress(chunk.data),
-      compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
+      compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,
+  )

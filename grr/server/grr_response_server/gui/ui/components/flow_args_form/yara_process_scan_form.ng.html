@@ -109,6 +109,26 @@
 </div>
 
 <div>
+  <mat-form-field
+    appearance="outline"
+  >
+    <mat-label>Match context capture window</mat-label>
+    <input
+      matInput
+      byteInput
+      placeholder="50 B"
+      [formControl]="controls.contextWindow"
+      name="contextWindow"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-error *ngIf="controls.contextWindow.errors?.['invalidIntegerEntry'] as error">
+      Context window must be a non-negative integers. Invalid: {{error.value}}
+    </mat-error>
+  </mat-form-field>
+</div>
+
+<div>
   Skip memory regions:
 
   <div class="row">

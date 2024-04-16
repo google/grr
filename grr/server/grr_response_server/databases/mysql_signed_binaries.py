@@ -37,8 +37,8 @@ class MySQLDBSignedBinariesMixin(object):
       ON DUPLICATE KEY UPDATE
         blob_references = VALUES(blob_references)
     """.format(
-        cols=mysql_utils.Columns(args),
-        vals=mysql_utils.NamedPlaceholders(args))
+        cols=mysql_utils.Columns(args), vals=mysql_utils.NamedPlaceholders(args)
+    )
     cursor.execute(query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
@@ -66,8 +66,9 @@ class MySQLDBSignedBinariesMixin(object):
     raw_references, timestamp = row
     # TODO(hanuszczak): pytype does not understand overloads, so we have to cast
     # to a non-optional object.
-    datetime = cast(rdfvalue.RDFDatetime,
-                    mysql_utils.TimestampToRDFDatetime(timestamp))
+    datetime = cast(
+        rdfvalue.RDFDatetime, mysql_utils.TimestampToRDFDatetime(timestamp)
+    )
 
     references = objects_pb2.BlobReferences()
     references.ParseFromString(raw_references)
@@ -82,7 +83,8 @@ class MySQLDBSignedBinariesMixin(object):
     assert cursor is not None
 
     cursor.execute(
-        "SELECT binary_type, binary_path FROM signed_binary_references")
+        "SELECT binary_type, binary_path FROM signed_binary_references"
+    )
     return [
         objects_pb2.SignedBinaryID(binary_type=binary_type, path=binary_path)
         for binary_type, binary_path in cursor.fetchall()

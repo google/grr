@@ -17,9 +17,11 @@ class YaraProcessScanMatchConverterTest(export_test_lib.ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
     return rdf_memory.YaraProcessScanMatch(
-        process=process, match=match, scan_time_us=42, **kwargs)
+        process=process, match=match, scan_time_us=42, **kwargs
+    )
 
   def testExportsSingleMatchCorrectly(self):
     sample = self.GenerateSample([
@@ -27,7 +29,8 @@ class YaraProcessScanMatchConverterTest(export_test_lib.ExportTestBase):
             rule_name="foo",
             string_matches=[
                 rdf_memory.YaraStringMatch(string_id="bar", offset=5)
-            ])
+            ],
+        )
     ])
 
     converter = memory.YaraProcessScanMatchConverter()
@@ -77,12 +80,14 @@ class YaraProcessScanMatchConverterTest(export_test_lib.ExportTestBase):
             string_matches=[
                 rdf_memory.YaraStringMatch(string_id="bar1", offset=5),
                 rdf_memory.YaraStringMatch(string_id="bar2", offset=10),
-            ]),
+            ],
+        ),
         rdf_memory.YaraMatch(
             rule_name="foo2",
             string_matches=[
                 rdf_memory.YaraStringMatch(string_id="bar3", offset=15),
-            ]),
+            ],
+        ),
     ])
 
     converter = memory.YaraProcessScanMatchConverter()
@@ -115,7 +120,8 @@ class YaraProcessMemoryErrorConverterTest(export_test_lib.ExportTestBase):
         ppid=1,
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
     return rdf_memory.ProcessMemoryError(process=process, **kwargs)
 
   def testExportsErrorCorrectly(self):

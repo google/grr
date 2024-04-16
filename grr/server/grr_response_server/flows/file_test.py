@@ -21,6 +21,7 @@ from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.flows import file
 from grr_response_server.flows.general import file_finder
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -593,7 +594,8 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         child.flow_class_name, file_finder.ClientFileFinder.__name__
     )
-    self.assertEmpty(child.args.conditions)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertEmpty(conditions)
 
   def testPassesAllConditionsToClientFileFinderWhenAllConditionsSpecified(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
@@ -650,10 +652,11 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     )
     # We expect 7 condition-attributes to be converted
     # to 7 FileFinderConditions.
-    self.assertLen(child.args.conditions, 7)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertLen(conditions, 7)
 
     def _GetCondition(condition_type):
-      for c in child.args.conditions:
+      for c in conditions:
         if c.condition_type == condition_type:
           return c.UnionCast()
 
@@ -858,7 +861,8 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         child.flow_class_name, file_finder.ClientFileFinder.__name__
     )
-    self.assertEmpty(child.args.conditions)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertEmpty(conditions)
 
   def testPassesAllConditionsToClientFileFinderWhenAllConditionsSpecified(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
@@ -915,10 +919,11 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     )
     # We expect 7 condition-attributes to be converted
     # to 7 FileFinderConditions.
-    self.assertLen(child.args.conditions, 7)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertLen(conditions, 7)
 
     def _GetCondition(condition_type):
-      for c in child.args.conditions:
+      for c in conditions:
         if c.condition_type == condition_type:
           return c.UnionCast()
 
@@ -1179,7 +1184,8 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         child.flow_class_name, file_finder.ClientFileFinder.__name__
     )
-    self.assertEmpty(child.args.conditions)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertEmpty(conditions)
 
   def testPassesAllConditionsToClientFileFinderWhenAllConditionsSpecified(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
@@ -1236,10 +1242,11 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     )
     # We expect 7 condition-attributes to be converted
     # to 7 FileFinderConditions.
-    self.assertLen(child.args.conditions, 7)
+    conditions = mig_flow_objects.ToRDFFlow(child).args.conditions
+    self.assertLen(conditions, 7)
 
     def _GetCondition(condition_type):
-      for c in child.args.conditions:
+      for c in conditions:
         if c.condition_type == condition_type:
           return c.UnionCast()
 

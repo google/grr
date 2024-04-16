@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides user-related data models and helpers."""
+
 from grr_response_core import config
 from grr_response_proto import objects_pb2
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """CSV single-pass output plugin."""
+
 import csv
 import io
 import os
@@ -15,7 +16,8 @@ from grr_response_server import instant_output_plugin
 
 
 class CSVInstantOutputPlugin(
-    instant_output_plugin.InstantOutputPluginWithExportConversion):
+    instant_output_plugin.InstantOutputPluginWithExportConversion
+):
   """Instant Output plugin that writes results to an archive of CSV files."""
 
   plugin_name = "csv-zip"
@@ -25,13 +27,15 @@ class CSVInstantOutputPlugin(
 
   ROW_BATCH = 100
 
-  def _GetCSVHeader(self, value_class, prefix=u""):
+  def _GetCSVHeader(self, value_class, prefix=""):
     header = []
     for type_info in value_class.type_infos:
       if isinstance(type_info, rdf_structs.ProtoEmbedded):
         header.extend(
             self._GetCSVHeader(
-                type_info.type, prefix=prefix + type_info.name + u"."))
+                type_info.type, prefix=prefix + type_info.name + "."
+            )
+        )
       else:
         header.append(prefix + type_info.name)
 
@@ -56,19 +60,26 @@ class CSVInstantOutputPlugin(
 
   def Start(self):
     self.archive_generator = utils.StreamingZipGenerator(
-        compression=zipfile.ZIP_DEFLATED)
+        compression=zipfile.ZIP_DEFLATED
+    )
     self.export_counts = {}
     return []
 
-  def ProcessSingleTypeExportedValues(self, original_value_type,
-                                      exported_values):
+  def ProcessSingleTypeExportedValues(
+      self, original_value_type, exported_values
+  ):
     first_value = next(exported_values, None)
     if not first_value:
       return
 
     yield self.archive_generator.WriteFileHeader(
-        "%s/%s/from_%s.csv" % (self.path_prefix, first_value.__class__.__name__,
-                               original_value_type.__name__))
+        "%s/%s/from_%s.csv"
+        % (
+            self.path_prefix,
+            first_value.__class__.__name__,
+            original_value_type.__name__,
+        )
+    )
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -96,9 +107,9 @@ class CSVInstantOutputPlugin(
 
     yield self.archive_generator.WriteFileFooter()
 
-    self.export_counts.setdefault(
-        original_value_type.__name__,
-        dict())[first_value.__class__.__name__] = counter
+    self.export_counts.setdefault(original_value_type.__name__, dict())[
+        first_value.__class__.__name__
+    ] = counter
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}

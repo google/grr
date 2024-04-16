@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The in-memory database methods for blob encryption keys."""
+
 from typing import Collection
 from typing import Dict
 from typing import Optional
@@ -9,6 +10,7 @@ from grr_response_server.models import blobs
 
 class InMemoryDBBlobKeysMixin:
   """A mixin proving blob encryption key methods for in-memory database."""
+
   blob_keys: Dict[blobs.BlobID, str]
 
   def WriteBlobEncryptionKeys(

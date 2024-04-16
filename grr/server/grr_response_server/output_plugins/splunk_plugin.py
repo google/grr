@@ -7,11 +7,9 @@ core/grr_response_core/config/output_plugins.py
 The spec for HTTP Event Collector is taken from https://docs.splunk.com
 /Documentation/Splunk/8.0.1/Data/FormateventsforHTTPEventCollector
 """
+
 import json
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Text
+from typing import Any, Dict, List
 from urllib import parse as urlparse
 
 import requests
@@ -28,20 +26,21 @@ from grr_response_server import output_plugin
 from grr_response_server.export_converters import base
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 
 HTTP_EVENT_COLLECTOR_PATH = "services/collector/event"
 
-JsonDict = Dict[Text, Any]
+JsonDict = Dict[str, Any]
 
 
 class SplunkConfigurationError(Exception):
   """Error indicating a wrong or missing Splunk configuration."""
-  pass
 
 
 class SplunkOutputPluginArgs(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the arguments of SplunkOutputPlugin."""
+
   protobuf = output_plugin_pb2.SplunkOutputPluginArgs
   rdf_deps = []
 
@@ -73,14 +72,16 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
       raise SplunkConfigurationError(
           "Cannot start SplunkOutputPlugin, because Splunk.url is not "
           "configured. Set it to the base URL of your Splunk installation, "
-          "e.g. 'https://mysplunkserver.example.com:8088'.")
+          "e.g. 'https://mysplunkserver.example.com:8088'."
+      )
 
     if not self._token:
       raise SplunkConfigurationError(
           "Cannot start SplunkOutputPlugin, because Splunk.token "
           "is not configured. You can get this authentication "
           "token when configuring a new HEC input in your Splunk "
-          "installation.")
+          "installation."
+      )
 
     self._url = urlparse.urljoin(url, HTTP_EVENT_COLLECTOR_PATH)
 
@@ -99,32 +100,38 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
     client_ids = {msg.client_id for msg in responses}
     if len(client_ids) > 1:
-      raise AssertionError((
-          "ProcessResponses received messages from different Clients {}, which "
-          "violates OutputPlugin constraints.").format(client_ids))
+      raise AssertionError(
+          (
+              "ProcessResponses received messages from different Clients {},"
+              " which violates OutputPlugin constraints."
+          ).format(client_ids)
+      )
     return client_ids.pop()
 
-  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
     flow_ids = {msg.flow_id for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
-          ("ProcessResponses received messages from different Flows {}, which "
-           "violates OutputPlugin constraints.").format(flow_ids))
+          (
+              "ProcessResponses received messages from different Flows {},"
+              " which violates OutputPlugin constraints."
+          ).format(flow_ids)
+      )
     return flow_ids.pop()
 
-  def _GetClientMetadata(self, client_id: Text) -> base.ExportedMetadata:
+  def _GetClientMetadata(self, client_id: str) -> base.ExportedMetadata:
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     info = mig_objects.ToRDFClientFullInfo(info)
     metadata = export.GetMetadata(client_id, info)
     metadata.timestamp = None  # timestamp is sent outside of metadata.
     return metadata
 
-  def _GetFlowMetadata(self, client_id: Text,
-                       flow_id: Text) -> api_flow.ApiFlow:
+  def _GetFlowMetadata(self, client_id: str, flow_id: str) -> api_flow.ApiFlow:
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
   def _MakeEvent(
@@ -167,5 +174,6 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
     data = "\n\n".join(json.dumps(event) for event in events)
 
     response = requests.post(
-        url=self._url, verify=self._verify_https, data=data, headers=headers)
+        url=self._url, verify=self._verify_https, data=data, headers=headers
+    )
     response.raise_for_status()

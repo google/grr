@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """A module with implementation of the cached keystore."""
+
 import dataclasses
 import datetime
-from typing import Generic
-from typing import Optional
-from typing import TypeVar
+from typing import Generic, Optional, TypeVar
 
 from grr_response_server.keystore import abstract
 
@@ -43,7 +42,8 @@ class CachedKeystore(abstract.Keystore):
     except KeyError:
       entry = CachedKeystore._CacheEntry(
           crypter=self._delegate.Crypter(name),
-          expiration_time=datetime.datetime.now() + self._validity_duration)
+          expiration_time=datetime.datetime.now() + self._validity_duration,
+      )
       self._cache[name] = entry
       return entry.crypter
 
@@ -57,6 +57,7 @@ class CachedKeystore(abstract.Keystore):
   @dataclasses.dataclass(frozen=True)
   class _CacheEntry(Generic[_T]):
     """An entry of the cache dictionary."""
+
     crypter: abstract.Crypter
     expiration_time: datetime.datetime
 

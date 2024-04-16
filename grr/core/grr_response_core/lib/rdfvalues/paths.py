@@ -15,10 +15,10 @@ handler. The type of the handler is carried by the pathtype parameter.
 On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
+
 import itertools
 import posixpath
 import re
-
 from typing import Sequence
 
 from grr_response_core.lib import artifact_utils
@@ -37,6 +37,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   class makes it easier to manipulate these structures by providing useful
   helpers.
   """
+
   protobuf = jobs_pb2.PathSpec
   rdf_deps = [
       rdfvalue.ByteSize,
@@ -236,7 +237,9 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     if not self.HasField("pathtype"):
       raise ValueError(
           "Can't determine AFF4 path without a valid pathtype for {}.".format(
-              self))
+              self
+          )
+      )
 
     first_component = self[0]
     dev = first_component.path
@@ -244,8 +247,11 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       # We divide here just to get prettier numbers in the GUI
       dev += ":{}".format(first_component.offset // 512)
 
-    if (len(self) > 1 and first_component.pathtype == PathSpec.PathType.OS and
-        self[1].pathtype in (PathSpec.PathType.TSK, PathSpec.PathType.NTFS)):
+    if (
+        len(self) > 1
+        and first_component.pathtype == PathSpec.PathType.OS
+        and self[1].pathtype in (PathSpec.PathType.TSK, PathSpec.PathType.NTFS)
+    ):
       result = [self.AFF4_PREFIXES[self[1].pathtype], dev]
 
       # Skip the top level pathspec.
@@ -282,6 +288,7 @@ def _unique(iterable):
 
 class GlobComponentExplanation(rdf_structs.RDFProtoStruct):
   """A sub-part of a GlobExpression with examples."""
+
   protobuf = flows_pb2.GlobComponentExplanation
 
 
@@ -291,11 +298,21 @@ GROUPING_PATTERN = re.compile("{([^}]+,[^}]+)}")
 _VAR_PATTERN = re.compile("(" + "|".join([r"%%\w+%%", r"%%\w+\.\w+%%"]) + ")")
 
 _REGEX_SPLIT_PATTERN = re.compile(
-    "(" + "|".join(["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
+    "(" + "|".join(["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")"
+)
 
-_COMPONENT_SPLIT_PATTERN = re.compile("(" + "|".join([
-    r"{[^}]+,[^}]+}", r"\?", r"\*\*\d*/?", r"\*", r"%%\w+%%", r"%%\w+\.\w+%%"
-]) + ")")
+_COMPONENT_SPLIT_PATTERN = re.compile(
+    "("
+    + "|".join([
+        r"{[^}]+,[^}]+}",
+        r"\?",
+        r"\*\*\d*/?",
+        r"\*",
+        r"%%\w+%%",
+        r"%%\w+\.\w+%%",
+    ])
+    + ")"
+)
 
 
 class GlobExpression(rdfvalue.RDFString):
@@ -337,7 +354,7 @@ class GlobExpression(rdfvalue.RDFString):
     components = []
     offset = 0
     for match in GROUPING_PATTERN.finditer(pattern):
-      components.append([pattern[offset:match.start()]])
+      components.append([pattern[offset : match.start()]])
 
       # Expand the attribute into the set of possibilities:
       alternatives = match.group(1).split(",")
@@ -348,7 +365,7 @@ class GlobExpression(rdfvalue.RDFString):
     # Now calculate the cartesian products of all these sets to form all
     # strings.
     for vector in itertools.product(*components):
-      yield u"".join(vector)
+      yield "".join(vector)
 
   def _ReplaceRegExGrouping(self, grouping):
     alternatives = grouping.group(1).split(",")
@@ -366,8 +383,9 @@ class GlobExpression(rdfvalue.RDFString):
     else:
       return re.escape(part)
 
-  def ExplainComponents(self, example_count: int,
-                        knowledge_base) -> Sequence[GlobComponentExplanation]:
+  def ExplainComponents(
+      self, example_count: int, knowledge_base
+  ) -> Sequence[GlobComponentExplanation]:
     """Returns a list of GlobComponentExplanations with examples."""
     parts = _COMPONENT_SPLIT_PATTERN.split(self._value)
     components = []
@@ -388,7 +406,8 @@ class GlobExpression(rdfvalue.RDFString):
         # possible values, this should still be enough.
         try:
           examples = artifact_utils.InterpolateKbAttributes(
-              glob_part, knowledge_base)
+              glob_part, knowledge_base
+          )
         except artifact_utils.Error:
           # Interpolation can fail for many non-critical reasons, e.g. when the
           # client is missing a KB attribute.
@@ -410,6 +429,6 @@ class GlobExpression(rdfvalue.RDFString):
       A RegularExpression() object.
     """
     parts = _REGEX_SPLIT_PATTERN.split(self._value)
-    result = u"".join(self._ReplaceRegExPart(p) for p in parts)
+    result = "".join(self._ReplaceRegExPart(p) for p in parts)
 
-    return rdf_standard.RegularExpression(u"(?i)\\A%s\\Z" % result)
+    return rdf_standard.RegularExpression("(?i)\\A%s\\Z" % result)

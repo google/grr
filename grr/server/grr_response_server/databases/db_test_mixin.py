@@ -77,8 +77,9 @@ class GlobalDatabaseTestMixin(DatabaseProvider):
     # Set up database before calling super.setUp(), in case any other mixin
     # depends on db during its setup.
     db_obj, cleanup = self.CreateDatabase()
-    patcher = mock.patch.object(data_store, "REL_DB",
-                                db.DatabaseValidationWrapper(db_obj))
+    patcher = mock.patch.object(
+        data_store, "REL_DB", db.DatabaseValidationWrapper(db_obj)
+    )
     patcher.start()
     self.addCleanup(patcher.stop)
 

@@ -938,7 +938,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
       self.assertLen(children, 2)
       for child in children:
-        self.assertIsNone(child.stat_entry.st_mtime)
+        self.assertFalse(child.stat_entry.st_mtime)
 
   def testNotificationWhenListingRegistry(self):
     # Change the username so notifications get written.

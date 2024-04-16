@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """REL_DB blobstore implementation."""
+
 from typing import Dict
 from typing import Iterable
 from typing import Optional
@@ -25,8 +26,10 @@ class DbBlobStore(blob_store.BlobStore):
       # interface).
       delegate = data_store.REL_DB.delegate  # pytype: disable=attribute-error
       if not isinstance(delegate, blob_store.BlobStore):
-        raise TypeError(f"Database blobstore delegate of '{type(delegate)}' "
-                        f"type does not implement the blobstore interface")
+        raise TypeError(
+            f"Database blobstore delegate of '{type(delegate)}' "
+            "type does not implement the blobstore interface"
+        )
 
     self._delegate = delegate
 

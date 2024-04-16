@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with an action for collecting named pipes."""
+
 import contextlib
 import logging
 import os
@@ -51,7 +52,9 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
   #
   # https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeclientcomputernamew
   # pytype: disable=module-attr
-  GetNamedPipeClientComputerNameW = ctypes.windll.kernel32.GetNamedPipeClientComputerNameW  # pylint: disable=invalid-name
+  GetNamedPipeClientComputerNameW = (  # pylint: disable=invalid-name
+      ctypes.windll.kernel32.GetNamedPipeClientComputerNameW
+  )
   # pytype: enable=module-attr
   GetNamedPipeClientComputerNameW.argtypes = [
       ctypes.wintypes.HANDLE,
@@ -66,8 +69,9 @@ def ListNamedPipes() -> Iterator[rdf_client.NamedPipe]:
     pipe.name = name
 
     try:
-      handle = win32file.CreateFile(f"\\\\.\\pipe\\{name}", 0, 0, None,
-                                    win32file.OPEN_EXISTING, 0, None)
+      handle = win32file.CreateFile(
+          f"\\\\.\\pipe\\{name}", 0, 0, None, win32file.OPEN_EXISTING, 0, None
+      )
     except win32file.error as error:
       # There might be some permission issues. We log the error and skip getting
       # pipe details, but still yield a result with at least the name filled-in.

@@ -2,6 +2,7 @@
 """Get Information about network states."""
 
 import logging
+
 import psutil
 
 from grr_response_client import actions
@@ -37,8 +38,9 @@ def ListNetworkConnectionsFromClient(args):
         if conn.status:
           res.state = conn.status
       except ValueError:
-        logging.warning("Encountered unknown connection status (%s).",
-                        conn.status)
+        logging.warning(
+            "Encountered unknown connection status (%s).", conn.status
+        )
 
       res.local_address.ip, res.local_address.port = conn.laddr
       if conn.raddr:
@@ -49,6 +51,7 @@ def ListNetworkConnectionsFromClient(args):
 
 class ListNetworkConnections(actions.ActionPlugin):
   """Gather open network connection stats."""
+
   in_rdfvalue = rdf_client_action.ListNetworkConnectionsArgs
   out_rdfvalues = [rdf_client_network.NetworkConnection]
 

@@ -25,6 +25,13 @@ message CloudMetadataRequest {
   }];
   optional CloudInstance.InstanceType instance_type = 7
       [(sem_type) = { description: "AMAZON/GOOGLE etc." }, default = UNSET];
+
+  // Whether to ignore HTTP errors when the request is made.
+  //
+  // Some metadata requests are not critical and the whole action invocation
+  // should not fail in case attempt to obtain them fails. By setting this flag
+  // we make such failures non-critical.
+  optional bool ignore_http_errors = 8;
 }
 
 message CloudMetadataRequests {
@@ -551,6 +558,15 @@ message OnlineNotificationArgs {
 }
 
 // Next field ID: 3
+message UpdateClientArgs {
+  reserved 1;
+  optional string binary_path = 2 [(sem_type) = {
+    description: "Identifies the binary uploaded to GRR server that has "
+                 "to be run on the client to perform the update.",
+  }];
+}
+
+// Next field ID: 3
 message LaunchBinaryArgs {
   optional string binary = 1 [(sem_type) = {
     type: "RDFURN",
@@ -748,31 +764,6 @@ message FileCollectorArgs {
   }];
 }
 
-// Next field ID: 6
-message FirefoxHistoryArgs {
-  optional PathSpec.PathType pathtype = 1 [
-    (sem_type) = { description: "Type of path access to use." },
-    default = OS
-  ];
-
-  optional bool get_archive = 2 [
-    (sem_type) = {
-      description: "Should we get Archived History as well (3 months old).",
-    },
-    default = false
-  ];
-
-  optional string username = 3 [(sem_type) = {
-    description: "The user to get history for. If history_path is "
-                 "not set this will be used to guess the path to the "
-                 "history files. Can be in form DOMAIN\\user."
-  }];
-
-  optional string history_path = 5 [(sem_type) = {
-    description: "Path to a profile directory that contains a History file.",
-  }];
-}
-
 // Next field ID: 2
 message ListDirectoryArgs {
   optional PathSpec pathspec = 1
@@ -864,29 +855,6 @@ message GetMBRArgs {
     },
     default = 4096
   ];
-}
-
-// Next field ID: 6
-message ChromeHistoryArgs {
-  optional PathSpec.PathType pathtype = 1 [
-    (sem_type) = { description: "Type of path access to use." },
-    default = OS
-  ];
-
-  optional bool get_archive = 2 [(sem_type) = {
-    description: "Should we get Archived History as well (3 months old)."
-  }];
-
-  optional string username = 3 [(sem_type) = {
-    description: "The user to get Chrome history for. If history_path is "
-                 "not set this will be used to guess the path to the "
-                 "history files. Can be in form DOMAIN\\user.",
-  }];
-
-  optional string history_path = 5 [(sem_type) = {
-    description: "Path to a profile directory that contains a History "
-                 "file.",
-  }];
 }
 
 enum Browser {
@@ -2007,7 +1975,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 24
+// Next field ID: 26
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -2065,6 +2033,10 @@ message YaraProcessScanRequest {
                  "flag to change this behavior.",
     label: ADVANCED,
   }];
+
+  // Whether to skip scanning all parent processes of the GRR agent.
+  optional bool ignore_parent_processes = 24;
+
   optional uint32 per_process_timeout = 5 [(sem_type) = {
     description: "A timeout in seconds that is applied while scanning; "
                  "applies to each scan individually.",
@@ -2127,6 +2099,10 @@ message YaraProcessScanRequest {
     type: "Duration",
   }];
 
+  optional uint32 context_window = 25 [(sem_type) = {
+    description: "Include this many bytes of context around the hit.",
+  }];
+
   // ImplementationType has been introduced for rolling-out sandboxing.
   // The purpose is to make it possible to switch the implementation at
   // run-time via the UI in case there are problems.
@@ -2165,6 +2141,9 @@ message YaraStringMatch {
   }];
   optional bytes data = 3 [(sem_type) = {
     description: "The actual data that matched.",
+  }];
+  optional bytes context = 4 [(sem_type) = {
+    description: "The context around the match.",
   }];
 }
 
@@ -2272,6 +2251,9 @@ message YaraProcessDumpArgs {
                  "the remaining memory pages will be dumped up to size_limit.",
     label: ADVANCED,
   }];
+
+  // Whether to skip dumping all parent processes of the GRR agent.
+  optional bool ignore_parent_processes = 13;
 }
 
 message ProcessMemoryRegion {
@@ -2363,6 +2345,9 @@ message FlowProcessingRequest {
   optional uint64 delivery_time = 3 [(sem_type) = {
     type: "RDFDatetime",
   }];
+  optional uint64 creation_time = 4 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
 }
 
 message FlowRequest {
@@ -2385,9 +2370,12 @@ message FlowRequest {
   optional uint64 nr_responses_expected = 8;
   // Id of the response that should be the next for incremental processing.
   optional uint64 next_response_id = 10;
+  optional uint64 timestamp = 11 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
 }
 
-// Next id: 9
+// Next id: 10
 message FlowResponse {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2407,6 +2395,9 @@ message FlowResponse {
   // be renamed to `payload` as it should have been from the very beginning.
   optional google.protobuf.Any any_payload = 8 [(sem_type) = {
     no_dynamic_type_lookup: true,
+  }];
+  optional uint64 timestamp = 9 [(sem_type) = {
+    type: "RDFDatetime",
   }];
 }
 
@@ -2444,7 +2435,7 @@ message FlowLogEntry {
   optional string message = 2;
 }
 
-// Next id: 12
+// Next id: 13
 message FlowStatus {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2471,15 +2462,21 @@ message FlowStatus {
   optional uint64 runtime_us = 11 [(sem_type) = {
     type: "Duration",
   }];
+  optional uint64 timestamp = 12 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
 }
 
-// Next id: 6
+// Next id: 7
 message FlowIterator {
   optional string client_id = 1;
   optional string flow_id = 2;
   optional string hunt_id = 5;
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
+  optional uint64 timestamp = 6 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
 }
 
 // Next id: 36

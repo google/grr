@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Plist related rdfvalues."""
 
-
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import sysinfo_pb2
 

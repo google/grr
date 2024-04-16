@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +37,7 @@ RelRange = collections.namedtuple('RelRange', 'start len')
 # pylint: enable=g-bad-name
 
 
-class Finger(object):
+class Finger:
   """A Finger defines how to hash a file to get specific fingerprints.
 
   The Finger contains one or more hash functions, a set of ranges in the
@@ -101,7 +100,7 @@ class Finger(object):
       hasher.update(block)
 
 
-class Fingerprinter(object):
+class Fingerprinter:
   """Compute different types of cryptographic hashes over a file.
 
   Depending on type of file and mode of invocation, filetype-specific or
@@ -120,8 +119,12 @@ class Fingerprinter(object):
   """
 
   BLOCK_SIZE = 1000000
-  GENERIC_HASH_CLASSES = (hashlib.md5, hashlib.sha1, hashlib.sha256,
-                          hashlib.sha512)
+  GENERIC_HASH_CLASSES = (
+      hashlib.md5,
+      hashlib.sha1,
+      hashlib.sha256,
+      hashlib.sha512,
+  )
   AUTHENTICODE_HASH_CLASSES = (hashlib.md5, hashlib.sha1)
 
   def __init__(self, file_obj):
@@ -179,9 +182,11 @@ class Fingerprinter(object):
       expected_range = finger.CurrentRange()
       if expected_range is None:
         continue
-      if (start > expected_range.start or
-          (start == expected_range.start and end > expected_range.end) or
-          (start < expected_range.start and end > expected_range.start)):
+      if (
+          start > expected_range.start
+          or (start == expected_range.start and end > expected_range.end)
+          or (start < expected_range.start and end > expected_range.start)
+      ):
         raise RuntimeError('Cutting across fingers.')
       if start == expected_range.start:
         finger.HashBlock(block)
@@ -221,8 +226,11 @@ class Fingerprinter(object):
       res = {}
       leftover = finger.CurrentRange()
       if leftover:
-        if (len(finger.ranges) > 1 or leftover.start != self.filelength or
-            leftover.end != self.filelength):
+        if (
+            len(finger.ranges) > 1
+            or leftover.start != self.filelength
+            or leftover.end != self.filelength
+        ):
           raise RuntimeError('Non-empty range remains.')
       res.update(finger.metadata)
       for hasher in finger.hashers:
@@ -243,10 +251,10 @@ class Fingerprinter(object):
     is passed through a pre-defined (or user defined) set of hash functions.
 
     Args:
-      hashers: An iterable of hash classes (e.g. out of hashlib) which will
-               be instantiated for use. If hashers is not provided, or is
-               provided as 'None', the default hashers will get used. To
-               invoke this without hashers, provide an empty list.
+      hashers: An iterable of hash classes (e.g. out of hashlib) which will be
+        instantiated for use. If hashers is not provided, or is provided as
+        'None', the default hashers will get used. To invoke this without
+        hashers, provide an empty list.
 
     Returns:
       Always True, as all files are 'generic' files.
@@ -301,11 +309,11 @@ class Fingerprinter(object):
     self.file.seek(optional_header_offset, os.SEEK_SET)
     buf = self.file.read(2)
     image_magic = struct.unpack('<H', buf)[0]
-    if image_magic == 0x10b:
+    if image_magic == 0x10B:
       # 32 bit
       rva_base = optional_header_offset + 92
       cert_base = optional_header_offset + 128
-    elif image_magic == 0x20b:
+    elif image_magic == 0x20B:
       # 64 bit
       rva_base = optional_header_offset + 108
       cert_base = optional_header_offset + 144
@@ -316,16 +324,21 @@ class Fingerprinter(object):
     self.file.seek(rva_base, os.SEEK_SET)
     buf = self.file.read(4)
     number_of_rva = struct.unpack('<I', buf)[0]
-    if (number_of_rva < 5 or
-        optional_header_offset + optional_header_size < cert_base + 8):
+    if (
+        number_of_rva < 5
+        or optional_header_offset + optional_header_size < cert_base + 8
+    ):
       return extents
     extents['CertTable'] = RelRange(cert_base, 8)
 
     self.file.seek(cert_base, os.SEEK_SET)
     buf = self.file.read(8)
     start, length = struct.unpack('<II', buf)
-    if (length == 0 or start < optional_header_offset + optional_header_size or
-        start + length > self.filelength):
+    if (
+        length == 0
+        or start < optional_header_offset + optional_header_size
+        or start + length > self.filelength
+    ):
       # The location of the SignedData blob is just wrong (or there is none).
       # Ignore it -- everything else we did still makes sense.
       return extents
@@ -346,7 +359,7 @@ class Fingerprinter(object):
         # If the entire blob is smaller than its header, bail out.
         return signed_data
       b_cert = buf[8:dw_length]
-      buf = buf[(dw_length + 7) & 0x7ffffff8:]
+      buf = buf[(dw_length + 7) & 0x7FFFFFF8 :]
       signed_data.append((w_revision, w_cert_type, b_cert))
     return signed_data
 
@@ -361,10 +374,10 @@ class Fingerprinter(object):
     parts is added to results by HashIt()
 
     Args:
-      hashers: An iterable of hash classes (e.g. out of hashlib) which will
-               be instantiated for use. If 'None' is provided, a default set
-               of hashers is used. To select no hash function (e.g. to only
-               extract metadata), use an empty iterable.
+      hashers: An iterable of hash classes (e.g. out of hashlib) which will be
+        instantiated for use. If 'None' is provided, a default set of hashers is
+        used. To select no hash function (e.g. to only extract metadata), use an
+        empty iterable.
 
     Returns:
       True if the file is detected as a valid PE/COFF image file,

@@ -17,7 +17,6 @@ class CommandParser(abstract.SingleResponseParser[Any]):
   """Abstract parser for processing command output.
 
   Must implement the Parse function.
-
   """
 
   # TODO(hanuszczak): This should probably be abstract or private.
@@ -33,13 +32,16 @@ class CommandParser(abstract.SingleResponseParser[Any]):
         stdout=response.stdout,
         stderr=response.stderr,
         return_val=response.exit_status,
-        knowledge_base=knowledge_base)
+        knowledge_base=knowledge_base,
+    )
 
   def CheckReturn(self, cmd, return_val):
     """Raise if return value is bad."""
     if return_val != 0:
-      message = ("Parsing output of command '{command}' failed, as command had "
-                 "{code} return code")
+      message = (
+          "Parsing output of command '{command}' failed, as command had "
+          "{code} return code"
+      )
       raise abstract.ParseError(message.format(command=cmd, code=return_val))
 
 
@@ -70,8 +72,9 @@ class RegistryValueParser(abstract.SingleResponseParser[Any]):
   def ParseResponse(self, knowledge_base, response):
     # TODO(hanuszczak): Why some of the registry value parsers anticipate string
     # response? This is stupid.
-    precondition.AssertType(response,
-                            (rdf_client_fs.StatEntry, rdfvalue.RDFString))
+    precondition.AssertType(
+        response, (rdf_client_fs.StatEntry, rdfvalue.RDFString)
+    )
 
     return self.Parse(response, knowledge_base)
 

@@ -6,7 +6,8 @@
 set -e
 
 source "${HOME}/INSTALL/bin/activate"
-pip install --upgrade pip wheel six setuptools
+pip install -r build_requirements.txt
+pip install --upgrade six
 
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS
@@ -18,14 +19,14 @@ unset _JAVA_OPTIONS
 # Proto package.
 cd grr/proto
 python setup.py sdist
-pip install ./dist/grr-response-proto-*.tar.gz
+pip install ./dist/grr_response_proto-*.tar.gz
 cd -
 
 # Base package, grr-response-core, depends on grr-response-proto.
 # Running sdist first since it accepts --no-sync-artifacts flag.
 cd grr/core
 python setup.py sdist --no-sync-artifacts
-pip install ./dist/grr-response-core-*.tar.gz
+pip install ./dist/grr_response_core-*.tar.gz
 cd -
 
 # Depends on grr-response-core.
@@ -34,7 +35,7 @@ cd -
 # only gets copied during sdist step.
 cd grr/client
 python setup.py sdist
-pip install ./dist/grr-response-client-*.tar.gz
+pip install ./dist/grr_response_client-*.tar.gz
 cd -
 
 # Depends on grr-response-client.
@@ -43,5 +44,5 @@ cd -
 # only gets copied during sdist step.
 cd grr/client_builder
 python setup.py sdist
-pip install ./dist/grr-response-client-builder-*.tar.gz
+pip install ./dist/grr_response_client_builder-*.tar.gz
 cd -

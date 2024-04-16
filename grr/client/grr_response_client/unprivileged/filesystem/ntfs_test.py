@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import contextlib
 from unittest import mock
+
 from absl.testing import absltest
 
 from grr_response_client.unprivileged import test_lib
@@ -14,7 +15,8 @@ class NtfsTestBase(ntfs_image_test_lib.NtfsImageTest):
   _IMPLEMENTATION_TYPE = filesystem_pb2.NTFS
 
   def _ExpectedStatEntry(
-      self, st: filesystem_pb2.StatEntry) -> filesystem_pb2.StatEntry:
+      self, st: filesystem_pb2.StatEntry
+  ) -> filesystem_pb2.StatEntry:
     st.ClearField("st_mode")
     st.ClearField("st_nlink")
     st.ClearField("st_uid")
@@ -38,7 +40,8 @@ class NtfsWithRemoteDeviceTest(NtfsTestBase):
 
     # The FileDevice won't return a file descriptor.
     stack.enter_context(
-        mock.patch.object(client.FileDevice, "file_descriptor", None))
+        mock.patch.object(client.FileDevice, "file_descriptor", None)
+    )
 
 
 class NtfsWithFileDescriptorSharingTest(NtfsTestBase):

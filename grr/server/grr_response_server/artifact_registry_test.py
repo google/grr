@@ -87,7 +87,6 @@ class ArtifactTest(absltest.TestCase):
     artifact = rdf_artifacts.Artifact(
         name="Foo",
         doc="This is Foo.",
-        provides=["fqdn", "domain"],
         supported_os=["Windows"],
         urls=["https://example.com"])
     ar.ValidateSyntax(artifact)
@@ -113,15 +112,13 @@ class ArtifactTest(absltest.TestCase):
     artifact = rdf_artifacts.Artifact(
         name="Bar",
         doc="This is Bar.",
-        provides=["environ_windir"],
         supported_os=["Windows"],
         urls=["https://example.com"],
         sources=[registry_key_source, file_source])
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxMissingDoc(self):
-    artifact = rdf_artifacts.Artifact(
-        name="Baz", provides=["os"], supported_os=["Linux"])
+    artifact = rdf_artifacts.Artifact(name="Baz", supported_os=["Linux"])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
                                 "missing doc"):
@@ -131,17 +128,9 @@ class ArtifactTest(absltest.TestCase):
     artifact = rdf_artifacts.Artifact(
         name="Quux",
         doc="This is Quux.",
-        provides=["os"],
         supported_os=["Solaris"])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Solaris'"):
-      ar.ValidateSyntax(artifact)
-
-  def testValidateSyntaxBrokenProvides(self):
-    artifact = rdf_artifacts.Artifact(
-        name="Thud", doc="This is Thud.", provides=["fqdn", "garbage"])
-
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'garbage'"):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadSource(self):
@@ -153,7 +142,6 @@ class ArtifactTest(absltest.TestCase):
     artifact = rdf_artifacts.Artifact(
         name="Barf",
         doc="This is Barf.",
-        provides=["os"],
         sources=[source])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
@@ -252,6 +240,7 @@ class ArtifactRegistryTest(absltest.TestCase):
       - type: PATH
         attributes:
           paths: ['/bar', '/baz']
+    provides: [os_release, os_major_version, os_minor_version]
     ---
     name: Quux
     doc: Lorem ipsum.
@@ -260,6 +249,7 @@ class ArtifactRegistryTest(absltest.TestCase):
       - type: PATH
         attributes:
           paths: ['/norf', '/thud']
+    provides: [domain]
     """)
     artifacts = registry.ArtifactsFromYaml(yaml)
     artifacts.sort(key=lambda artifact: artifact.name)

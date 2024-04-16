@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Mixin tests for storing Foreman rules in the relational db."""
+
 from typing import Optional
 
 from grr_response_core.lib import rdfvalue

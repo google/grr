@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test standard RDFValues."""
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
@@ -23,7 +22,8 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         host="google.com",
         path="/index",
         query="q=hi",
-        fragment="anchor1")
+        fragment="anchor1",
+    )
     self.assertEqual(sample.transport, "http")
     self.assertEqual(sample.host, "google.com")
     self.assertEqual(sample.path, "/index")

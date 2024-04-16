@@ -8,7 +8,7 @@ import os
 import platform
 import re
 import stat
-from typing import Callable, Iterator, Optional, Text, Iterable
+from typing import Callable, Iterable, Iterator, Optional, Text
 
 import psutil
 
@@ -41,7 +41,8 @@ class PathOpts(object):
       follow_links: bool = False,
       xdev: Optional[rdf_structs.EnumNamedValue] = None,
       pathtype: Optional[rdf_structs.EnumNamedValue] = None,
-      implementation_type: Optional[rdf_structs.EnumNamedValue] = None):
+      implementation_type: Optional[rdf_structs.EnumNamedValue] = None,
+  ):
     self.follow_links = follow_links
     self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
     self.implementation_type = implementation_type
@@ -93,8 +94,9 @@ class RecursiveComponent(PathComponent):
     if depth > self.max_depth:
       return
 
-    for item in _ListDir(dirpath, self.opts.pathtype,
-                         self.opts.implementation_type):
+    for item in _ListDir(
+        dirpath, self.opts.pathtype, self.opts.implementation_type
+    ):
       itempath = os.path.join(dirpath, item)
 
       yield itempath
@@ -111,8 +113,10 @@ class RecursiveComponent(PathComponent):
         # Can happen for links pointing to non existent files/directories.
         return
 
-      if (self._allowed_devices is not _XDEV_ALL_ALLOWED and
-          stat_entry.st_dev not in self._allowed_devices):
+      if (
+          self._allowed_devices is not _XDEV_ALL_ALLOWED
+          and stat_entry.st_dev not in self._allowed_devices
+      ):
         return
 
       if not stat.S_ISDIR(stat_entry.st_mode):
@@ -125,7 +129,8 @@ class RecursiveComponent(PathComponent):
 
     elif self.opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       pathspec = rdf_paths.PathSpec(
-          path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+          path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY
+      )
       try:
         with vfs.VFSOpen(pathspec) as filedesc:
           if not filedesc.IsDirectory():
@@ -153,7 +158,8 @@ class RecursiveComponent(PathComponent):
 
   def __repr__(self):
     return "RecursiveComponent(max_depth={}, opts={!r})".format(
-        self.max_depth, self.opts)
+        self.max_depth, self.opts
+    )
 
 
 class GlobComponent(PathComponent):
@@ -213,7 +219,8 @@ class GlobComponent(PathComponent):
     pathspec = rdf_paths.PathSpec(
         path=new_path,
         pathtype=self.opts.pathtype,
-        implementation_type=self.opts.implementation_type)
+        implementation_type=self.opts.implementation_type,
+    )
     try:
       with vfs.VFSOpen(pathspec) as filedesc:
         if filedesc.path == "/" and new_path != "/":
@@ -240,8 +247,9 @@ class GlobComponent(PathComponent):
         yield os.path.join(dirpath, literal_match)
         return
 
-    for item in _ListDir(dirpath, self.opts.pathtype,
-                         self.opts.implementation_type):
+    for item in _ListDir(
+        dirpath, self.opts.pathtype, self.opts.implementation_type
+    ):
       if self.regex.match(item):
         yield os.path.join(dirpath, item)
 
@@ -316,8 +324,9 @@ def ParsePathItem(item, opts=None):
   return RecursiveComponent(max_depth=max_depth, opts=opts)
 
 
-def ParsePath(path: Text,
-              opts: Optional[PathOpts] = None) -> Iterator[PathComponent]:
+def ParsePath(
+    path: Text, opts: Optional[PathOpts] = None
+) -> Iterator[PathComponent]:
   """Parses given path into a stream of `PathComponent` instances.
 
   Args:
@@ -348,9 +357,11 @@ def ParsePath(path: Text,
     yield component
 
 
-def ExpandPath(path: Text,
-               opts: Optional[PathOpts] = None,
-               heartbeat_cb: Callable[[], None] = _NoOp):
+def ExpandPath(
+    path: Text,
+    opts: Optional[PathOpts] = None,
+    heartbeat_cb: Callable[[], None] = _NoOp,
+):
   """Applies all expansion mechanisms to the given path.
 
   Args:
@@ -386,7 +397,7 @@ def ExpandGroups(path):
   offset = 0
 
   for match in PATH_GROUP_REGEX.finditer(path):
-    chunks.append([path[offset:match.start()]])
+    chunks.append([path[offset : match.start()]])
     chunks.append(match.group("alts").split(","))
     offset = match.end()
 
@@ -396,9 +407,11 @@ def ExpandGroups(path):
     yield "".join(prod)
 
 
-def ExpandGlobs(path: Text,
-                opts: Optional[PathOpts] = None,
-                heartbeat_cb: Callable[[], None] = _NoOp):
+def ExpandGlobs(
+    path: Text,
+    opts: Optional[PathOpts] = None,
+    heartbeat_cb: Callable[[], None] = _NoOp,
+):
   """Performs glob expansion on a given path.
 
   Path can contain regular glob elements (such as `**`, `*`, `?`, `[a-z]`). For
@@ -453,14 +466,16 @@ def _ExpandComponents(basepath, components, index=0, heartbeat_cb=_NoOp):
     yield basepath
     return
   for childpath in components[index].Generate(basepath):
-    for path in _ExpandComponents(childpath, components, index + 1,
-                                  heartbeat_cb):
+    for path in _ExpandComponents(
+        childpath, components, index + 1, heartbeat_cb
+    ):
       yield path
 
 
 def _ListDir(
-    dirpath: str, pathtype: rdf_paths.PathSpec.PathType,
-    implementation_type: rdf_paths.PathSpec.ImplementationType
+    dirpath: str,
+    pathtype: rdf_paths.PathSpec.PathType,
+    implementation_type: rdf_paths.PathSpec.ImplementationType,
 ) -> Iterable[str]:
   """Returns children of a given directory.
 
@@ -483,7 +498,8 @@ def _ListDir(
       return []
 
   pathspec = rdf_paths.PathSpec(
-      path=dirpath, pathtype=pathtype, implementation_type=implementation_type)
+      path=dirpath, pathtype=pathtype, implementation_type=implementation_type
+  )
   childpaths = []
   try:
     with vfs.VFSOpen(pathspec) as filedesc:

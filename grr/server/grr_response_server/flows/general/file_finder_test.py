@@ -30,6 +30,7 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import filesystem_test_lib
@@ -74,10 +75,12 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
 
-      path_info = data_store.REL_DB.ReadPathInfo(
+      proto_path_info = data_store.REL_DB.ReadPathInfo(
           self.client_id,
           rdf_objects.PathInfo.PathType.OS,
-          components=self.FilenameToPathComponents(fname))
+          components=self.FilenameToPathComponents(fname),
+      )
+      path_info = mig_objects.ToRDFPathInfo(proto_path_info)
       hash_obj = path_info.hash_entry
 
       self.assertEqual(str(hash_obj.sha256), file_hash)
@@ -917,8 +920,11 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
                         path_type=rdf_objects.PathInfo.PathType.TSK):
     components = self.base_path.strip("/").split("/")
     components += path_components
-    return data_store.REL_DB.ReadPathInfo(self.client_id, path_type,
-                                          tuple(components))
+    return mig_objects.ToRDFPathInfo(
+        data_store.REL_DB.ReadPathInfo(
+            self.client_id, path_type, tuple(components)
+        )
+    )
 
   def _ReadTestFile(self,
                     path_components,
@@ -1431,7 +1437,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         flow_args=flow_args)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn("Missing knowledgebase attributes", flow_obj.error_message)
 
     log_entries = data_store.REL_DB.ReadFlowLogEntries(
@@ -1461,7 +1467,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         flow_args=flow_args)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn("Unknown knowledgebase attributes", flow_obj.error_message)
 
     log_entries = data_store.REL_DB.ReadFlowLogEntries(
@@ -1488,7 +1494,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.RUNNING)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.RUNNING)
     log_entries = data_store.REL_DB.ReadFlowLogEntries(
         client_id=client_id, flow_id=flow_id, offset=0, count=1024
     )
@@ -1516,7 +1522,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         flow_args=flow_args)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertIn(
         "All globs skipped, as there's no knowledgebase available for"
         " interpolation",

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Plugin that exports results as SQLite db scripts."""
+
 import io
 import os
+import sqlite3
 import zipfile
 
-import sqlite3
 import yaml
 
 from grr_response_core.lib import rdfvalue
@@ -14,10 +15,10 @@ from grr_response_core.lib.util import collection
 from grr_response_server import instant_output_plugin
 
 
-class Rdf2SqliteAdapter(object):
+class Rdf2SqliteAdapter:
   """An adapter for converting RDF values to a SQLite-friendly form."""
 
-  class Converter(object):
+  class Converter:
 
     def __init__(self, sqlite_type, convert_fn):
       self.sqlite_type = sqlite_type
@@ -33,20 +34,17 @@ class Rdf2SqliteAdapter(object):
   # Converters for fields that have a semantic type annotation in their
   # protobuf definition.
   SEMANTIC_CONVERTERS = {
-      rdfvalue.RDFString:
-          STR_CONVERTER,
-      rdfvalue.RDFBytes:
-          BYTES_CONVERTER,
-      rdfvalue.RDFInteger:
-          INT_CONVERTER,
-      bool:
-          INT_CONVERTER,  # Sqlite does not have a bool type.
-      rdfvalue.RDFDatetime:
-          Converter("INTEGER", lambda x: x.AsMicrosecondsSinceEpoch()),
-      rdfvalue.RDFDatetimeSeconds:
-          Converter("INTEGER", lambda x: x.AsSecondsSinceEpoch() * 1000000),
-      rdfvalue.DurationSeconds:
-          Converter("INTEGER", lambda x: x.microseconds),
+      rdfvalue.RDFString: STR_CONVERTER,
+      rdfvalue.RDFBytes: BYTES_CONVERTER,
+      rdfvalue.RDFInteger: INT_CONVERTER,
+      bool: INT_CONVERTER,  # Sqlite does not have a bool type.
+      rdfvalue.RDFDatetime: Converter(
+          "INTEGER", lambda x: x.AsMicrosecondsSinceEpoch()
+      ),
+      rdfvalue.RDFDatetimeSeconds: Converter(
+          "INTEGER", lambda x: x.AsSecondsSinceEpoch() * 1000000
+      ),
+      rdfvalue.DurationSeconds: Converter("INTEGER", lambda x: x.microseconds),
   }
 
   # Converters for fields that do not have a semantic type annotation in their
@@ -68,14 +66,17 @@ class Rdf2SqliteAdapter(object):
   def GetConverter(type_info):
     if type_info.__class__ is rdf_structs.ProtoRDFValue:
       return Rdf2SqliteAdapter.SEMANTIC_CONVERTERS.get(
-          type_info.type, Rdf2SqliteAdapter.DEFAULT_CONVERTER)
+          type_info.type, Rdf2SqliteAdapter.DEFAULT_CONVERTER
+      )
     else:
       return Rdf2SqliteAdapter.NON_SEMANTIC_CONVERTERS.get(
-          type_info.__class__, Rdf2SqliteAdapter.DEFAULT_CONVERTER)
+          type_info.__class__, Rdf2SqliteAdapter.DEFAULT_CONVERTER
+      )
 
 
 class SqliteInstantOutputPlugin(
-    instant_output_plugin.InstantOutputPluginWithExportConversion):
+    instant_output_plugin.InstantOutputPluginWithExportConversion
+):
   """Instant output plugin that converts results into SQLite db commands."""
 
   plugin_name = "sqlite-zip"
@@ -97,12 +98,14 @@ class SqliteInstantOutputPlugin(
 
   def Start(self):
     self.archive_generator = utils.StreamingZipGenerator(
-        compression=zipfile.ZIP_DEFLATED)
+        compression=zipfile.ZIP_DEFLATED
+    )
     self.export_counts = {}
     return []
 
-  def ProcessSingleTypeExportedValues(self, original_value_type,
-                                      exported_values):
+  def ProcessSingleTypeExportedValues(
+      self, original_value_type, exported_values
+  ):
     first_value = next(exported_values, None)
     if not first_value:
       return
@@ -110,10 +113,17 @@ class SqliteInstantOutputPlugin(
     if not isinstance(first_value, rdf_structs.RDFProtoStruct):
       raise ValueError("The SQLite plugin only supports export-protos")
     yield self.archive_generator.WriteFileHeader(
-        "%s/%s_from_%s.sql" % (self.path_prefix, first_value.__class__.__name__,
-                               original_value_type.__name__))
-    table_name = "%s.from_%s" % (first_value.__class__.__name__,
-                                 original_value_type.__name__)
+        "%s/%s_from_%s.sql"
+        % (
+            self.path_prefix,
+            first_value.__class__.__name__,
+            original_value_type.__name__,
+        )
+    )
+    table_name = "%s.from_%s" % (
+        first_value.__class__.__name__,
+        original_value_type.__name__,
+    )
     schema = self._GetSqliteSchema(first_value.__class__)
 
     # We will buffer the sql statements into an in-memory sql database before
@@ -123,14 +133,15 @@ class SqliteInstantOutputPlugin(
     db_cursor = db_connection.cursor()
 
     yield self.archive_generator.WriteFileChunk(
-        "BEGIN TRANSACTION;\n".encode("utf-8"))
+        "BEGIN TRANSACTION;\n".encode("utf-8")
+    )
 
     with db_connection:
       buf = io.StringIO()
-      buf.write(u"CREATE TABLE \"%s\" (\n  " % table_name)
+      buf.write('CREATE TABLE "%s" (\n  ' % table_name)
       column_types = [(k, v.sqlite_type) for k, v in schema.items()]
-      buf.write(u",\n  ".join([u"\"%s\" %s" % (k, v) for k, v in column_types]))
-      buf.write(u"\n);")
+      buf.write(",\n  ".join(['"%s" %s' % (k, v) for k, v in column_types]))
+      buf.write("\n);")
       db_cursor.execute(buf.getvalue())
 
       chunk = (buf.getvalue() + "\n").encode("utf-8")
@@ -154,7 +165,8 @@ class SqliteInstantOutputPlugin(
     yield self.archive_generator.WriteFileFooter()
 
     counts_for_original_type = self.export_counts.setdefault(
-        original_value_type.__name__, dict())
+        original_value_type.__name__, dict()
+    )
     counts_for_original_type[first_value.__class__.__name__] = counter
 
   def _GetSqliteSchema(self, proto_struct_class, prefix=""):
@@ -164,7 +176,9 @@ class SqliteInstantOutputPlugin(
       if type_info.__class__ is rdf_structs.ProtoEmbedded:
         schema.update(
             self._GetSqliteSchema(
-                type_info.type, prefix="%s%s." % (prefix, type_info.name)))
+                type_info.type, prefix="%s%s." % (prefix, type_info.name)
+            )
+        )
       else:
         field_name = prefix + type_info.name
         schema[field_name] = Rdf2SqliteAdapter.GetConverter(type_info)
@@ -173,10 +187,10 @@ class SqliteInstantOutputPlugin(
   def _InsertValueIntoDb(self, table_name, schema, value, db_cursor):
     sql_dict = self._ConvertToCanonicalSqlDict(schema, value.ToPrimitiveDict())
     buf = io.StringIO()
-    buf.write(u"INSERT INTO \"%s\" (\n  " % table_name)
-    buf.write(u",\n  ".join(["\"%s\"" % k for k in sql_dict.keys()]))
-    buf.write(u"\n)")
-    buf.write(u"VALUES (%s);" % u",".join([u"?"] * len(sql_dict)))
+    buf.write('INSERT INTO "%s" (\n  ' % table_name)
+    buf.write(",\n  ".join(['"%s"' % k for k in sql_dict.keys()]))
+    buf.write("\n)")
+    buf.write("VALUES (%s);" % ",".join(["?"] * len(sql_dict)))
     db_cursor.execute(buf.getvalue(), list(sql_dict.values()))
 
   def _ConvertToCanonicalSqlDict(self, schema, raw_dict, prefix=""):
@@ -186,7 +200,9 @@ class SqliteInstantOutputPlugin(
       if isinstance(v, dict):
         flattened_dict.update(
             self._ConvertToCanonicalSqlDict(
-                schema, v, prefix="%s%s." % (prefix, k)))
+                schema, v, prefix="%s%s." % (prefix, k)
+            )
+        )
       else:
         field_name = prefix + k
         flattened_dict[field_name] = schema[field_name].convert_fn(v)
@@ -195,15 +211,18 @@ class SqliteInstantOutputPlugin(
   def _FlushAllRows(self, db_connection, table_name):
     """Copies rows from the given db into the output file then deletes them."""
     for sql in db_connection.iterdump():
-      if (sql.startswith("CREATE TABLE") or
-          sql.startswith("BEGIN TRANSACTION") or sql.startswith("COMMIT")):
+      if (
+          sql.startswith("CREATE TABLE")
+          or sql.startswith("BEGIN TRANSACTION")
+          or sql.startswith("COMMIT")
+      ):
         # These statements only need to be written once.
         continue
       # The archive generator expects strings (not Unicode objects returned by
       # the pysqlite library).
       yield self.archive_generator.WriteFileChunk((sql + "\n").encode("utf-8"))
     with db_connection:
-      db_connection.cursor().execute("DELETE FROM \"%s\";" % table_name)
+      db_connection.cursor().execute('DELETE FROM "%s";' % table_name)
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}

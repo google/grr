@@ -107,7 +107,8 @@ class DatabaseTestUsersMixin(object):
         username="f🧙oo",
         ui_mode="ADVANCED",
         canary_mode=True,
-        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN,
+    )
     proto_u = mig_objects.ToProtoGRRUser(u_foo)
     d.WriteGRRUser(
         u_foo.username,
@@ -258,20 +259,26 @@ class DatabaseTestUsersMixin(object):
     self.db.GrantApproval(
         approval_id=approval_id,
         requestor_username="requestor",
-        grantor_username="user_foo")
+        grantor_username="user_foo",
+    )
     self.db.GrantApproval(
         approval_id=approval_id,
         requestor_username="requestor",
-        grantor_username="user_bar")
+        grantor_username="user_bar",
+    )
 
     read_request = d.ReadApprovalRequest("requestor", approval_id)
 
-    self.assertCountEqual(approval_request.notified_users,
-                          read_request.notified_users)
-    self.assertCountEqual(approval_request.email_cc_addresses,
-                          read_request.email_cc_addresses)
-    self.assertCountEqual([g.grantor_username for g in read_request.grants],
-                          ["user_foo", "user_bar"])
+    self.assertCountEqual(
+        approval_request.notified_users, read_request.notified_users
+    )
+    self.assertCountEqual(
+        approval_request.email_cc_addresses, read_request.email_cc_addresses
+    )
+    self.assertCountEqual(
+        [g.grantor_username for g in read_request.grants],
+        ["user_foo", "user_bar"],
+    )
 
   def testGrantApprovalAddsNewGrantor(self):
     d = self.db
@@ -322,8 +329,9 @@ class DatabaseTestUsersMixin(object):
 
     read_request = d.ReadApprovalRequest("requestor", approval_id)
     self.assertLen(read_request.grants, 3)
-    self.assertEqual([g.grantor_username for g in read_request.grants],
-                     ["grantor"] * 3)
+    self.assertEqual(
+        [g.grantor_username for g in read_request.grants], ["grantor"] * 3
+    )
 
   def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
     d = self.db
@@ -359,7 +367,9 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        )
+    )
 
     self.assertLen(approvals, 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
@@ -380,7 +390,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     approval_ids = set()
     for _ in range(10):
@@ -450,7 +461,8 @@ class DatabaseTestUsersMixin(object):
 
       with self.subTest(case="Read many with subject", type=approval_type):
         requests = self.db.ReadApprovalRequests(
-            "requestor", approval_type, subject_id=subject_id)
+            "requestor", approval_type, subject_id=subject_id
+        )
 
         self.assertLen(requests, 1)
         self.assertEqual(requests[0].subject_id, subject_id)
@@ -478,11 +490,13 @@ class DatabaseTestUsersMixin(object):
     self.db.GrantApproval(
         approval_id=approval_id,
         requestor_username="requestor",
-        grantor_username="grantor1")
+        grantor_username="grantor1",
+    )
     self.db.GrantApproval(
         approval_id=approval_id,
         requestor_username="requestor",
-        grantor_username="grantor2")
+        grantor_username="grantor2",
+    )
 
     approvals = list(
         d.ReadApprovalRequests(
@@ -494,8 +508,10 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
 
-    self.assertCountEqual([g.grantor_username for g in approvals[0].grants],
-                          ["grantor1", "grantor2"])
+    self.assertCountEqual(
+        [g.grantor_username for g in approvals[0].grants],
+        ["grantor1", "grantor2"],
+    )
 
   def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
     d = self.db
@@ -551,9 +567,11 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
     time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     non_expired_approval_ids = set()
     for i in range(10):
@@ -582,7 +600,8 @@ class DatabaseTestUsersMixin(object):
 
     self.assertLen(approvals, 5)
     self.assertEqual(
-        set(a.approval_id for a in approvals), non_expired_approval_ids)
+        set(a.approval_id for a in approvals), non_expired_approval_ids
+    )
 
   def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
     d = self.db
@@ -590,9 +609,11 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
     time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     approval_ids = set()
     for i in range(10):
@@ -680,7 +701,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     approval_ids = set()
     for _ in range(10):
@@ -727,11 +749,13 @@ class DatabaseTestUsersMixin(object):
     self.db.GrantApproval(
         requestor_username="requestor",
         approval_id=approval_id,
-        grantor_username="grantor1")
+        grantor_username="grantor1",
+    )
     self.db.GrantApproval(
         requestor_username="requestor",
         approval_id=approval_id,
-        grantor_username="grantor2")
+        grantor_username="grantor2",
+    )
 
     approvals = list(
         d.ReadApprovalRequests(
@@ -744,8 +768,10 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(approvals, 1)
     self.assertEqual(approvals[0].approval_id, approval_id)
 
-    self.assertCountEqual([g.grantor_username for g in approvals[0].grants],
-                          ["grantor1", "grantor2"])
+    self.assertCountEqual(
+        [g.grantor_username for g in approvals[0].grants],
+        ["grantor1", "grantor2"],
+    )
 
   def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -803,9 +829,11 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
     time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     non_expired_approval_ids = set()
     for i in range(10):
@@ -833,7 +861,8 @@ class DatabaseTestUsersMixin(object):
 
     self.assertLen(approvals, 5)
     self.assertEqual(
-        set(a.approval_id for a in approvals), non_expired_approval_ids)
+        set(a.approval_id for a in approvals), non_expired_approval_ids
+    )
 
   def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -842,9 +871,11 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
     time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        1, rdfvalue.DAYS)
+        1, rdfvalue.DAYS
+    )
 
     approval_ids = set()
     for i in range(10):
@@ -947,21 +978,28 @@ class DatabaseTestUsersMixin(object):
     self.assertLen(notifications, 3)
 
     self.assertEqual(notifications[0].username, username)
-    self.assertEqual(notifications[0].notification_type,
-                     NotificationType.TYPE_CLIENT_INTERROGATED)
+    self.assertEqual(
+        notifications[0].notification_type,
+        NotificationType.TYPE_CLIENT_INTERROGATED,
+    )
     self.assertEqual(notifications[0].state, NotificationState.STATE_PENDING)
     self.assertEqual(notifications[0].message, "Lorem ipsum.")
 
     self.assertEqual(notifications[1].username, username)
-    self.assertEqual(notifications[1].notification_type,
-                     NotificationType.TYPE_CLIENT_APPROVAL_REQUESTED)
-    self.assertEqual(notifications[1].state,
-                     NotificationState.STATE_NOT_PENDING)
+    self.assertEqual(
+        notifications[1].notification_type,
+        NotificationType.TYPE_CLIENT_APPROVAL_REQUESTED,
+    )
+    self.assertEqual(
+        notifications[1].state, NotificationState.STATE_NOT_PENDING
+    )
     self.assertEqual(notifications[1].message, "Dolor sit amet.")
 
     self.assertEqual(notifications[2].username, username)
-    self.assertEqual(notifications[2].notification_type,
-                     NotificationType.TYPE_FLOW_RUN_FAILED)
+    self.assertEqual(
+        notifications[2].notification_type,
+        NotificationType.TYPE_FLOW_RUN_FAILED,
+    )
     self.assertEqual(notifications[2].state, NotificationState.STATE_PENDING)
     self.assertEqual(notifications[2].message, "Consectetur adipiscing elit.")
 
@@ -1105,11 +1143,13 @@ class DatabaseTestUsersMixin(object):
     self._SetupUserNotificationTimerangeTest()
 
     ns = d.ReadUserNotifications(
-        username, state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+        username, state=rdf_objects.UserNotification.State.STATE_NOT_PENDING
+    )
     self.assertEmpty(ns)
 
     ns = d.ReadUserNotifications(
-        username, state=rdf_objects.UserNotification.State.STATE_PENDING)
+        username, state=rdf_objects.UserNotification.State.STATE_PENDING
+    )
     self.assertLen(ns, 2)
 
   def testReadUserNotificationsWithStateAndTimerange(self):
@@ -1121,13 +1161,15 @@ class DatabaseTestUsersMixin(object):
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING,
+    )
     self.assertEmpty(ns)
 
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=rdf_objects.UserNotification.State.STATE_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
+    )
     self.assertLen(ns, 1)
     self.assertEqual(ns[0].message, "n0")
 
@@ -1254,11 +1296,13 @@ class DatabaseTestUsersMixin(object):
     self.db.GrantApproval(
         requestor_username="requestor",
         approval_id=approval_id,
-        grantor_username="grantor")
+        grantor_username="grantor",
+    )
     self.db.GrantApproval(
         requestor_username="requestor",
         approval_id=approval_id,
-        grantor_username="grantor2")
+        grantor_username="grantor2",
+    )
 
     d.DeleteGRRUser("grantor")
     result = d.ReadApprovalRequest("requestor", approval_id)
@@ -1270,7 +1314,8 @@ class DatabaseTestUsersMixin(object):
     username = "test"
     self._SetupUserNotificationTimerangeTest(username)
     self.assertNotEmpty(
-        d.ReadUserNotifications(username, timerange=(None, None)))
+        d.ReadUserNotifications(username, timerange=(None, None))
+    )
     d.DeleteGRRUser(username)
     self.assertEmpty(d.ReadUserNotifications(username, timerange=(None, None)))
 
@@ -1311,5 +1356,6 @@ class DatabaseTestUsersMixin(object):
     self.db.WriteGRRUser("baz")
 
     self.assertEqual(self.db.CountGRRUsers(), 3)
+
 
 # This file is a test library and thus does not require a __main__ block.

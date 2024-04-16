@@ -5,11 +5,8 @@ This file contains non-GRR specific pieces of artifact processing and is
 intended to end up as an independent library.
 """
 
-
 import re
 from typing import Iterable
-from typing import Text
-
 
 from grr_response_core.lib import interpolation
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -30,7 +27,7 @@ class ArtifactProcessingError(Error):
 class KbInterpolationMissingAttributesError(Error):
   """An exception class for missing knowledgebase attributes."""
 
-  def __init__(self, attrs: Iterable[Text]) -> None:
+  def __init__(self, attrs: Iterable[str]) -> None:
     message = "Some attributes could not be located in the knowledgebase: {}"
     message = message.format(", ".join(attrs))
     super().__init__(message)
@@ -41,7 +38,7 @@ class KbInterpolationMissingAttributesError(Error):
 class KbInterpolationUnknownAttributesError(Error):
   """An exception class for non-existing knowledgebase attributes."""
 
-  def __init__(self, attrs: Iterable[Text]) -> None:
+  def __init__(self, attrs: Iterable[str]) -> None:
     message = "Some attributes are not part of the knowledgebase: {}"
     message = message.format(", ".join(attrs))
     super().__init__(message)
@@ -108,8 +105,10 @@ def InterpolateKbAttributes(pattern, knowledge_base):
   for scope_id in interpolator.Scopes():
     scope_name = str(scope_id).lower()
 
-    if not (scope_name in kb_cls.type_infos and
-            isinstance(kb_cls.type_infos[scope_name], rdf_structs.ProtoList)):
+    if not (
+        scope_name in kb_cls.type_infos
+        and isinstance(kb_cls.type_infos[scope_name], rdf_structs.ProtoList)
+    ):
       unknown_attr_names.add(scope_name)
       continue
 
@@ -250,11 +249,12 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
   components = []
   offset = 0
   for match in win_environ_regex.finditer(data_string):
-    components.append(data_string[offset:match.start()])
+    components.append(data_string[offset : match.start()])
 
     # KB environment variables are prefixed with environ_.
-    kb_value = getattr(knowledge_base, "environ_%s" % match.group(1).lower(),
-                       None)
+    kb_value = getattr(
+        knowledge_base, "environ_%s" % match.group(1).lower(), None
+    )
     if isinstance(kb_value, str) and kb_value:
       components.append(kb_value)
     else:
@@ -265,10 +265,9 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
   return "".join(components)
 
 
-def ExpandWindowsUserEnvironmentVariables(data_string,
-                                          knowledge_base,
-                                          sid=None,
-                                          username=None):
+def ExpandWindowsUserEnvironmentVariables(
+    data_string, knowledge_base, sid=None, username=None
+):
   r"""Take a string and expand windows user environment variables based.
 
   Args:
@@ -284,7 +283,7 @@ def ExpandWindowsUserEnvironmentVariables(data_string,
   components = []
   offset = 0
   for match in win_environ_regex.finditer(data_string):
-    components.append(data_string[offset:match.start()])
+    components.append(data_string[offset : match.start()])
     kb_user = knowledge_base.GetUser(sid=sid, username=username)
     kb_value = None
     if kb_user:

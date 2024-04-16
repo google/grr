@@ -56,38 +56,6 @@ message ManagementAgent {
   }];
 }
 
-// Describe a PCI Device
-message PCIDevice {
-  // Location of PCI device on the system.
-  optional uint32 domain = 1 [(sem_type) = {
-    description: "PCI domain this device is in.",
-  }];
-  optional uint32 bus = 2 [(sem_type) = {
-    description: "8 bit PCI bus this device is on.",
-  }];
-  optional uint32 device = 3 [(sem_type) = {
-    description: "5 bit device location on the bus.",
-  }];
-  optional uint32 function = 4 [(sem_type) = {
-    description: "3 bit device function that has been mapped.",
-  }];
-
-  // Information from the PCI device itself.
-  optional string class_id = 5 [(sem_type) = {
-    description: "Hex string of 24 bit device class ID (e.g. Display).",
-  }];
-  optional string vendor = 6 [(sem_type) = {
-    description: "Hex string of 16 bit device vendor ID.",
-  }];
-  optional string vendor_device_id = 7 [(sem_type) = {
-    description: "Hex string of 16 bit device ID as set by the vendor.",
-  }];
-  // This is stored as bytes to preserve data as-is.
-  optional bytes config = 8 [(sem_type) = {
-    description: "64 to 256 bytes of PCI configuration space header.",
-  }];
-}
-
 // A Process record describing a system process.
 message Process {
   option (semantic) = {

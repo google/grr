@@ -7,7 +7,6 @@ import logging
 import os
 import platform
 
-
 from grr_response_client import client_utils_osx_linux
 from grr_response_client.osx import objc
 from grr_response_client.osx import process
@@ -22,7 +21,9 @@ LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
 TransactionLog = client_utils_osx_linux.TransactionLog
 
-CreateProcessFromSerializedFileDescriptor = process.Process.CreateFromSerializedFileDescriptor
+CreateProcessFromSerializedFileDescriptor = (
+    process.Process.CreateFromSerializedFileDescriptor
+)
 
 # pylint: enable=invalid-name
 
@@ -49,11 +50,13 @@ def FindProxies():
         return ["http://%s:%d/" % (proxy, port)]
 
     cf_auto_enabled = sc.CFDictRetrieve(
-        settings, "kSCPropNetProxiesProxyAutoConfigEnable")
+        settings, "kSCPropNetProxiesProxyAutoConfigEnable"
+    )
 
     if cf_auto_enabled and bool(sc.CFNumToInt32(cf_auto_enabled)):
-      cfurl = sc.CFDictRetrieve(settings,
-                                "kSCPropNetProxiesProxyAutoConfigURLString")
+      cfurl = sc.CFDictRetrieve(
+          settings, "kSCPropNetProxiesProxyAutoConfigURLString"
+      )
       if cfurl:
         unused_url = sc.CFStringToPystring(cfurl)
         # TODO(amoser): Auto config is enabled, what is the plan here?
@@ -75,13 +78,15 @@ def GetMountpoints():
   for filesys in GetFileSystems():
     devices[filesys.f_mntonname.decode("utf-8")] = (
         filesys.f_mntfromname.decode("utf-8"),
-        filesys.f_fstypename.decode("utf-8"))
+        filesys.f_fstypename.decode("utf-8"),
+    )
 
   return devices
 
 
 class StatFSStruct(utils.Struct):
   """Parse filesystems getfsstat."""
+
   _fields = [
       ("h", "f_otype;"),
       ("h", "f_oflags;"),
@@ -108,6 +113,7 @@ class StatFSStruct(utils.Struct):
 
 class StatFS64Struct(utils.Struct):
   """Parse filesystems getfsstat for 64 bit."""
+
   _fields = [
       ("<L", "f_bsize"),
       ("l", "f_iosize"),
@@ -175,7 +181,7 @@ def ParseFileSystemsStruct(struct_class, fs_count, data):
   cstr = lambda x: x.split(b"\x00", 1)[0]
   for count in range(0, fs_count):
     struct_size = struct_class.GetSize()
-    s_data = data[count * struct_size:(count + 1) * struct_size]
+    s_data = data[count * struct_size : (count + 1) * struct_size]
     s = struct_class(s_data)
     s.f_fstypename = cstr(s.f_fstypename)
     s.f_mntonname = cstr(s.f_mntonname)
@@ -214,7 +220,7 @@ def GetRawDevice(path):
         result.pathtype = rdf_paths.PathSpec.PathType.UNSET
 
       # Drop the mount point
-      path = utils.NormalizePath(path[len(mount_point):])
+      path = utils.NormalizePath(path[len(mount_point) :])
 
       return result, path
     except KeyError:
@@ -254,4 +260,5 @@ def MemoryRegions(proc, options):
   return proc.Regions(
       skip_executable_regions=options.skip_executable_regions,
       skip_readonly_regions=options.skip_readonly_regions,
-      skip_shared_regions=options.skip_shared_regions)
+      skip_shared_regions=options.skip_shared_regions,
+  )

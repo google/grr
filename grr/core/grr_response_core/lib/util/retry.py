@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 """A module with utilities for retrying function execution."""
+
 import dataclasses
 import datetime
 import functools
 import logging
 import random
 import time
-from typing import Callable
-from typing import Generic
-from typing import Optional
-from typing import Tuple
-from typing import Type
-from typing import TypeVar
-from typing import Union
+from typing import Callable, Generic, Optional, Tuple, Type, TypeVar, Union
 
 
 @dataclasses.dataclass
@@ -27,6 +22,7 @@ class Opts:
     jitter: A random jitter to add to delay between retries.
     sleep: A sleep function used for delaying retries.
   """
+
   attempts: int = 1
 
   init_delay: datetime.timedelta = datetime.timedelta(0)

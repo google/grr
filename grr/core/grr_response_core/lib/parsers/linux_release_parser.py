@@ -3,11 +3,7 @@
 
 import collections
 import re
-
-from typing import IO
-from typing import Iterable
-from typing import Iterator
-from typing import Text
+from typing import IO, Iterable, Iterator
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
@@ -22,11 +18,12 @@ _SYSTEMD_OS_RELEASE_NAME = 'NAME'
 _SYSTEMD_OS_RELEASE_VERSION = 'VERSION_ID'
 
 ParsedRelease = collections.namedtuple('ParsedRelease', 'release, major, minor')
-WeightedReleaseFile = collections.namedtuple('WeightedReleaseFile',
-                                             'weight, path, processor')
+WeightedReleaseFile = collections.namedtuple(
+    'WeightedReleaseFile', 'weight, path, processor'
+)
 
 
-class ReleaseParseHandler(object):
+class ReleaseParseHandler:
   """Base class for distribution data file parse handlers."""
 
   def __init__(self, contents):
@@ -35,7 +32,7 @@ class ReleaseParseHandler(object):
     Args:
       contents: file contents that are to be parsed.
     """
-    precondition.AssertOptionalType(contents, Text)
+    precondition.AssertOptionalType(contents, str)
     self.contents = contents
 
   def Parse(self):
@@ -211,7 +208,7 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
         yield rdf_protodict.Dict({
             'os_release': result.release,
             'os_major_version': result.major,
-            'os_minor_version': result.minor
+            'os_minor_version': result.minor,
         })
         return
 
@@ -224,7 +221,7 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
         yield rdf_protodict.Dict({
             'os_release': 'AmazonLinuxAMI',
             'os_major_version': int(match_object.group(1)),
-            'os_minor_version': int(match_object.group(2))
+            'os_minor_version': int(match_object.group(2)),
         })
         return
 
@@ -236,7 +233,8 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
 
     # No successful parse.
     yield rdf_anomaly.Anomaly(
-        type='PARSER_ANOMALY', symptom='Unable to determine distribution.')
+        type='PARSER_ANOMALY', symptom='Unable to determine distribution.'
+    )
 
   def _ParseOSReleaseFile(self, matches_dict):
     # The spec for the os-release file is given at
@@ -266,8 +264,11 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
           # multi-part version numbers so we use a default minor version of
           # zero.
           os_minor_version = 0 if minor_match is None else int(minor_match)
-      if (os_release_name and os_major_version is not None and
-          os_minor_version is not None):
+      if (
+          os_release_name
+          and os_major_version is not None
+          and os_minor_version is not None
+      ):
         return rdf_protodict.Dict({
             'os_release': os_release_name,
             'os_major_version': os_major_version,

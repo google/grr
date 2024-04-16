@@ -348,7 +348,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
           client_id=client_id_1,
           parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id_1, flow_id)
-      flow_obj.flow_state = flow_obj.FlowState.ERROR
+      flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
       flow_obj.error_message = "Error foo."
       data_store.REL_DB.UpdateFlow(client_id_1, flow_id, flow_obj=flow_obj)
 
@@ -614,10 +614,6 @@ class ApiGetHuntStatsHandlerRegressionTest(
 
     # Create replace dictionary.
     replace = {hunt_id: "H:123456"}
-    stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
-    for performance in stats.worst_performers:
-      session_id = str(performance.session_id)
-      replace[session_id] = "<replaced session value>"
 
     self.Check(
         "GetHuntStats",

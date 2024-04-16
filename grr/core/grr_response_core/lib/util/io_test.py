@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import io
 import itertools
+
 from absl.testing import absltest
 
 from grr_response_core.lib.util import io as ioutil

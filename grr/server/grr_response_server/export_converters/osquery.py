@@ -42,10 +42,13 @@ class OsqueryExportConverter(base.ExportConverter):
     rdf_cls = type(rdf_cls_name, (rdf_structs.RDFProtoStruct,), {})
     rdf_cls.AddDescriptor(
         rdf_structs.ProtoEmbedded(
-            name="metadata", field_number=1, nested=base.ExportedMetadata))
+            name="metadata", field_number=1, nested=base.ExportedMetadata
+        )
+    )
 
     rdf_cls.AddDescriptor(
-        rdf_structs.ProtoString(name="__query__", field_number=2))
+        rdf_structs.ProtoString(name="__query__", field_number=2)
+    )
 
     for idx, column in enumerate(table.header.columns):
       # It is possible that RDF column is named "metadata". To avoid name clash
@@ -61,8 +64,9 @@ class OsqueryExportConverter(base.ExportConverter):
     cls._rdf_cls_cache[rdf_cls_name] = rdf_cls
     return rdf_cls
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              table: rdf_osquery.OsqueryTable) -> Any:
+  def Convert(
+      self, metadata: base.ExportedMetadata, table: rdf_osquery.OsqueryTable
+  ) -> Any:
     precondition.AssertType(table, rdf_osquery.OsqueryTable)
 
     rdf_cls = self._RDFClass(table)

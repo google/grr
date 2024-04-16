@@ -7,8 +7,7 @@ import platform
 import re
 import sys
 import threading
-
-from typing import Text, Optional
+from typing import Optional, Text
 
 from grr_response_client import client_utils
 from grr_response_client.vfs_handlers import base as vfs_base
@@ -111,15 +110,17 @@ class File(vfs_base.VFSHandler):
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
     if base_fd is None:
       self.pathspec.Append(pathspec)
 
     # We can stack on another directory, which means we concatenate their
     # directory with ours.
     elif base_fd.IsDirectory():
-      self.pathspec.last.path = utils.JoinPath(self.pathspec.last.path,
-                                               pathspec.path)
+      self.pathspec.last.path = utils.JoinPath(
+          self.pathspec.last.path, pathspec.path
+      )
 
     else:
       raise IOError("File handler can not be stacked on another handler.")
@@ -199,7 +200,7 @@ class File(vfs_base.VFSHandler):
       elif re.match(r"/*\\\\.\\[^\\]+\\?$", self.path) is not None:
         # Special case windows devices cant seek to the end so just lie about
         # the size
-        self.size = 0x7fffffffffffffff
+        self.size = 0x7FFFFFFFFFFFFFFF
 
         # Windows raw devices can be opened in two incompatible modes. With a
         # trailing \ they look like a directory, but without they are the raw
@@ -213,7 +214,7 @@ class File(vfs_base.VFSHandler):
       # On Mac, raw disk devices are also not seekable to the end and have no
       # size so we use the same approach as on Windows.
       if re.match("/dev/r?disk.*", self.path):
-        self.size = 0x7fffffffffffffff
+        self.size = 0x7FFFFFFFFFFFFFFF
         self.alignment = 512
 
   def _GetDepth(self, path):
@@ -263,7 +264,8 @@ class File(vfs_base.VFSHandler):
       follow_symlink: bool = True,
   ) -> rdf_client_fs.StatEntry:
     return self._Stat(
-        self.path, ext_attrs=ext_attrs, follow_symlink=follow_symlink)
+        self.path, ext_attrs=ext_attrs, follow_symlink=follow_symlink
+    )
 
   def _Stat(
       self,
@@ -290,7 +292,8 @@ class File(vfs_base.VFSHandler):
         local_path,
         self.pathspec,
         ext_attrs=ext_attrs,
-        follow_symlink=follow_symlink)
+        follow_symlink=follow_symlink,
+    )
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:
@@ -357,7 +360,8 @@ class File(vfs_base.VFSHandler):
       path string of the mount point
     """
     path = os.path.abspath(
-        client_utils.CanonicalPathToLocalPath(path or self.path))
+        client_utils.CanonicalPathToLocalPath(path or self.path)
+    )
 
     while not os.path.ismount(path):
       path = os.path.dirname(path)
@@ -371,4 +375,5 @@ class File(vfs_base.VFSHandler):
 
 class TempFile(File):
   """GRR temporary files on the client."""
+
   supported_pathtype = rdf_paths.PathSpec.PathType.TMPFILE

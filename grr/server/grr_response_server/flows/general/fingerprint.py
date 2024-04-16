@@ -5,6 +5,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -65,7 +66,9 @@ class FingerprintFileLogic(object):
     path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
     path_info.hash_entry = response.hash
 
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     self.ReceiveFileFingerprint(
         self.state.urn, hash_obj, request_data=responses.request_data)

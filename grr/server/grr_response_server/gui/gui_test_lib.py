@@ -41,6 +41,7 @@ from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -118,7 +119,9 @@ def CreateFolder(client_id, path, timestamp):
     path_info.components = components
     path_info.directory = True
 
-    data_store.REL_DB.WritePathInfos(client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
 
 def SeleniumAction(f):

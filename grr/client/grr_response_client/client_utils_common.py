@@ -10,7 +10,6 @@ import subprocess
 import threading
 import time
 
-
 from grr_response_client.local import binary_whitelist
 from grr_response_core import config
 from grr_response_core.lib import constants
@@ -28,13 +27,15 @@ def HandleAlarm(process):
     pass
 
 
-def Execute(cmd,
-            args,
-            time_limit=-1,
-            bypass_allowlist=False,
-            daemon=False,
-            use_client_context=False,
-            cwd=None):
+def Execute(
+    cmd,
+    args,
+    time_limit=-1,
+    bypass_allowlist=False,
+    daemon=False,
+    use_client_context=False,
+    cwd=None,
+):
   """Executes commands on the client.
 
   This function is the only place where commands will be executed
@@ -58,8 +59,9 @@ def Execute(cmd,
   """
   if not bypass_allowlist and not IsExecutionAllowed(cmd, args):
     # Allowlist doesn't contain this cmd/arg pair
-    logging.info("Execution disallowed by allowlist: %s %s.", cmd,
-                 " ".join(args))
+    logging.info(
+        "Execution disallowed by allowlist: %s %s.", cmd, " ".join(args)
+    )
     return (b"", b"Execution disallowed by allowlist.", -1, -1)
 
   if daemon:
@@ -75,11 +77,13 @@ def Execute(cmd,
         # This only works if the process is running as root.
         pass
       _Execute(
-          cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
+          cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd
+      )
       os._exit(0)  # pylint: disable=protected-access
   else:
     return _Execute(
-        cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
+        cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd
+    )
 
 
 def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
@@ -100,7 +104,8 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
       env=env,
-      cwd=cwd)
+      cwd=cwd,
+  )
 
   alarm = None
   if time_limit > 0:
@@ -155,8 +160,10 @@ def IsExecutionAllowed(cmd, args):
         ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
         ("netsh.exe", ["advfirewall", "firewall", "show", "rule", "name=all"]),
-        ("netsh.exe",
-         ["advfirewall", "monitor", "show", "firewall", "rule", "name=all"]),
+        (
+            "netsh.exe",
+            ["advfirewall", "monitor", "show", "firewall", "rule", "name=all"],
+        ),
         ("tasklist.exe", ["/SVC"]),
         ("tasklist.exe", ["/v"]),
     ]
@@ -166,6 +173,7 @@ def IsExecutionAllowed(cmd, args):
         ("/bin/echo", ["1"]),
         ("/bin/mount", []),
         ("/bin/rpm", ["-qa"]),
+        ("/bin/rpm", ["--query", "--all"]),
         ("/bin/sleep", ["10"]),
         ("/sbin/auditctl", ["-l"]),
         ("/sbin/ifconfig", ["-a"]),
@@ -191,17 +199,11 @@ def IsExecutionAllowed(cmd, args):
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/kextstat", []),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
-        ("/usr/libexec/firmwarecheckers/eficheck/eficheck", ["--version"]),
-        ("/usr/libexec/firmwarecheckers/eficheck/eficheck",
-         ["--generate-hashes"]),
-        ("/usr/libexec/firmwarecheckers/eficheck/eficheck",
-         ["--save", "-b", "firmware.bin"]),
-        ("/usr/libexec/firmwarecheckers/ethcheck/ethcheck", ["--show-hashes"]),
     ]
   else:
     allowlist = []
 
-  for (allowed_cmd, allowed_args) in allowlist:
+  for allowed_cmd, allowed_args in allowlist:
     if cmd == allowed_cmd and args == allowed_args:
       return True
 

@@ -22,6 +22,9 @@ export class FlowSection {
 
   readonly latestApproval$ = this.clientPageGlobalStore.latestApproval$;
 
+  readonly requestApprovalStatus$ =
+    this.clientPageGlobalStore.requestApprovalStatus$;
+
   readonly clientApprovalRoute$ =
     this.clientPageGlobalStore.clientApprovalRoute$;
 

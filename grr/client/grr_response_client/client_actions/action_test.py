@@ -28,6 +28,7 @@ from grr.test_lib import test_lib
 
 class ProgressAction(actions.ActionPlugin):
   """A mock action which just calls Progress."""
+
   in_rdfvalue = rdf_client.LogMessage
   out_rdfvalues = [rdf_client.LogMessage]
 
@@ -57,7 +58,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction(
         standard.ReadBuffer,
-        rdf_client.BufferReference(pathspec=p, offset=100, length=10))[0]
+        rdf_client.BufferReference(pathspec=p, offset=100, length=10),
+    )[0]
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
@@ -66,8 +68,9 @@ class ActionTest(client_test_lib.EmptyActionTest):
   def testListDirectory(self):
     """Tests listing directories."""
     p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
-    results = self.RunAction(standard.ListDirectory,
-                             rdf_client_action.ListDirRequest(pathspec=p))
+    results = self.RunAction(
+        standard.ListDirectory, rdf_client_action.ListDirRequest(pathspec=p)
+    )
     # Find the number.txt file
     result = None
     for result in results:
@@ -114,7 +117,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
   def testRaisesWhenRuntimeLimitIsExceeded(self):
     message = rdf_flows.GrrMessage(
         name="ProgressAction",
-        runtime_limit_us=rdfvalue.Duration.From(9, rdfvalue.SECONDS))
+        runtime_limit_us=rdfvalue.Duration.From(9, rdfvalue.SECONDS),
+    )
     worker = mock.MagicMock()
     with test_lib.FakeTime(100):
       action = ProgressAction(worker)
@@ -122,19 +126,22 @@ class ActionTest(client_test_lib.EmptyActionTest):
       action.Execute(message)
 
     self.assertEqual(action.SendReply.call_count, 1)
-    self.assertEqual(action.SendReply.call_args[0][0].status,
-                     "RUNTIME_LIMIT_EXCEEDED")
+    self.assertEqual(
+        action.SendReply.call_args[0][0].status, "RUNTIME_LIMIT_EXCEEDED"
+    )
 
     self.assertEqual(worker.Heartbeat.call_count, 1)
 
     self.assertEqual(worker.SendClientAlert.call_count, 1)
-    self.assertEqual(worker.SendClientAlert.call_args[0][0],
-                     "Runtime limit exceeded.")
+    self.assertEqual(
+        worker.SendClientAlert.call_args[0][0], "Runtime limit exceeded."
+    )
 
   def testDoesNotRaiseWhenFasterThanRuntimeLimit(self):
     message = rdf_flows.GrrMessage(
         name="ProgressAction",
-        runtime_limit_us=rdfvalue.Duration.From(16, rdfvalue.SECONDS))
+        runtime_limit_us=rdfvalue.Duration.From(16, rdfvalue.SECONDS),
+    )
     worker = mock.MagicMock()
     with test_lib.FakeTime(100):
       action = ProgressAction(worker)
@@ -162,11 +169,15 @@ class ActionTest(client_test_lib.EmptyActionTest):
       server_cpu_time = 1.0
       server_sys_time = 1.1
       stack.enter_context(
-          mock.patch.object(communication, "TotalServerCpuTime",
-                            lambda: server_cpu_time))
+          mock.patch.object(
+              communication, "TotalServerCpuTime", lambda: server_cpu_time
+          )
+      )
       stack.enter_context(
-          mock.patch.object(communication, "TotalServerSysTime",
-                            lambda: server_sys_time))
+          mock.patch.object(
+              communication, "TotalServerSysTime", lambda: server_sys_time
+          )
+      )
 
       process_cpu_time = 1.2
       process_sys_time = 1.3
@@ -177,9 +188,9 @@ class ActionTest(client_test_lib.EmptyActionTest):
           pass
 
         def cpu_times(self):  # pylint: disable=invalid-name
-          return collections.namedtuple("pcputimes",
-                                        ["user", "system"])(process_cpu_time,
-                                                            process_sys_time)
+          return collections.namedtuple("pcputimes", ["user", "system"])(
+              process_cpu_time, process_sys_time
+          )
 
       stack.enter_context(mock.patch.object(psutil, "Process", FakeProcess))
 
@@ -202,10 +213,12 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual(action.SendReply.call_count, 1)
       self.assertAlmostEqual(
           action.SendReply.call_args[0][0].cpu_time_used.user_cpu_time,
-          42.0 - 1.0 + 10.0 - 1.2)
+          42.0 - 1.0 + 10.0 - 1.2,
+      )
       self.assertAlmostEqual(
           action.SendReply.call_args[0][0].cpu_time_used.system_cpu_time,
-          43.0 - 1.1 + 11.0 - 1.3)
+          43.0 - 1.1 + 11.0 - 1.3,
+      )
 
   def testCPULimit(self):
 
@@ -240,11 +253,13 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual("CPU_LIMIT_EXCEEDED", reply.status)
 
       self.assertEqual(worker.SendClientAlert.call_count, 1)
-      self.assertEqual(worker.SendClientAlert.call_args[0][0],
-                       "Cpu limit exceeded.")
+      self.assertEqual(
+          worker.SendClientAlert.call_args[0][0], "Cpu limit exceeded."
+      )
 
-  @unittest.skipIf(platform.system() == "Windows",
-                   "os.statvfs is not available on Windows")
+  @unittest.skipIf(
+      platform.system() == "Windows", "os.statvfs is not available on Windows"
+  )
   def testStatFS(self):
     import posix  # pylint: disable=g-import-not-at-top
 
@@ -261,9 +276,18 @@ class ActionTest(client_test_lib.EmptyActionTest):
     f_namemax = 255
 
     def MockStatFS(unused_path):
-      return posix.statvfs_result(
-          (f_bsize, f_frsize, f_blocks, f_bfree, f_bavail, f_files, f_ffree,
-           f_favail, f_flag, f_namemax))
+      return posix.statvfs_result((
+          f_bsize,
+          f_frsize,
+          f_blocks,
+          f_bfree,
+          f_bavail,
+          f_files,
+          f_ffree,
+          f_favail,
+          f_flag,
+          f_namemax,
+      ))
 
     def MockIsMount(path):
       """Only return True for the root path."""
@@ -274,18 +298,21 @@ class ActionTest(client_test_lib.EmptyActionTest):
       # well).
       return path == "/" or path == b"/"
 
-    with utils.MultiStubber((os, "statvfs", MockStatFS),
-                            (os.path, "ismount", MockIsMount)):
+    with utils.MultiStubber(
+        (os, "statvfs", MockStatFS), (os.path, "ismount", MockIsMount)
+    ):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(
           standard.StatFS,
-          rdf_client_action.StatFSRequest(path_list=["/usr/bin", "/"]))
+          rdf_client_action.StatFSRequest(path_list=["/usr/bin", "/"]),
+      )
       self.assertLen(results, 2)
 
       # Both results should have mount_point as "/"
-      self.assertEqual(results[0].unixvolume.mount_point,
-                       results[1].unixvolume.mount_point)
+      self.assertEqual(
+          results[0].unixvolume.mount_point, results[1].unixvolume.mount_point
+      )
       result = results[0]
       self.assertEqual(result.bytes_per_sector, f_bsize)
       self.assertEqual(result.sectors_per_allocation_unit, 1)
@@ -298,7 +325,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
       # Test we get a result even if one path is bad
       results = self.RunAction(
           standard.StatFS,
-          rdf_client_action.StatFSRequest(path_list=["/does/not/exist", "/"]))
+          rdf_client_action.StatFSRequest(path_list=["/does/not/exist", "/"]),
+      )
       self.assertLen(results, 1)
       self.assertEqual(result.Name(), "/")
 

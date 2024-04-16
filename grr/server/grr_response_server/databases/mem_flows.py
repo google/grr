@@ -6,6 +6,8 @@ import logging
 import sys
 import threading
 import time
+from typing import Callable
+from typing import Collection
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -16,16 +18,17 @@ from typing import Sequence
 from typing import Text
 from typing import Tuple
 from typing import TypeVar
+from typing import Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 
 
 T = TypeVar("T")
@@ -33,6 +36,8 @@ T = TypeVar("T")
 ClientID = NewType("ClientID", str)
 FlowID = NewType("FlowID", str)
 Username = NewType("Username", str)
+HandlerName = NewType("HandlerName", str)
+RequestID = NewType("RequestID", int)
 
 
 class Error(Exception):
@@ -46,42 +51,62 @@ class TimeOutWhileWaitingForFlowsToBeProcessedError(Error):
 class InMemoryDBFlowMixin(object):
   """InMemoryDB mixin for flow handling."""
 
+  flows: Dict[Tuple[ClientID, FlowID], flows_pb2.Flow]
   flow_results: Dict[Tuple[str, str], List[flows_pb2.FlowResult]]
   flow_errors: Dict[Tuple[str, str], List[flows_pb2.FlowError]]
   flow_log_entries: Dict[Tuple[str, str], List[flows_pb2.FlowLogEntry]]
   flow_output_plugin_log_entries: Dict[
       Tuple[str, str], List[flows_pb2.FlowOutputPluginLogEntry]
   ]
+  flow_responses: Dict[Tuple[str, str], List[flows_pb2.FlowResponse]]
+  flow_requests: Dict[Tuple[str, str], List[flows_pb2.FlowRequest]]
 
   scheduled_flows: dict[
       tuple[ClientID, Username, FlowID], flows_pb2.ScheduledFlow
   ]
 
+  message_handler_requests: Dict[
+      HandlerName, Dict[RequestID, objects_pb2.MessageHandlerRequest]
+  ]
+  message_handler_leases: Dict[
+      HandlerName, Dict[RequestID, int]  # lease expiration time in us
+  ]
+
   @utils.Synchronized
-  def WriteMessageHandlerRequests(self, requests):
+  def WriteMessageHandlerRequests(
+      self, requests: Iterable[objects_pb2.MessageHandlerRequest]
+  ) -> None:
     """Writes a list of message handler requests to the database."""
-    now = rdfvalue.RDFDatetime.Now()
+    now = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
     for r in requests:
       flow_dict = self.message_handler_requests.setdefault(r.handler_name, {})
-      cloned_request = r.Copy()
+      cloned_request = objects_pb2.MessageHandlerRequest()
+      cloned_request.CopyFrom(r)
       cloned_request.timestamp = now
       flow_dict[cloned_request.request_id] = cloned_request
 
   @utils.Synchronized
-  def ReadMessageHandlerRequests(self):
+  def ReadMessageHandlerRequests(
+      self,
+  ) -> Sequence[objects_pb2.MessageHandlerRequest]:
     """Reads all message handler requests from the database."""
     res = []
     leases = self.message_handler_leases
     for requests in self.message_handler_requests.values():
       for r in requests.values():
-        res.append(r.Copy())
+        res.append(r)
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)
-        res[-1].leased_until = existing_lease
+        if existing_lease is not None:
+          res[-1].leased_until = existing_lease
+        else:
+          res[-1].ClearField("leased_until")
 
     return sorted(res, key=lambda r: r.timestamp, reverse=True)
 
   @utils.Synchronized
-  def DeleteMessageHandlerRequests(self, requests):
+  def DeleteMessageHandlerRequests(
+      self, requests: Iterable[objects_pb2.MessageHandlerRequest]
+  ) -> None:
     """Deletes a list of message handler requests from the database."""
 
     for r in requests:
@@ -92,7 +117,12 @@ class InMemoryDBFlowMixin(object):
       if r.request_id in flow_dict:
         del flow_dict[r.request_id]
 
-  def RegisterMessageHandler(self, handler, lease_time, limit=1000):
+  def RegisterMessageHandler(
+      self,
+      handler: Callable[[Sequence[objects_pb2.MessageHandlerRequest]], None],
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> None:
     """Leases a number of message handler requests up to the indicated limit."""
     self.UnregisterMessageHandler()
 
@@ -100,11 +130,14 @@ class InMemoryDBFlowMixin(object):
     self.handler_thread = threading.Thread(
         name="message_handler",
         target=self._MessageHandlerLoop,
-        args=(handler, lease_time, limit))
+        args=(handler, lease_time, limit),
+    )
     self.handler_thread.daemon = True
     self.handler_thread.start()
 
-  def UnregisterMessageHandler(self, timeout=None):
+  def UnregisterMessageHandler(
+      self, timeout: Optional[rdfvalue.Duration] = None
+  ) -> None:
     """Unregisters any registered message handler."""
     if self.handler_thread:
       self.handler_stop = True
@@ -113,7 +146,13 @@ class InMemoryDBFlowMixin(object):
         raise RuntimeError("Message handler thread did not join in time.")
       self.handler_thread = None
 
-  def _MessageHandlerLoop(self, handler, lease_time, limit):
+  def _MessageHandlerLoop(
+      self,
+      handler: Callable[[Iterable[objects_pb2.MessageHandlerRequest]], None],
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> None:
+    """Loop to handle outstanding requests."""
     while not self.handler_stop:
       try:
         msgs = self._LeaseMessageHandlerRequests(lease_time, limit)
@@ -125,21 +164,28 @@ class InMemoryDBFlowMixin(object):
         logging.exception("_LeaseMessageHandlerRequests raised %s.", e)
 
   @utils.Synchronized
-  def _LeaseMessageHandlerRequests(self, lease_time, limit):
+  def _LeaseMessageHandlerRequests(
+      self,
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> None:
     """Read and lease some outstanding message handler requests."""
     leased_requests = []
 
     now = rdfvalue.RDFDatetime.Now()
-    zero = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
+    now_us = now.AsMicrosecondsSinceEpoch()
     expiration_time = now + lease_time
+    expiration_time_us = expiration_time.AsMicrosecondsSinceEpoch()
 
     leases = self.message_handler_leases
     for requests in self.message_handler_requests.values():
       for r in requests.values():
-        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, zero)
-        if existing_lease < now:
-          leases.setdefault(r.handler_name, {})[r.request_id] = expiration_time
-          r.leased_until = expiration_time
+        existing_lease = leases.get(r.handler_name, {}).get(r.request_id, 0)
+        if existing_lease < now_us:
+          leases.setdefault(r.handler_name, {})[
+              r.request_id
+          ] = expiration_time_us
+          r.leased_until = expiration_time_us
           r.leased_by = utils.ProcessIdString()
           leased_requests.append(r)
           if len(leased_requests) >= limit:
@@ -148,7 +194,11 @@ class InMemoryDBFlowMixin(object):
     return leased_requests
 
   @utils.Synchronized
-  def WriteFlowObject(self, flow_obj, allow_update=True):
+  def WriteFlowObject(
+      self,
+      flow_obj: flows_pb2.Flow,
+      allow_update: bool = True,
+  ) -> None:
     """Writes a flow object to the database."""
     if flow_obj.client_id not in self.metadatas:
       raise db.UnknownClientError(flow_obj.client_id)
@@ -158,19 +208,20 @@ class InMemoryDBFlowMixin(object):
     if not allow_update and key in self.flows:
       raise db.FlowExistsError(flow_obj.client_id, flow_obj.flow_id)
 
-    now = rdfvalue.RDFDatetime.Now()
+    now = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
-    clone = flow_obj.Copy()
+    clone = flows_pb2.Flow()
+    clone.CopyFrom(flow_obj)
     clone.last_update_time = now
     clone.create_time = now
 
     self.flows[key] = clone
 
   @utils.Synchronized
-  def ReadFlowObject(self, client_id, flow_id):
+  def ReadFlowObject(self, client_id: str, flow_id: str) -> flows_pb2.Flow:
     """Reads a flow object from the database."""
     try:
-      return self.flows[(client_id, flow_id)].Copy()
+      return self.flows[(client_id, flow_id)]
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
@@ -183,127 +234,193 @@ class InMemoryDBFlowMixin(object):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-  ) -> List[rdf_flow_objects.Flow]:
+  ) -> List[flows_pb2.Flow]:
     """Returns all flow objects."""
     res = []
     for flow in self.flows.values():
-      if ((client_id is None or flow.client_id == client_id) and
-          (parent_flow_id is None or flow.parent_flow_id == parent_flow_id) and
-          (min_create_time is None or flow.create_time >= min_create_time) and
-          (max_create_time is None or flow.create_time <= max_create_time) and
-          (include_child_flows or not flow.parent_flow_id) and
-          (not_created_by is None or flow.creator not in not_created_by)):
-        res.append(flow.Copy())
+      if client_id is not None and client_id != flow.client_id:
+        continue
+      if parent_flow_id is not None and parent_flow_id != flow.parent_flow_id:
+        continue
+      if (
+          min_create_time is not None
+          and flow.create_time < min_create_time.AsMicrosecondsSinceEpoch()
+      ):
+        continue
+      if (
+          max_create_time is not None
+          and flow.create_time > max_create_time.AsMicrosecondsSinceEpoch()
+      ):
+        continue
+      if not include_child_flows and flow.parent_flow_id:
+        continue
+      if not_created_by is not None and flow.creator in not_created_by:
+        continue
+      res.append(flow)
     return res
 
   @utils.Synchronized
-  def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
+  def LeaseFlowForProcessing(
+      self,
+      client_id: str,
+      flow_id: str,
+      processing_time: rdfvalue.Duration,
+  ) -> flows_pb2.Flow:
     """Marks a flow as being processed on this worker and returns it."""
-    rdf_flow = self.ReadFlowObject(client_id, flow_id)
-    if rdf_flow.parent_hunt_id:
-      rdf_hunt = self.ReadHuntObject(rdf_flow.parent_hunt_id)
+    flow = self.ReadFlowObject(client_id, flow_id)
+    if flow.parent_hunt_id:
+      hunt_obj = self.ReadHuntObject(flow.parent_hunt_id)
       if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(
-          rdf_hunt.hunt_state):
-        raise db.ParentHuntIsNotRunningError(client_id, flow_id,
-                                             rdf_hunt.hunt_id,
-                                             rdf_hunt.hunt_state)
+          hunt_obj.hunt_state
+      ):
+        raise db.ParentHuntIsNotRunningError(
+            client_id, flow_id, hunt_obj.hunt_id, hunt_obj.hunt_state
+        )
 
     now = rdfvalue.RDFDatetime.Now()
-    if rdf_flow.processing_on and rdf_flow.processing_deadline > now:
-      raise ValueError("Flow %s on client %s is already being processed." %
-                       (flow_id, client_id))
+    if flow.processing_on and flow.processing_deadline > int(now):
+      raise ValueError(
+          "Flow %s on client %s is already being processed."
+          % (flow_id, client_id)
+      )
     processing_deadline = now + processing_time
     process_id_string = utils.ProcessIdString()
-    self.UpdateFlow(
-        client_id,
-        flow_id,
-        processing_on=process_id_string,
-        processing_since=now,
-        processing_deadline=processing_deadline)
-    rdf_flow.processing_on = process_id_string
-    rdf_flow.processing_since = now
-    rdf_flow.processing_deadline = processing_deadline
-    return rdf_flow
+
+    # We avoid calling `UpdateFlow` here because it will update the
+    # `last_update_time` field. Other DB implementations avoid this change,
+    # so we want to preserve the same behavior here.
+    flow_clone = flows_pb2.Flow()
+    flow_clone.CopyFrom(flow)
+    flow_clone.processing_on = process_id_string
+    flow_clone.processing_since = int(now)
+    flow_clone.processing_deadline = int(processing_deadline)
+    self.flows[(client_id, flow_id)] = flow_clone
+
+    flow.processing_on = process_id_string
+    flow.processing_since = int(now)
+    flow.processing_deadline = int(processing_deadline)
+    return flow
 
   @utils.Synchronized
-  def UpdateFlow(self,
-                 client_id,
-                 flow_id,
-                 flow_obj=db.Database.unchanged,
-                 flow_state=db.Database.unchanged,
-                 client_crash_info=db.Database.unchanged,
-                 processing_on=db.Database.unchanged,
-                 processing_since=db.Database.unchanged,
-                 processing_deadline=db.Database.unchanged):
+  def UpdateFlow(
+      self,
+      client_id: str,
+      flow_id: str,
+      flow_obj: Union[
+          flows_pb2.Flow, db.Database.UNCHANGED_TYPE
+      ] = db.Database.UNCHANGED,
+      flow_state: Union[
+          flows_pb2.Flow.FlowState.ValueType, db.Database.UNCHANGED_TYPE
+      ] = db.Database.UNCHANGED,
+      client_crash_info: Union[
+          jobs_pb2.ClientCrash, db.Database.UNCHANGED_TYPE
+      ] = db.Database.UNCHANGED,
+      processing_on: Optional[
+          Union[str, db.Database.UNCHANGED_TYPE]
+      ] = db.Database.UNCHANGED,
+      processing_since: Optional[
+          Union[rdfvalue.RDFDatetime, db.Database.UNCHANGED_TYPE]
+      ] = db.Database.UNCHANGED,
+      processing_deadline: Optional[
+          Union[rdfvalue.RDFDatetime, db.Database.UNCHANGED_TYPE]
+      ] = db.Database.UNCHANGED,
+  ) -> None:
     """Updates flow objects in the database."""
-
     try:
       flow = self.flows[(client_id, flow_id)]
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
-    if flow_obj != db.Database.unchanged:
-      new_flow = flow_obj.Copy()
+    if isinstance(flow_obj, flows_pb2.Flow):
+      new_flow = flows_pb2.Flow()
+      new_flow.CopyFrom(flow_obj)
 
       # Some fields cannot be updated.
       new_flow.client_id = flow.client_id
       new_flow.flow_id = flow.flow_id
-      new_flow.long_flow_id = flow.long_flow_id
-      new_flow.parent_flow_id = flow.parent_flow_id
-      new_flow.parent_hunt_id = flow.parent_hunt_id
-      new_flow.flow_class_name = flow.flow_class_name
-      new_flow.creator = flow.creator
+      if flow.long_flow_id:
+        new_flow.long_flow_id = flow.long_flow_id
+      if flow.parent_flow_id:
+        new_flow.parent_flow_id = flow.parent_flow_id
+      if flow.parent_hunt_id:
+        new_flow.parent_hunt_id = flow.parent_hunt_id
+      if flow.flow_class_name:
+        new_flow.flow_class_name = flow.flow_class_name
+      if flow.creator:
+        new_flow.creator = flow.creator
 
-      self.flows[(client_id, flow_id)] = new_flow
       flow = new_flow
-
-    if flow_state != db.Database.unchanged:
+    if isinstance(flow_state, flows_pb2.Flow.FlowState.ValueType):
       flow.flow_state = flow_state
-    if client_crash_info != db.Database.unchanged:
-      flow.client_crash_info = client_crash_info
-    if processing_on != db.Database.unchanged:
+    if isinstance(client_crash_info, jobs_pb2.ClientCrash):
+      flow.client_crash_info.CopyFrom(client_crash_info)
+    if (
+        isinstance(processing_on, str)
+        and processing_on is not db.Database.UNCHANGED
+    ):
       flow.processing_on = processing_on
-    if processing_since != db.Database.unchanged:
-      flow.processing_since = processing_since
-    if processing_deadline != db.Database.unchanged:
-      flow.processing_deadline = processing_deadline
-    flow.last_update_time = rdfvalue.RDFDatetime.Now()
+    elif processing_on is None:
+      flow.ClearField("processing_on")
+    if isinstance(processing_since, rdfvalue.RDFDatetime):
+      flow.processing_since = int(processing_since)
+    elif processing_since is None:
+      flow.ClearField("processing_since")
+    if isinstance(processing_deadline, rdfvalue.RDFDatetime):
+      flow.processing_deadline = int(processing_deadline)
+    elif processing_deadline is None:
+      flow.ClearField("processing_deadline")
+    flow.last_update_time = int(rdfvalue.RDFDatetime.Now())
+
+    self.flows[(client_id, flow_id)] = flow
 
   @utils.Synchronized
-  def WriteFlowRequests(self, requests):
+  def WriteFlowRequests(
+      self,
+      requests: Collection[flows_pb2.FlowRequest],
+  ) -> None:
     """Writes a list of flow requests to the database."""
     flow_processing_requests = []
 
     for request in requests:
       if (request.client_id, request.flow_id) not in self.flows:
-        raise db.AtLeastOneUnknownFlowError([(request.client_id,
-                                              request.flow_id)])
+        raise db.AtLeastOneUnknownFlowError(
+            [(request.client_id, request.flow_id)]
+        )
 
     for request in requests:
       key = (request.client_id, request.flow_id)
       request_dict = self.flow_requests.setdefault(key, {})
-      request_dict[request.request_id] = request.Copy()
-      request_dict[request.request_id].timestamp = rdfvalue.RDFDatetime.Now()
+      clone = flows_pb2.FlowRequest()
+      clone.CopyFrom(request)
+      request_dict[request.request_id] = clone
+      request_dict[request.request_id].timestamp = int(
+          rdfvalue.RDFDatetime.Now()
+      )
 
       if request.needs_processing:
         flow = self.flows[(request.client_id, request.flow_id)]
+        flow = mig_flow_objects.ToRDFFlow(flow)
         if (
             flow.next_request_to_process == request.request_id
-            or request.start_time is not None
+            or request.start_time
         ):
-          flow_processing_requests.append(
-              rdf_flows.FlowProcessingRequest(
-                  client_id=request.client_id,
-                  flow_id=request.flow_id,
-                  delivery_time=request.start_time))
+          processing_request = flows_pb2.FlowProcessingRequest(
+              client_id=request.client_id, flow_id=request.flow_id
+          )
+          if request.start_time:
+            processing_request.delivery_time = request.start_time
+          flow_processing_requests.append(processing_request)
 
     if flow_processing_requests:
       self.WriteFlowProcessingRequests(flow_processing_requests)
 
   @utils.Synchronized
   def UpdateIncrementalFlowRequests(
-      self, client_id: str, flow_id: str,
-      next_response_id_updates: Dict[int, int]) -> None:
+      self,
+      client_id: str,
+      flow_id: str,
+      next_response_id_updates: Mapping[int, int],
+  ) -> None:
     """Updates incremental flow requests."""
     if (client_id, flow_id) not in self.flows:
       raise db.UnknownFlowError(client_id, flow_id)
@@ -311,10 +428,13 @@ class InMemoryDBFlowMixin(object):
     request_dict = self.flow_requests[(client_id, flow_id)]
     for request_id, next_response_id in next_response_id_updates.items():
       request_dict[request_id].next_response_id = next_response_id
-      request_dict[request_id].timestamp = rdfvalue.RDFDatetime.Now()
+      request_dict[request_id].timestamp = int(rdfvalue.RDFDatetime.Now())
 
   @utils.Synchronized
-  def DeleteFlowRequests(self, requests):
+  def DeleteFlowRequests(
+      self,
+      requests: Sequence[flows_pb2.FlowRequest],
+  ) -> None:
     """Deletes a list of flow requests from the database."""
     for request in requests:
       if (request.client_id, request.flow_id) not in self.flows:
@@ -325,9 +445,10 @@ class InMemoryDBFlowMixin(object):
       request_dict = self.flow_requests.get(key, {})
       try:
         del request_dict[request.request_id]
-      except KeyError:
-        raise db.UnknownFlowRequestError(request.client_id, request.flow_id,
-                                         request.request_id)
+      except KeyError as e:
+        raise db.UnknownFlowRequestError(
+            request.client_id, request.flow_id, request.request_id
+        ) from e
 
       response_dict = self.flow_responses.get(key, {})
       try:
@@ -336,8 +457,17 @@ class InMemoryDBFlowMixin(object):
         pass
 
   @utils.Synchronized
-  def WriteFlowResponses(self, responses):
-    """Writes FlowMessages and updates corresponding requests."""
+  def WriteFlowResponses(
+      self,
+      responses: Sequence[
+          Union[
+              flows_pb2.FlowResponse,
+              flows_pb2.FlowStatus,
+              flows_pb2.FlowIterator,
+          ],
+      ],
+  ) -> None:
+    """Writes Flow responses and updates corresponding requests."""
     status_available = {}
     requests_updated = set()
     task_ids_by_request = {}
@@ -345,26 +475,44 @@ class InMemoryDBFlowMixin(object):
     for response in responses:
       flow_key = (response.client_id, response.flow_id)
       if flow_key not in self.flows:
-        logging.error("Received response for unknown flow %s, %s.",
-                      response.client_id, response.flow_id)
+        logging.error(
+            "Received response for unknown flow %s, %s.",
+            response.client_id,
+            response.flow_id,
+        )
         continue
 
       request_dict = self.flow_requests.get(flow_key, {})
       if response.request_id not in request_dict:
-        logging.error("Received response for unknown request %s, %s, %d.",
-                      response.client_id, response.flow_id, response.request_id)
+        logging.error(
+            "Received response for unknown request %s, %s, %d.",
+            response.client_id,
+            response.flow_id,
+            response.request_id,
+        )
         continue
 
       response_dict = self.flow_responses.setdefault(flow_key, {})
-      clone = response.Copy()
-      clone.timestamp = rdfvalue.RDFDatetime.Now()
+      clone = flows_pb2.FlowResponse()
+      if isinstance(response, flows_pb2.FlowIterator):
+        clone = flows_pb2.FlowIterator()
+      elif isinstance(response, flows_pb2.FlowStatus):
+        clone = flows_pb2.FlowStatus()
 
-      response_dict.setdefault(response.request_id,
-                               {})[response.response_id] = clone
+      clone.CopyFrom(response)
+      clone.timestamp = int(rdfvalue.RDFDatetime.Now())
 
-      if isinstance(response, rdf_flow_objects.FlowStatus):
-        status_available[(response.client_id, response.flow_id,
-                          response.request_id, response.response_id)] = response
+      response_dict.setdefault(response.request_id, {})[
+          response.response_id
+      ] = clone
+
+      if isinstance(response, flows_pb2.FlowStatus):
+        status_available[(
+            response.client_id,
+            response.flow_id,
+            response.request_id,
+            response.response_id,
+        )] = response
 
       request_key = (response.client_id, response.flow_id, response.request_id)
       requests_updated.add(request_key)
@@ -372,7 +520,6 @@ class InMemoryDBFlowMixin(object):
         task_ids_by_request[request_key] = response.task_id
       except AttributeError:
         pass
-
     # Every time we get a status we store how many responses are expected.
     for status in status_available.values():
       request_dict = self.flow_requests[(status.client_id, status.flow_id)]
@@ -384,6 +531,7 @@ class InMemoryDBFlowMixin(object):
     for client_id, flow_id, request_id in requests_updated:
       flow_key = (client_id, flow_id)
       flow = self.flows[flow_key]
+      flow = mig_flow_objects.ToRDFFlow(flow)
       request_dict = self.flow_requests[flow_key]
       request = request_dict[request_id]
 
@@ -397,24 +545,46 @@ class InMemoryDBFlowMixin(object):
 
           if flow.next_request_to_process == request_id:
             added_for_processing = True
-            needs_processing.append(
-                rdf_flows.FlowProcessingRequest(
-                    client_id=client_id, flow_id=flow_id))
+            flow_processing_request = flows_pb2.FlowProcessingRequest(
+                client_id=client_id,
+                flow_id=flow_id,
+            )
+            if request.start_time:
+              flow_processing_request.delivery_time = request.start_time
+            needs_processing.append(flow_processing_request)
 
-      if (request.callback_state and
-          flow.next_request_to_process == request_id and
-          not added_for_processing):
+      if (
+          request.callback_state
+          and flow.next_request_to_process == request_id
+          and not added_for_processing
+      ):
+
         needs_processing.append(
-            rdf_flows.FlowProcessingRequest(
-                client_id=client_id, flow_id=flow_id))
-
+            flows_pb2.FlowProcessingRequest(
+                client_id=client_id, flow_id=flow_id
+            )
+        )
     if needs_processing:
       self.WriteFlowProcessingRequests(needs_processing)
 
-    return needs_processing
-
   @utils.Synchronized
-  def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
+  def ReadAllFlowRequestsAndResponses(
+      self,
+      client_id: str,
+      flow_id: str,
+  ) -> Iterable[
+      Tuple[
+          flows_pb2.FlowRequest,
+          Dict[
+              int,
+              Union[
+                  flows_pb2.FlowResponse,
+                  flows_pb2.FlowStatus,
+                  flows_pb2.FlowIterator,
+              ],
+          ],
+      ]
+  ]:
     """Reads all requests and responses for a given flow from the database."""
     flow_key = (client_id, flow_id)
     try:
@@ -432,7 +602,11 @@ class InMemoryDBFlowMixin(object):
     return res
 
   @utils.Synchronized
-  def DeleteAllFlowRequestsAndResponses(self, client_id, flow_id):
+  def DeleteAllFlowRequestsAndResponses(
+      self,
+      client_id: str,
+      flow_id: str,
+  ) -> None:
     """Deletes all requests and responses for a given flow from the database."""
     flow_key = (client_id, flow_id)
     try:
@@ -451,10 +625,24 @@ class InMemoryDBFlowMixin(object):
       pass
 
   @utils.Synchronized
-  def ReadFlowRequestsReadyForProcessing(self,
-                                         client_id,
-                                         flow_id,
-                                         next_needed_request=None):
+  def ReadFlowRequestsReadyForProcessing(
+      self,
+      client_id: str,
+      flow_id: str,
+      next_needed_request: Optional[int] = None,
+  ) -> Dict[
+      int,
+      Tuple[
+          flows_pb2.FlowRequest,
+          Sequence[
+              Union[
+                  flows_pb2.FlowResponse,
+                  flows_pb2.FlowStatus,
+                  flows_pb2.FlowIterator,
+              ],
+          ],
+      ],
+  ]:
     """Reads all requests for a flow that can be processed by the worker."""
     request_dict = self.flow_requests.get((client_id, flow_id), {})
     response_dict = self.flow_responses.get((client_id, flow_id), {})
@@ -475,16 +663,20 @@ class InMemoryDBFlowMixin(object):
 
       responses = sorted(
           response_dict.get(request_id, {}).values(),
-          key=lambda response: response.response_id)
+          key=lambda response: response.response_id,
+      )
+
       # Serialize/deserialize responses to better simulate the
       # real DB behavior (where serialization/deserialization is almost
       # guaranteed to be done).
       # TODO(user): change mem-db implementation to do
       # serialization/deserialization everywhere in a generic way.
-      responses = [
-          r.__class__.FromSerializedBytes(r.SerializeToBytes())
-          for r in responses
-      ]
+      reserialized_responses = []
+      for r in responses:
+        response = r.__class__()
+        response.ParseFromString(r.SerializeToString())
+        reserialized_responses.append(response)
+      responses = reserialized_responses
       res[request_id] = (request, responses)
       next_needed_request += 1
 
@@ -499,6 +691,7 @@ class InMemoryDBFlowMixin(object):
         continue
 
       responses = response_dict.get(request_id, {}).values()
+
       responses = [
           r for r in responses if r.response_id >= request.next_response_id
       ]
@@ -509,16 +702,18 @@ class InMemoryDBFlowMixin(object):
       # guaranteed to be done).
       # TODO(user): change mem-db implementation to do
       # serialization/deserialization everywhere in a generic way.
-      responses = [
-          r.__class__.FromSerializedBytes(r.SerializeToBytes())
-          for r in responses
-      ]
+      reserialized_responses = []
+      for r in responses:
+        response = r.__class__()
+        response.ParseFromString(r.SerializeToString())
+        reserialized_responses.append(response)
+      responses = reserialized_responses
       res[request_id] = (request, responses)
 
     return res
 
   @utils.Synchronized
-  def ReleaseProcessedFlow(self, flow_obj):
+  def ReleaseProcessedFlow(self, flow_obj: flows_pb2.Flow) -> bool:
     """Releases a flow that the worker was processing to the database."""
     key = (flow_obj.client_id, flow_obj.flow_id)
     next_id_to_process = flow_obj.next_request_to_process
@@ -528,7 +723,7 @@ class InMemoryDBFlowMixin(object):
         and request_dict[next_id_to_process].needs_processing
     ):
       start_time = request_dict[next_id_to_process].start_time
-      if start_time is None or start_time < rdfvalue.RDFDatetime.Now():
+      if not start_time or start_time < int(rdfvalue.RDFDatetime.Now()):
         return False
 
     self.UpdateFlow(
@@ -537,17 +732,30 @@ class InMemoryDBFlowMixin(object):
         flow_obj=flow_obj,
         processing_on=None,
         processing_since=None,
-        processing_deadline=None)
+        processing_deadline=None,
+    )
     return True
 
-  def _InlineProcessingOK(self, requests):
+  def _InlineProcessingOK(
+      self, requests: Sequence[flows_pb2.FlowProcessingRequest]
+  ) -> bool:
+    """Returns whether inline processing is OK for a list of requests."""
     for r in requests:
-      if r.delivery_time is not None:
+      if r.delivery_time:
+        return False
+
+      # If the corresponding flow is already being processed, inline processing
+      # won't work.
+      flow = self.flows[r.client_id, r.flow_id]
+      if flow.HasField("processing_since"):
         return False
     return True
 
   @utils.Synchronized
-  def WriteFlowProcessingRequests(self, requests):
+  def WriteFlowProcessingRequests(
+      self,
+      requests: Sequence[flows_pb2.FlowProcessingRequest],
+  ) -> None:
     """Writes a list of flow processing requests to the database."""
     # If we don't have a handler thread running, we might be able to process the
     # requests inline. If we are not, we start the handler thread for real and
@@ -555,26 +763,31 @@ class InMemoryDBFlowMixin(object):
     if not self.flow_handler_thread and self.flow_handler_target:
       if self._InlineProcessingOK(requests):
         for r in requests:
+          r.creation_time = int(rdfvalue.RDFDatetime.Now())
           self.flow_handler_target(r)
         return
       else:
         self._RegisterFlowProcessingHandler(self.flow_handler_target)
         self.flow_handler_target = None
 
-    now = rdfvalue.RDFDatetime.Now()
     for r in requests:
-      cloned_request = r.Copy()
-      cloned_request.timestamp = now
+      cloned_request = flows_pb2.FlowProcessingRequest()
+      cloned_request.CopyFrom(r)
       key = (r.client_id, r.flow_id)
+      cloned_request.creation_time = int(rdfvalue.RDFDatetime.Now())
       self.flow_processing_requests[key] = cloned_request
 
   @utils.Synchronized
-  def ReadFlowProcessingRequests(self):
+  def ReadFlowProcessingRequests(
+      self,
+  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
     """Reads all flow processing requests from the database."""
     return list(self.flow_processing_requests.values())
 
   @utils.Synchronized
-  def AckFlowProcessingRequests(self, requests):
+  def AckFlowProcessingRequests(
+      self, requests: Iterable[flows_pb2.FlowProcessingRequest]
+  ) -> None:
     """Deletes a list of flow processing requests from the database."""
     for r in requests:
       key = (r.client_id, r.flow_id)
@@ -582,10 +795,12 @@ class InMemoryDBFlowMixin(object):
         del self.flow_processing_requests[key]
 
   @utils.Synchronized
-  def DeleteAllFlowProcessingRequests(self):
+  def DeleteAllFlowProcessingRequests(self) -> None:
     self.flow_processing_requests = {}
 
-  def RegisterFlowProcessingHandler(self, handler):
+  def RegisterFlowProcessingHandler(
+      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+  ) -> None:
     """Registers a message handler to receive flow processing messages."""
     self.UnregisterFlowProcessingHandler()
 
@@ -596,20 +811,26 @@ class InMemoryDBFlowMixin(object):
     for request in self._GetFlowRequestsReadyForProcessing():
       handler(request)
       with self.lock:
-        self.flow_processing_requests.pop((request.client_id, request.flow_id),
-                                          None)
+        self.flow_processing_requests.pop(
+            (request.client_id, request.flow_id), None
+        )
 
-  def _RegisterFlowProcessingHandler(self, handler):
+  def _RegisterFlowProcessingHandler(
+      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+  ) -> None:
     """Registers a handler to receive flow processing messages."""
     self.flow_handler_stop = False
     self.flow_handler_thread = threading.Thread(
         name="flow_processing_handler",
         target=self._HandleFlowProcessingRequestLoop,
-        args=(handler,))
+        args=(handler,),
+    )
     self.flow_handler_thread.daemon = True
     self.flow_handler_thread.start()
 
-  def UnregisterFlowProcessingHandler(self, timeout=None):
+  def UnregisterFlowProcessingHandler(
+      self, timeout: Optional[rdfvalue.Duration] = None
+  ) -> None:
     """Unregisters any registered flow processing handler."""
     self.flow_handler_target = None
 
@@ -621,11 +842,13 @@ class InMemoryDBFlowMixin(object):
       self.flow_handler_thread = None
 
   @utils.Synchronized
-  def _GetFlowRequestsReadyForProcessing(self):
+  def _GetFlowRequestsReadyForProcessing(
+      self,
+  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
     now = rdfvalue.RDFDatetime.Now()
     todo = []
     for r in list(self.flow_processing_requests.values()):
-      if r.delivery_time is None or r.delivery_time <= now:
+      if not r.delivery_time or r.delivery_time <= now:
         todo.append(r)
 
     return todo
@@ -649,16 +872,18 @@ class InMemoryDBFlowMixin(object):
         # If the thread is dead, or there are no requests
         # to be processed/being processed, we stop waiting
         # and return from the function.
-        if (not t.is_alive() or
-            (not self._GetFlowRequestsReadyForProcessing() and
-             not self.flow_handler_num_being_processed)):
+        if not t.is_alive() or (
+            not self._GetFlowRequestsReadyForProcessing()
+            and not self.flow_handler_num_being_processed
+        ):
           return
 
       time.sleep(0.2)
 
       if timeout and time.time() - start_time > timeout:
         raise TimeOutWhileWaitingForFlowsToBeProcessedError(
-            "Flow processing didn't finish in time.")
+            "Flow processing didn't finish in time."
+        )
 
   def _HandleFlowProcessingRequestLoop(self, handler):
     """Handler thread for the FlowProcessingRequest queue."""
@@ -667,8 +892,9 @@ class InMemoryDBFlowMixin(object):
         todo = self._GetFlowRequestsReadyForProcessing()
         for request in todo:
           self.flow_handler_num_being_processed += 1
-          del self.flow_processing_requests[(request.client_id,
-                                             request.flow_id)]
+          del self.flow_processing_requests[
+              (request.client_id, request.flow_id)
+          ]
 
       for request in todo:
         handler(request)
@@ -746,7 +972,7 @@ class InMemoryDBFlowMixin(object):
           if encoded_substring in i.payload.SerializeToString()
       ]
 
-    return results[offset:offset + count]
+    return results[offset : offset + count]
 
   def ReadFlowResults(
       self,
@@ -767,7 +993,8 @@ class InMemoryDBFlowMixin(object):
         count,
         with_tag=with_tag,
         with_type=with_type,
-        with_substring=with_substring)
+        with_substring=with_substring,
+    )
 
   @utils.Synchronized
   def CountFlowResults(
@@ -785,7 +1012,9 @@ class InMemoryDBFlowMixin(object):
             0,
             sys.maxsize,
             with_tag=with_tag,
-            with_type=with_type))
+            with_type=with_type,
+        )
+    )
 
   @utils.Synchronized
   def CountFlowResultsByType(
@@ -828,7 +1057,8 @@ class InMemoryDBFlowMixin(object):
         offset,
         count,
         with_tag=with_tag,
-        with_type=with_type)
+        with_type=with_type,
+    )
 
   @utils.Synchronized
   def CountFlowErrors(
@@ -846,7 +1076,9 @@ class InMemoryDBFlowMixin(object):
             0,
             sys.maxsize,
             with_tag=with_tag,
-            with_type=with_type))
+            with_type=with_type,
+        )
+    )
 
   @utils.Synchronized
   def CountFlowErrorsByType(
@@ -886,12 +1118,13 @@ class InMemoryDBFlowMixin(object):
     """Reads flow log entries of a given flow using given query options."""
     entries = sorted(
         self.flow_log_entries.get((client_id, flow_id), []),
-        key=lambda e: e.timestamp)
+        key=lambda e: e.timestamp,
+    )
 
     if with_substring is not None:
       entries = [i for i in entries if with_substring in i.message]
 
-    return entries[offset:offset + count]
+    return entries[offset : offset + count]
 
   @utils.Synchronized
   def CountFlowLogEntries(self, client_id: str, flow_id: str) -> int:
@@ -930,14 +1163,15 @@ class InMemoryDBFlowMixin(object):
     """Reads flow output plugin log entries."""
     entries = sorted(
         self.flow_output_plugin_log_entries.get((client_id, flow_id), []),
-        key=lambda e: e.timestamp)
+        key=lambda e: e.timestamp,
+    )
 
     entries = [e for e in entries if e.output_plugin_id == output_plugin_id]
 
     if with_type is not None:
       entries = [e for e in entries if e.log_entry_type == with_type]
 
-    return entries[offset:offset + count]
+    return entries[offset : offset + count]
 
   @utils.Synchronized
   def CountFlowOutputPluginLogEntries(
@@ -958,7 +1192,9 @@ class InMemoryDBFlowMixin(object):
             output_plugin_id,
             0,
             sys.maxsize,
-            with_type=with_type))
+            with_type=with_type,
+        )
+    )
 
   @utils.Synchronized
   def WriteScheduledFlow(
@@ -999,7 +1235,8 @@ class InMemoryDBFlowMixin(object):
       raise db.UnknownScheduledFlowError(
           client_id=client_id,
           creator=creator,
-          scheduled_flow_id=scheduled_flow_id)
+          scheduled_flow_id=scheduled_flow_id,
+      )
 
   @utils.Synchronized
   def ListScheduledFlows(

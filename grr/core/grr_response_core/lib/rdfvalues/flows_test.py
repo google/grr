@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Test for the flow state class."""
 
-
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
@@ -26,24 +24,45 @@ class SessionIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678:hunt"))
 
   def testBadStructure(self):
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:123456:1:"))
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:123456::"))
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:123456:"))
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:"))
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/:"))
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A:123456:1:"),
+    )
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A:123456::"),
+    )
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A:123456:"),
+    )
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A:"),
+    )
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/:"),
+    )
 
   def testBadQueue(self):
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A%b:12345678"))
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A%b:12345678"),
+    )
 
   def testBadFlowID(self):
-    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:1234567G%sdf"))
+    self.assertRaises(
+        rdfvalue.InitializeError,
+        rdfvalue.SessionID,
+        rdfvalue.RDFURN("aff4:/flows/A:1234567G%sdf"),
+    )
 
 
 def main(argv):

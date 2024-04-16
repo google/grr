@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Common utilities for testing keystore implementations."""
+
 import abc
 from typing import Sequence
 

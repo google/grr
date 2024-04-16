@@ -142,9 +142,12 @@ class MysqlTestBase(MySQLDatabaseProviderMixin):
   pass
 
 
-class TestMysqlDB(stats_test_lib.StatsTestMixin,
-                  db_test_mixin.DatabaseTestMixin, MysqlTestBase,
-                  absltest.TestCase):
+class TestMysqlDB(
+    stats_test_lib.StatsTestMixin,
+    db_test_mixin.DatabaseTestMixin,
+    MysqlTestBase,
+    absltest.TestCase,
+):
   """Test the mysql.MysqlDB class.
 
   Most of the tests in this suite are general blackbox tests of the db.Database
@@ -156,27 +159,40 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     self.assertFalse(
         mysql._IsRetryable(
             MySQLdb.OperationalError(
-                1416, "Cannot get geometry object from data...")))
+                1416, "Cannot get geometry object from data..."
+            )
+        )
+    )
     self.assertTrue(
         mysql._IsRetryable(
             MySQLdb.OperationalError(
-                1205, "Lock wait timeout exceeded; try restarting...")))
+                1205, "Lock wait timeout exceeded; try restarting..."
+            )
+        )
+    )
     self.assertTrue(
         mysql._IsRetryable(
             MySQLdb.OperationalError(
                 1213,
-                "Deadlock found when trying to get lock; try restarting...")))
+                "Deadlock found when trying to get lock; try restarting...",
+            )
+        )
+    )
     self.assertTrue(
         mysql._IsRetryable(
             MySQLdb.OperationalError(
-                1637, "Too many active concurrent transactions")))
+                1637, "Too many active concurrent transactions"
+            )
+        )
+    )
 
   def AddUser(self, connection, user, password):
     cursor = connection.cursor()
     cursor.execute(
         "INSERT INTO grr_users (username, username_hash, password) "
         "VALUES (%s, %s, %s)",
-        (user, mysql_utils.Hash(user), password.encode("utf-8")))
+        (user, mysql_utils.Hash(user), password.encode("utf-8")),
+    )
     cursor.close()
 
   def ListUsers(self, connection):
@@ -222,28 +238,36 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       counts[0] += 1
       cursor = connection.cursor()
       cursor.execute(
-          "SELECT password FROM grr_users WHERE username = 'user1' FOR UPDATE")
+          "SELECT password FROM grr_users WHERE username = 'user1' FOR UPDATE"
+      )
       t1_halfway.set()
       self.assertTrue(t2_halfway.wait(5))
-      cursor.execute("UPDATE grr_users SET password = 'pw2-updated' "
-                     "WHERE username = 'user2'")
+      cursor.execute(
+          "UPDATE grr_users SET password = 'pw2-updated' "
+          "WHERE username = 'user2'"
+      )
       cursor.close()
 
     def Transaction2(connection):
       counts[1] += 1
       cursor = connection.cursor()
       cursor.execute(
-          "SELECT password FROM grr_users WHERE username = 'user2' FOR UPDATE")
+          "SELECT password FROM grr_users WHERE username = 'user2' FOR UPDATE"
+      )
       t2_halfway.set()
       self.assertTrue(t1_halfway.wait(5))
-      cursor.execute("UPDATE grr_users SET password = 'pw1-updated' "
-                     "WHERE username = 'user1'")
+      cursor.execute(
+          "UPDATE grr_users SET password = 'pw1-updated' "
+          "WHERE username = 'user1'"
+      )
       cursor.close()
 
     thread_1 = threading.Thread(
-        target=lambda: self.db.delegate._RunInTransaction(Transaction1))
+        target=lambda: self.db.delegate._RunInTransaction(Transaction1)
+    )
     thread_2 = threading.Thread(
-        target=lambda: self.db.delegate._RunInTransaction(Transaction2))
+        target=lambda: self.db.delegate._RunInTransaction(Transaction2)
+    )
 
     thread_1.start()
     thread_2.start()
@@ -253,8 +277,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     # Both transaction should have succeeded
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
-    self.assertEqual(users,
-                     (("user1", b"pw1-updated"), ("user2", b"pw2-updated")))
+    self.assertEqual(
+        users, (("user1", b"pw1-updated"), ("user2", b"pw2-updated"))
+    )
 
     # At least one should have been retried.
     self.assertGreater(sum(counts), 2)
@@ -262,7 +287,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   def testSuccessfulCallsAreCorrectlyAccounted(self):
     with self.assertStatsCounterDelta(
-        1, db_utils.DB_REQUEST_LATENCY, fields=["ReadGRRUsers"]):
+        1, db_utils.DB_REQUEST_LATENCY, fields=["ReadGRRUsers"]
+    ):
       self.db.ReadGRRUsers()
 
   def testMaxAllowedPacketSettingIsOverriddenWhenTooLow(self):
@@ -301,7 +327,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     with mock.patch.object(
         mysql,
         "_SetGlobalVariable",
-        side_effect=MySQLdb.OperationalError("SUPER privileges required")):
+        side_effect=MySQLdb.OperationalError("SUPER privileges required"),
+    ):
       with self.assertRaises(mysql.MaxAllowedPacketSettingTooLowError):
         self.__class__._Connect()
 
@@ -320,8 +347,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       connection.close = mock.Mock(wraps=real_close_fn)
       connections.append(connection)
 
-      raise MySQLdb.OperationalError(mysql_conn_errors.SERVER_GONE_ERROR,
-                                     expected_error_msg)
+      raise MySQLdb.OperationalError(
+          mysql_conn_errors.SERVER_GONE_ERROR, expected_error_msg
+      )
 
     with mock.patch.object(self.db.delegate, "_max_pool_size", 6):
       with self.assertRaises(MySQLdb.OperationalError) as context:
@@ -375,8 +403,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       connection.close = mock.Mock(wraps=real_close_fn)
       connections.append(connection)
 
-      raise MySQLdb.OperationalError(mysql_conn_errors.NOT_IMPLEMENTED,
-                                     expected_error_msg)
+      raise MySQLdb.OperationalError(
+          mysql_conn_errors.NOT_IMPLEMENTED, expected_error_msg
+      )
 
     with self.assertRaises(MySQLdb.OperationalError) as context:
       self.db.delegate._RunInTransaction(RaisePermanentError)

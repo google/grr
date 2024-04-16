@@ -569,7 +569,9 @@ def CreateFile(client_path, content=b""):
   path_info.hash_entry.sha256 = hash_id.AsBytes()
   path_info.stat_entry = stat_entry
 
-  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+  data_store.REL_DB.WritePathInfos(
+      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+  )
 
 
 def CreateDirectory(client_path):
@@ -593,7 +595,9 @@ def CreateDirectory(client_path):
   path_info.stat_entry = stat_entry
   path_info.directory = True
 
-  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+  data_store.REL_DB.WritePathInfos(
+      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+  )
 
 
 def GenerateBlobRefs(
@@ -653,7 +657,9 @@ def CreateFileWithBlobRefsAndData(
       path_type=client_path.path_type, components=client_path.components
   )
   path_info.hash_entry.sha256 = hash_id.AsBytes()
-  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+  data_store.REL_DB.WritePathInfos(
+      client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+  )
 
 
 class VfsTestCase(absltest.TestCase):
