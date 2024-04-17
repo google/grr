@@ -10,4 +10,4 @@ Mysql.password: grrp
 Mysql.username: grru
 
 PrivateKeys.executable_signing_private_key: |
-  "%(/configs/private-key.pem|file)"
+  %(/configs/private-key.pem|file)
