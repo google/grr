@@ -3,10 +3,9 @@ import ipaddress
 from unittest import mock
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.util import collection
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
@@ -14,49 +13,8 @@ from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.models import clients
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
-
-CERT = rdf_crypto.RDFX509Cert(b"""-----BEGIN CERTIFICATE-----
-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
------END CERTIFICATE-----""")
-
-
-def _DaysSinceEpoch(days):
-  return rdfvalue.RDFDatetime(
-      rdfvalue.Duration.From(days, rdfvalue.DAYS).microseconds)
 
 
 def _FlattenDicts(dicts):
@@ -132,7 +90,6 @@ class DatabaseTestClientsMixin(object):
     # Typical initial non-FS write
     d.WriteClientMetadata(
         client_id_2,
-        certificate=CERT,
         first_seen=rdfvalue.RDFDatetime(100000000),
     )
 
@@ -144,7 +101,6 @@ class DatabaseTestClientsMixin(object):
 
     m2 = res[client_id_2]
     self.assertIsInstance(m2, objects_pb2.ClientMetadata)
-    self.assertEqual(m2.certificate, CERT.SerializeToBytes())
     self.assertEqual(m2.first_seen, int(rdfvalue.RDFDatetime(100000000)))
 
   def testClientMetadataDefaultValues(self):
@@ -170,7 +126,6 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
     self.db.WriteClientMetadata(
         client_id,
-        certificate=CERT,
         first_seen=rdfvalue.RDFDatetime(100000000),
         last_clock=rdfvalue.RDFDatetime(100000001),
         last_foreman=rdfvalue.RDFDatetime(100000002),
@@ -183,7 +138,6 @@ class DatabaseTestClientsMixin(object):
     # Skip fields
     self.db.WriteClientMetadata(
         client_id,
-        certificate=None,
         first_seen=None,
         last_clock=None,
         last_foreman=None,
@@ -193,7 +147,6 @@ class DatabaseTestClientsMixin(object):
     )
 
     md = self.db.ReadClientMetadata(client_id)
-    self.assertEqual(md.certificate, CERT.SerializeToBytes())
     self.assertEqual(md.first_seen, int(rdfvalue.RDFDatetime(100000000)))
     self.assertEqual(md.clock, int(rdfvalue.RDFDatetime(100000001)))
     self.assertEqual(md.last_foreman_time, int(rdfvalue.RDFDatetime(100000002)))
@@ -213,7 +166,6 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
     self.db.WriteClientMetadata(
         client_id,
-        certificate=CERT,
         first_seen=rdfvalue.RDFDatetime(100000001),
         last_clock=rdfvalue.RDFDatetime(100000011),
         last_foreman=rdfvalue.RDFDatetime(100000021),
@@ -301,8 +253,9 @@ class DatabaseTestClientsMixin(object):
 
     client_ids = list(self.db.ReadAllClientIDs())
     self.assertLen(client_ids, 1)
-    self.assertCountEqual(client_ids[0],
-                          [client_a_id, client_b_id, client_c_id])
+    self.assertCountEqual(
+        client_ids[0], [client_a_id, client_b_id, client_c_id]
+    )
 
   def testReadAllClientIDsNotEvenlyDivisibleByBatchSize(self):
     client_a_id = db_test_utils.InitializeClient(self.db)
@@ -312,7 +265,8 @@ class DatabaseTestClientsMixin(object):
     client_ids = list(self.db.ReadAllClientIDs(batch_size=2))
     self.assertEqual([len(batch) for batch in client_ids], [2, 1])
     self.assertCountEqual(
-        collection.Flatten(client_ids), [client_a_id, client_b_id, client_c_id])
+        collection.Flatten(client_ids), [client_a_id, client_b_id, client_c_id]
+    )
 
   def testReadAllClientIDsEvenlyDivisibleByBatchSize(self):
     client_a_id = db_test_utils.InitializeClient(self.db)
@@ -324,76 +278,113 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual([len(batch) for batch in client_ids], [2, 2])
     self.assertCountEqual(
         collection.Flatten(client_ids),
-        [client_a_id, client_b_id, client_c_id, client_d_id])
+        [client_a_id, client_b_id, client_c_id, client_d_id],
+    )
 
   def testReadAllClientIDsFilterLastPing(self):
     self.db.WriteClientMetadata("C.0000000000000001")
     self.db.WriteClientMetadata(
         "C.0000000000000002",
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+    )
     self.db.WriteClientMetadata(
         "C.0000000000000003",
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+    )
     self.db.WriteClientMetadata(
         "C.0000000000000004",
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
+        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+    )
     client_ids = self.db.ReadAllClientIDs(
-        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
     self.assertCountEqual(
         collection.Flatten(client_ids),
-        ["C.0000000000000003", "C.0000000000000004"])
+        ["C.0000000000000003", "C.0000000000000004"],
+    )
 
   def testReadClientLastPings_ResultsDivisibleByBatchSize(self):
     client_ids = self._WriteClientLastPingData()
-    (client_id5, client_id6, client_id7, client_id8, client_id9,
-     client_id10) = client_ids[4:]
+    (
+        client_id5,
+        client_id6,
+        client_id7,
+        client_id8,
+        client_id9,
+        client_id10,
+    ) = client_ids[4:]
 
     results = list(
         self.db.ReadClientLastPings(
             min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-            batch_size=3))
+            batch_size=3,
+        )
+    )
 
     self.assertEqual([len(batch) for batch in results], [3, 3])
 
     self.assertEqual(
-        _FlattenDicts(results), {
+        _FlattenDicts(results),
+        {
             client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
             client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
             client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
             client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-        })
+        },
+    )
 
   def testReadClientLastPings_ResultsNotDivisibleByBatchSize(self):
     client_ids = self._WriteClientLastPingData()
-    (client_id5, client_id6, client_id7, client_id8, client_id9,
-     client_id10) = client_ids[4:]
+    (
+        client_id5,
+        client_id6,
+        client_id7,
+        client_id8,
+        client_id9,
+        client_id10,
+    ) = client_ids[4:]
 
     results = list(
         self.db.ReadClientLastPings(
             min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-            batch_size=4))
+            batch_size=4,
+        )
+    )
 
     self.assertEqual([len(batch) for batch in results], [4, 2])
 
     self.assertEqual(
-        _FlattenDicts(results), {
+        _FlattenDicts(results),
+        {
             client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
             client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
             client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
             client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-        })
+        },
+    )
 
   def testReadClientLastPings_NoFilter(self):
     client_ids = self._WriteClientLastPingData()
-    (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
-     client_id7, client_id8, client_id9, client_id10) = client_ids
+    (
+        client_id1,
+        client_id2,
+        client_id3,
+        client_id4,
+        client_id5,
+        client_id6,
+        client_id7,
+        client_id8,
+        client_id9,
+        client_id10,
+    ) = client_ids
 
     self.assertEqual(
-        list(self.db.ReadClientLastPings()), [{
+        list(self.db.ReadClientLastPings()),
+        [{
             client_id1: None,
             client_id2: None,
             client_id3: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
@@ -404,7 +395,8 @@ class DatabaseTestClientsMixin(object):
             client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
             client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-        }])
+        }],
+    )
 
   def testReadClientLastPings_AllFilters(self):
     client_ids = self._WriteClientLastPingData()
@@ -472,28 +464,42 @@ class DatabaseTestClientsMixin(object):
   def _WriteClientLastPingData(self):
     """Writes test data for ReadClientLastPings() tests."""
     client_ids = tuple("C.00000000000000%02d" % i for i in range(1, 11))
-    (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
-     client_id7, client_id8, client_id9, client_id10) = client_ids
+    (
+        client_id1,
+        client_id2,
+        client_id3,
+        client_id4,
+        client_id5,
+        client_id6,
+        client_id7,
+        client_id8,
+        client_id9,
+        client_id10,
+    ) = client_ids
 
     self.db.WriteClientMetadata(client_id1)
     self.db.WriteClientMetadata(client_id2)
     self.db.WriteClientMetadata(
-        client_id3, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
+        client_id3, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
+    )
     self.db.WriteClientMetadata(
         client_id4, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
     )
     self.db.WriteClientMetadata(
-        client_id5, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
+        client_id5, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
     self.db.WriteClientMetadata(
         client_id6, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
     )
     self.db.WriteClientMetadata(
-        client_id7, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
+        client_id7, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4)
+    )
     self.db.WriteClientMetadata(
         client_id8, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4)
     )
     self.db.WriteClientMetadata(
-        client_id9, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5))
+        client_id9, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5)
+    )
     self.db.WriteClientMetadata(
         client_id10, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5)
     )
@@ -698,11 +704,13 @@ class DatabaseTestClientsMixin(object):
     self.assertIsInstance(res[client_id_2], objects_pb2.ClientSnapshot)
     self.assertIsNotNone(res[client_id_1].timestamp)
     self.assertIsNotNone(res[client_id_2].timestamp)
-    self.assertEqual(res[client_id_1].knowledge_base.fqdn,
-                     "test1234.examples.com")
+    self.assertEqual(
+        res[client_id_1].knowledge_base.fqdn, "test1234.examples.com"
+    )
     self.assertEqual(res[client_id_1].kernel, "12.4")
-    self.assertEqual(res[client_id_2].knowledge_base.fqdn,
-                     "test1235.examples.com")
+    self.assertEqual(
+        res[client_id_2].knowledge_base.fqdn, "test1235.examples.com"
+    )
     self.assertFalse(res[client_id_3])
 
   def testMultiReadClientSnapshotInfoWithEmptyList(self):
@@ -724,14 +732,28 @@ class DatabaseTestClientsMixin(object):
     client_id_3 = db_test_utils.InitializeClient(self.db)
 
     # Typical keywords are usernames and prefixes of hostnames.
-    d.AddClientKeywords(client_id_1, [
-        "joe", "machine.test.example1.com", "machine.test.example1",
-        "machine.test", "machine", "🚀"
-    ])
-    d.AddClientKeywords(client_id_2, [
-        "fred", "machine.test.example2.com", "machine.test.example2",
-        "machine.test", "machine", "🚀🚀"
-    ])
+    d.AddClientKeywords(
+        client_id_1,
+        [
+            "joe",
+            "machine.test.example1.com",
+            "machine.test.example1",
+            "machine.test",
+            "machine",
+            "🚀",
+        ],
+    )
+    d.AddClientKeywords(
+        client_id_2,
+        [
+            "fred",
+            "machine.test.example2.com",
+            "machine.test.example2",
+            "machine.test",
+            "machine",
+            "🚀🚀",
+        ],
+    )
     d.AddClientKeywords(client_id_3, ["foo", "bar", "baz"])
 
     res = d.ListClientsForKeywords(["fred", "machine", "missing"])
@@ -742,9 +764,11 @@ class DatabaseTestClientsMixin(object):
     for kw, client_id in [("🚀", client_id_1), ("🚀🚀", client_id_2)]:
       res = d.ListClientsForKeywords([kw])
       self.assertEqual(
-          res[kw], [client_id],
-          "Expected [%s] when reading keyword %s, got %s" %
-          (client_id, kw, res[kw]))
+          res[kw],
+          [client_id],
+          "Expected [%s] when reading keyword %s, got %s"
+          % (client_id, kw, res[kw]),
+      )
 
   def testClientKeywordsTimeRanges(self):
     d = self.db
@@ -754,8 +778,9 @@ class DatabaseTestClientsMixin(object):
     change_time = rdfvalue.RDFDatetime.Now()
     d.AddClientKeywords(client_id, ["hostname2"])
 
-    res = d.ListClientsForKeywords(["hostname1", "hostname2"],
-                                   start_time=change_time)
+    res = d.ListClientsForKeywords(
+        ["hostname1", "hostname2"], start_time=change_time
+    )
     self.assertEqual(res["hostname1"], [])
     self.assertEqual(res["hostname2"], [client_id])
 
@@ -763,12 +788,19 @@ class DatabaseTestClientsMixin(object):
     d = self.db
     client_id = db_test_utils.InitializeClient(self.db)
     temporary_kw = "investigation42"
-    d.AddClientKeywords(client_id, [
-        "joe", "machine.test.example.com", "machine.test.example",
-        "machine.test", temporary_kw
-    ])
+    d.AddClientKeywords(
+        client_id,
+        [
+            "joe",
+            "machine.test.example.com",
+            "machine.test.example",
+            "machine.test",
+            temporary_kw,
+        ],
+    )
     self.assertEqual(
-        d.ListClientsForKeywords([temporary_kw])[temporary_kw], [client_id])
+        d.ListClientsForKeywords([temporary_kw])[temporary_kw], [client_id]
+    )
     d.RemoveClientKeyword(client_id, temporary_kw)
     self.assertEqual(d.ListClientsForKeywords([temporary_kw])[temporary_kw], [])
     self.assertEqual(d.ListClientsForKeywords(["joe"])["joe"], [client_id])
@@ -1208,8 +1240,9 @@ class DatabaseTestClientsMixin(object):
 
     hist = d.ReadClientCrashInfoHistory(client_id)
     self.assertLen(hist, 3)
-    self.assertEqual([ci.crash_message for ci in hist],
-                     ["Crash #3", "Crash #2", "Crash #1"])
+    self.assertEqual(
+        [ci.crash_message for ci in hist], ["Crash #3", "Crash #2", "Crash #1"]
+    )
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
     self.assertGreater(hist[1].timestamp, hist[2].timestamp)
 
@@ -1242,7 +1275,6 @@ class DatabaseTestClientsMixin(object):
         kernel="12.3",
     )
     d.WriteClientSnapshot(cl)
-    d.WriteClientMetadata(client_id, certificate=CERT)
     si = jobs_pb2.StartupInfo(boot_time=1)
     d.WriteClientStartupInfo(client_id, si)
     d.AddClientLabels(client_id, "test_owner", ["test_label"])
@@ -1260,7 +1292,6 @@ class DatabaseTestClientsMixin(object):
         full_info.last_snapshot.knowledge_base.fqdn, "test1234.examples.com"
     )
 
-    self.assertEqual(full_info.metadata.certificate, CERT.SerializeToBytes())
     self.assertEqual(full_info.last_startup_info.boot_time, 1)
 
     self.assertLen(full_info.labels, 1)
@@ -1280,7 +1311,8 @@ class DatabaseTestClientsMixin(object):
         first_seen=first_seen_time,
         last_clock=last_clock_time,
         last_ping=last_ping_time,
-        last_foreman=last_foreman_time)
+        last_foreman=last_foreman_time,
+    )
 
     pre_time = self.db.Now()
 
@@ -1313,8 +1345,9 @@ class DatabaseTestClientsMixin(object):
     self.db.WriteGRRUser("test_owner")
 
     for i in range(10):
-      client_id = db_test_utils.InitializeClient(self.db,
-                                                 "C.000000005000000%d" % i)
+      client_id = db_test_utils.InitializeClient(
+          self.db, "C.000000005000000%d" % i
+      )
 
       cl = objects_pb2.ClientSnapshot(
           client_id=client_id,
@@ -1324,12 +1357,13 @@ class DatabaseTestClientsMixin(object):
           kernel="12.3.%d" % i,
       )
       self.db.WriteClientSnapshot(cl)
-      self.db.WriteClientMetadata(client_id, certificate=CERT)
       si = jobs_pb2.StartupInfo(boot_time=i)
       self.db.WriteClientStartupInfo(client_id, si)
       self.db.AddClientLabels(
-          client_id, "test_owner",
-          ["test_label-a-%d" % i, "test_label-b-%d" % i])
+          client_id,
+          "test_owner",
+          ["test_label-a-%d" % i, "test_label-b-%d" % i],
+      )
 
   def _VerifySnapshots(self, snapshots):
     snapshots = sorted(snapshots, key=lambda s: s.client_id)
@@ -1341,16 +1375,21 @@ class DatabaseTestClientsMixin(object):
   def _VerifyFullInfos(self, c_infos):
     c_infos = sorted(c_infos, key=lambda c: c.last_snapshot.client_id)
     for i, full_info in enumerate(c_infos):
-      self.assertEqual(full_info.last_snapshot.client_id,
-                       "C.000000005000000%d" % i)
-      self.assertEqual(full_info.metadata.certificate, CERT)
+      self.assertEqual(
+          full_info.last_snapshot.client_id, "C.000000005000000%d" % i
+      )
       self.assertEqual(full_info.last_startup_info.boot_time, i)
-      self.assertCountEqual(full_info.labels, [
-          rdf_objects.ClientLabel(
-              owner="test_owner", name="test_label-a-%d" % i),
-          rdf_objects.ClientLabel(
-              owner="test_owner", name="test_label-b-%d" % i)
-      ])
+      self.assertCountEqual(
+          full_info.labels,
+          [
+              rdf_objects.ClientLabel(
+                  owner="test_owner", name="test_label-a-%d" % i
+              ),
+              rdf_objects.ClientLabel(
+                  owner="test_owner", name="test_label-b-%d" % i
+              ),
+          ],
+      )
 
   def testIterateAllClientsFullInfo(self):
     self._SetupFullInfoClients()
@@ -1370,7 +1409,7 @@ class DatabaseTestClientsMixin(object):
       self.db.WriteClientSnapshot(
           objects_pb2.ClientSnapshot(client_id=client_id)
       )
-      ping = (time_past if i % 2 == 0 else now)
+      ping = time_past if i % 2 == 0 else now
       self.db.WriteClientMetadata(client_id, last_ping=ping)
 
       client_ids_to_ping[client_id] = ping
@@ -1388,7 +1427,8 @@ class DatabaseTestClientsMixin(object):
         cid for cid, ping in client_ids_to_ping.items() if ping == base_time
     ]
     full_infos = d.MultiReadClientFullInfo(
-        list(client_ids_to_ping.keys()), min_last_ping=cutoff_time)
+        list(client_ids_to_ping.keys()), min_last_ping=cutoff_time
+    )
     self.assertCountEqual(expected_client_ids, full_infos)
 
   def testMultiReadClientsFullInfoWithEmptyList(self):
@@ -1406,7 +1446,8 @@ class DatabaseTestClientsMixin(object):
     missing_client_id = "C.00413187fefa1dcf"
 
     full_infos = d.MultiReadClientFullInfo(
-        [present_client_id, missing_client_id])
+        [present_client_id, missing_client_id]
+    )
     self.assertEqual(list(full_infos.keys()), [present_client_id])
 
   def testMultiReadClientsFullInfoNoSnapshot(self):
@@ -1489,22 +1530,26 @@ class DatabaseTestClientsMixin(object):
     # A flow.
     flow_id = flow.RandomFlowId()
     self.db.WriteFlowObject(
-        rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id))
+        flows_pb2.Flow(client_id=client_id, flow_id=flow_id)
+    )
     # A flow request.
     self.db.WriteFlowRequests([
-        rdf_flow_objects.FlowRequest(
-            client_id=client_id, flow_id=flow_id, request_id=1)
+        flows_pb2.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=1
+        )
     ])
 
     # A flow response.
     self.db.WriteFlowResponses([
-        rdf_flow_objects.FlowResponse(
-            client_id=client_id, flow_id=flow_id, request_id=1, response_id=1)
+        flows_pb2.FlowResponse(
+            client_id=client_id, flow_id=flow_id, request_id=1, response_id=1
+        )
     ])
 
     # A flow processing request.
     self.db.WriteFlowProcessingRequests(
-        [rdf_flows.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)])
+        [flows_pb2.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)]
+    )
 
     return flow_id
 
@@ -1585,13 +1630,22 @@ class DatabaseTestClientsMixin(object):
   def testDeleteClientWithPaths(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    path_info_0 = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
+    path_info_0 = objects_pb2.PathInfo(
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar", "baz"),
+    )
     path_info_0.stat_entry.st_size = 42
 
-    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar", "quux"))
+    path_info_1 = objects_pb2.PathInfo(
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar", "quux"),
+    )
     path_info_1.hash_entry.sha256 = b"quux"
 
-    path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "norf", "thud"))
+    path_info_2 = objects_pb2.PathInfo(
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "norf", "thud"),
+    )
     path_info_2.stat_entry.st_size = 1337
     path_info_2.hash_entry.sha256 = b"norf"
 
@@ -1605,7 +1659,8 @@ class DatabaseTestClientsMixin(object):
   def testFleetspeakValidationInfoIsInitiallyUnset(self):
     client_id = "C.fc413187fefa1dcf"
     self.db.WriteClientMetadata(
-        client_id, first_seen=rdfvalue.RDFDatetime(100000000))
+        client_id, first_seen=rdfvalue.RDFDatetime(100000000)
+    )
 
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
@@ -1616,10 +1671,8 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     self.db.WriteClientMetadata(
-        client_id, fleetspeak_validation_info={
-            "foo": "bar",
-            "12": "34"
-        })
+        client_id, fleetspeak_validation_info={"foo": "bar", "12": "34"}
+    )
 
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
@@ -1633,15 +1686,11 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     self.db.WriteClientMetadata(
-        client_id, fleetspeak_validation_info={
-            "foo": "bar",
-            "12": "34"
-        })
+        client_id, fleetspeak_validation_info={"foo": "bar", "12": "34"}
+    )
     self.db.WriteClientMetadata(
-        client_id, fleetspeak_validation_info={
-            "foo": "bar",
-            "new": "1234"
-        })
+        client_id, fleetspeak_validation_info={"foo": "bar", "new": "1234"}
+    )
 
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
@@ -1655,7 +1704,8 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     self.db.WriteClientMetadata(
-        client_id, fleetspeak_validation_info={"foo": "bar"})
+        client_id, fleetspeak_validation_info={"foo": "bar"}
+    )
     self.db.WriteClientMetadata(client_id, fleetspeak_validation_info={})
 
     res = self.db.MultiReadClientMetadata([client_id])
@@ -1667,7 +1717,8 @@ class DatabaseTestClientsMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     self.db.WriteClientMetadata(
-        client_id, fleetspeak_validation_info={"foo": "bar"})
+        client_id, fleetspeak_validation_info={"foo": "bar"}
+    )
     self.db.WriteClientMetadata(client_id)
 
     res = self.db.MultiReadClientMetadata([client_id])

@@ -7,11 +7,12 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import worker_lib
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -30,21 +31,23 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       done.set()
 
     data_store.REL_DB.RegisterMessageHandler(
-        handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000)
+        handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000
+    )
 
     startup_info = rdf_client.StartupInfo()
     startup_info.client_info.client_version = 4321
-
-    data_store.REL_DB.WriteMessageHandlerRequests(
-        [
-            rdf_objects.MessageHandlerRequest(
-                client_id=client_id,
-                handler_name="ClientStartupHandler",
-                request_id=12345,
-                request=startup_info,
-            )
-        ]
+    emb = mig_protodict.ToProtoEmbeddedRDFValue(
+        rdf_protodict.EmbeddedRDFValue(startup_info)
     )
+
+    data_store.REL_DB.WriteMessageHandlerRequests([
+        objects_pb2.MessageHandlerRequest(
+            client_id=client_id,
+            handler_name="ClientStartupHandler",
+            request_id=12345,
+            request=emb,
+        )
+    ])
 
     self.assertTrue(done.wait(10))
 
@@ -61,7 +64,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     client_id = self.SetupClient(0)
 
     client_mock = action_mocks.CPULimitClientMock(
-        user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
+        user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000]
+    )
 
     flow_test_lib.TestFlowHelper(
         flow_test_lib.CPULimitFlow.__name__,
@@ -69,7 +73,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         creator=self.test_username,
         client_id=client_id,
         cpu_limit=1000,
-        network_bytes_limit=10000)
+        network_bytes_limit=10000,
+    )
 
     self.assertEqual(client_mock.storage["cpulimit"], [1000, 980, 960])
     self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
@@ -80,11 +85,14 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       client_id = "C.1100110011001100"
 
       data_store.REL_DB.WriteMessageHandlerRequests([
-          rdf_objects.MessageHandlerRequest(
+          objects_pb2.MessageHandlerRequest(
               client_id=client_id,
               handler_name="ForemanHandler",
               request_id=12345,
-              request=rdf_protodict.DataBlob())
+              request=mig_protodict.ToProtoEmbeddedRDFValue(
+                  rdf_protodict.EmbeddedRDFValue(rdf_protodict.DataBlob())
+              ),
+          )
       ])
 
       done = threading.Event()
@@ -94,7 +102,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         done.set()
 
       data_store.REL_DB.RegisterMessageHandler(
-          handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000)
+          handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000
+      )
       try:
         self.assertTrue(done.wait(10))
 

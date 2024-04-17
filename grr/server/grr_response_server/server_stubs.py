@@ -272,15 +272,6 @@ class Grep(ClientActionStub):
   out_rdfvalues = [rdf_client.BufferReference]
 
 
-# from network.py
-# Deprecated action, kept for outdated clients.
-class Netstat(ClientActionStub):
-  """Gather open network connection stats."""
-
-  in_rdfvalue = None
-  out_rdfvalues = [rdf_client_network.NetworkConnection]
-
-
 class ListNetworkConnections(ClientActionStub):
   """Gather open network connection stats."""
 

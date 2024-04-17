@@ -21,8 +21,11 @@ class Action(metaclass=abc.ABCMeta):
     self._action = action
 
   @abc.abstractmethod
-  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
-               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
+  def __call__(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      fd: vfs.VFSHandler,
+  ) -> rdf_file_finder.FileFinderResult:
     """Executes the action on a given file.
 
     Args:
@@ -46,12 +49,16 @@ class StatAction(Action):
   def __init__(
       self,
       flow,
-      opts: Optional[rdf_file_finder.FileFinderStatActionOptions] = None):
+      opts: Optional[rdf_file_finder.FileFinderStatActionOptions] = None,
+  ):
     super().__init__(flow)
     del opts  # Unused.
 
-  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
-               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
+  def __call__(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      fd: vfs.VFSHandler,
+  ) -> rdf_file_finder.FileFinderResult:
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
 
@@ -67,8 +74,11 @@ class HashAction(Action):
     super().__init__(flow)
     self._opts = opts
 
-  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
-               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
+  def __call__(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      fd: vfs.VFSHandler,
+  ) -> rdf_file_finder.FileFinderResult:
     result = StatAction(self._action)(stat_entry, fd)
 
     # stat_entry.st_mode has StatMode type.
@@ -86,7 +96,8 @@ class HashAction(Action):
           stat_entry,
           fd,
           max_size=int(self._opts.max_size),
-          progress=self._action.Progress)
+          progress=self._action.Progress,
+      )
     # else: Skip due to OversizedFilePolicy.SKIP.
 
     return result
@@ -100,13 +111,19 @@ class DownloadAction(Action):
   file.
   """
 
-  def __init__(self, flow,
-               opts: rdf_file_finder.FileFinderDownloadActionOptions):
+  def __init__(
+      self,
+      flow,
+      opts: rdf_file_finder.FileFinderDownloadActionOptions,
+  ):
     super().__init__(flow)
     self._opts = opts
 
-  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
-               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
+  def __call__(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      fd: vfs.VFSHandler,
+  ) -> rdf_file_finder.FileFinderResult:
     result = StatAction(self._action)(stat_entry, fd)
 
     # stat_entry.st_mode has StatMode type.
@@ -121,7 +138,8 @@ class DownloadAction(Action):
       result.transferred_file = self._UploadFilePath(fd, truncate=truncate)
     elif policy == self._opts.OversizedFilePolicy.HASH_TRUNCATED:
       result.hash_entry = _HashEntry(
-          stat_entry, fd, self._action.Progress, max_size=max_size)
+          stat_entry, fd, self._action.Progress, max_size=max_size
+      )
     # else: Skip due to OversizedFilePolicy.SKIP.
 
     return result
@@ -131,14 +149,17 @@ class DownloadAction(Action):
     chunk_size = self._opts.chunk_size
 
     uploader = uploading.TransferStoreUploader(
-        self._action, chunk_size=chunk_size)
+        self._action, chunk_size=chunk_size
+    )
     return uploader.UploadFile(fd, amount=max_size)
 
 
-def _HashEntry(stat_entry: rdf_client_fs.StatEntry,
-               fd: vfs.VFSHandler,
-               progress: Callable[[], None],
-               max_size: Optional[int] = None) -> Optional[rdf_crypto.Hash]:
+def _HashEntry(
+    stat_entry: rdf_client_fs.StatEntry,
+    fd: vfs.VFSHandler,
+    progress: Callable[[], None],
+    max_size: Optional[int] = None,
+) -> Optional[rdf_crypto.Hash]:
   hasher = client_utils_common.MultiHasher(progress=progress)
   try:
     hasher.HashFile(fd, max_size or stat_entry.st_size)

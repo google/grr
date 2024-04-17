@@ -22,7 +22,8 @@ class CronTabFileConverterTest(export_test_lib.ExportTestBase):
                 month="4",
                 dayofweek="1",
                 command="bash",
-                comment="foo"),
+                comment="foo",
+            ),
             rdf_cronjobs.CronTabEntry(
                 minute="aa",
                 hour="bb",
@@ -30,12 +31,15 @@ class CronTabFileConverterTest(export_test_lib.ExportTestBase):
                 month="dd",
                 dayofweek="ee",
                 command="ps",
-                comment="some"),
-        ])
+                comment="some",
+            ),
+        ],
+    )
 
     converter = cron_tab_file.CronTabFileConverter()
     converted = list(
-        converter.Convert(base.ExportedMetadata(self.metadata), sample))
+        converter.Convert(base.ExportedMetadata(self.metadata), sample)
+    )
 
     self.assertLen(converted, 2)
     self.assertIsInstance(converted[0], cron_tab_file.ExportedCronTabEntry)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 from grr_response_proto import sysinfo_pb2
 

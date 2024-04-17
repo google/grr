@@ -11,6 +11,7 @@ from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import frontend_lib
@@ -44,15 +45,16 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
   """Tests the GRRFEServer with relational flows enabled."""
 
   def _FlowSetup(self, client_id, flow_id):
-    rdf_flow = rdf_flow_objects.Flow(
+    rdf_flow = flows_pb2.Flow(
         flow_class_name=administrative.OnlineNotification.__name__,
         client_id=client_id,
         flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now())
+    )
     data_store.REL_DB.WriteFlowObject(rdf_flow)
 
-    req = rdf_flow_objects.FlowRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
+    req = flows_pb2.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1
+    )
 
     data_store.REL_DB.WriteFlowRequests([req])
 
@@ -63,7 +65,9 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     client_id = "C.1234567890123456"
     flow_id = "12345678"
     data_store.REL_DB.WriteClientMetadata(client_id)
+    before_flow_create = data_store.REL_DB.Now()
     _, req = self._FlowSetup(client_id, flow_id)
+    after_flow_create = data_store.REL_DB.Now()
 
     session_id = "%s/%s" % (client_id, flow_id)
     messages = [
@@ -79,7 +83,13 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     received = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)
     self.assertLen(received, 1)
-    self.assertEqual(received[0][0], req)
+    received_request = received[0][0]
+    self.assertEqual(received_request.client_id, req.client_id)
+    self.assertEqual(received_request.flow_id, req.flow_id)
+    self.assertEqual(received_request.request_id, req.request_id)
+    self.assertBetween(
+        received_request.timestamp, before_flow_create, after_flow_create
+    )
     self.assertLen(received[0][1], 9)
 
   def testBlobHandlerMessagesAreHandledOnTheFrontend(self):
@@ -138,6 +148,41 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(crash_details_rel)
     self.assertEqual(crash_details_rel.session_id, session_id)
 
+  def testReceiveStatusMessage(self):
+    client_id = "C.1234567890123456"
+    flow_id = "12345678"
+    data_store.REL_DB.WriteClientMetadata(client_id)
+    self._FlowSetup(client_id, flow_id)
+
+    session_id = rdfvalue.FlowSessionID(f"{client_id}/{flow_id}")
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+    status.cpu_time_used.deprecated_user_cpu_time = 1.1
+    status.cpu_time_used.deprecated_system_cpu_time = 2.2
+
+    messages = [
+        rdf_flows.GrrMessage(
+            source=client_id,
+            request_id=1,
+            response_id=1,
+            session_id=session_id,
+            payload=status,
+            auth_state="AUTHENTICATED",
+            type=rdf_flows.GrrMessage.Type.STATUS,
+        )
+    ]
+
+    ReceiveMessages(client_id, messages)
+
+    received = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+        client_id, flow_id
+    )
+    self.assertLen(received, 1)
+    self.assertNotEqual(received[0][1][1], status)
+    self.assertAlmostEqual(received[0][1][1].cpu_time_used.user_cpu_time, 1.1)
+    self.assertFalse(received[0][1][1].cpu_time_used.deprecated_user_cpu_time)
+    self.assertAlmostEqual(received[0][1][1].cpu_time_used.system_cpu_time, 2.2)
+    self.assertFalse(received[0][1][1].cpu_time_used.deprecated_system_cpu_time)
+
 
 class FleetspeakFrontendTests(flow_test_lib.FlowTestsBaseclass):
 
@@ -164,7 +209,7 @@ class FrontEndServerTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = client_id
     flow_request.flow_id = flow_id
     flow_request.request_id = 1337
@@ -182,7 +227,7 @@ class FrontEndServerTest(absltest.TestCase):
     self.assertLen(flow_responses, 1)
 
     flow_response = flow_responses[0][1][response.response_id]
-    self.assertIsInstance(flow_response, rdf_flow_objects.FlowStatus)
+    self.assertIsInstance(flow_response, flows_pb2.FlowStatus)
     self.assertEqual(flow_response.client_id, client_id)
     self.assertEqual(flow_response.flow_id, flow_id)
     self.assertEqual(flow_response.request_id, 1337)
@@ -199,7 +244,7 @@ class FrontEndServerTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = client_id
     flow_request.flow_id = flow_id
     flow_request.request_id = 1337
@@ -218,7 +263,7 @@ class FrontEndServerTest(absltest.TestCase):
     self.assertLen(flow_responses, 1)
 
     flow_response = flow_responses[0][1][response.response_id]
-    self.assertIsInstance(flow_response, rdf_flow_objects.FlowStatus)
+    self.assertIsInstance(flow_response, flows_pb2.FlowStatus)
     self.assertEqual(flow_response.client_id, client_id)
     self.assertEqual(flow_response.flow_id, flow_id)
     self.assertEqual(flow_response.request_id, 1337)
@@ -235,7 +280,7 @@ class FrontEndServerTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = client_id
     flow_request.flow_id = flow_id
     flow_request.request_id = 1337
@@ -253,7 +298,7 @@ class FrontEndServerTest(absltest.TestCase):
     self.assertLen(flow_responses, 1)
 
     flow_response = flow_responses[0][1][response.response_id]
-    self.assertIsInstance(flow_response, rdf_flow_objects.FlowResponse)
+    self.assertIsInstance(flow_response, flows_pb2.FlowResponse)
     self.assertEqual(flow_response.client_id, client_id)
     self.assertEqual(flow_response.flow_id, flow_id)
     self.assertEqual(flow_response.request_id, 1337)
@@ -268,7 +313,7 @@ class FrontEndServerTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = client_id
     flow_request.flow_id = flow_id
     flow_request.request_id = 1337
@@ -293,7 +338,7 @@ class FrontEndServerTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = client_id
     flow_request.flow_id = flow_id
     flow_request.request_id = 1337

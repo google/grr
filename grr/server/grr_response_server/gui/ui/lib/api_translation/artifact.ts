@@ -30,7 +30,6 @@ export function translateArtifactDescriptor(
         .filter(isNonNull),
     ),
     urls: [...(artifact.urls ?? [])],
-    provides: [...(artifact.provides ?? [])],
     dependencies: [...(ad.dependencies ?? [])],
     pathDependencies: [...(ad.pathDependencies ?? [])],
     isCustom: ad.isCustom ?? false,

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementations of RDFValues used in GRR config options definitions."""
 
-
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import config_pb2
 

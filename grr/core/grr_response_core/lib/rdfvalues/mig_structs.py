@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import semantic_pb2

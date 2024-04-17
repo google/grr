@@ -10,7 +10,7 @@
 set -e
 
 VERSION=$1
-RELEASE_NAME="grr-response-templates-${VERSION}"
+RELEASE_NAME="grr_response_templates-${VERSION}"
 RELEASE_TAR="${RELEASE_NAME}.tar.gz"
 RELEASE_FILE="dist/${RELEASE_TAR}"
 if [[ $# -eq 1 ]] ; then

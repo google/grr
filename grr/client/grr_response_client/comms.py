@@ -37,10 +37,7 @@ class GRRClientWorker(threading.Thread):
 
   sent_bytes_per_flow = {}
 
-  def __init__(self,
-               client=None,
-               out_queue=None,
-               heart_beat_cb=None):
+  def __init__(self, client=None, out_queue=None, heart_beat_cb=None):
     threading.Thread.__init__(self)
 
     # A reference to the parent client that owns us.
@@ -71,7 +68,8 @@ class GRRClientWorker(threading.Thread):
       # is too large, the worker thread will block until the queue is drained.
       self._out_queue = SizeLimitedQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
-          heart_beat_cb=self.heart_beat_cb)
+          heart_beat_cb=self.heart_beat_cb,
+      )
 
     self.daemon = True
 
@@ -115,16 +113,18 @@ class GRRClientWorker(threading.Thread):
     if self.heart_beat_cb:
       self.heart_beat_cb()
 
-  def SendReply(self,
-                rdf_value=None,
-                request_id=None,
-                response_id=None,
-                session_id="W:0",
-                message_type=None,
-                name=None,
-                ttl=None,
-                blocking=True,
-                task_id=None):
+  def SendReply(
+      self,
+      rdf_value=None,
+      request_id=None,
+      response_id=None,
+      session_id="W:0",
+      message_type=None,
+      name=None,
+      ttl=None,
+      blocking=True,
+      task_id=None,
+  ):
     """Send the protobuf to the server.
 
     Args:
@@ -132,8 +132,7 @@ class GRRClientWorker(threading.Thread):
       request_id: The id of the request this is a response to.
       response_id: The id of this response.
       session_id: The session id of the flow.
-      message_type: The contents of this message, MESSAGE, STATUS or
-        RDF_VALUE.
+      message_type: The contents of this message, MESSAGE, STATUS or RDF_VALUE.
       name: The name of the client action that sends this response.
       ttl: The time to live of this message.
       blocking: If the output queue is full, block until there is space.
@@ -153,7 +152,8 @@ class GRRClientWorker(threading.Thread):
         response_id=response_id,
         request_id=request_id,
         ttl=ttl,
-        type=message_type)
+        type=message_type,
+    )
 
     if rdf_value is not None:
       message.payload = rdf_value
@@ -189,7 +189,8 @@ class GRRClientWorker(threading.Thread):
     # die on the flow.
     if limit and self.sent_bytes_per_flow[session_id] > limit:
       raise actions.NetworkBytesExceededError(
-          "Action exceeded network send limit.")
+          "Action exceeded network send limit."
+      )
 
   def HandleMessage(self, message):
     """Entry point for processing jobs.
@@ -239,7 +240,7 @@ class GRRClientWorker(threading.Thread):
     """Sleeps the calling thread with heartbeat."""
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
     while timeout > 0:
-      time.sleep(min(1., timeout))
+      time.sleep(min(1.0, timeout))
       timeout -= 1
       # If the output queue is full, we are ready to do a post - no
       # point in waiting.
@@ -256,14 +257,16 @@ class GRRClientWorker(threading.Thread):
     if last_request:
       status = rdf_flows.GrrStatus(
           status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
-          error_message="Client killed during transaction")
+          error_message="Client killed during transaction",
+      )
 
       self.SendReply(
           status,
           request_id=last_request.request_id,
           response_id=1,
           session_id=last_request.session_id,
-          message_type=rdf_flows.GrrMessage.Type.STATUS)
+          message_type=rdf_flows.GrrMessage.Type.STATUS,
+      )
 
     self.transaction_log.Clear()
 
@@ -292,12 +295,14 @@ class GRRClientWorker(threading.Thread):
           self.SendReply(
               rdf_flows.GrrStatus(
                   status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                  error_message=utils.SmartUnicode(e)),
+                  error_message=utils.SmartUnicode(e),
+              ),
               request_id=message.request_id,
               response_id=1,
               session_id=message.session_id,
               task_id=message.task_id,
-              message_type=rdf_flows.GrrMessage.Type.STATUS)
+              message_type=rdf_flows.GrrMessage.Type.STATUS,
+          )
           if flags.FLAGS.pdb_post_mortem:
             pdb.post_mortem()
 

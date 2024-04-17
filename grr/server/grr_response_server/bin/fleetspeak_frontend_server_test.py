@@ -8,6 +8,7 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
 from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
@@ -15,7 +16,6 @@ from grr_response_server import fleetspeak_utils
 from grr_response_server.bin import fleetspeak_frontend_server
 from grr_response_server.flows.general import processes as flow_processes
 from grr_response_server.models import clients
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -40,16 +40,16 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         - rdfvalue.Duration("1s"),
     )
 
-    rdf_flow = rdf_flow_objects.Flow(
-        client_id=client_id,
-        flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now())
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
+    flow = flows_pb2.Flow(client_id=client_id, flow_id=flow_id)
+    data_store.REL_DB.WriteFlowObject(flow)
 
-    flow_request = rdf_flow_objects.FlowRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
+    flow_request = flows_pb2.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1
+    )
 
+    before_write = data_store.REL_DB.Now()
     data_store.REL_DB.WriteFlowRequests([flow_request])
+    after_write = data_store.REL_DB.Now()
     session_id = "%s/%s" % (client_id, flow_id)
     fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
     fs_messages = []
@@ -58,11 +58,13 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
           request_id=1,
           response_id=i + 1,
           session_id=session_id,
-          payload=rdfvalue.RDFInteger(i))
+          payload=rdfvalue.RDFInteger(i),
+      )
       fs_message = fs_common_pb2.Message(
           message_type="GrrMessage",
           source=fs_common_pb2.Address(
-              client_id=fs_client_id, service_name=FS_SERVICE_NAME),
+              client_id=fs_client_id, service_name=FS_SERVICE_NAME
+          ),
       )
       fs_message.data.Pack(grr_message.AsPrimitiveProto())
       fs_message.validation_info.tags["foo"] = "bar"
@@ -83,10 +85,14 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        client_id, flow_id)
+        client_id, flow_id
+    )
     self.assertLen(flow_data, 1)
     stored_flow_request, flow_responses = flow_data[0]
-    self.assertEqual(stored_flow_request, flow_request)
+    self.assertEqual(stored_flow_request.client_id, flow_request.client_id)
+    self.assertEqual(stored_flow_request.flow_id, flow_request.flow_id)
+    self.assertEqual(stored_flow_request.request_id, flow_request.request_id)
+    self.assertBetween(stored_flow_request.timestamp, before_write, after_write)
     self.assertLen(flow_responses, 9)
 
   def testReceiveMessageList(self):
@@ -101,16 +107,16 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         - rdfvalue.Duration("1s"),
     )
 
-    rdf_flow = rdf_flow_objects.Flow(
-        client_id=client_id,
-        flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now())
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
+    flow = flows_pb2.Flow(client_id=client_id, flow_id=flow_id)
+    data_store.REL_DB.WriteFlowObject(flow)
 
-    flow_request = rdf_flow_objects.FlowRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
-
+    flow_request = flows_pb2.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1
+    )
+    before_write = data_store.REL_DB.Now()
     data_store.REL_DB.WriteFlowRequests([flow_request])
+    after_write = data_store.REL_DB.Now()
+
     session_id = "%s/%s" % (client_id, flow_id)
     fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
     grr_messages = []
@@ -119,15 +125,19 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
           request_id=1,
           response_id=i + 1,
           session_id=session_id,
-          payload=rdfvalue.RDFInteger(i))
+          payload=rdfvalue.RDFInteger(i),
+      )
       grr_messages.append(grr_message)
     packed_messages = rdf_flows.PackedMessageList()
     communicator.Communicator.EncodeMessageList(
-        rdf_flows.MessageList(job=grr_messages), packed_messages)
+        rdf_flows.MessageList(job=grr_messages), packed_messages
+    )
     fs_message = fs_common_pb2.Message(
         message_type="MessageList",
         source=fs_common_pb2.Address(
-            client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+            client_id=fs_client_id, service_name=FS_SERVICE_NAME
+        ),
+    )
     fs_message.data.Pack(packed_messages.AsPrimitiveProto())
     fs_message.validation_info.tags["foo"] = "bar"
 
@@ -145,10 +155,14 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        client_id, flow_id)
+        client_id, flow_id
+    )
     self.assertLen(flow_data, 1)
     stored_flow_request, flow_responses = flow_data[0]
-    self.assertEqual(stored_flow_request, flow_request)
+    self.assertEqual(stored_flow_request.client_id, flow_request.client_id)
+    self.assertEqual(stored_flow_request.flow_id, flow_request.flow_id)
+    self.assertEqual(stored_flow_request.request_id, flow_request.request_id)
+    self.assertBetween(stored_flow_request.timestamp, before_write, after_write)
     self.assertLen(flow_responses, 9)
 
   def testMetadataDoesNotGetUpdatedIfPreviousUpdateIsTooRecent(self):
@@ -158,13 +172,12 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     now = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(client_id, last_ping=now)
 
-    rdf_flow = rdf_flow_objects.Flow(
+    flow = flows_pb2.Flow(
         client_id=client_id,
         flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
     )
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
-    flow_request = rdf_flow_objects.FlowRequest(
+    data_store.REL_DB.WriteFlowObject(flow)
+    flow_request = flows_pb2.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=1
     )
     data_store.REL_DB.WriteFlowRequests([flow_request])
@@ -200,13 +213,12 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     )
     data_store.REL_DB.WriteClientMetadata(client_id, last_ping=past)
 
-    rdf_flow = rdf_flow_objects.Flow(
+    flow = flows_pb2.Flow(
         client_id=client_id,
         flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
     )
-    data_store.REL_DB.WriteFlowObject(rdf_flow)
-    flow_request = rdf_flow_objects.FlowRequest(
+    data_store.REL_DB.WriteFlowObject(flow)
+    flow_request = flows_pb2.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=1
     )
     data_store.REL_DB.WriteFlowRequests([flow_request])
@@ -242,21 +254,25 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         request_id=1,
         response_id=1,
         session_id=session_id,
-        payload=rdfvalue.RDFInteger(1))
+        payload=rdfvalue.RDFInteger(1),
+    )
     fs_message = fs_common_pb2.Message(
         message_type="GrrMessage",
         source=fs_common_pb2.Address(
-            client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+            client_id=fs_client_id, service_name=FS_SERVICE_NAME
+        ),
+    )
     fs_message.data.Pack(grr_message.AsPrimitiveProto())
     fake_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)
 
     with mock.patch.object(
-        events.Events, "PublishEvent",
-        wraps=events.Events.PublishEvent) as publish_event_fn:
+        events.Events, "PublishEvent", wraps=events.Events.PublishEvent
+    ) as publish_event_fn:
       with mock.patch.object(
           data_store.REL_DB,
           "WriteClientMetadata",
-          wraps=data_store.REL_DB.WriteClientMetadata) as write_metadata_fn:
+          wraps=data_store.REL_DB.WriteClientMetadata,
+      ) as write_metadata_fn:
         with test_lib.FakeTime(fake_time):
           fs_server.Process(fs_message, None)
         self.assertEqual(write_metadata_fn.call_count, 1)
@@ -286,18 +302,20 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe=r"c:\windows\cmd.exe",
-            ctime=1333718907167083)
+            ctime=1333718907167083,
+        )
     ])
 
     flow_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     processes = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertLen(processes, 1)
-    process, = processes
+    (process,) = processes
 
     self.assertEqual(process.ctime, 1333718907167083)
     self.assertEqual(process.cmdline, ["cmd.exe"])

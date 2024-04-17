@@ -23,11 +23,14 @@ class MockAction(actions.ActionPlugin):
   def Run(self, message):
     self.SendReply(
         rdf_client_action.EchoRequest(
-            data="Received Message: %s. Data %s" % (message.data, "x" * 100)))
+            data="Received Message: %s. Data %s" % (message.data, "x" * 100)
+        )
+    )
 
 
 class RaiseAction(actions.ActionPlugin):
   """A mock action which raises an error."""
+
   in_rdfvalue = rdf_client.LogMessage
   out_rdfvalues = [rdf_client.LogMessage]
 
@@ -44,6 +47,7 @@ class TestedContext(worker_mocks.ClientWorker):
 
 class BasicContextTests(test_lib.GRRBaseTest):
   """Test the GRR contexts."""
+
   to_test_context = TestedContext
 
   def setUp(self):
@@ -62,10 +66,12 @@ class BasicContextTests(test_lib.GRRBaseTest):
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         payload=args,
         request_id=1,
-        generate_task_id=True)
+        generate_task_id=True,
+    )
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"MockAction": MockAction}):
+    with mock.patch.object(
+        client_actions, "REGISTRY", {"MockAction": MockAction}
+    ):
       self.context.HandleMessage(message)
 
     # Check the response - one data and one status
@@ -86,10 +92,12 @@ class BasicContextTests(test_lib.GRRBaseTest):
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         request_id=1,
-        generate_task_id=True)
+        generate_task_id=True,
+    )
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"RaiseAction": RaiseAction}):
+    with mock.patch.object(
+        client_actions, "REGISTRY", {"RaiseAction": RaiseAction}
+    ):
       self.context.HandleMessage(message)
 
     # Check the response - one data and one status
@@ -112,10 +120,12 @@ class BasicContextTests(test_lib.GRRBaseTest):
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
         request_id=1,
-        generate_task_id=True)
+        generate_task_id=True,
+    )
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"MockAction": MockAction}):
+    with mock.patch.object(
+        client_actions, "REGISTRY", {"MockAction": MockAction}
+    ):
       self.context.HandleMessage(message)
 
     # We expect to receive an GrrStatus to indicate an exception was

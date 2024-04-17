@@ -95,7 +95,7 @@ class Streamer(object):
 
     while amount > 0:
       # We need `len(data)` here because overlap size can be 0.
-      overlap = data[len(data) - self.overlap_size:]
+      overlap = data[len(data) - self.overlap_size :]
 
       new = reader.Read(min(self.chunk_size - self.overlap_size, amount))
       if not new:
@@ -139,7 +139,8 @@ class Streamer(object):
           offset=chunk_start,
           amount=(chunk_end - chunk_start),
           overlap=(pos - chunk_start),
-          data=None)
+          data=None,
+      )
       pos = chunk_end
 
 
@@ -152,11 +153,13 @@ class Chunk(object):
     overlap: A number of bytes this chunk shares with the previous one.
   """
 
-  def __init__(self,
-               offset: Optional[int] = None,
-               data: Optional[bytes] = None,
-               overlap: int = 0,
-               amount: Optional[int] = None):
+  def __init__(
+      self,
+      offset: Optional[int] = None,
+      data: Optional[bytes] = None,
+      overlap: int = 0,
+      amount: Optional[int] = None,
+  ):
     if offset is None:
       raise ValueError("chunk offset must be specified")
     if data is None and amount is None:
@@ -171,8 +174,10 @@ class Chunk(object):
       self.amount = amount
 
   def __repr__(self):
-    return (f"Chunk<offset={self.offset}, amount={self.amount}, "
-            f"overlap={self.overlap}>")
+    return (
+        f"Chunk<offset={self.offset}, amount={self.amount}, "
+        f"overlap={self.overlap}>"
+    )
 
   # TODO(hanuszczak): This function is beyond the scope of this module. It is
   # used in only one place [1] and should probably be moved there as well as

@@ -34,16 +34,18 @@ class SnakeToCamelTest(absltest.TestCase):
     self.assertEqual("aBCD", casing.SnakeToCamel("_a_b_c_d_"))
     self.assertEqual("aBCD", casing.SnakeToCamel("____a_b_c_d____"))
     self.assertEqual("aaBbCcDd", casing.SnakeToCamel("____aa_bb_cc_dd____"))
-    self.assertEqual("aaaBbbCccDdd",
-                     casing.SnakeToCamel("____aaa_bbb_ccc_ddd____"))
+    self.assertEqual(
+        "aaaBbbCccDdd", casing.SnakeToCamel("____aaa_bbb_ccc_ddd____")
+    )
 
   def testSnakeToCamelWorksOnStringsWithMultipleUnderscoresBetweenWords(self):
     self.assertEqual("aBCD", casing.SnakeToCamel("a__b__c__d"))
     self.assertEqual("aBCD", casing.SnakeToCamel("a____b____c____d"))
     self.assertEqual("aBCD", casing.SnakeToCamel("___a___b___c___d___"))
     self.assertEqual("aaBbCcDd", casing.SnakeToCamel("___aa___bb___cc___dd___"))
-    self.assertEqual("aaaBbbCccDdd",
-                     casing.SnakeToCamel("___aaa___bbb___ccc___ddd___"))
+    self.assertEqual(
+        "aaaBbbCccDdd", casing.SnakeToCamel("___aaa___bbb___ccc___ddd___")
+    )
 
   def testSnakeToCamelWorksOnStringsWithUppercaseLetters(self):
     self.assertEqual("a", casing.SnakeToCamel("A"))
@@ -71,18 +73,21 @@ class CamelToSnakeTest(absltest.TestCase):
     self.assertEqual("a_b_c_d", casing.CamelToSnake("aBCD"))
 
   def testCamelToSnakeWorksOnStringsWithUppercaseLettersOnly(self):
-    self.assertEqual("t_h_i_s_i_s_a_s_n_a_k_e",
-                     casing.CamelToSnake("THISISASNAKE"))
-    self.assertEqual("a_s_n_a_k_e_t_h_i_s_i_s",
-                     casing.CamelToSnake("ASNAKETHISIS"))
+    self.assertEqual(
+        "t_h_i_s_i_s_a_s_n_a_k_e", casing.CamelToSnake("THISISASNAKE")
+    )
+    self.assertEqual(
+        "a_s_n_a_k_e_t_h_i_s_i_s", casing.CamelToSnake("ASNAKETHISIS")
+    )
     self.assertEqual("a_b_c_d", casing.CamelToSnake("ABCD"))
     self.assertEqual("a", casing.CamelToSnake("A"))
 
   def testCamelToSnakeWorksOnStringsWithUnicodeCharacters(self):
     self.assertEqual("ą_ć_ę", casing.CamelToSnake("ąĆĘ"))
     self.assertEqual("ąąąa_ććća_ęęęa", casing.CamelToSnake("ąąąaĆććaĘęęa"))
-    self.assertEqual("ą_ą_ąa_ć_ć_ća_ę_ę_ęa",
-                     casing.CamelToSnake("ĄĄĄaĆĆĆaĘĘĘa"))
+    self.assertEqual(
+        "ą_ą_ąa_ć_ć_ća_ę_ę_ęa", casing.CamelToSnake("ĄĄĄaĆĆĆaĘĘĘa")
+    )
     self.assertEqual("ą_ą_ą_ć_ć_ć_ę_ę_ę", casing.CamelToSnake("ĄĄĄĆĆĆĘĘĘ"))
     self.assertEqual("ą", casing.CamelToSnake("Ą"))
 

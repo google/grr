@@ -23,6 +23,7 @@ class Fingerprinter(fingerprint.Fingerprinter):
 
 class FingerprintFile(standard.ReadBuffer):
   """Apply a set of fingerprinting methods to a file."""
+
   in_rdfvalue = rdf_client_action.FingerprintRequest
   out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
@@ -34,15 +35,18 @@ class FingerprintFile(standard.ReadBuffer):
 
   _fingerprint_types = {
       rdf_client_action.FingerprintTuple.Type.FPT_GENERIC: (
-          fingerprint.Fingerprinter.EvalGeneric),
+          fingerprint.Fingerprinter.EvalGeneric
+      ),
       rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: (
-          fingerprint.Fingerprinter.EvalPecoff),
+          fingerprint.Fingerprinter.EvalPecoff
+      ),
   }
 
   def Run(self, args):
     """Fingerprint a file."""
     with vfs.VFSOpen(
-        args.pathspec, progress_callback=self.Progress) as file_obj:
+        args.pathspec, progress_callback=self.Progress
+    ) as file_obj:
       fingerprinter = Fingerprinter(self.Progress, file_obj)
       response = rdf_client_action.FingerprintResponse()
       response.pathspec = file_obj.pathspec
@@ -63,7 +67,8 @@ class FingerprintFile(standard.ReadBuffer):
             response.matching_types.append(finger.fp_type)
         else:
           raise RuntimeError(
-              "Encountered unknown fingerprint type. %s" % finger.fp_type)
+              "Encountered unknown fingerprint type. %s" % finger.fp_type
+          )
 
       # Structure of the results is a list of dicts, each containing the
       # name of the hashing method, hashes for enabled hash algorithms,
@@ -88,6 +93,7 @@ class FingerprintFile(standard.ReadBuffer):
           signed_data = result.GetItem("SignedData", [])
           for data in signed_data:
             response.hash.signed_data.Append(
-                revision=data[0], cert_type=data[1], certificate=data[2])
+                revision=data[0], cert_type=data[1], certificate=data[2]
+            )
 
       self.SendReply(response)

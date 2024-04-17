@@ -54,6 +54,8 @@ export class HuntPage implements OnDestroy {
     null,
   );
   readonly latestApproval$ = this.huntApprovalLocalStore.latestApproval$;
+  readonly requestApprovalStatus$ =
+    this.huntApprovalLocalStore.requestApprovalStatus$;
   readonly hideApprovalCardContentByDefault$ = this.latestApproval$.pipe(
     map((approval) => isNull(approval)),
     // we are only interested in the first emission, as we don't want

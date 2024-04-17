@@ -12,10 +12,10 @@ from werkzeug import test as werkzeug_test
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_server import data_store
+from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
 from grr_response_server.gui import validate_iap
 from grr_response_server.gui import webauth
-from grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
 
 
@@ -36,7 +36,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     environ = werkzeug_test.EnvironBuilder(environ_base={
         "REMOTE_ADDR": "127.0.0.1"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -46,7 +46,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     environ = werkzeug_test.EnvironBuilder(environ_base={
         "REMOTE_ADDR": "127.0.0.2"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertRegex(
@@ -59,7 +59,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
         "REMOTE_ADDR": "127.0.0.1",
         "HTTP_X_REMOTE_USER": ""
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -70,7 +70,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
         "REMOTE_ADDR": "127.0.0.1",
         "HTTP_X_REMOTE_USER": "foo"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(response, self.success_response)
@@ -82,7 +82,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
             "HTTP_X_REMOTE_USER": "foo",
             "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertIsNone(request.email)
@@ -95,7 +95,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
             "HTTP_X_REMOTE_USER": "foo",
             "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
       response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -131,14 +131,14 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def testPassesThroughHomepageWhenAuthorizationHeaderIsMissing(self):
     environ = werkzeug_test.EnvironBuilder().get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(response, self.success_response)
 
   def testReportsErrorOnNonHomepagesWhenAuthorizationHeaderIsMissing(self):
     environ = werkzeug_test.EnvironBuilder(path="/foo").get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -150,7 +150,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         path="/foo", headers={
             "Authorization": "blah"
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -165,7 +165,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     environ = werkzeug_test.EnvironBuilder(headers={
         "Authorization": "Bearer blah"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(response, self.success_response)
@@ -179,7 +179,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         path="/foo", headers={
             "Authorization": "Bearer blah"
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -191,7 +191,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     environ = werkzeug_test.EnvironBuilder(headers={
         "Authorization": "Bearer blah"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(mock_method.call_count, 1)
@@ -206,7 +206,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         path="/foo", headers={
             "Authorization": "Bearer blah"
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
@@ -225,7 +225,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     environ = werkzeug_test.EnvironBuilder(headers={
         "Authorization": "Bearer blah"
     }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)
 
@@ -239,7 +239,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     """Test requests sent to the Admin UI without an IAP Header."""
 
     environ = werkzeug_test.EnvironBuilder(path="/").get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
       del request, args, kwargs  # Unused.
@@ -281,7 +281,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
             "X-Goog-IAP-JWT-Assertion": assertion_header
         },
     ).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
       del request, args, kwargs  # Unused.
@@ -306,7 +306,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
         path="/", headers={
             "X-Goog-IAP-JWT-Assertion": ("valid_key")
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
       del args, kwargs  # Unused.
@@ -344,7 +344,7 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
         path="/foo", headers={
             "Authorization": "Basic %s" % token,
         }).get_environ()
-    request = wsgiapp.HttpRequest(environ)
+    request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
       del args, kwargs  # Unused.

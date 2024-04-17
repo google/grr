@@ -532,14 +532,6 @@ message UninstallArgs {
   }];
 }
 
-message UpdateClientArgs {
-  reserved 1;
-  optional string binary_path = 2 [(sem_type) = {
-    description: "Identifies the binary uploaded to GRR server that has "
-                 "to be run on the client to perform the update.",
-  }];
-}
-
 message KeepAliveArgs {
   optional uint64 duration = 1 [
     (sem_type) = {
@@ -862,4 +854,163 @@ message ApiReportDataPoint2D {
 message ApiReportTickSpecifier {
   optional float x = 1;
   optional string label = 2;
+}
+
+message ChromeHistoryArgs {
+  optional PathSpec.PathType pathtype = 1 [
+    (sem_type) = { description: "Type of path access to use." },
+    default = OS
+  ];
+
+  optional bool get_archive = 2 [(sem_type) = {
+    description: "Should we get Archived History as well (3 months old)."
+  }];
+
+  optional string username = 3 [(sem_type) = {
+    description: "The user to get Chrome history for. If history_path is "
+                 "not set this will be used to guess the path to the "
+                 "history files. Can be in form DOMAIN\\user.",
+  }];
+
+  optional string history_path = 5 [(sem_type) = {
+    description: "Path to a profile directory that contains a History "
+                 "file.",
+  }];
+}
+
+message FirefoxHistoryArgs {
+  optional PathSpec.PathType pathtype = 1 [
+    (sem_type) = { description: "Type of path access to use." },
+    default = OS
+  ];
+
+  optional bool get_archive = 2 [
+    (sem_type) = {
+      description: "Should we get Archived History as well (3 months old).",
+    },
+    default = false
+  ];
+
+  optional string username = 3 [(sem_type) = {
+    description: "The user to get history for. If history_path is "
+                 "not set this will be used to guess the path to the "
+                 "history files. Can be in form DOMAIN\\user."
+  }];
+
+  optional string history_path = 5 [(sem_type) = {
+    description: "Path to a profile directory that contains a History file.",
+  }];
+}
+
+message PCIDevice {
+  // Location of PCI device on the system.
+  optional uint32 domain = 1 [(sem_type) = {
+    description: "PCI domain this device is in.",
+  }];
+  optional uint32 bus = 2 [(sem_type) = {
+    description: "8 bit PCI bus this device is on.",
+  }];
+  optional uint32 device = 3 [(sem_type) = {
+    description: "5 bit device location on the bus.",
+  }];
+  optional uint32 function = 4 [(sem_type) = {
+    description: "3 bit device function that has been mapped.",
+  }];
+
+  // Information from the PCI device itself.
+  optional string class_id = 5 [(sem_type) = {
+    description: "Hex string of 24 bit device class ID (e.g. Display).",
+  }];
+  optional string vendor = 6 [(sem_type) = {
+    description: "Hex string of 16 bit device vendor ID.",
+  }];
+  optional string vendor_device_id = 7 [(sem_type) = {
+    description: "Hex string of 16 bit device ID as set by the vendor.",
+  }];
+  // This is stored as bytes to preserve data as-is.
+  optional bytes config = 8 [(sem_type) = {
+    description: "64 to 256 bytes of PCI configuration space header.",
+  }];
+}
+
+message SshdMatchBlock {
+  optional string criterion = 1 [(sem_type) = {
+    description: "Criteria that trigger a match block.",
+  }];
+  optional AttributedDict config = 2 [(sem_type) = {
+    description: "The configuration of the match block.",
+  }];
+}
+
+message SshdConfig {
+  optional AttributedDict config = 1 [(sem_type) = {
+    description: "The main sshd configuration.",
+  }];
+  repeated SshdMatchBlock matches = 2 [(sem_type) = {
+    description: "Match block sections.",
+  }];
+}
+
+message SudoersAlias {
+  enum Type {
+    USER = 0;
+    RUNAS = 1;
+    HOST = 2;
+    CMD = 3;
+  }
+
+  optional Type type = 1 [(sem_type) = { description: "Alias type." }];
+  optional string name = 2 [(sem_type) = { description: "Alias name." }];
+
+  repeated string users = 3 [(sem_type) = {
+    description: "User list, if type is USER.",
+  }];
+  repeated string runas = 4 [(sem_type) = {
+    description: "Runas list, if type is RUNAS.",
+  }];
+  repeated string hosts = 5 [(sem_type) = {
+    description: "Host list, if type is HOST.",
+  }];
+  repeated string cmds = 6 [(sem_type) = {
+    description: "Command list, if type is CMD.",
+  }];
+}
+
+message SudoersDefault {
+  optional string scope = 1 [(sem_type) = {
+    description: "Scope for this default (eg, >root).",
+  }];
+  optional string name = 2 [(sem_type) = {
+    description: "Name for the default, including negations (!).",
+  }];
+  optional string value = 3 [(sem_type) = {
+    description: "Value for the default, if one exists.",
+  }];
+}
+
+message SudoersEntry {
+  repeated string users = 1 [(sem_type) = {
+    description: "Users this rule applies to.",
+  }];
+  repeated string hosts = 2 [(sem_type) = {
+    description: "Hosts this rule applies to (optional).",
+  }];
+  repeated string cmdspec = 3 [(sem_type) = {
+    description: "All content after the '=' in the sudoers rule.",
+  }];
+}
+
+message SudoersConfig {
+  repeated SudoersDefault defaults = 1 [(sem_type) = {
+    description: "Default settings (binary options or key/value pairs).",
+  }];
+  repeated SudoersAlias aliases = 2 [(sem_type) = {
+    description: "Aliases within a sudoers file.",
+  }];
+  repeated SudoersEntry entries = 3 [(sem_type) = {
+    description: "Entries within a sudoers file.",
+  }];
+  repeated string includes = 4 [(sem_type) = {
+    description: "Includes within a sudoers file.",
+  }];
 }

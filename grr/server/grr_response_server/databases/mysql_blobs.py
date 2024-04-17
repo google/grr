@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for blobs handling."""
+
 from typing import Collection, Mapping, Optional
 
 import MySQLdb.cursors
@@ -34,14 +35,18 @@ def _Insert(cursor, table, values):
   column_names = list(sorted(values[0]))
   for value_dict in values:
     if set(column_names) != set(value_dict):
-      raise ValueError("Given value dictionaries must have identical keys. "
-                       "Expecting columns {!r}, but got value {!r}".format(
-                           column_names, value_dict))
+      raise ValueError(
+          "Given value dictionaries must have identical keys. "
+          "Expecting columns {!r}, but got value {!r}".format(
+              column_names, value_dict
+          )
+      )
 
   query = "INSERT IGNORE INTO %s {cols} VALUES {vals}" % table
   query = query.format(
       cols=mysql_utils.Columns(column_names),
-      vals=mysql_utils.Placeholders(num=len(column_names), values=len(values)))
+      vals=mysql_utils.Placeholders(num=len(column_names), values=len(values)),
+  )
 
   values_list = []
   for values_dict in values:
@@ -59,7 +64,7 @@ def _BlobToChunks(blob_id, blob):
     chunks.append({
         "blob_id": blob_id,
         "chunk_index": i,
-        "blob_chunk": blob[chunk_begin:chunk_begin + BLOB_CHUNK_SIZE]
+        "blob_chunk": blob[chunk_begin : chunk_begin + BLOB_CHUNK_SIZE],
     })
   return chunks
 
@@ -71,8 +76,10 @@ def _PartitionChunks(chunks):
 
   for chunk in chunks:
     cursize = len(chunk["blob_chunk"])
-    if (cursize + partition_size > BLOB_CHUNK_SIZE or
-        len(partitions[-1]) >= CHUNKS_PER_INSERT):
+    if (
+        cursize + partition_size > BLOB_CHUNK_SIZE
+        or len(partitions[-1]) >= CHUNKS_PER_INSERT
+    ):
       partitions.append([])
       partition_size = 0
     partitions[-1].append(chunk)
@@ -102,12 +109,13 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     if not blob_ids:
       return {}
 
-    query = ("SELECT blob_id, blob_chunk "
-             "FROM blobs "
-             "FORCE INDEX (PRIMARY) "
-             "WHERE blob_id IN {} "
-             "ORDER BY blob_id, chunk_index ASC").format(
-                 mysql_utils.Placeholders(len(blob_ids)))
+    query = (
+        "SELECT blob_id, blob_chunk "
+        "FROM blobs "
+        "FORCE INDEX (PRIMARY) "
+        "WHERE blob_id IN {} "
+        "ORDER BY blob_id, chunk_index ASC"
+    ).format(mysql_utils.Placeholders(len(blob_ids)))
     cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
     results = {blob_id: None for blob_id in blob_ids}
     for blob_id_bytes, blob in cursor.fetchall():
@@ -125,11 +133,12 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
       return {}
 
     exists = {blob_id: False for blob_id in blob_ids}
-    query = ("SELECT blob_id "
-             "FROM blobs "
-             "FORCE INDEX (PRIMARY) "
-             "WHERE blob_id IN {}".format(
-                 mysql_utils.Placeholders(len(blob_ids))))
+    query = (
+        "SELECT blob_id "
+        "FROM blobs "
+        "FORCE INDEX (PRIMARY) "
+        "WHERE blob_id IN {}".format(mysql_utils.Placeholders(len(blob_ids)))
+    )
     cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
     for (blob_id_bytes,) in cursor.fetchall():
       exists[blobs.BlobID(blob_id_bytes)] = True
@@ -167,8 +176,10 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     if not hashes:
       return {}
 
-    query = ("SELECT hash_id, blob_references FROM hash_blob_references WHERE "
-             "hash_id IN {}").format(mysql_utils.Placeholders(len(hashes)))
+    query = (
+        "SELECT hash_id, blob_references FROM hash_blob_references WHERE "
+        "hash_id IN {}"
+    ).format(mysql_utils.Placeholders(len(hashes)))
     cursor.execute(query, [hash_id.AsBytes() for hash_id in hashes])
     results = {hash_id: None for hash_id in hashes}
     for hash_id, blob_references in cursor.fetchall():

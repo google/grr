@@ -37,8 +37,9 @@ class MetaclassRegistry(abc.ABCMeta):
     # naming them Abstract<ClassName>.
     abstract_attribute = "_%s__abstract" % cls.__name__
 
-    return (cls.__name__.startswith("Abstract") or
-            hasattr(cls, abstract_attribute))
+    return cls.__name__.startswith("Abstract") or hasattr(
+        cls, abstract_attribute
+    )
 
   def __init__(cls, name, bases, env_dict):
     abc.ABCMeta.__init__(cls, name, bases, env_dict)
@@ -58,8 +59,10 @@ class MetaclassRegistry(abc.ABCMeta):
 
       try:
         if cls.classes and cls.__name__ in cls.classes:
-          raise RuntimeError("Duplicate names for registered classes: %s, %s" %
-                             (cls, cls.classes[cls.__name__]))
+          raise RuntimeError(
+              "Duplicate names for registered classes: %s, %s"
+              % (cls, cls.classes[cls.__name__])
+          )
 
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls
@@ -117,26 +120,6 @@ class EventRegistry(MetaclassRegistry):
         EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
 
 
-class AFF4FlowRegistry(MetaclassRegistry):
-  """A dedicated registry that only contains flows."""
-
-  FLOW_REGISTRY = {}
-
-  def __init__(cls, name, bases, env_dict):
-    MetaclassRegistry.__init__(cls, name, bases, env_dict)
-
-    if not cls.IsAbstract():
-      cls.FLOW_REGISTRY[name] = cls
-
-  @classmethod
-  def FlowClassByName(mcs, flow_name):
-    flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
-    if flow_cls is None:
-      raise ValueError("Flow '%s' not known." % flow_name)
-
-    return flow_cls
-
-
 class FlowRegistry(MetaclassRegistry):
   """A dedicated registry that only contains new style flows."""
 
@@ -183,7 +166,7 @@ class SystemCronJobRegistry(CronJobRegistry):
   SYSTEM_CRON_REGISTRY = {}
 
   def __init__(cls, name, bases, env_dict):
-    super(SystemCronJobRegistry, cls).__init__(name, bases, env_dict)
+    super().__init__(name, bases, env_dict)
 
     if not cls.IsAbstract():
       cls.SYSTEM_CRON_REGISTRY[name] = cls

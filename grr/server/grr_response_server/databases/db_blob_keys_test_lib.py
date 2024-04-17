@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with test cases for blob encryption key methods."""
+
 import os
 
 from grr_response_server.databases import db as abstract_db
@@ -8,6 +9,7 @@ from grr_response_server.models import blobs
 
 class DatabaseTestBlobKeysMixin:
   """A mixin class for testing blob encryption keys database methods."""
+
   db: abstract_db.Database
 
   # This is test-only module, we don't need docstrings for test methods.
@@ -50,11 +52,14 @@ class DatabaseTestBlobKeysMixin:
     })
 
     results = self.db.ReadBlobEncryptionKeys([blob_id_1, blob_id_2, blob_id_3])
-    self.assertEqual(results, {
-        blob_id_1: "foo",
-        blob_id_2: "bar",
-        blob_id_3: "quux",
-    })
+    self.assertEqual(
+        results,
+        {
+            blob_id_1: "foo",
+            blob_id_2: "bar",
+            blob_id_3: "quux",
+        },
+    )
 
   def testReadBlobEncryptionKeysOverridden(self):
     blob_id = blobs.BlobID(os.urandom(32))

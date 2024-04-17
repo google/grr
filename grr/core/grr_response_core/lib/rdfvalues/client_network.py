@@ -4,9 +4,7 @@
 import binascii
 import ipaddress
 import logging
-from typing import Optional
-from typing import Text
-from typing import Union
+from typing import Optional, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -23,6 +21,7 @@ class NetworkEndpoint(rdf_structs.RDFProtoStruct):
 
 class NetworkConnection(rdf_structs.RDFProtoStruct):
   """Information about a single network connection."""
+
   protobuf = sysinfo_pb2.NetworkConnection
   rdf_deps = [
       NetworkEndpoint,
@@ -31,6 +30,7 @@ class NetworkConnection(rdf_structs.RDFProtoStruct):
 
 class Connections(rdf_protodict.RDFValueArray):
   """A list of connections on the host."""
+
   rdf_type = NetworkConnection
 
 
@@ -44,6 +44,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
   available on windows before python 3.4. So we use the older IPv4 functions for
   v4 addresses and our own pure python implementations for IPv6.
   """
+
   protobuf = jobs_pb2.NetworkAddress
 
   @classmethod
@@ -62,7 +63,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
     return result
 
   @property
-  def human_readable_address(self) -> Text:
+  def human_readable_address(self) -> str:
     addr = self.AsIPAddr()
     if addr is not None:
       return str(addr)
@@ -70,8 +71,8 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
       return ""
 
   @human_readable_address.setter
-  def human_readable_address(self, value: Text) -> None:
-    precondition.AssertType(value, Text)
+  def human_readable_address(self, value: str) -> None:
+    precondition.AssertType(value, str)
     addr = ipaddress.ip_address(value)
 
     if isinstance(addr, ipaddress.IPv6Address):
@@ -98,8 +99,9 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
         return ipaddress.IPv6Address(self.packed_bytes)
     except ipaddress.AddressValueError:
       hex_packed_bytes = text.Hexify(self.packed_bytes)
-      logging.error("AddressValueError for %s (%s)", hex_packed_bytes,
-                    self.address_type)
+      logging.error(
+          "AddressValueError for %s (%s)", hex_packed_bytes, self.address_type
+      )
       raise
 
     message = "IP address has invalid type: {}".format(self.address_type)
@@ -108,6 +110,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
 
 class DNSClientConfiguration(rdf_structs.RDFProtoStruct):
   """DNS client config."""
+
   protobuf = sysinfo_pb2.DNSClientConfiguration
 
 
@@ -115,17 +118,18 @@ class MacAddress(rdfvalue.RDFBytes):
   """A MAC address."""
 
   @property
-  def human_readable_address(self) -> Text:
+  def human_readable_address(self) -> str:
     return text.Hexify(self._value)
 
   @classmethod
-  def FromHumanReadableAddress(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadableAddress(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(binascii.unhexlify(string.encode("ascii")))
 
 
 class Interface(rdf_structs.RDFProtoStruct):
   """A network interface on the client system."""
+
   protobuf = jobs_pb2.Interface
   rdf_deps = [
       MacAddress,
@@ -146,6 +150,7 @@ class Interface(rdf_structs.RDFProtoStruct):
 
 class Interfaces(rdf_protodict.RDFValueArray):
   """The list of interfaces on a host."""
+
   rdf_type = Interface
 
   def GetIPAddresses(self):

@@ -9,7 +9,6 @@ import shutil
 import stat
 import sys
 import tempfile
-import threading
 from typing import Text
 
 import psutil
@@ -75,8 +74,10 @@ def EnsureTempDirIsSane(directory):
     # Make directory 700 before we write the file
     if sys.platform == "win32":
       from grr_response_client import client_utils_windows  # pylint: disable=g-import-not-at-top
-      client_utils_windows.WinChmod(directory,
-                                    ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
+
+      client_utils_windows.WinChmod(
+          directory, ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"]
+      )
     else:
       os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
@@ -92,8 +93,8 @@ class TemporaryDirectory(object):
   Attributes:
     path: The path to the temporary directory.
     cleanup: A boolean to delete the directory when exiting. Note that if an
-      exception is raised, the directory will be deleted regardless of the
-      value of cleanup.
+      exception is raised, the directory will be deleted regardless of the value
+      of cleanup.
   """
 
   def __init__(self, cleanup=True):
@@ -112,7 +113,7 @@ class TemporaryDirectory(object):
       shutil.rmtree(self.path, ignore_errors=True)
 
 
-def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
+def CreateGRRTempFile(filename=None, mode="w+b"):
   """Open file with GRR prefix in directory to allow easy deletion.
 
   Missing parent dirs will be created. If an existing directory is specified
@@ -124,18 +125,10 @@ def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
   the caller doesn't specify a directory on windows we use the directory we are
   executing from as a safe default.
 
-  If lifetime is specified a housekeeping thread is created to delete the file
-  after lifetime seconds.  Files won't be deleted by default.
-
   Args:
     filename: The name of the file to use. Note that setting both filename and
-       directory name is not allowed.
-
-    lifetime: time in seconds before we should delete this tempfile.
-
+      directory name is not allowed.
     mode: The mode to open the file.
-
-    suffix: optional suffix to use for the temp file
 
   Returns:
     Python file object
@@ -152,24 +145,19 @@ def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
   prefix = config.CONFIG.Get("Client.tempfile_prefix")
   if filename is None:
     outfile = tempfile.NamedTemporaryFile(
-        prefix=prefix, suffix=suffix, dir=directory, delete=False)
+        prefix=prefix, dir=directory, delete=False
+    )
   else:
     if filename.startswith("/") or filename.startswith("\\"):
       raise ValueError("Filename must be relative")
 
-    if suffix:
-      filename = "%s.%s" % (filename, suffix)
-
     outfile = open(os.path.join(directory, filename), mode)
-
-  if lifetime > 0:
-    cleanup = threading.Timer(lifetime, DeleteGRRTempFile, (outfile.name,))
-    cleanup.start()
 
   # Fix perms on the file, since this code is used for writing executable blobs
   # we apply RWX.
   if sys.platform == "win32":
     from grr_response_client import client_utils_windows  # pylint: disable=g-import-not-at-top
+
     client_utils_windows.WinChmod(outfile.name, ["FILE_ALL_ACCESS"])
   else:
     os.chmod(outfile.name, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
@@ -177,7 +165,7 @@ def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
   return outfile
 
 
-def CreateGRRTempFileVFS(filename=None, lifetime=0, mode="w+b", suffix=""):
+def CreateGRRTempFileVFS(filename=None, mode="w+b"):
   """Creates a GRR VFS temp file.
 
   This function is analogous to CreateGRRTempFile but returns an open VFS handle
@@ -185,22 +173,17 @@ def CreateGRRTempFileVFS(filename=None, lifetime=0, mode="w+b", suffix=""):
 
   Args:
     filename: The name of the file to use. Note that setting both filename and
-       directory name is not allowed.
-
-    lifetime: time in seconds before we should delete this tempfile.
-
+      directory name is not allowed.
     mode: The mode to open the file.
-
-    suffix: optional suffix to use for the temp file
 
   Returns:
     An open file handle to the new file and the corresponding pathspec.
   """
 
-  fd = CreateGRRTempFile(
-      filename=filename, lifetime=lifetime, mode=mode, suffix=suffix)
+  fd = CreateGRRTempFile(filename=filename, mode=mode)
   pathspec = rdf_paths.PathSpec(
-      path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+      path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE
+  )
   return fd, pathspec
 
 
@@ -246,9 +229,12 @@ def DeleteGRRTempFile(path):
       GetTempDirForRoot(root) for root in config.CONFIG["Client.tempdir_roots"]
   ]
   if not _CheckIfPathIsValidForDeletion(
-      path, prefix=prefix, directories=directories):
-    msg = ("Can't delete temp file %s. Filename must start with %s "
-           "or lie within any of %s.")
+      path, prefix=prefix, directories=directories
+  ):
+    msg = (
+        "Can't delete temp file %s. Filename must start with %s "
+        "or lie within any of %s."
+    )
     raise ErrorNotTempFile(msg % (path, prefix, ";".join(directories)))
 
   if os.path.exists(path):
@@ -261,6 +247,7 @@ def DeleteGRRTempFile(path):
 
 class DeleteGRRTempFiles(actions.ActionPlugin):
   """Delete all the GRR temp files in a directory."""
+
   in_rdfvalue = rdf_paths.PathSpec
   out_rdfvalues = [rdf_client.LogMessage]
 
@@ -273,8 +260,9 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     If path is a regular file and starts with Client.tempfile_prefix delete it.
 
     Args:
-      args: pathspec pointing to directory containing temp files to be
-            deleted, or a single file to be deleted.
+      args: pathspec pointing to directory containing temp files to be deleted,
+        or a single file to be deleted.
+
     Returns:
       deleted: array of filename strings that were deleted
     Raises:
@@ -346,4 +334,5 @@ class CheckFreeGRRTempSpace(actions.ActionPlugin):
       path = GetDefaultGRRTempDirectory()
     total, used, free, _ = psutil.disk_usage(path)
     self.SendReply(
-        rdf_client_fs.DiskUsage(path=path, total=total, used=used, free=free))
+        rdf_client_fs.DiskUsage(path=path, total=total, used=used, free=free)
+    )

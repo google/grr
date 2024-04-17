@@ -361,8 +361,10 @@ class OpenFileTest(test_lib.GRRBaseTest):
     return pi
 
   def testOpensFileWithSinglePathInfoWithHash(self):
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
@@ -371,61 +373,85 @@ class OpenFileTest(test_lib.GRRBaseTest):
       file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithoutHash(self):
-    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
+    )
     with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithUnknownHash(self):
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.invalid_hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+    )
     with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
 
   def testOpensFileWithTwoPathInfosWhereOldestHasHash(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     # Newest.
-    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereNewestHasHash(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
+    )
     # Newest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereOldestHashIsUnknown(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.invalid_hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+    )
     # Newest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereNewestHashIsUnknown(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     # Newest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.invalid_hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensLatestVersionForPathWithTwoPathInfosWithHashes(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.other_hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.other_hash_id))],
+    )
     # Newest.
-    data_store.REL_DB.WritePathInfos(self.client_id,
-                                     [self._PathInfo(self.hash_id)])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id,
+        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+    )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
@@ -476,7 +502,9 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
     path_info = rdf_objects.PathInfo.OS(components=client_path.components)
     path_info.hash_entry.sha256 = hash_id.AsBytes()
-    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     # Just getting the generator doesn't raise.
     chunks = file_store.StreamFilesChunks([client_path])

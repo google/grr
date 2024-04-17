@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl import app
 from absl.testing import absltest
 
@@ -10,7 +9,9 @@ from grr.test_lib import test_lib
 
 class MemoryDBForemanRulesTest(
     db_foreman_rules_test.DatabaseTestForemanRulesMixin,
-    mem_test_base.MemoryDBTestBase, absltest.TestCase):
+    mem_test_base.MemoryDBTestBase,
+    absltest.TestCase,
+):
   pass
 
 

@@ -5,16 +5,15 @@ import ctypes
 import logging
 import os
 import re
+import winreg
 
 import ntsecuritycon
 import pywintypes
 import win32api
 import win32file
 import win32security
-import winreg
 
 from google.protobuf import message
-
 from grr_response_client.windows import process
 from grr_response_core import config
 from grr_response_core.lib import utils
@@ -25,7 +24,9 @@ DACL_PRESENT = 1
 DACL_DEFAULT = 0
 
 
-CreateProcessFromSerializedFileDescriptor = process.Process.CreateFromSerializedFileDescriptor
+CreateProcessFromSerializedFileDescriptor = (
+    process.Process.CreateFromSerializedFileDescriptor
+)
 
 
 def CanonicalPathToLocalPath(path):
@@ -82,10 +83,8 @@ def WinChmod(filename, acl_list, user=None):
 
   Args:
     filename: target filename for acl
-
     acl_list: list of ntsecuritycon acl strings to be applied with bitwise OR.
-              e.g. ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"]
-
+      e.g. ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"]
     user: username string. If not specified we use the user we are running as.
 
   Raises:
@@ -108,13 +107,16 @@ def WinChmod(filename, acl_list, user=None):
   dacl.AddAccessAllowedAce(win32security.ACL_REVISION, acl_bitmask, win_user)
 
   security_descriptor = win32security.GetFileSecurity(
-      filename, win32security.DACL_SECURITY_INFORMATION)
+      filename, win32security.DACL_SECURITY_INFORMATION
+  )
 
   # Tell windows to set the acl and mark it as explicitly set
-  security_descriptor.SetSecurityDescriptorDacl(DACL_PRESENT, dacl,
-                                                DACL_DEFAULT)
+  security_descriptor.SetSecurityDescriptorDacl(
+      DACL_PRESENT, dacl, DACL_DEFAULT
+  )
   win32security.SetFileSecurity(
-      filename, win32security.DACL_SECURITY_INFORMATION, security_descriptor)
+      filename, win32security.DACL_SECURITY_INFORMATION, security_descriptor
+  )
 
 
 def VerifyFileOwner(filename):
@@ -153,8 +155,9 @@ def FindProxies():
 
     try:
       subkey = (
-          sid + "\\Software\\Microsoft\\Windows"
-          "\\CurrentVersion\\Internet Settings")
+          sid
+          + "\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+      )
 
       internet_settings = winreg.OpenKey(winreg.HKEY_USERS, subkey)
 
@@ -163,7 +166,8 @@ def FindProxies():
       if proxy_enable:
         # Returned as Unicode but problems if not converted to ASCII
         proxy_server = str(
-            winreg.QueryValueEx(internet_settings, "ProxyServer")[0])
+            winreg.QueryValueEx(internet_settings, "ProxyServer")[0]
+        )
         if "=" in proxy_server:
           # Per-protocol settings
           for p in proxy_server.split(";"):
@@ -222,7 +226,7 @@ def GetRawDevice(path):
     if not path.lower().startswith(stripped_mp.lower()):
       raise IOError("Path %s is not mounted under %s" % (path, mount_point))
 
-  corrected_path = LocalPathToCanonicalPath(path[len(mount_point):])
+  corrected_path = LocalPathToCanonicalPath(path[len(mount_point) :])
   corrected_path = utils.NormalizePath(corrected_path)
 
   volume = win32file.GetVolumeNameForVolumeMountPoint(mount_point).rstrip("\\")
@@ -232,7 +236,8 @@ def GetRawDevice(path):
   result = rdf_paths.PathSpec(
       path=volume,
       pathtype=rdf_paths.PathSpec.PathType.OS,
-      mount_point=mount_point.rstrip("\\"))
+      mount_point=mount_point.rstrip("\\"),
+  )
 
   return result, corrected_path
 
@@ -282,8 +287,9 @@ class TransactionLog(object):
     """
     grr_message = grr_message.SerializeToBytes()
     try:
-      winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, winreg.REG_BINARY,
-                        grr_message)
+      winreg.SetValueEx(
+          _GetServiceKey(), "Transaction", 0, winreg.REG_BINARY, grr_message
+      )
       self._synced = False
     except OSError:
       pass
@@ -321,11 +327,9 @@ def RtlGetVersion(os_version_info_struct):
   """Wraps the lowlevel RtlGetVersion routine.
 
   Args:
-    os_version_info_struct: instance of either a RTL_OSVERSIONINFOW structure
-                            or a RTL_OSVERSIONINFOEXW structure,
-                            ctypes.Structure-wrapped, with the
-                            dwOSVersionInfoSize field preset to
-                            ctypes.sizeof(self).
+    os_version_info_struct: instance of either a RTL_OSVERSIONINFOW structure or
+      a RTL_OSVERSIONINFOEXW structure, ctypes.Structure-wrapped, with the
+      dwOSVersionInfoSize field preset to ctypes.sizeof(self).
 
   Raises:
     OSError: if the underlying routine fails.
@@ -344,16 +348,20 @@ class RtlOSVersionInfoExw(ctypes.Structure):
   See: https://msdn.microsoft.com/en-us/library/
   windows/hardware/ff563620(v=vs.85).aspx .
   """
-  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong),
-              ("dwMajorVersion", ctypes.c_ulong),
-              ("dwMinorVersion", ctypes.c_ulong),
-              ("dwBuildNumber", ctypes.c_ulong),
-              ("dwPlatformId", ctypes.c_ulong),
-              ("szCSDVersion", ctypes.c_wchar * 128),
-              ("wServicePackMajor", ctypes.c_ushort),
-              ("wServicePackMinor", ctypes.c_ushort),
-              ("wSuiteMask", ctypes.c_ushort), ("wProductType", ctypes.c_byte),
-              ("wReserved", ctypes.c_byte)]
+
+  _fields_ = [
+      ("dwOSVersionInfoSize", ctypes.c_ulong),
+      ("dwMajorVersion", ctypes.c_ulong),
+      ("dwMinorVersion", ctypes.c_ulong),
+      ("dwBuildNumber", ctypes.c_ulong),
+      ("dwPlatformId", ctypes.c_ulong),
+      ("szCSDVersion", ctypes.c_wchar * 128),
+      ("wServicePackMajor", ctypes.c_ushort),
+      ("wServicePackMinor", ctypes.c_ushort),
+      ("wSuiteMask", ctypes.c_ushort),
+      ("wProductType", ctypes.c_byte),
+      ("wReserved", ctypes.c_byte),
+  ]
 
   def __init__(self, **kwargs):
     kwargs["dwOSVersionInfoSize"] = ctypes.sizeof(self)
@@ -372,9 +380,11 @@ def KernelVersion():
   except OSError:
     return "unknown"
 
-  return "%d.%d.%d" % (rtl_osversioninfoexw.dwMajorVersion,
-                       rtl_osversioninfoexw.dwMinorVersion,
-                       rtl_osversioninfoexw.dwBuildNumber)
+  return "%d.%d.%d" % (
+      rtl_osversioninfoexw.dwMajorVersion,
+      rtl_osversioninfoexw.dwMinorVersion,
+      rtl_osversioninfoexw.dwBuildNumber,
+  )
 
 
 def GetExtAttrs(filepath):
@@ -401,4 +411,5 @@ def MemoryRegions(proc, options):
   return proc.Regions(
       skip_special_regions=options.skip_special_regions,
       skip_executable_regions=options.skip_executable_regions,
-      skip_readonly_regions=options.skip_readonly_regions)
+      skip_readonly_regions=options.skip_readonly_regions,
+  )

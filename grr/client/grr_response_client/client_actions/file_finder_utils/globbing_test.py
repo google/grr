@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import contextlib
 import io
 import os
@@ -33,35 +32,47 @@ class RecursiveComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "1")),
-          hierarchy(("foo", "bar")),
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("baz",)),
-          hierarchy(("baz", "0")),
-          hierarchy(("baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "1")),
+              hierarchy(("foo", "bar")),
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("baz",)),
+              hierarchy(("baz", "0")),
+              hierarchy(("baz", "1")),
+          ],
+      )
 
       results = list(component.Generate(hierarchy(("foo",))))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "1")),
-          hierarchy(("foo", "bar")),
-          hierarchy(("foo", "bar", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "1")),
+              hierarchy(("foo", "bar")),
+              hierarchy(("foo", "bar", "0")),
+          ],
+      )
 
       results = list(component.Generate(hierarchy(("baz",))))
-      self.assertCountEqual(results, [
-          hierarchy(("baz", "0")),
-          hierarchy(("baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("baz", "0")),
+              hierarchy(("baz", "1")),
+          ],
+      )
 
       results = list(component.Generate(hierarchy(("foo", "bar"))))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+          ],
+      )
 
   def testMaxDepth(self):
     filepaths = [
@@ -91,7 +102,8 @@ class RecursiveComponentTest(absltest.TestCase):
 
   @unittest.skipIf(
       platform.system() == "Windows",
-      reason="Symlinks are not available on Windows")
+      reason="Symlinks are not available on Windows",
+  )
   def testFollowLinks(self):
     filepaths = [
         ("foo", "0"),
@@ -112,49 +124,58 @@ class RecursiveComponentTest(absltest.TestCase):
 
       # It should resolve two links and recur to linked directories.
       results = list(component.Generate(hierarchy(("quux",))))
-      self.assertCountEqual(results, [
-          hierarchy(("quux", "0")),
-          hierarchy(("quux", "bar")),
-          hierarchy(("quux", "bar", "0")),
-          hierarchy(("quux", "baz")),
-          hierarchy(("quux", "baz", "0")),
-          hierarchy(("quux", "baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("quux", "0")),
+              hierarchy(("quux", "bar")),
+              hierarchy(("quux", "bar", "0")),
+              hierarchy(("quux", "baz")),
+              hierarchy(("quux", "baz", "0")),
+              hierarchy(("quux", "baz", "1")),
+          ],
+      )
 
       # It should resolve symlinks recursively.
       results = list(component.Generate(hierarchy(("norf",))))
-      self.assertCountEqual(results, [
-          hierarchy(("norf", "0")),
-          hierarchy(("norf", "quux")),
-          hierarchy(("norf", "quux", "0")),
-          hierarchy(("norf", "quux", "bar")),
-          hierarchy(("norf", "quux", "bar", "0")),
-          hierarchy(("norf", "quux", "baz")),
-          hierarchy(("norf", "quux", "baz", "0")),
-          hierarchy(("norf", "quux", "baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("norf", "0")),
+              hierarchy(("norf", "quux")),
+              hierarchy(("norf", "quux", "0")),
+              hierarchy(("norf", "quux", "bar")),
+              hierarchy(("norf", "quux", "bar", "0")),
+              hierarchy(("norf", "quux", "baz")),
+              hierarchy(("norf", "quux", "baz", "0")),
+              hierarchy(("norf", "quux", "baz", "1")),
+          ],
+      )
 
       opts = globbing.PathOpts(follow_links=False)
       component = globbing.RecursiveComponent(opts=opts)
 
       # It should list symlinks but should not recur to linked directories.
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "bar")),
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "baz")),
-          hierarchy(("foo", "baz", "0")),
-          hierarchy(("foo", "baz", "1")),
-          hierarchy(("quux",)),
-          hierarchy(("quux", "0")),
-          hierarchy(("quux", "bar")),
-          hierarchy(("quux", "baz")),
-          hierarchy(("norf",)),
-          hierarchy(("norf", "0")),
-          hierarchy(("norf", "quux")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "bar")),
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "baz")),
+              hierarchy(("foo", "baz", "0")),
+              hierarchy(("foo", "baz", "1")),
+              hierarchy(("quux",)),
+              hierarchy(("quux", "0")),
+              hierarchy(("quux", "bar")),
+              hierarchy(("quux", "baz")),
+              hierarchy(("norf",)),
+              hierarchy(("norf", "0")),
+              hierarchy(("norf", "quux")),
+          ],
+      )
 
   def testInvalidDirpath(self):
     component = globbing.RecursiveComponent()
@@ -176,16 +197,22 @@ class GlobComponentTest(absltest.TestCase):
       component = globbing.GlobComponent("foo")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+          ],
+      )
 
       component = globbing.GlobComponent("bar")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("bar",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("bar",)),
+          ],
+      )
 
   def testStar(self):
     filepaths = [
@@ -199,20 +226,26 @@ class GlobComponentTest(absltest.TestCase):
       component = globbing.GlobComponent("*")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("bar",)),
-          hierarchy(("baz",)),
-          hierarchy(("quux",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("bar",)),
+              hierarchy(("baz",)),
+              hierarchy(("quux",)),
+          ],
+      )
 
       component = globbing.GlobComponent("ba*")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("bar",)),
-          hierarchy(("baz",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("bar",)),
+              hierarchy(("baz",)),
+          ],
+      )
 
   def testQuestionmark(self):
     filepaths = [
@@ -226,10 +259,13 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("bar",)),
-          hierarchy(("baz",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("bar",)),
+              hierarchy(("baz",)),
+          ],
+      )
 
   def testSimpleClass(self):
     filepaths = [
@@ -243,10 +279,13 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("baz",)),
-          hierarchy(("bar",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("baz",)),
+              hierarchy(("bar",)),
+          ],
+      )
 
   def testRangeClass(self):
     filepaths = [
@@ -261,27 +300,36 @@ class GlobComponentTest(absltest.TestCase):
       component = globbing.GlobComponent("[a-z]*")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("bar",)),
-          hierarchy(("quux42",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("bar",)),
+              hierarchy(("quux42",)),
+          ],
+      )
 
       component = globbing.GlobComponent("[0-9]*")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("8AR",)),
-          hierarchy(("4815162342",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("8AR",)),
+              hierarchy(("4815162342",)),
+          ],
+      )
 
       component = globbing.GlobComponent("*[0-9]")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("4815162342",)),
-          hierarchy(("quux42",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("4815162342",)),
+              hierarchy(("quux42",)),
+          ],
+      )
 
   def testMultiRangeClass(self):
     filepaths = [
@@ -295,11 +343,14 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("f00",)),
-          hierarchy(("b4R",)),
-          hierarchy(("quux",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("f00",)),
+              hierarchy(("b4R",)),
+              hierarchy(("quux",)),
+          ],
+      )
 
   def testComplementationClass(self):
     filepaths = [
@@ -312,10 +363,13 @@ class GlobComponentTest(absltest.TestCase):
       component = globbing.GlobComponent("*[!0-9]*")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("bar",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("bar",)),
+          ],
+      )
 
   # TODO(hanuszczak): This test should be split into multiple cases.
   def testCornerCases(self):
@@ -336,11 +390,14 @@ class GlobComponentTest(absltest.TestCase):
       component = globbing.GlobComponent("[][-]")
 
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("[",)),
-          hierarchy(("-",)),
-          hierarchy(("]",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("[",)),
+              hierarchy(("-",)),
+              hierarchy(("]",)),
+          ],
+      )
 
       component = globbing.GlobComponent("[!]f-]*")
 
@@ -356,14 +413,18 @@ class GlobComponentTest(absltest.TestCase):
         component = globbing.GlobComponent("[*?]")
 
         results = list(component.Generate(hierarchy(())))
-        self.assertCountEqual(results, [
-            hierarchy(("*",)),
-            hierarchy(("?",)),
-        ])
+        self.assertCountEqual(
+            results,
+            [
+                hierarchy(("*",)),
+                hierarchy(("?",)),
+            ],
+        )
 
   @unittest.skipIf(
       platform.system() == "Windows",
-      reason="Windows disallows usage of whitespace-only paths")
+      reason="Windows disallows usage of whitespace-only paths",
+  )
   def testWhitespace(self):
     filepaths = [
         ("foo bar",),
@@ -375,10 +436,13 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo bar",)),
-          hierarchy(("   ",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo bar",)),
+              hierarchy(("   ",)),
+          ],
+      )
 
   def testCaseInsensivity(self):
     filepaths = [
@@ -391,22 +455,31 @@ class GlobComponentTest(absltest.TestCase):
     with DirHierarchy(filepaths) as hierarchy:
       component = globbing.GlobComponent("b*")
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("BAR",)),
-          hierarchy(("BaZ",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("BAR",)),
+              hierarchy(("BaZ",)),
+          ],
+      )
 
       component = globbing.GlobComponent("quux")
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("qUuX",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("qUuX",)),
+          ],
+      )
 
       component = globbing.GlobComponent("FoO")
       results = list(component.Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+          ],
+      )
 
   def testUnicodeGlobbing(self):
     filepaths = [
@@ -416,20 +489,29 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(globbing.GlobComponent("ścieżka").Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("ścieżka",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("ścieżka",)),
+          ],
+      )
 
       results = list(globbing.GlobComponent("dróżka").Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("dróżka",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("dróżka",)),
+          ],
+      )
 
       results = list(globbing.GlobComponent("*żka").Generate(hierarchy(())))
-      self.assertCountEqual(results, [
-          hierarchy(("ścieżka",)),
-          hierarchy(("dróżka",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("ścieżka",)),
+              hierarchy(("dróżka",)),
+          ],
+      )
 
   def testUnicodeSubfolderGlobbing(self):
     filepaths = [
@@ -441,10 +523,13 @@ class GlobComponentTest(absltest.TestCase):
 
     with DirHierarchy(filepaths) as hierarchy:
       results = list(component.Generate(hierarchy(("zbiór",))))
-      self.assertCountEqual(results, [
-          hierarchy(("zbiór", "podścieżka")),
-          hierarchy(("zbiór", "poddróżka")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("zbiór", "podścieżka")),
+              hierarchy(("zbiór", "poddróżka")),
+          ],
+      )
 
 
 class CurrentComponentTest(absltest.TestCase):
@@ -539,22 +624,28 @@ class ParsePathTest(absltest.TestCase):
     path = os.path.join("foo", "**", "ba*")
 
     components = list(globbing.ParsePath(path))
-    self.assertAreInstances(components, [
-        globbing.GlobComponent,
-        globbing.RecursiveComponent,
-        globbing.GlobComponent,
-    ])
+    self.assertAreInstances(
+        components,
+        [
+            globbing.GlobComponent,
+            globbing.RecursiveComponent,
+            globbing.GlobComponent,
+        ],
+    )
 
     path = os.path.join("foo", os.path.curdir, "bar", "baz", os.path.pardir)
 
     components = list(globbing.ParsePath(path))
-    self.assertAreInstances(components, [
-        globbing.GlobComponent,
-        globbing.CurrentComponent,
-        globbing.GlobComponent,
-        globbing.GlobComponent,
-        globbing.ParentComponent,
-    ])
+    self.assertAreInstances(
+        components,
+        [
+            globbing.GlobComponent,
+            globbing.CurrentComponent,
+            globbing.GlobComponent,
+            globbing.GlobComponent,
+            globbing.ParentComponent,
+        ],
+    )
 
   def testMultiRecursive(self):
     path = os.path.join("foo", "**", "bar", "**", "baz")
@@ -569,36 +660,45 @@ class ExpandGroupsTest(absltest.TestCase):
     path = "fooba{r,z}"
 
     results = list(globbing.ExpandGroups(path))
-    self.assertCountEqual(results, [
-        "foobar",
-        "foobaz",
-    ])
+    self.assertCountEqual(
+        results,
+        [
+            "foobar",
+            "foobaz",
+        ],
+    )
 
   def testMultiple(self):
     path = os.path.join("f{o,0}o{bar,baz}", "{quux,norf}")
 
     results = list(globbing.ExpandGroups(path))
-    self.assertCountEqual(results, [
-        os.path.join("foobar", "quux"),
-        os.path.join("foobar", "norf"),
-        os.path.join("foobaz", "quux"),
-        os.path.join("foobaz", "norf"),
-        os.path.join("f0obar", "quux"),
-        os.path.join("f0obar", "norf"),
-        os.path.join("f0obaz", "quux"),
-        os.path.join("f0obaz", "norf"),
-    ])
+    self.assertCountEqual(
+        results,
+        [
+            os.path.join("foobar", "quux"),
+            os.path.join("foobar", "norf"),
+            os.path.join("foobaz", "quux"),
+            os.path.join("foobaz", "norf"),
+            os.path.join("f0obar", "quux"),
+            os.path.join("f0obar", "norf"),
+            os.path.join("f0obaz", "quux"),
+            os.path.join("f0obaz", "norf"),
+        ],
+    )
 
   def testMany(self):
     path = os.path.join("foo{bar,baz,quux,norf}thud")
 
     results = list(globbing.ExpandGroups(path))
-    self.assertCountEqual(results, [
-        os.path.join("foobarthud"),
-        os.path.join("foobazthud"),
-        os.path.join("fooquuxthud"),
-        os.path.join("foonorfthud"),
-    ])
+    self.assertCountEqual(
+        results,
+        [
+            os.path.join("foobarthud"),
+            os.path.join("foobazthud"),
+            os.path.join("fooquuxthud"),
+            os.path.join("foonorfthud"),
+        ],
+    )
 
   def testEmpty(self):
     path = os.path.join("foo{}bar")
@@ -652,11 +752,14 @@ class ExpandGlobsTest(absltest.TestCase):
       path = hierarchy(("*", "ba?", "0"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("quux", "bar", "0")),
-          hierarchy(("quux", "baz", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("quux", "bar", "0")),
+              hierarchy(("quux", "baz", "0")),
+          ],
+      )
 
   def testRecursion(self):
     filepaths = [
@@ -670,11 +773,14 @@ class ExpandGlobsTest(absltest.TestCase):
       path = hierarchy(("foo", "**", "0"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "baz", "0")),
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "quux", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "baz", "0")),
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "quux", "0")),
+          ],
+      )
 
   def testMixed(self):
     filepaths = [
@@ -692,15 +798,18 @@ class ExpandGlobsTest(absltest.TestCase):
       path = hierarchy(("**", "ba?", "[0-2]"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("norf", "bar", "0")),
-          hierarchy(("norf", "baz", "0")),
-          hierarchy(("norf", "baz", "1")),
-          hierarchy(("quux", "bar", "0")),
-          hierarchy(("quux", "baz", "1")),
-          hierarchy(("quux", "baz", "2")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("norf", "bar", "0")),
+              hierarchy(("norf", "baz", "0")),
+              hierarchy(("norf", "baz", "1")),
+              hierarchy(("quux", "bar", "0")),
+              hierarchy(("quux", "baz", "1")),
+              hierarchy(("quux", "baz", "2")),
+          ],
+      )
 
   def testEmpty(self):
     with self.assertRaises(ValueError):
@@ -721,18 +830,24 @@ class ExpandGlobsTest(absltest.TestCase):
       path = hierarchy(("foo", os.path.curdir, "bar", "*"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "bar", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "bar", "1")),
+          ],
+      )
 
       path = hierarchy((os.path.curdir, "*", "bar", "0"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("quux", "bar", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("quux", "bar", "0")),
+          ],
+      )
 
   def testParent(self):
     filepaths = [
@@ -746,19 +861,25 @@ class ExpandGlobsTest(absltest.TestCase):
       path = hierarchy(("foo", "*"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "1")),
-          hierarchy(("foo", "bar")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "1")),
+              hierarchy(("foo", "bar")),
+          ],
+      )
 
       path = hierarchy(("foo", os.path.pardir, "*"))
 
       results = list(globbing.ExpandGlobs(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("bar",)),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("bar",)),
+          ],
+      )
 
 
 class ExpandPathTest(absltest.TestCase):
@@ -776,21 +897,27 @@ class ExpandPathTest(absltest.TestCase):
     with DirHierarchy(filepaths) as hierarchy:
       path = hierarchy(("foo", "ba{r,z}", "*"))
       results = list(globbing.ExpandPath(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "bar", "1")),
-          hierarchy(("foo", "baz", "0")),
-          hierarchy(("foo", "baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "bar", "1")),
+              hierarchy(("foo", "baz", "0")),
+              hierarchy(("foo", "baz", "1")),
+          ],
+      )
 
       path = hierarchy(("foo", "ba*", "{0,1}"))
       results = list(globbing.ExpandPath(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "bar", "1")),
-          hierarchy(("foo", "baz", "0")),
-          hierarchy(("foo", "baz", "1")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "bar", "1")),
+              hierarchy(("foo", "baz", "0")),
+              hierarchy(("foo", "baz", "1")),
+          ],
+      )
 
   def testRecursiveAndGroup(self):
     filepaths = [
@@ -803,28 +930,34 @@ class ExpandPathTest(absltest.TestCase):
     with DirHierarchy(filepaths) as hierarchy:
       path = hierarchy(("foo", "**"))
       results = list(globbing.ExpandPath(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "1")),
-          hierarchy(("foo", "bar")),
-          hierarchy(("foo", "baz")),
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "baz", "quux")),
-          hierarchy(("foo", "baz", "quux", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "1")),
+              hierarchy(("foo", "bar")),
+              hierarchy(("foo", "baz")),
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "baz", "quux")),
+              hierarchy(("foo", "baz", "quux", "0")),
+          ],
+      )
 
       path = hierarchy(("foo", "{.,**}"))
       results = list(globbing.ExpandPath(path))
-      self.assertCountEqual(results, [
-          hierarchy(("foo",)),
-          hierarchy(("foo", "0")),
-          hierarchy(("foo", "1")),
-          hierarchy(("foo", "bar")),
-          hierarchy(("foo", "baz")),
-          hierarchy(("foo", "bar", "0")),
-          hierarchy(("foo", "baz", "quux")),
-          hierarchy(("foo", "baz", "quux", "0")),
-      ])
+      self.assertCountEqual(
+          results,
+          [
+              hierarchy(("foo",)),
+              hierarchy(("foo", "0")),
+              hierarchy(("foo", "1")),
+              hierarchy(("foo", "bar")),
+              hierarchy(("foo", "baz")),
+              hierarchy(("foo", "bar", "0")),
+              hierarchy(("foo", "baz", "quux")),
+              hierarchy(("foo", "baz", "quux", "0")),
+          ],
+      )
 
 
 class DirHierarchyContext(object):
@@ -859,7 +992,8 @@ class DirHierarchyContext(object):
 
 @contextlib.contextmanager
 def DirHierarchy(
-    filepaths: Sequence[Sequence[Text]]) -> Iterator[DirHierarchyContext]:
+    filepaths: Sequence[Sequence[Text]],
+) -> Iterator[DirHierarchyContext]:
   """A context manager that setups a fake directory hierarchy.
 
   Args:

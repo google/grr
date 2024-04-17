@@ -13,7 +13,6 @@ from grr_colab import representer
 from grr_colab import vfs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_server.flows.general import file_finder
 
 
 class FileSystem(object):
@@ -208,9 +207,7 @@ class FileSystem(object):
     args.action.action_type = flows_pb2.FileFinderAction.Action.DOWNLOAD
 
     try:
-      cff = self._client.CreateFlow(
-          name=file_finder.ClientFileFinder.__name__, args=args
-      )
+      cff = self._client.CreateFlow(name='FileFinder', args=args)
     except api_errors.AccessForbiddenError as e:
       raise errors.ApprovalMissingError(self.id, e)
 

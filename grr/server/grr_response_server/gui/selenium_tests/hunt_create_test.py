@@ -16,6 +16,7 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import test_lib
 
@@ -262,7 +263,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
-
+    hunt = mig_hunt_objects.ToRDFHunt(hunt)
     self.assertEqual(hunt.args.standard.flow_name,
                      file_finder.FileFinder.__name__)
 
@@ -396,6 +397,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Check that the hunt was created with a correct literal value.
     hunt = hunts_list[0]
+    hunt = mig_hunt_objects.ToRDFHunt(hunt)
     self.assertEqual(hunt.args.standard.flow_name,
                      file_finder.FileFinder.__name__)
 

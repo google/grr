@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto import flows_pb2
 

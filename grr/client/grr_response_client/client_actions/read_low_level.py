@@ -52,8 +52,10 @@ class ReadLowLevel(actions.ActionPlugin):
 
     # Make sure we limit the size of our output.
     if args.length > _READ_BYTES_LIMIT:
-      raise RuntimeError(f"Can not read buffers this large "
-                         f"({args.length} > {_READ_BYTES_LIMIT} bytes).")
+      raise RuntimeError(
+          "Can not read buffers this large "
+          f"({args.length} > {_READ_BYTES_LIMIT} bytes)."
+      )
 
     # TODO: Update `blob_size` when `sector_block_size` is set.
     # `blob_size` must be a multiple of `sector_block_size` so that reads start
@@ -78,7 +80,7 @@ class ReadLowLevel(actions.ActionPlugin):
         # Discard data that we read unnecessarily due to alignment.
         # Refer to `_AlignArgs` documentation for more details.
         if is_first_chunk:
-          data = data[self._pre_padding:]
+          data = data[self._pre_padding :]
           is_first_chunk = False
 
         # Upload the blobs to blobstore using `TransferStore`. Save the buffer
@@ -88,7 +90,8 @@ class ReadLowLevel(actions.ActionPlugin):
           # in order to avoid `InvalidBlobOffsetError` when storing the blobs as
           # a file in `file_store`.
           reference_offset = (
-              current_offset - self._pre_padding if current_offset else 0)
+              current_offset - self._pre_padding if current_offset else 0
+          )
           self._StoreDataAndHash(data, reference_offset)
         current_offset = current_offset + read_size
         bytes_left_to_read -= read_size
@@ -105,7 +108,8 @@ class ReadLowLevel(actions.ActionPlugin):
 
     data_blob = rdf_protodict.DataBlob(
         data=zlib.compress(data),
-        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
+        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,
+    )
 
     # Ensure that the buffer is counted against this response. Check network
     # send limit.
@@ -114,20 +118,24 @@ class ReadLowLevel(actions.ActionPlugin):
     # Now return the data to the server into the special TransferStore well
     # known flow.
     self.grr_worker.SendReply(
-        data_blob, session_id=rdfvalue.SessionID(flow_name="TransferStore"))
+        data_blob, session_id=rdfvalue.SessionID(flow_name="TransferStore")
+    )
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
     digest = hashlib.sha256(data).digest()
 
     buffer_reference = rdf_client.BufferReference(
-        offset=offset, length=len(data), data=digest)
+        offset=offset, length=len(data), data=digest
+    )
     self._partial_file_hash.update(data)
     partial_file_hash = self._partial_file_hash.digest()
 
     self.SendReply(
         rdf_read_low_level.ReadLowLevelResult(
-            blob=buffer_reference, accumulated_hash=partial_file_hash))
+            blob=buffer_reference, accumulated_hash=partial_file_hash
+        )
+    )
 
 
 def GetPrePadding(args: rdf_read_low_level.ReadLowLevelRequest) -> int:
@@ -144,8 +152,10 @@ def GetPrePadding(args: rdf_read_low_level.ReadLowLevelRequest) -> int:
   return args.offset % block_size
 
 
-def AlignArgs(args: rdf_read_low_level.ReadLowLevelRequest,
-              pre_padding: int) -> rdf_read_low_level.ReadLowLevelRequest:
+def AlignArgs(
+    args: rdf_read_low_level.ReadLowLevelRequest,
+    pre_padding: int,
+) -> rdf_read_low_level.ReadLowLevelRequest:
   """Aligns the offset and updates the length according to the pre_padding.
 
   It returns a copy of the flow arguments with the aligned offset value,

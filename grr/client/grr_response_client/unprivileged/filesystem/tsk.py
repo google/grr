@@ -3,7 +3,7 @@
 
 import logging
 import stat
-from typing import Optional, Iterator
+from typing import Iterator, Optional
 import pytsk3
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.proto import filesystem_pb2
@@ -104,9 +104,13 @@ class DeviceWrapper(pytsk3.Img_Info):
 class TskFile(filesystem.File):
   """TSK implementation of File."""
 
-  def __init__(self, filesystem_obj: filesystem.Filesystem,
-               fs_info: pytsk3.FS_Info, fd: pytsk3.File,
-               data_stream: Optional[pytsk3.Attribute]):
+  def __init__(
+      self,
+      filesystem_obj: filesystem.Filesystem,
+      fs_info: pytsk3.FS_Info,
+      fd: pytsk3.File,
+      data_stream: Optional[pytsk3.Attribute],
+  ):
     super().__init__(filesystem_obj)
     self._fs_info = fs_info
     self._fd = fd
@@ -135,9 +139,12 @@ class TskFile(filesystem.File):
     if self._data_stream is None:
       return self._fd.read_random(offset, available)
     else:
-      return self._fd.read_random(offset, available,
-                                  self._data_stream.info.type,
-                                  self._data_stream.info.id)
+      return self._fd.read_random(
+          offset,
+          available,
+          self._data_stream.info.type,
+          self._data_stream.info.id,
+      )
 
   def Close(self) -> None:
     pass
@@ -262,14 +269,19 @@ class TskFile(filesystem.File):
     return self._fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR
 
 
-def _GetDataStream(fd: pytsk3.File,
-                   stream_name: Optional[str]) -> Optional[pytsk3.Attribute]:
+def _GetDataStream(
+    fd: pytsk3.File, stream_name: Optional[str]
+) -> Optional[pytsk3.Attribute]:
+  """Get data stream from a file."""
+
   if stream_name is None:
     return None
   for attribute in fd:
-    if (attribute.info.name is not None and
-        _DecodeName(attribute.info.name) == stream_name and
-        attribute.info.type == pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA):
+    if (
+        attribute.info.name is not None
+        and _DecodeName(attribute.info.name) == stream_name
+        and attribute.info.type == pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA
+    ):
       return attribute
   raise IOError(f"Failed to open data stream {stream_name}.")
 

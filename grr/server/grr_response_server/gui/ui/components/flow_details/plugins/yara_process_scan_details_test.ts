@@ -79,6 +79,7 @@ describe('app-yara-process-scan-details component', () => {
               data: encodeStringToBase64('ExampleData'),
               stringId: 'ExampleStringId',
               offset: '456',
+              context: encodeStringToBase64('ExampleContext'),
             },
           ],
         },
@@ -98,5 +99,6 @@ describe('app-yara-process-scan-details component', () => {
     expect(fixture.nativeElement.textContent).toContain('ExampleRuleName');
     expect(fixture.nativeElement.textContent).toContain('ExampleData');
     expect(fixture.nativeElement.textContent).toContain('ExampleStringId');
+    expect(fixture.nativeElement.textContent).toContain('ExampleContext');
   });
 });

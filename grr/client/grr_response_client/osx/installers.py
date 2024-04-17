@@ -31,7 +31,8 @@ def Run():
 
   packaged_config = config.CONFIG.MakeNewConfig()
   packaged_config.Initialize(
-      filename=installer_config, parser=config_parser.YamlConfigFileParser)
+      filename=installer_config, parser=config_parser.YamlConfigFileParser
+  )
 
   new_config = config.CONFIG.MakeNewConfig()
   new_config.SetWriteBack(config.CONFIG["Config.writeback"])

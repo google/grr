@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
+
 import logging
 from typing import FrozenSet, Sequence, Tuple
 
@@ -32,10 +33,8 @@ FRONTEND_REQUEST_LATENCY = metrics.Event(
 
 
 # TODO: remove after the issue is fixed.
-CLIENT_ID_SKIP_LIST = frozenset(
-    [
-    ]
-)
+CLIENT_ID_SKIP_LIST = frozenset([
+])
 
 
 MIN_DELAY_BETWEEN_METADATA_UPDATES = rdfvalue.Duration.From(
@@ -73,8 +72,10 @@ class GRRFSServer:
     self.frontend = frontend_lib.FrontEndServer(
         max_queue_size=config.CONFIG["Frontend.max_queue_size"],
         message_expiry_time=config.CONFIG["Frontend.message_expiry_time"],
-        max_retransmission_time=config
-        .CONFIG["Frontend.max_retransmission_time"])
+        max_retransmission_time=config.CONFIG[
+            "Frontend.max_retransmission_time"
+        ],
+    )
 
   @FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
   @FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
@@ -143,7 +144,8 @@ class GRRFSServer:
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_GRR"])
 
         grr_message = rdf_flows.GrrMessage.FromSerializedBytes(
-            fs_msg.data.value)
+            fs_msg.data.value
+        )
         _LogDelayed("Starting processing GRR message")
         self._ProcessGRRMessages(grr_client_id, [grr_message])
         _LogDelayed("Finished processing GRR message")
@@ -153,9 +155,11 @@ class GRRFSServer:
         )
 
         packed_messages = rdf_flows.PackedMessageList.FromSerializedBytes(
-            fs_msg.data.value)
+            fs_msg.data.value
+        )
         message_list = communicator.Communicator.DecompressMessageList(
-            packed_messages)
+            packed_messages
+        )
         _LogDelayed("Starting processing GRR message list")
         self._ProcessGRRMessages(grr_client_id, message_list.job)
         _LogDelayed("Finished processing GRR message list")
@@ -180,8 +184,10 @@ class GRRFSServer:
       else:
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["INVALID"])
 
-        logging.error("Received message with unrecognized message_type: %s",
-                      fs_msg.message_type)
+        logging.error(
+            "Received message with unrecognized message_type: %s",
+            fs_msg.message_type,
+        )
         context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
     except Exception:
       logging.exception("Exception processing message: %s", fs_msg)
@@ -217,9 +223,11 @@ class GRRFSServer:
       for grr_message in grr_messages:
         grr_message.source = grr_client_id
         grr_message.auth_state = (
-            rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+            rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+        )
       self.frontend.ReceiveMessages(
-          client_id=grr_client_id, messages=grr_messages)
+          client_id=grr_client_id, messages=grr_messages
+      )
     except Exception:
       logging.exception("Exception receiving messages from: %s", grr_client_id)
       raise

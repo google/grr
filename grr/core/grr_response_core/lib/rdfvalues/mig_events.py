@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_proto import jobs_pb2
 

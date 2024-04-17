@@ -4,7 +4,6 @@
 import os
 import platform
 import stat
-
 from typing import Any, Dict
 
 from absl.testing import absltest
@@ -145,9 +144,12 @@ class FileParserDataWrapperTest(absltest.TestCase):
 
   def testForwardsDataToNestedParserOnRead(self):
     p = config_parser.FileParserDataWrapper(b"foo", StubFileParser(""))
-    self.assertEqual(p.ReadData(), {
-        "from_bytes": b"foo",
-    })
+    self.assertEqual(
+        p.ReadData(),
+        {
+            "from_bytes": b"foo",
+        },
+    )
 
 
 if __name__ == "__main__":

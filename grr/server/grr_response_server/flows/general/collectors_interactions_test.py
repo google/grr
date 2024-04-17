@@ -124,6 +124,9 @@ supported_os: [ "Linux" ]
   @parser_test_lib.WithAllParsers
   def testProcessCollectedArtifacts(self):
     """Tests downloading files from artifacts."""
+    self.skipTest("Deeply nested protobufs")
+    # TODO: Test disabled because of restriction of proto nesting
+    # depth. Enable open source test again when fixed.
     self.client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     client_mock = action_mocks.FileFinderClientMock()
@@ -151,6 +154,9 @@ supported_os: [ "Linux" ]
 
   def testBrokenArtifact(self):
     """Tests a broken artifact."""
+    self.skipTest("Deeply nested protobufs")
+    # TODO: Test disabled because of restriction of proto nesting
+    # depth. Enable open source test again when fixed.
     self.client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     client_mock = action_mocks.FileFinderClientMock()

@@ -316,7 +316,6 @@ export interface ArtifactDescriptor {
   readonly doc?: string;
   readonly supportedOs: ReadonlySet<OperatingSystem>;
   readonly urls: readonly string[];
-  readonly provides: readonly string[];
   readonly sources: readonly ArtifactSource[];
   readonly dependencies: readonly string[];
   readonly pathDependencies: readonly string[];

@@ -6,12 +6,10 @@ import logging
 from typing import Callable, Iterator, List, Text
 
 from grr_response_client import actions
-from grr_response_client import client_utils
 from grr_response_client.client_actions.file_finder_utils import conditions
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.client_actions.file_finder_utils import subactions
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
@@ -25,36 +23,6 @@ class _SkipFileException(Exception):
   pass
 
 
-def FileFinderOSFromClient(
-    args: rdf_file_finder.FileFinderArgs) -> Iterator[rdf_client_fs.StatEntry]:
-  """This function expands paths from the args and returns related stat entries.
-
-  Args:
-    args: A proto message with arguments for the file finder action.
-
-  Yields:
-    Stat entries corresponding to the found files.
-  """
-  stat_cache = filesystem.StatCache()
-
-  opts = args.action.stat
-
-  for path in GetExpandedPaths(args):
-    try:
-      content_conditions = conditions.ContentCondition.Parse(args.conditions)
-      for content_condition in content_conditions:
-        with io.open(path, "rb") as fd:
-          result = list(content_condition.Search(fd))
-        if not result:
-          raise _SkipFileException()
-      stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
-      stat_entry = client_utils.StatEntryFromStatPathSpec(
-          stat, ext_attrs=opts.collect_ext_attrs)
-      yield stat_entry
-    except _SkipFileException:
-      pass
-
-
 class FileFinderOS(actions.ActionPlugin):
   """The file finder implementation using the OS file api."""
 
@@ -65,15 +33,19 @@ class FileFinderOS(actions.ActionPlugin):
     if args.pathtype != rdf_paths.PathSpec.PathType.OS:
       raise ValueError(
           "FileFinderOS can only be used with OS paths, got {}".format(
-              args.pathspec))
+              args.pathspec
+          )
+      )
 
     self.stat_cache = filesystem.StatCache()
 
     action = self._ParseAction(args)
     self._metadata_conditions = list(
-        conditions.MetadataCondition.Parse(args.conditions))
+        conditions.MetadataCondition.Parse(args.conditions)
+    )
     self._content_conditions = list(
-        conditions.ContentCondition.Parse(args.conditions))
+        conditions.ContentCondition.Parse(args.conditions)
+    )
 
     for path in GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
@@ -86,8 +58,9 @@ class FileFinderOS(actions.ActionPlugin):
       except _SkipFileException:
         pass
 
-  def _ParseAction(self,
-                   args: rdf_file_finder.FileFinderArgs) -> subactions.Action:
+  def _ParseAction(
+      self, args: rdf_file_finder.FileFinderArgs
+  ) -> subactions.Action:
     action_type = args.action.action_type
     if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
       return subactions.StatAction(self, args.action.stat)
@@ -103,8 +76,9 @@ class FileFinderOS(actions.ActionPlugin):
     except OSError:
       raise _SkipFileException()
 
-  def _Validate(self, args: rdf_file_finder.FileFinderArgs,
-                filepath: Text) -> List[rdf_client.BufferReference]:
+  def _Validate(
+      self, args: rdf_file_finder.FileFinderArgs, filepath: Text
+  ) -> List[rdf_client.BufferReference]:
     matches = []
     stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))
     self._ValidateRegularity(stat, args, filepath)
@@ -156,8 +130,12 @@ class FileFinderOS(actions.ActionPlugin):
         raise _SkipFileException()
 
     for content_condition in self._content_conditions:
-      with io.open(filepath, "rb") as fd:
-        result = list(content_condition.Search(fd))
+      try:
+        with io.open(filepath, "rb") as fd:
+          result = list(content_condition.Search(fd))
+      except OSError:
+        logging.error("Error reading: %s", filepath)
+        raise _SkipFileException() from None
       if not result:
         raise _SkipFileException()
       matches.extend(result)
@@ -165,7 +143,8 @@ class FileFinderOS(actions.ActionPlugin):
 
 def GetExpandedPaths(
     args: rdf_file_finder.FileFinderArgs,
-    heartbeat_cb: Callable[[], None] = _NoOp) -> Iterator[Text]:
+    heartbeat_cb: Callable[[], None] = _NoOp,
+) -> Iterator[Text]:
   """Expands given path patterns.
 
   Args:
@@ -185,7 +164,8 @@ def GetExpandedPaths(
     raise ValueError("Unsupported path type: ", args.pathtype)
 
   opts = globbing.PathOpts(
-      follow_links=args.follow_links, xdev=args.xdev, pathtype=pathtype)
+      follow_links=args.follow_links, xdev=args.xdev, pathtype=pathtype
+  )
 
   for path in args.paths:
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):

@@ -5,16 +5,12 @@ import array
 import os
 import platform
 import stat
-
-from typing import Dict
-from typing import NamedTuple
-from typing import Optional
-from typing import Text
+from typing import Dict, NamedTuple, Optional
 
 from grr_response_core.lib.util import precondition
 
 
-class Stat(object):
+class Stat:
   """A wrapper around standard `os.[l]stat` function.
 
   The standard API for using `stat` results is very clunky and unpythonic.
@@ -29,7 +25,7 @@ class Stat(object):
   """
 
   @classmethod
-  def FromPath(cls, path: Text, follow_symlink: bool = True) -> "Stat":
+  def FromPath(cls, path: str, follow_symlink: bool = True) -> "Stat":
     """Returns stat information about the given OS path, calling os.[l]stat.
 
     Args:
@@ -62,10 +58,12 @@ class Stat(object):
 
     return cls(path=path, stat_obj=stat_obj, symlink_target=target)
 
-  def __init__(self,
-               path: Text,
-               stat_obj: os.stat_result,
-               symlink_target: Optional[Text] = None) -> None:
+  def __init__(
+      self,
+      path: str,
+      stat_obj: os.stat_result,
+      symlink_target: Optional[str] = None,
+  ) -> None:
     """Wrap an existing stat result in a `filesystem.Stat` instance.
 
     Args:
@@ -82,7 +80,7 @@ class Stat(object):
   def GetRaw(self) -> os.stat_result:
     return self._stat
 
-  def GetPath(self) -> Text:
+  def GetPath(self) -> str:
     return self._path
 
   def GetLinuxFlags(self) -> int:
@@ -125,7 +123,7 @@ class Stat(object):
   def GetDevice(self) -> int:
     return self._stat.st_dev
 
-  def GetSymlinkTarget(self) -> Optional[Text]:
+  def GetSymlinkTarget(self) -> Optional[str]:
     return self._symlink_target
 
   def IsDirectory(self) -> bool:
@@ -166,6 +164,7 @@ class Stat(object):
     try:
       # This import is Linux-specific.
       import fcntl  # pylint: disable=g-import-not-at-top
+
       buf = array.array("l", [0])
       # TODO(user):pytype: incorrect type spec for fcntl.ioctl
       # pytype: disable=wrong-arg-types
@@ -186,7 +185,7 @@ class Stat(object):
     return self._stat.st_flags  # pytype: disable=attribute-error
 
 
-class StatCache(object):
+class StatCache:
   """An utility class for avoiding unnecessary syscalls to `[l]stat`.
 
   This class is useful in situations where manual bookkeeping of stat results
@@ -195,12 +194,12 @@ class StatCache(object):
   smart enough to cache symlink results when a file is not a symlink.
   """
 
-  _Key = NamedTuple("_Key", (("path", Text), ("follow_symlink", bool)))  # pylint: disable=invalid-name
+  _Key = NamedTuple("_Key", (("path", str), ("follow_symlink", bool)))  # pylint: disable=invalid-name
 
   def __init__(self):
     self._cache: Dict[StatCache._Key, Stat] = {}
 
-  def Get(self, path: Text, follow_symlink: bool = True) -> Stat:
+  def Get(self, path: str, follow_symlink: bool = True) -> Stat:
     """Stats given file or returns a cached result if available.
 
     Args:

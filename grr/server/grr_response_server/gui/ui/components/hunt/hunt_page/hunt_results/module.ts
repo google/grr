@@ -18,7 +18,6 @@ import {FileModeModule} from '../../../data_renderers/file_mode/file_mode_module
 import {ExpandableHashModule} from '../../../expandable_hash/module';
 import {HelpersModule} from '../../../flow_details/helpers/module';
 import {CopyButtonModule} from '../../../helpers/copy_button/copy_button_module';
-import {DrawerLinkModule} from '../../../helpers/drawer_link/drawer_link_module';
 import {FilterPaginate} from '../../../helpers/filter_paginate/filter_paginate';
 import {HumanReadableSizeModule} from '../../../human_readable_size/module';
 import {TimestampModule} from '../../../timestamp/module';
@@ -34,7 +33,6 @@ import {HuntResults} from './hunt_results';
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
-    DrawerLinkModule,
     ExpandableHashModule,
     FileModeModule,
     FilterPaginate,

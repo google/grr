@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {
   ChangeDetectionStrategy,
   Component,
@@ -73,13 +72,14 @@ export class ClientOverview implements OnInit, OnDestroy {
   readonly activeOnlineNotificationArgs$ =
     this.clientPageGlobalStore.flowListEntries$.pipe(
       withLatestFrom(this.userGlobalStore.currentUser$),
-      map(([data, user]) =>
-        data.flows?.find(
-          (f) =>
-            f.name === 'OnlineNotification' &&
-            f.creator === user.name &&
-            f.state === FlowState.RUNNING,
-        ),
+      map(
+        ([data, user]) =>
+          data.flows?.find(
+            (f) =>
+              f.name === 'OnlineNotification' &&
+              f.creator === user.name &&
+              f.state === FlowState.RUNNING,
+          ),
       ),
       map((flow) => flow?.args as OnlineNotificationArgs | undefined),
     );

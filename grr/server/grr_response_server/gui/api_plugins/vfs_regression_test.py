@@ -13,6 +13,7 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.gui.api_plugins import vfs_test as vfs_plugin_test
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -165,13 +166,15 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         creator=self.test_username)
 
     # Kill flow.
-    rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
-        client_id, finished_flow_id,
-        rdfvalue.Duration.From(5, rdfvalue.MINUTES))
+    proto_flow = data_store.REL_DB.LeaseFlowForProcessing(
+        client_id, finished_flow_id, rdfvalue.Duration.From(5, rdfvalue.MINUTES)
+    )
+    rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)
     flow_obj.Error("Fake error")
-    data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
+    proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
+    data_store.REL_DB.ReleaseProcessedFlow(proto_flow)
 
     # Create an arbitrary flow to check on 404s.
     non_refresh_flow_id = flow_test_lib.StartFlow(

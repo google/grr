@@ -13,4 +13,3 @@ Client.executable_signing_public_key: |
   g9+hgrcgt7JRECXmho+WFrKM1H6z1CNe6uEALMfogNl9Mm2jCgavl1wbV92pIKT1
   pQIDAQAB
   -----END PUBLIC KEY-----
-CA.certificate: "-----BEGIN CERTIFICATE"

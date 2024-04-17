@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with utilities for AEAD streams."""
+
 import io
 import itertools
 import os
