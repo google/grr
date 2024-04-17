@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with client action for talking with osquery."""
+
 import hashlib
 import io
 import json
@@ -30,8 +31,9 @@ def _Query(query: Text, **kwargs) -> List[rdf_osquery.OsqueryResult]:
   return list(osquery.Osquery().Process(args))
 
 
-@skip.Unless(lambda: config.CONFIG["Osquery.path"],
-             "osquery path not specified")
+@skip.Unless(
+    lambda: config.CONFIG["Osquery.path"], "osquery path not specified"
+)
 class OsqueryTest(absltest.TestCase):
 
   @classmethod
@@ -131,16 +133,20 @@ class OsqueryTest(absltest.TestCase):
       table = results[0].table
       self.assertLen(table.rows, 3)
       self.assertEqual(
-          list(table.Column("path")), [
+          list(table.Column("path")),
+          [
               os.path.join(dirpath, "abc"),
               os.path.join(dirpath, "def"),
               os.path.join(dirpath, "ghi"),
-          ])
+          ],
+      )
       self.assertEqual(list(table.Column("size")), ["3", "6", "4"])
 
   # TODO(hanuszczak): https://github.com/osquery/osquery/issues/4150
-  @skip.If(platform.system() == "Windows",
-           "osquery ignores files with unicode characters.")
+  @skip.If(
+      platform.system() == "Windows",
+      "osquery ignores files with unicode characters.",
+  )
   def testFileUnicode(self):
     with temp.AutoTempFilePath(prefix="zółć", suffix="💰") as filepath:
       with io.open(filepath, "wb") as filedesc:
@@ -306,19 +312,28 @@ class ChunkTableTest(absltest.TestCase):
     self.assertLen(chunks, 3)
     self.assertEqual(chunks[0].query, table.query)
     self.assertEqual(chunks[0].header, table.header)
-    self.assertEqual(chunks[0].rows, [
-        rdf_osquery.OsqueryRow(values=["ABC", "DEF", "GHI"]),
-    ])
+    self.assertEqual(
+        chunks[0].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["ABC", "DEF", "GHI"]),
+        ],
+    )
     self.assertEqual(chunks[1].query, table.query)
     self.assertEqual(chunks[1].header, table.header)
-    self.assertEqual(chunks[1].rows, [
-        rdf_osquery.OsqueryRow(values=["JKL", "MNO", "PQR"]),
-    ])
+    self.assertEqual(
+        chunks[1].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["JKL", "MNO", "PQR"]),
+        ],
+    )
     self.assertEqual(chunks[2].query, table.query)
     self.assertEqual(chunks[2].header, table.header)
-    self.assertEqual(chunks[2].rows, [
-        rdf_osquery.OsqueryRow(values=["RST", "UVW", "XYZ"]),
-    ])
+    self.assertEqual(
+        chunks[2].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["RST", "UVW", "XYZ"]),
+        ],
+    )
 
   def testMultiRowChunks(self):
     table = rdf_osquery.OsqueryTable()
@@ -339,24 +354,33 @@ class ChunkTableTest(absltest.TestCase):
     self.assertLen(chunks, 3)
     self.assertEqual(chunks[0].query, table.query)
     self.assertEqual(chunks[0].header, table.header)
-    self.assertEqual(chunks[0].rows, [
-        rdf_osquery.OsqueryRow(values=["A", "B", "C"]),
-        rdf_osquery.OsqueryRow(values=["D", "E", "F"]),
-        rdf_osquery.OsqueryRow(values=["G", "H", "I"]),
-    ])
+    self.assertEqual(
+        chunks[0].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["A", "B", "C"]),
+            rdf_osquery.OsqueryRow(values=["D", "E", "F"]),
+            rdf_osquery.OsqueryRow(values=["G", "H", "I"]),
+        ],
+    )
     self.assertEqual(chunks[1].query, table.query)
     self.assertEqual(chunks[1].header, table.header)
-    self.assertEqual(chunks[1].rows, [
-        rdf_osquery.OsqueryRow(values=["J", "K", "L"]),
-        rdf_osquery.OsqueryRow(values=["M", "N", "O"]),
-        rdf_osquery.OsqueryRow(values=["P", "Q", "R"]),
-    ])
+    self.assertEqual(
+        chunks[1].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["J", "K", "L"]),
+            rdf_osquery.OsqueryRow(values=["M", "N", "O"]),
+            rdf_osquery.OsqueryRow(values=["P", "Q", "R"]),
+        ],
+    )
     self.assertEqual(chunks[2].query, table.query)
     self.assertEqual(chunks[2].header, table.header)
-    self.assertEqual(chunks[2].rows, [
-        rdf_osquery.OsqueryRow(values=["S", "T", "U"]),
-        rdf_osquery.OsqueryRow(values=["V", "W", "X"]),
-    ])
+    self.assertEqual(
+        chunks[2].rows,
+        [
+            rdf_osquery.OsqueryRow(values=["S", "T", "U"]),
+            rdf_osquery.OsqueryRow(values=["V", "W", "X"]),
+        ],
+    )
 
   def testMultiByteStrings(self):
     table = rdf_osquery.OsqueryTable()
@@ -369,12 +393,15 @@ class ChunkTableTest(absltest.TestCase):
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=10))
     self.assertLen(chunks, 3)
-    self.assertEqual(chunks[0].rows,
-                     [rdf_osquery.OsqueryRow(values=["🐔", "🐓"])])
-    self.assertEqual(chunks[1].rows,
-                     [rdf_osquery.OsqueryRow(values=["🐣", "🐤"])])
-    self.assertEqual(chunks[2].rows,
-                     [rdf_osquery.OsqueryRow(values=["🐥", "🦆"])])
+    self.assertEqual(
+        chunks[0].rows, [rdf_osquery.OsqueryRow(values=["🐔", "🐓"])]
+    )
+    self.assertEqual(
+        chunks[1].rows, [rdf_osquery.OsqueryRow(values=["🐣", "🐤"])]
+    )
+    self.assertEqual(
+        chunks[2].rows, [rdf_osquery.OsqueryRow(values=["🐥", "🦆"])]
+    )
 
 
 class ParseTableTest(absltest.TestCase):
@@ -505,11 +532,14 @@ class ParseRowTest(absltest.TestCase):
     header.columns.append(rdf_osquery.OsqueryColumn(name="bar"))
     header.columns.append(rdf_osquery.OsqueryColumn(name="baz"))
 
-    row = osquery.ParseRow(header, {
-        "foo": "quux",
-        "bar": "norf",
-        "baz": "thud",
-    })
+    row = osquery.ParseRow(
+        header,
+        {
+            "foo": "quux",
+            "bar": "norf",
+            "baz": "thud",
+        },
+    )
     self.assertEqual(row.values, ["quux", "norf", "thud"])
 
 

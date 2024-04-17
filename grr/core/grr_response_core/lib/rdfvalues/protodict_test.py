@@ -9,7 +9,6 @@ Dict objects behave generally like a dict (with __getitem__, items() and
 an __iter__) method, but are serializable as an RDFProto.
 """
 
-
 from collections import abc
 from typing import Text
 
@@ -74,7 +73,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     test_dict = dict(
         key1=1,  # Integer.
         key2="foo",  # String.
-        key3=u"\u4f60\u597d",  # Unicode.
+        key3="\u4f60\u597d",  # Unicode.
         key5=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/11"),  # RDFValue.
         key6=None,  # Support None Encoding.
         key7=rdf_structs.EnumNamedValue(5, name="Test"),  # Enums.
@@ -114,7 +113,8 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
         key2=rdf_protodict.Dict({"A": 1}),
         key3=[1, 2, 3, [1, 2, [3]]],
         key4=[[], None, ["abc"]],
-        key5=set([1, 2, 3]))
+        key5=set([1, 2, 3]),
+    )
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -124,7 +124,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testNestedDictsOpaqueTypes(self):
 
-    class UnSerializable(object):
+    class UnSerializable:
       pass
 
     test_dict = dict(
@@ -133,7 +133,8 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
         key3=[1, UnSerializable(), 3, [1, 2, [3]]],
         key4=[[], None, ["abc"]],
         key5=UnSerializable(),
-        key6=["a", UnSerializable(), "b"])
+        key6=["a", UnSerializable(), "b"],
+    )
 
     self.assertRaises(TypeError, rdf_protodict.Dict, **test_dict)
 
@@ -425,7 +426,7 @@ class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
         None,  # None.
         rdfvalue.RDFDatetime.Now(),  # An RDFValue instance.
         [1, 2],  # A nested list.
-        u"升级程序",  # Unicode.
+        "升级程序",  # Unicode.
     ]
     sample = rdf_protodict.RDFValueArray(test_list)
 
@@ -457,8 +458,9 @@ class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sample.Pop(), "world")
 
 
-class EmbeddedRDFValueTest(rdf_test_base.RDFProtoTestMixin,
-                           test_lib.GRRBaseTest):
+class EmbeddedRDFValueTest(
+    rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest
+):
   rdfvalue_class = rdf_protodict.EmbeddedRDFValue
 
   def GenerateSample(self, number=0):

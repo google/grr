@@ -30,7 +30,8 @@ class Error(Exception):
 
 
 def GetConnectionHandlerForInterfaceString(
-    interface_str: str) -> communication.ConnectionHandler:
+    interface_str: str,
+) -> communication.ConnectionHandler:
   """Returns the connection handler for the respective interface."""
   try:
     interface = Interface(interface_str)

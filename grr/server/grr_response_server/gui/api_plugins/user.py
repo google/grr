@@ -31,6 +31,8 @@ from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.models import users
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -457,6 +459,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
     if not approval_subject_obj:
       approval_subject_obj = data_store.REL_DB.ReadHuntObject(db_obj.subject_id)
+      approval_subject_obj = mig_hunt_objects.ToRDFHunt(approval_subject_obj)
       approval_subject_counters = data_store.REL_DB.ReadHuntCounters(
           db_obj.subject_id)
       self.subject = api_hunt.ApiHunt().InitFromHuntObject(
@@ -469,11 +472,13 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       original_flow = data_store.REL_DB.ReadFlowObject(
           original_object.flow_reference.client_id,
           original_object.flow_reference.flow_id)
+      original_flow = mig_flow_objects.ToRDFFlow(original_flow)
       self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
           original_flow)
     elif original_object.object_type == "HUNT_REFERENCE":
       original_hunt = data_store.REL_DB.ReadHuntObject(
           original_object.hunt_reference.hunt_id)
+      original_hunt = mig_hunt_objects.ToRDFHunt(original_hunt)
       original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
           original_object.hunt_reference.hunt_id)
       self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(

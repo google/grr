@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module defining timeline-related utility functions."""
+
 from typing import Iterator
 
 from grr_response_core.lib.util import gzchunked
@@ -13,6 +14,7 @@ def _ParseTimelineEntryProto(bstr: bytes) -> timeline_pb2.TimelineEntry:
 
 
 def DeserializeTimelineEntryProtoStream(
-    entries: Iterator[bytes],) -> Iterator[timeline_pb2.TimelineEntry]:
+    entries: Iterator[bytes],
+) -> Iterator[timeline_pb2.TimelineEntry]:
   """Deserializes given gzchunked stream chunks into TimelineEntry protos."""
   return map(_ParseTimelineEntryProto, gzchunked.Deserialize(entries))

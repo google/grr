@@ -30,7 +30,9 @@ MemoryRegions = _client_utils.MemoryRegions
 OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess
 TransactionLog = _client_utils.TransactionLog
 VerifyFileOwner = _client_utils.VerifyFileOwner
-CreateProcessFromSerializedFileDescriptor = _client_utils.CreateProcessFromSerializedFileDescriptor
+CreateProcessFromSerializedFileDescriptor = (
+    _client_utils.CreateProcessFromSerializedFileDescriptor
+)
 
 # pylint: enable=g-bad-name
 
@@ -61,9 +63,9 @@ def StatEntryFromPath(
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
-def StatEntryFromStat(stat: filesystem.Stat,
-                      pathspec: rdf_paths.PathSpec,
-                      ext_attrs: bool = True) -> rdf_client_fs.StatEntry:
+def StatEntryFromStat(
+    stat: filesystem.Stat, pathspec: rdf_paths.PathSpec, ext_attrs: bool = True
+) -> rdf_client_fs.StatEntry:
   """Build a stat entry object from a given stat object.
 
   Args:
@@ -102,17 +104,20 @@ def StatEntryFromStat(stat: filesystem.Stat,
   return result
 
 
-def StatEntryFromStatPathSpec(stat: filesystem.Stat,
-                              ext_attrs: bool) -> rdf_client_fs.StatEntry:
+def StatEntryFromStatPathSpec(
+    stat: filesystem.Stat, ext_attrs: bool
+) -> rdf_client_fs.StatEntry:
   pathspec = rdf_paths.PathSpec(
       pathtype=rdf_paths.PathSpec.PathType.OS,
       path=LocalPathToCanonicalPath(stat.GetPath()),
-      path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+      path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,
+  )
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
 def StatResultFromStatEntry(
-    stat_entry: rdf_client_fs.StatEntry) -> os.stat_result:
+    stat_entry: rdf_client_fs.StatEntry,
+) -> os.stat_result:
   """Returns a `os.stat_result` with most information from `StatEntry`.
 
   This is a lossy conversion, only the 10 first stat_result fields are

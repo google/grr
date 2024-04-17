@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 """Utilities for handling stats."""
 
-
 import functools
 import time
-from typing import Text
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 
 
-class Timed(object):
+class Timed:
   """A decorator that records timing metrics for function calls."""
 
   def __init__(self, event_metric, fields=None):
@@ -31,7 +29,7 @@ class Timed(object):
     return Decorated
 
 
-class Counted(object):
+class Counted:
   """A decorator that counts function calls."""
 
   def __init__(self, counter_metric, fields=None):
@@ -51,7 +49,7 @@ class Counted(object):
     return Decorated
 
 
-class SuccessesCounted(object):
+class SuccessesCounted:
   """A decorator that counts function calls that don't raise an exception."""
 
   def __init__(self, counter_metric, fields=None):
@@ -70,7 +68,7 @@ class SuccessesCounted(object):
     return Decorated
 
 
-class ErrorsCounted(object):
+class ErrorsCounted:
   """A decorator that counts function calls that raise an exception."""
 
   def __init__(self, counter_metric, fields=None):
@@ -97,7 +95,7 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
   for field_name, field_type in field_def_tuples:
     if field_type is int:
       field_type = rdf_stats.MetricFieldDefinition.FieldType.INT
-    elif issubclass(field_type, Text):
+    elif issubclass(field_type, str):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.STR
     elif issubclass(field_type, bool):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.BOOL
@@ -105,7 +103,9 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
       raise ValueError("Invalid field type: %s" % field_type)
     field_def_protos.append(
         rdf_stats.MetricFieldDefinition(
-            field_name=field_name, field_type=field_type))
+            field_name=field_name, field_type=field_type
+        )
+    )
   return field_def_protos
 
 

@@ -43,22 +43,18 @@ class RepackingTests(test_lib.GRRBaseTest):
 
       with test_lib.ConfigOverrider({
           "ClientBuilder.executables_dir": new_dir,
-          "ClientBuilder.unzipsfx_stub_dir": new_dir
       }):
         repacking.TemplateRepacker().RepackAllTemplates()
 
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "installers/*.deb"))), 2)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "installers/*.rpm"))), 2)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "installers/*.exe"))), 4)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "installers/*.pkg"))), 1)
+      self.assertLen(glob.glob(os.path.join(new_dir, "*.deb")), 2)
+      self.assertLen(glob.glob(os.path.join(new_dir, "*.rpm")), 2)
+      self.assertLen(glob.glob(os.path.join(new_dir, "*.exe")), 4)
+      self.assertLen(glob.glob(os.path.join(new_dir, "*.pkg")), 1)
 
       # Validate the config appended to the OS X package.
       zf = zipfile.ZipFile(
-          glob.glob(os.path.join(new_dir, "installers/*.pkg")).pop(), mode="r")
+          glob.glob(os.path.join(new_dir, "*.pkg")).pop(), mode="r"
+      )
       fd = zf.open("config.yaml")
 
       # We can't load the included build.yaml because the package hasn't been

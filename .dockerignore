@@ -25,7 +25,7 @@ grr/gui/static/bower_components
 grr/gui/static/node_modules
 grr/gui/static/tmp
 grr/var
-grr-server*.tar.gz
+grr_server*.tar.gz
 LICENSE
 README.md
 travis

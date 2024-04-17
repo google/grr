@@ -17,7 +17,7 @@
     <ng-container matColumnDef="path">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Path</th>
       <td mat-cell *matCellDef="let r" class="path">
-        <app-copy-button>{{ r.path }}</app-copy-button>
+        <app-copy-button [multiline]="true">{{ r.path }}</app-copy-button>
       </td>
     </ng-container>
 
@@ -60,28 +60,28 @@
     <ng-container matColumnDef="atime">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>A-time</th>
       <td mat-cell *matCellDef="let r" class="timestamp">
-        <app-timestamp [date]="r.atime"></app-timestamp>
+        <app-timestamp [date]="r.atime" [multiline]="true"></app-timestamp>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="mtime">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>M-time</th>
       <td mat-cell *matCellDef="let r" class="timestamp">
-        <app-timestamp [date]="r.mtime"></app-timestamp>
+        <app-timestamp [date]="r.mtime" [multiline]="true"></app-timestamp>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="ctime">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>C-time</th>
       <td mat-cell *matCellDef="let r" class="timestamp">
-        <app-timestamp [date]="r.ctime"></app-timestamp>
+        <app-timestamp [date]="r.ctime" [multiline]="true"></app-timestamp>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="btime">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>B-time</th>
       <td mat-cell *matCellDef="let r" class="timestamp">
-        <app-timestamp [date]="r.btime"></app-timestamp>
+        <app-timestamp [date]="r.btime" [multiline]="true"></app-timestamp>
       </td>
     </ng-container>
 

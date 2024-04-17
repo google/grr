@@ -18,14 +18,16 @@ class ExportedClient(rdf_structs.RDFProtoStruct):
 
 
 class ClientSummaryToExportedNetworkInterfaceConverter(
-    network.InterfaceToExportedNetworkInterfaceConverter):
+    network.InterfaceToExportedNetworkInterfaceConverter
+):
   """Converts a ClientSummary to ExportedNetworkInterfaces."""
 
   input_rdf_type = rdf_client.ClientSummary
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      client_summary: rdf_client.ClientSummary
+      self,
+      metadata: base.ExportedMetadata,
+      client_summary: rdf_client.ClientSummary,
   ) -> Iterator[network.ExportedNetworkInterface]:
     """Converts a ClientSummary into ExportedNetworkInterfaces.
 
@@ -49,8 +51,10 @@ class ClientSummaryToExportedClientConverter(base.ExportConverter):
   input_rdf_type = rdf_client.ClientSummary
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      unused_client_summary: rdf_client.ClientSummary) -> List[ExportedClient]:
+      self,
+      metadata: base.ExportedMetadata,
+      unused_client_summary: rdf_client.ClientSummary,
+  ) -> List[ExportedClient]:
     """Returns an ExportedClient using the ExportedMetadata.
 
     Args:

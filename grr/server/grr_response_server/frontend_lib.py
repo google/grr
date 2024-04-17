@@ -2,13 +2,12 @@
 """The GRR frontend server."""
 import logging
 import time
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
@@ -21,6 +20,7 @@ from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
@@ -132,6 +132,34 @@ class FrontEndServer(object):
     frontend_message_handler_requests = []
     dropped_count = 0
 
+    # TODO: Remove `fixed_messages` once old clients
+    # have been migrated.
+    fixed_messages = []
+    for message in messages:
+      if message.type != rdf_flows.GrrMessage.Type.STATUS:
+        fixed_messages.append(message)
+        continue
+
+      stat = rdf_flows.GrrStatus(message.payload)
+      if not stat.HasField("cpu_time_used"):
+        fixed_messages.append(message)
+        continue
+
+      if stat.cpu_time_used.HasField("deprecated_user_cpu_time"):
+        stat.cpu_time_used.user_cpu_time = (
+            stat.cpu_time_used.deprecated_user_cpu_time
+        )
+        stat.cpu_time_used.deprecated_user_cpu_time = None
+      if stat.cpu_time_used.HasField("deprecated_system_cpu_time"):
+        stat.cpu_time_used.system_cpu_time = (
+            stat.cpu_time_used.deprecated_system_cpu_time
+        )
+        stat.cpu_time_used.deprecated_system_cpu_time = None
+      message.payload = stat
+      fixed_messages.append(message)
+
+    messages = fixed_messages
+
     msgs_by_session_id = collection.Group(messages, lambda m: m.session_id)
     for session_id, msgs in msgs_by_session_id.items():
       try:
@@ -172,11 +200,19 @@ class FrontEndServer(object):
       flow_responses = []
       for message in unprocessed_msgs:
         try:
-          flow_responses.append(
-              rdf_flow_objects.FlowResponseForLegacyResponse(message))
+          response = rdf_flow_objects.FlowResponseForLegacyResponse(message)
         except ValueError as e:
-          logging.warning("Failed to parse legacy FlowResponse:\n%s\n%s", e,
-                          message)
+          logging.warning(
+              "Failed to parse legacy FlowResponse:\n%s\n%s", e, message
+          )
+        else:
+          if isinstance(response, rdf_flow_objects.FlowStatus):
+            response = mig_flow_objects.ToProtoFlowStatus(response)
+          if isinstance(response, rdf_flow_objects.FlowIterator):
+            response = mig_flow_objects.ToProtoFlowIterator(response)
+          if isinstance(response, rdf_flow_objects.FlowResponse):
+            response = mig_flow_objects.ToProtoFlowResponse(response)
+          flow_responses.append(response)
 
       data_store.REL_DB.WriteFlowResponses(flow_responses)
 
@@ -191,21 +227,36 @@ class FrontEndServer(object):
                 backtrace=stat.backtrace,
                 crash_message=stat.error_message,
                 nanny_status=stat.nanny_status,
-                timestamp=rdfvalue.RDFDatetime.Now())
+                timestamp=rdfvalue.RDFDatetime.Now(),
+            )
             events.Events.PublishEvent(
-                "ClientCrash", crash_details, username=FRONTEND_USERNAME)
+                "ClientCrash", crash_details, username=FRONTEND_USERNAME
+            )
 
     if worker_message_handler_requests:
+      worker_message_handler_requests = [
+          mig_objects.ToProtoMessageHandlerRequest(r)
+          for r in worker_message_handler_requests
+      ]
       data_store.REL_DB.WriteMessageHandlerRequests(
-          worker_message_handler_requests)
+          worker_message_handler_requests
+      )
 
     if frontend_message_handler_requests:
+      frontend_message_handler_requests = [
+          mig_objects.ToProtoMessageHandlerRequest(r)
+          for r in frontend_message_handler_requests
+      ]
       worker_lib.ProcessMessageHandlerRequests(
-          frontend_message_handler_requests)
+          frontend_message_handler_requests
+      )
 
-    logging.debug("Received %s messages from %s in %s sec", len(messages),
-                  client_id,
-                  time.time() - now)
+    logging.debug(
+        "Received %s messages from %s in %s sec",
+        len(messages),
+        client_id,
+        time.time() - now,
+    )
 
   def ReceiveRRGResponse(
       self,
@@ -218,25 +269,27 @@ class FrontEndServer(object):
       client_id: An identifier of the client for which we process the response.
       response: A response to process.
     """
-    flow_response: rdf_flow_objects.FlowMessage
+    flow_response: Union[
+        flows_pb2.FlowResponse,
+        flows_pb2.FlowStatus,
+        flows_pb2.FlowIterator,
+    ]
 
     if response.HasField("status"):
-      flow_response = rdf_flow_objects.FlowStatus()
+      flow_response = flows_pb2.FlowStatus()
       flow_response.network_bytes_sent = response.status.network_bytes_sent
       # TODO: Populate `cpu_time_used` and `runtime_us`
 
       if response.status.HasField("error"):
         # TODO: Convert RRG error types to GRR error types.
-        flow_response.status = rdf_flow_objects.FlowStatus.Status.ERROR
+        flow_response.status = flows_pb2.FlowStatus.Status.ERROR
         flow_response.error_message = response.status.error.message
       else:
-        flow_response.status = rdf_flow_objects.FlowStatus.Status.OK
+        flow_response.status = flows_pb2.FlowStatus.Status.OK
 
     elif response.HasField("result"):
-      packed_result = rdf_structs.AnyValue.FromProto2(response.result)
-
-      flow_response = rdf_flow_objects.FlowResponse()
-      flow_response.any_payload = packed_result
+      flow_response = flows_pb2.FlowResponse()
+      flow_response.any_payload.CopyFrom(response.result)
     elif response.HasField("log"):
       log = response.log
 

@@ -20,10 +20,10 @@ config_lib.DEFINE_list(
     " dependencies.")
 
 config_lib.DEFINE_list(
-    "Artifacts.non_kb_interrogate_artifacts", [
-        "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
-        "LinuxHardwareInfo", "OSXSPHardwareDataType"
-    ], "Non-knowledge-base artifacts collected during Interrogate flows.")
+    "Artifacts.non_kb_interrogate_artifacts",
+    ["WMILogicalDisks", "RootDiskVolumeUsage"],
+    "Non-knowledge-base artifacts collected during Interrogate flows.",
+)
 
 config_lib.DEFINE_list(
     "Artifacts.knowledge_base_additions", [],

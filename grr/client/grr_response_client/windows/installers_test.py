@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import platform
 import unittest
 from unittest import mock
@@ -33,8 +32,9 @@ def _GetAllRegistryKeyValues(key):
       return values
 
 
-@unittest.skipIf(platform.system() != "Windows",
-                 "Windows-only functionality being tested.")
+@unittest.skipIf(
+    platform.system() != "Windows", "Windows-only functionality being tested."
+)
 class InstallerTest(absltest.TestCase):
 
   @classmethod
@@ -47,17 +47,20 @@ class InstallerTest(absltest.TestCase):
   def tearDownClass(cls):
     super(InstallerTest, cls).tearDownClass()
 
-    winreg.DeleteKeyEx(winreg.HKEY_LOCAL_MACHINE, _TEST_KEY_PATH,
-                       winreg.KEY_ALL_ACCESS, 0)
+    winreg.DeleteKeyEx(
+        winreg.HKEY_LOCAL_MACHINE, _TEST_KEY_PATH, winreg.KEY_ALL_ACCESS, 0
+    )
 
   @mock.patch.object(installers, "_LEGACY_OPTIONS", frozenset(["bar"]))
   def testDeleteLegacyConfigOptions(self):
-    key = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, _TEST_KEY_PATH, 0,
-                           winreg.KEY_ALL_ACCESS)
+    key = winreg.OpenKeyEx(
+        winreg.HKEY_LOCAL_MACHINE, _TEST_KEY_PATH, 0, winreg.KEY_ALL_ACCESS
+    )
     winreg.SetValueEx(key, "foo", 0, winreg.REG_SZ, "foo-value")
     winreg.SetValueEx(key, "bar", 0, winreg.REG_SZ, "bar-value")
     installers._DeleteLegacyConfigOptions(
-        "reg://HKEY_LOCAL_MACHINE/{}".format(_TEST_KEY_PATH))
+        "reg://HKEY_LOCAL_MACHINE/{}".format(_TEST_KEY_PATH)
+    )
     remaining_values = _GetAllRegistryKeyValues(key)
     self.assertDictEqual(remaining_values, {"foo": "foo-value"})
 

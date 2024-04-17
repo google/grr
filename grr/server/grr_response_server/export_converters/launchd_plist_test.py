@@ -25,9 +25,11 @@ class LaunchdPlistConverterTest(export_test_lib.ExportTestBase):
         RunAtLoad=True,
         StartCalendarInterval=[
             rdf_plist.LaunchdStartCalendarIntervalEntry(
-                Minute=1, Hour=2, Day=3, Weekday=4, Month=5),
+                Minute=1, Hour=2, Day=3, Weekday=4, Month=5
+            ),
             rdf_plist.LaunchdStartCalendarIntervalEntry(
-                Minute=2, Hour=3, Day=4, Weekday=5, Month=6),
+                Minute=2, Hour=3, Day=4, Weekday=5, Month=6
+            ),
         ],
         EnvironmentVariables=[
             rdf_plist.PlistStringDictEntry(name="foo", value="bar"),
@@ -73,7 +75,8 @@ class LaunchdPlistConverterTest(export_test_lib.ExportTestBase):
         inetdCompatibilityWait=True,
         SoftResourceLimits=True,
         HardResourceLimits=True,
-        Sockets=True)
+        Sockets=True,
+    )
 
     converter = launchd_plist.LaunchdPlistConverter()
     converted = list(converter.Convert(self.metadata, sample))

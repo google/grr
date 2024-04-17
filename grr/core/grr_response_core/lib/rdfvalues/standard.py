@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 """Standard RDFValues."""
 
-
 import re
-from typing import Text
-
 from urllib import parse as urlparse
 
 from grr_response_core.lib import config_lib
@@ -18,8 +15,10 @@ from grr_response_proto import sysinfo_pb2
 class RegularExpression(rdfvalue.RDFString):
   """A semantic regular expression."""
 
-  context_help_url = ("investigating-with-grr/flows/"
-                      "literal-and-regex-matching.html#regex-matches")
+  context_help_url = (
+      "investigating-with-grr/flows/"
+      "literal-and-regex-matching.html#regex-matches"
+  )
 
   def __init__(self, initializer=None):
     super().__init__(initializer=initializer)
@@ -52,8 +51,10 @@ class RegularExpression(rdfvalue.RDFString):
 class LiteralExpression(rdfvalue.RDFBytes):
   """A RDFBytes literal for use in GrepSpec."""
 
-  context_help_url = ("investigating-with-grr/flows/"
-                      "literal-and-regex-matching.html#literal-matches")
+  context_help_url = (
+      "investigating-with-grr/flows/"
+      "literal-and-regex-matching.html#literal-matches"
+  )
 
 
 class EmailAddress(rdfvalue.RDFString):
@@ -81,8 +82,10 @@ class DomainEmailAddress(EmailAddress):
     domain = config_lib._CONFIG["Logging.domain"]
     # pylint: enable=protected-access
     if self._value and domain and self._match.group(1) != domain:
-      raise ValueError("Email address '%s' does not belong to the configured "
-                       "domain '%s'" % (self._match.group(1), domain))
+      raise ValueError(
+          "Email address '%s' does not belong to the configured domain '%s'"
+          % (self._match.group(1), domain)
+      )
 
 
 class AuthenticodeSignedData(rdf_structs.RDFProtoStruct):
@@ -99,6 +102,7 @@ class PersistenceFile(rdf_structs.RDFProtoStruct):
 
 class URI(rdf_structs.RDFProtoStruct):
   """Represets a URI with its individual components separated."""
+
   protobuf = sysinfo_pb2.URI
 
   def __init__(self, initializer=None, **kwargs):
@@ -125,13 +129,13 @@ class URI(rdf_structs.RDFProtoStruct):
     return cls(urlparse.urlparse(value.decode("utf-8")))
 
   @classmethod
-  def FromHumanReadable(cls, value: Text):
-    precondition.AssertType(value, Text)
+  def FromHumanReadable(cls, value: str):
+    precondition.AssertType(value, str)
     return cls(urlparse.urlparse(value))
 
   def SerializeToBytes(self) -> bytes:
     return self.SerializeToHumanReadable().encode("utf-8")
 
-  def SerializeToHumanReadable(self) -> Text:
+  def SerializeToHumanReadable(self) -> str:
     parts = (self.transport, self.host, self.path, self.query, self.fragment)
     return urlparse.urlunsplit(parts)  # pytype: disable=bad-return-type

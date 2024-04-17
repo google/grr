@@ -20,14 +20,20 @@ class VfsNtfsTestBase(ntfs_test_lib.NTFSTest):
     self.addCleanup(stack.close)
 
     stack.enter_context(
-        mock.patch.dict(client_vfs.VFS_HANDLERS, {
-            vfs.UnprivilegedNtfsFile.supported_pathtype:
-                vfs.UnprivilegedNtfsFile,
-        }))
+        mock.patch.dict(
+            client_vfs.VFS_HANDLERS,
+            {
+                vfs.UnprivilegedNtfsFile.supported_pathtype: (
+                    vfs.UnprivilegedNtfsFile
+                ),
+            },
+        )
+    )
 
 
 class VfsNtfsWithFileDescriptorSharingTest(VfsNtfsTestBase):
   """Test variant sharing the device file descriptor with the server."""
+
   pass
 
 

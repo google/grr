@@ -27,7 +27,8 @@ class PlaceholdersTest(absltest.TestCase):
 
   def testManyValues(self):
     self.assertEqual(
-        mysql_utils.Placeholders(3, 2), "(%s, %s, %s), (%s, %s, %s)")
+        mysql_utils.Placeholders(3, 2), "(%s, %s, %s), (%s, %s, %s)"
+    )
 
 
 class NamedPlaceholdersTest(absltest.TestCase):
@@ -41,20 +42,20 @@ class NamedPlaceholdersTest(absltest.TestCase):
   def testMany(self):
     self.assertEqual(
         mysql_utils.NamedPlaceholders(["bar", "baz", "foo"]),
-        "(%(bar)s, %(baz)s, %(foo)s)")
+        "(%(bar)s, %(baz)s, %(foo)s)",
+    )
 
   def testDictUsesKeys(self):
     self.assertIn(
-        mysql_utils.NamedPlaceholders({
-            "bar": 42,
-            "baz": 42,
-            "foo": 42
-        }), ["(%(bar)s, %(baz)s, %(foo)s)"])
+        mysql_utils.NamedPlaceholders({"bar": 42, "baz": 42, "foo": 42}),
+        ["(%(bar)s, %(baz)s, %(foo)s)"],
+    )
 
   def testSortsNames(self):
     self.assertEqual(
         mysql_utils.NamedPlaceholders(["bar", "foo", "baz"]),
-        "(%(bar)s, %(baz)s, %(foo)s)")
+        "(%(bar)s, %(baz)s, %(foo)s)",
+    )
 
 
 class ColumnsTest(absltest.TestCase):
@@ -67,19 +68,19 @@ class ColumnsTest(absltest.TestCase):
 
   def testMany(self):
     self.assertEqual(
-        mysql_utils.Columns(["bar", "baz", "foo"]), "(`bar`, `baz`, `foo`)")
+        mysql_utils.Columns(["bar", "baz", "foo"]), "(`bar`, `baz`, `foo`)"
+    )
 
   def testDictUsesKeys(self):
     self.assertIn(
-        mysql_utils.Columns({
-            "bar": 42,
-            "baz": 42,
-            "foo": 42
-        }), ["(`bar`, `baz`, `foo`)"])
+        mysql_utils.Columns({"bar": 42, "baz": 42, "foo": 42}),
+        ["(`bar`, `baz`, `foo`)"],
+    )
 
   def testSortsNames(self):
     self.assertEqual(
-        mysql_utils.Columns(["bar", "foo", "baz"]), "(`bar`, `baz`, `foo`)")
+        mysql_utils.Columns(["bar", "foo", "baz"]), "(`bar`, `baz`, `foo`)"
+    )
 
   def testSortsRawNamesWithoutEscape(self):
     self.assertGreater("`", "_")

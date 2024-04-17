@@ -23,13 +23,16 @@ from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import jobs_pb2
 from grr_response_server import action_registry
 from grr_response_server import client_fixture
 from grr_response_server import server_stubs
@@ -575,6 +578,61 @@ class InterrogatedClient(ClientFileFinderWithVFS):
     yield rdf_client.User(username="user2")
     yield rdf_client.User(username="user3")
 
+  def ExecuteCommand(
+      self,
+      args: rdf_client_action.ExecuteRequest,
+  ) -> Iterator[rdf_client_action.ExecuteResponse]:
+    """Returns fake replies for the `ExecuteCommand` action."""
+    args = mig_client_action.ToProtoExecuteRequest(args)
+
+    response = jobs_pb2.ExecuteResponse()
+    response.request.MergeFrom(args)
+    response.exit_status = 0
+
+    if args.cmd == "/usr/sbin/dmidecode":
+      # We only provide minimal output so that the parser does not fail.
+      response.stdout = """\
+BIOS Information
+        Vendor: Google
+        Version: Google
+        Release Date: 01/25/2024
+
+System Information
+        Manufacturer: Google
+        Product Name: Google Compute Engine
+""".encode("utf-8")
+    elif args.cmd == "/usr/sbin/system_profiler":
+      # We only provide minimal output so that the parser does not fail.
+      response.stdout = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+        <dict>
+                <key>_items</key>
+                <array>
+                        <dict>
+                                <key>boot_rom_version</key>
+                                <string>10151.101.3</string>
+                                <key>chip_type</key>
+                                <string>Apple M1 Pro</string>
+                                <key>machine_model</key>
+                                <string>MacBookPro18,3</string>
+                                <key>machine_name</key>
+                                <string>MacBook Pro</string>
+                                <key>model_number</key>
+                                <string>Z15G000PCB/A</string>
+                        </dict>
+                </array>
+        </dict>
+</array>
+</plist>
+""".encode("utf-8")
+    else:
+      raise RuntimeError(f"Unknown command: {args.cmd}")
+
+    yield mig_client_action.ToRDFExecuteResponse(response)
+
   def GetClientInfo(self, _):
     self.response_count += 1
     return [
@@ -605,6 +663,17 @@ class InterrogatedClient(ClientFileFinderWithVFS):
     if query.query == u"SELECT * FROM Win32_LogicalDisk":
       self.response_count += 1
       return client_fixture.WMI_SAMPLE
+    elif "FROM Win32_ComputerSystemProduct" in query.query:
+      self.response_count += 1
+      return [
+          rdf_protodict.Dict({
+              "IdentifyingNumber": "2S42F1S3320HFN2179FV",
+              "Name": "42F1S3320H",
+              "Vendor": "LEVELHO",
+              "Version": "NumbBox Y1337",
+              "Caption": "Computer System Product",
+          })
+      ]
     elif query.query.startswith("Select * "
                                 "from Win32_NetworkAdapterConfiguration"):
       self.response_count += 1

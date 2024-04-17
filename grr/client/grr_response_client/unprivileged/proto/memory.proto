@@ -14,6 +14,9 @@ message StringMatch {
 
   // Original offset of the chunk that has been matched.
   optional uint64 chunk_offset = 4;
+
+  // Context bytes around the match.
+  optional bytes context = 5;
 }
 
 message RuleMatch {
@@ -53,6 +56,9 @@ message ProcessScanRequest {
 
   // Timeout in seconds for the scan.
   optional uint64 timeout_seconds = 4;
+
+  // Context window
+  optional uint64 context_window = 6;
 
   reserved 2, 3;
 }

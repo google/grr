@@ -9,30 +9,36 @@ from grr_response_server.authorization import client_approval_auth
 from grr.test_lib import test_lib
 
 
-class ClientApprovalAuthorizationTest(rdf_test_base.RDFValueTestMixin,
-                                      test_lib.GRRBaseTest):
+class ClientApprovalAuthorizationTest(
+    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
+):
   rdfvalue_class = client_approval_auth.ClientApprovalAuthorization
 
   def GenerateSample(self, number=0):
     return client_approval_auth.ClientApprovalAuthorization(
-        label="label%d" % number, users=["test", "test2"])
+        label="label%d" % number, users=["test", "test2"]
+    )
 
   def testApprovalValidation(self):
     # String instead of list of users
     with self.assertRaises(
-        client_approval_auth.ErrorInvalidClientApprovalAuthorization):
+        client_approval_auth.ErrorInvalidClientApprovalAuthorization
+    ):
       client_approval_auth.ClientApprovalAuthorization(
-          label="label", users="test")
+          label="label", users="test"
+      )
 
     # Missing label
     acl = client_approval_auth.ClientApprovalAuthorization(users=["test"])
     with self.assertRaises(
-        client_approval_auth.ErrorInvalidClientApprovalAuthorization):
+        client_approval_auth.ErrorInvalidClientApprovalAuthorization
+    ):
       print(acl.label)
 
     # Bad label
     with self.assertRaises(
-        client_approval_auth.ErrorInvalidClientApprovalAuthorization):
+        client_approval_auth.ErrorInvalidClientApprovalAuthorization
+    ):
       acl.label = None
 
 
@@ -72,14 +78,16 @@ users:
   def testRaisesOnNoApprovals(self):
     self._CreateAuthSingleLabel()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.client_id, "requester_user", [],
-                                      "label1")
+      self.mgr.CheckApproversForLabel(
+          self.client_id, "requester_user", [], "label1"
+      )
 
   def testRaisesOnSelfApproval(self):
     self._CreateAuthSingleLabel()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.client_id, "requester_user",
-                                      ["requester_user"], "label1")
+      self.mgr.CheckApproversForLabel(
+          self.client_id, "requester_user", ["requester_user"], "label1"
+      )
 
   def testRaisesOnAuthorizedSelfApproval(self):
     self._CreateAuthSingleLabel()
@@ -89,19 +97,22 @@ users:
   def testRaisesOnApprovalFromUnauthorized(self):
     self._CreateAuthSingleLabel()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.client_id, "requester_user",
-                                      ["approver1"], "label1")
+      self.mgr.CheckApproversForLabel(
+          self.client_id, "requester_user", ["approver1"], "label1"
+      )
 
   def testPassesWithApprovalFromApprovedUser(self):
     self._CreateAuthSingleLabel()
-    self.mgr.CheckApproversForLabel(self.client_id, "requester_user",
-                                    ["approver1", "two"], "label1")
+    self.mgr.CheckApproversForLabel(
+        self.client_id, "requester_user", ["approver1", "two"], "label1"
+    )
 
   def testRaisesWhenRequesterNotAuthorized(self):
     self._CreateAuthCheckRequester()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.client_id, "requester_user", ["one"],
-                                      "label1")
+      self.mgr.CheckApproversForLabel(
+          self.client_id, "requester_user", ["one"], "label1"
+      )
 
   def testRaisesOnSelfApprovalByAuthorizedRequester(self):
     self._CreateAuthCheckRequester()
@@ -110,19 +121,22 @@ users:
 
   def testPassesWhenApproverAndRequesterAuthorized(self):
     self._CreateAuthCheckRequester()
-    self.mgr.CheckApproversForLabel(self.client_id, "one", ["one", "two"],
-                                    "label1")
+    self.mgr.CheckApproversForLabel(
+        self.client_id, "one", ["one", "two"], "label1"
+    )
 
   def testRaisesWhenOnlyOneAuthorizedApprover(self):
     self._CreateAuthMultiApproval()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.client_id, "one", ["one", "two"],
-                                      "label1")
+      self.mgr.CheckApproversForLabel(
+          self.client_id, "one", ["one", "two"], "label1"
+      )
 
   def testPassesWithTwoAuthorizedApprovers(self):
     self._CreateAuthMultiApproval()
-    self.mgr.CheckApproversForLabel(self.client_id, "one", ["two", "four"],
-                                    "label1")
+    self.mgr.CheckApproversForLabel(
+        self.client_id, "one", ["two", "four"], "label1"
+    )
 
 
 def main(argv):

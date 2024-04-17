@@ -37,8 +37,8 @@ class OSXFilesystemTests(OSXClientTests):
     """Ensure we can enumerate file systems successfully."""
     path = os.path.join(self.base_path, "osx_fsdata")
     results = self.osx.client_utils_osx.ParseFileSystemsStruct(
-        self.osx.client_utils_osx.StatFS64Struct, 7,
-        open(path, "rb").read())
+        self.osx.client_utils_osx.StatFS64Struct, 7, open(path, "rb").read()
+    )
     self.assertLen(results, 7)
     self.assertEqual(results[0].f_fstypename, b"hfs")
     self.assertEqual(results[0].f_mntonname, b"/")
@@ -59,22 +59,26 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   @mock.patch(
       "grr_response_client.client_utils_osx."
-      "OSXVersion")
+      "OSXVersion"
+  )
   def testOSXEnumerateRunningServicesAll(self, osx_version_mock):
     version_value_mock = mock.Mock()
     version_value_mock.VersionAsMajorMinor.return_value = [10, 7]
     osx_version_mock.return_value = version_value_mock
 
     with mock.patch.object(
-        self.osx, "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
-      with mock.patch.object(self.osx.OSXEnumerateRunningServices,
-                             "SendReply") as send_reply_mock:
+        self.osx, "GetRunningLaunchDaemons"
+    ) as get_running_launch_daemons_mock:
+      with mock.patch.object(
+          self.osx.OSXEnumerateRunningServices, "SendReply"
+      ) as send_reply_mock:
 
         get_running_launch_daemons_mock.return_value = osx_launchd_testdata.JOBS
 
         action = self.osx.OSXEnumerateRunningServices(None)
-        num_results = len(
-            osx_launchd_testdata.JOBS) - osx_launchd_testdata.FILTERED_COUNT
+        num_results = (
+            len(osx_launchd_testdata.JOBS) - osx_launchd_testdata.FILTERED_COUNT
+        )
 
         action.Run(None)
 
@@ -86,16 +90,19 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   @mock.patch(
       "grr_response_client.client_utils_osx."
-      "OSXVersion")
+      "OSXVersion"
+  )
   def testOSXEnumerateRunningServicesSingle(self, osx_version_mock):
     version_value_mock = mock.Mock()
     version_value_mock.VersionAsMajorMinor.return_value = [10, 7, 1]
     osx_version_mock.return_value = version_value_mock
 
     with mock.patch.object(
-        self.osx, "GetRunningLaunchDaemons") as get_running_launch_daemons_mock:
-      with mock.patch.object(self.osx.OSXEnumerateRunningServices,
-                             "SendReply") as send_reply_mock:
+        self.osx, "GetRunningLaunchDaemons"
+    ) as get_running_launch_daemons_mock:
+      with mock.patch.object(
+          self.osx.OSXEnumerateRunningServices, "SendReply"
+      ) as send_reply_mock:
 
         get_running_launch_daemons_mock.return_value = osx_launchd_testdata.JOB
 
@@ -116,7 +123,8 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   @mock.patch(
       "grr_response_client.client_utils_osx."
-      "OSXVersion")
+      "OSXVersion"
+  )
   def testOSXEnumerateRunningServicesVersionError(self, osx_version_mock):
     version_value_mock = mock.Mock()
     version_value_mock.VersionAsMajorMinor.return_value = [10, 5, 1]
@@ -167,7 +175,8 @@ class ParseIfaddrsTest(OSXClientTests):
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_name = ctypes.create_string_buffer("foo".encode("utf-8"))
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(sockaddrin), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertLen(results, 1)
@@ -188,7 +197,8 @@ class ParseIfaddrsTest(OSXClientTests):
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_name = ctypes.create_string_buffer("bar".encode("utf-8"))
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(sockaddrin), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertLen(results, 1)
@@ -205,14 +215,15 @@ class ParseIfaddrsTest(OSXClientTests):
 
     sockaddrdl = self.osx.Sockaddrdl()
     sockaddrdl.sdl_family = self.osx.AF_LINK
-    sockaddrdl.sdl_data[0:len(name + mac)] = list(bytes(name + mac))
+    sockaddrdl.sdl_data[0 : len(name + mac)] = list(bytes(name + mac))
     sockaddrdl.sdl_nlen = len(name)
     sockaddrdl.sdl_alen = len(mac)
 
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_name = ctypes.create_string_buffer(name)
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(sockaddrdl), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(sockaddrdl), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertLen(results, 1)
@@ -229,7 +240,7 @@ class ParseIfaddrsTest(OSXClientTests):
 
     foo_sockaddrdl = self.osx.Sockaddrdl()
     foo_sockaddrdl.sdl_family = self.osx.AF_LINK
-    foo_sockaddrdl.sdl_data[0:len(foo_mac)] = list(bytes(foo_mac))
+    foo_sockaddrdl.sdl_data[0 : len(foo_mac)] = list(bytes(foo_mac))
     foo_sockaddrdl.sdl_nlen = 0
     foo_sockaddrdl.sdl_alen = len(foo_mac)
 
@@ -242,7 +253,7 @@ class ParseIfaddrsTest(OSXClientTests):
 
     bar_sockaddrdl = self.osx.Sockaddrdl()
     bar_sockaddrdl.sdl_family = self.osx.AF_LINK
-    bar_sockaddrdl.sdl_data[0:len(foo_mac)] = list(bytes(bar_mac))
+    bar_sockaddrdl.sdl_data[0 : len(foo_mac)] = list(bytes(bar_mac))
     bar_sockaddrdl.sdl_nlen = 0
     bar_sockaddrdl.sdl_alen = len(bar_mac)
 
@@ -250,28 +261,32 @@ class ParseIfaddrsTest(OSXClientTests):
     ifaddr.ifa_next = None
     ifaddr.ifa_name = ctypes.create_string_buffer(b"foo")
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(foo_sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(foo_sockaddrin), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
     ifaddr.ifa_name = ctypes.create_string_buffer(b"foo")
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(foo_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(foo_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
     ifaddr.ifa_name = ctypes.create_string_buffer(b"bar")
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(bar_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(bar_sockaddrdl), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     ifnext = ifaddr
     ifaddr = self.osx.Ifaddrs()
     ifaddr.ifa_next = ctypes.pointer(ifnext)
     ifaddr.ifa_name = ctypes.create_string_buffer(b"bar")
     ifaddr.ifa_addr = ctypes.cast(
-        ctypes.pointer(bar_sockaddrin), ctypes.POINTER(self.osx.Sockaddr))
+        ctypes.pointer(bar_sockaddrin), ctypes.POINTER(self.osx.Sockaddr)
+    )
 
     expected_foo_iface = rdf_client_network.Interface(
         ifname="foo",
@@ -279,8 +294,10 @@ class ParseIfaddrsTest(OSXClientTests):
         addresses=[
             rdf_client_network.NetworkAddress(
                 address_type=rdf_client_network.NetworkAddress.Family.INET,
-                packed_bytes=foo_ipv4),
-        ])
+                packed_bytes=foo_ipv4,
+            ),
+        ],
+    )
 
     expected_bar_iface = rdf_client_network.Interface(
         ifname="bar",
@@ -288,8 +305,10 @@ class ParseIfaddrsTest(OSXClientTests):
         addresses=[
             rdf_client_network.NetworkAddress(
                 address_type=rdf_client_network.NetworkAddress.Family.INET6,
-                packed_bytes=bar_ipv6),
-        ])
+                packed_bytes=bar_ipv6,
+            ),
+        ],
+    )
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
     self.assertCountEqual(results, [expected_foo_iface, expected_bar_iface])

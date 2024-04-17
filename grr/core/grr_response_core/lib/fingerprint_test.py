@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Tests for config_lib classes."""
 
-
 import io
 import os
 
 from absl.testing import absltest
+
 from grr_response_core.lib import fingerprint
 from grr_response_core.lib import package
 
@@ -44,7 +44,7 @@ class FingerprinterTest(absltest.TestCase):
     fp._AdjustIntervals(11, 20)
     self.assertEmpty(fp.fingers[0].ranges)
 
-  class MockHasher(object):
+  class MockHasher:
 
     def __init__(self):
       self.seen = b''
@@ -56,8 +56,9 @@ class FingerprinterTest(absltest.TestCase):
     # Does it invoke a hash function?
     dummy = b'12345'
     fp = fingerprint.Fingerprinter(io.BytesIO(dummy))
-    big_finger = fingerprint.Finger(None, [fingerprint.Range(0, len(dummy))],
-                                    None)
+    big_finger = fingerprint.Finger(
+        None, [fingerprint.Range(0, len(dummy))], None
+    )
     hasher = self.MockHasher()
     big_finger.hashers = [hasher]
     fp.fingers.append(big_finger)
@@ -69,15 +70,17 @@ class FingerprinterTest(absltest.TestCase):
     for fname, expected in self.SAMPLE_LIST.items():
       path = package.ResourcePath(
           'grr-response-test',
-          os.path.join('grr_response_test', 'test_data', 'fingerprint', fname))
+          os.path.join('grr_response_test', 'test_data', 'fingerprint', fname),
+      )
       with io.open(path, 'rb') as f:
         fp = fingerprint.Fingerprinter(f)
         fp.EvalGeneric()
         fp.EvalPecoff()
         result = fp.HashIt()
 
-        self.assertCountEqual(result, expected,
-                              'Hashing results for %s do not match.' % fname)
+        self.assertCountEqual(
+            result, expected, 'Hashing results for %s do not match.' % fname
+        )
 
   # pyformat: disable
   SAMPLE_DATA_1 = [{

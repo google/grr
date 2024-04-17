@@ -82,10 +82,12 @@ class GRRFleetspeakClient(object):
 
   def __init__(self):
     self._fs = fs_client.FleetspeakConnection(
-        version=config.CONFIG["Source.version_string"])
+        version=config.CONFIG["Source.version_string"]
+    )
 
     self._sender_queue = queue.Queue(
-        maxsize=GRRFleetspeakClient._SENDER_QUEUE_MAXSIZE)
+        maxsize=GRRFleetspeakClient._SENDER_QUEUE_MAXSIZE
+    )
 
     self._threads = {}
 
@@ -94,7 +96,8 @@ class GRRFleetspeakClient(object):
     # threading.Thread here.
     out_queue = _FleetspeakQueueForwarder(self._sender_queue)
     worker = self._threads["Worker"] = comms.GRRClientWorker(
-        out_queue=out_queue, heart_beat_cb=self._fs.Heartbeat, client=self)
+        out_queue=out_queue, heart_beat_cb=self._fs.Heartbeat, client=self
+    )
     # TODO(user): this is an ugly way of passing the heartbeat callback to
     # the queue. Refactor the heartbeat callback initialization logic so that
     # this won't be needed.
@@ -137,7 +140,8 @@ class GRRFleetspeakClient(object):
       ]
       if dead_threads:
         raise FatalError(
-            "These threads are dead: %r. Shutting down..." % dead_threads)
+            "These threads are dead: %r. Shutting down..." % dead_threads
+        )
       time.sleep(10)
 
   def _ForemanOp(self):
@@ -156,20 +160,27 @@ class GRRFleetspeakClient(object):
     fs_msg = fs_common_pb2.Message(
         message_type="MessageList",
         destination=fs_common_pb2.Address(service_name="GRR"),
-        background=background)
+        background=background,
+    )
     fs_msg.data.Pack(message_list.AsPrimitiveProto())
 
     for grr_msg in grr_msgs:
-      if (grr_msg.session_id is None or grr_msg.request_id is None or
-          grr_msg.response_id is None):
+      if (
+          grr_msg.session_id is None
+          or grr_msg.request_id is None
+          or grr_msg.response_id is None
+      ):
         continue
       # Place all ids in a single annotation, instead of having separate
       # annotations for the flow-id, request-id and response-id. This reduces
       # overall size of the annotations by half (~60 bytes to ~30 bytes).
       annotation = fs_msg.annotations.entries.add()
       annotation.key = _DATA_IDS_ANNOTATION_KEY
-      annotation.value = "%s:%d:%d" % (grr_msg.session_id.Basename(),
-                                       grr_msg.request_id, grr_msg.response_id)
+      annotation.value = "%s:%d:%d" % (
+          grr_msg.session_id.Basename(),
+          grr_msg.request_id,
+          grr_msg.response_id,
+      )
       if fs_msg.annotations.ByteSize() >= _MAX_ANNOTATIONS_BYTES:
         break
 
@@ -212,7 +223,8 @@ class GRRFleetspeakClient(object):
     if not received_type.endswith("GrrMessage"):
       raise ValueError(
           "Unexpected proto type received through Fleetspeak: %r; expected "
-          "grr.GrrMessage." % received_type)
+          "grr.GrrMessage." % received_type
+      )
 
     grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.

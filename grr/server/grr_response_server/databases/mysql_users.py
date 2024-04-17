@@ -370,7 +370,8 @@ class MySQLDBUsersMixin(object):
     }
     query = "INSERT INTO user_notification {columns} VALUES {values}".format(
         columns=mysql_utils.Columns(args),
-        values=mysql_utils.NamedPlaceholders(args))
+        values=mysql_utils.NamedPlaceholders(args),
+    )
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError:

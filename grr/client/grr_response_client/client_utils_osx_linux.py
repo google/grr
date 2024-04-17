@@ -113,8 +113,9 @@ class TransactionLog(object):
           with io.open(self.logfile, "wb") as fd:
             fd.write(grr_message)
         except (IOError, OSError):
-          logging.exception("Couldn't write the transaction log to %s",
-                            self.logfile)
+          logging.exception(
+              "Couldn't write the transaction log to %s", self.logfile
+          )
 
   def Sync(self):
     # Not implemented on Linux.

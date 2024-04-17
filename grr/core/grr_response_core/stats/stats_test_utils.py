@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Common tests for stats-collector implementations."""
 
-
 import abc
 import time
 from unittest import mock
@@ -18,7 +17,8 @@ _INF = float("inf")
 class StatsCollectorTest(
     stats_test_lib.StatsCollectorTestMixin,
     absltest.TestCase,
-    metaclass=abc.ABCMeta):
+    metaclass=abc.ABCMeta,
+):
   """Stats collection tests.
 
   Each test method has uniquely-named metrics to accommodate implementations
@@ -70,7 +70,8 @@ class StatsCollectorTest(
   def testCounterWithFields(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter(
-          "testCounterWithFields_counter", fields=[("dimension", str)])
+          "testCounterWithFields_counter", fields=[("dimension", str)]
+      )
 
     # Test that default values for any fields values are 0."
     self.assertEqual(0, counter.GetValue(fields=["a"]))
@@ -134,7 +135,8 @@ class StatsCollectorTest(
   def testGaugeWithFields(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       int_gauge = metrics.Gauge(
-          "testGaugeWithFields_int_gauge", int, fields=[("dimension", str)])
+          "testGaugeWithFields_int_gauge", int, fields=[("dimension", str)]
+      )
 
     self.assertEqual(0, int_gauge.GetValue(fields=["dimension_value_1"]))
     self.assertEqual(0, int_gauge.GetValue(fields=["dimesnioN_value_2"]))
@@ -162,7 +164,8 @@ class StatsCollectorTest(
   def testSimpleEventMetric(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       event_metric = metrics.Event(
-          "testSimpleEventMetric_event_metric", bins=[0.0, 0.1, 0.2])
+          "testSimpleEventMetric_event_metric", bins=[0.0, 0.1, 0.2]
+      )
 
     data = event_metric.GetValue()
     self.assertAlmostEqual(0, data.sum)
@@ -196,7 +199,8 @@ class StatsCollectorTest(
       event_metric = metrics.Event(
           "testEventMetricWithFields_event_metric",
           bins=[0.0, 0.1, 0.2],
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
 
     data = event_metric.GetValue(fields=["dimension_value_1"])
     self.assertAlmostEqual(0, data.sum)
@@ -222,10 +226,12 @@ class StatsCollectorTest(
   def testRaisesOnImproperFieldsUsage1(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter("testRaisesOnImproperFieldsUsage1_counter")
-      int_gauge = metrics.Gauge("testRaisesOnImproperFieldsUsage1_int_gauge",
-                                int)
+      int_gauge = metrics.Gauge(
+          "testRaisesOnImproperFieldsUsage1_int_gauge", int
+      )
       event_metric = metrics.Event(
-          "testRaisesOnImproperFieldsUsage1_event_metric")
+          "testRaisesOnImproperFieldsUsage1_event_metric"
+      )
 
     # Check for counters
     with self.assertRaises(ValueError):
@@ -243,14 +249,17 @@ class StatsCollectorTest(
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter(
           "testRaisesOnImproperFieldsUsage2_counter",
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
       int_gauge = metrics.Gauge(
           "testRaisesOnImproperFieldsUsage2_int_gauge",
           int,
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
       event_metric = metrics.Event(
           "testRaisesOnImproperFieldsUsage2_event_metric",
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
 
     # Check for counters
     with self.assertRaises(ValueError):
@@ -281,34 +290,47 @@ class StatsCollectorTest(
       metrics.Event(event_metric_name)
 
     metadatas = self.collector.GetAllMetricsMetadata()
-    self.assertEqual(metadatas[counter_name].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.COUNTER)
+    self.assertEqual(
+        metadatas[counter_name].metric_type,
+        rdf_stats.MetricMetadata.MetricType.COUNTER,
+    )
     self.assertFalse(metadatas[counter_name].fields_defs)
 
-    self.assertEqual(metadatas[int_gauge_name].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.GAUGE)
-    self.assertEqual(metadatas[int_gauge_name].fields_defs, [
-        rdf_stats.MetricFieldDefinition(
-            field_name="dimension",
-            field_type=rdf_stats.MetricFieldDefinition.FieldType.STR)
-    ])
+    self.assertEqual(
+        metadatas[int_gauge_name].metric_type,
+        rdf_stats.MetricMetadata.MetricType.GAUGE,
+    )
+    self.assertEqual(
+        metadatas[int_gauge_name].fields_defs,
+        [
+            rdf_stats.MetricFieldDefinition(
+                field_name="dimension",
+                field_type=rdf_stats.MetricFieldDefinition.FieldType.STR,
+            )
+        ],
+    )
 
-    self.assertEqual(metadatas[event_metric_name].metric_type,
-                     rdf_stats.MetricMetadata.MetricType.EVENT)
+    self.assertEqual(
+        metadatas[event_metric_name].metric_type,
+        rdf_stats.MetricMetadata.MetricType.EVENT,
+    )
     self.assertFalse(metadatas[event_metric_name].fields_defs)
 
   def testGetMetricFieldsWorksCorrectly(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter(
           "testGetMetricFieldsWorksCorrectly_counter",
-          fields=[("dimension1", str), ("dimension2", str)])
+          fields=[("dimension1", str), ("dimension2", str)],
+      )
       int_gauge = metrics.Gauge(
           "testGetMetricFieldsWorksCorrectly_int_gauge",
           int,
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
       event_metric = metrics.Event(
           "testGetMetricFieldsWorksCorrectly_event_metric",
-          fields=[("dimension", str)])
+          fields=[("dimension", str)],
+      )
 
     counter.Increment(fields=["b", "b"])
     counter.Increment(fields=["a", "c"])
@@ -400,7 +422,8 @@ class StatsCollectorTest(
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter("testCombiningDecorators_counter")
       event_metric = metrics.Event(
-          "testCombiningDecorators_event_metric", bins=[0.0, 0.1, 0.2])
+          "testCombiningDecorators_event_metric", bins=[0.0, 0.1, 0.2]
+      )
 
     @event_metric.Timed()
     @counter.Counted()
@@ -419,7 +442,8 @@ class StatsCollectorTest(
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter("testExceptionHandling_counter")
       event_metric = metrics.Event(
-          "testExceptionHandling_event_metric", bins=[0, 0.1, 0.2])
+          "testExceptionHandling_event_metric", bins=[0, 0.1, 0.2]
+      )
 
     @event_metric.Timed()
     @counter.Counted()
@@ -441,7 +465,8 @@ class StatsCollectorTest(
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       counter = metrics.Counter("testMultipleFuncs_counter")
       event_metric = metrics.Event(
-          "testMultipleFuncs_event_metric", bins=[0, 1, 2])
+          "testMultipleFuncs_event_metric", bins=[0, 1, 2]
+      )
 
     @counter.Counted()
     def Func1(n):

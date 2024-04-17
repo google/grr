@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import io
 
 from absl import app
@@ -21,7 +20,8 @@ class RawConnectorTest(test_lib.GRRBaseTest):
     super().setUp()
     self.connector = api_shell_raw_access_lib.RawConnector(
         context=api_call_context.ApiCallContext(self.test_username),
-        page_size=10)
+        page_size=10,
+    )
 
   def testCorrectlyCallsGeneralMethod(self):
     self.SetupClients(10)
@@ -35,7 +35,8 @@ class RawConnectorTest(test_lib.GRRBaseTest):
     fixture_test_lib.ClientFixture(client_id)
 
     args = vfs_pb2.ApiGetFileBlobArgs(
-        client_id=client_id, file_path="fs/tsk/c/bin/rbash")
+        client_id=client_id, file_path="fs/tsk/c/bin/rbash"
+    )
     out = io.BytesIO()
     self.connector.SendStreamingRequest("GetFileBlob", args).WriteToStream(out)
     self.assertEqual(out.getvalue(), b"Hello world")

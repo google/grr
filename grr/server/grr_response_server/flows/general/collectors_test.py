@@ -14,6 +14,7 @@ from unittest import mock
 from absl import app
 import psutil
 
+from grr_response_client import actions
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import factory
@@ -29,12 +30,15 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import temp
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
+from grr_response_server import action_registry
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -537,6 +541,72 @@ class TestArtifactCollectors(
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertLen(results, 1)
     self.assertEqual(results[0].pid, 123)
+
+  def testArtifactGroupGetsParentArgs(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    # Client metadata is not enough, we need some KB data to be present.
+    client = objects_pb2.ClientSnapshot(client_id=client_id)
+    client.knowledge_base.fqdn = "hidrogenesse.example.com"
+    client.knowledge_base.os = "linux"
+    data_store.REL_DB.WriteClientSnapshot(client)
+
+    artifact_registry.REGISTRY.RegisterArtifact(
+        rdf_artifacts.Artifact(
+            name="Planta",
+            doc="Animalito",
+            sources=[
+                rdf_artifacts.ArtifactSource(
+                    type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
+                    attributes={"names": ["Máquina"]},
+                )
+            ],
+        )
+    )
+    artifact_registry.REGISTRY.RegisterArtifact(
+        rdf_artifacts.Artifact(
+            name="Máquina",
+            doc="Piedra",
+            sources=[
+                rdf_artifacts.ArtifactSource(
+                    type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+                    attributes={"client_action": "DoesNothingActionMock"},
+                )
+            ],
+        )
+    )
+
+    class DoesNothingActionMock(actions.ActionPlugin):
+
+      def Run(self, args: any) -> None:
+        del args
+        pass
+
+    # TODO: Start using the annotation (w/cleanup).
+    action_registry.RegisterAdditionalTestClientAction(DoesNothingActionMock)
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactCollectorFlow.__name__,
+        action_mocks.ActionMock(),
+        artifact_list=["Planta"],
+        client_id=client_id,
+        apply_parsers=False,
+        use_raw_filesystem_access=True,
+        implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+        max_file_size=1,
+        ignore_interpolation_errors=True,
+    )
+
+    child_flows = data_store.REL_DB.ReadChildFlowObjects(client_id, flow_id)
+    self.assertLen(child_flows, 1)
+    args = mig_flow_objects.ToRDFFlow(child_flows[0]).args
+    self.assertEqual(args.apply_parsers, False)
+    self.assertEqual(args.use_raw_filesystem_access, True)
+    self.assertEqual(
+        args.implementation_type,
+        rdf_paths.PathSpec.ImplementationType.DIRECT,
+    )
+    self.assertEqual(args.max_file_size, 1)
+    self.assertEqual(args.ignore_interpolation_errors, True)
 
   def testGrep2(self):
     client_id = self.SetupClient(0, system="Linux")

@@ -29,7 +29,8 @@ _VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
-    help="Print the GRR console version number and exit immediately.")
+    help="Print the GRR console version number and exit immediately.",
+)
 
 
 class _Datapoint(NamedTuple):
@@ -79,8 +80,11 @@ class ClientResourceUsageMetric(Metric):
   """A metric that represents resource usage data for a single client."""
 
   def __init__(
-      self, name: str, record_values_extract_fn: Callable[
-          [List[resource_pb2.ClientResourceUsageRecord]], List[float]]
+      self,
+      name: str,
+      record_values_extract_fn: Callable[
+          [List[resource_pb2.ClientResourceUsageRecord]], List[float]
+      ],
   ) -> None:
     super().__init__(name)
     self._record_values_extract_fn = record_values_extract_fn
@@ -97,37 +101,46 @@ class ClientResourceUsageMetric(Metric):
     end_range_ts = TimeToProtoTimestamp(req_json["range"]["to"])
 
     records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
-        client_id, start_range_ts, end_range_ts)
+        client_id, start_range_ts, end_range_ts
+    )
     record_values = self._record_values_extract_fn(records_list)
 
     datapoints = []
-    for (v, r) in zip(record_values, records_list):
+    for v, r in zip(record_values, records_list):
       datapoints.append(
           _Datapoint(
               nanos=v,
-              value=r.server_timestamp.seconds * 1000 +
-              r.server_timestamp.nanos // 1000000))
+              value=r.server_timestamp.seconds * 1000
+              + r.server_timestamp.nanos // 1000000,
+          )
+      )
 
     return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
 
 AVAILABLE_METRICS_LIST: List[Metric]
 AVAILABLE_METRICS_LIST = [
-    ClientResourceUsageMetric("Mean User CPU Rate",
-                              lambda rl: [r.mean_user_cpu_rate for r in rl]),
-    ClientResourceUsageMetric("Max User CPU Rate",
-                              lambda rl: [r.max_user_cpu_rate for r in rl]),
-    ClientResourceUsageMetric("Mean System CPU Rate",
-                              lambda rl: [r.mean_system_cpu_rate for r in rl]),
-    ClientResourceUsageMetric("Max System CPU Rate",
-                              lambda rl: [r.max_system_cpu_rate for r in rl]),
+    ClientResourceUsageMetric(
+        "Mean User CPU Rate", lambda rl: [r.mean_user_cpu_rate for r in rl]
+    ),
+    ClientResourceUsageMetric(
+        "Max User CPU Rate", lambda rl: [r.max_user_cpu_rate for r in rl]
+    ),
+    ClientResourceUsageMetric(
+        "Mean System CPU Rate", lambda rl: [r.mean_system_cpu_rate for r in rl]
+    ),
+    ClientResourceUsageMetric(
+        "Max System CPU Rate", lambda rl: [r.max_system_cpu_rate for r in rl]
+    ),
     # Converting MiB to MB
     ClientResourceUsageMetric(
         "Mean Resident Memory MB",
-        lambda rl: [r.mean_resident_memory_mib * 1.049 for r in rl]),
+        lambda rl: [r.mean_resident_memory_mib * 1.049 for r in rl],
+    ),
     ClientResourceUsageMetric(
         "Max Resident Memory MB",
-        lambda rl: [r.max_resident_memory_mib * 1.049 for r in rl]),
+        lambda rl: [r.max_resident_memory_mib * 1.049 for r in rl],
+    ),
 ]
 
 AVAILABLE_METRICS_BY_NAME = {
@@ -148,11 +161,14 @@ class Grrafana(object):
     self._url_map = werkzeug_routing.Map([
         werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/search", endpoint=self._OnSearch, methods=["POST"]),  # pytype: disable=wrong-arg-types
+            "/search", endpoint=self._OnSearch, methods=["POST"]
+        ),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/query", endpoint=self._OnQuery, methods=["POST"]),  # pytype: disable=wrong-arg-types
+            "/query", endpoint=self._OnQuery, methods=["POST"]
+        ),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/annotations", endpoint=self._OnAnnotations, methods=["POST"]),  # pytype: disable=wrong-arg-types
+            "/annotations", endpoint=self._OnAnnotations, methods=["POST"]
+        ),  # pytype: disable=wrong-arg-types
     ])
 
   def _DispatchRequest(
@@ -184,7 +200,14 @@ class Grrafana(object):
   def __call__(
       self,
       environ: dict[str, Any],
-      start_response: Callable[[str, list[tuple[str, Any]], tuple[Type[Exception], Exception, types.TracebackType]], Any]
+      start_response: Callable[
+          [
+              str,
+              list[tuple[str, Any]],
+              tuple[Type[Exception], Exception, types.TracebackType],
+          ],
+          Any,
+      ],
   ) -> Iterable[bytes]:
     request = werkzeug_wrappers.Request(environ)
     response = self._DispatchRequest(request)
@@ -215,7 +238,8 @@ class Grrafana(object):
     """
     response = list(AVAILABLE_METRICS_BY_NAME.keys())
     return werkzeug_wrappers.Response(
-        response=json.dumps(response), content_type=JSON_MIME_TYPE)
+        response=json.dumps(response), content_type=JSON_MIME_TYPE
+    )
 
   def _OnQuery(
       self,
@@ -240,7 +264,8 @@ class Grrafana(object):
     ]
     response = [t._asdict() for t in targets_with_datapoints]
     return werkzeug_wrappers.Response(
-        response=json.dumps(response), content_type=JSON_MIME_TYPE)
+        response=json.dumps(response), content_type=JSON_MIME_TYPE
+    )
 
   def _OnAnnotations(
       self,
@@ -252,7 +277,8 @@ class Grrafana(object):
 def TimeToProtoTimestamp(grafana_time: str) -> timestamp_pb2.Timestamp:
   date = parser.parse(grafana_time)
   return timestamp_pb2.Timestamp(
-      seconds=int(date.timestamp()), nanos=date.microsecond * 1000)
+      seconds=int(date.timestamp()), nanos=date.microsecond * 1000
+  )
 
 
 def main(argv: Any) -> None:
@@ -263,12 +289,14 @@ def main(argv: Any) -> None:
     print(f"GRRafana server {config_server.VERSION['packageversion']}")
     return
 
-  config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
-                           "Context applied when running GRRafana server.")
+  config.CONFIG.AddContext(
+      contexts.GRRAFANA_CONTEXT, "Context applied when running GRRafana server."
+  )
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
-                              config.CONFIG["GRRafana.port"], Grrafana())
+  werkzeug_serving.run_simple(
+      config.CONFIG["GRRafana.bind"], config.CONFIG["GRRafana.port"], Grrafana()
+  )
 
 
 if __name__ == "__main__":

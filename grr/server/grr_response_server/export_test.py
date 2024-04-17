@@ -9,7 +9,6 @@ from grr_response_server import data_store
 from grr_response_server import export
 from grr_response_server.export_converters import base
 from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
@@ -228,15 +227,6 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     self.assertEqual(metadata.cloud_instance_type,
                      metadata.CloudInstanceType.AMAZON)
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
-
-  def testGetMetadataUname(self):
-    info = rdf_objects.ClientFullInfo()
-    info.last_snapshot.knowledge_base.os = "Linux"
-    info.last_snapshot.os_release = "1.0RC4"
-    info.last_snapshot.os_version = "13.37"
-
-    metadata = export.GetMetadata(self.client_id, info)
-    self.assertEqual(metadata.uname, "Linux-1.0RC4-13.37")
 
 
 def main(argv):

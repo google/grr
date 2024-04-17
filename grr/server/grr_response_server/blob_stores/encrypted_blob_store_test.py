@@ -30,7 +30,8 @@ class EncryptedBlobStoreTest(
   # Test methods are defined in the base mixin class.
 
   def CreateBlobStore(
-      self) -> tuple[blob_store.BlobStore, Optional[Callable[[], None]]]:
+      self,
+  ) -> tuple[blob_store.BlobStore, Optional[Callable[[], None]]]:
     db = mem_db.InMemoryDB()
     bs = db
     ks = mem_ks.MemKeystore(["foo"])
@@ -79,7 +80,8 @@ class EncryptedBlobStoreTest(
     del db.blob_keys[blob_id]
 
     with self.assertRaises(
-        encrypted_blob_store.EncryptedBlobWithoutKeysError) as context:
+        encrypted_blob_store.EncryptedBlobWithoutKeysError
+    ) as context:
       bs.ReadBlob(blob_id)
 
     self.assertEqual(context.exception.blob_id, blob_id)

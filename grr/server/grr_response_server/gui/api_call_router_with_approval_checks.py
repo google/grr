@@ -32,6 +32,8 @@ from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import mig_objects
 
 
@@ -42,6 +44,7 @@ RESTRICTED_FLOWS = [
     administrative.ExecuteCommand,
     administrative.ExecutePythonHack,
     administrative.LaunchBinary,
+    administrative.UpdateClient,
     administrative.UpdateConfiguration,
 ]
 
@@ -749,9 +752,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ModifyHunt(args, context=context)
 
-  def _GetHuntObj(self, hunt_id, context=None):
+  def _GetHuntObj(self, hunt_id, context=None) -> rdf_hunt_objects.Hunt:
     try:
-      return data_store.REL_DB.ReadHuntObject(str(hunt_id))
+      hunt_obj = data_store.REL_DB.ReadHuntObject(str(hunt_id))
+      hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+      return hunt_obj
     except db.UnknownHuntError:
       raise api_call_handler_base.ResourceNotFoundError(
           "Hunt with id %s could not be found" % hunt_id)

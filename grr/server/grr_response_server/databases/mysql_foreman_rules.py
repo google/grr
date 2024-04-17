@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """The MySQL database methods for foreman rule handling."""
+
 from typing import Optional, Sequence
 
 import MySQLdb

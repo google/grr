@@ -133,8 +133,11 @@ class Hunt(rdf_structs.RDFProtoStruct):
       return False
 
 
-def IsHuntSuitableForFlowProcessing(hunt_state):
-  return hunt_state in [Hunt.HuntState.PAUSED, Hunt.HuntState.STARTED]
+def IsHuntSuitableForFlowProcessing(hunt_state: int) -> bool:
+  return hunt_state in [
+      hunts_pb2.Hunt.HuntState.PAUSED,
+      hunts_pb2.Hunt.HuntState.STARTED,
+  ]
 
 
 class HuntMetadata(rdf_structs.RDFProtoStruct):

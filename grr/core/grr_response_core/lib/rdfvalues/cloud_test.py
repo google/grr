@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.rdfvalues.cloud."""
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
@@ -14,10 +13,12 @@ class CloudTest(test_lib.GRRBaseTest):
     google_cloud_instance = rdf_cloud.GoogleCloudInstance(
         instance_id="1771384456894610289",
         zone="projects/123456789733/zones/us-central1-a",
-        project_id="myproject")
+        project_id="myproject",
+    )
     self.assertEqual(
         rdf_cloud.MakeGoogleUniqueID(google_cloud_instance),
-        "us-central1-a/myproject/1771384456894610289")
+        "us-central1-a/myproject/1771384456894610289",
+    )
 
 
 def main(argv):

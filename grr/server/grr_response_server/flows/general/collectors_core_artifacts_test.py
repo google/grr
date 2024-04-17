@@ -172,35 +172,6 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.Name(), "homefileshare$")
         self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 
-  @parser_test_lib.WithParser("WmiActiveScriptEventConsumer",
-                              wmi_parser.WMIActiveScriptEventConsumerParser)
-  def testWMIBaseObject(self):
-    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
-
-    class WMIActionMock(action_mocks.ActionMock):
-
-      base_objects = []
-
-      def WmiQuery(self, args):
-        self.base_objects.append(args.base_object)
-        return client_fixture.WMI_SAMPLE
-
-    client_mock = WMIActionMock()
-    flow_test_lib.TestFlowHelper(
-        collectors.ArtifactCollectorFlow.__name__,
-        client_mock,
-        artifact_list=["WMIActiveScriptEventConsumer"],
-        creator=self.test_username,
-        client_id=client_id,
-        dependencies=(
-            rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS))
-
-    # Make sure the artifact's base_object made it into the WmiQuery call.
-    artifact_obj = artifact_registry.REGISTRY.GetArtifact(
-        "WMIActiveScriptEventConsumer")
-    self.assertCountEqual(WMIActionMock.base_objects,
-                          [artifact_obj.sources[0].attributes["base_object"]])
-
 
 def main(argv):
   # Run the full test suite

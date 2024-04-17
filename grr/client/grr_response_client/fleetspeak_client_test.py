@@ -64,7 +64,8 @@ class FleetspeakClientTest(absltest.TestCase):
           session_id="%s/%s" % (client_id, flow_id),
           name="TestClientAction",
           request_id=2,
-          response_id=len(grr_messages) + 1)
+          response_id=len(grr_messages) + 1,
+      )
       annotation = expected_annotations.entries.add()
       annotation.key = fleetspeak_client._DATA_IDS_ANNOTATION_KEY
       annotation.value = "%s:2:%d" % (flow_id, len(grr_messages) + 1)
@@ -76,15 +77,18 @@ class FleetspeakClientTest(absltest.TestCase):
         session_id="%s/%s" % (client_id, flow_id),
         name="TestClientAction",
         request_id=3,
-        response_id=1)
+        response_id=1,
+    )
     grr_messages.append(extra_message)
     client._sender_queue.put(extra_message)
 
     self.assertLess(
-        len(grr_messages), fleetspeak_client._MAX_MSG_LIST_MSG_COUNT)
+        len(grr_messages), fleetspeak_client._MAX_MSG_LIST_MSG_COUNT
+    )
     self.assertLess(
         sum(len(x.SerializeToBytes()) for x in grr_messages),
-        fleetspeak_client._MAX_MSG_LIST_BYTES)
+        fleetspeak_client._MAX_MSG_LIST_BYTES,
+    )
 
     client._SendOp()
 

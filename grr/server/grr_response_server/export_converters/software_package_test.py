@@ -17,7 +17,8 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
         publisher="somebody",
         description="desc",
         installed_on=42,
-        installed_by="user")
+        installed_by="user",
+    )
 
     converter = software_package.SoftwarePackageConverter()
     converted = list(converter.Convert(self.metadata, result))
@@ -31,11 +32,12 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
             version="ver1",
             architecture="i386",
             publisher="somebody",
-            install_state=software_package.ExportedSoftwarePackage.InstallState
-            .PENDING,
+            install_state=software_package.ExportedSoftwarePackage.InstallState.PENDING,
             description="desc",
             installed_on=42,
-            installed_by="user"))
+            installed_by="user",
+        ),
+    )
 
 
 class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
@@ -51,7 +53,9 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               publisher="somebody_%d" % i,
               description="desc_%d" % i,
               installed_on=42 + i,
-              installed_by="user_%d" % i))
+              installed_by="user_%d" % i,
+          )
+      )
 
     converter = software_package.SoftwarePackagesConverter()
     converted = list(converter.Convert(self.metadata, result))
@@ -66,11 +70,12 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               version="ver_%d" % i,
               architecture="i386_%d" % i,
               publisher="somebody_%d" % i,
-              install_state=software_package.ExportedSoftwarePackage
-              .InstallState.PENDING,
+              install_state=software_package.ExportedSoftwarePackage.InstallState.PENDING,
               description="desc_%d" % i,
               installed_on=42 + i,
-              installed_by="user_%d" % i))
+              installed_by="user_%d" % i,
+          ),
+      )
 
 
 def main(argv):

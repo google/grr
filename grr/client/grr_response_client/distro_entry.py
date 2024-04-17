@@ -14,4 +14,5 @@ def FleetspeakClient():
 
 def FleetspeakClientWrapper():
   from grr_response_client import fleetspeak_client_wrapper
+
   app.run(fleetspeak_client_wrapper.main)

@@ -19,7 +19,6 @@ import jinja2
 import psutil
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
-from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
 
 from grr_response_core import config
@@ -30,6 +29,7 @@ from grr_response_server import server_logging
 from grr_response_server.gui import admin_ui_metrics
 from grr_response_server.gui import csp
 from grr_response_server.gui import http_api
+from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
 from grr_response_server.gui import webauth
 
@@ -127,49 +127,6 @@ def ValidateCSRFTokenOrRaise(request):
     raise werkzeug_exceptions.Forbidden("Expired CSRF token")
 
 
-class RequestHasNoUser(AttributeError):
-  """Error raised when accessing a user of an unautenticated request."""
-
-
-class HttpRequest(werkzeug_wrappers.Request):
-  """HTTP request object to be used in GRR."""
-
-  charset = "utf-8"
-  encoding_errors = "strict"
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-
-    self._user = None
-    self.email = None
-
-    self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
-
-    self.method_metadata = None
-    self.parsed_args = None
-
-  @property
-  def user(self):
-    if self._user is None:
-      raise RequestHasNoUser(
-          "Trying to access Request.user while user is unset.")
-
-    if not self._user:
-      raise RequestHasNoUser(
-          "Trying to access Request.user while user is empty.")
-
-    return self._user
-
-  @user.setter
-  def user(self, value):
-    if not isinstance(value, Text):
-      message = "Expected instance of '%s' but got value '%s' of type '%s'"
-      message %= (Text, value, type(value))
-      raise TypeError(message)
-
-    self._user = value
-
-
 def LogAccessWrapper(func):
   """Decorator that ensures that HTTP access is logged."""
 
@@ -238,7 +195,7 @@ class AdminUIApp(object):
       )
 
   def _BuildRequest(self, environ):
-    return HttpRequest(environ)
+    return http_request.HttpRequest(environ)
 
   def _HandleLegacyHomepage(self, request):
     admin_ui_metrics.WSGI_ROUTE.Increment(fields=["legacy"])
@@ -292,7 +249,7 @@ class AdminUIApp(object):
     # present.
     try:
       StoreCSRFCookie(request.user, response)
-    except RequestHasNoUser:
+    except http_request.RequestHasNoUserError:
       pass
 
     return response
@@ -319,7 +276,7 @@ class AdminUIApp(object):
 
     try:
       StoreCSRFCookie(request.user, response)
-    except RequestHasNoUser:
+    except http_request.RequestHasNoUserError:
       pass
 
     return response

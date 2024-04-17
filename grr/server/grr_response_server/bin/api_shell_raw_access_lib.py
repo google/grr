@@ -4,7 +4,6 @@
 from typing import Optional
 
 from google.protobuf import message
-
 from grr_api_client import connectors
 from grr_api_client import errors
 from grr_api_client import utils
@@ -32,11 +31,13 @@ class RawConnector(connectors.Connector):
     self._root_router = api_root_router.ApiRootRouter()
 
   def _MatchRouter(self, method_name, args):
-    if (hasattr(self._router, method_name) and
-        hasattr(self._root_router, method_name)):
+    if hasattr(self._router, method_name) and hasattr(
+        self._root_router, method_name
+    ):
       mdata = self._router.__class__.GetAnnotatedMethods()[method_name]
       root_mdata = self._root_router.__class__.GetAnnotatedMethods()[
-          method_name]
+          method_name
+      ]
 
       if args is None:
         if mdata.args_type is None:
@@ -46,13 +47,15 @@ class RawConnector(connectors.Connector):
       else:
         if mdata.args_type and mdata.args_type.protobuf == args.__class__:
           return self._router
-        elif (root_mdata.args_type and
-              root_mdata.args_type.protobuf == args.__class__):
+        elif (
+            root_mdata.args_type
+            and root_mdata.args_type.protobuf == args.__class__
+        ):
           return self._root_router
 
       raise RuntimeError(
-          "Can't unambiguously select root/non-root router for %s" %
-          method_name)
+          "Can't unambiguously select root/non-root router for %s" % method_name
+      )
     elif hasattr(self._router, method_name):
       return self._router
     elif hasattr(self._root_router, method_name):
@@ -79,8 +82,9 @@ class RawConnector(connectors.Connector):
     except NotImplementedError as e:
       raise errors.ApiNotImplementedError(
           "Method {} is not implemented in {}.".format(
-              method_name,
-              type(router).__name__)) from e
+              method_name, type(router).__name__
+          )
+      ) from e
     except Exception as e:  # pylint: disable=broad-except
       raise errors.UnknownError(e)
 

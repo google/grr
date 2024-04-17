@@ -14,8 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed support for foreman rules using `uname` of an endpoint (this can be
   simulated by using 3 rules for system name, release and version).
 * GRR server Debian package is removed when github actions are updated. The
-  docker image and docker compose stack (see section "Added") are the
+  docker image and Docker Compose stack (see section "Added") are the
   recommended wait of running GRR in the future.
+* Removed the `provides` field from the `Artifact` message. This change has been
+  done in anticipation of the removal of the same field from the official GitHub
+  repository (ForensicArtifacts/artifacts#275).
 
 
 ### Added

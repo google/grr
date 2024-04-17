@@ -5,7 +5,12 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
+import {
+  RequestStatusType,
+  type RequestStatus,
+} from '../../lib/api/track_request';
 
+import {newApproval} from '../../lib/models/model_test_util';
 import {Approval} from '../../lib/models/user';
 import {ApprovalCardLocalStore} from '../../store/approval_card_local_store';
 import {
@@ -70,9 +75,11 @@ describe('ApprovalCard Component', () => {
     validateOnStart = false,
     showDuration = false,
     editableDuration = false,
+    requestApprovalStatus: RequestStatus<Approval, string> | null = null,
   ): ComponentFixture<ApprovalCard> {
     const fixture = TestBed.createComponent(ApprovalCard);
     fixture.componentInstance.latestApproval = latestApproval;
+    fixture.componentInstance.requestApprovalStatus = requestApprovalStatus;
     fixture.componentInstance.urlTree = urlTree;
     fixture.componentInstance.validateOnStart = validateOnStart;
     fixture.componentInstance.showDuration = showDuration;
@@ -452,5 +459,67 @@ describe('ApprovalCard Component', () => {
 
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('sample reason http://example.com');
+  });
+
+  it('displays spinner when request is pending', () => {
+    const fixture = createComponent(null, [], false, false, false, {
+      status: RequestStatusType.SENT,
+    });
+    fixture.detectChanges();
+
+    const button = fixture.debugElement.query(
+      By.css("[name='request-access']"),
+    );
+    expect(button.nativeElement.disabled).toBeTrue();
+
+    const buttonSpinner = fixture.debugElement.query(
+      By.css("[name='request-access'] mat-spinner"),
+    );
+    expect(buttonSpinner).toBeTruthy();
+
+    const errorMsg = fixture.debugElement.query(By.css('mat-error'));
+    expect(errorMsg).toBeFalsy();
+  });
+
+  it('displays error from status', () => {
+    const fixture = createComponent(null, [], false, false, false, {
+      status: RequestStatusType.ERROR,
+      error: 'bad request',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.debugElement.query(
+      By.css("[name='request-access']"),
+    );
+    expect(button.nativeElement.disabled).toBeFalse(); // Enabled
+
+    const buttonSpinner = fixture.debugElement.query(
+      By.css("[name='request-access'] mat-spinner"),
+    );
+    expect(buttonSpinner).toBeFalsy();
+
+    const errorMsg = fixture.debugElement.query(By.css('mat-error'));
+    expect(errorMsg.nativeElement.innerText).toContain('bad request');
+  });
+
+  it('displays success from status', () => {
+    const fixture = createComponent(null, [], false, false, false, {
+      status: RequestStatusType.SUCCESS,
+      data: newApproval(),
+    });
+    fixture.detectChanges();
+
+    const button = fixture.debugElement.query(
+      By.css("[name='request-access']"),
+    );
+    expect(button.nativeElement.disabled).toBeTrue();
+
+    const buttonSpinner = fixture.debugElement.query(
+      By.css("[name='request-access'] mat-spinner"),
+    );
+    expect(buttonSpinner).toBeFalsy();
+
+    const errorMsg = fixture.debugElement.query(By.css('mat-error'));
+    expect(errorMsg).toBeFalsy();
   });
 });

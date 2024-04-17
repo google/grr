@@ -352,7 +352,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    flow_obj.flow_state = flow_obj.FlowState.ERROR
+    flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
     flow_obj.error_message = message
     flow_obj.backtrace = backtrace
     data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
@@ -366,7 +366,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     Returns:
       List with hunt results payloads.
     """
-    return data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
+    return [
+        mig_flow_objects.ToRDFFlowResult(r)
+        for r in data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
+    ]
 
 
 class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
