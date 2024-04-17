@@ -2,7 +2,6 @@
 """A module with RDF value wrappers for timeline protobufs."""
 
 import os
-
 from typing import Iterator
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

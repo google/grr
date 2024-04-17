@@ -188,8 +188,9 @@ class WindowsTemplateBuilder(object):
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % args.build_dir
     ])
-    return glob.glob(os.path.join(args.build_dir,
-                                  "grr-response-proto-*.zip")).pop()
+    return glob.glob(
+        os.path.join(args.build_dir, "grr_response_proto-*.zip")
+    ).pop()
 
   def MakeCoreSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/core"))
@@ -197,8 +198,9 @@ class WindowsTemplateBuilder(object):
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % args.build_dir, "--no-sync-artifacts"
     ])
-    return glob.glob(os.path.join(args.build_dir,
-                                  "grr-response-core-*.zip")).pop()
+    return glob.glob(
+        os.path.join(args.build_dir, "grr_response_core-*.zip")
+    ).pop()
 
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/client/"))
@@ -206,8 +208,9 @@ class WindowsTemplateBuilder(object):
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % args.build_dir
     ])
-    return glob.glob(os.path.join(args.build_dir,
-                                  "grr-response-client-*.zip")).pop()
+    return glob.glob(
+        os.path.join(args.build_dir, "grr_response_client-*.zip")
+    ).pop()
 
   def MakeClientBuilderSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/client_builder/"))
@@ -216,8 +219,8 @@ class WindowsTemplateBuilder(object):
         "--dist-dir=%s" % args.build_dir
     ])
     return glob.glob(
-        os.path.join(args.build_dir,
-                     "grr-response-client-builder-*.zip")).pop()
+        os.path.join(args.build_dir, "grr_response_client_builder-*.zip")
+    ).pop()
 
   def InstallGRR(self, path):
     """Installs GRR."""

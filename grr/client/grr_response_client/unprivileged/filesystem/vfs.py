@@ -3,7 +3,7 @@
 
 import contextlib
 import stat
-from typing import Any, Callable, Dict, Iterator, Optional, Text, Type, Tuple, NamedTuple
+from typing import Any, Callable, Dict, Iterator, NamedTuple, Optional, Text, Tuple, Type
 
 from grr_response_client import client_utils
 from grr_response_client.unprivileged import communication
@@ -34,8 +34,9 @@ class MountCache(utils.TimeBasedCache):
 MOUNT_CACHE = MountCache()
 
 
-def _ConvertStatEntry(entry: filesystem_pb2.StatEntry,
-                      pathspec: rdf_paths.PathSpec) -> rdf_client_fs.StatEntry:
+def _ConvertStatEntry(
+    entry: filesystem_pb2.StatEntry, pathspec: rdf_paths.PathSpec
+) -> rdf_client_fs.StatEntry:
   """Converts a stat entry from a filesystem_pb2 protobuf to RDF."""
   st = rdf_client_fs.StatEntry()
   st.pathspec = pathspec.Copy()
@@ -80,9 +81,11 @@ def _ConvertStatEntry(entry: filesystem_pb2.StatEntry,
 class VFSHandlerDevice(client.Device):
   """A device implementation backed by a VFSHandler."""
 
-  def __init__(self,
-               vfs_handler: vfs_base.VFSHandler,
-               device_file_descriptor: Optional[int] = None):
+  def __init__(
+      self,
+      vfs_handler: vfs_base.VFSHandler,
+      device_file_descriptor: Optional[int] = None,
+  ):
     super().__init__()
     self._vfs_handler = vfs_handler
     self._device_file_descriptor = device_file_descriptor
@@ -101,16 +104,19 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   implementation_type = filesystem_pb2.UNDEFINED
 
-  def __init__(self,
-               base_fd: Optional[vfs_base.VFSHandler],
-               handlers: Dict[Any, Type[vfs_base.VFSHandler]],
-               pathspec: Optional[rdf_paths.PathSpec] = None,
-               progress_callback: Optional[Callable[[], None]] = None):
+  def __init__(
+      self,
+      base_fd: Optional[vfs_base.VFSHandler],
+      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      pathspec: Optional[rdf_paths.PathSpec] = None,
+      progress_callback: Optional[Callable[[], None]] = None,
+  ):
     super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
-        progress_callback=progress_callback)
+        progress_callback=progress_callback,
+    )
 
     # self.pathspec is initialized to a copy of base_fd
 
@@ -125,7 +131,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       self.pathspec.last.path = last_path
     elif not base_fd.IsDirectory():
       cache_key = base_fd.pathspec.SerializeToBytes() + str(
-          self.implementation_type).encode("utf-8")
+          self.implementation_type
+      ).encode("utf-8")
       try:
         self.client = MOUNT_CACHE.Get(cache_key).client
       except KeyError:
@@ -135,19 +142,26 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
             server_obj = server.CreateFilesystemServer()
             stack.enter_context(server_obj)
             self.client = stack.enter_context(
-                client.CreateFilesystemClient(server_obj.Connect(),
-                                              self.implementation_type,
-                                              VFSHandlerDevice(base_fd)))
+                client.CreateFilesystemClient(
+                    server_obj.Connect(),
+                    self.implementation_type,
+                    VFSHandlerDevice(base_fd),
+                )
+            )
           else:
             with open(device_path, "rb") as device_file:
               server_obj = server.CreateFilesystemServer(device_file.fileno())
               stack.enter_context(server_obj)
               self.client = stack.enter_context(
                   client.CreateFilesystemClient(
-                      server_obj.Connect(), self.implementation_type,
-                      VFSHandlerDevice(base_fd, device_file.fileno())))
-          MOUNT_CACHE.Put(cache_key,
-                          MountCacheItem(server=server_obj, client=self.client))
+                      server_obj.Connect(),
+                      self.implementation_type,
+                      VFSHandlerDevice(base_fd, device_file.fileno()),
+                  )
+              )
+          MOUNT_CACHE.Put(
+              cache_key, MountCacheItem(server=server_obj, client=self.client)
+          )
           # Transfer ownership of resources to MOUNT_CACHE.
           stack.pop_all()
       self.pathspec.Append(pathspec)
@@ -170,7 +184,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
           # We have to find the corresponding case literal stream name in this
           # case ourselves.
           self.fd, self.pathspec.last.stream_name = (
-              self._OpenStreamCaseInsensitive(pathspec))
+              self._OpenStreamCaseInsensitive(pathspec)
+          )
       else:
         self.fd = self._OpenPathSpec(pathspec)
     except client.OperationError as e:
@@ -213,7 +228,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     return path
 
   def _OpenStreamCaseInsensitive(
-      self, pathspec: rdf_paths.PathSpec) -> Tuple[client.File, str]:
+      self, pathspec: rdf_paths.PathSpec
+  ) -> Tuple[client.File, str]:
     """Opens a stream by pathspec with a case-insensitvie stream name.
 
     Args:
@@ -226,12 +242,14 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     file_pathspec = pathspec.Copy()
     file_pathspec.stream_name = None
     result = pathspec.Copy()
-    result.stream_name = self._GetStreamNameCaseLiteral(file_pathspec,
-                                                        stream_name)
+    result.stream_name = self._GetStreamNameCaseLiteral(
+        file_pathspec, stream_name
+    )
     return self._OpenPathSpec(result), result.stream_name
 
-  def _GetStreamNameCaseLiteral(self, file_pathspec: rdf_paths.PathSpec,
-                                stream_name_case_insensitive: str) -> str:
+  def _GetStreamNameCaseLiteral(
+      self, file_pathspec: rdf_paths.PathSpec, stream_name_case_insensitive: str
+  ) -> str:
     """Returns the case literal stream name.
 
     Args:
@@ -245,16 +263,18 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       result = file_obj.LookupCaseInsensitive(stream_name_case_insensitive)
       if result is not None:
         return result
-    raise IOError(f"Failed to open stream {stream_name_case_insensitive} in "
-                  f"{file_pathspec}.")
+    raise IOError(
+        f"Failed to open stream {stream_name_case_insensitive} in "
+        f"{file_pathspec}."
+    )
 
   @property
   def size(self) -> int:
     return self._stat_result.st_size
 
-  def Stat(self,
-           ext_attrs: bool = False,
-           follow_symlink: bool = True) -> rdf_client_fs.StatEntry:
+  def Stat(
+      self, ext_attrs: bool = False, follow_symlink: bool = True
+  ) -> rdf_client_fs.StatEntry:
     return self._stat_result
 
   def Read(self, length: int) -> bytes:
@@ -267,8 +287,10 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
   def IsDirectory(self) -> bool:
     return (self._stat_result.st_mode & stat.S_IFDIR) != 0
 
-  def ListFiles(self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
-                ext_attrs: bool = False) -> Iterator[rdf_client_fs.StatEntry]:
+  def ListFiles(
+      self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+      ext_attrs: bool = False,
+  ) -> Iterator[rdf_client_fs.StatEntry]:
     del ext_attrs  # Unused.
 
     self._CheckIsDirectory()
@@ -290,8 +312,9 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   def _CheckIsDirectory(self) -> None:
     if not self.IsDirectory():
-      raise IOError("{} is not a directory".format(
-          self.pathspec.CollapsePath()))
+      raise IOError(
+          "{} is not a directory".format(self.pathspec.CollapsePath())
+      )
 
   def _CheckIsFile(self) -> None:
     if self.IsDirectory():
@@ -302,7 +325,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     self.fd.Close()
 
   def MatchBestComponentName(
-      self, component: str, pathtype: rdf_paths.PathSpec) -> rdf_paths.PathSpec:
+      self, component: str, pathtype: rdf_paths.PathSpec
+  ) -> rdf_paths.PathSpec:
     fd = self.OpenAsContainer(pathtype)
 
     assert self.fd is not None
@@ -313,7 +337,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
     if fd.supported_pathtype != self.pathspec.pathtype:
       new_pathspec = rdf_paths.PathSpec(
-          path=component, pathtype=fd.supported_pathtype)
+          path=component, pathtype=fd.supported_pathtype
+      )
     else:
       new_pathspec = self.pathspec.last.Copy()
       new_pathspec.path = component
@@ -327,12 +352,15 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       component: rdf_paths.PathSpec,
       handlers: Dict[Any, Type[vfs_base.VFSHandler]],
       pathspec: Optional[rdf_paths.PathSpec] = None,
-      progress_callback: Optional[Callable[[], None]] = None
+      progress_callback: Optional[Callable[[], None]] = None,
   ) -> Optional[vfs_base.VFSHandler]:
     # A Pathspec which starts with NTFS means we need to resolve the mount
     # point at runtime.
-    if (fd is None and component.pathtype == cls.supported_pathtype and
-        pathspec is not None):
+    if (
+        fd is None
+        and component.pathtype == cls.supported_pathtype
+        and pathspec is not None
+    ):
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
@@ -365,7 +393,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
           component=component,
           handlers=handlers,
           pathspec=pathspec,
-          progress_callback=progress_callback)
+          progress_callback=progress_callback,
+      )
 
 
 class UnprivilegedNtfsFile(UnprivilegedFileBase):

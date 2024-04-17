@@ -16,7 +16,6 @@ import {FlowListModule} from '../../components/flow_list/module';
 import {ApprovalCardModule} from '../approval_card/module';
 import {ClientOverviewModule} from '../client_overview/module';
 import {FileDetailsModule} from '../file_details/file_details_module';
-import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {HumanReadableSizeModule} from '../human_readable_size/module';
 import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {TimestampModule} from '../timestamp/module';
@@ -37,7 +36,6 @@ import {VfsSection} from './vfs_section';
     ApprovalCardModule,
     BrowserAnimationsModule,
     ClientOverviewModule,
-    DrawerLinkModule,
     FileDetailsModule,
     FlowFormModule,
     FlowListModule,

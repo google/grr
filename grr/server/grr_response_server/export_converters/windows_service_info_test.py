@@ -15,19 +15,14 @@ class WindowsServiceInformationConverterTest(export_test_lib.ExportTestBase):
         name="foo",
         description="bar",
         state="somestate",
-        wmi_information={
-            "c": "d",
-            "a": "b"
-        },
+        wmi_information={"c": "d", "a": "b"},
         display_name="some name",
         driver_package_id="1234",
         error_control=rdf_client.WindowsServiceInformation.ErrorControl.NORMAL,
         image_path="/foo/bar",
         object_name="an object",
-        startup_type=rdf_client.WindowsServiceInformation.ServiceMode
-        .SERVICE_AUTO_START,
-        service_type=rdf_client.WindowsServiceInformation.ServiceType
-        .SERVICE_FILE_SYSTEM_DRIVER,
+        startup_type=rdf_client.WindowsServiceInformation.ServiceMode.SERVICE_AUTO_START,
+        service_type=rdf_client.WindowsServiceInformation.ServiceType.SERVICE_FILE_SYSTEM_DRIVER,
         group_name="somegroup",
         service_dll="somedll",
         registry_key="somekey",
@@ -39,7 +34,8 @@ class WindowsServiceInformationConverterTest(export_test_lib.ExportTestBase):
     c = converted[0]
 
     self.assertIsInstance(
-        c, windows_service_info.ExportedWindowsServiceInformation)
+        c, windows_service_info.ExportedWindowsServiceInformation
+    )
     self.assertEqual(c.metadata, self.metadata)
 
     self.assertEqual(c.name, "foo")

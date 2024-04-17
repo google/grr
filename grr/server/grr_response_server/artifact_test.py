@@ -21,7 +21,6 @@ from grr_response_core import config
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -39,6 +38,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -236,18 +236,28 @@ class GRRArtifactTest(ArtifactTest):
         artifact.UploadArtifactYamlFile(filedesc.read())
       loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
       self.assertGreaterEqual(len(loaded_artifacts), 20)
-      self.assertIn("DepsWindirRegex", [a.name for a in loaded_artifacts])
 
-      # Now dump back to YAML.
-      yaml_data = artifact_registry.REGISTRY.DumpArtifactsToYaml()
-      for snippet in [
-          "name: TestFilesArtifact",
-          "urls:\\s*- https://msdn.microsoft.com/en-us/library/",
-          "returned_types:\\s*- SoftwarePackage",
-          "args:\\s*- --list",
-          "cmd: /usr/bin/dpkg",
-      ]:
-        self.assertRegex(yaml_data, snippet)
+      artifacts_by_name = {
+          artifact.name: artifact for artifact in loaded_artifacts
+      }
+      self.assertIn("DepsWindirRegex", artifacts_by_name)
+      self.assertIn("TestFilesArtifact", artifacts_by_name)
+      self.assertStartsWith(
+          artifacts_by_name["WMIActiveScriptEventConsumer"].urls[0],
+          "https://msdn.microsoft.com/en-us/library/",
+      )
+      self.assertEqual(
+          artifacts_by_name["TestEchoArtifact"].sources[0].returned_types,
+          ["SoftwarePackages"],
+      )
+      self.assertEqual(
+          artifacts_by_name["TestCmdArtifact"].sources[0].attributes["cmd"],
+          "/usr/bin/dpkg",
+      )
+      self.assertEqual(
+          artifacts_by_name["TestCmdArtifact"].sources[0].attributes["args"],
+          ["--list"],
+      )
     finally:
       artifact.LoadArtifactsOnce()
 
@@ -428,28 +438,6 @@ class ArtifactFlowLinuxTest(ArtifactTest):
       cp = db.ClientPath.OS(client_id, ("var", "log", "auth.log"))
       fd = file_store.OpenFile(cp)
       self.assertNotEmpty(fd.read())
-
-  @parser_test_lib.WithParser("Passwd", linux_file_parser.PasswdBufferParser)
-  def testLinuxPasswdHomedirsArtifact(self):
-    """Check LinuxPasswdHomedirs artifacts."""
-    with vfs_test_lib.FakeTestDataVFSOverrider():
-      fd = self.RunCollectorAndGetResults(
-          ["LinuxPasswdHomedirs"],
-          client_mock=action_mocks.ClientFileFinderWithVFS(),
-          client_id=test_lib.TEST_CLIENT_ID,
-      )
-
-      self.assertLen(fd, 5)
-      self.assertCountEqual(
-          [x.username for x in fd],
-          [u"exomemory", u"gevulot", u"gogol", u"user1", u"user2"])
-      for user in fd:
-        if user.username == u"exomemory":
-          self.assertEqual(user.full_name, u"Never Forget (admin)")
-          self.assertEqual(user.gid, 47)
-          self.assertEqual(user.homedir, u"/var/lib/exomemory")
-          self.assertEqual(user.shell, u"/bin/sh")
-          self.assertEqual(user.uid, 46)
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
@@ -674,18 +662,10 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
 
-  @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
     """Cause a users.username dependency failure."""
-    with test_lib.ConfigOverrider({
-        "Artifacts.knowledge_base": [
-            "NetgroupConfiguration",
-        ],
-        "Artifacts.netgroup_filter_regexes": ["^doesntexist$"],
-    }):
-      with vfs_test_lib.FakeTestDataVFSOverrider():
-        with test_lib.SuppressLogs():
-          kb = self._RunKBI(require_complete=False)
+    with vfs_test_lib.FakeTestDataVFSOverrider():
+      kb = self._RunKBI(require_complete=False)
 
     self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
@@ -1008,7 +988,9 @@ class ParserApplicatorTest(absltest.TestCase):
 
     path_info = rdf_objects.PathInfo.OS(components=components)
     path_info.hash_entry.sha256 = bytes(blob_id)
-    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
     client_path = db.ClientPath.OS(
         client_id=self.client_id, components=components)

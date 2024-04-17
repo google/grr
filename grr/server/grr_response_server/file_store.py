@@ -369,8 +369,13 @@ def GetLastCollectionPathInfos(client_paths, max_timestamp=None):
     timestamp
     lower or equal then max_timestamp).
   """
-  return data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
-      client_paths, max_timestamp=max_timestamp)
+  proto_dict = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+      client_paths, max_timestamp=max_timestamp
+  )
+  rdf_dict = {}
+  for k, v in proto_dict.items():
+    rdf_dict[k] = mig_objects.ToRDFPathInfo(v) if v is not None else None
+  return rdf_dict
 
 
 def GetLastCollectionPathInfo(client_path, max_timestamp=None):
@@ -411,8 +416,12 @@ def OpenFile(
     MissingBlobReferencesError: if one of the blobs was not found.
   """
 
-  path_info = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
-      [client_path], max_timestamp=max_timestamp)[client_path]
+  proto_path_info = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+      [client_path], max_timestamp=max_timestamp
+  )[client_path]
+  path_info = None
+  if proto_path_info:
+    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
 
   if path_info is None:
     # If path_info returned by ReadLatestPathInfosWithHashBlobReferences
@@ -491,9 +500,16 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
     BlobNotFoundError: if one of the blobs wasn't found while streaming.
   """
 
-  path_infos_by_cp = (
+  proto_path_infos_by_cp = (
       data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
-          client_paths, max_timestamp=max_timestamp))
+          client_paths, max_timestamp=max_timestamp
+      )
+  )
+  path_infos_by_cp = {}
+  for k, v in proto_path_infos_by_cp.items():
+    path_infos_by_cp[k] = None
+    if v is not None:
+      path_infos_by_cp[k] = mig_objects.ToRDFPathInfo(v)
 
   hash_ids_by_cp = {}
   for cp, pi in path_infos_by_cp.items():

@@ -2,7 +2,7 @@
 """Unprivileged memory RPC client code."""
 
 import abc
-from typing import TypeVar, Generic, Iterable
+from typing import Generic, Iterable, TypeVar
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.proto import memory_pb2
@@ -16,7 +16,8 @@ class ConnectionWrapper:
 
   def Send(self, request: memory_pb2.Request) -> None:
     self._connection.Send(
-        communication.Message(request.SerializeToString(), b""))
+        communication.Message(request.SerializeToString(), b"")
+    )
 
   def Recv(self) -> memory_pb2.Response:
     raw_response, _ = self._connection.Recv()
@@ -27,6 +28,7 @@ class ConnectionWrapper:
 
 class Error(Exception):
   """Base class for exceptions in this module."""
+
   pass
 
 
@@ -60,8 +62,10 @@ class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
     packed_response = self._connection.Recv()
 
     if packed_response.HasField("exception"):
-      raise OperationError(packed_response.exception.message,
-                           packed_response.exception.formatted_exception)
+      raise OperationError(
+          packed_response.exception.message,
+          packed_response.exception.formatted_exception,
+      )
     else:
       response = self.UnpackResponse(packed_response)
       return response
@@ -78,30 +82,38 @@ class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
 
 
 class UploadSignatureHandler(
-    OperationHandler[memory_pb2.UploadSignatureRequest,
-                     memory_pb2.UploadSignatureResponse]):
+    OperationHandler[
+        memory_pb2.UploadSignatureRequest, memory_pb2.UploadSignatureResponse
+    ]
+):
   """Implements the UploadSignature RPC."""
 
   def UnpackResponse(
-      self,
-      response: memory_pb2.Response) -> memory_pb2.UploadSignatureResponse:
+      self, response: memory_pb2.Response
+  ) -> memory_pb2.UploadSignatureResponse:
     return response.upload_signature_response
 
   def PackRequest(
-      self, request: memory_pb2.UploadSignatureRequest) -> memory_pb2.Request:
+      self, request: memory_pb2.UploadSignatureRequest
+  ) -> memory_pb2.Request:
     return memory_pb2.Request(upload_signature_request=request)
 
 
-class ProcessScanHandler(OperationHandler[memory_pb2.ProcessScanRequest,
-                                          memory_pb2.ProcessScanResponse]):
+class ProcessScanHandler(
+    OperationHandler[
+        memory_pb2.ProcessScanRequest, memory_pb2.ProcessScanResponse
+    ]
+):
   """Implements the ProcessScan RPC."""
 
   def UnpackResponse(
-      self, response: memory_pb2.Response) -> memory_pb2.ProcessScanResponse:
+      self, response: memory_pb2.Response
+  ) -> memory_pb2.ProcessScanResponse:
     return response.process_scan_response
 
-  def PackRequest(self,
-                  request: memory_pb2.ProcessScanRequest) -> memory_pb2.Request:
+  def PackRequest(
+      self, request: memory_pb2.ProcessScanRequest
+  ) -> memory_pb2.Request:
     return memory_pb2.Request(process_scan_request=request)
 
 
@@ -116,9 +128,13 @@ class Client:
     request = memory_pb2.UploadSignatureRequest(yara_signature=yara_signature)
     UploadSignatureHandler(self._connection).Run(request)
 
-  def ProcessScan(self, serialized_file_descriptor: int,
-                  chunks: Iterable[memory_pb2.Chunk],
-                  timeout_seconds: int) -> memory_pb2.ProcessScanResponse:
+  def ProcessScan(
+      self,
+      serialized_file_descriptor: int,
+      chunks: Iterable[memory_pb2.Chunk],
+      timeout_seconds: int,
+      context_window: int,
+  ) -> memory_pb2.ProcessScanResponse:
     """Scans process memory.
 
     Args:
@@ -126,6 +142,7 @@ class Client:
         memory. The file descriptor must be accessible by the server process.
       chunks: Chunks (offset, size) to scan.
       timeout_seconds: Timeout in seconds.
+      context_window: Amount of bytes surrounding the match to return.
 
     Returns:
       A `ScanResult` proto.
@@ -133,9 +150,10 @@ class Client:
     request = memory_pb2.ProcessScanRequest(
         serialized_file_descriptor=serialized_file_descriptor,
         chunks=chunks,
-        timeout_seconds=timeout_seconds)
-    response = ProcessScanHandler(self._connection).Run(request)
-    return response
+        timeout_seconds=timeout_seconds,
+        context_window=context_window,
+    )
+    return ProcessScanHandler(self._connection).Run(request)
 
 
 def CreateMemoryClient(connection: communication.Connection) -> Client:

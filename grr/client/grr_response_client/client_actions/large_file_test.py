@@ -23,9 +23,13 @@ class CollectLargeFileTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
 
-    vfs_patcher = mock.patch.object(vfs, "VFS_HANDLERS", {
-        rdf_paths.PathSpec.PathType.OS: files.File,
-    })
+    vfs_patcher = mock.patch.object(
+        vfs,
+        "VFS_HANDLERS",
+        {
+            rdf_paths.PathSpec.PathType.OS: files.File,
+        },
+    )
     vfs_patcher.start()
     self.addCleanup(vfs_patcher.stop)
 

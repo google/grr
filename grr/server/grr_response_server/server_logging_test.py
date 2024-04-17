@@ -12,8 +12,8 @@ from grr_response_core.stats import metrics
 from grr_response_proto import jobs_pb2
 from grr_response_server import server_logging
 from grr_response_server.gui import api_call_context
+from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
-from grr_response_server.gui import wsgiapp
 from grr.test_lib import acl_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
@@ -46,10 +46,10 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
         "Invalid event ID generated")
 
   def testLogHttpAdminUIAccess(self):
-    request = wsgiapp.HttpRequest({
+    request = http_request.HttpRequest({
         "wsgi.url_scheme": "http",
         "SERVER_NAME": "foo.bar",
-        "SERVER_PORT": "1234"
+        "SERVER_PORT": "1234",
     })
     request.user = "testuser"
 

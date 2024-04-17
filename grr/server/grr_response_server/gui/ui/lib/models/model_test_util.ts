@@ -171,7 +171,6 @@ export function newArtifactDescriptor(
     isCustom: false,
     name: 'TestAritfact',
     pathDependencies: [],
-    provides: [],
     sources: [],
     supportedOs: new Set([OperatingSystem.LINUX]),
     urls: [],

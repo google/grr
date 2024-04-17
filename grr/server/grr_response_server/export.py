@@ -44,8 +44,6 @@ def GetMetadata(client_id, client_full_info):
 
     metadata.hostname = kb.fqdn
     metadata.os = kb.os
-    # TODO: Remove this once the field is gone.
-    metadata.uname = f"{kb.os}-{os_release}-{os_version}"
     metadata.os_release = os_release
     metadata.os_version = os_version
     metadata.usernames = ",".join(user.username for user in kb.users)

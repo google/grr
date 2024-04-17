@@ -18,6 +18,8 @@ from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
 from grr_response_server.models import blobs
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -48,7 +50,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         db.ClientPath.FromPathInfo(client_id, path_info), [blob_ref])
     path_info.hash_entry.sha256 = hash_id.AsBytes()
 
-    data_store.REL_DB.WritePathInfos(client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(
+        client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    )
 
   def _InitializeFiles(self):
     path1 = "fs/os/foo/bar/hello1.txt"
@@ -263,6 +267,7 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.flow_id = flow_test_lib.StartFlow(
         flow_test_lib.DummyFlow, client_id=self.client_id)
     self.flow = data_store.REL_DB.ReadFlowObject(self.client_id, self.flow_id)
+    self.flow = mig_flow_objects.ToRDFFlow(self.flow)
 
     self.path1 = db.ClientPath.OS(self.client_id, ["foo", "bar", "hello1.txt"])
     self.path1_content = "hello1".encode("utf-8")

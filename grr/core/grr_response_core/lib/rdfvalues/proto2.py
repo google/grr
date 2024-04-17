@@ -9,10 +9,8 @@ This file contains interoperability code with the Google protocol buffer
 library.
 """
 
-
 import inspect
 import logging
-
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -92,12 +90,14 @@ def DefineFromWireFormat(cls, protobuf):
     different names.
   """
   mro_chain = [c.__name__ for c in inspect.getmro(cls)]
-  if (protobuf.__name__ not in mro_chain and
-      not getattr(cls, "allow_custom_class_name", False)):
+  if protobuf.__name__ not in mro_chain and not getattr(
+      cls, "allow_custom_class_name", False
+  ):
     raise ProtobufNameMustMatchClassOrParentClassError(
         "Can't define RDFProtoStruct class %s from proto %s "
-        "(proto name must match one of the classes in the MRO chain: %s)" %
-        (cls.__name__, protobuf.__name__, ", ".join(mro_chain)))
+        "(proto name must match one of the classes in the MRO chain: %s)"
+        % (cls.__name__, protobuf.__name__, ", ".join(mro_chain))
+    )
 
   cls.recorded_rdf_deps = set()
 
@@ -127,7 +127,8 @@ def DefineFromWireFormat(cls, protobuf):
         name=field.name,
         friendly_name=options.friendly_name,
         field_number=field.number,
-        labels=list(options.label))
+        labels=list(options.label),
+    )
 
     if field.has_default_value:
       kwargs["default"] = field.default_value
@@ -137,34 +138,46 @@ def DefineFromWireFormat(cls, protobuf):
       cls.recorded_rdf_deps.add(options.type)
       rdf_type = rdfvalue.RDFValue.classes.get(options.type)
       if rdf_type:
-        if (CHECK_PROTOBUF_DEPENDENCIES and rdf_type not in cls.rdf_deps and
-            options.type not in cls.rdf_deps):
+        if (
+            CHECK_PROTOBUF_DEPENDENCIES
+            and rdf_type not in cls.rdf_deps
+            and options.type not in cls.rdf_deps
+        ):
           raise rdfvalue.InitializeError(
               "%s.%s: field %s is of type %s, "
-              "but type is missing from its dependencies list" %
-              (cls.__module__, cls.__name__, field.name, options.type))
+              "but type is missing from its dependencies list"
+              % (cls.__module__, cls.__name__, field.name, options.type)
+          )
 
         # Make sure that the field type is the same as what is required by the
         # semantic type.
         required_field_type = _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE[
-            rdf_type.protobuf_type]
+            rdf_type.protobuf_type
+        ]
 
         if required_field_type != field.type:
           raise rdfvalue.InitializeError(
-              ("%s: .proto file uses incorrect field to store Semantic Value "
-               "%s: Should be %s") %
-              (cls.__name__, field.name, rdf_type.protobuf_type))
+              (
+                  "%s: .proto file uses incorrect field to store Semantic Value"
+                  " %s: Should be %s"
+              )
+              % (cls.__name__, field.name, rdf_type.protobuf_type)
+          )
 
       type_descriptor = classes_dict["ProtoRDFValue"](
-          rdf_type=options.type, **kwargs)
+          rdf_type=options.type, **kwargs
+      )
 
     # A semantic protobuf is already a semantic value so it is an error to
     # specify it in two places.
     elif options.type and field.type == TYPE_MESSAGE:
       raise rdfvalue.InitializeError(
-          ("%s: .proto file specified both Semantic Value type %s and "
-           "Semantic protobuf %s") %
-          (cls.__name__, options.type, field.message_type.name))
+          (
+              "%s: .proto file specified both Semantic Value type %s and "
+              "Semantic protobuf %s"
+          )
+          % (cls.__name__, options.type, field.message_type.name)
+      )
 
     # Try to figure out what this field actually is from the descriptor.
     elif field.type == TYPE_DOUBLE:
@@ -188,18 +201,22 @@ def DefineFromWireFormat(cls, protobuf):
         dynamic_cb = getattr(cls, options.dynamic_type, None)
         if dynamic_cb is not None:
           type_descriptor = classes_dict["ProtoDynamicEmbedded"](
-              dynamic_cb=dynamic_cb, **kwargs)
+              dynamic_cb=dynamic_cb, **kwargs
+          )
         else:
-          logging.warning("Dynamic type specifies a non existent callback %s",
-                          options.dynamic_type)
+          logging.warning(
+              "Dynamic type specifies a non existent callback %s",
+              options.dynamic_type,
+          )
 
-    elif (field.type == TYPE_MESSAGE and field.message_type.name == "Any"):
+    elif field.type == TYPE_MESSAGE and field.message_type.name == "Any":
       if options.no_dynamic_type_lookup:
         type_descriptor = classes_dict["ProtoAnyValue"](**kwargs)
       else:
         dynamic_cb = getattr(cls, options.dynamic_type, None)
         type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
-            dynamic_cb=dynamic_cb, **kwargs)
+            dynamic_cb=dynamic_cb, **kwargs
+        )
 
     elif field.type == TYPE_INT64 or field.type == TYPE_INT32:
       type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)
@@ -214,22 +231,31 @@ def DefineFromWireFormat(cls, protobuf):
       # when it is known. Therefore this can actually also refer to this current
       # protobuf (i.e. nested proto).
       type_descriptor = classes_dict["ProtoEmbedded"](
-          nested=field.message_type.name, **kwargs)
+          nested=field.message_type.name, **kwargs
+      )
 
       cls.recorded_rdf_deps.add(field.message_type.name)
       if CHECK_PROTOBUF_DEPENDENCIES:
         found = False
         for d in cls.rdf_deps:
-          if (hasattr(d, "__name__") and d.__name__ == field.message_type.name
-              or d == field.message_type.name):
+          if (
+              hasattr(d, "__name__")
+              and d.__name__ == field.message_type.name
+              or d == field.message_type.name
+          ):
             found = True
 
         if not found:
           raise rdfvalue.InitializeError(
               "%s.%s: TYPE_MESSAGE field %s is %s, "
-              "but type is missing from its dependencies list" %
-              (cls.__module__, cls.__name__, field.name,
-               field.message_type.name))
+              "but type is missing from its dependencies list"
+              % (
+                  cls.__module__,
+                  cls.__name__,
+                  field.name,
+                  field.message_type.name,
+              )
+          )
 
       # TODO(user): support late binding here.
       if type_descriptor.type:
@@ -260,10 +286,18 @@ def DefineFromWireFormat(cls, protobuf):
         # different protobuf.
         if semantic_protobuf_primitive != field.message_type.name:
           raise rdfvalue.InitializeError(
-              ("%s.%s: Conflicting primitive (%s) and semantic protobuf %s "
-               "which implements primitive protobuf (%s)") %
-              (cls.__name__, field.name, field.message_type.name,
-               type_descriptor.type.__name__, semantic_protobuf_primitive))
+              (
+                  "%s.%s: Conflicting primitive (%s) and semantic protobuf %s "
+                  "which implements primitive protobuf (%s)"
+              )
+              % (
+                  cls.__name__,
+                  field.name,
+                  field.message_type.name,
+                  type_descriptor.type.__name__,
+                  semantic_protobuf_primitive,
+              )
+          )
 
     elif field.enum_type:  # It is an enum.
       # TODO(hanuszczak): Protobuf descriptors use `bytes` objects to represent
@@ -282,7 +316,8 @@ def DefineFromWireFormat(cls, protobuf):
 
         enum_dict[enum_value_name] = enum_value.number
         description = enum_value.GetOptions().Extensions[
-            semantic_pb2.description]
+            semantic_pb2.description
+        ]
         enum_descriptions[enum_value_name] = description
         labels = [
             label
@@ -295,7 +330,8 @@ def DefineFromWireFormat(cls, protobuf):
           enum=enum_dict,
           enum_descriptions=enum_descriptions,
           enum_labels=enum_labels,
-          **kwargs)
+          **kwargs,
+      )
 
       # Attach the enum container to the class for easy reference:
       setattr(cls, enum_desc_name, type_descriptor.enum_container)
@@ -306,7 +342,8 @@ def DefineFromWireFormat(cls, protobuf):
       if field.label == LABEL_REPEATED:
         options = field.GetOptions().Extensions[semantic_pb2.sem_type]
         type_descriptor = classes_dict["ProtoList"](
-            type_descriptor, labels=list(options.label))
+            type_descriptor, labels=list(options.label)
+        )
 
       try:
         cls.AddDescriptor(type_descriptor)
@@ -328,5 +365,6 @@ def DefineFromWireFormat(cls, protobuf):
       leftover_deps.remove(d)
     if leftover_deps:
       raise rdfvalue.InitializeError(
-          "Found superfluous dependencies for %s: %s" %
-          (cls.__name__, ",".join(leftover_deps)))
+          "Found superfluous dependencies for %s: %s"
+          % (cls.__name__, ",".join(leftover_deps))
+      )

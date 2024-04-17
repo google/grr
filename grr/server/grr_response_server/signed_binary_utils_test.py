@@ -64,14 +64,16 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         test_urn)
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
     self.assertIsInstance(blobs_iter, collections.abc.Iterator)
-    # We expect blobs to have at most 3 contiguous bytes of data.
-    expected_blobs = [
-        rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x33\x44\x55", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
-    ]
-    self.assertCountEqual(list(blobs_iter), expected_blobs)
+
+    blobs_list = list(blobs_iter)
+    blobs_list[0].Verify(self._public_key)
+    self.assertContainsSubset(blobs_list[0].data, binary_data)
+    blobs_list[1].Verify(self._public_key)
+    self.assertContainsSubset(blobs_list[1].data, binary_data)
+    blobs_list[2].Verify(self._public_key)
+    self.assertContainsSubset(blobs_list[2].data, binary_data)
+    blobs_list[3].Verify(self._public_key)
+    self.assertContainsSubset(blobs_list[3].data, binary_data)
 
   def testWriteSignedBinaryBlobs(self):
     test_urn = rdfvalue.RDFURN("aff4:/config/executables/foo")

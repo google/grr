@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """A module with utilities for working with the Sleuthkit's body format."""
+
 import enum
 import io
 import stat
-
-from typing import Iterator
-from typing import Optional
+from typing import Iterator, Optional
 
 from grr_response_proto import timeline_pb2
 

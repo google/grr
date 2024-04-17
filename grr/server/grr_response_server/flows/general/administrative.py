@@ -57,7 +57,7 @@ def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
   data_store.REL_DB.UpdateFlow(
       client_id,
       flow_id,
-      client_crash_info=mig_client.ToRDFClientCrash(crash_details),
+      client_crash_info=crash_details,
   )
 
   flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -195,7 +195,7 @@ class RecursiveBlobUploadMixin:
     # Fail early if the file is not there or empty.
     try:
       file_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_id)
-    except signed_binary_utils.UnknownSignedBinaryError as ex:
+    except signed_binary_utils.SignedBinaryNotFoundError as ex:
       raise flow_base.FlowError(f"File {binary_id} not found.") from ex
 
     if file_size == 0:
@@ -506,18 +506,92 @@ class OnlineNotification(flow_base.FlowBase):
         self.args.email, "grr-noreply", subject, body, is_html=True)
 
 
-class NannyMessageHandlerMixin(object):
-  """A listener for nanny messages."""
+class UpdateClientArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.UpdateClientArgs
+  rdf_deps = []
+
+
+class UpdateClient(RecursiveBlobUploadMixin, flow_base.FlowBase):
+  """Updates the GRR client to a new version replacing the current client.
+
+  This will execute the specified installer on the client and then run
+  an Interrogate flow.
+
+  The new installer's binary has to be uploaded to GRR (as a binary, not as
+  a Python hack) and must be signed using the exec signing key.
+
+  Signing and upload of the file is done with grr_config_updater or through
+  the API.
+  """
+
+  category = "/Administrative/"
+
+  args_type = UpdateClientArgs
+  result_types = (rdf_client_action.ExecuteBinaryResponse,)
+
+  def GenerateUploadRequest(
+      self, offset: int, file_size: int, blob: rdf_crypto.SignedBlob
+  ) -> Tuple[rdf_structs.RDFProtoStruct, Type[server_stubs.ClientActionStub]]:
+    request = rdf_client_action.ExecuteBinaryRequest(
+        executable=blob,
+        offset=offset,
+        write_path=self.state.write_path,
+        more_data=(offset + len(blob.data) < file_size),
+        use_client_env=False,
+    )
+
+    return request, server_stubs.UpdateAgent
+
+  @property
+  def _binary_id(self):
+    return objects_pb2.SignedBinaryID(
+        binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+        path=self.args.binary_path,
+    )
+
+  def Start(self):
+    """Start."""
+    if not self.args.binary_path:
+      raise flow_base.FlowError("Installer binary path is not specified.")
+
+    binary_urn = rdfvalue.RDFURN(self.args.binary_path)
+    self.state.write_path = "%d_%s" % (time.time(), binary_urn.Basename())
+
+    self.StartBlobsUpload(self._binary_id, self.End.__name__)
+
+  def End(self, responses):
+    if not responses.success:
+      raise flow_base.FlowError(
+          "Installer reported an error: %s" % responses.status
+      )
+    response = responses.First()
+    if not response:
+      return
+
+    if response.exit_status != 0:
+      raise flow_base.FlowError(
+          f"Installer process failed with exit code {response.exit_status}"
+          f"\nstdout: {response.stdout}"
+          f"\nstderr: {response.stderr}"
+      )
+    self.Log("Installer finished running.")
+    self.SendReply(response)
+
+
+class ClientAlertHandler(message_handlers.MessageHandler):
+  """A listener for client messages."""
+
+  handler_name = "ClientAlertHandler"
 
   mail_template = jinja2.Template(
       """
-<html><body><h1>GRR nanny message received.</h1>
+<html><body><h1>GRR client message received.</h1>
 
-The nanny for client {{ client_id }} ({{ hostname }}) just sent a message:<br>
+The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
 {{ message }}
 <br>
-Click <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
 
 <p>{{ signature }}</p>
 
@@ -525,9 +599,9 @@ Click <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
       autoescape=True,
   )
 
-  subject = "GRR nanny message received from %s."
+  subject = "GRR client message received from %s."
 
-  logline = "Nanny for client %s sent: %s"
+  logline = "Client message from %s: %s"
 
   def SendEmail(self, client_id, message):
     """Processes this event."""
@@ -570,46 +644,6 @@ Click <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
           self.subject % client_id,
           body,
           is_html=True)
-
-
-class NannyMessageHandler(NannyMessageHandlerMixin,
-                          message_handlers.MessageHandler):
-
-  handler_name = "NannyMessageHandler"
-
-  def ProcessMessages(self, msgs):
-    for message in msgs:
-      self.SendEmail(message.client_id, message.request.payload.string)
-
-
-class ClientAlertHandlerMixin(NannyMessageHandlerMixin):
-  """A listener for client messages."""
-
-  mail_template = jinja2.Template(
-      """
-<html><body><h1>GRR client message received.</h1>
-
-The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
-<br>
-{{ message }}
-<br>
-Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
-
-<p>{{ signature }}</p>
-
-</body></html>""",
-      autoescape=True,
-  )
-
-  subject = "GRR client message received from %s."
-
-  logline = "Client message from %s: %s"
-
-
-class ClientAlertHandler(ClientAlertHandlerMixin,
-                         message_handlers.MessageHandler):
-
-  handler_name = "ClientAlertHandler"
 
   def ProcessMessages(self, msgs):
     for message in msgs:

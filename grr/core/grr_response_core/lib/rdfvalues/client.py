@@ -5,13 +5,10 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
-import binascii
-import hashlib
 import logging
 import platform
 import re
 import socket
-import struct
 import sys
 from typing import Mapping
 
@@ -26,7 +23,6 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
@@ -62,18 +58,21 @@ class ClientURN(rdfvalue.RDFURN):
 
   @classmethod
   def _Normalize(cls, string):
-    normalized = super(ClientURN, cls)._Normalize(string.strip())
+    normalized = super()._Normalize(string.strip())
 
     if normalized:
       match = cls.CLIENT_ID_RE.match(normalized)
       if not match:
         raise type_info.TypeValueError(
             "Client URN '{!r} from initializer {!r} malformed".format(
-                normalized, string))
+                normalized, string
+            )
+        )
 
       clientid = match.group("clientid")
       clientid_correctcase = "".join(
-          (clientid[0].upper(), clientid[1:].lower()))
+          (clientid[0].upper(), clientid[1:].lower())
+      )
 
       normalized = normalized.replace(clientid, clientid_correctcase, 1)
     return normalized
@@ -84,25 +83,6 @@ class ClientURN(rdfvalue.RDFURN):
       return bool(cls.CLIENT_ID_RE.match(str(value)))
 
     return False
-
-  @classmethod
-  def FromPrivateKey(cls, private_key):
-    return cls.FromPublicKey(private_key.GetPublicKey())
-
-  @classmethod
-  def FromPublicKey(cls, public_key):
-    """An alternate constructor which generates a new client id."""
-    # Our CN will be the first 64 bits of the hash of the public key
-    # in MPI format - the length of the key in 4 bytes + the key
-    # prefixed with a 0. This weird format is an artifact from the way
-    # M2Crypto handled this, we have to live with it for now.
-    n = public_key.GetN()
-    raw_n = binascii.unhexlify("%x" % n)
-
-    mpi_format = struct.pack(">i", len(raw_n) + 1) + b"\x00" + raw_n
-
-    digest = text.Hexify(hashlib.sha256(mpi_format).digest()[:8])
-    return cls("C.{}".format(digest))
 
   def Add(self, path):
     """Add a relative stem to the current value and return a new RDFURN.
@@ -125,19 +105,12 @@ class ClientURN(rdfvalue.RDFURN):
     return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
 
 
-class PCIDevice(rdf_structs.RDFProtoStruct):
-  """A PCI device on the client.
-
-  This class describes a PCI device located on the client.
-  """
-  protobuf = sysinfo_pb2.PCIDevice
-
-
 class PackageRepository(rdf_structs.RDFProtoStruct):
   """Description of the configured repositories (Yum etc).
 
   Describes the configured software package repositories.
   """
+
   protobuf = sysinfo_pb2.PackageRepository
 
 
@@ -147,6 +120,7 @@ class ManagementAgent(rdf_structs.RDFProtoStruct):
   Describes the state, last run timestamp, and name of the management agent
   installed on the system.
   """
+
   protobuf = sysinfo_pb2.ManagementAgent
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -155,11 +129,13 @@ class ManagementAgent(rdf_structs.RDFProtoStruct):
 
 class PwEntry(rdf_structs.RDFProtoStruct):
   """Information about password structures."""
+
   protobuf = knowledge_base_pb2.PwEntry
 
 
 class Group(rdf_structs.RDFProtoStruct):
   """Information about system posix groups."""
+
   protobuf = knowledge_base_pb2.Group
   rdf_deps = [
       PwEntry,
@@ -168,6 +144,7 @@ class Group(rdf_structs.RDFProtoStruct):
 
 class User(rdf_structs.RDFProtoStruct):
   """Information about the users."""
+
   protobuf = knowledge_base_pb2.User
   rdf_deps = [
       PwEntry,
@@ -194,6 +171,7 @@ class KnowledgeBaseUser(User):
 
 class KnowledgeBase(rdf_structs.RDFProtoStruct):
   """Information about the system and users."""
+
   protobuf = knowledge_base_pb2.KnowledgeBase
   rdf_deps = [
       User,
@@ -214,7 +192,8 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     """
 
     user = self.GetUser(
-        sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username)
+        sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username
+    )
     new_attrs = []
     merge_conflicts = []  # Record when we overwrite a value.
     if not user:
@@ -293,16 +272,19 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
 
 class HardwareInfo(rdf_structs.RDFProtoStruct):
   """Various hardware information."""
+
   protobuf = sysinfo_pb2.HardwareInfo
 
 
 class ClientInformation(rdf_structs.RDFProtoStruct):
   """The GRR client information."""
+
   protobuf = jobs_pb2.ClientInformation
 
 
 class BufferReference(rdf_structs.RDFProtoStruct):
   """Stores information about a buffer in a file on the client."""
+
   protobuf = jobs_pb2.BufferReference
   rdf_deps = [
       rdf_paths.PathSpec,
@@ -314,6 +296,7 @@ class BufferReference(rdf_structs.RDFProtoStruct):
 
 class Process(rdf_structs.RDFProtoStruct):
   """Represent a process on the client."""
+
   protobuf = sysinfo_pb2.Process
   rdf_deps = [
       rdf_client_network.NetworkConnection,
@@ -361,10 +344,12 @@ class Process(rdf_structs.RDFProtoStruct):
       try:
         # Not available on Windows.
         if hasattr(psutil_process, "uids"):
-          (response.real_uid, response.effective_uid,
-           response.saved_uid) = psutil_process.uids()
-          (response.real_gid, response.effective_gid,
-           response.saved_gid) = psutil_process.gids()
+          (response.real_uid, response.effective_uid, response.saved_uid) = (
+              psutil_process.uids()
+          )
+          (response.real_gid, response.effective_gid, response.saved_gid) = (
+              psutil_process.gids()
+          )
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
@@ -427,13 +412,15 @@ class Process(rdf_structs.RDFProtoStruct):
       try:
         for c in psutil_process.connections():
           conn = response.connections.Append(
-              family=c.family, type=c.type, pid=psutil_process.pid)
+              family=c.family, type=c.type, pid=psutil_process.pid
+          )
 
           try:
             conn.state = c.status
           except ValueError:
-            logging.info("Encountered unknown connection status (%s).",
-                         c.status)
+            logging.info(
+                "Encountered unknown connection status (%s).", c.status
+            )
 
           try:
             conn.local_address.ip, conn.local_address.port = c.laddr
@@ -446,8 +433,9 @@ class Process(rdf_structs.RDFProtoStruct):
 
             # Could be in state LISTEN.
             if c.remote_address:
-              (conn.remote_address.ip,
-               conn.remote_address.port) = c.remote_address
+              (conn.remote_address.ip, conn.remote_address.port) = (
+                  c.remote_address
+              )
 
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
@@ -464,26 +452,31 @@ class NamedPipe(rdf_structs.RDFProtoStruct):
 
 class SoftwarePackage(rdf_structs.RDFProtoStruct):
   """Represent an installed package on the client."""
+
   protobuf = sysinfo_pb2.SoftwarePackage
 
   @classmethod
   def Installed(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.INSTALLED, **kwargs)
+        install_state=SoftwarePackage.InstallState.INSTALLED, **kwargs
+    )
 
   @classmethod
   def Pending(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.PENDING, **kwargs)
+        install_state=SoftwarePackage.InstallState.PENDING, **kwargs
+    )
 
   @classmethod
   def Uninstalled(cls, **kwargs):
     return SoftwarePackage(
-        install_state=SoftwarePackage.InstallState.UNINSTALLED, **kwargs)
+        install_state=SoftwarePackage.InstallState.UNINSTALLED, **kwargs
+    )
 
 
 class SoftwarePackages(rdf_structs.RDFProtoStruct):
   """A list of installed packages on the system."""
+
   protobuf = sysinfo_pb2.SoftwarePackages
 
   rdf_deps = [
@@ -493,11 +486,13 @@ class SoftwarePackages(rdf_structs.RDFProtoStruct):
 
 class LogMessage(rdf_structs.RDFProtoStruct):
   """A log message sent from the client to the server."""
+
   protobuf = jobs_pb2.LogMessage
 
 
 class Uname(rdf_structs.RDFProtoStruct):
   """A protobuf to represent the current system."""
+
   protobuf = jobs_pb2.Uname
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -524,8 +519,10 @@ class Uname(rdf_structs.RDFProtoStruct):
     if result:
       return result
 
-    raise ValueError("PEP 425 Signature not set - this is likely an old "
-                     "component file, please back it up and remove it.")
+    raise ValueError(
+        "PEP 425 Signature not set - this is likely an old "
+        "component file, please back it up and remove it."
+    )
 
   @classmethod
   def FromCurrentSystem(cls):
@@ -560,8 +557,11 @@ class Uname(rdf_structs.RDFProtoStruct):
         # 0.34.2
         pep_platform = pep425tags.get_platform(None)
       pep425tag = "%s%s-%s-%s" % (
-          pep425tags.get_abbr_impl(), pep425tags.get_impl_ver(),
-          str(pep425tags.get_abi_tag()).lower(), pep_platform)
+          pep425tags.get_abbr_impl(),
+          pep425tags.get_impl_ver(),
+          str(pep425tags.get_abi_tag()).lower(),
+          pep_platform,
+      )
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)
@@ -580,6 +580,7 @@ class Uname(rdf_structs.RDFProtoStruct):
 
 class StartupInfo(rdf_structs.RDFProtoStruct):
   """Information about the startup of a GRR agent."""
+
   protobuf = jobs_pb2.StartupInfo
   rdf_deps = [
       ClientInformation,
@@ -589,6 +590,7 @@ class StartupInfo(rdf_structs.RDFProtoStruct):
 
 class WindowsServiceInformation(rdf_structs.RDFProtoStruct):
   """Windows Service."""
+
   protobuf = sysinfo_pb2.WindowsServiceInformation
   rdf_deps = [
       rdf_protodict.Dict,
@@ -598,6 +600,7 @@ class WindowsServiceInformation(rdf_structs.RDFProtoStruct):
 
 class OSXServiceInformation(rdf_structs.RDFProtoStruct):
   """OSX Service (launchagent/daemon)."""
+
   protobuf = sysinfo_pb2.OSXServiceInformation
   rdf_deps = [
       rdfvalue.RDFURN,
@@ -606,6 +609,7 @@ class OSXServiceInformation(rdf_structs.RDFProtoStruct):
 
 class LinuxServiceInformation(rdf_structs.RDFProtoStruct):
   """Linux Service (init/upstart/systemd)."""
+
   protobuf = sysinfo_pb2.LinuxServiceInformation
   rdf_deps = [
       rdf_protodict.AttributedDict,
@@ -621,11 +625,13 @@ class RunKey(rdf_structs.RDFProtoStruct):
 
 class RunKeyEntry(rdf_protodict.RDFValueArray):
   """Structure of a Run Key entry with keyname, filepath, and last written."""
+
   rdf_type = RunKey
 
 
 class ClientCrash(rdf_structs.RDFProtoStruct):
   """Details of a client crash."""
+
   protobuf = jobs_pb2.ClientCrash
   rdf_deps = [
       ClientInformation,
@@ -644,11 +650,13 @@ class EdrAgent(rdf_structs.RDFProtoStruct):
 
 class FleetspeakValidationInfoTag(rdf_structs.RDFProtoStruct):
   """Dictionary entry in FleetspeakValidationInfo."""
+
   protobuf = jobs_pb2.FleetspeakValidationInfoTag
 
 
 class FleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
   """Dictionary-like struct containing Fleetspeak ValidationInfo."""
+
   protobuf = jobs_pb2.FleetspeakValidationInfo
   rdf_deps = [FleetspeakValidationInfoTag]
 
@@ -665,6 +673,7 @@ class FleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
 
 class ClientSummary(rdf_structs.RDFProtoStruct):
   """Object containing client's summary data."""
+
   protobuf = jobs_pb2.ClientSummary
   rdf_deps = [
       ClientInformation,

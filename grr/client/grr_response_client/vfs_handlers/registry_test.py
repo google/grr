@@ -3,6 +3,7 @@
 
 import platform
 import unittest
+
 from absl import app
 from absl.testing import absltest
 
@@ -61,10 +62,13 @@ class RegistryFileTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\aaa",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     stat = fd.Stat()
-    self.assertIn(stat.pathspec.path,
-                  "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa")
+    self.assertIn(
+        stat.pathspec.path, "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"
+    )
     self.assertEqual(stat.pathspec.pathtype, "REGISTRY")
     self.assertEqual(stat.st_size, 6)
 
@@ -72,7 +76,9 @@ class RegistryFileTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.Read(-1), b"lolcat")
     self.assertEqual(fd.Stat().registry_data.GetValue(), "lolcat")
 
@@ -80,28 +86,36 @@ class RegistryFileTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/{}".format(_LONG_KEY),
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.Read(-1).decode("utf-8"), _LONG_STRING_VALUE)
 
   def testReadMinDword(self):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/mindword",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.value, 0)
 
   def testReadMaxDword(self):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/maxdword",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.value, 0xFFFFFFFF)
 
   def testReadAnyDword(self):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/dword42",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.value, 42)
     self.assertEqual(fd.Stat().registry_data.GetValue(), 42)
 
@@ -109,14 +123,18 @@ class RegistryFileTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/maxdword",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertEqual(fd.Read(-1), b"4294967295")
 
   def testListNamesDoesNotListKeyAndValueOfSameNameTwice(self):
     fd = vfs.VFSOpen(
         rdf_paths.PathSpec(
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/listnametest",
-            pathtype="REGISTRY"))
+            pathtype="REGISTRY",
+        )
+    )
     self.assertCountEqual(fd.ListNames(), ["bar", "baz"])
 
 

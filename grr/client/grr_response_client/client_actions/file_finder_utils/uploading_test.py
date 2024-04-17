@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import collections
 import hashlib
 import io

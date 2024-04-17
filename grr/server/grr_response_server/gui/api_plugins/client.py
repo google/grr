@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
+from grr_response_proto import flows_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -552,7 +553,7 @@ class ApiGetInterrogateOperationStateHandler(
       raise InterrogateOperationNotFoundError("Operation with id %s not found" %
                                               args.operation_id)
 
-    complete = flow_obj.flow_state != flow_obj.FlowState.RUNNING
+    complete = flow_obj.flow_state != flows_pb2.Flow.FlowState.RUNNING
 
     result = ApiGetInterrogateOperationStateResult()
     if complete:

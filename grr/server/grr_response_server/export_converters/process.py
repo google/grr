@@ -29,8 +29,9 @@ class ProcessToExportedProcessConverter(base.ExportConverter):
 
   input_rdf_type = rdf_client.Process
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              process: rdf_client.Process) -> List[ExportedProcess]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, process: rdf_client.Process
+  ) -> List[ExportedProcess]:
     """Converts a Process into a ExportedProcess.
 
     Args:
@@ -66,7 +67,8 @@ class ProcessToExportedProcessConverter(base.ExportConverter):
         cpu_percent=process.cpu_percent,
         rss_size=process.RSS_size,
         vms_size=process.VMS_size,
-        memory_percent=process.memory_percent)
+        memory_percent=process.memory_percent,
+    )
     return [result]
 
 
@@ -89,11 +91,14 @@ class ProcessToExportedNetworkConnectionConverter(base.ExportConverter):
       converted Process.
     """
 
-    conn_converter = network.NetworkConnectionToExportedNetworkConnectionConverter(
-        options=self.options)
-    return conn_converter.BatchConvert([
-        (metadata, conn) for conn in process.connections
-    ])
+    conn_converter = (
+        network.NetworkConnectionToExportedNetworkConnectionConverter(
+            options=self.options
+        )
+    )
+    return conn_converter.BatchConvert(
+        [(metadata, conn) for conn in process.connections]
+    )
 
 
 class ProcessToExportedOpenFileConverter(base.ExportConverter):
@@ -101,8 +106,9 @@ class ProcessToExportedOpenFileConverter(base.ExportConverter):
 
   input_rdf_type = rdf_client.Process
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              process: rdf_client.Process) -> Iterator[ExportedOpenFile]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, process: rdf_client.Process
+  ) -> Iterator[ExportedOpenFile]:
     """Converts a Process into a ExportedOpenFile.
 
     Args:

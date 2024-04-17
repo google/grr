@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-
-from typing import IO
-from typing import Iterable
-from typing import Iterator
+from typing import IO, Iterable, Iterator
 from unittest import mock
 
 from absl.testing import absltest
@@ -17,8 +14,11 @@ from grr.test_lib import parser_test_lib
 
 class ArtifactParserFactoryTest(absltest.TestCase):
 
-  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleResponseParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleResponseParser),
+  )
   def testSingleResponseParsers(self):
 
     class FooParser(parsers.SingleResponseParser[None]):
@@ -70,8 +70,11 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     thud_parsers = thud_factory.SingleResponseParsers()
     self.assertCountEqual(map(type, thud_parsers), [BarParser, BazParser])
 
-  @mock.patch.object(parsers, "MULTI_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.MultiResponseParser))
+  @mock.patch.object(
+      parsers,
+      "MULTI_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.MultiResponseParser),
+  )
   def testMultiResponseParsers(self):
 
     class FooParser(parsers.MultiResponseParser[None]):
@@ -107,8 +110,11 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     bar_parsers = bar_factory.MultiResponseParsers()
     self.assertCountEqual(map(type, bar_parsers), [BarParser])
 
-  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleFileParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_FILE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleFileParser),
+  )
   def testSingleFileParsers(self):
 
     class FooParser(parsers.SingleFileParser):
@@ -128,8 +134,11 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     baz_parsers = baz_factory.SingleFileParsers()
     self.assertCountEqual(map(type, baz_parsers), [])
 
-  @mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
-                     factory.Factory(parsers.MultiFileParser))
+  @mock.patch.object(
+      parsers,
+      "MULTI_FILE_PARSER_FACTORY",
+      factory.Factory(parsers.MultiFileParser),
+  )
   def testMultiFileParsers(self):
 
     class FooParser(parsers.MultiFileParser[None]):
@@ -171,10 +180,16 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     thud_parsers = thud_factory.MultiFileParsers()
     self.assertCountEqual(map(type, thud_parsers), [BarParser])
 
-  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleFileParser))
-  @mock.patch.object(parsers, "MULTI_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.MultiResponseParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_FILE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleFileParser),
+  )
+  @mock.patch.object(
+      parsers,
+      "MULTI_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.MultiResponseParser),
+  )
   def testAllParsers(self):
 
     class FooParser(parsers.SingleFileParser[None]):

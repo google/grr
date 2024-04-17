@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Crypto rdfvalue tests."""
 
-
 import binascii
 import hashlib
 import os
+import unittest
 from unittest import mock
 
 from absl import app
@@ -25,7 +25,8 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def setUp(self):
     super().setUp()
     self.private_key = config.CONFIG[
-        "PrivateKeys.executable_signing_private_key"]
+        "PrivateKeys.executable_signing_private_key"
+    ]
     self.public_key = config.CONFIG["Client.executable_signing_public_key"]
 
   def GenerateSample(self, number=0):
@@ -34,6 +35,13 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     return result
 
+  @unittest.skip(
+      "Samples are expected to be different for the same data as PSS padding"
+      " generates a new Hash for every sample."
+  )
+  def testComparisons(self):
+    pass
+
   def testSignVerify(self):
     sample = self.GenerateSample()
 
@@ -41,15 +49,17 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Change the data - this should fail since the hash is incorrect.
     sample.data += b"X"
-    self.assertRaises(rdf_crypto.VerificationError, sample.Verify,
-                      self.public_key)
+    self.assertRaises(
+        rdf_crypto.VerificationError, sample.Verify, self.public_key
+    )
 
     # Update the hash
     sample.digest = hashlib.sha256(sample.data).digest()
 
     # Should still fail.
-    self.assertRaises(rdf_crypto.VerificationError, sample.Verify,
-                      self.public_key)
+    self.assertRaises(
+        rdf_crypto.VerificationError, sample.Verify, self.public_key
+    )
 
     # If we change the digest verification should fail.
     sample = self.GenerateSample()
@@ -60,7 +70,7 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # PSS should be accepted.
     sample = self.GenerateSample()
     sample.signature_type = sample.SignatureType.RSA_PSS
-    sample.signature = self.private_key.Sign(sample.data, use_pss=1)
+    sample.signature = self.private_key.Sign(sample.data)
     sample.Verify(self.public_key)
 
 
@@ -81,36 +91,16 @@ class TestCryptoTypeInfos(CryptoTestBase):
     config_stubber.Start()
     self.addCleanup(config_stubber.Stop)
 
-  def testInvalidX509Certificates(self):
-    """Deliberately try to parse an invalid certificate."""
-    config.CONFIG.Initialize(data="""
-[Frontend]
-certificate = -----BEGIN CERTIFICATE-----
-        MIIDczCCAVugAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMFkxCzAJBgNV
-        uqnFquJfg8xMWHHJmPEocDpJT8Tlmbw=
-        -----END CERTIFICATE-----
-""")
-    config.CONFIG.context = []
-
-    errors = config.CONFIG.Validate("Frontend")
-    self.assertCountEqual(list(errors.keys()), ["Frontend.certificate"])
-
   def testInvalidRSAPrivateKey(self):
     """Deliberately try to parse invalid RSA keys."""
     config.CONFIG.Initialize(data="""
 [PrivateKeys]
-server_key = -----BEGIN PRIVATE KEY-----
-        MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp
-        jzITFeE6mjs3k1I=
-        -----END PRIVATE KEY-----
 executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
         -----END RSA PRIVATE KEY-----
 """)
     config.CONFIG.context = []
 
-    with self.assertRaises(config_lib.ConfigFormatError):
-      config.CONFIG.Get("PrivateKeys.server_key")
     with self.assertRaises(config_lib.ConfigFormatError):
       config.CONFIG.Get("PrivateKeys.executable_signing_private_key")
 
@@ -144,7 +134,8 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 
     errors = config.CONFIG.Validate("Client")
     self.assertCountEqual(
-        list(errors.keys()), ["Client.executable_signing_public_key"])
+        list(errors.keys()), ["Client.executable_signing_public_key"]
+    )
 
   def testRSAPrivate(self):
     """Tests parsing an RSA private key."""
@@ -181,7 +172,8 @@ executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     config.CONFIG.context = []
     self.assertIsInstance(
         config.CONFIG.Get("PrivateKeys.executable_signing_private_key"),
-        rdf_crypto.RSAPrivateKey)
+        rdf_crypto.RSAPrivateKey,
+    )
 
 
 class CryptoUtilTest(CryptoTestBase):
@@ -193,23 +185,29 @@ class CryptoUtilTest(CryptoTestBase):
     message = b"Hello World!!!!!" * 10
 
     for plaintext, partitions in [
-        (message, [
-            [160],
-            [80, 80],
-            [75, 75, 10],
-            [1, 159],
-            [10] * 16,
-            [1] * 160,
-        ]),
+        (
+            message,
+            [
+                [160],
+                [80, 80],
+                [75, 75, 10],
+                [1, 159],
+                [10] * 16,
+                [1] * 160,
+            ],
+        ),
         # Prime length, not a multiple of blocksize.
-        (message[:149], [
-            [149],
-            [80, 69],
-            [75, 55, 19],
-            [1, 148],
-            [10] * 14 + [9],
-            [1] * 149,
-        ])
+        (
+            message[:149],
+            [
+                [149],
+                [80, 69],
+                [75, 55, 19],
+                [1, 148],
+                [10] * 14 + [9],
+                [1] * 149,
+            ],
+        ),
     ]:
       for partition in partitions:
         cipher = rdf_crypto.AES128CBCCipher(key, iv)
@@ -217,7 +215,7 @@ class CryptoUtilTest(CryptoTestBase):
         offset = 0
         out = []
         for n in partition:
-          next_partition = plaintext[offset:offset + n]
+          next_partition = plaintext[offset : offset + n]
           out.append(streaming_cbc.Update(next_partition))
           offset += n
         out.append(streaming_cbc.Finalize())
@@ -263,8 +261,9 @@ class CryptoUtilTest(CryptoTestBase):
     self.assertRaises(rdf_crypto.CipherError, cipher.Decrypt, plain_text)
 
 
-class SymmetricCipherTest(rdf_test_base.RDFValueTestMixin,
-                          test_lib.GRRBaseTest):
+class SymmetricCipherTest(
+    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
+):
   rdfvalue_class = rdf_crypto.SymmetricCipher
 
   sample_cache = {}
@@ -320,8 +319,11 @@ class RSATest(CryptoTestBase):
       with self.assertRaises(type_info.TypeValueError):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
-      with mock.patch.object(config.CONFIG, "context",
-                             config.CONFIG.context + ["Commandline Context"]):
+      with mock.patch.object(
+          config.CONFIG,
+          "context",
+          config.CONFIG.context + ["Commandline Context"],
+      ):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
         # allow_prompt=False even prevents this in the Commandline Context.
@@ -344,12 +346,21 @@ class RSATest(CryptoTestBase):
     broken_signature = _Tamper(signature)
     broken_message = _Tamper(message)
 
-    self.assertRaises(rdf_crypto.VerificationError, public_key.Verify, message,
-                      broken_signature)
-    self.assertRaises(rdf_crypto.VerificationError, public_key.Verify,
-                      broken_message, signature)
-    self.assertRaises(rdf_crypto.VerificationError, public_key.Verify, message,
-                      b"")
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        public_key.Verify,
+        message,
+        broken_signature,
+    )
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        public_key.Verify,
+        broken_message,
+        signature,
+    )
+    self.assertRaises(
+        rdf_crypto.VerificationError, public_key.Verify, message, b""
+    )
 
   def testEncryptDecrypt(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
@@ -363,26 +374,15 @@ class RSATest(CryptoTestBase):
     plaintext = private_key.Decrypt(ciphertext)
     self.assertEqual(plaintext, message)
 
-    self.assertRaises(rdf_crypto.CipherError, private_key.Decrypt,
-                      _Tamper(ciphertext))
-
-  def testPSSPadding(self):
-    private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
-    public_key = private_key.GetPublicKey()
-    message = b"Hello World!"
-
-    # Generate two different signtures, one using PKCS1v15 padding, one using
-    # PSS. The crypto code should accept both as valid.
-    signature_pkcs1v15 = private_key.Sign(message)
-    signature_pss = private_key.Sign(message, use_pss=True)
-    self.assertNotEqual(signature_pkcs1v15, signature_pss)
-    public_key.Verify(message, signature_pkcs1v15)
-    public_key.Verify(message, signature_pss)
+    self.assertRaises(
+        rdf_crypto.CipherError, private_key.Decrypt, _Tamper(ciphertext)
+    )
 
   def testM2CryptoSigningCompatibility(self):
     pem = open(os.path.join(self.base_path, "m2crypto/rsa_key"), "rb").read()
-    signature = open(os.path.join(self.base_path, "m2crypto/signature"),
-                     "rb").read()
+    signature = open(
+        os.path.join(self.base_path, "m2crypto/signature"), "rb"
+    ).read()
     private_key = rdf_crypto.RSAPrivateKey(pem)
     message = b"Signed by M2Crypto!"
 
@@ -395,7 +395,8 @@ class RSATest(CryptoTestBase):
     pem = open(os.path.join(self.base_path, "m2crypto/rsa_key"), "rb").read()
     private_key = rdf_crypto.RSAPrivateKey(pem)
     ciphertext = open(
-        os.path.join(self.base_path, "m2crypto/rsa_ciphertext"), "rb").read()
+        os.path.join(self.base_path, "m2crypto/rsa_ciphertext"), "rb"
+    ).read()
     message = b"Encrypted by M2Crypto!"
 
     plaintext = private_key.Decrypt(ciphertext)
@@ -414,12 +415,17 @@ class HMACTest(CryptoTestBase):
     h.Verify(message, signature)
 
     broken_message = message + b"!"
-    self.assertRaises(rdf_crypto.VerificationError, h.Verify, broken_message,
-                      signature)
+    self.assertRaises(
+        rdf_crypto.VerificationError, h.Verify, broken_message, signature
+    )
 
     broken_signature = _Tamper(signature)
-    self.assertRaises(rdf_crypto.VerificationError, h.Verify, b"Hello World!",
-                      broken_signature)
+    self.assertRaises(
+        rdf_crypto.VerificationError,
+        h.Verify,
+        b"Hello World!",
+        broken_signature,
+    )
 
   def testSHA256(self):
     """Tests that both types of signatures are ok."""
@@ -437,7 +443,8 @@ class HMACTest(CryptoTestBase):
     message = b"HMAC by M2Crypto!"
     signature = binascii.unhexlify("99cae3ec7b41ceb6e6619f2f85368cb3ae118b70")
     key = rdf_crypto.EncryptionKey.FromHumanReadable(
-        "94bd4e0ecc8397a8b2cdbc4b127ee7b0")
+        "94bd4e0ecc8397a8b2cdbc4b127ee7b0"
+    )
     h = rdf_crypto.HMAC(key)
 
     self.assertEqual(h.HMAC(message), signature)
@@ -447,27 +454,10 @@ class HMACTest(CryptoTestBase):
 
 class RDFX509CertTest(CryptoTestBase):
 
-  def testCertificateVerification(self):
-    private_key = rdf_crypto.RSAPrivateKey.GenerateKey()
-    csr = rdf_crypto.CertificateSigningRequest(
-        common_name="C.0000000000000001", private_key=private_key)
-    client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
-
-    ca_signing_key = config.CONFIG["PrivateKeys.ca_key"]
-
-    csr.Verify(private_key.GetPublicKey())
-    client_cert.Verify(ca_signing_key.GetPublicKey())
-
-    wrong_key = rdf_crypto.RSAPrivateKey.GenerateKey()
-    with self.assertRaises(rdf_crypto.VerificationError):
-      csr.Verify(wrong_key.GetPublicKey())
-
-    with self.assertRaises(rdf_crypto.VerificationError):
-      client_cert.Verify(wrong_key.GetPublicKey())
-
   def testExpiredTestCertificate(self):
-    pem = open(os.path.join(self.base_path, "outdated_certificate"),
-               "rb").read()
+    pem = open(
+        os.path.join(self.base_path, "outdated_certificate"), "rb"
+    ).read()
     certificate = rdf_crypto.RDFX509Cert(pem)
 
     exception_catcher = self.assertRaises(rdf_crypto.VerificationError)
@@ -477,23 +467,6 @@ class RDFX509CertTest(CryptoTestBase):
       certificate.Verify(None)
 
     self.assertIn("Certificate expired!", str(exception_catcher.exception))
-
-  def testCertificateValidation(self):
-    private_key = rdf_crypto.RSAPrivateKey.GenerateKey()
-    csr = rdf_crypto.CertificateSigningRequest(
-        common_name="C.0000000000000001", private_key=private_key)
-    client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
-
-    now = rdfvalue.RDFDatetime.Now()
-    now_plus_year_and_a_bit = now + rdfvalue.Duration.From(55, rdfvalue.WEEKS)
-    now_minus_a_bit = now - rdfvalue.Duration.From(1, rdfvalue.HOURS)
-    with test_lib.FakeTime(now_plus_year_and_a_bit):
-      with self.assertRaises(rdf_crypto.VerificationError):
-        client_cert.Verify(private_key.GetPublicKey())
-
-    with test_lib.FakeTime(now_minus_a_bit):
-      with self.assertRaises(rdf_crypto.VerificationError):
-        client_cert.Verify(private_key.GetPublicKey())
 
 
 class PasswordTest(CryptoTestBase):

@@ -51,15 +51,19 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         db="grr-test-db",
         user="grr-test-user",
         passwd="grr-test-password",
-        charset="utf8")
+        charset="utf8",
+    )
     self.assertEqual(config.writeback_data["Mysql.host"], "localhost")
     self.assertEqual(config.writeback_data["Mysql.port"], 1234)
-    self.assertEqual(config.writeback_data["Mysql.database_name"],
-                     "grr-test-db")
-    self.assertEqual(config.writeback_data["Mysql.database_username"],
-                     "grr-test-user")
-    self.assertEqual(config.writeback_data["Mysql.database_password"],
-                     "grr-test-password")
+    self.assertEqual(
+        config.writeback_data["Mysql.database_name"], "grr-test-db"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.database_username"], "grr-test-user"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.database_password"], "grr-test-password"
+    )
 
   @mock.patch.object(MySQLdb, "connect")
   @mock.patch.object(getpass, "getpass")
@@ -93,28 +97,36 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
             "key": "key_file_path",
             "cert": "cert_file_path",
             "ca": "ca_cert_file_path",
-        })
+        },
+    )
     self.assertEqual(config.writeback_data["Mysql.host"], "localhost")
     self.assertEqual(config.writeback_data["Mysql.port"], 1234)
-    self.assertEqual(config.writeback_data["Mysql.database_name"],
-                     "grr-test-db")
-    self.assertEqual(config.writeback_data["Mysql.database_username"],
-                     "grr-test-user")
-    self.assertEqual(config.writeback_data["Mysql.database_password"],
-                     "grr-test-password")
-    self.assertEqual(config.writeback_data["Mysql.client_key_path"],
-                     "key_file_path")
-    self.assertEqual(config.writeback_data["Mysql.client_cert_path"],
-                     "cert_file_path")
-    self.assertEqual(config.writeback_data["Mysql.ca_cert_path"],
-                     "ca_cert_file_path")
+    self.assertEqual(
+        config.writeback_data["Mysql.database_name"], "grr-test-db"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.database_username"], "grr-test-user"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.database_password"], "grr-test-password"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.client_key_path"], "key_file_path"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.client_cert_path"], "cert_file_path"
+    )
+    self.assertEqual(
+        config.writeback_data["Mysql.ca_cert_path"], "ca_cert_file_path"
+    )
 
   @mock.patch.object(MySQLdb, "connect")
   @mock.patch.object(getpass, "getpass")
   @mock.patch.object(config_updater_util, "_MYSQL_MAX_RETRIES", new=1)
   @mock.patch.object(config_updater_util, "_MYSQL_RETRY_WAIT_SECS", new=0.1)
-  def testConfigureMySQLDatastore_ConnectionRetry(self, getpass_mock,
-                                                  connect_mock):
+  def testConfigureMySQLDatastore_ConnectionRetry(
+      self, getpass_mock, connect_mock
+  ):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
         "Y",  # Use REL_DB as the primary data store.
@@ -123,11 +135,12 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         "grr-test-db",  # GRR db name.
         "grr-test-user",  # GRR db user.
         "n",  # No SSL.
-        "n"  # Exit config initialization after retries are depleted.
+        "n",  # Exit config initialization after retries are depleted.
     ]
     getpass_mock.return_value = "grr-test-password"  # DB password for GRR.
     connect_mock.side_effect = MySQLdb.OperationalError(
-        mysql_conn_errors.CONNECTION_ERROR, "Fake connection error.")
+        mysql_conn_errors.CONNECTION_ERROR, "Fake connection error."
+    )
     config = grr_config.CONFIG.CopyConfig()
     with self.assertRaises(config_updater_util.ConfigInitError):
       config_updater_util.ConfigureMySQLDatastore(config)
@@ -142,13 +155,17 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           python_hack_path,
           config_pb2.ApiGrrBinary.Type.PYTHON_HACK,
           "linux",
-          upload_subdirectory="test")
+          upload_subdirectory="test",
+      )
       python_hack_urn = rdfvalue.RDFURN(
-          "aff4:/config/python_hacks/linux/test/hello_world.py")
+          "aff4:/config/python_hacks/linux/test/hello_world.py"
+      )
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-          python_hack_urn)
+          python_hack_urn
+      )
       uploaded_blobs = list(
-          signed_binary_utils.StreamSignedBinaryContents(blob_iterator))
+          signed_binary_utils.StreamSignedBinaryContents(blob_iterator)
+      )
       uploaded_content = b"".join(uploaded_blobs)
       self.assertEqual(uploaded_content, b"print('Hello, world!')")
 
@@ -161,14 +178,17 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           executable_path,
           config_pb2.ApiGrrBinary.Type.EXECUTABLE,
           "windows",
-          upload_subdirectory="anti-malware/registry-tools")
+          upload_subdirectory="anti-malware/registry-tools",
+      )
       executable_urn = rdfvalue.RDFURN(
-          "aff4:/config/executables/windows/anti-malware/registry-tools/"
-          "foo.exe")
+          "aff4:/config/executables/windows/anti-malware/registry-tools/foo.exe"
+      )
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-          executable_urn)
+          executable_urn
+      )
       uploaded_blobs = list(
-          signed_binary_utils.StreamSignedBinaryContents(blob_iterator))
+          signed_binary_utils.StreamSignedBinaryContents(blob_iterator)
+      )
       uploaded_content = b"".join(uploaded_blobs)
       self.assertEqual(uploaded_content, b"\xaa\xbb\xcc\xdd")
 
@@ -180,12 +200,16 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           f.write(b"\xaa\xbb\xcc\xdd\xee\xff")
         expected_message = (
             "File [%s] is of size 6 (bytes), which exceeds the allowed maximum "
-            "of 5 bytes." % executable_path)
+            "of 5 bytes." % executable_path
+        )
         with self.assertRaisesWithLiteralMatch(
-            config_updater_util.BinaryTooLargeError, expected_message):
+            config_updater_util.BinaryTooLargeError, expected_message
+        ):
           config_updater_util.UploadSignedBinary(
-              executable_path, config_pb2.ApiGrrBinary.Type.EXECUTABLE,
-              "windows")
+              executable_path,
+              config_pb2.ApiGrrBinary.Type.EXECUTABLE,
+              "windows",
+          )
 
   @mock.patch.object(getpass, "getpass")
   def testCreateAdminUser(self, getpass_mock):
@@ -195,7 +219,8 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   def testCreateStandardUser(self):
     config_updater_util.CreateUser(
-        "foo_user", password="foo_password", is_admin=False)
+        "foo_user", password="foo_password", is_admin=False
+    )
     self._AssertStoredUserDetailsAre("foo_user", "foo_password", False)
 
   def testCreateAlreadyExistingUser(self):
@@ -205,32 +230,42 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   def testUpdateUser(self):
     config_updater_util.CreateUser(
-        "foo_user", password="foo_password1", is_admin=False)
+        "foo_user", password="foo_password1", is_admin=False
+    )
     self._AssertStoredUserDetailsAre("foo_user", "foo_password1", False)
     config_updater_util.UpdateUser(
-        "foo_user", password="foo_password2", is_admin=True)
+        "foo_user", password="foo_password2", is_admin=True
+    )
     self._AssertStoredUserDetailsAre("foo_user", "foo_password2", True)
 
   def testGetUserSummary(self):
     config_updater_util.CreateUser(
-        "foo_user", password="foo_password", is_admin=False)
+        "foo_user", password="foo_password", is_admin=False
+    )
     self.assertMultiLineEqual(
         config_updater_util.GetUserSummary("foo_user"),
-        "Username: foo_user\nIs Admin: False")
+        "Username: foo_user\nIs Admin: False",
+    )
 
   def testGetAllUserSummaries(self):
     config_updater_util.CreateUser(
-        "foo_user1", password="foo_password1", is_admin=False)
+        "foo_user1", password="foo_password1", is_admin=False
+    )
     config_updater_util.CreateUser(
-        "foo_user2", password="foo_password2", is_admin=True)
-    expected_summaries = ("Username: foo_user1\nIs Admin: False\n\n"
-                          "Username: foo_user2\nIs Admin: True")
-    self.assertMultiLineEqual(config_updater_util.GetAllUserSummaries(),
-                              expected_summaries)
+        "foo_user2", password="foo_password2", is_admin=True
+    )
+    expected_summaries = (
+        "Username: foo_user1\nIs Admin: False\n\n"
+        "Username: foo_user2\nIs Admin: True"
+    )
+    self.assertMultiLineEqual(
+        config_updater_util.GetAllUserSummaries(), expected_summaries
+    )
 
   def testDeleteUser(self):
     config_updater_util.CreateUser(
-        "foo_user", password="foo_password", is_admin=False)
+        "foo_user", password="foo_password", is_admin=False
+    )
     self.assertNotEmpty(config_updater_util.GetUserSummary("foo_user"))
     config_updater_util.DeleteUser("foo_user")
     with self.assertRaises(config_updater_util.UserNotFoundError):
@@ -258,23 +293,27 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   def testArgparseBool_DefaultValue(self):
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--foo", default=True, type=config_updater_util.ArgparseBool)
+        "--foo", default=True, type=config_updater_util.ArgparseBool
+    )
     parser.add_argument(
-        "--bar", default=False, type=config_updater_util.ArgparseBool)
+        "--bar", default=False, type=config_updater_util.ArgparseBool
+    )
     namespace = parser.parse_args([])
     self.assertTrue(namespace.foo)
     self.assertFalse(namespace.bar)
 
   def testArgparseBool_InvalidType(self):
     expected_error = "Unexpected type: float. Expected a string."
-    with self.assertRaisesWithLiteralMatch(argparse.ArgumentTypeError,
-                                           expected_error):
+    with self.assertRaisesWithLiteralMatch(
+        argparse.ArgumentTypeError, expected_error
+    ):
       config_updater_util.ArgparseBool(1.23)
 
   def testArgparseBool_InvalidValue(self):
     expected_error = "Invalid value encountered. Expected 'True' or 'False'."
-    with self.assertRaisesWithLiteralMatch(argparse.ArgumentTypeError,
-                                           expected_error):
+    with self.assertRaisesWithLiteralMatch(
+        argparse.ArgumentTypeError, expected_error
+    ):
       config_updater_util.ArgparseBool("baz")
 
 

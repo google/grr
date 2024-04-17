@@ -9,8 +9,9 @@ from grr_response_client.unprivileged import interface_registry
 from grr_response_core import config
 
 
-def _MakeServerArgs(channel: communication.Channel,
-                    interface: interface_registry.Interface) -> List[str]:
+def _MakeServerArgs(
+    channel: communication.Channel, interface: interface_registry.Interface
+) -> List[str]:
   """Returns the args to run the unprivileged server command."""
   assert channel.pipe_input is not None and channel.pipe_output is not None
   named_flags = [
@@ -40,8 +41,10 @@ def _MakeServerArgs(channel: communication.Channel,
 
 def CreateServer(
     extra_file_descriptors: List[communication.FileDescriptor],
-    interface: interface_registry.Interface) -> communication.Server:
+    interface: interface_registry.Interface,
+) -> communication.Server:
   server = communication.SubprocessServer(
       lambda channel: _MakeServerArgs(channel, interface),
-      extra_file_descriptors)
+      extra_file_descriptors,
+  )
   return server

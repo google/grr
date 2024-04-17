@@ -9,7 +9,6 @@ message_handlers = [
     administrative.ClientAlertHandler,
     administrative.ClientStartupHandler,
     administrative.ClientStatsHandler,
-    administrative.NannyMessageHandler,
     foreman.ForemanMessageHandler,
     transfer.BlobHandler,
 ]

@@ -19,9 +19,9 @@ class DictToExportedDictItemsConverter(base.ExportConverter):
 
   input_rdf_type = rdf_protodict.Dict
 
-  def _IterateDict(self,
-                   d: Dict[str, Any],
-                   key: str = "") -> Iterator[Tuple[str, Any]]:
+  def _IterateDict(
+      self, d: Dict[str, Any], key: str = ""
+  ) -> Iterator[Tuple[str, Any]]:
     """Performs a deeply-nested iteration of a given dictionary."""
     if isinstance(d, (list, tuple)):
       for i, v in enumerate(d):
@@ -48,8 +48,9 @@ class DictToExportedDictItemsConverter(base.ExportConverter):
     else:
       yield key, d
 
-  def Convert(self, metadata: base.ExportedMetadata,
-              data: rdf_protodict.Dict) -> List[ExportedDictItem]:
+  def Convert(
+      self, metadata: base.ExportedMetadata, data: rdf_protodict.Dict
+  ) -> List[ExportedDictItem]:
     result = []
     d = data.ToDict()
     for k, v in self._IterateDict(d):

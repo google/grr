@@ -28,6 +28,7 @@ class UnsupportedHandlerError(Error):
 
 class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   """Base class for handling objects in the VFS."""
+
   supported_pathtype = rdf_paths.PathSpec.PathType.UNSET
 
   # Should this handler be auto-registered?
@@ -146,7 +147,8 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
           base_fd=self,
           handlers=self._handlers,
           pathspec=pathspec,
-          progress_callback=self.progress_callback)
+          progress_callback=self.progress_callback,
+      )
 
   def MatchBestComponentName(self, component, pathtype):
     """Returns the name of the component which matches best our base listing.
@@ -177,7 +179,8 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
 
     if fd.supported_pathtype != self.pathspec.pathtype:
       new_pathspec = rdf_paths.PathSpec(
-          path=component, pathtype=fd.supported_pathtype)
+          path=component, pathtype=fd.supported_pathtype
+      )
     else:
       new_pathspec = self.pathspec.last.Copy()
       new_pathspec.path = component
@@ -299,8 +302,9 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
     for i, path_component in enumerate(path_components):
       try:
         if fd:
-          new_pathspec = fd.MatchBestComponentName(path_component,
-                                                   component.pathtype)
+          new_pathspec = fd.MatchBestComponentName(
+              path_component, component.pathtype
+          )
         else:
           new_pathspec = component.Copy()
           new_pathspec.path = path_component
@@ -320,7 +324,8 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
             base_fd=fd,
             handlers=handlers,
             pathspec=new_pathspec,
-            progress_callback=progress_callback)
+            progress_callback=progress_callback,
+        )
       except IOError as e:
         # Can not open the first component, we must raise here.
         if i <= 1:
@@ -336,7 +341,8 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
         pathspec.Insert(
             0,
             path=utils.JoinPath(*path_components[i:]),
-            pathtype=rdf_paths.PathSpec.PathType.TSK)
+            pathtype=rdf_paths.PathSpec.PathType.TSK,
+        )
         break
 
     return fd

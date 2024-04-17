@@ -4,7 +4,7 @@
 import logging
 import re
 import sys
-from typing import ContextManager, Iterable, List, Optional, Pattern, Text, Type, Union
+from typing import Callable, ContextManager, Iterable, List, Optional, Pattern, Text, Type, Union
 from unittest import mock
 
 from grr_response_client import actions
@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
+from grr_response_proto import flows_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -317,7 +318,7 @@ class MockClient(object):
 
     handler_cls().ProcessMessages([handler_request])
 
-  def PushToStateQueue(self, message, **kw):
+  def PushToStateQueue(self, message: rdf_flows.GrrMessage, **kw):
     """Push given message to the state queue."""
     # Assume the client is authorized
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -331,8 +332,14 @@ class MockClient(object):
       self._PushHandlerMessage(message)
       return
 
-    data_store.REL_DB.WriteFlowResponses(
-        [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
+    message = rdf_flow_objects.FlowResponseForLegacyResponse(message)
+    if isinstance(message, rdf_flow_objects.FlowResponse):
+      message = mig_flow_objects.ToProtoFlowResponse(message)
+    if isinstance(message, rdf_flow_objects.FlowStatus):
+      message = mig_flow_objects.ToProtoFlowStatus(message)
+    if isinstance(message, rdf_flow_objects.FlowIterator):
+      message = mig_flow_objects.ToProtoFlowIterator(message)
+    data_store.REL_DB.WriteFlowResponses([message])
 
   def Next(self):
     """Emulates execution of a single client action request.
@@ -434,12 +441,18 @@ def StartAndRunFlow(flow_cls,
     flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
 
     if check_flow_errors:
-      rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      if rdf_flow.flow_state == rdf_flow.FlowState.ERROR:
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      if flow_obj.flow_state == flows_pb2.Flow.FlowState.ERROR:
         raise RuntimeError(
             "Flow %s on %s raised an error in state %s. \nError message: %s\n%s"
-            % (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message,
-               rdf_flow.backtrace))
+            % (
+                flow_id,
+                client_id,
+                flow_obj.flow_state,
+                flow_obj.error_message,
+                flow_obj.backtrace,
+            )
+        )
 
     RunFlow(
         client_id,
@@ -457,7 +470,12 @@ class TestWorker(worker_lib.GRRWorker):
     super().__init__(*args, **kw)
     self.processed_flows = []
 
-  def ProcessFlow(self, flow_processing_request):
+  def ProcessFlow(
+      self,
+      flow_processing_request: Callable[
+          [flows_pb2.FlowProcessingRequest], None
+      ],
+  ) -> None:
     key = (flow_processing_request.client_id, flow_processing_request.flow_id)
     self.processed_flows.append(key)
     super().ProcessFlow(flow_processing_request)
@@ -496,20 +514,33 @@ def RunFlow(client_id,
     # Run the client and worker until nothing changes any more.
     while True:
       client_processed = client_mock.Next()
+      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
       worker_processed = test_worker.ResetProcessedFlows()
       all_processed_flows.update(worker_processed)
 
-      if client_processed == 0 and not worker_processed:
+      # Exit the loop if no client actions were processed, nothing was processed
+      # on the worker and there are no pending flow processing requests.
+      if (
+          client_processed == 0
+          and not worker_processed
+          and not data_store.REL_DB.ReadFlowProcessingRequests()
+      ):
         break
 
     if check_flow_errors:
       for client_id, flow_id in all_processed_flows:
-        rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-        if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
+        flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+        if flow_obj.flow_state != flows_pb2.Flow.FlowState.FINISHED:
           raise RuntimeError(
-              "Flow %s on %s completed in state %s (error message: %s %s)" %
-              (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message,
-               rdf_flow.backtrace))
+              "Flow %s on %s completed in state %s (error message: %s %s)"
+              % (
+                  flow_id,
+                  client_id,
+                  flow_obj.flow_state,
+                  flow_obj.error_message,
+                  flow_obj.backtrace,
+              )
+          )
 
     return flow_id
   finally:
@@ -577,12 +608,14 @@ def FinishAllFlowsOnClient(client_id, **kwargs):
 
 
 def GetFlowState(client_id, flow_id):
-  rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  proto_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
   return rdf_flow.persistent_data
 
 
 def GetFlowObj(client_id, flow_id):
-  rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  proto_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
   return rdf_flow
 
 
@@ -628,9 +661,9 @@ def FlowResultMetadataOverride(
 
 def MarkFlowAsFinished(client_id: str, flow_id: str) -> None:
   """Marks the given flow as finished without executing it."""
-  flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-  flow_obj.flow_state = flow_obj.FlowState.FINISHED
-  data_store.REL_DB.WriteFlowObject(flow_obj)
+  data_store.REL_DB.UpdateFlow(
+      client_id, flow_id, flow_state=flows_pb2.Flow.FlowState.FINISHED
+  )
 
 
 def MarkFlowAsFailed(client_id: str,
@@ -638,10 +671,14 @@ def MarkFlowAsFailed(client_id: str,
                      error_message: Optional[str] = None) -> None:
   """Marks the given flow as finished without executing it."""
   flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-  flow_obj.flow_state = flow_obj.FlowState.ERROR
-  if error_message is not None:
+  flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
+  if not flow_obj.HasField("error_message") and error_message:
     flow_obj.error_message = error_message
-  data_store.REL_DB.WriteFlowObject(flow_obj)
+  data_store.REL_DB.UpdateFlow(
+      client_id,
+      flow_id,
+      flow_obj,
+  )
 
 
 def ListAllFlows(client_id: str) -> List[rdf_flow_objects.Flow]:

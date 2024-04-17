@@ -22,6 +22,7 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import transfer
 from grr_response_server.models import blobs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -477,6 +478,17 @@ class ClientFileFinder(flow_base.FlowBase):
     else:
       stub = server_stubs.VfsFileFinder
 
+    # TODO: Remove this workaround once sandboxing issues are
+    # resolved and NTFS paths work it again.
+    if (
+        self.args.pathtype == rdf_paths.PathSpec.PathType.NTFS
+        and not self.args.HasField("implementation_type")
+    ):
+      self.Log("Using unsandboxed NTFS access")
+      self.args.implementation_type = (
+          rdf_paths.PathSpec.ImplementationType.DIRECT
+      )
+
     if (paths := self._InterpolatePaths(self.args.paths)) is not None:
       interpolated_args = self.args.Copy()
       interpolated_args.paths = paths
@@ -678,7 +690,8 @@ class ClientFileFinder(flow_base.FlowBase):
         path_info.hash_entry.num_bytes = client_path_sizes[client_path]
 
     path_infos = list(client_path_path_info.values())
-    data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+    proto_path_infos = [mig_objects.ToProtoPathInfo(pi) for pi in path_infos]
+    data_store.REL_DB.WritePathInfos(self.client_id, proto_path_infos)
 
     return client_path_hash_id
 

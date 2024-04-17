@@ -32,14 +32,16 @@ class ExportedNetworkInterface(rdf_structs.RDFProtoStruct):
 
 
 class NetworkConnectionToExportedNetworkConnectionConverter(
-    base.ExportConverter):
+    base.ExportConverter
+):
   """Converts NetworkConnection to ExportedNetworkConnection."""
 
   input_rdf_type = rdf_client_network.NetworkConnection
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      conn: rdf_client_network.NetworkConnection
+      self,
+      metadata: base.ExportedMetadata,
+      conn: rdf_client_network.NetworkConnection,
   ) -> List[ExportedNetworkConnection]:
     """Converts a NetworkConnection into a ExportedNetworkConnection.
 
@@ -60,7 +62,8 @@ class NetworkConnectionToExportedNetworkConnectionConverter(
         remote_address=conn.remote_address,
         state=conn.state,
         pid=conn.pid,
-        ctime=conn.ctime)
+        ctime=conn.ctime,
+    )
     return [result]
 
 
@@ -70,8 +73,9 @@ class InterfaceToExportedNetworkInterfaceConverter(base.ExportConverter):
   input_rdf_type = rdf_client_network.Interface
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      interface: rdf_client_network.Interface
+      self,
+      metadata: base.ExportedMetadata,
+      interface: rdf_client_network.Interface,
   ) -> Iterator[ExportedNetworkInterface]:
     """Converts a Interface into ExportedNetworkInterfaces.
 
@@ -97,7 +101,8 @@ class InterfaceToExportedNetworkInterfaceConverter(base.ExportConverter):
         metadata=metadata,
         ifname=interface.ifname,
         ip4_addresses=" ".join(ip4_addresses),
-        ip6_addresses=" ".join(ip6_addresses))
+        ip6_addresses=" ".join(ip6_addresses),
+    )
 
     if interface.mac_address:
       result.mac_address = interface.mac_address.human_readable_address
@@ -106,14 +111,16 @@ class InterfaceToExportedNetworkInterfaceConverter(base.ExportConverter):
 
 
 class DNSClientConfigurationToExportedDNSClientConfiguration(
-    base.ExportConverter):
+    base.ExportConverter
+):
   """Converts DNSClientConfiguration to ExportedDNSClientConfiguration."""
 
   input_rdf_type = rdf_client_network.DNSClientConfiguration
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      config: rdf_client_network.DNSClientConfiguration
+      self,
+      metadata: base.ExportedMetadata,
+      config: rdf_client_network.DNSClientConfiguration,
   ) -> Iterator[ExportedDNSClientConfiguration]:
     """Converts a DNSClientConfiguration into a ExportedDNSClientConfiguration.
 
@@ -129,5 +136,6 @@ class DNSClientConfigurationToExportedDNSClientConfiguration(
     result = ExportedDNSClientConfiguration(
         metadata=metadata,
         dns_servers=" ".join(config.dns_server),
-        dns_suffixes=" ".join(config.dns_suffix))
+        dns_suffixes=" ".join(config.dns_suffix),
+    )
     yield result

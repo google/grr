@@ -85,18 +85,23 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     fixture_test_lib.ClientFixture(self.client_id)
 
     metadata = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
-                                   ":000000/Results"))
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
+        )
+    )
 
     converter = grr_message.GrrMessageConverter()
     with test_lib.FakeTime(2):
       results = list(converter.Convert(metadata, msg))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].timestamp,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
-    self.assertEqual(results[0].source_urn,
-                     "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
+    self.assertEqual(
+        results[0].timestamp, rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
+    )
+    self.assertEqual(
+        results[0].source_urn,
+        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results",
+    )
 
   @export_test_lib.WithExportConverter(DummyTestRDFValue4ToMetadataConverter)
   def testGrrMessageConverterWithOneMissingClient(self):
@@ -113,22 +118,30 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     msg2.source = client_id_2
 
     metadata1 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
-                                   ":000000/Results"))
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
+        )
+    )
     metadata2 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
-                                   ":000001/Results"))
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"
+        )
+    )
 
     converter = grr_message.GrrMessageConverter()
     with test_lib.FakeTime(3):
       results = list(
-          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)]))
+          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)])
+      )
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].timestamp,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
-    self.assertEqual(results[0].source_urn,
-                     "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
+    self.assertEqual(
+        results[0].timestamp, rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
+    self.assertEqual(
+        results[0].source_urn,
+        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results",
+    )
 
   @export_test_lib.WithExportConverter(DummyTestRDFValue3ConverterA)
   @export_test_lib.WithExportConverter(DummyTestRDFValue3ConverterB)
@@ -145,22 +158,28 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     msg2.source = client_id
 
     metadata1 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
-                                   ":000000/Results"))
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
+        )
+    )
     metadata2 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
-                                   ":000001/Results"))
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"
+        )
+    )
 
     converter = grr_message.GrrMessageConverter()
     with test_lib.FakeTime(3):
       results = list(
-          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)]))
+          converter.BatchConvert([(metadata1, msg1), (metadata2, msg2)])
+      )
 
     self.assertLen(results, 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
     self.assertCountEqual(
         ["DummyTestRDFValue2", "DummyTestRDFValue1", "DummyTestRDFValue5"],
-        [x.__class__.__name__ for x in results])
+        [x.__class__.__name__ for x in results],
+    )
 
 
 def main(argv):

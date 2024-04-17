@@ -8,7 +8,6 @@ import traceback
 from typing import NamedTuple
 
 from absl import flags
-
 import psutil
 
 from grr_response_client.unprivileged import communication
@@ -56,10 +55,20 @@ class _CpuTimes:
     end = self.proc.cpu_times()
     unprivileged_cpu_end = communication.TotalServerCpuTime()
     unprivileged_sys_end = communication.TotalServerSysTime()
-    return _CpuUsed((end.user - self.cpu_start.user + unprivileged_cpu_end -
-                     self.unprivileged_cpu_start),
-                    (end.system - self.cpu_start.system + unprivileged_sys_end -
-                     self.unprivileged_sys_start))
+    return _CpuUsed(
+        (
+            end.user
+            - self.cpu_start.user
+            + unprivileged_cpu_end
+            - self.unprivileged_cpu_start
+        ),
+        (
+            end.system
+            - self.cpu_start.system
+            + unprivileged_sys_end
+            - self.unprivileged_sys_start
+        ),
+    )
 
   @property
   def total_cpu_used(self) -> float:
@@ -84,6 +93,7 @@ class ActionPlugin(object):
   EnumerateInterfaces) as linux actions must accept and return the same rdfvalue
   types as their linux counterparts.
   """
+
   # The rdfvalue used to encode this message.
   in_rdfvalue = None
 
@@ -112,10 +122,12 @@ class ActionPlugin(object):
     self.response_id = INITIAL_RESPONSE_ID
     self.cpu_used = None
     self.status = rdf_flows.GrrStatus(
-        status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+        status=rdf_flows.GrrStatus.ReturnedStatus.OK
+    )
     self._last_gc_run = rdfvalue.RDFDatetime.Now()
     self._gc_frequency = rdfvalue.Duration.From(
-        config.CONFIG["Client.gc_frequency"], rdfvalue.SECONDS)
+        config.CONFIG["Client.gc_frequency"], rdfvalue.SECONDS
+    )
     self.cpu_times = _CpuTimes()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
     self.start_time = None
@@ -142,22 +154,26 @@ class ActionPlugin(object):
     try:
       if self.message.args_rdf_name:
         if not self.in_rdfvalue:
-          raise RuntimeError("Did not expect arguments, got %s." %
-                             self.message.args_rdf_name)
+          raise RuntimeError(
+              "Did not expect arguments, got %s." % self.message.args_rdf_name
+          )
 
         if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
           raise RuntimeError(
-              "Unexpected arg type %s != %s." %
-              (self.message.args_rdf_name, self.in_rdfvalue.__name__))
+              "Unexpected arg type %s != %s."
+              % (self.message.args_rdf_name, self.in_rdfvalue.__name__)
+          )
 
         args = self.message.payload
 
       # Only allow authenticated messages in the client
       if self._authentication_required and (
-          self.message.auth_state !=
-          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-        raise RuntimeError("Message for %s was not Authenticated." %
-                           self.message.name)
+          self.message.auth_state
+          != rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+      ):
+        raise RuntimeError(
+            "Message for %s was not Authenticated." % self.message.name
+        )
 
       self.cpu_times = _CpuTimes()
       self.cpu_limit = self.message.cpu_limit
@@ -178,31 +194,46 @@ class ActionPlugin(object):
 
     except NetworkBytesExceededError as e:
       self.grr_worker.SendClientAlert("Network limit exceeded.")
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
-                     "%r: %s" % (e, e), traceback.format_exc())
+      self.SetStatus(
+          rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
+          "%r: %s" % (e, e),
+          traceback.format_exc(),
+      )
 
     except RuntimeExceededError as e:
       self.grr_worker.SendClientAlert("Runtime limit exceeded.")
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.RUNTIME_LIMIT_EXCEEDED,
-                     "%r: %s" % (e, e), traceback.format_exc())
+      self.SetStatus(
+          rdf_flows.GrrStatus.ReturnedStatus.RUNTIME_LIMIT_EXCEEDED,
+          "%r: %s" % (e, e),
+          traceback.format_exc(),
+      )
 
     except CPUExceededError as e:
       self.grr_worker.SendClientAlert("Cpu limit exceeded.")
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.CPU_LIMIT_EXCEEDED,
-                     "%r: %s" % (e, e), traceback.format_exc())
+      self.SetStatus(
+          rdf_flows.GrrStatus.ReturnedStatus.CPU_LIMIT_EXCEEDED,
+          "%r: %s" % (e, e),
+          traceback.format_exc(),
+      )
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
     except Exception as e:  # pylint: disable=broad-except
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                     "%r: %s" % (e, e), traceback.format_exc())
+      self.SetStatus(
+          rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+          "%r: %s" % (e, e),
+          traceback.format_exc(),
+      )
 
       if flags.FLAGS.pdb_post_mortem:
         pdb.post_mortem()
 
     if self.status.status != rdf_flows.GrrStatus.ReturnedStatus.OK:
-      logging.info("Job Error (%s): %s", self.__class__.__name__,
-                   self.status.error_message)
+      logging.info(
+          "Job Error (%s): %s",
+          self.__class__.__name__,
+          self.status.error_message,
+      )
 
       if self.status.backtrace:
         logging.debug(self.status.backtrace)
@@ -240,8 +271,9 @@ class ActionPlugin(object):
     Raises:
       KeyError: if not implemented.
     """
-    raise KeyError("Action %s not available on this platform." %
-                   self.message.name)
+    raise KeyError(
+        "Action %s not available on this platform." % self.message.name
+    )
 
   def SetStatus(self, status, message="", backtrace=None):
     """Set a status to report back to the server."""
@@ -255,10 +287,12 @@ class ActionPlugin(object):
   # some other method to communicate with well-known flows. The naming is also
   # confusing since sending messages to well-knows flows is not really replying
   # to anything.
-  def SendReply(self,
-                rdf_value=None,
-                session_id=None,
-                message_type=rdf_flows.GrrMessage.Type.MESSAGE):
+  def SendReply(
+      self,
+      rdf_value=None,
+      session_id=None,
+      message_type=rdf_flows.GrrMessage.Type.MESSAGE,
+  ):
     """Send response back to the server."""
     # TODO(hanuszczak): This is pretty bad. Here we assume that if the session
     # id is not none we are "replying" to a well-known flow. If we are replying
@@ -323,8 +357,11 @@ class ActionPlugin(object):
       return
 
     if self.runtime_limit and now - self.start_time > self.runtime_limit:
-      raise RuntimeExceededError("{} exceeded runtime limit of {}.".format(
-          type(self).__name__, self.runtime_limit))
+      raise RuntimeExceededError(
+          "{} exceeded runtime limit of {}.".format(
+              type(self).__name__, self.runtime_limit
+          )
+      )
 
     ActionPlugin.last_progress_time = now
 
@@ -346,7 +383,8 @@ class ActionPlugin(object):
 
   def ChargeBytesToSession(self, length):
     self.grr_worker.ChargeBytesToSession(
-        self.message.session_id, length, limit=self.network_bytes_limit)
+        self.message.session_id, length, limit=self.network_bytes_limit
+    )
 
   @property
   def session_id(self):

@@ -3,7 +3,6 @@
 """Parser for OSX launchd jobs."""
 
 
-
 import re
 from typing import Iterator
 
@@ -14,7 +13,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
-class OSXLaunchdJobDict(object):
+class OSXLaunchdJobDict:
   """Cleanup launchd jobs reported by the service management framework.
 
   Exclude some rubbish like logged requests that aren't real jobs (see
@@ -34,7 +33,7 @@ class OSXLaunchdJobDict(object):
 
     Args:
       launchdjobs: NSCFArray of NSCFDictionarys containing launchd job data from
-                   the ServiceManagement framework.
+        the ServiceManagement framework.
     """
     self.launchdjobs = launchdjobs
 
@@ -54,6 +53,7 @@ class OSXLaunchdJobDict(object):
 
     Args:
       launchditem: job NSCFDictionary
+
     Returns:
       True if the item should be filtered (dropped)
     """
@@ -64,8 +64,10 @@ class OSXLaunchdJobDict(object):
 
 
 class DarwinPersistenceMechanismsParser(
-    parsers.SingleResponseParser[rdf_standard.PersistenceFile]):
+    parsers.SingleResponseParser[rdf_standard.PersistenceFile]
+):
   """Turn various persistence objects into PersistenceFiles."""
+
   output_types = [rdf_standard.PersistenceFile]
   supported_artifacts = ["DarwinPersistenceMechanisms"]
 
@@ -80,10 +82,12 @@ class DarwinPersistenceMechanismsParser(
     if isinstance(response, rdf_client.OSXServiceInformation):
       if response.program:
         pathspec = rdf_paths.PathSpec(
-            path=response.program, pathtype=rdf_paths.PathSpec.PathType.UNSET)
+            path=response.program, pathtype=rdf_paths.PathSpec.PathType.UNSET
+        )
       elif response.args:
         pathspec = rdf_paths.PathSpec(
-            path=response.args[0], pathtype=rdf_paths.PathSpec.PathType.UNSET)
+            path=response.args[0], pathtype=rdf_paths.PathSpec.PathType.UNSET
+        )
 
     if pathspec is not None:
       yield rdf_standard.PersistenceFile(pathspec=pathspec)

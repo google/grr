@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A testing utilities to simplify test code working with sinks."""
+
 import collections
 from typing import Sequence
 

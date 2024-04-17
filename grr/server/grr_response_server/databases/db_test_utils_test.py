@@ -10,15 +10,17 @@ from grr_response_server.databases import mem as mem_db
 from grr_response_server.rdfvalues import mig_objects
 
 
-class TestOffsetAndCountTest(db_test_utils.QueryTestHelpersMixin,
-                             absltest.TestCase):
+class TestOffsetAndCountTest(
+    db_test_utils.QueryTestHelpersMixin, absltest.TestCase
+):
 
   def testDoesNotRaiseWhenWorksAsExpected(self):
     items = range(10)
     self.DoOffsetAndCountTest(
         lambda: items,
-        lambda offset, count: items[offset:offset + count],
-        error_desc="foo")
+        lambda offset, count: items[offset : offset + count],
+        error_desc="foo",
+    )
 
   def testRaisesWhenDoesNotWorkAsExpected(self):
     items = range(10)
@@ -28,18 +30,20 @@ class TestOffsetAndCountTest(db_test_utils.QueryTestHelpersMixin,
       if offset > 5:
         return []
       else:
-        return items[offset:offset + count]
+        return items[offset : offset + count]
 
     with self.assertRaisesRegex(
         AssertionError,
         re.escape(
-            "Results differ from expected (offset 6, count 1, foo): [] vs [6]")
+            "Results differ from expected (offset 6, count 1, foo): [] vs [6]"
+        ),
     ):
       self.DoOffsetAndCountTest(lambda: items, FetchRangeFn, error_desc="foo")
 
 
-class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
-                             absltest.TestCase):
+class TestFilterCombinations(
+    db_test_utils.QueryTestHelpersMixin, absltest.TestCase
+):
 
   def testDoesNotRaiseWhenWorkingAsExpected(self):
 
@@ -62,7 +66,8 @@ class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
     self.DoFilterCombinationsTest(
         FetchFn,
         dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
-        error_desc="foo")
+        error_desc="foo",
+    )
 
   def testRaisesWhenDoesNotWorkAsExpected(self):
 
@@ -91,23 +96,29 @@ class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
         re.escape(
             "Results differ from expected "
             "({'bigger_than_3_only': True, 'less_than_7_only': True}, foo): "
-            "[5, 6] vs [4, 5, 6]")):
+            "[5, 6] vs [4, 5, 6]"
+        ),
+    ):
       self.DoFilterCombinationsTest(
           FetchFn,
           dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
-          error_desc="foo")
+          error_desc="foo",
+      )
 
 
 class TestFilterCombinationsAndOffsetCountTest(
-    db_test_utils.QueryTestHelpersMixin, absltest.TestCase):
+    db_test_utils.QueryTestHelpersMixin, absltest.TestCase
+):
 
   def testDoesNotRaiseWhenWorksAsExpected(self):
 
-    def FetchFn(offset,
-                count,
-                bigger_than_3_only=None,
-                less_than_7_only=None,
-                even_only=None):
+    def FetchFn(
+        offset,
+        count,
+        bigger_than_3_only=None,
+        less_than_7_only=None,
+        even_only=None,
+    ):
       result = []
       for i in range(10):
         if bigger_than_3_only and i <= 3:
@@ -121,20 +132,23 @@ class TestFilterCombinationsAndOffsetCountTest(
 
         result.append(i)
 
-      return result[offset:offset + count]
+      return result[offset : offset + count]
 
     self.DoFilterCombinationsAndOffsetCountTest(
         FetchFn,
         dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
-        error_desc="foo")
+        error_desc="foo",
+    )
 
   def testRaisesWhenDoesNotWorkAsExpected(self):
 
-    def FetchFn(offset,
-                count,
-                bigger_than_3_only=None,
-                less_than_7_only=None,
-                even_only=None):
+    def FetchFn(
+        offset,
+        count,
+        bigger_than_3_only=None,
+        less_than_7_only=None,
+        even_only=None,
+    ):
       del offset  # Unused.
 
       result = []
@@ -156,13 +170,17 @@ class TestFilterCombinationsAndOffsetCountTest(
 
     with self.assertRaisesRegex(
         AssertionError,
-        re.escape("Results differ from expected "
-                  "(offset 1, count 1, {'bigger_than_3_only': True}, foo): "
-                  "[4] vs [5]")):
+        re.escape(
+            "Results differ from expected "
+            "(offset 1, count 1, {'bigger_than_3_only': True}, foo): "
+            "[4] vs [5]"
+        ),
+    ):
       self.DoFilterCombinationsAndOffsetCountTest(
           FetchFn,
           dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
-          error_desc="foo")
+          error_desc="foo",
+      )
 
 
 class InitializeClientTest(absltest.TestCase):

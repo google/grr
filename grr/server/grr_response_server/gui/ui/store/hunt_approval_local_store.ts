@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {Observable, of} from 'rxjs';
@@ -62,8 +61,9 @@ class HuntApprovalComponentStore extends ComponentStore<HuntApprovalState> {
       }
 
       return this.httpApiService.subscribeToListHuntApprovals(huntId).pipe(
-        map((approvals: readonly ApiHuntApproval[]): HuntApproval[] =>
-          approvals?.map(translateHuntApproval),
+        map(
+          (approvals: readonly ApiHuntApproval[]): HuntApproval[] =>
+            approvals?.map(translateHuntApproval),
         ),
         takeWhile(
           (approvals: HuntApproval[]) =>

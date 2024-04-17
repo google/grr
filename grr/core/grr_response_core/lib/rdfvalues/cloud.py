@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """Cloud-related rdfvalues."""
 
-
-
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 
-AMAZON_URL_BASE = "http://169.254.169.254/latest/meta-data/"
+AMAZON_URL_BASE = "http://169.254.169.254/latest/meta-data"
 AMAZON_BIOS_REGEX = ".*amazon"
 AMAZON_SERVICE_REGEX = "SERVICE_NAME: AWSLiteAgent"
 # Using the ip and not metadata.google.internal to avoid issues on endpoints
@@ -19,10 +17,35 @@ GOOGLE_SERVICE_REGEX = "SERVICE_NAME: GCEAgent"
 
 
 class CloudMetadataRequest(rdf_structs.RDFProtoStruct):
+  """RDF wrapper for `CloudMetadataRequest` message."""
+
   protobuf = flows_pb2.CloudMetadataRequest
   rdf_deps = [
       rdf_protodict.Dict,
   ]
+
+  @classmethod
+  def ForAmazon(cls, *args, **kwargs) -> "CloudMetadataRequest":
+    return cls(
+        *args,
+        **kwargs,
+        bios_version_regex=AMAZON_BIOS_REGEX,
+        service_name_regex=AMAZON_SERVICE_REGEX,
+        instance_type=CloudInstance.InstanceType.AMAZON,
+        timeout=1.0,
+    )
+
+  @classmethod
+  def ForGoogle(cls, *args, **kwargs) -> "CloudMetadataRequest":
+    return cls(
+        *args,
+        **kwargs,
+        bios_version_regex=GOOGLE_BIOS_REGEX,
+        service_name_regex=GOOGLE_SERVICE_REGEX,
+        headers={"Metadata-Flavor": "Google"},
+        instance_type=CloudInstance.InstanceType.GOOGLE,
+        timeout=1.0,
+    )
 
 
 class CloudMetadataRequests(rdf_structs.RDFProtoStruct):
@@ -59,63 +82,81 @@ class CloudInstance(rdf_structs.RDFProtoStruct):
   ]
 
 
-def _MakeArgs(amazon_collection_map, google_collection_map):
-  """Build metadata requests list from collection maps."""
-  request_list = []
-  for url, label in amazon_collection_map.items():
-    request_list.append(
-        CloudMetadataRequest(
-            bios_version_regex=AMAZON_BIOS_REGEX,
-            service_name_regex=AMAZON_SERVICE_REGEX,
-            instance_type="AMAZON",
-            timeout=1.0,
-            url=url,
-            label=label))
-  for url, label in google_collection_map.items():
-    request_list.append(
-        CloudMetadataRequest(
-            bios_version_regex=GOOGLE_BIOS_REGEX,
-            service_name_regex=GOOGLE_SERVICE_REGEX,
-            headers={"Metadata-Flavor": "Google"},
-            instance_type="GOOGLE",
-            timeout=1.0,
-            url=url,
-            label=label))
-  return request_list
-
-
 def MakeGoogleUniqueID(cloud_instance):
   """Make the google unique ID of zone/project/id."""
-  if not (cloud_instance.zone and cloud_instance.project_id and
-          cloud_instance.instance_id):
-    raise ValueError("Bad zone/project_id/id: '%s/%s/%s'" %
-                     (cloud_instance.zone, cloud_instance.project_id,
-                      cloud_instance.instance_id))
+  if not (
+      cloud_instance.zone
+      and cloud_instance.project_id
+      and cloud_instance.instance_id
+  ):
+    raise ValueError(
+        "Bad zone/project_id/id: '%s/%s/%s'"
+        % (
+            cloud_instance.zone,
+            cloud_instance.project_id,
+            cloud_instance.instance_id,
+        )
+    )
   return "/".join([
-      cloud_instance.zone.split("/")[-1], cloud_instance.project_id,
-      cloud_instance.instance_id
+      cloud_instance.zone.split("/")[-1],
+      cloud_instance.project_id,
+      cloud_instance.instance_id,
   ])
 
 
 def BuildCloudMetadataRequests():
   """Build the standard set of cloud metadata to collect during interrogate."""
-  amazon_collection_map = {
-      "/".join((AMAZON_URL_BASE, "instance-id")): "instance_id",
-      "/".join((AMAZON_URL_BASE, "ami-id")): "ami_id",
-      "/".join((AMAZON_URL_BASE, "hostname")): "hostname",
-      "/".join((AMAZON_URL_BASE, "public-hostname")): "public_hostname",
-      "/".join((AMAZON_URL_BASE, "instance-type")): "instance_type",
-  }
-  google_collection_map = {
-      "/".join((GOOGLE_URL_BASE, "instance/id")): "instance_id",
-      "/".join((GOOGLE_URL_BASE, "instance/zone")): "zone",
-      "/".join((GOOGLE_URL_BASE, "project/project-id")): "project_id",
-      "/".join((GOOGLE_URL_BASE, "instance/hostname")): "hostname",
-      "/".join((GOOGLE_URL_BASE, "instance/machine-type")): "machine_type",
-  }
-
-  return CloudMetadataRequests(requests=_MakeArgs(amazon_collection_map,
-                                                  google_collection_map))
+  return CloudMetadataRequests(
+      requests=[
+          CloudMetadataRequest.ForAmazon(
+              url="/".join((AMAZON_URL_BASE, "instance-id")),
+              label="instance_id",
+          ),
+          CloudMetadataRequest.ForAmazon(
+              url="/".join((AMAZON_URL_BASE, "ami-id")),
+              label="ami_id",
+          ),
+          CloudMetadataRequest.ForAmazon(
+              url="/".join((AMAZON_URL_BASE, "hostname")),
+              label="hostname",
+          ),
+          CloudMetadataRequest.ForAmazon(
+              url="/".join((AMAZON_URL_BASE, "public-hostname")),
+              label="public_hostname",
+              # Per AWS documentation, `public-hostname` is available only on
+              # hosts with public IPv4 addresses and `enableDnsHostnames` option
+              # set. Otherwise, attempts to query this property will result in
+              # 404 HTTP status.
+              #
+              # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-categories.html
+              ignore_http_errors=True,
+          ),
+          CloudMetadataRequest.ForAmazon(
+              url="/".join((AMAZON_URL_BASE, "instance-type")),
+              label="instance_type",
+          ),
+          CloudMetadataRequest.ForGoogle(
+              url="/".join((GOOGLE_URL_BASE, "instance/id")),
+              label="instance_id",
+          ),
+          CloudMetadataRequest.ForGoogle(
+              url="/".join((GOOGLE_URL_BASE, "instance/zone")),
+              label="zone",
+          ),
+          CloudMetadataRequest.ForGoogle(
+              url="/".join((GOOGLE_URL_BASE, "project/project-id")),
+              label="project_id",
+          ),
+          CloudMetadataRequest.ForGoogle(
+              url="/".join((GOOGLE_URL_BASE, "instance/hostname")),
+              label="hostname",
+          ),
+          CloudMetadataRequest.ForGoogle(
+              url="/".join((GOOGLE_URL_BASE, "instance/machine-type")),
+              label="machine_type",
+          ),
+      ],
+  )
 
 
 def ConvertCloudMetadataResponsesToCloudInstance(metadata_responses):
@@ -128,6 +169,7 @@ def ConvertCloudMetadataResponsesToCloudInstance(metadata_responses):
 
   Args:
     metadata_responses: CloudMetadataResponses object from the client.
+
   Returns:
     CloudInstance object
   Raises:
@@ -141,7 +183,8 @@ def ConvertCloudMetadataResponsesToCloudInstance(metadata_responses):
     result = CloudInstance(cloud_type="AMAZON", amazon=cloud_instance)
   else:
     raise ValueError(
-        "Unknown cloud instance type: %s" % metadata_responses.instance_type)
+        "Unknown cloud instance type: %s" % metadata_responses.instance_type
+    )
 
   for cloud_metadata in metadata_responses.responses:
     setattr(cloud_instance, cloud_metadata.label, cloud_metadata.text)

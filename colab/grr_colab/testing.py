@@ -88,7 +88,20 @@ class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,
         actions = list(client_actions.REGISTRY.values())
         client_mock = action_mocks.ActionMock(*actions)
 
-        flow_test_lib.FinishAllFlows(client_mock=client_mock)
+        flow_test_lib.FinishAllFlows(
+            client_mock=client_mock,
+            # Sometimes (e.g. during interrogation) some subflows fail (which
+            # can happen if we do not run with root privileges or if certain
+            # data is not available) but the flow can cope with this. To avoid
+            # tests hard failing in such scenarios, we disable checking flow
+            # errors.
+            #
+            # Note that we are still going to verify status of the root flow:
+            # the original `WaitUntilDone` (called right below) does this. If
+            # the flow ends in a state that is not `FINISHED` (e.g. because it
+            # crashed) the test is going to fail anyway.
+            check_flow_errors=False,
+        )
         func(*args, **kwargs)
 
       return wait_until_done

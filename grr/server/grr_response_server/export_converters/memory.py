@@ -22,11 +22,13 @@ class ExportedProcessMemoryError(rdf_structs.RDFProtoStruct):
 
 class YaraProcessScanMatchConverter(base.ExportConverter):
   """Converter for YaraProcessScanMatch."""
+
   input_rdf_type = rdf_memory.YaraProcessScanMatch
 
   def Convert(
-      self, metadata: base.ExportedMetadata,
-      value: rdf_memory.YaraProcessScanMatch
+      self,
+      metadata: base.ExportedMetadata,
+      value: rdf_memory.YaraProcessScanMatch,
   ) -> Iterator[ExportedYaraProcessScanMatch]:
     """See base class."""
 
@@ -49,6 +51,7 @@ class YaraProcessScanMatchConverter(base.ExportConverter):
 
 class ProcessMemoryErrorConverter(base.ExportConverter):
   """Converter for ProcessMemoryError."""
+
   input_rdf_type = rdf_memory.ProcessMemoryError
 
   def Convert(
@@ -61,4 +64,5 @@ class ProcessMemoryErrorConverter(base.ExportConverter):
     conv = process.ProcessToExportedProcessConverter(options=self.options)
     proc = next(iter(conv.Convert(metadata, value.process)))
     yield ExportedProcessMemoryError(
-        metadata=metadata, process=proc, error=value.error)
+        metadata=metadata, process=proc, error=value.error
+    )

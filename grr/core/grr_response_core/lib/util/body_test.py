@@ -183,12 +183,12 @@ class StreamTest(absltest.TestCase):
 
   def testPathWithQuote(self):
     entry = timeline_pb2.TimelineEntry()
-    entry.path = "/foo\"bar".encode("utf-8")
+    entry.path = '/foo"bar'.encode("utf-8")
 
     stream = body.Stream(iter([entry]))
     content = b"".join(stream).decode("utf-8")
 
-    self.assertIn("|/foo\"bar|", content)
+    self.assertIn('|/foo"bar|', content)
 
   def testPathWithBackslash(self):
     entry = timeline_pb2.TimelineEntry()

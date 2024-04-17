@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {Title} from '@angular/platform-browser';
 import {Router} from '@angular/router';
@@ -14,7 +13,10 @@ import {isClientId} from '../../lib/models/client';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
-  constructor(private readonly router: Router, title: Title) {
+  constructor(
+    private readonly router: Router,
+    title: Title,
+  ) {
     title.setTitle('GRR');
   }
 

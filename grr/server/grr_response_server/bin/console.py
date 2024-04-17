@@ -25,26 +25,33 @@ from grr_response_server import ipshell
 from grr_response_server import server_startup
 
 _CODE_TO_EXECUTE = flags.DEFINE_string(
-    "code_to_execute", None,
+    "code_to_execute",
+    None,
     "If present, no console is started but the code given in "
     "the flag is run instead (comparable to the -c option of "
-    "IPython).")
+    "IPython).",
+)
 
 _COMMAND_FILE = flags.DEFINE_string(
-    "command_file", None,
+    "command_file",
+    None,
     "If present, no console is started but the code given in "
-    "command file is supplied as input instead.")
+    "command file is supplied as input instead.",
+)
 
 _EXIT_ON_COMPLETE = flags.DEFINE_bool(
-    "exit_on_complete", True,
+    "exit_on_complete",
+    True,
     "If set to False and command_file or code_to_execute is "
-    "set we keep the console alive after the code completes.")
+    "set we keep the console alive after the code completes.",
+)
 
 _VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
-    help="Print the GRR console version number and exit immediately.")
+    help="Print the GRR console version number and exit immediately.",
+)
 
 
 def main(argv):
@@ -55,11 +62,13 @@ def main(argv):
     print("GRR console {}".format(config_server.VERSION["packageversion"]))
     return
 
-  banner = ("\nWelcome to the GRR console\n")
+  banner = "\nWelcome to the GRR console\n"
 
   config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
-  config.CONFIG.AddContext(contexts.CONSOLE_CONTEXT,
-                           "Context applied when running the console binary.")
+  config.CONFIG.AddContext(
+      contexts.CONSOLE_CONTEXT,
+      "Context applied when running the console binary.",
+  )
   server_startup.Init()
 
   fleetspeak_connector.Init()
@@ -78,8 +87,9 @@ def main(argv):
     with open(_COMMAND_FILE.value, "r") as filedesc:
       exec(filedesc.read())  # pylint: disable=exec-used
 
-  if (_EXIT_ON_COMPLETE.value and
-      (_CODE_TO_EXECUTE.value or _COMMAND_FILE.value)):
+  if _EXIT_ON_COMPLETE.value and (
+      _CODE_TO_EXECUTE.value or _COMMAND_FILE.value
+  ):
     return
 
   else:  # We want the normal shell.

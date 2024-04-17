@@ -9,7 +9,6 @@ import zipfile
 
 from absl import app
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
 from grr_response_proto import flows_pb2
@@ -166,7 +165,7 @@ class ApiClientLibHuntTest(
           client_id=client_ids[0],
           parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[0], flow_id)
-      flow_obj.flow_state = flow_obj.FlowState.ERROR
+      flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
       flow_obj.error_message = "Error foo."
       data_store.REL_DB.UpdateFlow(client_ids[0], flow_id, flow_obj=flow_obj)
 
@@ -176,7 +175,7 @@ class ApiClientLibHuntTest(
           client_id=client_ids[1],
           parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[1], flow_id)
-      flow_obj.flow_state = flow_obj.FlowState.ERROR
+      flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
       flow_obj.error_message = "Error bar."
       flow_obj.backtrace = "<some backtrace>"
       data_store.REL_DB.UpdateFlow(client_ids[1], flow_id, flow_obj=flow_obj)
@@ -288,9 +287,8 @@ class ApiClientLibHuntTest(
     flow_obj.client_id = client_id
     flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
     flow_obj.parent_hunt_id = hunt_id
-    data_store.REL_DB.WriteFlowObject(flow_obj)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     entry_1 = rdf_timeline.TimelineEntry()
     entry_1.path = "/bar/baz/quux".encode("utf-8")
@@ -377,9 +375,8 @@ class ApiClientLibHuntTest(
     flow_obj.client_id = client_id
     flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
     flow_obj.parent_hunt_id = hunt_id
-    data_store.REL_DB.WriteFlowObject(flow_obj)
+    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
 
     entry_1 = rdf_timeline.TimelineEntry()
     entry_1.path = "/foo/bar".encode("utf-8")

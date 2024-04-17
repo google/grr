@@ -71,6 +71,7 @@ export class YaraProcessScanDetails extends Plugin {
     'matchOffset',
     'matchId',
     'matchData',
+    'context',
   ];
 }
 
@@ -104,6 +105,7 @@ function toRow(
   return {
     process: response.process,
     match: yaraMatch,
+    context: decodeBase64ToString(stringMatch.context ?? ''),
     stringMatch,
     data: decodeBase64ToString(stringMatch.data ?? ''),
   };

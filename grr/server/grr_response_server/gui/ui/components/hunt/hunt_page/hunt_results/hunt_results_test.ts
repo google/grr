@@ -1,4 +1,3 @@
-// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, ViewChild} from '@angular/core';
 import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
@@ -377,9 +376,8 @@ describe('HuntResults', () => {
       fixture.detectChanges();
 
       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-      const tabGroupHarness = await harnessLoader.getHarness(
-        MatTabGroupHarness,
-      );
+      const tabGroupHarness =
+        await harnessLoader.getHarness(MatTabGroupHarness);
       expect((await tabGroupHarness.getTabs()).length).toEqual(2);
 
       const fileFinderTab = (

@@ -22,6 +22,7 @@ from grr_response_server import data_store
 # files.
 DEPRECATED_ARTIFACT_FIELDS = frozenset([
     "labels",
+    "provides",
 ])
 
 
@@ -339,7 +340,6 @@ class ArtifactRegistry(object):
                    name_list=None,
                    source_type=None,
                    exclude_dependents=False,
-                   provides=None,
                    reload_datastore_artifacts=False):
     """Retrieve artifact classes with optional filtering.
 
@@ -352,7 +352,6 @@ class ArtifactRegistry(object):
         source_type
       exclude_dependents: if true only artifacts with no dependencies will be
         returned
-      provides: return the artifacts that provide these dependencies
       reload_datastore_artifacts: If true, the data store sources are queried
         for new artifacts.
 
@@ -376,14 +375,7 @@ class ArtifactRegistry(object):
       if exclude_dependents and GetArtifactPathDependencies(artifact):
         continue
 
-      if not provides:
-        results[artifact.name] = artifact
-      else:
-        # This needs to remain the last test, if it matches the result is added
-        for provide_string in artifact.provides:
-          if provide_string in provides:
-            results[artifact.name] = artifact
-            break
+      results[artifact.name] = artifact
 
     return list(results.values())
 
@@ -431,78 +423,6 @@ class ArtifactRegistry(object):
   @utils.Synchronized
   def GetArtifactNames(self, *args, **kwargs):
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
-
-  @utils.Synchronized
-  def SearchDependencies(self,
-                         os_name,
-                         artifact_name_list,
-                         existing_artifact_deps=None,
-                         existing_expansion_deps=None):
-    """Return a set of artifact names needed to fulfill dependencies.
-
-    Search the path dependency tree for all artifacts that can fulfill
-    dependencies of artifact_name_list.  If multiple artifacts provide a
-    dependency, they are all included.
-
-    Args:
-      os_name: operating system string
-      artifact_name_list: list of artifact names to find dependencies for.
-      existing_artifact_deps: existing dependencies to add to, for recursion,
-        e.g. set(["WindowsRegistryProfiles", "WindowsEnvironmentVariablePath"])
-      existing_expansion_deps: existing expansion dependencies to add to, for
-        recursion, e.g. set(["users.userprofile", "users.homedir"])
-
-    Returns:
-      (artifact_names, expansion_names): a tuple of sets, one with artifact
-          names, the other expansion names
-    """
-    artifact_deps = existing_artifact_deps or set()
-    expansion_deps = existing_expansion_deps or set()
-
-    artifact_objs = self.GetArtifacts(
-        os_name=os_name, name_list=artifact_name_list)
-    artifact_deps = artifact_deps.union([a.name for a in artifact_objs])
-
-    for artifact in artifact_objs:
-      expansions = GetArtifactPathDependencies(artifact)
-      if expansions:
-        expansion_deps = expansion_deps.union(set(expansions))
-        # Get the names of the artifacts that provide those expansions
-        new_artifact_names = self.GetArtifactNames(
-            os_name=os_name, provides=expansions)
-        missing_artifacts = new_artifact_names - artifact_deps
-
-        if missing_artifacts:
-          # Add those artifacts and any child dependencies
-          new_artifacts, new_expansions = self.SearchDependencies(
-              os_name,
-              new_artifact_names,
-              existing_artifact_deps=artifact_deps,
-              existing_expansion_deps=expansion_deps)
-          artifact_deps = artifact_deps.union(new_artifacts)
-          expansion_deps = expansion_deps.union(new_expansions)
-
-    return artifact_deps, expansion_deps
-
-  @utils.Synchronized
-  def DumpArtifactsToYaml(self, sort_by_os=True):
-    """Dump a list of artifacts into a yaml string."""
-    artifact_list = self.GetArtifacts()
-    if sort_by_os:
-      # Sort so its easier to split these if necessary.
-      yaml_list = []
-      for os_name in rdf_artifacts.Artifact.SUPPORTED_OS_LIST:
-        done = {a.name: a for a in artifact_list if a.supported_os == [os_name]}
-        # Separate into knowledge_base and non-kb for easier sorting.
-        done_sorted = list(sorted(done.values(), key=lambda x: x.name))
-        yaml_list.extend(x.ToYaml() for x in done_sorted if x.provides)
-        yaml_list.extend(x.ToYaml() for x in done_sorted if not x.provides)
-        artifact_list = [a for a in artifact_list if a.name not in done]
-      yaml_list.extend(x.ToYaml() for x in artifact_list)  # The rest.
-    else:
-      yaml_list = [x.ToYaml() for x in artifact_list]
-
-    return "---\n\n".join(yaml_list)
 
 
 REGISTRY = ArtifactRegistry()
@@ -563,18 +483,12 @@ def ValidateSyntax(rdf_artifact):
       detail = "invalid `supported_os` ('%s' not in %s)" % (supp_os, valid_os)
       raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
 
-  # Anything listed in provides must be defined in the KnowledgeBase
-  valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()
-  for kb_var in rdf_artifact.provides:
-    if kb_var not in valid_provides:
-      detail = "broken `provides` ('%s' not in %s)" % (kb_var, valid_provides)
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+  kb_field_names = rdf_client.KnowledgeBase().GetKbFieldNames()
 
   # Any %%blah%% path dependencies must be defined in the KnowledgeBase
   for dep in GetArtifactPathDependencies(rdf_artifact):
-    if dep not in valid_provides:
-      detail = "broken path dependencies ('%s' not in %s)" % (dep,
-                                                              valid_provides)
+    if dep not in kb_field_names:
+      detail = f"broken path dependencies ({dep!r} not in {kb_field_names})"
       raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
 
   for source in rdf_artifact.sources:

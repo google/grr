@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
-
 import datetime
 import sys
 import unittest
@@ -23,7 +22,8 @@ long_string = (
     "hendrerit lorem. Integer vitae semper metus. Suspendisse accumsan "
     "dictum felis. Etiam viverra, felis sed ullamcorper vehicula, libero "
     "nisl tempus dui, a porta lacus erat et erat. Morbi mattis elementum "
-    "efficitur. Pellentesque aliquam placerat mauris non accumsan.")
+    "efficitur. Pellentesque aliquam placerat mauris non accumsan."
+)
 
 
 class RDFValueTest(absltest.TestCase):
@@ -46,7 +46,7 @@ class RDFValueTest(absltest.TestCase):
 class RDFBytesTest(absltest.TestCase):
 
   def testFromHumanReadable(self):
-    string = u"zażółć gęślą jaźń"
+    string = "zażółć gęślą jaźń"
 
     result = rdfvalue.RDFBytes.FromHumanReadable(string)
     expected = rdfvalue.RDFBytes.FromSerializedBytes(string.encode("utf-8"))
@@ -56,26 +56,27 @@ class RDFBytesTest(absltest.TestCase):
 class RDFStringTest(absltest.TestCase):
 
   def testFromHumanReadable(self):
-    string = u"pchnąć w tę łódź jeża lub ośm skrzyń fig"
+    string = "pchnąć w tę łódź jeża lub ośm skrzyń fig"
 
     result = rdfvalue.RDFString.FromHumanReadable(string)
     self.assertEqual(str(result), string)
 
   def testEqualWithBytes(self):
-    self.assertEqual(rdfvalue.RDFString(u"foo"), b"foo")
-    self.assertNotEqual(rdfvalue.RDFString(u"foo"), b"\x80\x81\x82")
+    self.assertEqual(rdfvalue.RDFString("foo"), b"foo")
+    self.assertNotEqual(rdfvalue.RDFString("foo"), b"\x80\x81\x82")
 
   def testLessThanWithBytes(self):
-    self.assertLess(rdfvalue.RDFString(u"abc"), b"def")
-    self.assertGreater(rdfvalue.RDFString(u"xyz"), b"ghi")
-    self.assertLess(rdfvalue.RDFString(u"012"), b"\x80\x81\x81")
+    self.assertLess(rdfvalue.RDFString("abc"), b"def")
+    self.assertGreater(rdfvalue.RDFString("xyz"), b"ghi")
+    self.assertLess(rdfvalue.RDFString("012"), b"\x80\x81\x81")
 
   # TODO: Python on Windows ships with UCS-2 by default, which does
   # not properly support unicode.
   @unittest.skipIf(
       sys.maxunicode <= 65535,
       "Your Python installation does not properly support Unicode (likely: "
-      "Python with no UCS4 support on Windows.")
+      "Python with no UCS4 support on Windows.",
+  )
   def testLenOfEmoji(self):
     self.assertLen(rdfvalue.RDFString("🚀🚀"), 2)
 
@@ -83,28 +84,28 @@ class RDFStringTest(absltest.TestCase):
 class RDFIntegerTest(absltest.TestCase):
 
   def testFromHumanReadable(self):
-    result = rdfvalue.RDFInteger.FromHumanReadable(u"42")
+    result = rdfvalue.RDFInteger.FromHumanReadable("42")
     self.assertEqual(result, rdfvalue.RDFInteger(42))
 
   def testFromHumanReadablePositive(self):
-    result = rdfvalue.RDFInteger.FromHumanReadable(u"+108")
+    result = rdfvalue.RDFInteger.FromHumanReadable("+108")
     self.assertEqual(result, rdfvalue.RDFInteger(108))
 
   def testFromHumanReadableNegative(self):
-    result = rdfvalue.RDFInteger.FromHumanReadable(u"-1337")
+    result = rdfvalue.RDFInteger.FromHumanReadable("-1337")
     self.assertEqual(result, rdfvalue.RDFInteger(-1337))
 
   def testFromHumanReadableZero(self):
-    result = rdfvalue.RDFInteger.FromHumanReadable(u"0")
+    result = rdfvalue.RDFInteger.FromHumanReadable("0")
     self.assertEqual(result, rdfvalue.RDFInteger(0))
 
   def testFromHumanReadableRaisesOnNonInteger(self):
     with self.assertRaises(ValueError):
-      rdfvalue.RDFInteger.FromHumanReadable(u"12.3")
+      rdfvalue.RDFInteger.FromHumanReadable("12.3")
 
   def testFromHumanReadableRaisesOnNonDecimal(self):
     with self.assertRaises(ValueError):
-      rdfvalue.RDFInteger.FromHumanReadable(u"12A")
+      rdfvalue.RDFInteger.FromHumanReadable("12A")
 
 
 class RDFDateTimeTest(absltest.TestCase):
@@ -113,31 +114,37 @@ class RDFDateTimeTest(absltest.TestCase):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
     end_time = start_time + rdfvalue.Duration.From(10, rdfvalue.DAYS)
     lerped_time = rdfvalue.RDFDatetime.Lerp(
-        0.5, start_time=start_time, end_time=end_time)
-    self.assertEqual(lerped_time,
-                     start_time + rdfvalue.Duration.From(5, rdfvalue.DAYS))
+        0.5, start_time=start_time, end_time=end_time
+    )
+    self.assertEqual(
+        lerped_time, start_time + rdfvalue.Duration.From(5, rdfvalue.DAYS)
+    )
 
   def testLerpZero(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
     end_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
     lerped_time = rdfvalue.RDFDatetime.Lerp(
-        0.0, start_time=start_time, end_time=end_time)
+        0.0, start_time=start_time, end_time=end_time
+    )
     self.assertEqual(lerped_time, start_time)
 
   def testLerpOne(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
     end_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
     lerped_time = rdfvalue.RDFDatetime.Lerp(
-        1.0, start_time=start_time, end_time=end_time)
+        1.0, start_time=start_time, end_time=end_time
+    )
     self.assertEqual(lerped_time, end_time)
 
   def testLerpQuarter(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
     end_time = start_time + rdfvalue.Duration.From(4, rdfvalue.DAYS)
     lerped_time = rdfvalue.RDFDatetime.Lerp(
-        0.25, start_time=start_time, end_time=end_time)
-    self.assertEqual(lerped_time,
-                     start_time + rdfvalue.Duration.From(1, rdfvalue.DAYS))
+        0.25, start_time=start_time, end_time=end_time
+    )
+    self.assertEqual(
+        lerped_time, start_time + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    )
 
   def testLerpRaisesTypeErrorIfTimesAreNotRDFDatetime(self):
     now = rdfvalue.RDFDatetime.Now()
@@ -147,9 +154,8 @@ class RDFDateTimeTest(absltest.TestCase):
 
     with self.assertRaisesRegex(TypeError, "non-datetime"):
       rdfvalue.RDFDatetime.Lerp(
-          0.0,
-          start_time=now,
-          end_time=rdfvalue.Duration.From(1, rdfvalue.DAYS))
+          0.0, start_time=now, end_time=rdfvalue.Duration.From(1, rdfvalue.DAYS)
+      )
 
   def testLerpRaisesValueErrorIfProgressIsNotNormalized(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
@@ -165,19 +171,22 @@ class RDFDateTimeTest(absltest.TestCase):
     dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     self.assertEqual(
-        dt.Floor(rdfvalue.Duration.From(60, rdfvalue.SECONDS)), expected)
+        dt.Floor(rdfvalue.Duration.From(60, rdfvalue.SECONDS)), expected
+    )
 
   def testFloorToHours(self):
     dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:00")
     self.assertEqual(
-        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.HOURS)), expected)
+        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.HOURS)), expected
+    )
 
   def testFloorToDays(self):
     dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11")
     self.assertEqual(
-        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.DAYS)), expected)
+        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.DAYS)), expected
+    )
 
   def testFloorExact(self):
     dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
@@ -234,7 +243,16 @@ class RDFDateTimeTest(absltest.TestCase):
     post_datetime = rdfvalue.RDFDatetime.Now()
 
     timestamp_datetime = rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
-    self.assertBetween(timestamp_datetime, pre_datetime, post_datetime)
+
+    # Note that Protocol Buffers `Timestamp` uses nanosecond precision whereas
+    # RDF `Datetime` uses microsecond precision. Thus, there is possibility that
+    # during comparison we hit rounding errors, so we offset check bounds by one
+    # 1 μs to account for that.
+    self.assertBetween(
+        timestamp_datetime,
+        pre_datetime - rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
+        post_datetime + rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
+    )
 
   def testFromTimestampProto_Seconds(self):
     timestamp = timestamp_pb2.Timestamp(seconds=1337)
@@ -256,7 +274,8 @@ class RDFDatetimeSecondsTest(absltest.TestCase):
     dt = datetime.datetime(2000, 1, 1)
     self.assertEqual(
         rdfvalue.RDFDatetimeSeconds.FromDatetime(dt_with_micros),
-        rdfvalue.RDFDatetimeSeconds.FromDatetime(dt))
+        rdfvalue.RDFDatetimeSeconds.FromDatetime(dt),
+    )
 
   def testBug122716179(self):
     d = rdfvalue.RDFDatetimeSeconds.FromSecondsSinceEpoch(1)
@@ -276,24 +295,30 @@ class DurationSecondsTest(absltest.TestCase):
   def testFromDays(self):
     self.assertEqual(
         rdfvalue.DurationSeconds.From(2, rdfvalue.DAYS),
-        rdfvalue.DurationSeconds.FromHumanReadable("2d"))
+        rdfvalue.DurationSeconds.FromHumanReadable("2d"),
+    )
     self.assertEqual(
         rdfvalue.DurationSeconds.From(31, rdfvalue.DAYS),
-        rdfvalue.DurationSeconds.FromHumanReadable("31d"))
+        rdfvalue.DurationSeconds.FromHumanReadable("31d"),
+    )
 
   def testFromHours(self):
     self.assertEqual(
         rdfvalue.DurationSeconds.From(48, rdfvalue.HOURS),
-        rdfvalue.DurationSeconds.FromHumanReadable("48h"))
+        rdfvalue.DurationSeconds.FromHumanReadable("48h"),
+    )
     self.assertEqual(
         rdfvalue.DurationSeconds.From(24, rdfvalue.HOURS),
-        rdfvalue.DurationSeconds.FromHumanReadable("24h"))
+        rdfvalue.DurationSeconds.FromHumanReadable("24h"),
+    )
 
   def testFromSeconds(self):
     self.assertEqual(
-        rdfvalue.DurationSeconds.From(1337,
-                                      rdfvalue.SECONDS).ToInt(rdfvalue.SECONDS),
-        1337)
+        rdfvalue.DurationSeconds.From(1337, rdfvalue.SECONDS).ToInt(
+            rdfvalue.SECONDS
+        ),
+        1337,
+    )
 
   def testFromMicroseconds(self):
     duration = rdfvalue.DurationSeconds.From(3000000, rdfvalue.MICROSECONDS)
@@ -307,20 +332,26 @@ class DurationSecondsTest(absltest.TestCase):
   def testSerializeToBytes(self):
     self.assertEqual(
         b"0",
-        rdfvalue.DurationSeconds.From(0, rdfvalue.WEEKS).SerializeToBytes())
+        rdfvalue.DurationSeconds.From(0, rdfvalue.WEEKS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"1",
-        rdfvalue.DurationSeconds.From(1, rdfvalue.SECONDS).SerializeToBytes())
+        rdfvalue.DurationSeconds.From(1, rdfvalue.SECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"2",
-        rdfvalue.DurationSeconds.From(2, rdfvalue.SECONDS).SerializeToBytes())
+        rdfvalue.DurationSeconds.From(2, rdfvalue.SECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"999",
-        rdfvalue.DurationSeconds.From(999, rdfvalue.SECONDS).SerializeToBytes())
+        rdfvalue.DurationSeconds.From(999, rdfvalue.SECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"1000",
-        rdfvalue.DurationSeconds.From(1000,
-                                      rdfvalue.SECONDS).SerializeToBytes())
+        rdfvalue.DurationSeconds.From(
+            1000, rdfvalue.SECONDS
+        ).SerializeToBytes(),
+    )
 
   def testFromWireFormat(self):
     for i in [0, 7, 1337]:
@@ -328,7 +359,8 @@ class DurationSecondsTest(absltest.TestCase):
       self.assertEqual(i, val.ToInt(rdfvalue.SECONDS))
 
       val2 = rdfvalue.DurationSeconds.FromWireFormat(
-          val.SerializeToWireFormat())
+          val.SerializeToWireFormat()
+      )
       self.assertEqual(val, val2)
 
 
@@ -341,51 +373,58 @@ class DurationTest(absltest.TestCase):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64]:
       val = rdfvalue.Duration.From(i, rdfvalue.MICROSECONDS)
       self.assertEqual(i, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} us".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} us".format(i))
+      )
       self.assertEqual(val, rdfvalue.Duration(i))
 
   def testInitializationFromMilliseconds(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 1000]:
       val = rdfvalue.Duration.From(i, rdfvalue.MILLISECONDS)
       self.assertEqual(i * 1000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} ms".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} ms".format(i))
+      )
 
   def testInitializationFromSeconds(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 1000000]:
       val = rdfvalue.Duration.From(i, rdfvalue.SECONDS)
       self.assertEqual(i * 1000000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} s".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} s".format(i))
+      )
 
   def testInitializationFromMinutes(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 60000000]:
       val = rdfvalue.Duration.From(i, rdfvalue.MINUTES)
       self.assertEqual(i * 60000000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} m".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} m".format(i))
+      )
 
   def testInitializationFromHours(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 3600000000]:
       val = rdfvalue.Duration.From(i, rdfvalue.HOURS)
       self.assertEqual(i * 3600000000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} h".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} h".format(i))
+      )
 
   def testInitializationFromDays(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 86400000000]:
       val = rdfvalue.Duration.From(i, rdfvalue.DAYS)
       self.assertEqual(i * 86400000000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} d".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} d".format(i))
+      )
 
   def testInitializationFromWeeks(self):
     for i in [0, 1, 7, 60, 1337, MAX_UINT64 // 604800000000]:
       val = rdfvalue.Duration.From(i, rdfvalue.WEEKS)
       self.assertEqual(i * 604800000000, val.microseconds)
-      self.assertEqual(val,
-                       rdfvalue.Duration.FromHumanReadable("{} w".format(i)))
+      self.assertEqual(
+          val, rdfvalue.Duration.FromHumanReadable("{} w".format(i))
+      )
 
   def testConversionToInt(self):
     for i in [0, 1, 7, 60, 1337, 12345, 123456, 1234567, MAX_UINT64]:
@@ -396,9 +435,11 @@ class DurationTest(absltest.TestCase):
       self.assertEqual(val.ToInt(rdfvalue.MINUTES), i // (60 * 1000 * 1000))
       self.assertEqual(val.ToInt(rdfvalue.HOURS), i // (60 * 60 * 1000 * 1000))
       self.assertEqual(
-          val.ToInt(rdfvalue.DAYS), i // (24 * 60 * 60 * 1000 * 1000))
+          val.ToInt(rdfvalue.DAYS), i // (24 * 60 * 60 * 1000 * 1000)
+      )
       self.assertEqual(
-          val.ToInt(rdfvalue.WEEKS), i // (7 * 24 * 60 * 60 * 1000 * 1000))
+          val.ToInt(rdfvalue.WEEKS), i // (7 * 24 * 60 * 60 * 1000 * 1000)
+      )
 
   def testConversionToFractional(self):
     for i in [0, 1, 7, 60, 1337, 12345, 123456, 1234567, MAX_UINT64]:
@@ -406,38 +447,49 @@ class DurationTest(absltest.TestCase):
       self.assertAlmostEqual(val.ToFractional(rdfvalue.MICROSECONDS), i)
       self.assertAlmostEqual(val.ToFractional(rdfvalue.MILLISECONDS), i / 1000)
       self.assertAlmostEqual(
-          val.ToFractional(rdfvalue.SECONDS), i / (1000 * 1000))
+          val.ToFractional(rdfvalue.SECONDS), i / (1000 * 1000)
+      )
       self.assertAlmostEqual(
-          val.ToFractional(rdfvalue.MINUTES), i / (60 * 1000 * 1000))
+          val.ToFractional(rdfvalue.MINUTES), i / (60 * 1000 * 1000)
+      )
       self.assertAlmostEqual(
-          val.ToFractional(rdfvalue.HOURS), i / (60 * 60 * 1000 * 1000))
+          val.ToFractional(rdfvalue.HOURS), i / (60 * 60 * 1000 * 1000)
+      )
       self.assertAlmostEqual(
-          val.ToFractional(rdfvalue.DAYS), i / (24 * 60 * 60 * 1000 * 1000))
+          val.ToFractional(rdfvalue.DAYS), i / (24 * 60 * 60 * 1000 * 1000)
+      )
       self.assertAlmostEqual(
-          val.ToFractional(rdfvalue.WEEKS),
-          i / (7 * 24 * 60 * 60 * 1000 * 1000))
+          val.ToFractional(rdfvalue.WEEKS), i / (7 * 24 * 60 * 60 * 1000 * 1000)
+      )
 
   def testStringDeserialization(self):
     for i in [0, 1, 7, 60, 1337, 12345, 123456, 1234567, MAX_UINT64]:
       val = rdfvalue.Duration.From(i, rdfvalue.MICROSECONDS)
       self.assertEqual(
-          rdfvalue.Duration.FromSerializedBytes(val.SerializeToBytes()), val)
+          rdfvalue.Duration.FromSerializedBytes(val.SerializeToBytes()), val
+      )
 
   def testHumanReadableStringSerialization(self):
     self.assertEqual("0 us", str(rdfvalue.Duration.From(0, rdfvalue.WEEKS)))
-    self.assertEqual("1 us",
-                     str(rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS)))
-    self.assertEqual("2 us",
-                     str(rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS)))
-    self.assertEqual("999 us",
-                     str(rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS)))
-    self.assertEqual("1 ms",
-                     str(rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS)))
-    self.assertEqual("1 ms",
-                     str(rdfvalue.Duration.From(1, rdfvalue.MILLISECONDS)))
+    self.assertEqual(
+        "1 us", str(rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
+    )
+    self.assertEqual(
+        "2 us", str(rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS))
+    )
+    self.assertEqual(
+        "999 us", str(rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS))
+    )
+    self.assertEqual(
+        "1 ms", str(rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS))
+    )
+    self.assertEqual(
+        "1 ms", str(rdfvalue.Duration.From(1, rdfvalue.MILLISECONDS))
+    )
     self.assertEqual(
         "{} us".format(MAX_UINT64),
-        str(rdfvalue.Duration.From(MAX_UINT64, rdfvalue.MICROSECONDS)))
+        str(rdfvalue.Duration.From(MAX_UINT64, rdfvalue.MICROSECONDS)),
+    )
     self.assertEqual("3 s", str(rdfvalue.Duration.From(3, rdfvalue.SECONDS)))
     self.assertEqual("3 m", str(rdfvalue.Duration.From(3, rdfvalue.MINUTES)))
     self.assertEqual("3 h", str(rdfvalue.Duration.From(3, rdfvalue.HOURS)))
@@ -446,41 +498,50 @@ class DurationTest(absltest.TestCase):
 
   def testSerializeToBytes(self):
     self.assertEqual(
-        b"0",
-        rdfvalue.Duration.From(0, rdfvalue.WEEKS).SerializeToBytes())
+        b"0", rdfvalue.Duration.From(0, rdfvalue.WEEKS).SerializeToBytes()
+    )
     self.assertEqual(
         b"1",
-        rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"2",
-        rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"999",
-        rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         b"1000",
-        rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS).SerializeToBytes(),
+    )
     self.assertEqual(
         str(MAX_UINT64).encode("utf-8"),
-        rdfvalue.Duration.From(MAX_UINT64,
-                               rdfvalue.MICROSECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(
+            MAX_UINT64, rdfvalue.MICROSECONDS
+        ).SerializeToBytes(),
+    )
     self.assertEqual(
         b"3000000",
-        rdfvalue.Duration.From(3, rdfvalue.SECONDS).SerializeToBytes())
+        rdfvalue.Duration.From(3, rdfvalue.SECONDS).SerializeToBytes(),
+    )
 
   def testAdditionOfDurationsIsEqualToIntegerAddition(self):
     for a in [0, 1, 7, 60, 1337, MAX_UINT64 // 2]:
       for b in [0, 1, 7, 60, 1337, MAX_UINT64 // 2]:
         self.assertEqual(
             rdfvalue.Duration(a) + rdfvalue.Duration(b),
-            rdfvalue.Duration(a + b))
+            rdfvalue.Duration(a + b),
+        )
 
   def testSubtractionOfDurationsIsEqualToIntegerSubtraction(self):
     for a in [0, 1, 7, 60, 1337, MAX_UINT64]:
       for b in [0, 1, 7, 60, 1337, MAX_UINT64]:
         self.assertEqual(
             rdfvalue.Duration(a) - rdfvalue.Duration(min(a, b)),
-            rdfvalue.Duration(a - min(a, b)))
+            rdfvalue.Duration(a - min(a, b)),
+        )
 
   def testFromWireFormat(self):
     for i in [0, 7, 1337, MAX_UINT64]:

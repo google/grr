@@ -16,17 +16,21 @@ def Handler(connection: communication.Connection):
   while True:
     recv_result = connection.Recv()
     connection.Send(
-        communication.Message(recv_result.data + b"x",
-                              recv_result.attachment + b"x"))
+        communication.Message(
+            recv_result.data + b"x", recv_result.attachment + b"x"
+        )
+    )
 
 
 def main(argv):
   communication.Main(
       communication.Channel.FromSerialized(
-          pipe_input=int(argv[1]), pipe_output=int(argv[2])),
+          pipe_input=int(argv[1]), pipe_output=int(argv[2])
+      ),
       Handler,
       user="",
-      group="")
+      group="",
+  )
 
 
 if __name__ == "__main__":

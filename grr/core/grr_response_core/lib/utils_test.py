@@ -145,7 +145,8 @@ class UtilsTest(test_lib.GRRBaseTest):
     # No trailing "L".
     self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
     self.assertEqual(
-        utils.FormatAsHexString(int(1e19), 5), "0x8ac7230489e80000")
+        utils.FormatAsHexString(int(1e19), 5), "0x8ac7230489e80000"
+    )
 
   def testXor(self):
     test_str = b"foobar4815162342"

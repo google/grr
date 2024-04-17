@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """Parser testing lib."""
 
-
 import io
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
-def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):
+def GenInit(svc, desc, start=("2", "3", "4", "5"), stop="1"):
   """Generate init file."""
   insserv = r"""
     $local_fs   +umountfs
@@ -28,7 +27,7 @@ def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):
     """ % (svc, " ".join(start), " ".join(stop), desc)
   return {
       "/etc/insserv.conf": insserv.encode("utf-8"),
-      "/etc/init.d/%s" % svc: tmpl.encode("utf-8")
+      "/etc/init.d/%s" % svc: tmpl.encode("utf-8"),
   }
 
 

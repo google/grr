@@ -3,12 +3,10 @@
 
 import io
 
-
 from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import acls_pb2
-
 from grr_response_server import access_control
 from grr_response_server.authorization import auth_manager
 
@@ -31,6 +29,7 @@ class ErrorInvalidApprovalSpec(Error):
 
 class ClientApprovalAuthorization(rdf_structs.RDFProtoStruct):
   """Authorization to approve clients with a particular label."""
+
   protobuf = acls_pb2.ClientApprovalAuthorization
 
   @property
@@ -38,14 +37,16 @@ class ClientApprovalAuthorization(rdf_structs.RDFProtoStruct):
     label = self.Get("label")
     if not label:
       raise ErrorInvalidClientApprovalAuthorization(
-          "label string cannot be empty")
+          "label string cannot be empty"
+      )
     return label
 
   @label.setter
   def label(self, value):
     if not isinstance(value, str) or not value:
       raise ErrorInvalidClientApprovalAuthorization(
-          "label must be a non-empty string")
+          "label must be a non-empty string"
+      )
     self.Set("label", value)
 
   @property
@@ -124,9 +125,10 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
     if auth.requester_must_be_authorized:
       if not self.CheckPermissions(requester, label):
         raise access_control.UnauthorizedAccess(
-            "User %s not in %s or groups:%s for %s" %
-            (requester, auth.users, auth.groups, label),
-            subject=client_id)
+            "User %s not in %s or groups:%s for %s"
+            % (requester, auth.users, auth.groups, label),
+            subject=client_id,
+        )
 
     approved_count = 0
     for approver in approvers:
@@ -135,9 +137,10 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
 
     if approved_count < auth.num_approvers_required:
       raise access_control.UnauthorizedAccess(
-          "Found %s approvers for %s, needed %s" %
-          (approved_count, label, auth.num_approvers_required),
-          subject=client_id)
+          "Found %s approvers for %s, needed %s"
+          % (approved_count, label, auth.num_approvers_required),
+          subject=client_id,
+      )
     return True
 
 

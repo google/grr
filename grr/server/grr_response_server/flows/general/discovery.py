@@ -30,6 +30,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import crowdstrike
+from grr_response_server.flows.general import hardware
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
@@ -347,6 +348,11 @@ class Interrogate(flow_base.FlowBase):
           next_state=self.ProcessPasswdCacheUsers.__name__,
       )
 
+    self.CallFlow(
+        hardware.CollectHardwareInfo.__name__,
+        next_state=self.ProcessHardwareInfo.__name__,
+    )
+
     non_kb_artifacts = config.CONFIG["Artifacts.non_kb_interrogate_artifacts"]
     if non_kb_artifacts:
       self.CallFlow(
@@ -361,6 +367,17 @@ class Interrogate(flow_base.FlowBase):
     except db.UnknownClientError:
       pass
 
+  def ProcessHardwareInfo(
+      self,
+      responses: flow_responses.Responses[rdf_client.HardwareInfo],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to collect hardware information: %s", responses.status)
+      return
+
+    for response in responses:
+      self.state.client.hardware_info = response
+
   def ProcessArtifactResponses(self, responses):
     if not responses.success:
       self.Log("Error collecting artifacts: %s", responses.status)
@@ -370,8 +387,6 @@ class Interrogate(flow_base.FlowBase):
     for response in responses:
       if isinstance(response, rdf_client_fs.Volume):
         self.state.client.volumes.append(response)
-      elif isinstance(response, rdf_client.HardwareInfo):
-        self.state.client.hardware_info = response
       else:
         raise ValueError("Unexpected response type: %s" % type(response))
 

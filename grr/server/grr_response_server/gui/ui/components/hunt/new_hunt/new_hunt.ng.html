@@ -60,6 +60,7 @@
                 *ngIf="huntApprovalRequired$ | async"
                 [urlTree]="(huntApprovalRoute$ | async) ?? []"
                 [latestApproval]="latestApproval$ | async"
+                [requestApprovalStatus]="requestApprovalStatus$ | async"
                 [showSubmitButton]="false"
                 [validateOnStart]="true"
                 (approvalParams)="requestHuntApproval($event)">

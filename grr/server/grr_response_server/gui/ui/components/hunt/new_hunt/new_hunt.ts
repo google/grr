@@ -62,7 +62,7 @@ export class NewHunt {
   private readonly approvalParams$ = new BehaviorSubject<ApprovalParams | null>(
     null,
   );
-  private readonly requestApprovalStatus$ =
+  protected readonly requestApprovalStatus$ =
     this.huntApprovalLocalStore.requestApprovalStatus$;
   protected hasOriginInput: boolean | undefined = undefined;
 

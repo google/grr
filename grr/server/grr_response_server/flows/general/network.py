@@ -24,24 +24,13 @@ class Netstat(flow_base.FlowBase):
     self.CallClient(
         server_stubs.ListNetworkConnections,
         listening_only=self.args.listening_only,
-        next_state=self.ValidateListNetworkConnections.__name__)
+        next_state=self.StoreNetstat.__name__,
+    )
 
-  def ValidateListNetworkConnections(
+  def StoreNetstat(
       self,
       responses: flow_responses.Responses,
   ) -> None:
-    if not responses.success:
-      # Most likely the client is old and doesn't have ListNetworkConnections.
-      self.Log("%s", responses.status)
-
-      # Fallback to Netstat.
-      self.CallClient(
-          server_stubs.Netstat, next_state=self.StoreNetstat.__name__)
-    else:
-      self.CallStateInline(
-          next_state=self.StoreNetstat.__name__, responses=responses)
-
-  def StoreNetstat(self, responses):
     """Collects the connections.
 
     Args:

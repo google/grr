@@ -6,6 +6,7 @@ import platform
 from typing import List
 import unittest
 from unittest import mock
+
 import sys
 from absl.testing import absltest
 import psutil
@@ -49,8 +50,9 @@ class CommunicationTest(absltest.TestCase):
 
     server.Stop()
 
-  @unittest.skipIf(platform.system() == "Windows",
-                   "psutil is not used on Windows.")
+  @unittest.skipIf(
+      platform.system() == "Windows", "psutil is not used on Windows."
+  )
   def testTotalServerCpuSysTime_usesPsutilProcess(self):
     _FakeCpuTimes = collections.namedtuple("FakeCpuTimes", ["user", "system"])
 
@@ -69,10 +71,12 @@ class CommunicationTest(absltest.TestCase):
       with communication.SubprocessServer(_MakeArgs):
         pass
 
-      self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
-                             42.0)
-      self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
-                             43.0)
+      self.assertAlmostEqual(
+          communication.TotalServerCpuTime() - init_cpu_time, 42.0
+      )
+      self.assertAlmostEqual(
+          communication.TotalServerSysTime() - init_sys_time, 43.0
+      )
 
   @unittest.skipIf(platform.system() != "Windows", "Windows only test.")
   def testTotalServerCpuSysTime_usesWin32Process(self):
@@ -81,24 +85,27 @@ class CommunicationTest(absltest.TestCase):
       del handle  # Unused.
       return {
           "UserTime": 42 * 10 * 1000 * 1000,
-          "KernelTime": 43 * 10 * 1000 * 1000
+          "KernelTime": 43 * 10 * 1000 * 1000,
       }
 
     # pytype: disable=import-error
     import win32process  # pylint: disable=g-import-not-at-top
     # pytype: enable=import-error
-    with mock.patch.object(win32process, "GetProcessTimes",
-                           _MockGetProcessTimes):
+    with mock.patch.object(
+        win32process, "GetProcessTimes", _MockGetProcessTimes
+    ):
       init_cpu_time = communication.TotalServerCpuTime()
       init_sys_time = communication.TotalServerSysTime()
 
       with communication.SubprocessServer(_MakeArgs):
         pass
 
-      self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
-                             42.0)
-      self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
-                             43.0)
+      self.assertAlmostEqual(
+          communication.TotalServerCpuTime() - init_cpu_time, 42.0
+      )
+      self.assertAlmostEqual(
+          communication.TotalServerSysTime() - init_sys_time, 43.0
+      )
 
   def testCpuSysTime_addsUpMultipleProcesses(self):
 
@@ -132,10 +139,12 @@ class CommunicationTest(absltest.TestCase):
     server1.fake_sys_time = 3.0
     server2.fake_sys_time = 4.0
 
-    self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
-                           1.0 + 2.0)
-    self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
-                           3.0 + 4.0)
+    self.assertAlmostEqual(
+        communication.TotalServerCpuTime() - init_cpu_time, 1.0 + 2.0
+    )
+    self.assertAlmostEqual(
+        communication.TotalServerSysTime() - init_sys_time, 3.0 + 4.0
+    )
 
     server1.fake_cpu_time = 5.0
     server2.fake_cpu_time = 6.0
@@ -143,10 +152,12 @@ class CommunicationTest(absltest.TestCase):
     server1.fake_sys_time = 7.0
     server2.fake_sys_time = 8.0
 
-    self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
-                           5.0 + 6.0)
-    self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
-                           7.0 + 8.0)
+    self.assertAlmostEqual(
+        communication.TotalServerCpuTime() - init_cpu_time, 5.0 + 6.0
+    )
+    self.assertAlmostEqual(
+        communication.TotalServerSysTime() - init_sys_time, 7.0 + 8.0
+    )
 
     server1.Stop()
     server2.Stop()
@@ -159,22 +170,28 @@ class CommunicationTest(absltest.TestCase):
     server1.fake_sys_time = 9.0
     server2.fake_sys_time = 9.0
 
-    self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
-                           5.0 + 6.0)
-    self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
-                           7.0 + 8.0)
+    self.assertAlmostEqual(
+        communication.TotalServerCpuTime() - init_cpu_time, 5.0 + 6.0
+    )
+    self.assertAlmostEqual(
+        communication.TotalServerSysTime() - init_sys_time, 7.0 + 8.0
+    )
 
-  @unittest.skipIf(platform.system() != "Linux" and
-                   platform.system() != "Darwin", "Unix only test.")
+  @unittest.skipIf(
+      platform.system() != "Linux" and platform.system() != "Darwin",
+      "Unix only test.",
+  )
   def testMain_entersSandbox(self):
     with mock.patch.object(sandbox, "EnterSandbox") as mock_enter_sandbox:
       input_fd = os.open("/dev/null", os.O_RDONLY)
       output_file = os.open("/dev/null", os.O_WRONLY)
       channel = communication.Channel(
           communication.FileDescriptor.FromFileDescriptor(input_fd),
-          communication.FileDescriptor.FromFileDescriptor(output_file))
-      communication.Main(channel, lambda connection: None, "fooUser",
-                         "barGroup")
+          communication.FileDescriptor.FromFileDescriptor(output_file),
+      )
+      communication.Main(
+          channel, lambda connection: None, "fooUser", "barGroup"
+      )
       mock_enter_sandbox.assert_called_with("fooUser", "barGroup")
 
 

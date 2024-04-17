@@ -27,8 +27,8 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, 1)
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     a.Validate("test")
-    a.Validate(u"test")
-    a.Validate(u"/test-Îñ铁网åţî[öñåļ(îžåţîờñ")
+    a.Validate("test")
+    a.Validate("/test-Îñ铁网åţî[öñåļ(îžåţîờñ")
 
   def testTypeInfoNumberObjects(self):
     """Test the type info objects behave as expected."""
@@ -45,8 +45,9 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, "test")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
-    self.assertRaises(type_info.TypeValueError, a.Validate,
-                      [rdf_paths.PathSpec()])
+    self.assertRaises(
+        type_info.TypeValueError, a.Validate, [rdf_paths.PathSpec()]
+    )
     a.Validate([1, 2, 3])
 
   def testTypeInfoListConvertsObjectsOnValidation(self):
@@ -105,11 +106,13 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     type_infos = [
         type_info.String(name="output", default="analysis/{p}/{u}-{t}"),
         type_info.String(
-            description="Profile to use.", name="profile", default=""),
+            description="Profile to use.", name="profile", default=""
+        ),
         type_info.String(
             description="A comma separated list of plugins.",
             name="plugins",
-            default=""),
+            default="",
+        ),
     ]
 
     info = type_info.TypeDescriptorSet(
@@ -118,11 +121,17 @@ class TypeInfoTest(test_lib.GRRBaseTest):
         type_infos[2],
     )
 
-    new_info = type_info.TypeDescriptorSet(type_infos[0],)
+    new_info = type_info.TypeDescriptorSet(
+        type_infos[0],
+    )
 
-    updated_info = new_info + type_info.TypeDescriptorSet(type_infos[1],)
+    updated_info = new_info + type_info.TypeDescriptorSet(
+        type_infos[1],
+    )
 
-    updated_info += type_info.TypeDescriptorSet(type_infos[2],)
+    updated_info += type_info.TypeDescriptorSet(
+        type_infos[2],
+    )
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertCountEqual(info.descriptors, updated_info.descriptors)

@@ -5,7 +5,6 @@ import binascii
 import hashlib
 import logging
 import os
-from typing import Text
 
 from cryptography import exceptions
 from cryptography import x509
@@ -68,14 +67,17 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     elif isinstance(initializer, bytes):
       try:
         value = x509.load_pem_x509_certificate(
-            initializer, backend=openssl.backend)
+            initializer, backend=openssl.backend
+        )
       except (ValueError, TypeError) as e:
-        raise rdfvalue.DecodeError("Invalid certificate %s: %s" %
-                                   (initializer, e))
+        raise rdfvalue.DecodeError(
+            "Invalid certificate %s: %s" % (initializer, e)
+        )
       super().__init__(value)
     else:
-      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                     (self.__class__, initializer))
+      raise rdfvalue.InitializeError(
+          "Cannot initialize %s from %s." % (self.__class__, initializer)
+      )
     if self._value is not None:
       self.GetCN()  # This can also raise if there isn't exactly one CN entry.
 
@@ -109,8 +111,8 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
   @classmethod
@@ -128,7 +130,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
   def AsPEM(self):
     return self.SerializeToBytes()
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self.SerializeToBytes().decode("ascii")
 
   def Verify(self, public_key):
@@ -158,53 +160,9 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     public_key.Verify(
         self._value.tbs_certificate_bytes,
         self._value.signature,
-        hash_algorithm=self._value.signature_hash_algorithm)
+        hash_algorithm=self._value.signature_hash_algorithm,
+    )
     return True
-
-  @classmethod
-  def ClientCertFromCSR(cls, csr):
-    """Creates a new cert for the given common name.
-
-    Args:
-      csr: A CertificateSigningRequest.
-
-    Returns:
-      The signed cert.
-    """
-    builder = x509.CertificateBuilder()
-    # Use the client CN for a cert serial_id. This will ensure we do
-    # not have clashing cert id.
-    common_name = csr.GetCN()
-    serial = int(common_name.split(".")[1], 16)
-    builder = builder.serial_number(serial)
-    builder = builder.subject_name(
-        x509.Name(
-            [x509.NameAttribute(oid.NameOID.COMMON_NAME, str(common_name))]))
-
-    now = rdfvalue.RDFDatetime.Now()
-    now_plus_year = now + rdfvalue.Duration.From(52, rdfvalue.WEEKS)
-    builder = builder.not_valid_after(now_plus_year.AsDatetime())
-    now_minus_ten = now - rdfvalue.Duration.From(10, rdfvalue.SECONDS)
-    builder = builder.not_valid_before(now_minus_ten.AsDatetime())
-    # TODO(user): dependency loop with
-    # grr/core/grr_response_core/config/client.py.
-    # pylint: disable=protected-access
-    ca_cert = config_lib._CONFIG["CA.certificate"]
-    # pylint: enable=protected-access
-    builder = builder.issuer_name(ca_cert.GetIssuer())
-    builder = builder.public_key(csr.GetPublicKey().GetRawPublicKey())
-
-    # TODO(user): dependency loop with
-    # grr/core/grr_response_core/config/client.py.
-    # pylint: disable=protected-access
-    ca_key = config_lib._CONFIG["PrivateKeys.ca_key"]
-    # pylint: enable=protected-access
-
-    return RDFX509Cert(
-        builder.sign(
-            private_key=ca_key.GetRawPrivateKey(),
-            algorithm=hashes.SHA256(),
-            backend=openssl.backend))
 
 
 class CertificateSigningRequest(rdfvalue.RDFPrimitive):
@@ -219,17 +177,24 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
       value = x509.load_pem_x509_csr(initializer, backend=openssl.backend)
       super().__init__(value)
     elif common_name and private_key:
-      value = x509.CertificateSigningRequestBuilder().subject_name(
-          x509.Name(
-              [x509.NameAttribute(oid.NameOID.COMMON_NAME,
-                                  str(common_name))])).sign(
-                                      private_key.GetRawPrivateKey(),
-                                      hashes.SHA256(),
-                                      backend=openssl.backend)
+      value = (
+          x509.CertificateSigningRequestBuilder()
+          .subject_name(
+              x509.Name([
+                  x509.NameAttribute(oid.NameOID.COMMON_NAME, str(common_name))
+              ])
+          )
+          .sign(
+              private_key.GetRawPrivateKey(),
+              hashes.SHA256(),
+              backend=openssl.backend,
+          )
+      )
       super().__init__(value)
     elif initializer is not None:
-      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                     (self.__class__, initializer))
+      raise rdfvalue.InitializeError(
+          "Cannot initialize %s from %s." % (self.__class__, initializer)
+      )
 
   @classmethod
   def FromSerializedBytes(cls, value: bytes):
@@ -251,7 +216,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
   def AsPEM(self):
     return self.SerializeToBytes()
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self.SerializeToBytes().decode("ascii")
 
   def GetCN(self):
@@ -273,7 +238,8 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
     public_key.Verify(
         self._value.tbs_certrequest_bytes,
         self._value.signature,
-        hash_algorithm=self._value.signature_hash_algorithm)
+        hash_algorithm=self._value.signature_hash_algorithm,
+    )
     return True
 
 
@@ -292,20 +258,22 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       super().__init__(initializer)
       return
 
-    if isinstance(initializer, Text):
+    if isinstance(initializer, str):
       initializer = initializer.encode("ascii")
 
     if isinstance(initializer, bytes):
       try:
         value = serialization.load_pem_public_key(
-            initializer, backend=openssl.backend)
+            initializer, backend=openssl.backend
+        )
         super().__init__(value)
         return
       except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
         raise type_info.TypeValueError("Public key invalid: %s" % e)
 
-    raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                   (self.__class__, initializer))
+    raise rdfvalue.InitializeError(
+        "Cannot initialize %s from %s." % (self.__class__, initializer)
+    )
 
   def GetRawPublicKey(self):
     return self._value
@@ -321,8 +289,8 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return cls.FromSerializedBytes(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
   def SerializeToBytes(self) -> bytes:
@@ -330,12 +298,13 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       return b""
     return self._value.public_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo)
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
 
   def GetN(self):
     return self._value.public_numbers().n
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self.SerializeToBytes().decode("ascii")
 
   # TODO(user): this should return a string, since PEM format
@@ -358,7 +327,9 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
           padding.OAEP(
               mgf=padding.MGF1(algorithm=hashes.SHA1()),
               algorithm=hashes.SHA1(),
-              label=None))
+              label=None,
+          ),
+      )
     except ValueError as e:
       raise CipherError(e)
 
@@ -370,16 +341,16 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     if hash_algorithm is None:
       hash_algorithm = hashes.SHA256()
 
-    last_e = None
     for padding_algorithm in [
         padding.PSS(
-            mgf=padding.MGF1(hash_algorithm),
-            salt_length=padding.PSS.MAX_LENGTH),
-        padding.PKCS1v15()
+            mgf=padding.MGF1(hash_algorithm), salt_length=padding.PSS.MAX_LENGTH
+        ),
+        padding.PKCS1v15(),
     ]:
       try:
-        self._value.verify(signature, message, padding_algorithm,
-                           hash_algorithm)
+        self._value.verify(
+            signature, message, padding_algorithm, hash_algorithm
+        )
         return True
 
       except exceptions.InvalidSignature as e:
@@ -404,16 +375,18 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       super().__init__(initializer)
       return
 
-    if isinstance(initializer, Text):
+    if isinstance(initializer, str):
       initializer = initializer.encode("ascii")
 
     if not isinstance(initializer, bytes):
-      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                     (self.__class__, initializer))
+      raise rdfvalue.InitializeError(
+          "Cannot initialize %s from %s." % (self.__class__, initializer)
+      )
 
     try:
       value = serialization.load_pem_private_key(
-          initializer, password=None, backend=openssl.backend)
+          initializer, password=None, backend=openssl.backend
+      )
       super().__init__(value)
       return
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
@@ -443,14 +416,15 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       # The private key is encrypted and we can ask the user for the passphrase.
       password = utils.PassphraseCallback()
       value = serialization.load_pem_private_key(
-          initializer, password=password, backend=openssl.backend)
+          initializer, password=password, backend=openssl.backend
+      )
       super().__init__(value)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
   def GetRawPrivateKey(self):
@@ -459,17 +433,13 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
   def GetPublicKey(self):
     return RSAPublicKey(self._value.public_key())
 
-  def Sign(self, message, use_pss=False):
+  def Sign(self, message):
     """Sign a given message."""
     precondition.AssertType(message, bytes)
 
-    # TODO(amoser): This should use PSS by default at some point.
-    if not use_pss:
-      padding_algorithm = padding.PKCS1v15()
-    else:
-      padding_algorithm = padding.PSS(
-          mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
-
+    padding_algorithm = padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+    )
     return self._value.sign(message, padding_algorithm, hashes.SHA256())
 
   def Decrypt(self, message):
@@ -482,14 +452,17 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
           padding.OAEP(
               mgf=padding.MGF1(algorithm=hashes.SHA1()),
               algorithm=hashes.SHA1(),
-              label=None))
+              label=None,
+          ),
+      )
     except ValueError as e:
       raise CipherError(e)
 
   @classmethod
   def GenerateKey(cls, bits=2048, exponent=65537):
     key = rsa.generate_private_key(
-        public_exponent=exponent, key_size=bits, backend=openssl.backend)
+        public_exponent=exponent, key_size=bits, backend=openssl.backend
+    )
     return cls(key)
 
   @classmethod
@@ -500,7 +473,6 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
   @classmethod
   def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
-    return cls(value)
 
   def SerializeToBytes(self) -> bytes:
     if self._value is None:
@@ -508,9 +480,10 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return self._value.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption())
+        encryption_algorithm=serialization.NoEncryption(),
+    )
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     digest = hashlib.sha256(self.AsPEM()).hexdigest()
 
     return "%s (%s)" % ((self.__class__).__name__, digest)
@@ -526,7 +499,8 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return self._value.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.BestAvailableEncryption(passphrase))
+        encryption_algorithm=serialization.BestAvailableEncryption(passphrase),
+    )
 
   def KeyLen(self):
     if self._value is None:
@@ -546,6 +520,7 @@ class PEMPublicKey(RSAPublicKey):
 
 class Hash(rdf_structs.RDFProtoStruct):
   """A hash object containing multiple digests."""
+
   protobuf = jobs_pb2.Hash
   rdf_deps = [
       rdf_standard.AuthenticodeSignedData,
@@ -561,6 +536,7 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
   The client can receive and verify a signed blob (e.g. driver or executable
   binary). Once verified, the client may execute this.
   """
+
   protobuf = jobs_pb2.SignedBlob
 
   def Verify(self, public_key):
@@ -577,8 +553,11 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     """
     if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
+    # TODO: Remove PKCS1v15 signature type when client adopted
+    # change to PSS.
     if self.signature_type not in [
-        self.SignatureType.RSA_PKCS1v15, self.SignatureType.RSA_PSS
+        self.SignatureType.RSA_PKCS1v15,
+        self.SignatureType.RSA_PSS,
     ]:
       raise rdfvalue.DecodeError("Unsupported signature type.")
 
@@ -606,7 +585,7 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
       logging.warning("signing key is too short.")
 
     self.signature = signing_key.Sign(data)
-    self.signature_type = self.SignatureType.RSA_PKCS1v15
+    self.signature_type = self.SignatureType.RSA_PSS
 
     self.digest = hashlib.sha256(data).digest()
     self.digest_type = self.HashType.SHA256
@@ -636,8 +615,9 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
       precondition.AssertType(initializer, bytes)
 
       if len(initializer) % 8:
-        raise CipherError("Invalid key length %d (%s)." %
-                          (len(initializer) * 8, initializer))
+        raise CipherError(
+            "Invalid key length %d (%s)." % (len(initializer) * 8, initializer)
+        )
 
       super().__init__(initializer)
 
@@ -656,17 +636,17 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(binascii.unhexlify(string))
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return "%s (%s)" % (self.__class__.__name__, self.AsHexDigest())
 
   def __len__(self) -> int:
     return len(self._value)
 
-  def AsHexDigest(self) -> Text:
+  def AsHexDigest(self) -> str:
     return text.Hexify(self._value)
 
   def SerializeToBytes(self):
@@ -684,7 +664,7 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     return self._value
 
 
-class StreamingCBCEncryptor(object):
+class StreamingCBCEncryptor:
   """A class to stream data to a CBCCipher object."""
 
   def __init__(self, cipher):
@@ -707,7 +687,7 @@ class StreamingCBCEncryptor(object):
     return res
 
 
-class AES128CBCCipher(object):
+class AES128CBCCipher:
   """A Cipher using AES128 in CBC mode and PKCS7 for padding."""
 
   algorithm = None
@@ -732,8 +712,8 @@ class AES128CBCCipher(object):
 
   def GetEncryptor(self):
     return ciphers.Cipher(
-        algorithms.AES(self.key), modes.CBC(self.iv),
-        backend=openssl.backend).encryptor()
+        algorithms.AES(self.key), modes.CBC(self.iv), backend=openssl.backend
+    ).encryptor()
 
   def Encrypt(self, data):
     """A convenience method which pads and encrypts at once."""
@@ -747,8 +727,8 @@ class AES128CBCCipher(object):
 
   def GetDecryptor(self):
     return ciphers.Cipher(
-        algorithms.AES(self.key), modes.CBC(self.iv),
-        backend=openssl.backend).decryptor()
+        algorithms.AES(self.key), modes.CBC(self.iv), backend=openssl.backend
+    ).decryptor()
 
   def Decrypt(self, data):
     """A convenience method which pads and decrypts at once."""
@@ -763,6 +743,7 @@ class AES128CBCCipher(object):
 
 class SymmetricCipher(rdf_structs.RDFProtoStruct):
   """Abstract symmetric cipher operations."""
+
   protobuf = jobs_pb2.SymmetricCipher
   rdf_deps = [
       EncryptionKey,
@@ -776,7 +757,8 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
     return cls(
         _algorithm=algorithm,
         _key=EncryptionKey.GenerateKey(length=128),
-        _iv=EncryptionKey.GenerateKey(length=128))
+        _iv=EncryptionKey.GenerateKey(length=128),
+    )
 
   def _get_cipher(self):
     if self._algorithm != self.Algorithm.AES128CBC:
@@ -797,7 +779,7 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
     return self._get_cipher().Decrypt(data)
 
 
-class HMAC(object):
+class HMAC:
   """A wrapper for the cryptography HMAC object."""
 
   def __init__(self, key, use_sha256=False):
@@ -848,6 +830,7 @@ class HMAC(object):
 
 class Password(rdf_structs.RDFProtoStruct):
   """A password stored in the database."""
+
   protobuf = jobs_pb2.Password
 
   def _CalculateHash(self, password, salt, iteration_count):
@@ -856,7 +839,8 @@ class Password(rdf_structs.RDFProtoStruct):
         length=32,
         salt=salt,
         iterations=iteration_count,
-        backend=openssl.backend)
+        backend=openssl.backend,
+    )
     return kdf.derive(password)
 
   def SetPassword(self, password):
@@ -864,15 +848,16 @@ class Password(rdf_structs.RDFProtoStruct):
     self.iteration_count = 100000
 
     # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, Text):
+    if isinstance(password, str):
       password = password.encode("utf-8")
 
-    self.hashed_pwd = self._CalculateHash(password, self.salt,
-                                          self.iteration_count)
+    self.hashed_pwd = self._CalculateHash(
+        password, self.salt, self.iteration_count
+    )
 
   def CheckPassword(self, password):
     # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, Text):
+    if isinstance(password, str):
       password = password.encode("utf-8")
 
     h = self._CalculateHash(password, self.salt, self.iteration_count)

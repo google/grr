@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Email live output plugin."""
 
-
 import jinja2
 
 from grr_response_core import config
@@ -30,7 +29,8 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   produces_output_streams = False
 
   subject_template = jinja2.Template(
-      "GRR got a new result in {{ source_urn }}.", autoescape=True)
+      "GRR got a new result in {{ source_urn }}.", autoescape=True
+  )
   template = jinja2.Template(
       """
 <html><body><h1>GRR got a new result in {{ source_urn }}.</h1>
@@ -49,8 +49,10 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
       autoescape=True,
   )
 
-  too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
-                        "sending of emails will be disabled now. </p>")
+  too_many_mails_msg = (
+      "<p> This hunt has now produced %d results so the "
+      "sending of emails will be disabled now. </p>"
+  )
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -76,12 +78,13 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     client_fragment_id = "/clients/%s" % client_id
 
     if emails_left == 0:
-      additional_message = (self.too_many_mails_msg % self.args.emails_limit)
+      additional_message = self.too_many_mails_msg % self.args.emails_limit
     else:
       additional_message = ""
 
     subject = self.__class__.subject_template.render(
-        source_urn=str(self.source_urn))
+        source_urn=str(self.source_urn)
+    )
     body = self.__class__.template.render(
         client_id=client_id,
         client_fragment_id=client_fragment_id,
@@ -89,10 +92,12 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         source_urn=self.source_urn,
         additional_message=additional_message,
         signature=config.CONFIG["Email.signature"],
-        hostname=hostname)
+        hostname=hostname,
+    )
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        self.args.email_address, "grr-noreply", subject, body, is_html=True)
+        self.args.email_address, "grr-noreply", subject, body, is_html=True
+    )
 
   def ProcessResponses(self, state, responses):
     for response in responses:

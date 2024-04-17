@@ -136,6 +136,7 @@ class ListNamedPipesTest(absltest.TestCase):
 
 class NamedPipeSpec:
   """A class with named pipe specification."""
+
   name: str
   open_mode: Optional[int] = None
   pipe_mode: Optional[int] = None

@@ -12,7 +12,7 @@ from absl import flags
 from grr_response_core import config
 from grr_response_core.stats import metrics
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import events
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -72,8 +72,7 @@ class GrrApplicationLogger(object):
     logging.info(log_msg)
 
     if response.headers.get("X-No-Log") != "True":
-      entry = rdf_objects.APIAuditEntry.FromHttpRequestResponse(
-          request, response)
+      entry = events.APIAuditEntryFromHttpRequestResponse(request, response)
       data_store.REL_DB.WriteAPIAuditEntry(entry)
 
   def LogHttpFrontendAccess(self, request, source=None, message_count=None):

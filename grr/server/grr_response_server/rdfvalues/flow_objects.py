@@ -30,45 +30,11 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
       self.next_response_id = 1
 
 
-class FlowMessage(object):
-  """Base class for all messages flows can receive."""
-
-  @property
-  def client_id(self) -> str:
-    return self.Get("client_id")
-
-  @client_id.setter
-  def client_id(self, value: str) -> None:
-    self.Set("client_id", value)
-
-  @property
-  def flow_id(self) -> str:
-    return self.Get("flow_id")
-
-  @flow_id.setter
-  def flow_id(self, value: str) -> None:
-    self.Set("flow_id", value)
-
-  @property
-  def request_id(self) -> int:
-    return self.Get("request_id")
-
-  @request_id.setter
-  def request_id(self, value: int) -> None:
-    self.Set("request_id", value)
-
-  @property
-  def response_id(self) -> int:
-    return self.Get("response_id")
-
-  @response_id.setter
-  def response_id(self, value: int) -> None:
-    self.Set("response_id", value)
-
-
-class FlowResponse(FlowMessage, rdf_structs.RDFProtoStruct):
+class FlowResponse(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowResponse
-  rdf_deps = []
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   def AsLegacyGrrMessage(self):
     return rdf_flows.GrrMessage(
@@ -80,9 +46,11 @@ class FlowResponse(FlowMessage, rdf_structs.RDFProtoStruct):
         payload=self.payload)
 
 
-class FlowIterator(FlowMessage, rdf_structs.RDFProtoStruct):
+class FlowIterator(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowIterator
-  rdf_deps = []
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   def AsLegacyGrrMessage(self):
     return rdf_flows.GrrMessage(
@@ -93,13 +61,14 @@ class FlowIterator(FlowMessage, rdf_structs.RDFProtoStruct):
         timestamp=self.timestamp)
 
 
-class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
+class FlowStatus(rdf_structs.RDFProtoStruct):
   """The flow status object."""
 
   protobuf = flows_pb2.FlowStatus
   rdf_deps = [
       rdf_client_stats.CpuSeconds,
       rdfvalue.Duration,
+      rdfvalue.RDFDatetime,
   ]
 
   def AsLegacyGrrMessage(self):

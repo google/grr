@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the memory-based blob store."""
 
-
 from absl import app
 from absl.testing import absltest
 
@@ -11,8 +10,11 @@ from grr_response_server.databases import mem_test_base
 from grr.test_lib import test_lib
 
 
-class MemoryDBBlobStoreTest(blob_store_test_mixin.BlobStoreTestMixin,
-                            mem_test_base.MemoryDBTestBase, absltest.TestCase):
+class MemoryDBBlobStoreTest(
+    blob_store_test_mixin.BlobStoreTestMixin,
+    mem_test_base.MemoryDBTestBase,
+    absltest.TestCase,
+):
 
   def CreateBlobStore(self):
     db, db_cleanup_fn = self.CreateDatabase()

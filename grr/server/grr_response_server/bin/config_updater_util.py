@@ -10,7 +10,7 @@ import socket
 import subprocess
 import sys
 import time
-from typing import Optional, Text, Generator
+from typing import Generator, Optional
 from urllib import parse as urlparse
 
 import MySQLdb
@@ -56,7 +56,8 @@ class ConfigInitError(Exception):
   def __init__(self):
     super().__init__(
         "Aborting config initialization. Please run 'grr_config_updater "
-        "initialize' to retry initialization.")
+        "initialize' to retry initialization."
+    )
 
 
 class BinaryTooLargeError(Exception):
@@ -76,10 +77,9 @@ class UserNotFoundError(Exception):
 
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
-  sections_to_import = ["PrivateKeys"]
   entries_to_import = [
-      "Client.executable_signing_public_key", "CA.certificate",
-      "Frontend.certificate"
+      "Client.executable_signing_public_key",
+      "PrivateKeys.executable_signing_private_key",
   ]
   options_imported = 0
   old_config = grr_config.CONFIG.MakeNewConfig()
@@ -87,8 +87,7 @@ def ImportConfig(filename, config):
 
   for entry in old_config.raw_data:
     try:
-      section = entry.split(".")[0]
-      if section in sections_to_import or entry in entries_to_import:
+      if entry in entries_to_import:
         config.Set(entry, old_config.Get(entry))
         print("Imported %s." % entry)
         options_imported += 1
@@ -118,12 +117,17 @@ def RetryQuestion(question_text, output_re="", default_val=None):
 
 def RetryBoolQuestion(question_text, default_bool):
   if not isinstance(default_bool, bool):
-    raise ValueError("default_bool should be a boolean, not %s" %
-                     type(default_bool))
+    raise ValueError(
+        "default_bool should be a boolean, not %s" % type(default_bool)
+    )
   default_val = "Y" if default_bool else "N"
   prompt_suff = "[Yn]" if default_bool else "[yN]"
-  return RetryQuestion("%s %s: " % (question_text, prompt_suff), "[yY]|[nN]",
-                       default_val)[0].upper() == "Y"
+  return (
+      RetryQuestion(
+          "%s %s: " % (question_text, prompt_suff), "[yY]|[nN]", default_val
+      )[0].upper()
+      == "Y"
+  )
 
 
 def RetryIntQuestion(question_text: str, default_int: int) -> int:
@@ -137,7 +141,7 @@ def GetPassword(question_text: str) -> str:
   # pytype: enable=wrong-arg-types
 
 
-def ConfigureHostnames(config, external_hostname: Optional[Text] = None):
+def ConfigureHostnames(config, external_hostname: Optional[str] = None):
   """This configures the hostnames stored in the config."""
   if not external_hostname:
     try:
@@ -146,30 +150,36 @@ def ConfigureHostnames(config, external_hostname: Optional[Text] = None):
       print("Sorry, we couldn't guess your hostname.\n")
 
     external_hostname = RetryQuestion(
-        "Please enter your hostname e.g. "
-        "grr.example.com", "^[\\.A-Za-z0-9-]+$", external_hostname)
+        "Please enter your hostname e.g. grr.example.com",
+        "^[\\.A-Za-z0-9-]+$",
+        external_hostname,
+    )
 
   print("""\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
 communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """)
-  frontend_url = RetryQuestion("Frontend URL", "^http://.*/$",
-                               "http://%s:8080/" % external_hostname)
+  frontend_url = RetryQuestion(
+      "Frontend URL", "^http://.*/$", "http://%s:8080/" % external_hostname
+  )
   config.Set("Client.server_urls", [frontend_url])
 
   frontend_port = urlparse.urlparse(frontend_url).port or grr_config.CONFIG.Get(
-      "Frontend.bind_port")
+      "Frontend.bind_port"
+  )
   config.Set("Frontend.bind_port", frontend_port)
 
   print("""\n\n-=AdminUI URL=-:
 The UI URL specifies where the Administrative Web Interface can be found.
 """)
-  ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
-                         "http://%s:8000" % external_hostname)
+  ui_url = RetryQuestion(
+      "AdminUI URL", "^http[s]*://.*$", "http://%s:8000" % external_hostname
+  )
   config.Set("AdminUI.url", ui_url)
   ui_port = urlparse.urlparse(ui_url).port or grr_config.CONFIG.Get(
-      "AdminUI.port")
+      "AdminUI.port"
+  )
   config.Set("AdminUI.port", ui_port)
 
 
@@ -190,7 +200,8 @@ def CheckMySQLConnection(db_options):
           db=db_options["Mysql.database_name"],
           user=db_options["Mysql.database_username"],
           passwd=db_options["Mysql.database_password"],
-          charset="utf8")
+          charset="utf8",
+      )
 
       if "Mysql.port" in db_options:
         connection_options["port"] = db_options["Mysql.port"]
@@ -223,16 +234,22 @@ def CheckMySQLConnection(db_options):
       if len(mysql_op_error.args) < 2:
         # We expect the exception's arguments to be an error-code and
         # an error message.
-        print("Unexpected exception type received from MySQL. %d attempts "
-              "left: %s" % (tries_left, mysql_op_error))
+        print(
+            "Unexpected exception type received from MySQL. %d attempts "
+            "left: %s" % (tries_left, mysql_op_error)
+        )
         time.sleep(_MYSQL_RETRY_WAIT_SECS)
         continue
       if mysql_op_error.args[0] == mysql_conn_errors.CONNECTION_ERROR:
-        print("Failed to connect to MySQL. Is it running? %d attempts left." %
-              tries_left)
+        print(
+            "Failed to connect to MySQL. Is it running? %d attempts left."
+            % tries_left
+        )
       elif mysql_op_error.args[0] == mysql_conn_errors.UNKNOWN_HOST:
-        print("Unknown-hostname error encountered while trying to connect to "
-              "MySQL.")
+        print(
+            "Unknown-hostname error encountered while trying to connect to "
+            "MySQL."
+        )
         return False  # No need for retry.
       elif mysql_op_error.args[0] == general_mysql_errors.BAD_DB_ERROR:
         # GRR db doesn't exist yet. That's expected if this is the initial
@@ -240,17 +257,24 @@ def CheckMySQLConnection(db_options):
         return True
       elif mysql_op_error.args[0] in (
           general_mysql_errors.ACCESS_DENIED_ERROR,
-          general_mysql_errors.DBACCESS_DENIED_ERROR):
-        print("Permission error encountered while trying to connect to "
-              "MySQL: %s" % mysql_op_error)
+          general_mysql_errors.DBACCESS_DENIED_ERROR,
+      ):
+        print(
+            "Permission error encountered while trying to connect to MySQL: %s"
+            % mysql_op_error
+        )
         return False  # No need for retry.
       else:
-        print("Unexpected operational error encountered while trying to "
-              "connect to MySQL. %d attempts left: %s" %
-              (tries_left, mysql_op_error))
+        print(
+            "Unexpected operational error encountered while trying to "
+            "connect to MySQL. %d attempts left: %s"
+            % (tries_left, mysql_op_error)
+        )
     except MySQLdb.Error as mysql_error:
-      print("Unexpected error encountered while trying to connect to MySQL. "
-            "%d attempts left: %s" % (tries_left, mysql_error))
+      print(
+          "Unexpected error encountered while trying to connect to MySQL. "
+          "%d attempts left: %s" % (tries_left, mysql_error)
+      )
     time.sleep(_MYSQL_RETRY_WAIT_SECS)
   return False
 
@@ -265,34 +289,42 @@ def ConfigureMySQLDatastore(config):
   print("GRR will use MySQL as its database backend. Enter connection details:")
   datastore_init_complete = False
   while not datastore_init_complete:
-    db_options["Mysql.host"] = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
-                                             config["Mysql.host"])
+    db_options["Mysql.host"] = RetryQuestion(
+        "MySQL Host", "^[\\.A-Za-z0-9-]+$", config["Mysql.host"]
+    )
     db_options["Mysql.port"] = int(
-        RetryQuestion("MySQL Port (0 for local socket)", "^[0-9]+$",
-                      config["Mysql.port"]))
-    db_options["Mysql.database"] = RetryQuestion("MySQL Database",
-                                                 "^[A-Za-z0-9-]+$",
-                                                 config["Mysql.database_name"])
+        RetryQuestion(
+            "MySQL Port (0 for local socket)", "^[0-9]+$", config["Mysql.port"]
+        )
+    )
+    db_options["Mysql.database"] = RetryQuestion(
+        "MySQL Database", "^[A-Za-z0-9-]+$", config["Mysql.database_name"]
+    )
     db_options["Mysql.database_name"] = db_options["Mysql.database"]
     db_options["Mysql.username"] = RetryQuestion(
-        "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"])
+        "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"]
+    )
     db_options["Mysql.database_username"] = db_options["Mysql.username"]
     db_options["Mysql.password"] = GetPassword(
-        "Please enter password for database user %s: " %
-        db_options["Mysql.username"])
+        "Please enter password for database user %s: "
+        % db_options["Mysql.username"]
+    )
     db_options["Mysql.database_password"] = db_options["Mysql.password"]
 
     use_ssl = RetryBoolQuestion("Configure SSL connections for MySQL?", False)
     if use_ssl:
       db_options["Mysql.client_key_path"] = RetryQuestion(
           "Path to the client private key file",
-          default_val=config["Mysql.client_key_path"])
+          default_val=config["Mysql.client_key_path"],
+      )
       db_options["Mysql.client_cert_path"] = RetryQuestion(
           "Path to the client certificate file",
-          default_val=config["Mysql.client_cert_path"])
+          default_val=config["Mysql.client_cert_path"],
+      )
       db_options["Mysql.ca_cert_path"] = RetryQuestion(
           "Path to the CA certificate file",
-          default_val=config["Mysql.ca_cert_path"])
+          default_val=config["Mysql.ca_cert_path"],
+      )
 
     if CheckMySQLConnection(db_options):
       print("Successfully connected to MySQL with the provided details.")
@@ -301,7 +333,9 @@ def ConfigureMySQLDatastore(config):
       print("Error: Could not connect to MySQL with the provided details.")
       should_retry = RetryBoolQuestion(
           "Re-enter MySQL details? Answering 'no' will abort config "
-          "initialization: ", True)
+          "initialization: ",
+          True,
+      )
       if should_retry:
         db_options.clear()
       else:
@@ -328,22 +362,26 @@ class FleetspeakConfig:
     self.mysql_database: str = None
     self.mysql_unix_socket: str = None
     self.config_dir = package.ResourcePath(
-        "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server")
+        "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server"
+    )
     self._fleetspeak_config_command_path = package.ResourcePath(
         "fleetspeak-server-bin",
-        "fleetspeak-server-bin/usr/bin/fleetspeak-config")
+        "fleetspeak-server-bin/usr/bin/fleetspeak-config",
+    )
 
   def Prompt(self, config):
     """Sets up the in-memory configuration interactively."""
 
     if self._IsFleetspeakPresent():
       self.use_fleetspeak = RetryBoolQuestion(
-          "Use Fleetspeak (next generation communication "
-          "framework)?", True)
+          "Use Fleetspeak (next generation communication framework)?", True
+      )
     else:
       self.use_fleetspeak = False
-      print("Fleetspeak (next generation "
-            "communication framework) seems to be missing.")
+      print(
+          "Fleetspeak (next generation "
+          "communication framework) seems to be missing."
+      )
       print("Skipping Fleetspeak configuration.\n")
 
     if self.use_fleetspeak:
@@ -354,11 +392,14 @@ class FleetspeakConfig:
         print("Sorry, we couldn't guess your hostname.\n")
 
       self.external_hostname = RetryQuestion(
-          "Please enter your hostname e.g. "
-          "grr.example.com", "^[\\.A-Za-z0-9-]+$", self.external_hostname)
+          "Please enter your hostname e.g. grr.example.com",
+          "^[\\.A-Za-z0-9-]+$",
+          self.external_hostname,
+      )
 
-      self.https_port = RetryIntQuestion("Fleetspeak public HTTPS port",
-                                         self.https_port)
+      self.https_port = RetryIntQuestion(
+          "Fleetspeak public HTTPS port", self.https_port
+      )
 
       self._PromptMySQL(config)
 
@@ -376,8 +417,9 @@ class FleetspeakConfig:
       os.rename(self._ConfigPath(cert_file), self._ConfigPath(old_file))
     # Run fleetspeak-config to regenerate them
     subprocess.check_call([
-        self._fleetspeak_config_command_path, "-config",
-        self._ConfigPath("fleetspeak_config.config")
+        self._fleetspeak_config_command_path,
+        "-config",
+        self._ConfigPath("fleetspeak_config.config"),
     ])
 
   def _ConfigPath(self, *path_components: str) -> str:
@@ -393,28 +435,40 @@ class FleetspeakConfig:
 
   def _PromptMySQLOnce(self, config):
     """Prompt the MySQL configuration once."""
-    self.mysql_host = RetryQuestion("Fleetspeak MySQL Host",
-                                    "^[\\.A-Za-z0-9-]+$", self.mysql_host or
-                                    config["Mysql.host"])
-    self.mysql_port = RetryIntQuestion(
-        "Fleetspeak MySQL Port (0 for local socket)", self.mysql_port or
-        0) or None
+    self.mysql_host = RetryQuestion(
+        "Fleetspeak MySQL Host",
+        "^[\\.A-Za-z0-9-]+$",
+        self.mysql_host or config["Mysql.host"],
+    )
+    self.mysql_port = (
+        RetryIntQuestion(
+            "Fleetspeak MySQL Port (0 for local socket)", self.mysql_port or 0
+        )
+        or None
+    )
 
     if self.mysql_port is None:
       # golang's mysql connector needs the socket specified explicitly.
       self.mysql_unix_socket = RetryQuestion(
-          "Fleetspeak MySQL local socket path", ".+",
-          self._FindMysqlUnixSocket() or "")
+          "Fleetspeak MySQL local socket path",
+          ".+",
+          self._FindMysqlUnixSocket() or "",
+      )
 
-    self.mysql_database = RetryQuestion("Fleetspeak MySQL Database",
-                                        "^[A-Za-z0-9-]+$",
-                                        self.mysql_database or "fleetspeak")
+    self.mysql_database = RetryQuestion(
+        "Fleetspeak MySQL Database",
+        "^[A-Za-z0-9-]+$",
+        self.mysql_database or "fleetspeak",
+    )
     self.mysql_username = RetryQuestion(
-        "Fleetspeak MySQL Username", "[A-Za-z0-9-@]+$", self.mysql_username or
-        config["Mysql.database_username"])
+        "Fleetspeak MySQL Username",
+        "[A-Za-z0-9-@]+$",
+        self.mysql_username or config["Mysql.database_username"],
+    )
 
     self.mysql_password = GetPassword(
-        f"Please enter password for database user {self.mysql_username}: ")
+        f"Please enter password for database user {self.mysql_username}: "
+    )
 
   def _PromptMySQL(self, config):
     """Prompts the MySQL configuration, retrying if the configuration is invalid."""
@@ -425,8 +479,9 @@ class FleetspeakConfig:
         return
       else:
         print("Error: Could not connect to MySQL with the given configuration.")
-        retry = RetryBoolQuestion("Do you want to retry MySQL configuration?",
-                                  True)
+        retry = RetryBoolQuestion(
+            "Do you want to retry MySQL configuration?", True
+        )
         if not retry:
           raise ConfigInitError()
 
@@ -439,15 +494,18 @@ class FleetspeakConfig:
 
     if self._IsFleetspeakPresent():
       with open(self._ConfigPath("disabled"), "w") as f:
-        f.write("The existence of this file disables the "
-                "fleetspeak-server.service systemd unit.\n")
+        f.write(
+            "The existence of this file disables the "
+            "fleetspeak-server.service systemd unit.\n"
+        )
 
   def _WriteEnabled(self, config):
     """Applies the in-memory configuration for the use_fleetspeak case."""
 
     service_config = services_pb2.ServiceConfig(name="GRR", factory="GRPC")
     grpc_config = grpcservice_pb2.Config(
-        target="localhost:{}".format(self.grr_port), insecure=True)
+        target="localhost:{}".format(self.grr_port), insecure=True
+    )
     service_config.config.Pack(grpc_config)
     server_conf = server_pb2.ServerConfig(services=[service_config])
     server_conf.broadcast_poll_time.seconds = 1
@@ -463,7 +521,9 @@ class FleetspeakConfig:
               user=self.mysql_username,
               password=self.mysql_password,
               socket=self.mysql_unix_socket,
-              db=self.mysql_database))
+              db=self.mysql_database,
+          )
+      )
     else:
       cp.components_config.mysql_data_source_name = (
           "{user}:{password}@tcp({host}:{port})/{db}".format(
@@ -471,31 +531,39 @@ class FleetspeakConfig:
               password=self.mysql_password,
               host=self.mysql_host,
               port=self.mysql_port,
-              db=self.mysql_database))
+              db=self.mysql_database,
+          )
+      )
     cp.components_config.https_config.listen_address = "{}:{}".format(
-        self.external_hostname, self.https_port)
+        self.external_hostname, self.https_port
+    )
     cp.components_config.https_config.disable_streaming = False
     cp.components_config.admin_config.listen_address = "localhost:{}".format(
-        self.admin_port)
+        self.admin_port
+    )
     cp.public_host_port.append(cp.components_config.https_config.listen_address)
     cp.server_component_configuration_file = self._ConfigPath(
-        "server.components.config")
+        "server.components.config"
+    )
     cp.trusted_cert_file = self._ConfigPath("trusted_cert.pem")
     cp.trusted_cert_key_file = self._ConfigPath("trusted_cert_key.pem")
     cp.server_cert_file = self._ConfigPath("server_cert.pem")
     cp.server_cert_key_file = self._ConfigPath("server_cert_key.pem")
     cp.linux_client_configuration_file = self._ConfigPath("linux_client.config")
     cp.windows_client_configuration_file = self._ConfigPath(
-        "windows_client.config")
+        "windows_client.config"
+    )
     cp.darwin_client_configuration_file = self._ConfigPath(
-        "darwin_client.config")
+        "darwin_client.config"
+    )
 
     with open(self._ConfigPath("fleetspeak_config.config"), "w") as f:
       f.write(text_format.MessageToString(cp))
 
     subprocess.check_call([
-        self._fleetspeak_config_command_path, "-config",
-        self._ConfigPath("fleetspeak_config.config")
+        self._fleetspeak_config_command_path,
+        "-config",
+        self._ConfigPath("fleetspeak_config.config"),
     ])
 
     # These modules don't exist on Windows, so importing locally.
@@ -504,11 +572,15 @@ class FleetspeakConfig:
     import pwd
     # pylint: enable=g-import-not-at-top
 
-    if (os.geteuid() == 0 and pwd.getpwnam("fleetspeak") and
-        grp.getgrnam("fleetspeak") and
-        os.path.exists("/etc/fleetspeak-server")):
+    if (
+        os.geteuid() == 0
+        and pwd.getpwnam("fleetspeak")
+        and grp.getgrnam("fleetspeak")
+        and os.path.exists("/etc/fleetspeak-server")
+    ):
       subprocess.check_call(
-          ["chown", "-R", "fleetspeak:fleetspeak", "/etc/fleetspeak-server"])
+          ["chown", "-R", "fleetspeak:fleetspeak", "/etc/fleetspeak-server"]
+      )
 
     try:
       os.unlink(self._ConfigPath("disabled"))
@@ -519,24 +591,37 @@ class FleetspeakConfig:
     config.Set("Client.fleetspeak_enabled", True)
     config.Set("ClientBuilder.fleetspeak_bundled", True)
     config.Set(
-        "Target:Linux", {
-            "ClientBuilder.fleetspeak_client_config":
+        "Target:Linux",
+        {
+            "ClientBuilder.fleetspeak_client_config": (
                 cp.linux_client_configuration_file
-        })
+            )
+        },
+    )
     config.Set(
-        "Target:Windows", {
-            "ClientBuilder.fleetspeak_client_config":
+        "Target:Windows",
+        {
+            "ClientBuilder.fleetspeak_client_config": (
                 cp.windows_client_configuration_file
-        })
+            )
+        },
+    )
     config.Set(
-        "Target:Darwin", {
-            "ClientBuilder.fleetspeak_client_config":
+        "Target:Darwin",
+        {
+            "ClientBuilder.fleetspeak_client_config": (
                 cp.darwin_client_configuration_file
-        })
-    config.Set("Server.fleetspeak_server",
-               cp.components_config.admin_config.listen_address)
-    config.Set("FleetspeakFrontend Context",
-               {"Server.fleetspeak_message_listen_address": grpc_config.target})
+            )
+        },
+    )
+    config.Set(
+        "Server.fleetspeak_server",
+        cp.components_config.admin_config.listen_address,
+    )
+    config.Set(
+        "FleetspeakFrontend Context",
+        {"Server.fleetspeak_message_listen_address": grpc_config.target},
+    )
 
   def _CheckMySQLConnection(self):
     """Checks the MySQL configuration by attempting a connection."""
@@ -588,36 +673,43 @@ class FleetspeakConfig:
 
 def ConfigureDatastore(config):
   """Guides the user through configuration of the datastore."""
-  print("\n\n-=GRR Datastore=-\n"
-        "For GRR to work each GRR server has to be able to communicate with\n"
-        "the datastore. To do this we need to configure a datastore.\n")
+  print(
+      "\n\n-=GRR Datastore=-\n"
+      "For GRR to work each GRR server has to be able to communicate with\n"
+      "the datastore. To do this we need to configure a datastore.\n"
+  )
 
   ConfigureMySQLDatastore(config)
 
 
-def ConfigureUrls(config, external_hostname: Optional[Text] = None):
+def ConfigureUrls(config, external_hostname: Optional[str] = None):
   """Guides the user through configuration of various URLs used by GRR."""
-  print("\n\n-=GRR URLs=-\n"
-        "For GRR to work each client has to be able to communicate with the\n"
-        "server. To do this we normally need a public dns name or IP address\n"
-        "to communicate with. In the standard configuration this will be used\n"
-        "to host both the client facing server and the admin user interface.\n")
+  print(
+      "\n\n-=GRR URLs=-\n"
+      "For GRR to work each client has to be able to communicate with the\n"
+      "server. To do this we normally need a public dns name or IP address\n"
+      "to communicate with. In the standard configuration this will be used\n"
+      "to host both the client facing server and the admin user interface.\n"
+  )
 
   existing_ui_urn = grr_config.CONFIG.Get("AdminUI.url", default=None)
   existing_frontend_urns = grr_config.CONFIG.Get("Client.server_urls")
   if not existing_frontend_urns:
     # Port from older deprecated setting Client.control_urls.
     existing_control_urns = grr_config.CONFIG.Get(
-        "Client.control_urls", default=None)
+        "Client.control_urls", default=None
+    )
     if existing_control_urns is not None:
       existing_frontend_urns = []
       for existing_control_urn in existing_control_urns:
         if not existing_control_urn.endswith("control"):
-          raise RuntimeError("Invalid existing control URL: %s" %
-                             existing_control_urn)
+          raise RuntimeError(
+              "Invalid existing control URL: %s" % existing_control_urn
+          )
 
         existing_frontend_urns.append(
-            existing_control_urn.rsplit("/", 1)[0] + "/")
+            existing_control_urn.rsplit("/", 1)[0] + "/"
+        )
 
       config.Set("Client.server_urls", existing_frontend_urns)
       config.Set("Client.control_urls", ["deprecated use Client.server_urls"])
@@ -625,50 +717,67 @@ def ConfigureUrls(config, external_hostname: Optional[Text] = None):
   if not existing_frontend_urns or not existing_ui_urn:
     ConfigureHostnames(config, external_hostname=external_hostname)
   else:
-    print("Found existing settings:\n  AdminUI URL: %s\n  "
-          "Frontend URL(s): %s\n" % (existing_ui_urn, existing_frontend_urns))
+    print(
+        "Found existing settings:\n  AdminUI URL: %s\n  Frontend URL(s): %s\n"
+        % (existing_ui_urn, existing_frontend_urns)
+    )
     if not RetryBoolQuestion("Do you want to keep this configuration?", True):
       ConfigureHostnames(config, external_hostname=external_hostname)
 
 
 def ConfigureEmails(config):
   """Guides the user through email setup."""
-  print("\n\n-=GRR Emails=-\n"
-        "GRR needs to be able to send emails for various logging and\n"
-        "alerting functions. The email domain will be appended to GRR\n"
-        "usernames when sending emails to users.\n")
+  print(
+      "\n\n-=GRR Emails=-\n"
+      "GRR needs to be able to send emails for various logging and\n"
+      "alerting functions. The email domain will be appended to GRR\n"
+      "usernames when sending emails to users.\n"
+  )
 
   existing_log_domain = grr_config.CONFIG.Get("Logging.domain", default=None)
   existing_al_email = grr_config.CONFIG.Get(
-      "Monitoring.alert_email", default=None)
+      "Monitoring.alert_email", default=None
+  )
   existing_em_email = grr_config.CONFIG.Get(
-      "Monitoring.emergency_access_email", default=None)
+      "Monitoring.emergency_access_email", default=None
+  )
   if existing_log_domain and existing_al_email and existing_em_email:
-    print("Found existing settings:\n"
-          "  Email Domain: %s\n  Alert Email Address: %s\n"
-          "  Emergency Access Email Address: %s\n" %
-          (existing_log_domain, existing_al_email, existing_em_email))
+    print(
+        "Found existing settings:\n"
+        "  Email Domain: %s\n  Alert Email Address: %s\n"
+        "  Emergency Access Email Address: %s\n"
+        % (existing_log_domain, existing_al_email, existing_em_email)
+    )
     if RetryBoolQuestion("Do you want to keep this configuration?", True):
       return
 
-  print("\n\n-=Monitoring/Email Domain=-\n"
-        "Emails concerning alerts or updates must be sent to this domain.\n")
-  domain = RetryQuestion("Email Domain e.g example.com",
-                         "^([\\.A-Za-z0-9-]+)*$",
-                         grr_config.CONFIG.Get("Logging.domain"))
+  print(
+      "\n\n-=Monitoring/Email Domain=-\n"
+      "Emails concerning alerts or updates must be sent to this domain.\n"
+  )
+  domain = RetryQuestion(
+      "Email Domain e.g. example.com",
+      "^([\\.A-Za-z0-9-]+)*$",
+      grr_config.CONFIG.Get("Logging.domain"),
+  )
   config.Set("Logging.domain", domain)
 
-  print("\n\n-=Alert Email Address=-\n"
-        "Address where monitoring events get sent, e.g. crashed clients, \n"
-        "broken server, etc.\n")
+  print(
+      "\n\n-=Alert Email Address=-\n"
+      "Address where monitoring events get sent, e.g. crashed clients, \n"
+      "broken server, etc.\n"
+  )
   email = RetryQuestion("Alert Email Address", "", "grr-monitoring@%s" % domain)
   config.Set("Monitoring.alert_email", email)
 
-  print("\n\n-=Emergency Email Address=-\n"
-        "Address where high priority events such as an emergency ACL bypass "
-        "are sent.\n")
-  emergency_email = RetryQuestion("Emergency Access Email Address", "",
-                                  "grr-emergency@%s" % domain)
+  print(
+      "\n\n-=Emergency Email Address=-\n"
+      "Address where high priority events such as an emergency ACL bypass "
+      "are sent.\n"
+  )
+  emergency_email = RetryQuestion(
+      "Emergency Access Email Address", "", "grr-emergency@%s" % domain
+  )
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
 
@@ -680,21 +789,29 @@ def InstallTemplatePackage():
 
   # Install the GRR server component to satisfy the dependency below.
   major_minor_version = ".".join(
-      pkg_resources.get_distribution("grr-response-core").version.split(".")
-      [0:2])
+      pkg_resources.get_distribution("grr-response-core").version.split(".")[
+          0:2
+      ]
+  )
   # Note that this version spec requires a recent version of pip
   subprocess.check_call([
-      sys.executable, pip, "install", "--upgrade", "-f",
+      sys.executable,
+      pip,
+      "install",
+      "--upgrade",
+      "-f",
       "https://storage.googleapis.com/releases.grr-response.com/index.html",
-      "grr-response-templates==%s.*" % major_minor_version
+      "grr-response-templates==%s.*" % major_minor_version,
   ])
 
 
-def FinalizeConfigInit(config,
-                       admin_password: Optional[Text] = None,
-                       redownload_templates: bool = False,
-                       repack_templates: bool = True,
-                       prompt: bool = True):
+def FinalizeConfigInit(
+    config,
+    admin_password: Optional[str] = None,
+    redownload_templates: bool = False,
+    repack_templates: bool = True,
+    prompt: bool = True,
+):
   """Performs the final steps of config initialization."""
   config.Set("Server.initialized", True)
   print("\nWriting configuration to %s." % config["Config.writeback"])
@@ -709,8 +826,13 @@ def FinalizeConfigInit(config,
   except UserAlreadyExistsError:
     if prompt:
       # pytype: disable=wrong-arg-count
-      if ((input("User 'admin' already exists, do you want to "
-                 "reset the password? [yN]: ").upper() or "N") == "Y"):
+      if (
+          input(
+              "User 'admin' already exists, do you want to "
+              "reset the password? [yN]: "
+          ).upper()
+          or "N"
+      ) == "Y":
         UpdateUser("admin", password=admin_password, is_admin=True)
       # pytype: enable=wrong-arg-count
     else:
@@ -719,19 +841,23 @@ def FinalizeConfigInit(config,
   print("\nStep 4: Repackaging clients with new configuration.")
   if prompt:
     redownload_templates = RetryBoolQuestion(
-        "Server debs include client templates. Re-download templates?", False)
+        "Server debs include client templates. Re-download templates?", False
+    )
     repack_templates = RetryBoolQuestion("Repack client templates?", True)
   if redownload_templates:
     InstallTemplatePackage()
   # Build debug binaries, then build release binaries.
   if repack_templates:
     repacking.TemplateRepacker().RepackAllTemplates(upload=True)
-  print("\nGRR Initialization complete! You can edit the new configuration "
-        "in %s.\n" % config["Config.writeback"])
+  print(
+      "\nGRR Initialization complete! You can edit the new configuration "
+      "in %s.\n"
+      % config["Config.writeback"]
+  )
   if prompt and os.geteuid() == 0:
     restart = RetryBoolQuestion(
-        "Restart service for the new configuration "
-        "to take effect?", True)
+        "Restart service for the new configuration to take effect?", True
+    )
     if restart:
       for service in ("grr-server", "fleetspeak-server"):
         try:
@@ -741,15 +867,18 @@ def FinalizeConfigInit(config,
           print(f"Failed to restart: {service}.")
           print(e, file=sys.stderr)
   else:
-    print("Please restart the service for the new configuration to take "
-          "effect.\n")
+    print(
+        "Please restart the service for the new configuration to take effect.\n"
+    )
 
 
-def Initialize(config=None,
-               external_hostname: Optional[Text] = None,
-               admin_password: Optional[Text] = None,
-               redownload_templates: bool = False,
-               repack_templates: bool = True):
+def Initialize(
+    config=None,
+    external_hostname: Optional[str] = None,
+    admin_password: Optional[str] = None,
+    redownload_templates: bool = False,
+    repack_templates: bool = True,
+):
   """Initialize or update a GRR configuration."""
 
   print("Checking write access on config %s" % config["Config.writeback"])
@@ -762,8 +891,7 @@ def Initialize(config=None,
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print("Found config file %s." % prev_config_file)
     # pytype: disable=wrong-arg-count
-    if input("Do you want to import this configuration? "
-             "[yN]: ").upper() == "Y":
+    if input("Do you want to import this configuration? [yN]: ").upper() == "Y":
       options_imported = ImportConfig(prev_config_file, config)
     # pytype: enable=wrong-arg-count
   else:
@@ -778,13 +906,20 @@ def Initialize(config=None,
   ConfigureEmails(config)
 
   print("\nStep 2: Key Generation")
-  if config.Get("PrivateKeys.server_key", default=None):
+  if config.Get("PrivateKeys.executable_signing_private_key", default=None):
     if options_imported > 0:
-      print("Since you have imported keys from another installation in the "
-            "last step,\nyou probably do not want to generate new keys now.")
+      print(
+          "Since you have imported keys from another installation in the "
+          "last step,\nyou probably do not want to generate new keys now."
+      )
     # pytype: disable=wrong-arg-count
-    if (input("You already have keys in your config, do you want to"
-              " overwrite them? [yN]: ").upper() or "N") == "Y":
+    if (
+        input(
+            "You already have keys in your config, do you want to"
+            " overwrite them? [yN]: "
+        ).upper()
+        or "N"
+    ) == "Y":
       config_updater_keys_util.GenerateKeys(config, overwrite_keys=True)
     # pytype: enable=wrong-arg-count
   else:
@@ -796,25 +931,26 @@ def Initialize(config=None,
       admin_password=admin_password,
       redownload_templates=redownload_templates,
       repack_templates=repack_templates,
-      prompt=True)
+      prompt=True,
+  )
 
 
 def InitializeNoPrompt(
     config=None,
-    external_hostname: Optional[Text] = None,
-    admin_password: Optional[Text] = None,
-    mysql_hostname: Optional[Text] = None,
+    external_hostname: Optional[str] = None,
+    admin_password: Optional[str] = None,
+    mysql_hostname: Optional[str] = None,
     mysql_port: Optional[int] = None,
-    mysql_username: Optional[Text] = None,
-    mysql_password: Optional[Text] = None,
-    mysql_db: Optional[Text] = None,
-    mysql_client_key_path: Optional[Text] = None,
-    mysql_client_cert_path: Optional[Text] = None,
-    mysql_ca_cert_path: Optional[Text] = None,
+    mysql_username: Optional[str] = None,
+    mysql_password: Optional[str] = None,
+    mysql_db: Optional[str] = None,
+    mysql_client_key_path: Optional[str] = None,
+    mysql_client_cert_path: Optional[str] = None,
+    mysql_ca_cert_path: Optional[str] = None,
     redownload_templates: bool = False,
     repack_templates: bool = True,
     use_fleetspeak: bool = False,
-    mysql_fleetspeak_db: Optional[Text] = None,
+    mysql_fleetspeak_db: Optional[str] = None,
 ):
   """Initialize GRR with no prompts.
 
@@ -850,7 +986,8 @@ def InitializeNoPrompt(
     raise ValueError("Config has already been initialized.")
   if not external_hostname:
     raise ValueError(
-        "--noprompt set, but --external_hostname was not provided.")
+        "--noprompt set, but --external_hostname was not provided."
+    )
   if not admin_password:
     raise ValueError("--noprompt set, but --admin_password was not provided.")
   if mysql_password is None:
@@ -866,24 +1003,31 @@ def InitializeNoPrompt(
 
   config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]
   config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]
-  config_dict["Mysql.database_name"] = config_dict[
-      "Mysql.database"] = mysql_db or config["Mysql.database_name"]
+  config_dict["Mysql.database_name"] = config_dict["Mysql.database"] = (
+      mysql_db or config["Mysql.database_name"]
+  )
   config_dict["Mysql.database_username"] = config_dict["Mysql.username"] = (
-      mysql_username or config["Mysql.database_username"])
+      mysql_username or config["Mysql.database_username"]
+  )
   config_dict["Client.server_urls"] = [
       "http://%s:%s/" % (external_hostname, config["Frontend.bind_port"])
   ]
-  config_dict["AdminUI.url"] = "http://%s:%s" % (external_hostname,
-                                                 config["AdminUI.port"])
+  config_dict["AdminUI.url"] = "http://%s:%s" % (
+      external_hostname,
+      config["AdminUI.port"],
+  )
   config_dict["Logging.domain"] = external_hostname
-  config_dict["Monitoring.alert_email"] = ("grr-monitoring@%s" %
-                                           external_hostname)
-  config_dict["Monitoring.emergency_access_email"] = ("grr-emergency@%s" %
-                                                      external_hostname)
+  config_dict["Monitoring.alert_email"] = (
+      "grr-monitoring@%s" % external_hostname
+  )
+  config_dict["Monitoring.emergency_access_email"] = (
+      "grr-emergency@%s" % external_hostname
+  )
   # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
-  config_dict["Mysql.database_password"] = config_dict[
-      "Mysql.password"] = mysql_password
+  config_dict["Mysql.database_password"] = config_dict["Mysql.password"] = (
+      mysql_password
+  )
 
   if mysql_client_key_path is not None:
     config_dict["Mysql.client_key_path"] = mysql_client_key_path
@@ -915,13 +1059,13 @@ def InitializeNoPrompt(
       admin_password=admin_password,
       redownload_templates=redownload_templates,
       repack_templates=repack_templates,
-      prompt=False)
+      prompt=False,
+  )
 
 
-def UploadSignedBinary(source_path,
-                       binary_type,
-                       platform,
-                       upload_subdirectory=""):
+def UploadSignedBinary(
+    source_path, binary_type, platform, upload_subdirectory=""
+):
   """Signs a binary and uploads it to the datastore.
 
   Args:
@@ -939,11 +1083,13 @@ def UploadSignedBinary(source_path,
   if file_size > _MAX_SIGNED_BINARY_BYTES:
     raise BinaryTooLargeError(
         "File [%s] is of size %d (bytes), which exceeds the allowed maximum "
-        "of %d bytes." % (source_path, file_size, _MAX_SIGNED_BINARY_BYTES))
+        "of %d bytes." % (source_path, file_size, _MAX_SIGNED_BINARY_BYTES)
+    )
 
   context = ["Platform:%s" % platform.title(), "Client Context"]
   signing_key = grr_config.CONFIG.Get(
-      "PrivateKeys.executable_signing_private_key", context=context)
+      "PrivateKeys.executable_signing_private_key", context=context
+  )
 
   root_api = maintenance_utils.InitGRRRootAPI()
   binary_path = "/".join([
@@ -957,7 +1103,9 @@ def UploadSignedBinary(source_path,
     binary.Upload(
         fd,
         sign_fn=binary.DefaultUploadSigner(
-            private_key=signing_key.GetRawPrivateKey()))
+            private_key=signing_key.GetRawPrivateKey()
+        ),
+    )
 
   print("Uploaded %s to %s" % (binary_type, binary_path))
 
@@ -972,15 +1120,18 @@ def CreateUser(username, password=None, is_admin=False):
   if user_exists:
     raise UserAlreadyExistsError("User '%s' already exists." % username)
   user_type, password = _GetUserTypeAndPassword(
-      username, password=password, is_admin=is_admin)
+      username, password=password, is_admin=is_admin
+  )
   grr_api.CreateGrrUser(
-      username=username, user_type=user_type, password=password)
+      username=username, user_type=user_type, password=password
+  )
 
 
 def UpdateUser(username, password=None, is_admin=False):
   """Updates the password or privilege-level for a user."""
   user_type, password = _GetUserTypeAndPassword(
-      username, password=password, is_admin=is_admin)
+      username, password=password, is_admin=is_admin
+  )
   grr_api = maintenance_utils.InitGRRRootAPI()
   grr_user = grr_api.GrrUser(username).Get()
   grr_user.Modify(user_type=user_type, password=password)
@@ -1005,8 +1156,10 @@ def GetAllUserSummaries():
 
 def _Summarize(user_info):
   """Returns a string with summary info for a user."""
-  return "Username: %s\nIs Admin: %s" % (user_info.username, user_info.user_type
-                                         == api_root.GrrUser.USER_TYPE_ADMIN)
+  return "Username: %s\nIs Admin: %s" % (
+      user_info.username,
+      user_info.user_type == api_root.GrrUser.USER_TYPE_ADMIN,
+  )
 
 
 def DeleteUser(username):
@@ -1038,40 +1191,52 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
 
 def SwitchToRelDB(config):
   """Switches a given config from using AFF4 to using REL_DB."""
-  print("***************************************************************\n"
-        "Make sure to back up the existing configuration writeback file.\n"
-        "Writeback file path:\n%s\n"
-        "***************************************************************\n" %
-        config["Config.writeback"])
+  print(
+      "***************************************************************\n"
+      "Make sure to back up the existing configuration writeback file.\n"
+      "Writeback file path:\n%s\n"
+      "***************************************************************\n"
+      % config["Config.writeback"]
+  )
   RetryBoolQuestion("Continue?", True)
 
   config.Set("Database.implementation", "MysqlDB")
 
-  if (config["Blobstore.implementation"] != "DbBlobStore" or RetryBoolQuestion(
+  if config["Blobstore.implementation"] != "DbBlobStore" or RetryBoolQuestion(
       "You have a custom 'Blobstore.implementation' setting. Do you want\n"
       "to switch to DbBlobStore (default option for REL_DB, meaning that\n"
-      "blobs will be stored inside the MySQL database)?", True)):
+      "blobs will be stored inside the MySQL database)?",
+      True,
+  ):
     config.Set("Blobstore.implementation", "DbBlobStore")
 
-  if (RetryBoolQuestion(
+  if RetryBoolQuestion(
       "Do you want to use a different MySQL database for the REL_DB datastore?",
-      True)):
-    db_name = RetryQuestion("MySQL Database", "^[A-Za-z0-9-]+$",
-                            config["Mysql.database_name"])
+      True,
+  ):
+    db_name = RetryQuestion(
+        "MySQL Database", "^[A-Za-z0-9-]+$", config["Mysql.database_name"]
+    )
   else:
     db_name = config["Mysql.database_name"]
   config.Set("Mysql.database", db_name)
 
-  if (input("Do you want to use previously set up MySQL username and password\n"
-            "to connect to MySQL database '%s'? [Yn]: " % db_name).upper() or
-      "Y") == "Y":
+  if (
+      input(
+          "Do you want to use previously set up MySQL username and password\n"
+          "to connect to MySQL database '%s'? [Yn]: " % db_name
+      ).upper()
+      or "Y"
+  ) == "Y":
     username = config["Mysql.database_username"]
     password = config["Mysql.database_password"]
   else:
-    username = RetryQuestion("MySQL Username", "[A-Za-z0-9-@]+$",
-                             config["Mysql.database_username"])
-    password = GetPassword("Please enter password for database user %s: " %
-                           username)
+    username = RetryQuestion(
+        "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"]
+    )
+    password = GetPassword(
+        "Please enter password for database user %s: " % username
+    )
 
   config.Set("Mysql.username", username)
   config.Set("Mysql.password", password)
@@ -1099,8 +1264,9 @@ def ArgparseBool(raw_value):
       'True' or 'False'.
   """
   if not isinstance(raw_value, str):
-    raise argparse.ArgumentTypeError("Unexpected type: %s. Expected a string." %
-                                     type(raw_value).__name__)
+    raise argparse.ArgumentTypeError(
+        "Unexpected type: %s. Expected a string." % type(raw_value).__name__
+    )
 
   if raw_value.lower() == "true":
     return True
@@ -1108,4 +1274,5 @@ def ArgparseBool(raw_value):
     return False
   else:
     raise argparse.ArgumentTypeError(
-        "Invalid value encountered. Expected 'True' or 'False'.")
+        "Invalid value encountered. Expected 'True' or 'False'."
+    )
