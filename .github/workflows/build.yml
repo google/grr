@@ -219,6 +219,7 @@ jobs:
           # github container registry.
           tags: |
             ${{ env.DOCKER_REPOSITORY }}:testing
+            ${{ env.DOCKER_REPOSITORY }}:latest
             ${{ steps.meta.outputs.tags }}
           outputs: type=docker,dest=/tmp/grr_base_image.tar
       - name: Upload docker image
