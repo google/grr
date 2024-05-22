@@ -18,7 +18,7 @@ jobs:
         run: |
           devenv/devenv.sh start
           OK=false
-          for attempt in $(seq 10); do
+          for attempt in $(seq 20); do
             curl -su admin:admin http://localhost:4280/api/clients |
               sed 1d |
               jq -r ".items[].value.client_id.value" |
