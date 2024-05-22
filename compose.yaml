@@ -55,8 +55,8 @@ services:
       # As soon as any files have been written to the /client_installer we
       # assume the service is healthy.
       test: |
-        if [[ -z "$(ls /client_installers/*.deb)" ]]; then
-          echo "Healthckeck: GRR client installer not available"
+        if [[ -z "$(find /client_installers/ -name '*.deb')" ]]; then
+          echo "Healthcheck: GRR client installer not available"
           exit 1
         fi
       timeout: 10s
@@ -180,7 +180,7 @@ services:
     healthcheck:
       test: |
         if [[ "$(ps aux | grep grr_response_client.client | grep -v grep | wc -l)" == "0" ]]; then
-          echo "Healthckeck: GRR client process not running"
+          echo "Healthcheck: GRR client process not running"
           exit 1
         fi
       timeout: 10s
