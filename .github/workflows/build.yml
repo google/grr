@@ -105,7 +105,7 @@ jobs:
           retention-days: 1
 
   build-osx:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
