@@ -55,7 +55,7 @@ services:
       # As soon as any files have been written to the /client_installer we
       # assume the service is healthy.
       test: |
-        if [[ -z "$(ls /client_installers)" ]]; then
+        if [[ -z "$(ls /client_installers/*.deb)" ]]; then
           echo "Healthckeck: GRR client installer not available"
           exit 1
         fi
