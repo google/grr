@@ -6,6 +6,8 @@
 # The client installers are repacked by the admin ui.
 INSTALLERS_DIR="/client_installers"
 
+find ${INSTALLERS_DIR}
+
 if ! command -v fleetspeak-client &> /dev/null
     then
         echo "**Installing Client from debian package."
