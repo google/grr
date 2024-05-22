@@ -3,7 +3,7 @@
 import collections
 import datetime
 import stat
-from typing import Text, Sequence, List, Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
 
@@ -43,8 +43,9 @@ def from_object(obj: Any) -> pd.DataFrame:
   return pd.DataFrame(data=[obj])
 
 
-def from_message(msg: message.Message,
-                 components: Optional[List[Text]] = None) -> pd.DataFrame:
+def from_message(
+    msg: message.Message, components: Optional[List[str]] = None
+) -> pd.DataFrame:
   """Converts protobuf message to a dataframe.
 
   Args:
@@ -85,8 +86,9 @@ def from_osquery_table(table: osquery_pb2.OsqueryTable) -> pd.DataFrame:
   return pd.DataFrame(data=data)
 
 
-def _get_pretty_value(value: Any, desc: descriptor.FieldDescriptor,
-                      components: List[Text]) -> Dict[Text, List[Any]]:
+def _get_pretty_value(
+    value: Any, desc: descriptor.FieldDescriptor, components: List[str]
+) -> Dict[str, List[Any]]:
   """Converts value to the object easier to work with or more representative.
 
   Args:
@@ -129,8 +131,9 @@ def _get_pretty_value(value: Any, desc: descriptor.FieldDescriptor,
 
 def reindex_dataframe(
     df: pd.DataFrame,
-    priority_columns: Optional[List[Text]] = None,
-    ignore_columns: Optional[List[Text]] = None) -> pd.DataFrame:
+    priority_columns: Optional[List[str]] = None,
+    ignore_columns: Optional[List[str]] = None,
+) -> pd.DataFrame:
   """Reorders and removes dataframe columns according to the given priorities.
 
   Args:
@@ -156,8 +159,9 @@ def reindex_dataframe(
   return df.reindex(columns=columns)
 
 
-def add_pretty_column(df: pd.DataFrame, col_name: Text,
-                      values: Sequence[Any]) -> pd.DataFrame:
+def add_pretty_column(
+    df: pd.DataFrame, col_name: str, values: Sequence[Any]
+) -> pd.DataFrame:
   """Adds pretty column for the specified column name with values provided.
 
   Args:

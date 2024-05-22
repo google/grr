@@ -1,3 +1,4 @@
+// g3-format-v_3_1
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {Observable, of} from 'rxjs';

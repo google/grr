@@ -21,9 +21,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def AddJobStatus(self, job_id, status):
     status = cron.ApiCronJob().status_map[status]
     data_store.REL_DB.UpdateCronJob(
-        job_id,
-        last_run_time=rdfvalue.RDFDatetime.Now(),
-        last_run_status=status)
+        job_id, last_run_time=rdfvalue.RDFDatetime.Now(), last_run_status=status
+    )
 
   def setUp(self):
     super().setUp()
@@ -62,8 +61,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "Please select a cron job to see the details.")
+    self.WaitUntil(
+        self.IsTextPresent, "Please select a cron job to see the details."
+    )
 
   def testShowsCronJobDetailsOnClick(self):
     # Make sure the cron jobs have a run in the db.
@@ -101,11 +101,14 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     self.assertTrue(
-        self.IsElementPresent("css=button[name=EnableCronJob]:not([disabled])"))
+        self.IsElementPresent("css=button[name=EnableCronJob]:not([disabled])")
+    )
     self.assertTrue(
-        self.IsElementPresent("css=button[name=DisableCronJob][disabled]"))
+        self.IsElementPresent("css=button[name=DisableCronJob][disabled]")
+    )
     self.assertTrue(
-        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
+        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])")
+    )
 
   def testToolbarStateForEnabledCronJob(self):
     cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
@@ -115,16 +118,19 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     self.assertTrue(
-        self.IsElementPresent("css=button[name=EnableCronJob][disabled]"))
+        self.IsElementPresent("css=button[name=EnableCronJob][disabled]")
+    )
     self.assertTrue(
-        self.IsElementPresent(
-            "css=button[name=DisableCronJob]:not([disabled])"))
+        self.IsElementPresent("css=button[name=DisableCronJob]:not([disabled])")
+    )
     self.assertTrue(
-        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
+        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])")
+    )
 
   def testUserCanSendApprovalRequestWhenDeletingCronJob(self):
     self.assertEqual(
-        len(self.ListCronJobApprovals(requestor=self.test_username)), 0)
+        len(self.ListCronJobApprovals(requestor=self.test_username)), 0
+    )
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
@@ -138,15 +144,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.test_username)
-    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
-              "some reason")
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_approver]",
+        self.test_username,
+    )
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_reason]", "some reason"
+    )
     self.Click(
-        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])"
+    )
 
     self.WaitUntilEqual(
-        1, lambda: len(self.ListCronJobApprovals(requestor=self.test_username)))
+        1, lambda: len(self.ListCronJobApprovals(requestor=self.test_username))
+    )
 
   def testEnableCronJob(self):
     cronjobs.CronManager().DisableJob(job_id="InterrogateClientsCronJob")
@@ -157,8 +168,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to ENABLE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to ENABLE this cron job?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -174,8 +186,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to ENABLE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to ENABLE this cron job?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -197,8 +210,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(
         self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
     )
-    self.WaitUntil(self.IsElementPresent,
-                   "css=div:contains('Enabled') dd:contains('true')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=div:contains('Enabled') dd:contains('true')"
+    )
 
   def testDisableCronJob(self):
     cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
@@ -209,8 +223,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to DISABLE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to DISABLE this cron job?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -224,8 +239,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Disable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to DISABLE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to DISABLE this cron job?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -247,8 +263,10 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(
         self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
     )
-    self.WaitUntil(self.IsElementPresent,
-                   "css=div:contains('Enabled') dd:contains('false')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=div:contains('Enabled') dd:contains('false')",
+    )
 
   def testDeleteCronJob(self):
     cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
@@ -259,8 +277,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to DELETE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to DELETE this cron job?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -274,8 +293,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to DELETE this cron job?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to DELETE this cron job?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -300,15 +320,18 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2274264646),
-        increment=1e-6):
+        increment=1e-6,
+    ):
       self.Open("/legacy")
       self.Click("css=a[grrtarget=crons]")
       self.Click("css=td:contains('InterrogateClientsCronJob')")
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
-      self.WaitUntil(self.IsTextPresent,
-                     "Are you sure you want to FORCE-RUN this cron job?")
+      self.WaitUntil(
+          self.IsTextPresent,
+          "Are you sure you want to FORCE-RUN this cron job?",
+      )
 
       # Click on "Proceed" and wait for authorization dialog to appear.
       self.Click("css=button[name=Proceed]")
@@ -322,15 +345,18 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
-      self.WaitUntil(self.IsTextPresent,
-                     "Are you sure you want to FORCE-RUN this cron job?")
+      self.WaitUntil(
+          self.IsTextPresent,
+          "Are you sure you want to FORCE-RUN this cron job?",
+      )
 
       # Click on "Proceed" and wait for success label to appear.
       # Also check that "Proceed" button gets disabled.
       self.Click("css=button[name=Proceed]")
 
-      self.WaitUntil(self.IsTextPresent,
-                     "Cron job flow was FORCE-STARTED successfully!")
+      self.WaitUntil(
+          self.IsTextPresent, "Cron job flow was FORCE-STARTED successfully!"
+      )
       self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
       # Click on "Close" and check that dialog disappears.

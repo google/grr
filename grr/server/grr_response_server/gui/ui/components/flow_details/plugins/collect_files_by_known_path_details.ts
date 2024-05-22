@@ -1,3 +1,4 @@
+// g3-format-v_3_1
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';

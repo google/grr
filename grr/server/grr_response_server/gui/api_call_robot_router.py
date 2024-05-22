@@ -5,16 +5,14 @@ from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
-
 from grr_response_server import data_store
 from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
-
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -121,18 +119,25 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
+  proto_args_type = flow_pb2.ApiCreateFlowArgs
+  proto_result_type = flow_pb2.ApiFlow
 
-  def __init__(self, flow_id):
+  def __init__(self, flow_id: str):
     super().__init__()
 
     if not flow_id:
       raise ValueError("flow_id can't be empty.")
     self.flow_id = flow_id
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: flow_pb2.ApiCreateFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiFlow:
     return api_flow.ApiGetFlowHandler().Handle(
-        api_flow.ApiGetFlowArgs(client_id=args.client_id, flow_id=self.flow_id),
-        context=context)
+        flow_pb2.ApiGetFlowArgs(client_id=args.client_id, flow_id=self.flow_id),
+        context=context,
+    )
 
 
 class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
@@ -165,54 +170,56 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     if self.params.artifact_collector_flow.artifact_collector_flow_name:
       result.append(
-          self.params.artifact_collector_flow.artifact_collector_flow_name)
+          self.params.artifact_collector_flow.artifact_collector_flow_name
+      )
 
     return result
 
   @property
   def effective_file_finder_flow_name(self):
-    return (self.params.file_finder_flow.file_finder_flow_name or
-            file_finder.FileFinder.__name__)
+    return (
+        self.params.file_finder_flow.file_finder_flow_name
+        or file_finder.FileFinder.__name__
+    )
 
   @property
   def effective_artifact_collector_flow_name(self):
-    return (self.params.artifact_collector_flow.artifact_collector_flow_name or
-            collectors.ArtifactCollectorFlow.__name__)
+    return (
+        self.params.artifact_collector_flow.artifact_collector_flow_name
+        or collectors.ArtifactCollectorFlow.__name__
+    )
 
   def SearchClients(self, args, context=None):
     if not self.params.search_clients.enabled:
       raise access_control.UnauthorizedAccess(
-          "SearchClients is not allowed by the configuration.")
+          "SearchClients is not allowed by the configuration."
+      )
 
     return api_client.ApiSearchClientsHandler()
-
-  def StructuredSearchClients(self, args, context=None):
-    if not self.params.search_clients.enabled:
-      raise access_control.UnauthorizedAccess(
-          "StructuredSearchClients is not allowed by the configuration.")
-
-    return api_client.ApiStructuredSearchClientsHandler()
 
   def _CheckFileFinderArgs(self, flow_args, context=None):
     ffparams = self.params.file_finder_flow
 
     if not ffparams.enabled:
       raise access_control.UnauthorizedAccess(
-          "FileFinder flow is not allowed by the configuration.")
+          "FileFinder flow is not allowed by the configuration."
+      )
 
     if not ffparams.globs_allowed:
       for path in flow_args.paths:
         str_path = str(path)
         if "*" in str_path:
           raise access_control.UnauthorizedAccess(
-              "Globs are not allowed by the configuration.")
+              "Globs are not allowed by the configuration."
+          )
 
     if not ffparams.interpolations_allowed:
       for path in flow_args.paths:
         str_path = str(path)
         if "%%" in str_path:
           raise access_control.UnauthorizedAccess(
-              "Interpolations are not allowed by the configuration.")
+              "Interpolations are not allowed by the configuration."
+          )
 
   def _GetFileFinderThrottler(self):
     ffparams = self.params.file_finder_flow
@@ -220,17 +227,21 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     return throttle.FlowThrottler(
         daily_req_limit=ffparams.max_flows_per_client_daily,
         dup_interval=rdfvalue.Duration(
-            ffparams.min_interval_between_duplicate_flows))
+            ffparams.min_interval_between_duplicate_flows
+        ),
+    )
 
   def _CheckArtifactCollectorFlowArgs(self, flow_args):
     if not self.params.artifact_collector_flow.enabled:
       raise access_control.UnauthorizedAccess(
-          "ArtifactCollectorFlow flow is not allowed by the configuration")
+          "ArtifactCollectorFlow flow is not allowed by the configuration"
+      )
 
     for name in flow_args.artifact_list:
       if name not in self.params.artifact_collector_flow.allow_artifacts:
         raise access_control.UnauthorizedAccess(
-            "Artifact %s is not whitelisted." % name)
+            "Artifact %s is not whitelisted." % name
+        )
 
   def _GetArtifactCollectorFlowThrottler(self):
     acparams = self.params.artifact_collector_flow
@@ -238,7 +249,9 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     return throttle.FlowThrottler(
         daily_req_limit=acparams.max_flows_per_client_daily,
         dup_interval=rdfvalue.Duration(
-            acparams.min_interval_between_duplicate_flows))
+            acparams.min_interval_between_duplicate_flows
+        ),
+    )
 
   def _CheckFlowRobotId(self, client_id, flow_id, context=None):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
@@ -248,7 +261,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     if flow_obj.creator != context.username:
       raise access_control.UnauthorizedAccess(
           "Flow %s (client %s) has to be created "
-          "by the user making the request." % (flow_id, client_id))
+          "by the user making the request." % (flow_id, client_id)
+      )
     return flow_obj.flow_class_name
 
   def _FixFileFinderArgs(self, source_args):
@@ -288,11 +302,16 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       throttler = self._GetArtifactCollectorFlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
-          "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
+          "Creating arbitrary flows (%s) is not allowed." % args.flow.name
+      )
 
     try:
-      throttler.EnforceLimits(args.client_id.ToString(), context.username,
-                              args.flow.name, args.flow.args)
+      throttler.EnforceLimits(
+          args.client_id.ToString(),
+          context.username,
+          args.flow.name,
+          args.flow.args,
+      )
     except throttle.DuplicateFlowError as e:
       # If a similar flow did run recently, just return it.
       return ApiRobotReturnDuplicateFlowHandler(flow_id=e.flow_id)
@@ -302,12 +321,14 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return ApiRobotCreateFlowHandler(
         override_flow_name=override_flow_name,
-        override_flow_args=override_flow_args)
+        override_flow_args=override_flow_args,
+    )
 
   def GetFlow(self, args, context=None):
     if not self.params.get_flow.enabled:
       raise access_control.UnauthorizedAccess(
-          "GetFlow is not allowed by the configuration.")
+          "GetFlow is not allowed by the configuration."
+      )
 
     self._CheckFlowRobotId(args.client_id, args.flow_id, context=context)
 
@@ -316,7 +337,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   def ListFlowResults(self, args, context=None):
     if not self.params.list_flow_results.enabled:
       raise access_control.UnauthorizedAccess(
-          "ListFlowResults is not allowed by the configuration.")
+          "ListFlowResults is not allowed by the configuration."
+      )
 
     self._CheckFlowRobotId(args.client_id, args.flow_id, context=context)
 
@@ -325,7 +347,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   def ListFlowLogs(self, args, context=None):
     if not self.params.list_flow_logs.enabled:
       raise access_control.UnauthorizedAccess(
-          "ListFlowLogs is not allowed by the configuration.")
+          "ListFlowLogs is not allowed by the configuration."
+      )
 
     self._CheckFlowRobotId(args.client_id, args.flow_id, context=context)
 
@@ -334,20 +357,25 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   def GetFlowFilesArchive(self, args, context=None):
     if not self.params.get_flow_files_archive.enabled:
       raise access_control.UnauthorizedAccess(
-          "GetFlowFilesArchive is not allowed by the configuration.")
+          "GetFlowFilesArchive is not allowed by the configuration."
+      )
 
     flow_name = self._CheckFlowRobotId(
-        args.client_id, args.flow_id, context=context)
+        args.client_id, args.flow_id, context=context
+    )
 
     options = self.params.get_flow_files_archive
 
-    if (options.skip_glob_checks_for_artifact_collector and
-        flow_name == self.effective_artifact_collector_flow_name):
+    if (
+        options.skip_glob_checks_for_artifact_collector
+        and flow_name == self.effective_artifact_collector_flow_name
+    ):
       return api_flow.ApiGetFlowFilesArchiveHandler()
     else:
       return api_flow.ApiGetFlowFilesArchiveHandler(
           exclude_path_globs=options.exclude_path_globs,
-          include_only_path_globs=options.include_only_path_globs)
+          include_only_path_globs=options.include_only_path_globs,
+      )
 
   # Reflection methods.
   # ==================

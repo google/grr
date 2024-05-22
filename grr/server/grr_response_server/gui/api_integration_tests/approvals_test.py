@@ -16,8 +16,10 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
-                                hunt_test_lib.StandardHuntTestMixin):
+class ApiClientLibApprovalsTest(
+    api_integration_test_lib.ApiIntegrationTest,
+    hunt_test_lib.StandardHuntTestMixin,
+):
 
   def setUp(self):
     super().setUp()
@@ -26,7 +28,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     cls.ClearCache()
 
     config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": cls.__name__})
+        {"API.DefaultRouter": cls.__name__}
+    )
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
@@ -89,7 +92,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     self.CreateUser("foo")
 
     approval = self.api.Client(client_id).CreateApproval(
-        reason="blah", notified_users=[u"foo"])
+        reason="blah", notified_users=["foo"]
+    )
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
@@ -98,7 +102,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
           client_id,
           requestor=self.test_username,
           approval_id=approval.approval_id,
-          approver=u"foo")
+          approver="foo",
+      )
 
     thread = threading.Thread(name="ProcessApprover", target=ProcessApproval)
     thread.start()
@@ -113,7 +118,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     self.CreateUser("foo")
 
     approval = self.api.Hunt(h_id).CreateApproval(
-        reason="blah", notified_users=[u"foo"])
+        reason="blah", notified_users=["foo"]
+    )
     self.assertEqual(approval.hunt_id, h_id)
     self.assertEqual(approval.data.subject.hunt_id, h_id)
     self.assertEqual(approval.data.reason, "blah")
@@ -124,7 +130,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     h_id = self.StartHunt()
 
     approval = self.api.Hunt(h_id).CreateApproval(
-        reason="blah", notified_users=[u"approver"])
+        reason="blah", notified_users=["approver"]
+    )
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
@@ -133,7 +140,8 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
           h_id,
           requestor=self.test_username,
           approval_id=approval.approval_id,
-          approver=u"approver")
+          approver="approver",
+      )
 
     ProcessApproval()
     thread = threading.Thread(name="HuntApprover", target=ProcessApproval)

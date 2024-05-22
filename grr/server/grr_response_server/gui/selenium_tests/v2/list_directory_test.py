@@ -24,18 +24,21 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=input[name=flowSearchBox]")
 
     self.Type(
-        "css=input[name=flowSearchBox]", "List directory", end_with_enter=True)
+        "css=input[name=flowSearchBox]", "List directory", end_with_enter=True
+    )
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=mat-radio-group.collection-method-input")
+    self.WaitUntil(
+        self.IsElementPresent, "css=mat-radio-group.collection-method-input"
+    )
     self.WaitUntil(self.IsElementPresent, "css=input.path-input")
 
     self.Type("css=input.path-input", "/dir")
 
     self.Click("css=button[type=submit]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('/dir')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('/dir')"
+    )
     self.assertLen(flow_test_lib.ListAllFlows(client_id=self.client_id), 1)
 
   def testDisplaysResults(self):
@@ -43,7 +46,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     with flow_test_lib.FlowResultMetadataOverride(
         filesystem.ListDirectory,
@@ -51,18 +55,26 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__, count=1)
-            ])):
+                    type=rdf_client_fs.StatEntry.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List directory')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec.OS(path=f"file{i}"))
-          for i in range(10)
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client_fs.StatEntry(
+                  pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")
+              )
+              for i in range(10)
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('/path')")
       for i in range(10):
@@ -73,7 +85,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     with flow_test_lib.FlowResultMetadataOverride(
         filesystem.ListDirectory,
@@ -81,18 +94,26 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__, count=1)
-            ])):
+                    type=rdf_client_fs.StatEntry.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List directory')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec.OS(path=f"file{i}"))
-          for i in range(10)
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client_fs.StatEntry(
+                  pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")
+              )
+              for i in range(10)
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('/path')")
       for i in range(10):
@@ -108,7 +129,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     with flow_test_lib.FlowResultMetadataOverride(
         filesystem.ListDirectory,
@@ -116,17 +138,26 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__, count=1)
-            ])):
+                    type=rdf_client_fs.StatEntry.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List directory')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")) for i in range(3)
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client_fs.StatEntry(
+                  pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")
+              )
+              for i in range(3)
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('/path')")
       for i in range(3):
@@ -145,7 +176,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     with flow_test_lib.FlowResultMetadataOverride(
         filesystem.ListDirectory,
@@ -153,18 +185,26 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__, count=1)
-            ])):
+                    type=rdf_client_fs.StatEntry.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List directory')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec.OS(path=f"file{i}"))
-          for i in range(15)
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client_fs.StatEntry(
+                  pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")
+              )
+              for i in range(15)
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('/path')")
       for i in range(10):
@@ -188,7 +228,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     with flow_test_lib.FlowResultMetadataOverride(
         filesystem.ListDirectory,
@@ -196,18 +237,26 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__, count=1)
-            ])):
+                    type=rdf_client_fs.StatEntry.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List directory')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client_fs.StatEntry(
-              pathspec=rdf_paths.PathSpec.OS(path=f"file{i}"))
-          for i in range(15)
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client_fs.StatEntry(
+                  pathspec=rdf_paths.PathSpec.OS(path=f"file{i}")
+              )
+              for i in range(15)
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('/path')")
       for i in range(10):
@@ -217,19 +266,23 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
       # Select one paginator updates the other paginator as well as the
       # displayed rows.
       self.MatSelect("css=.bottom-paginator mat-select", "50")
-      self.WaitUntilContains("50", self.GetText,
-                             "css=.top-paginator mat-select")
-      self.WaitUntilContains("50", self.GetText,
-                             "css=.bottom-paginator mat-select")
+      self.WaitUntilContains(
+          "50", self.GetText, "css=.top-paginator mat-select"
+      )
+      self.WaitUntilContains(
+          "50", self.GetText, "css=.bottom-paginator mat-select"
+      )
       for i in range(15):
         self.WaitUntil(self.IsElementPresent, f"css=td:contains('file{i}')")
       self.assertEqual(self.GetCssCount("css=td.path:contains('file')"), 15)
 
       self.MatSelect("css=.top-paginator mat-select", "10")
-      self.WaitUntilContains("10", self.GetText,
-                             "css=.top-paginator mat-select")
-      self.WaitUntilContains("10", self.GetText,
-                             "css=.bottom-paginator mat-select")
+      self.WaitUntilContains(
+          "10", self.GetText, "css=.top-paginator mat-select"
+      )
+      self.WaitUntilContains(
+          "10", self.GetText, "css=.bottom-paginator mat-select"
+      )
       for i in range(10):
         self.WaitUntil(self.IsElementPresent, f"css=td:contains('file{i}')")
       self.assertEqual(self.GetCssCount("css=td.path:contains('file')"), 10)
@@ -239,7 +292,8 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         filesystem.ListDirectory,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec.OS(path="/path"))
+        pathspec=rdf_paths.PathSpec.OS(path="/path"),
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
     self.WaitUntil(

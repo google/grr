@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """API handlers for accessing artifacts."""
+
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
-
 from grr_response_server.gui import api_call_handler_base
 
 
@@ -33,16 +33,20 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
       descriptor = rdf_artifacts.ArtifactDescriptor(
           artifact=artifact_val,
           dependencies=sorted(
-              artifact_registry.GetArtifactDependencies(artifact_val)),
+              artifact_registry.GetArtifactDependencies(artifact_val)
+          ),
           path_dependencies=sorted(
-              artifact_registry.GetArtifactPathDependencies(artifact_val)),
+              artifact_registry.GetArtifactPathDependencies(artifact_val)
+          ),
           error_message=artifact_val.error_message,
-          is_custom=artifact_val.loaded_from.startswith("datastore:"))
+          is_custom=artifact_val.loaded_from.startswith("datastore:"),
+      )
 
       factory = parsers.ArtifactParserFactory(str(artifact_val.name))
       for parser_cls in factory.AllParserTypes():
         descriptor.processors.append(
-            rdf_artifacts.ArtifactProcessorDescriptor.FromParser(parser_cls))
+            rdf_artifacts.ArtifactProcessorDescriptor.FromParser(parser_cls)
+        )
 
       result.append(descriptor)
 
@@ -54,15 +58,17 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     # Get all artifacts that aren't Bootstrap and aren't the base class.
     artifacts_list = sorted(
         artifact_registry.REGISTRY.GetArtifacts(
-            reload_datastore_artifacts=True),
-        key=lambda art: art.name)
+            reload_datastore_artifacts=True
+        ),
+        key=lambda art: art.name,
+    )
 
     total_count = len(artifacts_list)
 
     if args.count:
-      artifacts_list = artifacts_list[args.offset:args.offset + args.count]
+      artifacts_list = artifacts_list[args.offset : args.offset + args.count]
     else:
-      artifacts_list = artifacts_list[args.offset:]
+      artifacts_list = artifacts_list[args.offset :]
 
     descriptors = self.BuildArtifactDescriptors(artifacts_list)
     return ApiListArtifactsResult(items=descriptors, total_count=total_count)
@@ -79,7 +85,8 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     artifact.UploadArtifactYamlFile(
-        args.artifact, overwrite=True, overwrite_system_artifacts=False)
+        args.artifact, overwrite=True, overwrite_system_artifacts=False
+    )
 
 
 class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):

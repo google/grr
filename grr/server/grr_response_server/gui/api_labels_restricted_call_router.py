@@ -4,17 +4,13 @@
 from typing import Optional
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
-
 from grr_response_server import data_store
-
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_call_router_without_checks
-
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import user as api_user
@@ -29,11 +25,12 @@ def CheckClientLabels(client_id, allow_labels=None, allow_labels_owners=None):
   labels = data_store.REL_DB.ReadClientLabels(str(client_id))
 
   for label in labels:
-    if (label.name in allow_labels and label.owner in allow_labels_owners):
+    if label.name in allow_labels and label.owner in allow_labels_owners:
       return
 
   raise access_control.UnauthorizedAccess(
-      "Client %s doesn't have necessary labels." % client_id)
+      "Client %s doesn't have necessary labels." % client_id
+  )
 
 
 class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):
@@ -57,8 +54,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
 
     if not access_checker:
       access_checker = api_call_router_with_approval_checks.AccessChecker(
-          api_call_router_with_approval_checks
-          .ApiCallRouterWithApprovalCheckParams())
+          api_call_router_with_approval_checks.ApiCallRouterWithApprovalCheckParams()
+      )
     self.access_checker = access_checker
 
     if not delegate:
@@ -69,17 +66,20 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     CheckClientLabels(
         client_id,
         allow_labels=self.allow_labels,
-        allow_labels_owners=self.allow_labels_owners)
+        allow_labels_owners=self.allow_labels_owners,
+    )
 
   def CheckVfsAccessAllowed(self):
     if not self.params.allow_vfs_access:
       raise access_control.UnauthorizedAccess(
-          "User is not allowed to access virtual file system.")
+          "User is not allowed to access virtual file system."
+      )
 
   def CheckFlowsAllowed(self):
     if not self.params.allow_flows_access:
       raise access_control.UnauthorizedAccess(
-          "User is not allowed to work with flows.")
+          "User is not allowed to work with flows."
+      )
 
   def CheckIfCanStartClientFlow(self, flow_name, context=None):
     self.access_checker.CheckIfCanStartClientFlow(context.username, flow_name)
@@ -94,12 +94,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def SearchClients(self, args, context=None):
     return api_client.ApiLabelsRestrictedSearchClientsHandler(
         allow_labels=self.allow_labels,
-        allow_labels_owners=self.allow_labels_owners)
-
-  def StructuredSearchClients(self, args, context=None):
-    return api_client.ApiLabelsRestrictedStructuredSearchClientsHandler(
-        allow_labels=self.allow_labels,
-        allow_labels_owners=self.allow_labels_owners)
+        allow_labels_owners=self.allow_labels_owners,
+    )
 
   def GetClient(self, args, context=None):
     self.CheckClientLabels(args.client_id)
@@ -128,7 +124,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def BrowseFilesystem(
       self,
       args: api_vfs.ApiBrowseFilesystemArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_vfs.ApiBrowseFilesystemHandler:
     self.CheckVfsAccessAllowed()
     self.CheckClientApproval(args.client_id, context=context)
@@ -209,7 +205,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     self.CheckFlowsAllowed()
     self.CheckClientApproval(args.client_id, context=context)
     self.CheckIfCanStartClientFlow(
-        args.flow.name or args.flow.runner_args.flow_name, context=context)
+        args.flow.name or args.flow.runner_args.flow_name, context=context
+    )
 
     return self.delegate.CreateFlow(args, context=context)
 
@@ -312,7 +309,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     # Everybody can get their own user object.
 
     interface_traits = api_user.ApiGrrUserInterfaceTraits(
-        search_clients_action_enabled=True)
+        search_clients_action_enabled=True
+    )
     return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, context=None):

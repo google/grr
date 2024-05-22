@@ -373,36 +373,3 @@ message ApiListKnownEncodingsResult {
   repeated string encodings = 1
       [(sem_type) = { description: "The list of file encodings." }];
 }
-
-message ApiGetFileDecodersArgs {
-  optional string client_id = 1 [(sem_type) = {
-    type: "ApiClientId",
-    description: "An id of the client to which the encoded file belongs to."
-  }];
-  optional string file_path = 2 [(sem_type) = {
-    description: "A path to the encrypted file to get the decoder names for."
-  }];
-  // TODO(hanuszczak): Add support for listing decoders for a file as observed
-  // at specific timestamp.
-}
-
-message ApiGetFileDecodersResult {
-  repeated string decoder_names = 1 [(sem_type) = {
-    description: "Names of the decoders that are applicable to the file."
-  }];
-}
-
-message ApiGetDecodedFileArgs {
-  optional string client_id = 1 [(sem_type) = {
-    type: "ApiClientId",
-    description: "An id of the client to which the encoded file belongs to."
-  }];
-  optional string file_path = 2 [(sem_type) = {
-    description: "A path to the encrypted file to do the decoding on."
-  }];
-  optional string decoder_name = 3 [(sem_type) = {
-    description: "A name of the decoder to use to decoder the file."
-  }];
-  // TODO(hanuszczak): Add support for decoding file content as observed at
-  // specific timestamp.
-}

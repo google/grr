@@ -20,7 +20,8 @@
   overflow: scroll;
   max-height: 30em;
 
-  border-top: 1px dashed mat.get-color-from-palette(c.$foreground, divider-light);
+  border-top: 1px dashed
+    mat.get-color-from-palette(c.$foreground, divider-light);
 }
 
 table {
@@ -39,7 +40,8 @@ table {
 
   th,
   td {
-    border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+    border-bottom: 1px solid
+      mat.get-color-from-palette(c.$foreground, divider-light);
     padding-right: 1.5em;
     vertical-align: top;
   }

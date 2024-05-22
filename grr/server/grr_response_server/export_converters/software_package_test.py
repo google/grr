@@ -18,6 +18,8 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
         description="desc",
         installed_on=42,
         installed_by="user",
+        epoch=7,
+        source_rpm="foo-1.3.3.7.fc39.src.rpm",
     )
 
     converter = software_package.SoftwarePackageConverter()
@@ -36,6 +38,8 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
             description="desc",
             installed_on=42,
             installed_by="user",
+            epoch=7,
+            source_rpm="foo-1.3.3.7.fc39.src.rpm",
         ),
     )
 
@@ -54,6 +58,8 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               description="desc_%d" % i,
               installed_on=42 + i,
               installed_by="user_%d" % i,
+              epoch=i,
+              source_rpm=f"foo_{i}.src.rpm",
           )
       )
 
@@ -74,6 +80,8 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               description="desc_%d" % i,
               installed_on=42 + i,
               installed_by="user_%d" % i,
+              epoch=i,
+              source_rpm=f"foo_{i}.src.rpm",
           ),
       )
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_proto.api import client_pb2
 from grr_response_server.gui.api_plugins import client
 
@@ -36,34 +37,6 @@ def ToRDFApiSearchClientsResult(
     proto: client_pb2.ApiSearchClientsResult,
 ) -> client.ApiSearchClientsResult:
   return client.ApiSearchClientsResult.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiStructuredSearchClientsArgs(
-    rdf: client.ApiStructuredSearchClientsArgs,
-) -> client_pb2.ApiStructuredSearchClientsArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiStructuredSearchClientsArgs(
-    proto: client_pb2.ApiStructuredSearchClientsArgs,
-) -> client.ApiStructuredSearchClientsArgs:
-  return client.ApiStructuredSearchClientsArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiStructuredSearchClientsResult(
-    rdf: client.ApiStructuredSearchClientsResult,
-) -> client_pb2.ApiStructuredSearchClientsResult:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiStructuredSearchClientsResult(
-    proto: client_pb2.ApiStructuredSearchClientsResult,
-) -> client.ApiStructuredSearchClientsResult:
-  return client.ApiStructuredSearchClientsResult.FromSerializedBytes(
       proto.SerializeToString()
   )
 

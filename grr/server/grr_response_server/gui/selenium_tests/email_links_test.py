@@ -17,20 +17,22 @@ from grr.test_lib import test_lib
 class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
-  GRANTOR_USERNAME = u"igrantapproval"
+  GRANTOR_USERNAME = "igrantapproval"
 
   def setUp(self):
     super().setUp()
 
     self.messages_sent = []
 
-    def SendEmailStub(to_addresses, from_address, subject, message,
-                      **unused_kwargs):
+    def SendEmailStub(
+        to_addresses, from_address, subject, message, **unused_kwargs
+    ):
       del to_addresses, from_address, subject  # Unused.
       self.messages_sent.append(message)
 
-    email_stubber = mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail",
-                                      SendEmailStub)
+    email_stubber = mock.patch.object(
+        email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub
+    )
     email_stubber.start()
     self.addCleanup(email_stubber.stop)
 
@@ -48,7 +50,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         client_id,
         reason="Please please let me",
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
@@ -73,7 +76,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         client_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -100,7 +104,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
@@ -125,7 +130,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -154,7 +160,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
@@ -183,7 +190,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.

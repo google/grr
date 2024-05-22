@@ -45,10 +45,13 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
     self.assertTrue(methods)
 
   def testGetAnnotatedMethodsReturnsMethodsFromAllClassesInMroChain(self):
-    self.assertIn("SomeRandomMethod",
-                  SingleMethodDummyApiCallRouter.GetAnnotatedMethods())
-    self.assertIn("SomeRandomMethod",
-                  SingleMethodDummyApiCallRouterChild.GetAnnotatedMethods())
+    self.assertIn(
+        "SomeRandomMethod", SingleMethodDummyApiCallRouter.GetAnnotatedMethods()
+    )
+    self.assertIn(
+        "SomeRandomMethod",
+        SingleMethodDummyApiCallRouterChild.GetAnnotatedMethods(),
+    )
 
   def testHttpUrlParametersMatchArgs(self):
     """Tests that URL params are actual fields of ArgsType in HTTP routes."""
@@ -65,18 +68,23 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
       valid_parameters = method.args_type.type_infos.descriptor_names
       for name in method.GetQueryParamsNames():
         self.assertIn(
-            name, valid_parameters,
+            name,
+            valid_parameters,
             "Parameter {} in route {} is not found in {}. "
-            "Valid parameters are {}.".format(name, method.name,
-                                              method.args_type.__name__,
-                                              valid_parameters))
+            "Valid parameters are {}.".format(
+                name, method.name, method.args_type.__name__, valid_parameters
+            ),
+        )
 
   def testRouterMethodNamesAreInLengthLimit(self):
     for name in api_call_router.ApiCallRouterStub.GetAnnotatedMethods():
       self.assertLessEqual(
-          len(name), 128,
+          len(name),
+          128,
           "Router method name {} exceeds MySQL length limit of 128.".format(
-              name))
+              name
+          ),
+      )
 
 
 class DisabledApiCallRouterTest(test_lib.GRRBaseTest):
@@ -102,21 +110,24 @@ class RouterMethodMetadataTest(test_lib.GRRBaseTest):
 
   def testGetQueryParamsNamesReturnsMandaotryParamsCorrectly(self):
     m = api_call_router.RouterMethodMetadata(
-        "SomeMethod", http_methods=[("GET", "/a/<arg>/<bar:zoo>", {})])
+        "SomeMethod", http_methods=[("GET", "/a/<arg>/<bar:zoo>", {})]
+    )
     self.assertEqual(m.GetQueryParamsNames(), ["arg", "zoo"])
 
   def testGetQueryParamsNamesReturnsOptionalParamsForGET(self):
     m = api_call_router.RouterMethodMetadata(
         "SomeMethod",
         args_type=ApiSingleStringArgument,
-        http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})])
+        http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})],
+    )
     self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo", "arg"])
 
   def testGetQueryParamsNamesReturnsNoOptionalParamsForPOST(self):
     m = api_call_router.RouterMethodMetadata(
         "SomeMethod",
         args_type=ApiSingleStringArgument,
-        http_methods=[("POST", "/a/<foo>/<bar:zoo>", {})])
+        http_methods=[("POST", "/a/<foo>/<bar:zoo>", {})],
+    )
     self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo"])
 
 

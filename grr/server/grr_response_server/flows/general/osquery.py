@@ -277,7 +277,9 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     self._FileCollectionFromColumns(responses)
 
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return rdf_osquery.OsqueryProgress()
 
   def ReceiveFetchedFile(self,
                          stat_entry: rdf_client_fs.StatEntry,

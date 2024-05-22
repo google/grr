@@ -23,22 +23,22 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
 
   def testLaunchBinaryFlowResultsHaveReadableStdOutAndStdErr(self):
     flow_id = flow_test_lib.StartFlow(
-        gui_test_lib.RecursiveTestFlow, client_id=self.client_id)
+        gui_test_lib.RecursiveTestFlow, client_id=self.client_id
+    )
 
     stderr = "Oh, ok, this is just a string 昨"
     stdout = "\00\00\00\00"
     response = rdf_client_action.ExecuteResponse(
-        stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
-
-    data_store.REL_DB.WriteFlowResults(
-        [
-            mig_flow_objects.ToProtoFlowResult(
-                rdf_flow_objects.FlowResult(
-                    client_id=self.client_id, flow_id=flow_id, payload=response
-                )
-            )
-        ]
+        stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8")
     )
+
+    data_store.REL_DB.WriteFlowResults([
+        mig_flow_objects.ToProtoFlowResult(
+            rdf_flow_objects.FlowResult(
+                client_id=self.client_id, flow_id=flow_id, payload=response
+            )
+        )
+    ])
 
     self.Open(
         "/legacy#/clients/%s/flows/%s/results" % (self.client_id, flow_id)
@@ -47,11 +47,14 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
     # have to escape it twice: once for Javascript itself and second time
     # for jQuery.
     self.WaitUntil(
-        self.IsElementPresent, r"css=grr-flow-inspector:contains('Oh, ok, "
-        r"this is just a string \\\\xe6\\\\x98\\\\xa8')")
+        self.IsElementPresent,
+        r"css=grr-flow-inspector:contains('Oh, ok, "
+        r"this is just a string \\\\xe6\\\\x98\\\\xa8')",
+    )
     self.WaitUntil(
         self.IsElementPresent,
-        r"css=grr-flow-inspector:contains('\\\\x00\\\\x00\\\\x00\\\\x00')")
+        r"css=grr-flow-inspector:contains('\\\\x00\\\\x00\\\\x00\\\\x00')",
+    )
 
 
 if __name__ == "__main__":

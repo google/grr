@@ -30,11 +30,11 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.Open("/legacy#clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
     # Click on the file containing unicode characters.
-    self.Click(u"css=tr:contains(\"中.txt\")")
+    self.Click('css=tr:contains("中.txt")')
     # Then click on the "Download" tab.
     self.Click("css=li[heading=Download]:not(.disabled)")
 
-    self.WaitUntil(self.IsTextPresent, u"中国新闻网新闻中.txt")
+    self.WaitUntil(self.IsTextPresent, "中国新闻网新闻中.txt")
 
   def testFolderPathCanContainUnicodeCharacters(self):
     # Open VFS view for client 1 on a location containing unicode characters.
@@ -43,7 +43,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     )
 
     # Check that the correct file is listed.
-    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
+    self.WaitUntil(self.IsElementPresent, 'css=tr:contains("bzcmp")')
 
   def testFolderPathWithUnicodeCharactersCanBeClicked(self):
     dirpath = "fs/os/home/user/foo/a看a"
@@ -52,34 +52,37 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     gui_test_lib.CreateFileVersion(self.client_id, filepath, b"foobar")
 
     self.Open(f"/#/clients/{self.client_id}/vfs/{dirpath}")
-    self.Click("css=li > a:contains(\"a看a\")")
-    self.Click("css=li > a:contains(\"bar\")")
-    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"baz.txt\")")
+    self.Click('css=li > a:contains("a看a")')
+    self.Click('css=li > a:contains("bar")')
+    self.WaitUntil(self.IsElementPresent, 'css=tr:contains("baz.txt")')
 
   def testUrlSensitiveCharactersAreShownInTree(self):
     gui_test_lib.CreateFileVersion(
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     # Open VFS view for client 1 on a specific location.
     self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     # Wait until the folder gets selected and its information displayed in
     # the details pane.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-file-details:contains('VFSDirectory')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-file-details:contains('VFSDirectory')"
+    )
 
     # Click on the "foo?bar&oh" subfolder.
     self.Click("css=#_fs-os-c-foo_3Fbar_26oh a:visible")
 
     # Some more unicode testing.
-    self.Click(u"css=tr:contains(\"a&=?b.txt\")")
+    self.Click('css=tr:contains("a&=?b.txt")')
     self.Click("css=li[heading=Download]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-file-details:contains('a&=?b.txt')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-file-details:contains('a&=?b.txt')"
+    )
 
     # Test the text viewer.
     self.Click("css=li[heading=TextView]")
@@ -90,7 +93,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     # Open VFS view for client 1 on a location containing unicode characters.
     self.Open(
@@ -99,7 +103,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     )
 
     # Check that the correct file is listed.
-    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a&=?b.txt\")")
+    self.WaitUntil(self.IsElementPresent, 'css=tr:contains("a&=?b.txt")')
 
   def testDoubleClickGoesInsideDirectory(self):
     """Tests that double click in FileTable goes inside the directory."""
@@ -109,8 +113,9 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(
+        "C.0000000000000001", self.GetText, "css=span[type=subject]"
+    )
 
     # Choose client 1 and go to 'Browse Virtual Filesystem'
     self.Click("css=td:contains('0001')")
@@ -126,15 +131,19 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     # Now we should be inside the folder, and the tree should open.
     self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c i.jstree-icon")
     # Check that breadcrumbs got updated.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#content_rightPane .breadcrumb li:contains('os')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=#content_rightPane .breadcrumb li:contains('os')",
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetVfsFilesArchive",
-      return_value=api_vfs.ApiGetVfsFilesArchiveHandler())
+      return_value=api_vfs.ApiGetVfsFilesArchiveHandler(),
+  )
   def testClickingOnDownloadCurrentFolderButtonStartsDownload(
-      self, mock_method):
+      self, mock_method
+  ):
     # Open VFS view for client 1 on a specific location.
     self.Open(
         "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
@@ -149,13 +158,16 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(lambda: mock_method.call_count)
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(
-            client_id="C.0000000000000001", file_path="fs/os/c/proc"),
-        context=mock.ANY)
+            client_id="C.0000000000000001", file_path="fs/os/c/proc"
+        ),
+        context=mock.ANY,
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetVfsFilesArchive",
-      return_value=api_vfs.ApiGetVfsFilesArchiveHandler())
+      return_value=api_vfs.ApiGetVfsFilesArchiveHandler(),
+  )
   def testClickingOnDownloadEverythingButtonStartsDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open(
@@ -171,7 +183,8 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(lambda: mock_method.call_count)
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(client_id="C.0000000000000001"),
-        context=mock.ANY)
+        context=mock.ANY,
+    )
 
 
 if __name__ == "__main__":

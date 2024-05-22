@@ -13,7 +13,6 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
@@ -35,8 +34,8 @@ from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
+from grr_response_server.models import hunts
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 
 
 T = TypeVar("T")
@@ -395,7 +394,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowObjects(
       self,
-      client_id: Optional[Text] = None,
+      client_id: Optional[str] = None,
       parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
@@ -480,7 +479,7 @@ class MySQLDBFlowMixin(object):
         (hunt_state,) = cursor.fetchone()
         if (
             hunt_state is not None
-            and not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(hunt_state)
+            and not hunts.IsHuntSuitableForFlowProcessing(hunt_state)
         ):
           raise db.ParentHuntIsNotRunningError(
               client_id, flow_id, flow.parent_hunt_id, hunt_state

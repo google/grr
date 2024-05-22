@@ -65,12 +65,6 @@ export declare interface AmazonCloudInstance {
   readonly instanceType?: string;
 }
 
-/** AndExpression proto mapping. */
-export declare interface AndExpression {
-  readonly leftOperand?: SearchExpression;
-  readonly rightOperand?: SearchExpression;
-}
-
 /** Anomaly proto mapping. */
 export declare interface Anomaly {
   readonly type?: AnomalyAnomalyType;
@@ -584,13 +578,6 @@ export declare interface ApiGetCronJobRunArgs {
   readonly runId?: string;
 }
 
-/** ApiGetDecodedFileArgs proto mapping. */
-export declare interface ApiGetDecodedFileArgs {
-  readonly clientId?: string;
-  readonly filePath?: string;
-  readonly decoderName?: string;
-}
-
 /** ApiGetExportedFlowResultsArgs proto mapping. */
 export declare interface ApiGetExportedFlowResultsArgs {
   readonly clientId?: string;
@@ -611,17 +598,6 @@ export declare interface ApiGetFileBlobArgs {
   readonly offset?: ProtoInt64;
   readonly length?: ProtoInt64;
   readonly timestamp?: RDFDatetime;
-}
-
-/** ApiGetFileDecodersArgs proto mapping. */
-export declare interface ApiGetFileDecodersArgs {
-  readonly clientId?: string;
-  readonly filePath?: string;
-}
-
-/** ApiGetFileDecodersResult proto mapping. */
-export declare interface ApiGetFileDecodersResult {
-  readonly decoderNames?: readonly string[];
 }
 
 /** ApiGetFileDetailsArgs proto mapping. */
@@ -1969,21 +1945,6 @@ export declare interface ApiSearchClientsResult {
   readonly items?: readonly ApiClient[];
 }
 
-/** ApiStructuredSearchClientsArgs proto mapping. */
-export declare interface ApiStructuredSearchClientsArgs {
-  readonly expression?: SearchExpression;
-  readonly sortOrder?: SortOrder;
-  readonly continuationToken?: ProtoBytes;
-  readonly numberOfResults?: ProtoUint64;
-}
-
-/** ApiStructuredSearchClientsResult proto mapping. */
-export declare interface ApiStructuredSearchClientsResult {
-  readonly items?: readonly ApiClient[];
-  readonly continuationToken?: ProtoBytes;
-  readonly estimatedCount?: ProtoUint64;
-}
-
 /** ApiTimelineBodyOpts proto mapping. */
 export declare interface ApiTimelineBodyOpts {
   readonly timestampSubsecondPrecision?: boolean;
@@ -2130,11 +2091,6 @@ export declare interface ArtifactDescriptor {
   readonly errorMessage?: string;
 }
 
-/** ArtifactFallbackCollectorArgs proto mapping. */
-export declare interface ArtifactFallbackCollectorArgs {
-  readonly artifactName?: string;
-}
-
 /** ArtifactFilesDownloaderFlowArgs proto mapping. */
 export declare interface ArtifactFilesDownloaderFlowArgs {
   readonly artifactList?: readonly string[];
@@ -2182,7 +2138,6 @@ export enum ArtifactSourceSourceType {
   WMI = 'WMI',
   ARTIFACT = 'ARTIFACT',
   PATH = 'PATH',
-  DIRECTORY = 'DIRECTORY',
   ARTIFACT_GROUP = 'ARTIFACT_GROUP',
   GRR_CLIENT_ACTION = 'GRR_CLIENT_ACTION',
   LIST_FILES = 'LIST_FILES',
@@ -2390,6 +2345,14 @@ export declare interface CollectBrowserHistoryResult {
   readonly statEntry?: StatEntry;
 }
 
+/** CollectDistroInfoResult proto mapping. */
+export declare interface CollectDistroInfoResult {
+  readonly name?: string;
+  readonly release?: string;
+  readonly versionMajor?: ProtoUint32;
+  readonly versionMinor?: ProtoUint32;
+}
+
 /** CollectFilesByKnownPathArgs proto mapping. */
 export declare interface CollectFilesByKnownPathArgs {
   readonly paths?: readonly string[];
@@ -2482,18 +2445,6 @@ export enum CollectMultipleFilesResultStatus {
   FAILED = 'FAILED',
 }
 
-/** ConditionExpression proto mapping. */
-export declare interface ConditionExpression {
-  readonly conditionType?: ConditionExpressionConditionType;
-  readonly osCondition?: OSCondition;
-}
-
-/** ConditionExpression.ConditionType proto mapping. */
-export enum ConditionExpressionConditionType {
-  UNKNOWN = 'UNKNOWN',
-  OS = 'OS',
-}
-
 /** CpuSeconds proto mapping. */
 export declare interface CpuSeconds {
   readonly deprecatedUserCpuTime?: ProtoFloat;
@@ -2559,12 +2510,6 @@ export declare interface DeleteGRRTempFilesArgs {
 /** Dict proto mapping. */
 export declare interface Dict {
   readonly dat?: readonly KeyValue[];
-}
-
-/** DiskVolumeInfoArgs proto mapping. */
-export declare interface DiskVolumeInfoArgs {
-  readonly pathList?: readonly string[];
-  readonly pathtype?: PathSpecPathType;
 }
 
 /** DummyArgs proto mapping. */
@@ -2852,6 +2797,7 @@ export enum FlowContextState {
   TERMINATED = 'TERMINATED',
   ERROR = 'ERROR',
   WELL_KNOWN = 'WELL_KNOWN',
+  CLIENT_CRASHED = 'CLIENT_CRASHED',
 }
 
 /** FlowLikeObjectReference proto mapping. */
@@ -2889,7 +2835,6 @@ export declare interface FlowResultMetadata {
 
 /** FlowRunnerArgs proto mapping. */
 export declare interface FlowRunnerArgs {
-  readonly notifyToUser?: boolean;
   readonly clientId?: string;
   readonly queue?: RDFURN;
   readonly cpuLimit?: ProtoUint64;
@@ -3425,34 +3370,9 @@ export declare interface NetworkEndpoint {
   readonly port?: ProtoInt32;
 }
 
-/** NotExpression proto mapping. */
-export declare interface NotExpression {
-  readonly expression?: SearchExpression;
-}
-
-/** OSCondition proto mapping. */
-export declare interface OSCondition {
-  readonly comparisonType?: OSConditionComparisonType;
-  readonly os?: string;
-}
-
-/** OSCondition.ComparisonType proto mapping. */
-export enum OSConditionComparisonType {
-  UNKNOWN = 'UNKNOWN',
-  EQUALS = 'EQUALS',
-  NOT_EQUALS = 'NOT_EQUALS',
-  CONTAINS = 'CONTAINS',
-}
-
 /** OnlineNotificationArgs proto mapping. */
 export declare interface OnlineNotificationArgs {
   readonly email?: string;
-}
-
-/** OrExpression proto mapping. */
-export declare interface OrExpression {
-  readonly leftOperand?: SearchExpression;
-  readonly rightOperand?: SearchExpression;
 }
 
 /** OsqueryColumn proto mapping. */
@@ -3770,43 +3690,6 @@ export declare interface SampleFloat {
   readonly label?: string;
   readonly xValue?: ProtoFloat;
   readonly yValue?: ProtoFloat;
-}
-
-/** SearchExpression proto mapping. */
-export declare interface SearchExpression {
-  readonly expressionType?: SearchExpressionExpressionType;
-  readonly notExpression?: NotExpression;
-  readonly andExpression?: AndExpression;
-  readonly orExpression?: OrExpression;
-  readonly conditionExpression?: ConditionExpression;
-}
-
-/** SearchExpression.ExpressionType proto mapping. */
-export enum SearchExpressionExpressionType {
-  UNKNOWN = 'UNKNOWN',
-  NEGATION = 'NEGATION',
-  AND = 'AND',
-  OR = 'OR',
-  CONDITION = 'CONDITION',
-}
-
-/** SortOrder proto mapping. */
-export declare interface SortOrder {
-  readonly orderBy?: SortOrderOrderBy;
-  readonly order?: SortOrderOrder;
-}
-
-/** SortOrder.Order proto mapping. */
-export enum SortOrderOrder {
-  UNKNOWN_ORDER = 'UNKNOWN_ORDER',
-  ASCENDING = 'ASCENDING',
-  DESCENDING = 'DESCENDING',
-}
-
-/** SortOrder.OrderBy proto mapping. */
-export enum SortOrderOrderBy {
-  UNKNOWN = 'UNKNOWN',
-  SNAPSHOT_CREATION_TIME = 'SNAPSHOT_CREATION_TIME',
 }
 
 /** StatEntry proto mapping. */

@@ -36,8 +36,9 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
   def testPrepackagedArtifacts(self, registry):
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
     registry.AddFileSource(test_artifacts_file)
 
     result = self.handler.Handle(self.handler.args_type(), context=self.context)
@@ -69,8 +70,9 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testUpload(self, registry):
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifact.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"
+    )
     with open(test_artifacts_file, "rb") as fd:
       args = self.handler.args_type(artifact=fd.read())
 
@@ -91,8 +93,9 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = artifact_plugin.ApiDeleteArtifactsHandler()
 
   def UploadTestArtifacts(self):
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
     with io.open(test_artifacts_file, mode="r", encoding="utf-8") as fd:
       artifact.UploadArtifactYamlFile(fd.read())
 
@@ -101,7 +104,8 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
     count = len(registry.GetArtifacts(reload_datastore_artifacts=True))
 
     args = self.handler.args_type(
-        names=["TestFilesArtifact", "WMIActiveScriptEventConsumer"])
+        names=["TestFilesArtifact", "WMIActiveScriptEventConsumer"]
+    )
     self.handler.Handle(args, context=self.context)
 
     new_count = len(registry.GetArtifacts())
@@ -123,7 +127,8 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(args, context=self.context)
     self.assertEqual(
         str(e.exception),
-        "Artifact(s) to delete (NonExistentArtifact) not found.")
+        "Artifact(s) to delete (NonExistentArtifact) not found.",
+    )
 
 
 def main(argv):

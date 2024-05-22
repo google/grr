@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
+
 from unittest import mock
 
 from grr_response_core.lib import rdfvalue
@@ -11,6 +12,7 @@ from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 
 class FooReportPlugin(report_plugin_base.ReportPluginBase):
   """Stub report plugin."""
+
   TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.CLIENT
   TITLE = "Foo"
   SUMMARY = "Reports all foos."
@@ -18,6 +20,7 @@ class FooReportPlugin(report_plugin_base.ReportPluginBase):
 
 class BarReportPlugin(report_plugin_base.ReportPluginBase):
   """Stub report plugin."""
+
   TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Bar Activity"
   SUMMARY = "Reports bars' activity in the given time range."
@@ -48,10 +51,14 @@ class MockedReportPlugins(object):
   """A context manager that swaps available reports with the mocked reports."""
 
   def __init__(self):
-    self.stubber = mock.patch.object(report_plugins.REGISTRY, "plugins", {
-        "FooReportPlugin": FooReportPlugin,
-        "BarReportPlugin": BarReportPlugin
-    })
+    self.stubber = mock.patch.object(
+        report_plugins.REGISTRY,
+        "plugins",
+        {
+            "FooReportPlugin": FooReportPlugin,
+            "BarReportPlugin": BarReportPlugin,
+        },
+    )
 
   def __enter__(self):
     self.Start()

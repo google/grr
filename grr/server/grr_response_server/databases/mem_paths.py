@@ -7,7 +7,6 @@ from typing import Dict
 from typing import Iterable
 from typing import Optional
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 from typing import Union
 
@@ -331,9 +330,9 @@ class InMemoryDBPathMixin(object):
   @utils.Synchronized
   def ReadPathInfosHistories(
       self,
-      client_id: Text,
+      client_id: str,
       path_type: objects_pb2.PathInfo.PathType,
-      components_list: Iterable[Sequence[Text]],
+      components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
   ) -> dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""

@@ -17,6 +17,8 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import hunt_pb2
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server.databases import db
@@ -79,15 +81,13 @@ class ApiCreateHuntHandlerTest(
     self.handler = hunt_plugin.ApiCreateHuntHandler()
 
   def testQueueHuntRunnerArgumentIsNotRespected(self):
-    args = hunt_plugin.ApiCreateHuntArgs(
-        flow_name=file_finder.FileFinder.__name__
-    )
+    args = hunt_pb2.ApiCreateHuntArgs(flow_name=file_finder.FileFinder.__name__)
     args.hunt_runner_args.queue = "BLAH"
     result = self.handler.Handle(args, context=self.context)
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
   def testNetworkBytesLimitHuntRunnerArgumentIsRespected(self):
-    args = hunt_plugin.ApiCreateHuntArgs(
+    args = hunt_pb2.ApiCreateHuntArgs(
         flow_name=file_finder.ClientFileFinder.__name__
     )
     args.hunt_runner_args.network_bytes_limit = 123
@@ -96,7 +96,7 @@ class ApiCreateHuntHandlerTest(
     self.assertEqual(123, result.hunt_runner_args.network_bytes_limit)
 
   def testNetworkBytesLimitHuntRunnerArgumentDefaultRespected(self):
-    args = hunt_plugin.ApiCreateHuntArgs(
+    args = hunt_pb2.ApiCreateHuntArgs(
         flow_name=file_finder.ClientFileFinder.__name__
     )
 
@@ -104,12 +104,94 @@ class ApiCreateHuntHandlerTest(
     self.assertFalse(result.hunt_runner_args.HasField("network_bytes_limit"))
 
   def testCollectLargeFileBlocksHuntCreationRespected(self):
-    args = hunt_plugin.ApiCreateHuntArgs(
+    args = hunt_pb2.ApiCreateHuntArgs(
         flow_name=large_file.CollectLargeFileFlow.__name__
     )
     self.assertRaises(
         ValueError, self.handler.Handle, args, context=self.context
     )
+
+
+class ApiListHuntCrashesHandlerTest(
+    api_test_lib.ApiCallHandlerTest,
+    hunt_test_lib.StandardHuntTestMixin,
+):
+
+  def setUp(self):
+    super().setUp()
+    self.handler = hunt_plugin.ApiListHuntCrashesHandler()
+
+  @db_test_lib.WithDatabase
+  def testHandlesListHuntCrashes(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+
+    client_id_1 = db_test_utils.InitializeClient(rel_db)
+    client_id_2 = db_test_utils.InitializeClient(rel_db)
+
+    flow_id_1 = db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_1,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+    db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id_2,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    flow_obj_1 = rel_db.ReadFlowObject(client_id_1, flow_id_1)
+    flow_obj_1.flow_state = flows_pb2.Flow.FlowState.CRASHED
+    rel_db.UpdateFlow(
+        client_id_1,
+        flow_id_1,
+        flow_obj=flow_obj_1,
+        client_crash_info=jobs_pb2.ClientCrash(client_id=client_id_1),
+    )
+
+    result = self.handler.Handle(
+        hunt_pb2.ApiListHuntCrashesArgs(hunt_id=hunt_id), context=self.context
+    )
+    self.assertIsInstance(result, hunt_pb2.ApiListHuntCrashesResult)
+    self.assertEqual(result.total_count, 1)
+    self.assertLen(result.items, 1)
+    self.assertEqual(result.items[0].client_id, client_id_1)
+
+  @db_test_lib.WithDatabase
+  def testListHuntCrashesReturnsEmptyListIfNoCrashes(self, rel_db: db.Database):
+    hunt_id = db_test_utils.InitializeHunt(rel_db)
+    client_id = db_test_utils.InitializeClient(rel_db)
+    db_test_utils.InitializeFlow(
+        rel_db,
+        client_id=client_id,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    result = self.handler.Handle(
+        hunt_pb2.ApiListHuntCrashesArgs(hunt_id=hunt_id), context=self.context
+    )
+    self.assertIsInstance(result, hunt_pb2.ApiListHuntCrashesResult)
+    self.assertEqual(result.total_count, 0)
+    self.assertEmpty(result.items)
+
+
+class ApiGetHuntResultsExportCommandHandlerTest(
+    api_test_lib.ApiCallHandlerTest,
+    hunt_test_lib.StandardHuntTestMixin,
+):
+
+  def setUp(self):
+    super().setUp()
+    self.handler = hunt_plugin.ApiGetHuntResultsExportCommandHandler()
+
+  def testHandlesGetHuntResultsExportCommand(self):
+    hunt_id = "0123ABCD"
+    args = hunt_pb2.ApiGetHuntResultsExportCommandArgs(hunt_id=hunt_id)
+    result = self.handler.Handle(args, context=self.context)
+    self.assertIsInstance(result, hunt_pb2.ApiGetHuntResultsExportCommandResult)
+    self.assertNotEmpty(result.command)
 
 
 class ApiListHuntsHandlerTest(
@@ -173,7 +255,7 @@ class ApiListHuntsHandlerTest(
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(), context=self.context
     )
-    create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
+    create_times = [r.created for r in result.items]
 
     self.assertLen(create_times, 10)
     for index, expected_time in enumerate(reversed(range(1, 11))):
@@ -187,7 +269,7 @@ class ApiListHuntsHandlerTest(
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(offset=2, count=2), context=self.context
     )
-    create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
+    create_times = [r.created for r in result.items]
 
     self.assertLen(create_times, 2)
     self.assertEqual(create_times[0], 8 * 1000000000)
@@ -319,12 +401,16 @@ class ApiGetHuntHandlerTest(
     hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
-    args = hunt_plugin.ApiGetHuntArgs()
+    args = hunt_pb2.ApiGetHuntArgs()
     args.hunt_id = "12345678"
 
     hunt_api_obj = self.handler.Handle(args, context=self.context)
-    self.assertEqual(hunt_api_obj.duration, duration)
-    self.assertEqual(hunt_api_obj.hunt_runner_args.expiry_time, duration)
+    duration_seconds = duration.ToInt(timeunit=rdfvalue.SECONDS)
+    self.assertEqual(hunt_api_obj.duration, duration_seconds)
+    self.assertEqual(
+        hunt_api_obj.hunt_runner_args.expiry_time,
+        duration_seconds,
+    )
 
 
 class ApiGetHuntFilesArchiveHandlerTest(
@@ -356,7 +442,7 @@ class ApiGetHuntFilesArchiveHandlerTest(
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
-        hunt_plugin.ApiGetHuntFilesArchiveArgs(
+        hunt_pb2.ApiGetHuntFilesArchiveArgs(
             hunt_id=self.hunt_id, archive_format="ZIP"
         ),
         context=self.context,
@@ -384,7 +470,7 @@ class ApiGetHuntFilesArchiveHandlerTest(
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
-        hunt_plugin.ApiGetHuntFilesArchiveArgs(
+        hunt_pb2.ApiGetHuntFilesArchiveArgs(
             hunt_id=self.hunt_id, archive_format="TAR_GZ"
         ),
         context=self.context,
@@ -451,39 +537,43 @@ class ApiGetHuntFileHandlerTest(
     )
 
   def testRaisesIfOneOfArgumentAttributesIsNone(self):
-    model_args = hunt_plugin.ApiGetHuntFileArgs(
+    model_args = hunt_pb2.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=rdfvalue.RDFDatetime.Now(),
+        timestamp=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
     )
 
-    args = model_args.Copy()
-    args.hunt_id = None
+    args = hunt_pb2.ApiGetHuntFileArgs()
+    args.CopyFrom(model_args)
+    args.ClearField("hunt_id")
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
-    args = model_args.Copy()
-    args.client_id = None
+    args = hunt_pb2.ApiGetHuntFileArgs()
+    args.CopyFrom(model_args)
+    args.ClearField("client_id")
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
-    args = model_args.Copy()
-    args.vfs_path = None
+    args = hunt_pb2.ApiGetHuntFileArgs()
+    args.CopyFrom(model_args)
+    args.ClearField("vfs_path")
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
-    args = model_args.Copy()
-    args.timestamp = None
+    args = hunt_pb2.ApiGetHuntFileArgs()
+    args.CopyFrom(model_args)
+    args.ClearField("timestamp")
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
   def testRaisesIfVfsRootIsNotAllowed(self):
-    args = hunt_plugin.ApiGetHuntFileArgs(
+    args = hunt_pb2.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path="flows/W:123456",
-        timestamp=rdfvalue.RDFDatetime().Now(),
+        timestamp=rdfvalue.RDFDatetime().Now().AsMicrosecondsSinceEpoch(),
     )
 
     with self.assertRaises(ValueError):
@@ -492,14 +582,16 @@ class ApiGetHuntFileHandlerTest(
   def testRaisesIfResultIsBeforeTimestamp(self):
     results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
 
-    args = hunt_plugin.ApiGetHuntFileArgs(
+    args = hunt_pb2.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
-            results[0].timestamp
-        )
-        + rdfvalue.Duration.From(1, rdfvalue.SECONDS),
+        timestamp=(
+            rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                results[0].timestamp
+            )
+            + rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+        ).AsMicrosecondsSinceEpoch(),
     )
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, context=self.context)
@@ -521,15 +613,11 @@ class ApiGetHuntFileHandlerTest(
       payload.stat_entry.pathspec.path += "blah"
       data_store.REL_DB.WriteFlowResults([wrong_result])
 
-    wrong_result_timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
-        wrong_result.timestamp
-    )
-
-    args = hunt_plugin.ApiGetHuntFileArgs(
+    args = hunt_pb2.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path + "blah",
-        timestamp=wrong_result_timestamp,
+        timestamp=wrong_result.timestamp,
     )
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
@@ -539,11 +627,11 @@ class ApiGetHuntFileHandlerTest(
     results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
     timestamp = results[0].timestamp
 
-    args = hunt_plugin.ApiGetHuntFileArgs(
+    args = hunt_pb2.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(timestamp),
+        timestamp=timestamp,
     )
 
     result = self.handler.Handle(args, context=self.context)
@@ -691,12 +779,12 @@ class ApiCountHuntResultsHandlerTest(
     self.assertCountEqual(
         result.items,
         [
-            hunt_plugin.ApiTypeCount(
-                type=rdf_file_finder.CollectFilesByKnownPathResult.__name__,
+            hunt_pb2.ApiTypeCount(
+                type=flows_pb2.CollectFilesByKnownPathResult.__name__,
                 count=5,
             ),
-            hunt_plugin.ApiTypeCount(
-                type=rdf_file_finder.FileFinderResult.__name__, count=5
+            hunt_pb2.ApiTypeCount(
+                type=flows_pb2.FileFinderResult.__name__, count=5
             ),
         ],
     )
@@ -810,14 +898,12 @@ class ApiModifyHuntHandlerTest(
 
   def testDoesNothingIfArgsHaveNoChanges(self):
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
-    before = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
+    before = hunt_plugin.InitApiHuntFromHuntObject(hunt_obj)
 
     self.handler.Handle(self.args, context=self.context)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
-    after = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
+    after = hunt_plugin.InitApiHuntFromHuntObject(hunt_obj)
 
     self.assertEqual(before, after)
 
@@ -876,12 +962,16 @@ class ApiModifyHuntHandlerTest(
     self.handler.Handle(self.args, context=self.context)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
-    after = hunt_plugin.ApiHunt().InitFromHuntObject(hunt_obj)
+    after = hunt_plugin.InitApiHuntFromHuntObject(hunt_obj)
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
-    self.assertEqual(after.duration, rdfvalue.Duration.From(1, rdfvalue.DAYS))
+    self.assertEqual(
+        after.duration,
+        rdfvalue.Duration.From(1, rdfvalue.DAYS).ToInt(
+            timeunit=rdfvalue.SECONDS
+        ),
+    )
 
 
 class ApiDeleteHuntHandlerTest(
@@ -945,7 +1035,7 @@ class ApiGetExportedHuntResultsHandlerTest(
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     result = self.handler.Handle(
-        hunt_plugin.ApiGetExportedHuntResultsArgs(
+        hunt_pb2.ApiGetExportedHuntResultsArgs(
             hunt_id=self.hunt_id,
             plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name,
         ),
@@ -1064,7 +1154,7 @@ class ListHuntErrorsHandlerTest(absltest.TestCase):
     flow_obj_2.error_message = "ERROR_2"
     rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
 
-    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args = hunt_pb2.ApiListHuntErrorsArgs()
     args.hunt_id = hunt_id
 
     handler = hunt_plugin.ApiListHuntErrorsHandler()
@@ -1108,7 +1198,7 @@ class ListHuntErrorsHandlerTest(absltest.TestCase):
     flow_obj_2.error_message = "ERROR_2"
     rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
 
-    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args = hunt_pb2.ApiListHuntErrorsArgs()
     args.hunt_id = hunt_id
     args.filter = client_id_2
 
@@ -1150,7 +1240,7 @@ class ListHuntErrorsHandlerTest(absltest.TestCase):
     flow_obj_2.error_message = "ERROR_2"
     rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
 
-    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args = hunt_pb2.ApiListHuntErrorsArgs()
     args.hunt_id = hunt_id
     args.filter = "_1"
 
@@ -1194,7 +1284,7 @@ class ListHuntErrorsHandlerTest(absltest.TestCase):
     flow_obj_2.backtrace = "File 'foo_2.py', line 1, in 'foo'"
     rel_db.UpdateFlow(client_id_2, flow_id_2, flow_obj_2)
 
-    args = hunt_plugin.ApiListHuntErrorsArgs()
+    args = hunt_pb2.ApiListHuntErrorsArgs()
     args.hunt_id = hunt_id
     args.filter = "foo_2.py"
 
@@ -1205,6 +1295,36 @@ class ListHuntErrorsHandlerTest(absltest.TestCase):
 
     self.assertEqual(results.items[0].client_id, client_id_2)
     self.assertEqual(results.items[0].log_message, "ERROR_2")
+
+
+class TestHistogram(absltest.TestCase):
+
+  def testHistogram(self):
+    timestamps = list(range(100))
+    min_ts, max_ts = 0, 100
+    num_buckets = 5
+
+    histogram = hunt_plugin.Histogram(min_ts, max_ts, num_buckets)
+    for timestamp in timestamps:
+      histogram.Insert(timestamp)
+
+    expected_bucket_size = 20
+    self.assertLen(histogram.buckets, 5)
+    first_bucket = histogram.buckets[0]
+    self.assertAlmostEqual(first_bucket.lower_boundary_ts, 0)
+    self.assertEqual(first_bucket.count, 20)
+
+    last_bucket = histogram.buckets[-1]
+    self.assertAlmostEqual(
+        last_bucket.lower_boundary_ts, max_ts - expected_bucket_size
+    )
+    self.assertEqual(last_bucket.count, 20)
+
+  def testHistogramRaisesWhenInsertingOutofRangeTimestamp(self):
+    min_ts, max_ts = 0, 100
+    histogram = hunt_plugin.Histogram(min_ts, max_ts, 5)
+    with self.assertRaises(ValueError):
+      histogram.Insert(min_ts - 1)
 
 
 def main(argv):

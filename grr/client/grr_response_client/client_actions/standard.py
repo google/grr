@@ -8,7 +8,6 @@ import logging
 import os
 import platform
 import sys
-from typing import Text
 from unittest import mock
 import zlib
 
@@ -391,8 +390,8 @@ class StdOutHook(object):
   def __init__(self, buf):
     self.buf = buf
 
-  def write(self, text: Text):  # pylint: disable=invalid-name
-    precondition.AssertType(text, Text)
+  def write(self, text: str):  # pylint: disable=invalid-name
+    precondition.AssertType(text, str)
     self.buf.write(text)
 
 

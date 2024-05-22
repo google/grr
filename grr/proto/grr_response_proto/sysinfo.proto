@@ -218,105 +218,6 @@ message RunKey {
   optional uint64 lastwritten = 3 [default = 0];
 }
 
-message WindowsServiceInformation {
-  option (semantic) = {
-    description: "Describe a windows service or driver. Field names follow"
-                 " the cybox naming scheme where possible: "
-                 "http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html",
-  };
-
-  optional string name = 1 [(sem_type) = {
-    description: "The name of the service.",
-  }];
-
-  optional string description = 2 [(sem_type) = {
-    description: "The description string of the service.",
-  }];
-
-  optional StatEntry binary = 3 [(sem_type) = {
-    description: "The binary on the client. This may also contain an AFF4 "
-                 "urn to the server copy of the same file.",
-  }];
-
-  optional string state = 4 [(sem_type) = {
-    description: "Current state of the service.",
-  }];
-
-  optional Dict wmi_information = 5 [(sem_type) = {
-    description: "Additional information available through WMI.",
-  }];
-
-  optional string display_name = 6 [(sem_type) = {
-    description: "Displayed name of the service in Windows GUI controls.",
-  }];
-
-  optional string driver_package_id = 7 [(sem_type) = {
-    description: "Driver Package ID of the service.",
-  }];
-
-  enum ErrorControl {
-    CRITICAL = 3;
-    SEVERE = 2;
-    NORMAL = 1;
-    IGNORE = 0;
-  }
-
-  optional ErrorControl error_control = 8 [(sem_type) = {
-    description: "Behaviour of the service on failure to load/initialize",
-  }];
-
-  optional string image_path = 9 [(sem_type) = {
-    description: "ImagePath of the service.",
-  }];
-
-  optional string object_name = 10 [(sem_type) = {
-    description: "ObjectName of the service.",
-  }];
-
-  enum ServiceMode {
-    SERVICE_BOOT_START = 0;
-    SERVICE_SYSTEM_START = 1;
-    SERVICE_AUTO_START = 2;
-    SERVICE_DEMAND_START = 3;
-    SERVICE_DISABLED = 4;
-  }
-
-  optional ServiceMode startup_type = 11 [(sem_type) = {
-    description: "Service start options",
-  }];
-
-  enum ServiceType {
-    SERVICE_KERNEL_DRIVER = 0x1;
-    SERVICE_FILE_SYSTEM_DRIVER = 0x2;
-    SERVICE_ADAPTER_ARGS = 0x4;
-    SERVICE_RECOGNIZER_DRIVER = 0x8;
-    SERVICE_WIN32_OWN_PROCESS = 0x10;
-    SERVICE_WIN32_SHARE_PROCESS = 0x20;
-    SERVICE_USER_OWN_PROCESS = 0x50;
-    SERVICE_USER_SHARE_PROCESS = 0x60;
-    SERVICE_INTERACTIVE_PROCESS = 0x100;
-    SERVICE_INSTANCE_USER_SHARE_PROCESS = 0xe0;
-    SERVICE_INTERACTIVE_WIN32_OWN_PROCESS = 0x110;
-    SERVICE_INTERACTIVE_WIN32_SHARE_PROCESS = 0x120;
-  }
-
-  optional ServiceType service_type = 12 [(sem_type) = {
-    description: "Type of the service.",
-  }];
-
-  optional string group_name = 13 [(sem_type) = {
-    description: "Specifies the name of the load ordering group of which "
-                 "this service is a member.",
-  }];
-
-  optional string service_dll = 14 [(sem_type) = {
-    description: "Name of the DLL instantiated in the service.",
-  }];
-
-  optional string registry_key = 15
-      [(sem_type) = { description: "The service registry key." }];
-}
-
 message OSXServiceInformation {
   option (semantic) = {
     description: "Describe an OS X service (launchagent/daemon).",
@@ -365,66 +266,6 @@ message OSXServiceInformation {
   }];
 }
 
-message LinuxServiceInformation {
-  option (semantic) = {
-    description: "Describe an Linux service (init/upstart/systemd).",
-  };
-
-  optional string name = 1 [(sem_type) = {
-    description: "The name of the service.",
-  }];
-
-  optional string description = 2 [(sem_type) = {
-    description: "The description string of the service.",
-  }];
-
-  optional StatEntry binary = 3 [(sem_type) = {
-    description: "The binary on the client. This may also contain an AFF4 "
-                 "urn to the server copy of the same file.",
-  }];
-
-  optional SoftwarePackage software = 4 [(sem_type) = {
-    description: "Software package that deployed the service.",
-  }];
-
-  enum StartMode {
-    UNKNOWN = 0;
-    INIT = 1;
-    UPSTART = 2;
-    SYSTEMD = 3;
-    INETD = 4;
-    XINETD = 5;
-  }
-
-  optional StartMode start_mode = 5 [(sem_type) = {
-    description: "Service start options",
-  }];
-
-  repeated uint32 start_on = 6 [(sem_type) = {
-    description: "Specifies the runlevels where this service runs.",
-  }];
-
-  repeated uint32 stop_on = 7 [(sem_type) = {
-    description: "Specifies the runlevels where this service is stopped.",
-  }];
-
-  repeated string start_after = 8 [(sem_type) = {
-    description: "Specifies services required before this service runs.",
-  }];
-
-  repeated string stop_after = 9 [(sem_type) = {
-    description: "Specifies service required before this service is stopped.",
-  }];
-
-  optional AttributedDict config = 10 [(sem_type) = {
-    description: "The configuration of the service.",
-  }];
-
-  optional bool starts = 11 [(sem_type) = {
-    description: "The service is configured to start up through some means.",
-  }];
-}
-
 // Describe an installed software package. Cross platform.
 message SoftwarePackage {
   optional string name = 1;
@@ -441,6 +282,22 @@ message SoftwarePackage {
   optional string description = 6;
   optional uint64 installed_on = 7;
   optional string installed_by = 8;
+
+  // Epoch of the package.
+  //
+  // This field is generally set only for packages on RedHad systems. See the
+  // official documentation for more details:
+  //
+  // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/epoch-scriplets-and-triggers_advanced-topics#packaging-epoch_epoch-scriplets-and-triggers
+  optional uint32 epoch = 9;
+
+  // Name of the RPM source package from which the binary package was built.
+  //
+  // This field is generally set only for packages on RedHad systems. See the
+  // official documentation for more details:
+  //
+  // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/rebuilding-a-binary-from-a-source-rpm_packaging-software
+  optional string source_rpm = 10;
 }
 
 message SoftwarePackages {

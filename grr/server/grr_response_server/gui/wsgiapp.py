@@ -11,7 +11,6 @@ import socket
 import socketserver
 import ssl
 import string
-from typing import Text
 from wsgiref import simple_server
 
 from cryptography.hazmat.primitives import constant_time
@@ -50,7 +49,7 @@ CSRF_TOKEN_DURATION = rdfvalue.Duration.From(10, rdfvalue.HOURS)
 
 def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
-  precondition.AssertType(user_id, Text)
+  precondition.AssertType(user_id, str)
   precondition.AssertOptionalType(time, int)
 
   time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
@@ -75,7 +74,8 @@ def StoreCSRFCookie(user, response):
   response.set_cookie(
       "csrftoken",
       csrf_token,
-      max_age=CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS))
+      max_age=CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS),
+  )
 
 
 def ValidateCSRFTokenOrRaise(request):
@@ -178,12 +178,16 @@ class AdminUIApp(object):
         werkzeug_routing.Rule(
             "/api/<path:path>",
             methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"],
-            endpoint=EndpointWrapper(self._HandleApi)))
+            endpoint=EndpointWrapper(self._HandleApi),
+        )
+    )
     self.routing_map.add(
         werkzeug_routing.Rule(
             "/help/<path:path>",
             methods=["HEAD", "GET"],
-            endpoint=EndpointWrapper(self._HandleHelp)))
+            endpoint=EndpointWrapper(self._HandleHelp),
+        )
+    )
 
     for v2_route in ["/v2", "/v2/", "/v2/<path:path>"]:
       self.routing_map.add(
@@ -216,33 +220,28 @@ class AdminUIApp(object):
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
-        autoescape=True)
+        autoescape=True,
+    )
 
     create_time = psutil.Process(os.getpid()).create_time()
     template_context = {
-        "heading":
-            config.CONFIG["AdminUI.heading"],
-        "report_url":
-            config.CONFIG["AdminUI.report_url"],
-        "help_url":
-            config.CONFIG["AdminUI.help_url"],
-        "timestamp":
-            "%.2f" % create_time,
-        "use_precompiled_js":
-            config.CONFIG["AdminUI.use_precompiled_js"],
+        "heading": config.CONFIG["AdminUI.heading"],
+        "report_url": config.CONFIG["AdminUI.report_url"],
+        "help_url": config.CONFIG["AdminUI.help_url"],
+        "timestamp": "%.2f" % create_time,
+        "use_precompiled_js": config.CONFIG["AdminUI.use_precompiled_js"],
         # Used in conjunction with FirebaseWebAuthManager.
-        "firebase_api_key":
-            config.CONFIG["AdminUI.firebase_api_key"],
-        "firebase_auth_domain":
-            config.CONFIG["AdminUI.firebase_auth_domain"],
-        "firebase_auth_provider":
-            config.CONFIG["AdminUI.firebase_auth_provider"],
-        "grr_version":
-            config.CONFIG["Source.version_string"]
+        "firebase_api_key": config.CONFIG["AdminUI.firebase_api_key"],
+        "firebase_auth_domain": config.CONFIG["AdminUI.firebase_auth_domain"],
+        "firebase_auth_provider": config.CONFIG[
+            "AdminUI.firebase_auth_provider"
+        ],
+        "grr_version": config.CONFIG["Source.version_string"],
     }
     template = env.get_template("base.html")
     response = http_response.HttpResponse(
-        template.render(template_context), mimetype="text/html")
+        template.render(template_context), mimetype="text/html"
+    )
 
     # For a redirect-based Firebase authentication scheme we won't have any
     # user information at this point - therefore checking if the user is
@@ -269,10 +268,12 @@ class AdminUIApp(object):
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
-        autoescape=True)
+        autoescape=True,
+    )
     template = env.get_template("base-v2.html")
     response = http_response.HttpResponse(
-        template.render(context), mimetype="text/html")
+        template.render(context), mimetype="text/html"
+    )
 
     try:
       StoreCSRFCookie(request.user, response)
@@ -293,8 +294,9 @@ class AdminUIApp(object):
     # to be invoked very often (every 10 seconds). So it's ideal
     # for updating the CSRF token.
     # We should also store the CSRF token if it wasn't yet stored at all.
-    if (("csrftoken" not in request.cookies) or response.headers.get(
-        "X-API-Method", "") == "GetPendingUserNotificationsCount"):
+    if ("csrftoken" not in request.cookies) or response.headers.get(
+        "X-API-Method", ""
+    ) == "GetPendingUserNotificationsCount":
       StoreCSRFCookie(request.user, response)
 
     return response
@@ -303,8 +305,9 @@ class AdminUIApp(object):
     """Redirect to GitHub-hosted documentation."""
     allowed_chars = set(string.ascii_letters + string.digits + "._-/")
     if not set(path) <= allowed_chars:
-      raise RuntimeError("Unusual chars in path %r - "
-                         "possible exploit attempt." % path)
+      raise RuntimeError(
+          "Unusual chars in path %r - possible exploit attempt." % path
+      )
 
     target_path = os.path.join(config.CONFIG["AdminUI.docs_location"], path)
 
@@ -317,7 +320,8 @@ var friendly_hash = window.location.hash;
 window.location = '%s' + friendly_hash;
 </script>
 """ % target_path,
-        mimetype="text/html")
+        mimetype="text/html",
+    )
 
   def _HandleHelp(self, request):
     """Handles help requests."""
@@ -338,8 +342,9 @@ window.location = '%s' + friendly_hash;
       endpoint, _ = matcher.match(request.path, request.method)
       return endpoint(request)
     except werkzeug_exceptions.NotFound as e:
-      logging.info("Request for non existent url: %s [%s]", request.path,
-                   request.method)
+      logging.info(
+          "Request for non existent url: %s [%s]", request.path, request.method
+      )
       return e
     except werkzeug_exceptions.HTTPException as e:
       logging.exception("http exception: %s [%s]", request.path, request.method)
@@ -347,9 +352,12 @@ window.location = '%s' + friendly_hash;
 
   def WSGIHandler(self):
     """Returns GRR's WSGI handler."""
-    sdm = SharedDataMiddleware(self, {
-        "/": config.CONFIG["AdminUI.document_root"],
-    })
+    sdm = SharedDataMiddleware(
+        self,
+        {
+            "/": config.CONFIG["AdminUI.document_root"],
+        },
+    )
     # Use DispatcherMiddleware to make sure that SharedDataMiddleware is not
     # used at all if the URL path doesn't start with "/static". This is a
     # workaround for cases when unicode URLs are used on systems with
@@ -357,9 +365,12 @@ window.location = '%s' + friendly_hash;
     # SharedDataMiddleware may fail early while trying to convert the
     # URL into the file path and not dispatch the call further to our own
     # WSGI handler.
-    dm = DispatcherMiddleware(self, {
-        "/static": sdm,
-    })
+    dm = DispatcherMiddleware(
+        self,
+        {
+            "/static": sdm,
+        },
+    )
     # Add Content Security Policy headers to the Admin UI pages.
     return csp.CspMiddleware(dm)
 
@@ -368,13 +379,15 @@ class SingleThreadedServerInet6(simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
-class MultiThreadedServer(socketserver.ThreadingMixIn,
-                          simple_server.WSGIServer):
+class MultiThreadedServer(
+    socketserver.ThreadingMixIn, simple_server.WSGIServer
+):
   pass
 
 
-class MultiThreadedServerInet6(socketserver.ThreadingMixIn,
-                               simple_server.WSGIServer):
+class MultiThreadedServerInet6(
+    socketserver.ThreadingMixIn, simple_server.WSGIServer
+):
   address_family = socket.AF_INET6
 
 
@@ -394,8 +407,9 @@ def MakeServer(host=None, port=None, max_port=None, multi_threaded=False):
       server_cls = SingleThreadedServerInet6
 
   port = port or config.CONFIG["AdminUI.port"]
-  max_port = max_port or config.CONFIG.Get("AdminUI.port_max",
-                                           config.CONFIG["AdminUI.port"])
+  max_port = max_port or config.CONFIG.Get(
+      "AdminUI.port_max", config.CONFIG["AdminUI.port"]
+  )
 
   for p in range(port, max_port + 1):
     # Make a simple reference implementation WSGI server

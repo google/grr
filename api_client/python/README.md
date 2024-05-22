@@ -194,6 +194,14 @@ grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   http://localhost:1234
 ```
 
+Decode a Crowdstrike encoded file that was fetched via GetBlob:
+
+```bash
+grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
+  --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs/os/var/encrypted/file").GetBlob().DecodeCrowdStrikeQuarantineEncoding().WriteToFile("./decoded.file")' \
+  http://localhost:1234
+```
+
 
 Download an archive of all files collected with OS-handler (not TSK/NTFS) from a
 GRR client:

@@ -21,7 +21,8 @@ from grr.test_lib import test_lib
 
 
 class ApiListFilesHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
 
   api_method = "ListFiles"
   handler = vfs_plugin.ApiListFilesHandler
@@ -33,17 +34,20 @@ class ApiListFilesHandlerRegressionTest(
     self.Check(
         "ListFiles",
         vfs_plugin.ApiListFilesArgs(
-            client_id=client_id, file_path="fs/tsk/c/bin"))
+            client_id=client_id, file_path="fs/tsk/c/bin"
+        ),
+    )
     self.Check(
         "ListFiles",
         vfs_plugin.ApiListFilesArgs(
-            client_id=client_id,
-            file_path="fs/tsk/c/bin",
-            timestamp=self.time_2))
+            client_id=client_id, file_path="fs/tsk/c/bin", timestamp=self.time_2
+        ),
+    )
 
 
 class ApiGetFileTextHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
 
   api_method = "GetFileText"
   handler = vfs_plugin.ApiGetFileTextHandler
@@ -56,21 +60,26 @@ class ApiGetFileTextHandlerRegressionTest(
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id, file_path=self.file_path))
+            client_id=client_id, file_path=self.file_path
+        ),
+    )
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id, file_path=self.file_path, offset=3, length=3))
+            client_id=client_id, file_path=self.file_path, offset=3, length=3
+        ),
+    )
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id,
-            file_path=self.file_path,
-            timestamp=self.time_1))
+            client_id=client_id, file_path=self.file_path, timestamp=self.time_1
+        ),
+    )
 
 
 class ApiGetFileVersionTimesHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
 
   api_method = "GetFileVersionTimes"
   handler = vfs_plugin.ApiGetFileVersionTimesHandler
@@ -83,11 +92,14 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
     self.Check(
         "GetFileVersionTimes",
         args=vfs_plugin.ApiGetFileVersionTimesArgs(
-            client_id=client_id, file_path=self.file_path))
+            client_id=client_id, file_path=self.file_path
+        ),
+    )
 
 
 class ApiListKnownEncodingsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
 
   api_method = "ListKnownEncodings"
   handler = vfs_plugin.ApiListKnownEncodingsHandler
@@ -97,7 +109,8 @@ class ApiListKnownEncodingsHandlerRegressionTest(
 
 
 class ApiGetFileDownloadCommandHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
 
   api_method = "GetFileDownloadCommand"
   handler = vfs_plugin.ApiGetFileDownloadCommandHandler
@@ -108,11 +121,14 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
     self.Check(
         "GetFileDownloadCommand",
         args=vfs_plugin.ApiGetFileDownloadCommandArgs(
-            client_id=client_id, file_path=self.file_path))
+            client_id=client_id, file_path=self.file_path
+        ),
+    )
 
 
 class ApiCreateVfsRefreshOperationHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiCreateVfsRefreshOperationHandler."""
 
   api_method = "CreateVfsRefreshOperation"
@@ -134,12 +150,15 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
       self.Check(
           "CreateVfsRefreshOperation",
           args=vfs_plugin.ApiCreateVfsRefreshOperationArgs(
-              client_id=client_id, file_path=self.file_path, max_depth=1),
-          replace=ReplaceFlowId)
+              client_id=client_id, file_path=self.file_path, max_depth=1
+          ),
+          replace=ReplaceFlowId,
+      )
 
 
 class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
   """Regression test for ApiGetVfsRefreshOperationStateHandler."""
 
   api_method = "GetVfsRefreshOperationState"
@@ -156,14 +175,16 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         filesystem.RecursiveListDirectory,
         client_id,
         flow_args=flow_args,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Create a mock refresh operation and complete it.
     finished_flow_id = flow_test_lib.StartFlow(
         filesystem.RecursiveListDirectory,
         client_id,
         flow_args=flow_args,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Kill flow.
     proto_flow = data_store.REL_DB.LeaseFlowForProcessing(
@@ -178,7 +199,8 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
     # Create an arbitrary flow to check on 404s.
     non_refresh_flow_id = flow_test_lib.StartFlow(
-        discovery.Interrogate, client_id, creator=self.test_username)
+        discovery.Interrogate, client_id, creator=self.test_username
+    )
 
     # Unknown flow ids should also cause 404s.
     unknown_flow_id = "12345678"
@@ -187,27 +209,36 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-            client_id=client_id, operation_id=running_flow_id),
-        replace={running_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=running_flow_id
+        ),
+        replace={running_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-            client_id=client_id, operation_id=finished_flow_id),
-        replace={finished_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=finished_flow_id
+        ),
+        replace={finished_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-            client_id=client_id, operation_id=non_refresh_flow_id),
-        replace={non_refresh_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=non_refresh_flow_id
+        ),
+        replace={non_refresh_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-            client_id=client_id, operation_id=unknown_flow_id),
-        replace={unknown_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=unknown_flow_id
+        ),
+        replace={unknown_flow_id: "ABCDEF"},
+    )
 
 
 class ApiUpdateVfsFileContentHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiUpdateVfsFileContentHandler."""
 
   api_method = "UpdateVfsFileContent"
@@ -227,12 +258,15 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
       self.Check(
           "UpdateVfsFileContent",
           args=vfs_plugin.ApiUpdateVfsFileContentArgs(
-              client_id=client_id, file_path=self.file_path),
-          replace=ReplaceFlowId)
+              client_id=client_id, file_path=self.file_path
+          ),
+          replace=ReplaceFlowId,
+      )
 
 
 class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
+    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
+):
   """Regression test for ApiGetVfsFileContentUpdateStateHandler."""
 
   api_method = "GetVfsFileContentUpdateState"
@@ -245,17 +279,20 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
     # Create a running mock refresh operation.
     running_flow_id = self.CreateMultiGetFileFlow(
-        client_id, file_path="fs/os/c/bin/bash")
+        client_id, file_path="fs/os/c/bin/bash"
+    )
 
     # Create a mock refresh operation and complete it.
     finished_flow_id = self.CreateMultiGetFileFlow(
-        client_id, file_path="fs/os/c/bin/bash")
+        client_id, file_path="fs/os/c/bin/bash"
+    )
 
     flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
 
     # Create an arbitrary flow to check on 404s.
     non_update_flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=discovery.Interrogate)
+        client_id=client_id, flow_cls=discovery.Interrogate
+    )
 
     # Unknown flow ids should also cause 404s.
     unknown_flow_id = "F:12345678"
@@ -264,28 +301,37 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=running_flow_id),
-        replace={running_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=running_flow_id
+        ),
+        replace={running_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=finished_flow_id),
-        replace={finished_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=finished_flow_id
+        ),
+        replace={finished_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=non_update_flow_id),
-        replace={non_update_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=non_update_flow_id
+        ),
+        replace={non_update_flow_id: "ABCDEF"},
+    )
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=unknown_flow_id),
-        replace={unknown_flow_id: "ABCDEF"})
+            client_id=client_id, operation_id=unknown_flow_id
+        ),
+        replace={unknown_flow_id: "ABCDEF"},
+    )
 
 
 class ApiGetVfsTimelineHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    vfs_plugin_test.VfsTimelineTestMixin):
+    vfs_plugin_test.VfsTimelineTestMixin,
+):
   """Regression test for ApiGetVfsTimelineHandler."""
 
   api_method = "GetVfsTimeline"
@@ -297,7 +343,9 @@ class ApiGetVfsTimelineHandlerRegressionTest(
     self.Check(
         "GetVfsTimeline",
         args=vfs_plugin.ApiGetVfsTimelineArgs(
-            client_id=client_id, file_path=self.folder_path))
+            client_id=client_id, file_path=self.folder_path
+        ),
+    )
 
 
 def main(argv):

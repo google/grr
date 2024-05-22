@@ -41,8 +41,7 @@ class UtilsTest(absltest.TestCase):
     output_bytes = api_osquery._ParseToCsvBytes([result])
     output_text = list(map(lambda b: b.decode("utf-8"), output_bytes))
 
-    self.assertListEqual(["\"c,o,l,u,m,n\"\r\n", "\"c,e,l,l\"\r\n"],
-                         output_text)
+    self.assertListEqual(['"c,o,l,u,m,n"\r\n', '"c,e,l,l"\r\n'], output_text)
 
 
 if __name__ == "__main__":

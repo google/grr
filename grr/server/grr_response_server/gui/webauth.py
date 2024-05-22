@@ -62,16 +62,20 @@ class IAPWebAuthManager(BaseWebAuthManager):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
-    if (config.CONFIG["AdminUI.google_cloud_project_id"] is None or
-        config.CONFIG["AdminUI.google_cloud_backend_service_id"] is None):
+    if (
+        config.CONFIG["AdminUI.google_cloud_project_id"] is None
+        or config.CONFIG["AdminUI.google_cloud_backend_service_id"] is None
+    ):
       raise RuntimeError(
           "The necessary Cloud IAP configuration options are"
           "not set. Please set your AdminUI.google_cloud_project_id"
-          "or AdminUI.google_cloud_backend_service_id keys.")
+          "or AdminUI.google_cloud_backend_service_id keys."
+      )
 
     self.cloud_project_id = config.CONFIG["AdminUI.google_cloud_project_id"]
     self.backend_service_id = config.CONFIG[
-        "AdminUI.google_cloud_backend_service_id"]
+        "AdminUI.google_cloud_backend_service_id"
+    ]
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
@@ -81,7 +85,8 @@ class IAPWebAuthManager(BaseWebAuthManager):
     jwt = request.headers.get(self.IAP_HEADER)
     try:
       request.user, _ = validate_iap.ValidateIapJwtFromComputeEngine(
-          jwt, self.cloud_project_id, self.backend_service_id)
+          jwt, self.cloud_project_id, self.backend_service_id
+      )
       return func(request, *args, **kwargs)
 
     except validate_iap.IAPValidationFailedError as e:
@@ -95,12 +100,13 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    request.user = u""
+    request.user = ""
 
     authorized = False
     try:
-      auth_type, authorization = request.headers.get("Authorization",
-                                                     " ").split(" ", 1)
+      auth_type, authorization = request.headers.get(
+          "Authorization", " "
+      ).split(" ", 1)
 
       if auth_type == "Basic":
         authorization_string = base64.b64decode(authorization).decode("utf-8")
@@ -153,9 +159,11 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     if request.remote_addr not in self.trusted_ips:
-      return self.AuthError("Request sent from an IP not in "
-                            "AdminUI.remote_user_trusted_ips. "
-                            "Source was %s" % request.remote_addr)
+      return self.AuthError(
+          "Request sent from an IP not in AdminUI.remote_user_trusted_ips. "
+          "Source was %s"
+          % request.remote_addr
+      )
 
     try:
       username = request.headers[self.remote_user_header]
@@ -187,10 +195,11 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
 
     def_router = config.CONFIG["API.DefaultRouter"]
     if def_router != "DisabledApiCallRouter":
-      raise RuntimeError("Using FirebaseWebAuthManager with API.DefaultRouter "
-                         "being anything but DisabledApiCallRouter means "
-                         "risking opening your GRR UI/API to the world. "
-                         "Current setting is: %s" % def_router)
+      raise RuntimeError(
+          "Using FirebaseWebAuthManager with API.DefaultRouter being anything "
+          "but DisabledApiCallRouter means risking opening your GRR UI/API to "
+          "the world. Current setting is: %s" % def_router
+      )
 
   def AuthError(self, message):
     return http_response.HttpResponse(message, status=403)
@@ -203,13 +212,14 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
       if not auth_header.startswith(self.BEARER_PREFIX):
         raise ValueError("JWT token is missing.")
 
-      token = auth_header[len(self.BEARER_PREFIX):]
+      token = auth_header[len(self.BEARER_PREFIX) :]
 
       auth_domain = config.CONFIG["AdminUI.firebase_auth_domain"]
       project_id = auth_domain.split(".")[0]
 
       idinfo = id_token.verify_firebase_token(
-          token, request, audience=project_id)
+          token, request, audience=project_id
+      )
 
       if idinfo["iss"] != self.SECURE_TOKEN_PREFIX + project_id:
         raise ValueError("Wrong issuer.")
@@ -231,7 +241,7 @@ class NullWebAuthManager(BaseWebAuthManager):
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.username = u"gui_user"
+    self.username = "gui_user"
 
   def SetUserName(self, username):
     self.username = username
@@ -264,7 +274,8 @@ def InitializeWebAuth():
 
   # pylint: disable=g-bad-name
   WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
-      config.CONFIG["AdminUI.webauth_manager"])()
+      config.CONFIG["AdminUI.webauth_manager"]
+  )()
 
   # pylint: enable=g-bad-name
   logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

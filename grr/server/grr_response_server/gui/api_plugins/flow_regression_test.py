@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """This module contains regression tests for flows-related API handlers."""
+
 from unittest import mock
 
 from absl import app
@@ -28,8 +29,9 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiGetFlowHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest
-                                     ):
+class ApiGetFlowHandlerRegressionTest(
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiGetFlowHandler."""
 
   api_method = "GetFlow"
@@ -48,29 +50,35 @@ class ApiGetFlowHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest
       )
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
-          client_id, flow_id, "F:ABCDEF12")
+          client_id, flow_id, "F:ABCDEF12"
+      )
 
       self.Check(
           "GetFlow",
           args=flow_plugin.ApiGetFlowArgs(client_id=client_id, flow_id=flow_id),
-          replace=replace)
+          replace=replace,
+      )
 
-      flow_base.TerminateFlow(client_id, flow_id,
-                              "Pending termination: Some reason")
+      flow_base.TerminateFlow(
+          client_id, flow_id, "Pending termination: Some reason"
+      )
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
-          client_id, flow_id, "F:ABCDEF13")
+          client_id, flow_id, "F:ABCDEF13"
+      )
 
       # Fetch the same flow which is now should be marked as pending
       # termination.
       self.Check(
           "GetFlow",
           args=flow_plugin.ApiGetFlowArgs(client_id=client_id, flow_id=flow_id),
-          replace=replace)
+          replace=replace,
+      )
 
 
 class ApiListFlowsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Test client flows list handler."""
 
   api_method = "ListFlows"
@@ -83,24 +91,30 @@ class ApiListFlowsHandlerRegressionTest(
 
     with test_lib.FakeTime(43):
       flow_id_1 = flow_test_lib.StartFlow(
-          discovery.Interrogate, client_id, creator=self.test_username)
+          discovery.Interrogate, client_id, creator=self.test_username
+      )
 
     with test_lib.FakeTime(44):
       flow_id_2 = flow_test_lib.StartFlow(
           processes.ListProcesses,
           client_id,
-          creator=access_control._SYSTEM_USERS_LIST[0])
+          creator=access_control._SYSTEM_USERS_LIST[0],
+      )
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
-        client_id, flow_id_1, "F:ABCDEF10")
+        client_id, flow_id_1, "F:ABCDEF10"
+    )
     replace.update(
-        api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id_2,
-                                                       "F:ABCDEF11"))
+        api_regression_test_lib.GetFlowTestReplaceDict(
+            client_id, flow_id_2, "F:ABCDEF11"
+        )
+    )
 
     self.Check(
         "ListFlows",
         args=flow_plugin.ApiListFlowsArgs(client_id=client_id),
-        replace=replace)
+        replace=replace,
+    )
 
     self.Check(
         "ListFlows",
@@ -108,7 +122,8 @@ class ApiListFlowsHandlerRegressionTest(
             client_id=client_id,
             top_flows_only=True,
         ),
-        replace=replace)
+        replace=replace,
+    )
 
     self.Check(
         "ListFlows",
@@ -117,7 +132,8 @@ class ApiListFlowsHandlerRegressionTest(
             min_started_at=rdfvalue.RDFDatetimeSeconds(44),
             top_flows_only=True,
         ),
-        replace=replace)
+        replace=replace,
+    )
 
     self.Check(
         "ListFlows",
@@ -126,7 +142,8 @@ class ApiListFlowsHandlerRegressionTest(
             max_started_at=rdfvalue.RDFDatetimeSeconds(43),
             top_flows_only=True,
         ),
-        replace=replace)
+        replace=replace,
+    )
 
     self.Check(
         "ListFlows",
@@ -134,11 +151,13 @@ class ApiListFlowsHandlerRegressionTest(
             client_id=client_id,
             human_flows_only=True,
         ),
-        replace=replace)
+        replace=replace,
+    )
 
 
 class ApiListFlowRequestsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowRequestsHandler."""
 
   api_method = "ListFlowRequests"
@@ -148,10 +167,12 @@ class ApiListFlowRequestsHandlerRegressionTest(
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartFlow(
-          processes.ListProcesses, client_id, creator=self.test_username)
+          processes.ListProcesses, client_id, creator=self.test_username
+      )
       test_process = rdf_client.Process(name="test_process")
       mock_client = flow_test_lib.MockClient(
-          client_id, action_mocks.ListProcessesMock([test_process]))
+          client_id, action_mocks.ListProcessesMock([test_process])
+      )
       mock_client.Next()
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id)
@@ -159,12 +180,15 @@ class ApiListFlowRequestsHandlerRegressionTest(
     self.Check(
         "ListFlowRequests",
         args=flow_plugin.ApiListFlowRequestsArgs(
-            client_id=client_id, flow_id=flow_id),
-        replace=replace)
+            client_id=client_id, flow_id=flow_id
+        ),
+        replace=replace,
+    )
 
 
 class ApiListFlowResultsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowResultsHandler."""
 
   api_method = "ListFlowResults"
@@ -191,17 +215,22 @@ class ApiListFlowResultsHandlerRegressionTest(
     self.Check(
         "ListFlowResults",
         args=flow_plugin.ApiListFlowResultsArgs(
-            client_id=client_id, flow_id=flow_id, filter="evil"),
-        replace={flow_id: "W:ABCDEF"})
+            client_id=client_id, flow_id=flow_id, filter="evil"
+        ),
+        replace={flow_id: "W:ABCDEF"},
+    )
     self.Check(
         "ListFlowResults",
         args=flow_plugin.ApiListFlowResultsArgs(
-            client_id=client_id, flow_id=flow_id, filter="benign"),
-        replace={flow_id: "W:ABCDEF"})
+            client_id=client_id, flow_id=flow_id, filter="benign"
+        ),
+        replace={flow_id: "W:ABCDEF"},
+    )
 
 
 class ApiListFlowLogsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowResultsHandler."""
 
   api_method = "ListFlowLogs"
@@ -217,7 +246,8 @@ class ApiListFlowLogsHandlerRegressionTest(
     client_id = self.SetupClient(0)
 
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id, creator=self.test_username)
+        processes.ListProcesses, client_id, creator=self.test_username
+    )
 
     with test_lib.FakeTime(52):
       self._AddLogToFlow(client_id, flow_id, "Sample message: foo.")
@@ -229,22 +259,29 @@ class ApiListFlowLogsHandlerRegressionTest(
     self.Check(
         "ListFlowLogs",
         args=flow_plugin.ApiListFlowLogsArgs(
-            client_id=client_id, flow_id=flow_id),
-        replace=replace)
+            client_id=client_id, flow_id=flow_id
+        ),
+        replace=replace,
+    )
     self.Check(
         "ListFlowLogs",
         args=flow_plugin.ApiListFlowLogsArgs(
-            client_id=client_id, flow_id=flow_id, count=1),
-        replace=replace)
+            client_id=client_id, flow_id=flow_id, count=1
+        ),
+        replace=replace,
+    )
     self.Check(
         "ListFlowLogs",
         args=flow_plugin.ApiListFlowLogsArgs(
-            client_id=client_id, flow_id=flow_id, count=1, offset=1),
-        replace=replace)
+            client_id=client_id, flow_id=flow_id, count=1, offset=1
+        ),
+        replace=replace,
+    )
 
 
 class ApiGetFlowResultsExportCommandHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiGetFlowResultsExportCommandHandler."""
 
   api_method = "GetFlowResultsExportCommand"
@@ -257,11 +294,14 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
     self.Check(
         "GetFlowResultsExportCommand",
         args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
-            client_id=client_id, flow_id=flow_urn))
+            client_id=client_id, flow_id=flow_urn
+        ),
+    )
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowOutputPluginsHandler."""
 
   api_method = "ListFlowOutputPlugins"
@@ -278,23 +318,29 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost", emails_limit=42))
+            email_address="test@localhost", emails_limit=42
+        ),
+    )
 
     with test_lib.FakeTime(42):
       flow_id = flow.StartFlow(
           flow_cls=processes.ListProcesses,
           client_id=client_id,
-          output_plugins=[email_descriptor])
+          output_plugins=[email_descriptor],
+      )
 
     self.Check(
         "ListFlowOutputPlugins",
         args=flow_plugin.ApiListFlowOutputPluginsArgs(
-            client_id=client_id, flow_id=flow_id),
-        replace={flow_id: "W:ABCDEF"})
+            client_id=client_id, flow_id=flow_id
+        ),
+        replace={flow_id: "W:ABCDEF"},
+    )
 
 
 class ApiListFlowOutputPluginLogsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowOutputPluginLogsHandler."""
 
   api_method = "ListFlowOutputPluginLogs"
@@ -311,25 +357,31 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost", emails_limit=42))
+            email_address="test@localhost", emails_limit=42
+        ),
+    )
 
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
           client_id=client_id,
-          output_plugins=[email_descriptor])
+          output_plugins=[email_descriptor],
+      )
 
     self.Check(
         "ListFlowOutputPluginLogs",
         args=flow_plugin.ApiListFlowOutputPluginLogsArgs(
             client_id=client_id,
             flow_id=flow_id,
-            plugin_id="EmailOutputPlugin_0"),
-        replace={flow_id: "W:ABCDEF"})
+            plugin_id="EmailOutputPlugin_0",
+        ),
+        replace={flow_id: "W:ABCDEF"},
+    )
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiListFlowOutputPluginErrorsHandler."""
 
   api_method = "ListFlowOutputPluginErrors"
@@ -344,25 +396,30 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
     failing_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
+        plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__
+    )
 
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
           client_id=client_id,
-          output_plugins=[failing_descriptor])
+          output_plugins=[failing_descriptor],
+      )
 
     self.Check(
         "ListFlowOutputPluginErrors",
         args=flow_plugin.ApiListFlowOutputPluginErrorsArgs(
             client_id=client_id,
             flow_id=flow_id,
-            plugin_id="FailingDummyHuntOutputPlugin_0"),
-        replace={flow_id: "W:ABCDEF"})
+            plugin_id="FailingDummyHuntOutputPlugin_0",
+        ),
+        replace={flow_id: "W:ABCDEF"},
+    )
 
 
 class ApiCreateFlowHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiCreateFlowHandler."""
 
   api_method = "CreateFlow"
@@ -386,14 +443,18 @@ class ApiCreateFlowHandlerRegressionTest(
               flow=flow_plugin.ApiFlow(
                   name=processes.ListProcesses.__name__,
                   args=processes.ListProcessesArgs(
-                      filename_regex=".", fetch_binaries=True),
-                  runner_args=rdf_flow_runner.FlowRunnerArgs(
-                      output_plugins=[], notify_to_user=True))),
-          replace=ReplaceFlowId)
+                      filename_regex=".", fetch_binaries=True
+                  ),
+                  runner_args=rdf_flow_runner.FlowRunnerArgs(output_plugins=[]),
+              ),
+          ),
+          replace=ReplaceFlowId,
+      )
 
 
 class ApiCancelFlowHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiCancelFlowHandler."""
 
   api_method = "CancelFlow"
@@ -403,18 +464,22 @@ class ApiCancelFlowHandlerRegressionTest(
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
       flow_id = flow.StartFlow(
-          flow_cls=processes.ListProcesses, client_id=client_id)
+          flow_cls=processes.ListProcesses, client_id=client_id
+      )
 
     with test_lib.FakeTime(4242):
       self.Check(
           "CancelFlow",
           args=flow_plugin.ApiCancelFlowArgs(
-              client_id=client_id, flow_id=flow_id),
-          replace={flow_id: "W:ABCDEF"})
+              client_id=client_id, flow_id=flow_id
+          ),
+          replace={flow_id: "W:ABCDEF"},
+      )
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin
+):
   """Regression test for ApiListFlowDescriptorsHandler."""
 
   api_method = "ListFlowDescriptors"
@@ -426,14 +491,16 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
         file_finder.FileFinder.__name__: file_finder.FileFinder,
     }
 
-    with mock.patch.object(registry.FlowRegistry, "FLOW_REGISTRY",
-                           test_registry):
-      self.CreateAdminUser(u"test")
+    with mock.patch.object(
+        registry.FlowRegistry, "FLOW_REGISTRY", test_registry
+    ):
+      self.CreateAdminUser("test")
       self.Check("ListFlowDescriptors")
 
 
 class ApiExplainGlobExpressionHandlerTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "ExplainGlobExpression"
   handler = flow_plugin.ApiExplainGlobExpressionHandler
@@ -443,7 +510,9 @@ class ApiExplainGlobExpressionHandlerTest(
     self.Check(
         "ExplainGlobExpression",
         args=flow_plugin.ApiExplainGlobExpressionArgs(
-            client_id=client_id, glob_expression="/foo/*"))
+            client_id=client_id, glob_expression="/foo/*"
+        ),
+    )
 
 
 def main(argv):

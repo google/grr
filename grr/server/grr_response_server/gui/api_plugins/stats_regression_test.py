@@ -7,13 +7,12 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import stats as stats_plugin
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins_test_mocks
-
-
 from grr.test_lib import test_lib
 
 
 class ApiListReportsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "ListReports"
   handler = stats_plugin.ApiListReportsHandler
@@ -34,9 +33,12 @@ class ApiGetReportRegressionTest(api_regression_test_lib.ApiRegressionTest):
           "GetReport",
           args=stats_plugin.ApiGetReportArgs(
               name="BarReportPlugin",
-              start_time=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")
-              .AsMicrosecondsSinceEpoch(),
-              duration="4d"))
+              start_time=rdfvalue.RDFDatetime.FromHumanReadable(
+                  "2012/12/14"
+              ).AsMicrosecondsSinceEpoch(),
+              duration="4d",
+          ),
+      )
 
 
 def main(argv):

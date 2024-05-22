@@ -14,7 +14,7 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
   def testSettingsView(self):
     with test_lib.ConfigOverrider({
         "ACL.group_access_manager_class": "Foo bar.",
-        "AdminUI.bind": "127.0.0.1"
+        "AdminUI.bind": "127.0.0.1",
     }):
       self.Open("/legacy#/config")
 
@@ -28,8 +28,9 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsTextPresent, "127.0.0.1")
 
 
-class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
-                             api_config_test.ApiGrrBinaryTestMixin):
+class TestManageBinariesView(
+    gui_test_lib.GRRSeleniumTest, api_config_test.ApiGrrBinaryTestMixin
+):
   """Test the Binaries GUI."""
 
   def setUp(self):
@@ -39,40 +40,57 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
   def testNotAccessibleForNonAdmins(self):
     self.Open("/legacy")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li[grr-nav-link]:contains('Binaries') i.fa-lock")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=li[grr-nav-link]:contains('Binaries') i.fa-lock",
+    )
 
   def testEachBinaryIsCorrectlyShown(self):
-    self.CreateAdminUser(u"gui_user")
+    self.CreateAdminUser("gui_user")
 
     self.Open("/legacy#/manage-binaries")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li[grr-nav-link]:contains('Binaries')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=li[grr-nav-link]:contains('Binaries') i.fa-lock")
+    self.WaitUntil(
+        self.IsElementPresent, "css=li[grr-nav-link]:contains('Binaries')"
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=li[grr-nav-link]:contains('Binaries') i.fa-lock",
+    )
 
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
-        "div.panel:contains('Python Hacks') tr:contains('test')")
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
+        "div.panel:contains('Python Hacks') tr:contains('test')",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
-        "div.panel:contains('Python Hacks') tr:contains('17B')")
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
+        "div.panel:contains('Python Hacks') tr:contains('17B')",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
         "div.panel:contains('Python Hacks') "
-        "tr:contains('1970-01-01 00:00:43 UTC')")
+        "tr:contains('1970-01-01 00:00:43 UTC')",
+    )
 
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
-        "div.panel:contains('Executables') tr:contains('test.exe')")
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
+        "div.panel:contains('Executables') tr:contains('test.exe')",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
-        "div.panel:contains('Executables') tr:contains('18B')")
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
+        "div.panel:contains('Executables') tr:contains('18B')",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-config-binaries-view "
+        self.IsElementPresent,
+        "css=grr-config-binaries-view "
         "div.panel:contains('Executables') "
-        "tr:contains('1970-01-01 00:00:42 UTC')")
+        "tr:contains('1970-01-01 00:00:42 UTC')",
+    )
 
 
 if __name__ == "__main__":

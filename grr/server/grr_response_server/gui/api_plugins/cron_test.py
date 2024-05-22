@@ -48,10 +48,12 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
     self.assertEqual(api_cron_job.description, "testdescription")
     self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
     self.assertEqual(api_cron_job.last_run_status, "FINISHED")
-    self.assertEqual(api_cron_job.frequency,
-                     rdfvalue.Duration.From(1, rdfvalue.DAYS))
-    self.assertEqual(api_cron_job.lifetime,
-                     rdfvalue.Duration.From(30, rdfvalue.DAYS))
+    self.assertEqual(
+        api_cron_job.frequency, rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    )
+    self.assertEqual(
+        api_cron_job.lifetime, rdfvalue.Duration.From(30, rdfvalue.DAYS)
+    )
     self.assertFalse(api_cron_job.enabled)
     self.assertTrue(api_cron_job.forced_run_requested)
 
@@ -61,17 +63,20 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
 
 class CronJobsTestMixin(object):
 
-  def CreateCronJob(self,
-                    flow_name,
-                    periodicity="1d",
-                    lifetime="7d",
-                    description="",
-                    enabled=True):
+  def CreateCronJob(
+      self,
+      flow_name,
+      periodicity="1d",
+      lifetime="7d",
+      description="",
+      enabled=True,
+  ):
     args = rdf_cronjobs.CreateCronJobArgs(
         flow_name=flow_name,
         description=description,
         frequency=periodicity,
-        lifetime=lifetime)
+        lifetime=lifetime,
+    )
     return cronjobs.CronManager().CreateJob(args, enabled=enabled)
 
 
@@ -87,14 +92,18 @@ class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
         flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         hunt_runner_args=rdf_hunts.HuntRunnerArgs(
             # Default is True.
-            add_foreman_rules=False))
+            add_foreman_rules=False
+        ),
+    )
     result = self.handler.Handle(args, context=self.context)
     self.assertTrue(
-        result.args.hunt_cron_action.hunt_runner_args.add_foreman_rules)
+        result.args.hunt_cron_action.hunt_runner_args.add_foreman_rules
+    )
 
 
-class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                  CronJobsTestMixin):
+class ApiDeleteCronJobHandlerTest(
+    api_test_lib.ApiCallHandlerTest, CronJobsTestMixin
+):
   """Test delete cron job handler."""
 
   def setUp(self):
@@ -102,7 +111,8 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler = cron_plugin.ApiDeleteCronJobHandler()
 
     self.cron_job_id = self.CreateCronJob(
-        flow_name=file_finder.FileFinder.__name__)
+        flow_name=file_finder.FileFinder.__name__
+    )
 
   def testDeletesCronFromCollection(self):
     jobs = list(cronjobs.CronManager().ListJobs())

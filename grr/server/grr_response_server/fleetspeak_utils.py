@@ -3,10 +3,9 @@
 
 import binascii
 import datetime
-from typing import Text, List
+from typing import List
 
 from google.protobuf import timestamp_pb2
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -100,7 +99,7 @@ def SendRrgRequest(
 
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
-def KillFleetspeak(grr_id: Text, force: bool) -> None:
+def KillFleetspeak(grr_id: str, force: bool) -> None:
   """Kills Fleespeak on the given client."""
   die_req = fs_system_pb2.DieRequest(force=force)
   fs_msg = fs_common_pb2.Message()
@@ -116,7 +115,7 @@ def KillFleetspeak(grr_id: Text, force: bool) -> None:
 
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
-def RestartFleetspeakGrrService(grr_id: Text) -> None:
+def RestartFleetspeakGrrService(grr_id: str) -> None:
   """Restarts the GRR service on the given client."""
   restart_req = fs_system_pb2.RestartServiceRequest(name="GRR")
   fs_msg = fs_common_pb2.Message()

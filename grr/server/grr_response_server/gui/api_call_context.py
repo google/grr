@@ -9,9 +9,11 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 class ApiCallContext:
   """Context used throughout an API call handling."""
 
-  def __init__(self,
-               username: str,
-               approval: Optional[rdf_objects.ApprovalRequest] = None):
+  def __init__(
+      self,
+      username: str,
+      approval: Optional[rdf_objects.ApprovalRequest] = None,
+  ):
     self._username = username
     self._approval = approval
 
@@ -28,5 +30,7 @@ class ApiCallContext:
     self._approval = value
 
   def __repr__(self) -> str:
-    return (f"<ApiCallContext(username={self._username}, "
-            f"approval={repr(self._approval)})>")
+    return (
+        f"<ApiCallContext(username={self._username}, "
+        f"approval={repr(self._approval)})>"
+    )

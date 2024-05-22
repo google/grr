@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import io
+import struct
+
 from absl.testing import absltest
 
 from google.protobuf import empty_pb2
@@ -51,6 +54,46 @@ class MessageToFlatDictTest(absltest.TestCase):
 
     dct = utils.MessageToFlatDict(i32, lambda _, value: value * 2)
     self.assertEqual(dct, {"value": 1337 * 2})
+
+
+class GetCrowdstrikeDecodedBlobTest(absltest.TestCase):
+
+  def _CrowdstrikeEncode(self, data) -> bytes:
+    buf = io.BytesIO()
+    buf.write(b"CSQD")
+    buf.write(struct.pack("<Q", len(data)))
+    buf.write(utils.Xor(data, 0x7E))
+    return buf.getvalue()
+
+  def testDecodeSingleChunk(self):
+    content = b"foobarbaz"
+    iterator_content = iter((self._CrowdstrikeEncode(content),))
+    encoded_content = utils.BinaryChunkIterator(iterator_content)
+
+    decoded = encoded_content.DecodeCrowdStrikeQuarantineEncoding()
+    self.assertIsInstance(decoded, utils.BinaryChunkIterator)
+    self.assertEqual(b"".join(decoded), content)
+
+  def testDecode_RaisesIfCrowdstrikeIdentifierBytesMissing(self):
+    content = b"foobarbazbang"
+    iterator_content = iter((content,))
+    encoded_content = utils.BinaryChunkIterator(iterator_content)
+
+    with self.assertRaises(ValueError):
+      list(encoded_content.DecodeCrowdStrikeQuarantineEncoding())
+
+  def testDecodeSeveralChunks(self):
+    content = b"ABC" * 1024
+    encoded_content = self._CrowdstrikeEncode(content)
+    first_chunk = encoded_content[0:1024]
+    second_chunk = encoded_content[1024:2048]
+    third_chunk = encoded_content[2048:]
+    encoded_content = utils.BinaryChunkIterator(
+        iter((first_chunk, second_chunk, third_chunk))
+    )
+
+    decoded = encoded_content.DecodeCrowdStrikeQuarantineEncoding()
+    self.assertEqual(b"".join(decoded), content)
 
 
 if __name__ == "__main__":

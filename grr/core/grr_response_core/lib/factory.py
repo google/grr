@@ -6,7 +6,6 @@ from typing import Dict
 from typing import Generic
 from typing import Iterator
 from typing import Optional
-from typing import Text
 from typing import Type
 from typing import TypeVar
 
@@ -47,7 +46,7 @@ class Factory(Generic[T]):
 
   def Register(
       self,
-      name: Text,
+      name: str,
       cls: Type[T],
       constructor: Optional[Callable[[], T]] = None,
   ):
@@ -62,7 +61,7 @@ class Factory(Generic[T]):
     Raises:
       ValueError: If there already is a constructor associated with given name.
     """
-    precondition.AssertType(name, Text)
+    precondition.AssertType(name, str)
 
     if name in self._entries:
       message = "Duplicated constructors %r and %r for name '%s'"
@@ -74,7 +73,7 @@ class Factory(Generic[T]):
 
     self._entries[name] = _FactoryEntry(cls, constructor)
 
-  def Unregister(self, name: Text):
+  def Unregister(self, name: str):
     """Unregisters a constructor.
 
     Args:
@@ -83,14 +82,14 @@ class Factory(Generic[T]):
     Raises:
       ValueError: If constructor with specified name has never been registered.
     """
-    precondition.AssertType(name, Text)
+    precondition.AssertType(name, str)
 
     try:
       del self._entries[name]
     except KeyError:
       raise ValueError("Constructor with name '%s' is not registered" % name)
 
-  def Create(self, name: Text) -> T:
+  def Create(self, name: str) -> T:
     """Creates a new instance.
 
     Args:
@@ -99,7 +98,7 @@ class Factory(Generic[T]):
     Returns:
       An instance of the type that the factory supports.
     """
-    precondition.AssertType(name, Text)
+    precondition.AssertType(name, str)
 
     try:
       constructor = self._entries[name].constructor
@@ -115,7 +114,7 @@ class Factory(Generic[T]):
     for name in self.Names():
       yield self.Create(name)
 
-  def GetType(self, name: Text) -> Type[T]:
+  def GetType(self, name: str) -> Type[T]:
     """Returns the class registered under the given name."""
     try:
       return self._entries[name].cls
@@ -127,6 +126,6 @@ class Factory(Generic[T]):
     for name in self.Names():
       yield self.GetType(name)
 
-  def Names(self) -> Iterator[Text]:
+  def Names(self) -> Iterator[str]:
     """Yields all names that have been registered with this factory."""
     return iter(self._entries.keys())

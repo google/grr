@@ -3,7 +3,6 @@ import ipaddress
 from unittest import mock
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -13,7 +12,6 @@ from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.models import clients
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -655,7 +653,6 @@ class DatabaseTestClientsMixin(object):
     hist = d.ReadClientSnapshotHistory(client_id)
     self.assertLen(hist, 3)
     startup_infos = [cl.startup_info for cl in hist]
-    startup_infos = list(map(mig_client.ToRDFStartupInfo, startup_infos))
     self.assertEqual([si.boot_time for si in startup_infos], [125, 124, 123])
 
   def testClientSummary(self):
@@ -1371,33 +1368,6 @@ class DatabaseTestClientsMixin(object):
     for i, s in enumerate(snapshots):
       self.assertEqual(s.client_id, "C.000000005000000%d" % i)
       self.assertEqual(s.knowledge_base.fqdn, "test%d.examples.com" % i)
-
-  def _VerifyFullInfos(self, c_infos):
-    c_infos = sorted(c_infos, key=lambda c: c.last_snapshot.client_id)
-    for i, full_info in enumerate(c_infos):
-      self.assertEqual(
-          full_info.last_snapshot.client_id, "C.000000005000000%d" % i
-      )
-      self.assertEqual(full_info.last_startup_info.boot_time, i)
-      self.assertCountEqual(
-          full_info.labels,
-          [
-              rdf_objects.ClientLabel(
-                  owner="test_owner", name="test_label-a-%d" % i
-              ),
-              rdf_objects.ClientLabel(
-                  owner="test_owner", name="test_label-b-%d" % i
-              ),
-          ],
-      )
-
-  def testIterateAllClientsFullInfo(self):
-    self._SetupFullInfoClients()
-    self._VerifyFullInfos(self.db.IterateAllClientsFullInfo())
-
-  def testIterateAllClientsFullInfoSmallBatches(self):
-    self._SetupFullInfoClients()
-    self._VerifyFullInfos(self.db.IterateAllClientsFullInfo(batch_size=2))
 
   def _SetupLastPingClients(self, now):
     time_past = now - rdfvalue.Duration.From(1, rdfvalue.DAYS)

@@ -84,13 +84,15 @@ def MapItemsIterator(
   )
 
 
-class BinaryChunkIterator(object):
+class BinaryChunkIterator:
   """Iterator object for binary streams."""
+
+  chunks: Iterator[bytes]
 
   def __init__(self, chunks: Iterator[bytes]) -> None:
     super().__init__()
 
-    self.chunks = chunks  # type: Iterator[bytes]
+    self.chunks = chunks
 
   def __iter__(self) -> Iterator[bytes]:
     for c in self.chunks:
@@ -106,6 +108,32 @@ class BinaryChunkIterator(object):
   def WriteToFile(self, file_name: str) -> None:
     with open(file_name, "wb") as fd:
       self.WriteToStream(fd)
+
+  def DecodeCrowdStrikeQuarantineEncoding(self) -> "BinaryChunkIterator":
+    """Decodes Crowdstrike quarantine file."""
+
+    def DecoderGenerator() -> Iterator[bytes]:
+      for index, chunk in enumerate(self):
+        if index == 0:
+          if len(chunk) < 12:
+            raise ValueError(
+                "Unsupported chunk size, chunks need to be at least 12 bytes"
+            )
+
+          if chunk[0:4] != b"CSQD":
+            raise ValueError(
+                "File does not start with Crowdstrike quarantine identifier"
+            )
+
+          # TODO: Add a check if the actual file size matches the
+          # value in chunk[4:12].
+
+          # The remainder of the first chunk belongs to the actual file.
+          chunk = chunk[12:]
+
+        yield Xor(chunk, 0x7E)
+
+    return BinaryChunkIterator(DecoderGenerator())
 
 
 # Default poll interval in seconds.
@@ -272,6 +300,11 @@ def MessageToFlatDict(
   Recurse(msg, ())
 
   return result
+
+
+def Xor(bytestr: bytes, key: int) -> bytes:
+  """Returns a `bytes` object where each byte has been xored with key."""
+  return bytes([byte ^ key for byte in bytestr])
 
 
 def RegisterProtoDescriptors(

@@ -18,7 +18,6 @@ import psutil
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -588,33 +587,12 @@ class StartupInfo(rdf_structs.RDFProtoStruct):
   ]
 
 
-class WindowsServiceInformation(rdf_structs.RDFProtoStruct):
-  """Windows Service."""
-
-  protobuf = sysinfo_pb2.WindowsServiceInformation
-  rdf_deps = [
-      rdf_protodict.Dict,
-      rdf_client_fs.StatEntry,
-  ]
-
-
 class OSXServiceInformation(rdf_structs.RDFProtoStruct):
   """OSX Service (launchagent/daemon)."""
 
   protobuf = sysinfo_pb2.OSXServiceInformation
   rdf_deps = [
       rdfvalue.RDFURN,
-  ]
-
-
-class LinuxServiceInformation(rdf_structs.RDFProtoStruct):
-  """Linux Service (init/upstart/systemd)."""
-
-  protobuf = sysinfo_pb2.LinuxServiceInformation
-  rdf_deps = [
-      rdf_protodict.AttributedDict,
-      SoftwarePackage,
-      rdf_client_fs.StatEntry,
   ]
 
 

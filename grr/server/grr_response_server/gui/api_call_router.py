@@ -4,7 +4,6 @@
 import inspect
 import re
 from typing import Optional
-from typing import Text
 
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -44,7 +43,8 @@ class Http(object):
       setattr(func, "__http_methods__", http_methods)
 
     http_methods.append(
-        (self.method, self.path, dict(strip_root_types=self.strip_root_types)))
+        (self.method, self.path, dict(strip_root_types=self.strip_root_types))
+    )
 
     return func
 
@@ -103,15 +103,17 @@ class RouterMethodMetadata(object):
 
   BINARY_STREAM_RESULT_TYPE = "BinaryStream"
 
-  def __init__(self,
-               name,
-               doc=None,
-               args_type=None,
-               result_type=None,
-               category=None,
-               http_methods=None,
-               no_audit_log_required=False):
-    precondition.AssertType(name, Text)
+  def __init__(
+      self,
+      name,
+      doc=None,
+      args_type=None,
+      result_type=None,
+      category=None,
+      http_methods=None,
+      no_audit_log_required=False,
+  ):
+    precondition.AssertType(name, str)
 
     self.name = name
     self.doc = doc
@@ -152,7 +154,7 @@ class RouterMethodMetadata(object):
     for method, path, unused_params in self.http_methods or []:
       for arg in re.findall(self._RULE_REGEX, path):
         if ":" in arg:
-          arg = arg[arg.find(":") + 1:]
+          arg = arg[arg.find(":") + 1 :]
         result.append(arg)
         found.add(arg)
 
@@ -167,6 +169,7 @@ class RouterMethodMetadata(object):
 
 class ApiCallRouter:
   """Routers do ACL checks and route API requests to handlers."""
+
   __abstract = True  # pylint: disable=g-bad-name
 
   # If router is configurable, RDFValue class of its configuration
@@ -212,8 +215,10 @@ class ApiCallRouter:
             result_type=getattr(cls_method, "__result_type__", None),
             category=getattr(cls_method, "__category__", None),
             http_methods=getattr(cls_method, "__http_methods__", set()),
-            no_audit_log_required=getattr(cls_method,
-                                          "__no_audit_log_required__", False))
+            no_audit_log_required=getattr(
+                cls_method, "__no_audit_log_required__", False
+            ),
+        )
 
     return result
 
@@ -265,15 +270,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Clients")
-  @ArgsType(api_client.ApiStructuredSearchClientsArgs)
-  @ResultType(api_client.ApiStructuredSearchClientsResult)
-  @Http("GET", "/api/clients/st-search")
-  def StructuredSearchClients(self, args, context=None):
-    """Search for clients using a structured search query."""
-
-    raise NotImplementedError()
-
-  @Category("Clients")
   @ArgsType(api_client.ApiVerifyAccessArgs)
   @ResultType(api_client.ApiVerifyAccessResult)
   @Http("GET", "/api/clients/<client_id>/access")
@@ -321,8 +317,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Clients")
   @ArgsType(api_client.ApiGetInterrogateOperationStateArgs)
   @ResultType(api_client.ApiGetInterrogateOperationStateResult)
-  @Http("GET",
-        "/api/clients/<client_id>/actions/interrogate/<path:operation_id>")
+  @Http(
+      "GET", "/api/clients/<client_id>/actions/interrogate/<path:operation_id>"
+  )
   def GetInterrogateOperationState(self, args, context=None):
     """Get state of a previously started interrogation."""
 
@@ -353,7 +350,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def KillFleetspeak(
       self,
       args: api_client.ApiKillFleetspeakArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
     raise NotImplementedError()
 
@@ -363,7 +360,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def RestartFleetspeakGrrService(
       self,
       args: api_client.ApiRestartFleetspeakGrrServiceArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
     raise NotImplementedError()
 
@@ -373,7 +370,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def DeleteFleetspeakPendingMessages(
       self,
       args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     raise NotImplementedError()
 
@@ -383,7 +380,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def GetFleetspeakPendingMessages(
       self,
       args: api_client.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
     raise NotImplementedError()
 
@@ -393,7 +390,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def GetFleetspeakPendingMessageCount(
       self,
       args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
     raise NotImplementedError()
 
@@ -421,7 +418,7 @@ class ApiCallRouterStub(ApiCallRouter):
   def BrowseFilesystem(
       self,
       args: api_vfs.ApiBrowseFilesystemArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_vfs.ApiBrowseFilesystemHandler:
     """List OS, TSK, NTFS files & directories in a given VFS directory.
 
@@ -526,8 +523,10 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetVfsRefreshOperationStateArgs)
   @ResultType(api_vfs.ApiGetVfsRefreshOperationStateResult)
-  @Http("GET",
-        "/api/clients/<client_id>/vfs-refresh-operations/<path:operation_id>")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/vfs-refresh-operations/<path:operation_id>",
+  )
   def GetVfsRefreshOperationState(self, args, context=None):
     """Get state of a previously started VFS refresh operation."""
 
@@ -567,23 +566,6 @@ class ApiCallRouterStub(ApiCallRouter):
   def GetVfsFileContentUpdateState(self, args, context=None):
     """Get state of a previously started content update operation."""
 
-    raise NotImplementedError()
-
-  @Category("Vfs")
-  @ArgsType(api_vfs.ApiGetFileDecodersArgs)
-  @ResultType(api_vfs.ApiGetFileDecodersResult)
-  @Http("GET", "/api/clients/<client_id>/vfs-decoders/<path:file_path>")
-  def GetFileDecoders(self, args, context=None):
-    """Get the decoder names that are applicable to the specified file."""
-    raise NotImplementedError()
-
-  @Category("Vfs")
-  @ArgsType(api_vfs.ApiGetDecodedFileArgs)
-  @ResultBinaryStream()
-  @Http("GET", "/api/clients/<client_id>/vfs-decoded-blob/"
-        "<decoder_name>/<path:file_path>")
-  def GetDecodedFileBlob(self, args, context=None):
-    """Get a decoded view of the specified file."""
     raise NotImplementedError()
 
   # Clients labels methods.
@@ -634,7 +616,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "GET",
       "/api/clients/<client_id>/flows/<path:flow_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GetFlow(self, args, context=None):
     """Get flow details."""
 
@@ -703,8 +686,11 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetExportedFlowResultsArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
-        "exported-results/<plugin_name>")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>/"
+      "exported-results/<plugin_name>",
+  )
   def GetExportedFlowResults(self, args, context=None):
     """Stream flow results using one of the instant output plugins."""
 
@@ -713,8 +699,10 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowResultsExportCommandArgs)
   @ResultType(api_flow.ApiGetFlowResultsExportCommandResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
-        "export-command")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>/results/export-command",
+  )
   def GetFlowResultsExportCommand(self, args, context=None):
     """Get export tool command to export flow results."""
 
@@ -723,8 +711,10 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowFilesArchiveArgs)
   @ResultBinaryStream()
-  @Http("GET",
-        "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive",
+  )
   def GetFlowFilesArchive(self, args, context=None):
     """Get ZIP or TAR.GZ archive with files downloaded by the flow."""
 
@@ -742,8 +732,11 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginLogsArgs)
   @ResultType(api_flow.ApiListFlowOutputPluginLogsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
-        "output-plugins/<plugin_id>/logs")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>/"
+      "output-plugins/<plugin_id>/logs",
+  )
   def ListFlowOutputPluginLogs(self, args, context=None):
     """List output plugin logs of the flow."""
 
@@ -752,8 +745,11 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginErrorsArgs)
   @ResultType(api_flow.ApiListFlowOutputPluginErrorsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
-        "output-plugins/<plugin_id>/errors")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>/"
+      "output-plugins/<plugin_id>/errors",
+  )
   def ListFlowOutputPluginErrors(self, args, context=None):
     """List output plugin errors of the flow."""
 
@@ -802,9 +798,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @ArgsType(api_flow.ApiCreateFlowArgs)
   @ResultType(api_flow.ApiScheduledFlow)
   @Http(
-      "POST",
-      "/api/clients/<client_id>/scheduled-flows",
-      strip_root_types=False)
+      "POST", "/api/clients/<client_id>/scheduled-flows", strip_root_types=False
+  )
   def ScheduleFlow(
       self,
       args: api_flow.ApiCreateFlowArgs,
@@ -830,8 +825,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @ArgsType(api_flow.ApiUnscheduleFlowArgs)
   @ResultType(api_flow.ApiUnscheduleFlowResult)
   # TODO: Remove trailing slash once redirect protocol is fixed.
-  @Http("DELETE",
-        "/api/clients/<client_id>/scheduled-flows/<scheduled_flow_id>/")
+  @Http(
+      "DELETE", "/api/clients/<client_id>/scheduled-flows/<scheduled_flow_id>/"
+  )
   def UnscheduleFlow(
       self,
       args: api_flow.ApiUnscheduleFlowArgs,
@@ -843,8 +839,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_osquery.ApiGetOsqueryResultsArgs)
   @ResultBinaryStream()
-  @Http("GET",
-        "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>")
+  @Http(
+      "GET", "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>"
+  )
   def GetOsqueryResults(
       self,
       args: api_osquery.ApiGetOsqueryResultsArgs,
@@ -916,7 +913,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "GET",
       "/api/cron-jobs/<cron_job_id>/runs/<run_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GetCronJobRun(self, args, context=None):
     """Get details of a run started by a cron job."""
 
@@ -1126,8 +1124,11 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntFileArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/hunts/<hunt_id>/results/clients/<client_id>/vfs-blob"
-        "/<path:vfs_path>")
+  @Http(
+      "GET",
+      "/api/hunts/<hunt_id>/results/clients/<client_id>/vfs-blob"
+      "/<path:vfs_path>",
+  )
   def GetHuntFile(self, args, context=None):
     """Get a file referenced by one of the hunt results."""
 
@@ -1162,8 +1163,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @ResultType(api_hunt.ApiHunt)
   @Http("POST", "/api/hunts/per-client-file-collection", strip_root_types=False)
   def CreatePerClientFileCollectionHunt(
-      self, args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext
+      self,
+      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
+      context: api_call_context.ApiCallContext,
   ) -> api_call_handler_base.ApiCallHandler:
     """Create a new per-client file collection hunt."""
     raise NotImplementedError()
@@ -1212,7 +1214,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "POST",
       "/api/users/me/approvals/client/<client_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def CreateClientApproval(self, args, context=None):
     """Create new client approval."""
 
@@ -1225,7 +1228,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "GET",
       "/api/users/<username>/approvals/client/<client_id>/<approval_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GetClientApproval(self, args, context=None):
     """Get client approval identified by approval id, client id and username."""
     raise NotImplementedError()
@@ -1237,7 +1241,8 @@ class ApiCallRouterStub(ApiCallRouter):
       "POST",
       "/api/users/<username>/approvals/client/<client_id>/<approval_id>/"
       "actions/grant",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GrantClientApproval(self, args, context=None):
     """Grant client approval."""
 
@@ -1259,7 +1264,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @ResultType(api_user.ApiHuntApproval)
   @NoAuditLogRequired()
   @Http(
-      "POST", "/api/users/me/approvals/hunt/<hunt_id>", strip_root_types=False)
+      "POST", "/api/users/me/approvals/hunt/<hunt_id>", strip_root_types=False
+  )
   def CreateHuntApproval(self, args, context=None):
     """Create new hunt approval."""
 
@@ -1272,7 +1278,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "GET",
       "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GetHuntApproval(self, args, context=None):
     """Get hunt approval identified by approval id, hunt id and username."""
     raise NotImplementedError()
@@ -1281,9 +1288,11 @@ class ApiCallRouterStub(ApiCallRouter):
   @ArgsType(api_user.ApiGrantHuntApprovalArgs)
   @ResultType(api_user.ApiHuntApproval)
   @Http(
-      "POST", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
+      "POST",
+      "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
       "actions/grant",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GrantHuntApproval(self, args, context=None):
     """Grant hunt approval."""
 
@@ -1306,7 +1315,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "POST",
       "/api/users/me/approvals/cron-job/<cron_job_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def CreateCronJobApproval(self, args, context=None):
     """Create new cron job approval."""
 
@@ -1319,7 +1329,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http(
       "GET",
       "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GetCronJobApproval(self, args, context=None):
     """Get cron job approval identified by approval id, cron id and username."""
 
@@ -1332,7 +1343,8 @@ class ApiCallRouterStub(ApiCallRouter):
       "POST",
       "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>/"
       "actions/grant",
-      strip_root_types=False)
+      strip_root_types=False,
+  )
   def GrantCronJobApproval(self, args, context=None):
     """Grant cron job approval."""
 
@@ -1590,7 +1602,8 @@ class DisabledApiCallRouter(ApiCallRouterStub):
       def _AccessForbidden(*args, **kwargs):
         raise access_control.UnauthorizedAccess(
             f"No authorized route for {method_name}. "
-            "Requestor has no access to GRR or the given API endpoint.")
+            "Requestor has no access to GRR or the given API endpoint."
+        )
 
       return _AccessForbidden
 

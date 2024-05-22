@@ -8,8 +8,6 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 
 import abc
 
-from typing import Text
-
 from grr_response_core import config
 from grr_response_core.config import contexts
 
@@ -55,7 +53,7 @@ class ClientBuilder(metaclass=abc.ABCMeta):
         context or config.CONFIG.context[:])
 
   @abc.abstractmethod
-  def MakeExecutableTemplate(self, output_path: Text) -> None:
+  def MakeExecutableTemplate(self, output_path: str) -> None:
     """Makes an executable template at a given location.
 
     The client is built in two phases. First an executable template is created
@@ -90,5 +88,5 @@ class ClientRepacker(metaclass=abc.ABCMeta):
     self.signer = signer
 
   @abc.abstractmethod
-  def MakeDeployableBinary(self, template_path: Text, output_path: Text):
+  def MakeDeployableBinary(self, template_path: str, output_path: str):
     """Use the template to create a customized installer."""

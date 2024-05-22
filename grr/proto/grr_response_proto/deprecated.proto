@@ -9,11 +9,13 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 import "grr_response_proto/anomaly.proto";
+import "grr_response_proto/api/client.proto";
 import "grr_response_proto/artifact.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
+import "grr_response_proto/sysinfo.proto";
 
 package grr;
 
@@ -1013,4 +1015,340 @@ message SudoersConfig {
   repeated string includes = 4 [(sem_type) = {
     description: "Includes within a sudoers file.",
   }];
+}
+
+message DiskVolumeInfoArgs {
+  repeated string path_list = 1 [(sem_type) = {
+    description: "List of paths.",
+  }];
+
+  optional PathSpec.PathType pathtype = 2 [
+    (sem_type) = {
+      description: "Type of path. Only OS is currently supported.",
+      label: HIDDEN,
+    },
+    default = OS
+  ];
+}
+
+message LinuxServiceInformation {
+  option (semantic) = {
+    description: "Describe an Linux service (init/upstart/systemd).",
+  };
+
+  optional string name = 1 [(sem_type) = {
+    description: "The name of the service.",
+  }];
+
+  optional string description = 2 [(sem_type) = {
+    description: "The description string of the service.",
+  }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+    description: "The binary on the client. This may also contain an AFF4 "
+                 "urn to the server copy of the same file.",
+  }];
+
+  optional SoftwarePackage software = 4 [(sem_type) = {
+    description: "Software package that deployed the service.",
+  }];
+
+  enum StartMode {
+    UNKNOWN = 0;
+    INIT = 1;
+    UPSTART = 2;
+    SYSTEMD = 3;
+    INETD = 4;
+    XINETD = 5;
+  }
+
+  optional StartMode start_mode = 5 [(sem_type) = {
+    description: "Service start options",
+  }];
+
+  repeated uint32 start_on = 6 [(sem_type) = {
+    description: "Specifies the runlevels where this service runs.",
+  }];
+
+  repeated uint32 stop_on = 7 [(sem_type) = {
+    description: "Specifies the runlevels where this service is stopped.",
+  }];
+
+  repeated string start_after = 8 [(sem_type) = {
+    description: "Specifies services required before this service runs.",
+  }];
+
+  repeated string stop_after = 9 [(sem_type) = {
+    description: "Specifies service required before this service is stopped.",
+  }];
+
+  optional AttributedDict config = 10 [(sem_type) = {
+    description: "The configuration of the service.",
+  }];
+
+  optional bool starts = 11 [(sem_type) = {
+    description: "The service is configured to start up through some means.",
+  }];
+}
+
+message WindowsServiceInformation {
+  option (semantic) = {
+    description: "Describe a windows service or driver. Field names follow"
+                 " the cybox naming scheme where possible: "
+                 "http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html",
+  };
+
+  optional string name = 1 [(sem_type) = {
+    description: "The name of the service.",
+  }];
+
+  optional string description = 2 [(sem_type) = {
+    description: "The description string of the service.",
+  }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+    description: "The binary on the client. This may also contain an AFF4 "
+                 "urn to the server copy of the same file.",
+  }];
+
+  optional string state = 4 [(sem_type) = {
+    description: "Current state of the service.",
+  }];
+
+  optional Dict wmi_information = 5 [(sem_type) = {
+    description: "Additional information available through WMI.",
+  }];
+
+  optional string display_name = 6 [(sem_type) = {
+    description: "Displayed name of the service in Windows GUI controls.",
+  }];
+
+  optional string driver_package_id = 7 [(sem_type) = {
+    description: "Driver Package ID of the service.",
+  }];
+
+  enum ErrorControl {
+    CRITICAL = 3;
+    SEVERE = 2;
+    NORMAL = 1;
+    IGNORE = 0;
+  }
+
+  optional ErrorControl error_control = 8 [(sem_type) = {
+    description: "Behaviour of the service on failure to load/initialize",
+  }];
+
+  optional string image_path = 9 [(sem_type) = {
+    description: "ImagePath of the service.",
+  }];
+
+  optional string object_name = 10 [(sem_type) = {
+    description: "ObjectName of the service.",
+  }];
+
+  enum ServiceMode {
+    SERVICE_BOOT_START = 0;
+    SERVICE_SYSTEM_START = 1;
+    SERVICE_AUTO_START = 2;
+    SERVICE_DEMAND_START = 3;
+    SERVICE_DISABLED = 4;
+  }
+
+  optional ServiceMode startup_type = 11 [(sem_type) = {
+    description: "Service start options",
+  }];
+
+  enum ServiceType {
+    SERVICE_KERNEL_DRIVER = 0x1;
+    SERVICE_FILE_SYSTEM_DRIVER = 0x2;
+    SERVICE_ADAPTER_ARGS = 0x4;
+    SERVICE_RECOGNIZER_DRIVER = 0x8;
+    SERVICE_WIN32_OWN_PROCESS = 0x10;
+    SERVICE_WIN32_SHARE_PROCESS = 0x20;
+    SERVICE_USER_OWN_PROCESS = 0x50;
+    SERVICE_USER_SHARE_PROCESS = 0x60;
+    SERVICE_INTERACTIVE_PROCESS = 0x100;
+    SERVICE_INSTANCE_USER_SHARE_PROCESS = 0xe0;
+    SERVICE_INTERACTIVE_WIN32_OWN_PROCESS = 0x110;
+    SERVICE_INTERACTIVE_WIN32_SHARE_PROCESS = 0x120;
+  }
+
+  optional ServiceType service_type = 12 [(sem_type) = {
+    description: "Type of the service.",
+  }];
+
+  optional string group_name = 13 [(sem_type) = {
+    description: "Specifies the name of the load ordering group of which "
+                 "this service is a member.",
+  }];
+
+  optional string service_dll = 14 [(sem_type) = {
+    description: "Name of the DLL instantiated in the service.",
+  }];
+
+  optional string registry_key = 15
+      [(sem_type) = { description: "The service registry key." }];
+}
+
+// Condition to match on OS.
+message OSCondition {
+  // Enum defining how the condition can be matched.
+  enum ComparisonType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    EQUALS = 1 [(description) = "Equals"];
+    NOT_EQUALS = 2 [(description) = "Not Equals"];
+    CONTAINS = 3 [(description) = "Substring"];
+  }
+  // How to match the supplied OS string.
+  optional ComparisonType comparison_type = 1;
+
+  // OS string to match.
+  optional string os = 2;
+}
+
+// Condition expression.
+message ConditionExpression {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
+  // Enum for all the operators and conditions.
+  enum ConditionType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    OS = 1 [(description) = "OS condition"];
+  }
+
+  // Type of the condition.
+  optional ConditionType condition_type = 1;
+
+  // OS condition.
+  optional OSCondition os_condition = 2;
+}
+
+// Negation of the containing expression.
+message NotExpression {
+  // Expression to negate.
+  optional SearchExpression expression = 1;
+}
+
+// Conjunction of two expressions.
+message AndExpression {
+  // First operand.
+  optional SearchExpression left_operand = 1;
+  // Second operand.
+  optional SearchExpression right_operand = 2;
+}
+
+// Disjunction of two expressions.
+message OrExpression {
+  // First operand.
+  optional SearchExpression left_operand = 1;
+  // Second operand.
+  optional SearchExpression right_operand = 2;
+}
+
+// Structured search expression.
+message SearchExpression {
+  option (semantic) = {
+    union_field: "expression_type"
+  };
+
+  // Enum for all the operators and conditions.
+  enum ExpressionType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    NEGATION = 1 [(description) = "Negation expression"];
+    AND = 2 [(description) = "AND expression"];
+    OR = 3 [(description) = "OR expression"];
+    CONDITION = 4 [(description) = "Condition expression"];
+  }
+
+  // Type of the expression.
+  optional ExpressionType expression_type = 1;
+  // Negation expression.
+  optional NotExpression not_expression = 2;
+  // Conjunction expression.
+  optional AndExpression and_expression = 3;
+  // Disjunction expression.
+  optional OrExpression or_expression = 4;
+  // Condition expression.
+  optional ConditionExpression condition_expression = 5;
+}
+
+message SortOrder {
+  enum OrderBy {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    SNAPSHOT_CREATION_TIME = 1
+        [(description) = "Order by when the snapshot was created"];
+  }
+
+  // What to order the results by.
+  optional OrderBy order_by = 1;
+
+  enum Order {
+    UNKNOWN_ORDER = 0 [(description) = "Unknown order"];
+    ASCENDING = 1 [(description) = "Ascending order"];
+    DESCENDING = 2 [(description) = "Descending order"];
+  }
+
+  // In what order the results should be in.
+  optional Order order = 2;
+}
+
+message ApiStructuredSearchClientsArgs {
+  optional SearchExpression expression = 1
+      [(sem_type) = { description: "Structured search expression" }];
+  optional SortOrder sort_order = 2
+      [(sem_type) = { description: "Structured search order" }];
+  optional bytes continuation_token = 3
+      [(sem_type) = { description: "Continuation token for pagination." }];
+  optional uint64 number_of_results = 4
+      [(sem_type) = { description: "Number of clients to fetch." }];
+}
+
+message ApiStructuredSearchClientsResult {
+  repeated ApiClient items = 1;
+  optional bytes continuation_token = 2;
+  optional uint64 estimated_count = 3 [(sem_type) = {
+    description: "Estimated number of found clients matching query."
+  }];
+}
+
+message ArtifactFallbackCollectorArgs {
+  optional string artifact_name = 1 [(sem_type) = {
+    description: "Name of the artifact using this fallback.",
+    type: "ArtifactName",
+  }];
+}
+
+message ApiGetFileDecodersArgs {
+  optional string client_id = 1 [(sem_type) = {
+    type: "ApiClientId",
+    description: "An id of the client to which the encoded file belongs to."
+  }];
+  optional string file_path = 2 [(sem_type) = {
+    description: "A path to the encrypted file to get the decoder names for."
+  }];
+  // TODO(hanuszczak): Add support for listing decoders for a file as observed
+  // at specific timestamp.
+}
+
+message ApiGetFileDecodersResult {
+  repeated string decoder_names = 1 [(sem_type) = {
+    description: "Names of the decoders that are applicable to the file."
+  }];
+}
+
+message ApiGetDecodedFileArgs {
+  optional string client_id = 1 [(sem_type) = {
+    type: "ApiClientId",
+    description: "An id of the client to which the encoded file belongs to."
+  }];
+  optional string file_path = 2 [(sem_type) = {
+    description: "A path to the encrypted file to do the decoding on."
+  }];
+  optional string decoder_name = 3 [(sem_type) = {
+    description: "A name of the decoder to use to decoder the file."
+  }];
+  // TODO(hanuszczak): Add support for decoding file content as observed at
+  // specific timestamp.
 }

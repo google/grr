@@ -10,6 +10,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder as flows_file_finder
@@ -27,8 +28,9 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
-                         hunt_test_lib.StandardHuntTestMixin):
+class TestFlowManagement(
+    gui_test_lib.GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test the flow management GUI."""
 
   def setUp(self):
@@ -47,8 +49,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(
         "/legacy#/clients/%s/host-info" % client_id, self.GetCurrentUrlPath
     )
-    self.WaitUntil(self.IsTextPresent,
-                   "You do not have an approval for this client.")
+    self.WaitUntil(
+        self.IsTextPresent, "You do not have an approval for this client."
+    )
 
   def testPageTitleReflectsSelectedFlow(self):
     args = rdf_file_finder.FileFinderArgs(
@@ -66,8 +69,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
 
     self.Click("css=td:contains('ClientFileFinder')")
-    self.WaitUntilEqual("GRR | %s | %s" % (self.client_id, flow_id),
-                        self.GetPageTitle)
+    self.WaitUntilEqual(
+        "GRR | %s | %s" % (self.client_id, flow_id), self.GetPageTitle
+    )
 
   def testFlowManagement(self):
     """Test that scheduling flows works."""
@@ -96,8 +100,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=#_Browser a")
 
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent,
-                   flows_webhistory.CollectBrowserHistory.friendly_name)
+    self.WaitUntil(
+        self.IsTextPresent, flows_webhistory.CollectBrowserHistory.friendly_name
+    )
 
     # Check that we can get a file in chinese
     self.Click("css=#_Filesystem a")
@@ -123,7 +128,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -131,8 +137,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # wasn't expanded yet. Due to this, we have to explicitly filter rows
     # with "visible" jQuery filter.
     self.WaitUntilEqual(
-        gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
-        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
+        gui_test_lib.RecursiveTestFlow.__name__,
+        self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)",
+    )
 
     self.WaitUntilEqual(
         flows_file_finder.ClientFileFinder.__name__,
@@ -144,8 +152,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=grr-client-flows-list tr:visible:nth(1) .tree_closed")
 
     self.WaitUntilEqual(
-        gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
-        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
+        gui_test_lib.RecursiveTestFlow.__name__,
+        self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)",
+    )
 
     # Select the requests tab
     self.Click("css=td:contains(ClientFileFinder)")
@@ -196,7 +206,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -207,8 +218,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('RecursiveTestFlow'):nth(2)")
 
     # Nested flow should have Depth argument set to 1.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td:contains('Depth') ~ td:nth(0):contains('1')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=td:contains('Depth') ~ td:nth(0):contains('1')",
+    )
 
     self.WaitUntil(self.IsTextPresent, "Flow ID")
     flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
@@ -218,12 +231,14 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);"
+    )
 
     flow_1 = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneLogStatement,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset and wait
@@ -235,7 +250,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_2 = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Check that the flow we started in the background appears in the list.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
@@ -243,7 +259,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Check that flow_2 is the row 1 (row 0 is the table header).
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2)
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2,
+    )
 
     # Click on a nested flow.
     self.Click("css=tr:contains('%s') span.tree_branch" % flow_2)
@@ -252,25 +269,30 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # rows.
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2)
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" % flow_2,
+    )
 
     flow_data = api_flow.ApiGetFlowHandler().Handle(
-        api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_2),
-        context=api_call_context.ApiCallContext("test"))
+        flow_pb2.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_2),
+        context=api_call_context.ApiCallContext("test"),
+    )
 
     for index, nested_flow in enumerate(flow_data.nested_flows):
       self.WaitUntil(
           self.IsElementPresent,
-          "css=grr-client-flows-list tr:nth(%d):contains('%s')" %
-          (index + 2, nested_flow.flow_id))
+          "css=grr-client-flows-list tr:nth(%d):contains('%s')"
+          % (index + 2, nested_flow.flow_id),
+      )
 
   def testOverviewIsShownForNestedHuntFlows(self):
     self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=gui_test_lib.RecursiveTestFlow.__name__),
+            flow_name=gui_test_lib.RecursiveTestFlow.__name__
+        ),
         flow_args=gui_test_lib.RecursiveTestFlowArgs(),
         client_rate=0,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.RunHunt(failrate=2, client_ids=[self.client_id])
 
@@ -283,14 +305,17 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('RecursiveTestFlow'):nth(2)")
 
     # Nested flow should have Depth argument set to 1.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td:contains('Depth') ~ td:nth(0):contains('1')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=td:contains('Depth') ~ td:nth(0):contains('1')",
+    )
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneLogStatement,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -304,7 +329,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
       flow_test_lib.StartFlow(
           gui_test_lib.FlowWithOneLogStatement,
           self.client_id,
-          creator=self.test_username)
+          creator=self.test_username,
+      )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -317,35 +343,41 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "aff4:/%s/fs/os/some/unique/path" % self.client_id)
+    self.WaitUntil(
+        self.IsTextPresent, "aff4:/%s/fs/os/some/unique/path" % self.client_id
+    )
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
     flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane table thead "
-                   "th:contains('Value')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=#main_bottomPane table thead th:contains('Value')",
+    )
 
   def testHashesAreDisplayedCorrectly(self):
     flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneHashEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -354,34 +386,40 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self.WaitUntil(
         self.IsTextPresent,
-        "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-        "e4f06017acdb5")
-    self.WaitUntil(self.IsTextPresent,
-                   "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
+        "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5",
+    )
+    self.WaitUntil(
+        self.IsTextPresent, "6dd6bee591dfcb6d75eb705405302c3eab65e21a"
+    )
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testApiExampleIsShown(self):
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
 
-    self.WaitUntil(self.IsTextPresent,
-                   "HTTP (authentication details are omitted)")
-    self.WaitUntil(self.IsTextPresent,
-                   'curl -X POST -H "Content-Type: application/json"')
+    self.WaitUntil(
+        self.IsTextPresent, "HTTP (authentication details are omitted)"
+    )
+    self.WaitUntil(
+        self.IsTextPresent, 'curl -X POST -H "Content-Type: application/json"'
+    )
     self.WaitUntil(self.IsTextPresent, '"@type": "type.googleapis.com/')
     self.WaitUntil(
         self.IsTextPresent,
-        '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__)
+        '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__,
+    )
 
   def testChangingTabUpdatesUrl(self):
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     base_url = "/legacy#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
@@ -406,7 +444,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     base_url = "/legacy#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
@@ -422,19 +461,22 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Check that both clients/.../flows/... and clients/.../flows/.../ URLs
     # work.
     self.Open(base_url)
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li.active[heading='Flow Information']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=li.active[heading='Flow Information']"
+    )
 
     self.Open(base_url + "/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li.active[heading='Flow Information']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=li.active[heading='Flow Information']"
+    )
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
     flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Open client and find the flow
     self.Open("/legacy")
@@ -456,12 +498,14 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_1 = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -473,7 +517,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_2 = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneLogStatement,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Check that the flow we started in the background appears in the list.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
@@ -486,36 +531,42 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     f = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
 
     # Check that the flow is running.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') div[state=RUNNING]" % f)
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('%s') div[state=RUNNING]" % f
+    )
 
     # Cancel the flow and check that the flow state gets updated.
     self._TerminateFlow(f)
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') div[state=ERROR]" % f)
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('%s') div[state=ERROR]" % f
+    )
 
   def testFlowOverviewGetsUpdatedWhenFlowChanges(self):
     f = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowOverviewDirective.setAutoRefreshInterval(1000);")
+        "grrUi.flow.flowOverviewDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -523,18 +574,22 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('%s')" % f)
 
     # Check that the flow is running.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-inspector dd:contains('RUNNING')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-inspector dd:contains('RUNNING')"
+    )
 
     # Cancel the flow and check that the flow state gets updated.
     self._TerminateFlow(f)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-inspector dd:contains('ERROR')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-inspector dd:contains('ERROR')"
+    )
 
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-flow-inspector "
-        "tr:contains('Status'):contains('Because I said so')")
+        self.IsElementPresent,
+        "css=grr-flow-inspector "
+        "tr:contains('Status'):contains('Because I said so')",
+    )
 
   def _AddLogToFlow(self, flow_id, log_string):
     entry = flows_pb2.FlowLogEntry(
@@ -546,14 +601,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self._AddLogToFlow(flow_id, "foo-log")
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowLogDirective.setAutoRefreshInterval(1000);")
+        "grrUi.flow.flowLogDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -561,19 +618,23 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Log]:not([disabled]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-log td:contains('foo-log')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-flow-log td:contains('bar-log')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-log td:contains('foo-log')"
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-flow-log td:contains('bar-log')"
+    )
 
     self._AddLogToFlow(flow_id, "bar-log")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-log td:contains('bar-log')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-log td:contains('bar-log')"
+    )
 
   def _AddResultToFlow(self, flow_id, result):
     flow_result = rdf_flow_objects.FlowResult(
-        client_id=self.client_id, flow_id=flow_id, payload=result)
+        client_id=self.client_id, flow_id=flow_id, payload=result
+    )
     data_store.REL_DB.WriteFlowResults(
         [mig_flow_objects.ToProtoFlowResult(flow_result)]
     )
@@ -582,14 +643,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -597,28 +660,36 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Results]:not([disabled]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection td:contains('foo-result')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-results-collection td:contains('bar-result')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('foo-result')",
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('bar-result')",
+    )
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("bar-result"))
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection td:contains('bar-result')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('bar-result')",
+    )
 
   def testDownloadFilesPanelIsShownWhenNewResultsAreAdded(self):
     flow_id = flow_test_lib.StartFlow(
         gui_test_lib.RecursiveTestFlow,
         self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);"
+    )
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -626,20 +697,27 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=tr:contains('%s')" % flow_id)
     self.Click("css=li[heading=Results]:not([disabled]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection td:contains('foo-result')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('foo-result')",
+    )
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=grr-results-collection grr-download-collection-files")
+        "css=grr-results-collection grr-download-collection-files",
+    )
 
     stat_entry = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
-            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS
+        )
+    )
 
     self._AddResultToFlow(flow_id, stat_entry)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection grr-download-collection-files")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection grr-download-collection-files",
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 /**
+ * g3-format-v_3_1
  * Helper type that converts all optional fields to be required.
  */
 export type Complete<T> = {

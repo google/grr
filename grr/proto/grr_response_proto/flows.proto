@@ -78,6 +78,7 @@ message FlowContext {
     // A well known flow will not queue any messages and always
     // forward messages to the worker:
     WELL_KNOWN = 2;
+    CLIENT_CRASHED = 4;
   }
 
   optional State state = 14;
@@ -138,13 +139,9 @@ message FlowRunnerArgs {
   // DEPRECATED
   // optional GrrMessage.Priority priority = 1;
 
-  optional bool notify_to_user = 2 [
-    (sem_type) = {
-      description: "Should a notification be sent to the initiator.",
-      friendly_name: "Notify at Completion",
-    },
-    default = true
-  ];
+  // DEPRECATED
+  // optional bool notify_to_user = 2;
+  reserved 2;
 
   // DEPRECATED
   // optional bool send_replies = 3;
@@ -1918,14 +1915,6 @@ message MemoryCollectorArgs {
   ];
 }
 
-// Next field ID: 2
-message ArtifactFallbackCollectorArgs {
-  optional string artifact_name = 1 [(sem_type) = {
-    description: "Name of the artifact using this fallback.",
-    type: "ArtifactName",
-  }];
-}
-
 // Next field ID: 3
 message KnowledgeBaseInitializationArgs {
   optional bool require_complete = 1 [
@@ -1938,8 +1927,8 @@ message KnowledgeBaseInitializationArgs {
 
   optional bool lightweight = 2 [
     (sem_type) = {
-      description: "If true skip all heavyweight artifacts defined in "
-                   "Artifacts.knowledge_base_heavyweight.",
+      description: "If true skip all heavyweight collections during knowledge"
+                   "base initialization."
     },
     default = true
   ];
@@ -1951,21 +1940,6 @@ message EndToEndTestFlowArgs {
     description: "List of endtoend test classes to run. If none are specified,"
                  " run all automated endtoend tests.",
   }];
-}
-
-// Next field ID: 3
-message DiskVolumeInfoArgs {
-  repeated string path_list = 1 [(sem_type) = {
-    description: "List of paths.",
-  }];
-
-  optional PathSpec.PathType pathtype = 2 [
-    (sem_type) = {
-      description: "Type of path. Only OS is currently supported.",
-      label: HIDDEN
-    },
-    default = OS
-  ];
 }
 
 message YaraSignatureShard {

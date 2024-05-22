@@ -7,11 +7,10 @@ import unittest
 
 from typing import Any
 from typing import Callable
-from typing import Text
 from typing import Union
 
 
-def If(condition: Union[Any, Callable[[], Any]], reason: Text):
+def If(condition: Union[Any, Callable[[], Any]], reason: str):
   """A decorator that skips test evaluation if the condition holds.
 
   This decorator can be applied either to a test method or a test class (in
@@ -34,7 +33,7 @@ def If(condition: Union[Any, Callable[[], Any]], reason: Text):
     return unittest.skipIf(condition, reason)
 
 
-def Unless(condition: Union[Any, Callable[[], Any]], reason: Text):
+def Unless(condition: Union[Any, Callable[[], Any]], reason: str):
   """A decorator that skips test evaluation if the condition dot not hold.
 
   See documentation for the `If` decorator for more information.
@@ -52,7 +51,16 @@ def Unless(condition: Union[Any, Callable[[], Any]], reason: Text):
     return unittest.skipUnless(condition, reason)
 
 
-def _IfLazy(condition: Callable[[], Any], reason: Text):
+def _IfLazy(condition: Callable[[], Any], reason: str):
+  """A decorator that skips test evaluation if the condition holds.
+
+  Args:
+    condition: If true, the test is going to be skipped.
+    reason: A reason why the test needed to be skipped.
+
+  Returns:
+    A decorator that can be applied to test methods or classes.
+  """
 
   def Decorator(test):
     if isinstance(test, type):
@@ -85,5 +93,5 @@ def _IfLazy(condition: Callable[[], Any], reason: Text):
   return Decorator
 
 
-def _UnlessLazy(condition: Callable[[], Any], reason: Text):
+def _UnlessLazy(condition: Callable[[], Any], reason: str):
   return _IfLazy(lambda: not condition(), reason)

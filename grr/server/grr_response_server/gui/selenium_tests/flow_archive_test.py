@@ -7,7 +7,6 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import archive_generator
@@ -35,7 +34,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -43,15 +43,18 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.Click("link=Results")
 
     self.WaitUntil(self.IsTextPresent, "42")
-    self.WaitUntilNot(self.IsTextPresent,
-                      "Files referenced in this collection can be downloaded")
+    self.WaitUntilNot(
+        self.IsTextPresent,
+        "Files referenced in this collection can be downloaded",
+    )
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
     flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -59,38 +62,46 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.Click("link=Results")
 
     self.WaitUntil(self.IsTextPresent, "Value")
-    self.WaitUntilNot(self.IsTextPresent,
-                      "Files referenced in this collection can be downloaded")
+    self.WaitUntilNot(
+        self.IsTextPresent,
+        "Files referenced in this collection can be downloaded",
+    )
 
   def testShowsGenerateArchiveButtonForGetFileFlow(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "Files referenced in this collection can be downloaded")
+    self.WaitUntil(
+        self.IsTextPresent,
+        "Files referenced in this collection can be downloaded",
+    )
 
   def testGenerateArchiveButtonGetsDisabledAfterClick(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -104,70 +115,87 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     flow_id = flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         self.action_mock,
         client_id=self.client_id,
         check_flow_errors=False,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with mock.patch.object(archive_generator.CollectionArchiveGenerator,
-                           "Generate", RaisingStub):
+    with mock.patch.object(
+        archive_generator.CollectionArchiveGenerator, "Generate", RaisingStub
+    ):
       self.Open("/legacy#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
-      self.WaitUntil(self.IsTextPresent,
-                     "Can't generate archive: Unknown error")
-      self.WaitUntil(self.IsUserNotificationPresent,
-                     "Archive generation failed for flow %s" % flow_id)
+      self.WaitUntil(
+          self.IsTextPresent, "Can't generate archive: Unknown error"
+      )
+      self.WaitUntil(
+          self.IsUserNotificationPresent,
+          "Archive generation failed for flow %s" % flow_id,
+      )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedFlowResults",
-      return_value=api_flow.ApiGetExportedFlowResultsHandler())
+      return_value=api_flow.ApiGetExportedFlowResultsHandler(),
+  )
   def testClickingOnDownloadAsCsvZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
-        mock_method, csv_plugin.CSVInstantOutputPlugin.plugin_name,
-        csv_plugin.CSVInstantOutputPlugin.friendly_name)
+        mock_method,
+        csv_plugin.CSVInstantOutputPlugin.plugin_name,
+        csv_plugin.CSVInstantOutputPlugin.friendly_name,
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedFlowResults",
-      return_value=api_flow.ApiGetExportedFlowResultsHandler())
+      return_value=api_flow.ApiGetExportedFlowResultsHandler(),
+  )
   def testClickingOnDownloadAsYamlZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
         mock_method,
         yaml_plugin.YamlInstantOutputPluginWithExportConversion.plugin_name,
-        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name)
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name,
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedFlowResults",
-      return_value=api_flow.ApiGetExportedFlowResultsHandler())
+      return_value=api_flow.ApiGetExportedFlowResultsHandler(),
+  )
   def testClickingOnDownloadAsSqliteZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
-        mock_method, sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
-        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name)
+        mock_method,
+        sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
+        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name,
+    )
 
-  def checkClickingOnDownloadAsStartsDownloadForType(self, mock_method, plugin,
-                                                     plugin_display_name):
+  def checkClickingOnDownloadAsStartsDownloadForType(
+      self, mock_method, plugin, plugin_display_name
+  ):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     session_id = flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         pathspec=pathspec,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
@@ -180,10 +208,10 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         # and once for GET methods.
         mock_method.assert_called_with(
             api_flow.ApiGetExportedFlowResultsArgs(
-                client_id=self.client_id,
-                flow_id=session_id,
-                plugin_name=plugin),
-            context=mock.ANY)
+                client_id=self.client_id, flow_id=session_id, plugin_name=plugin
+            ),
+            context=mock.ANY,
+        )
 
         return True
       except AssertionError:
@@ -196,7 +224,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.RecursiveTestFlow.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")

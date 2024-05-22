@@ -7,18 +7,14 @@ import time
 from typing import Generic
 from typing import List
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 from typing import TypeVar
 
-from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 _T = TypeVar("_T")
@@ -104,7 +100,7 @@ def CallAccounted(f):
   return Decorator
 
 
-def EscapeWildcards(string: Text) -> Text:
+def EscapeWildcards(string: str) -> str:
   """Escapes wildcard characters for strings intended to be used with `LIKE`.
 
   Databases don't automatically escape wildcard characters ('%', '_'), so any
@@ -117,11 +113,11 @@ def EscapeWildcards(string: Text) -> Text:
   Returns:
     An escaped string.
   """
-  precondition.AssertType(string, Text)
+  precondition.AssertType(string, str)
   return string.replace("%", r"\%").replace("_", r"\_")
 
 
-def EscapeBackslashes(string: Text) -> Text:
+def EscapeBackslashes(string: str) -> str:
   """Escapes backslash characters for strings intended to be used with `LIKE`.
 
   Backslashes work in mysterious ways: sometimes they do need to be escaped,
@@ -136,7 +132,7 @@ def EscapeBackslashes(string: Text) -> Text:
   Returns:
     An escaped string.
   """
-  precondition.AssertType(string, Text)
+  precondition.AssertType(string, str)
   return string.replace("\\", "\\\\")
 
 
@@ -219,39 +215,6 @@ def SecondsToMicros(seconds):
 
 def MicrosToSeconds(ms):
   return ms / 1e6
-
-
-def ParseAndUnpackAny(
-    payload_type: str, payload_bytes: bytes
-) -> rdf_structs.RDFProtoStruct:
-  """Parses a google.protobuf.Any payload and unpack it into RDFProtoStruct.
-
-  Args:
-    payload_type: RDF type of the value to unpack.
-    payload_bytes: serialized google.protobuf.Any proto.
-
-  Returns:
-    An instance of RDFProtoStruct unpacked from the given payload or,
-    if payload type is not recognized, an instance of
-    SerializedValueOfUnrecognizedType.
-  """
-  any_proto = any_pb2.Any.FromString(payload_bytes)
-
-  if any_proto.type_url == _BYTES_VALUE_TYPE_URL:
-    bytes_value_proto = wrappers_pb2.BytesValue()
-    any_proto.Unpack(bytes_value_proto)
-
-    payload_value_bytes = bytes_value_proto.value
-  else:
-    payload_value_bytes = any_proto.value
-
-  if payload_type not in rdfvalue.RDFValue.classes:
-    return rdf_objects.SerializedValueOfUnrecognizedType(
-        type_name=payload_type, value=payload_value_bytes
-    )
-
-  rdf_class = rdfvalue.RDFValue.classes[payload_type]
-  return rdf_class.FromSerializedBytes(payload_value_bytes)
 
 
 class BatchPlanner(Generic[_T]):

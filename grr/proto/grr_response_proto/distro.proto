@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+package grr;
+
+// A single result of the Linux distro information collection flow.
+message CollectDistroInfoResult {
+  // Name of the distribution (e.g. "Ubuntu" or "Debian GNU/Linux").
+  optional string name = 1;
+
+  // Name of the release (e.g. "22.04.4 LTS (Jammy Jellyfish)").
+  optional string release = 2;
+
+  // Major version number of the release (e.g. 22 for Ubuntu 22.04).
+  optional uint32 version_major = 3;
+
+  // Minor version number of the release (e.g. 4 for Ubuntu 22.04).
+  optional uint32 version_minor = 4;
+}

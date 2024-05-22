@@ -85,7 +85,8 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
     return utils.MultiStubber(
         (config.CONFIG, "GetRaw", mock_config["GetRaw"]),
         (config.CONFIG, "Get", mock_config["Get"]),
-        (config.CONFIG, "type_infos", mock_config["type_infos"]))
+        (config.CONFIG, "type_infos", mock_config["type_infos"]),
+    )
 
   def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
@@ -102,17 +103,13 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
     self._assertHandlesConfig(None, config_plugin.ApiGetConfigResult())
 
   def testHandlesEmptySection(self):
-    self._assertHandlesConfig({"section": {}},
-                              config_plugin.ApiGetConfigResult())
+    self._assertHandlesConfig(
+        {"section": {}}, config_plugin.ApiGetConfigResult()
+    )
 
   def testHandlesConfigOption(self):
     input_dict = {
-        "section": {
-            "parameter": {
-                "value": u"value",
-                "raw_value": u"value"
-            }
-        }
+        "section": {"parameter": {"value": "value", "raw_value": "value"}}
     }
     result = self._HandleConfig(input_dict)
     self.assertLen(result.sections, 1)
@@ -123,10 +120,7 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRendersRedacted(self):
     input_dict = {
         "Mysql": {
-            "database_password": {
-                "value": u"secret",
-                "raw_value": u"secret"
-            }
+            "database_password": {"value": "secret", "raw_value": "secret"}
         }
     }
     result = self._HandleConfig(input_dict)
@@ -145,23 +139,20 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     return utils.MultiStubber(
         (config.CONFIG, "GetRaw", mock_config["GetRaw"]),
         (config.CONFIG, "Get", mock_config["Get"]),
-        (config.CONFIG, "type_infos", mock_config["type_infos"]))
+        (config.CONFIG, "type_infos", mock_config["type_infos"]),
+    )
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
       result = self.handler.Handle(
-          config_plugin.ApiGetConfigOptionArgs(name=name))
+          config_plugin.ApiGetConfigOptionArgs(name=name)
+      )
 
     return result
 
   def testRendersRedacted(self):
     input_dict = {
-        "Mysql": {
-            "password": {
-                "value": u"secret",
-                "raw_value": u"secret"
-            }
-        }
+        "Mysql": {"password": {"value": "secret", "raw_value": "secret"}}
     }
     result = self._HandleConfigOption(input_dict, "Mysql.password")
     self.assertEqual(result.name, "Mysql.password")
@@ -175,15 +166,18 @@ class ApiGrrBinaryTestMixin(object):
     with test_lib.FakeTime(42):
       code = "I am a binary file"
       upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
-          "windows/test.exe")
+          "windows/test.exe"
+      )
       maintenance_utils.UploadSignedConfigBlob(
-          code.encode("utf-8"), aff4_path=upload_path)
+          code.encode("utf-8"), aff4_path=upload_path
+      )
 
     with test_lib.FakeTime(43):
       code = "I'm a python hack"
       upload_path = signed_binary_utils.GetAFF4PythonHackRoot().Add("test")
       maintenance_utils.UploadSignedConfigBlob(
-          code.encode("utf-8"), aff4_path=upload_path)
+          code.encode("utf-8"), aff4_path=upload_path
+      )
 
 
 class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):

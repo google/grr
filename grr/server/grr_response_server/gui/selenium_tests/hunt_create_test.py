@@ -43,8 +43,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('What to run?')"
+    )
 
     # Click on Filesystem item in flows list
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
@@ -55,61 +56,79 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-new-hunt-wizard-form label:contains('Paths')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form label:contains('Paths')",
+    )
 
     # Change "path" and "pathtype" values
     self.Type(
         "css=grr-new-hunt-wizard-form "
         "grr-form-proto-repeated-field:has(label:contains('Paths')) "
-        "input", "/tmp")
+        "input",
+        "/tmp",
+    )
     self.Select(
         "css=grr-new-hunt-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Pathtype')) "
-        "select", "NTFS")
+        "select",
+        "NTFS",
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
 
     # Click on "Back" button and check that all the values in the form
     # remain intact.
     self.Click("css=grr-new-hunt-wizard-form button.Back")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
 
     self.Click("css=grr-new-hunt-wizard-form button.Back")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-new-hunt-wizard-form label:contains('Paths')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form label:contains('Paths')",
+    )
 
     self.assertEqual(
         "/tmp",
         self.GetValue(
             "css=grr-new-hunt-wizard-form "
-            "grr-form-proto-repeated-field:has(label:contains('Paths')) input"))
+            "grr-form-proto-repeated-field:has(label:contains('Paths')) input"
+        ),
+    )
 
     self.assertEqual(
         "NTFS",
         self.GetSelectedLabel(
             "css=grr-new-hunt-wizard-form "
             "grr-form-proto-single-field:has(label:contains('Pathtype')) select"
-        ))
+        ),
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
 
     # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
@@ -117,29 +136,37 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Type(
         "css=grr-new-hunt-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Filepath Regex')) "
-        "input", "some regex")
+        "input",
+        "some regex",
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Where to run?')"
+    )
 
     # Empty set of rules should be valid.
     self.WaitUntil(self.IsElementPresent, "css=button.Next:not([disabled])")
 
     # A note informs what an empty set of rules means.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('No rules specified!')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('No rules specified!')",
+    )
 
     # Alternative match mode that matches a client if
     # any of the rules evaluates to true can be selected.
     self.Select(
-        "css=grr-configure-rules-page "
-        "label:contains('Match mode') ~ * select", "Match any")
+        "css=grr-configure-rules-page label:contains('Match mode') ~ * select",
+        "Match any",
+    )
 
     # The note depends on the match mode.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('No rules specified!')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('No rules specified!')",
+    )
 
     # Create 3 foreman rules. Note that "Add" button adds rules
     # to the beginning of a list. So we always use :nth(0) selector.
@@ -149,76 +176,101 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     label = rule.ForemanStringField.SYSTEM.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Field') ~ * select", label)
+        "label:contains('Field') ~ * select",
+        label,
+    )
     self.Type(
         "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Attribute regex') ~ * input", "Linux")
+        "label:contains('Attribute regex') ~ * input",
+        "Linux",
+    )
 
     self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Select("css=grr-configure-rules-page div.well:nth(0) select",
-                "Integer")
+    self.Select(
+        "css=grr-configure-rules-page div.well:nth(0) select", "Integer"
+    )
 
     rule = foreman_rules.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Field') ~ * select", label)
+        "label:contains('Field') ~ * select",
+        label,
+    )
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Operator') ~ * select", "GREATER_THAN")
+        "label:contains('Operator') ~ * select",
+        "GREATER_THAN",
+    )
     self.Type(
         "css=grr-configure-rules-page div.well:nth(0) "
-        "label:contains('Value') ~ * input", "1336650631137737")
+        "label:contains('Value') ~ * input",
+        "1336650631137737",
+    )
 
     self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Click("css=grr-configure-rules-page div.well:nth(0) "
-               "label:contains('Os darwin') ~ * input[type=checkbox]")
+    self.Click(
+        "css=grr-configure-rules-page div.well:nth(0) "
+        "label:contains('Os darwin') ~ * input[type=checkbox]"
+    )
 
     # Click on "Back" button
     self.Click("css=grr-new-hunt-wizard-form button.Back")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
 
     # Click on "Next" button again and check that all the values that
     # we've just entered remain intact.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Where to run?')"
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Review')"
+    )
 
     # Check that the arguments summary is present.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Paths')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('/tmp')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Paths')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('/tmp')"
+    )
 
     # Check that output plugins are shown.
     self.assertTrue(
         self.IsElementPresent(
-            "css=grr-wizard-form:contains('DummyOutputPlugin')"))
+            "css=grr-wizard-form:contains('DummyOutputPlugin')"
+        )
+    )
     self.assertTrue(
-        self.IsElementPresent("css=grr-wizard-form:contains('some regex')"))
+        self.IsElementPresent("css=grr-wizard-form:contains('some regex')")
+    )
 
     # Check that there's no deprecated rules summary.
     self.assertFalse(
-        self.IsElementPresent("css=grr-wizard-form:contains('Regex rules')"))
+        self.IsElementPresent("css=grr-wizard-form:contains('Regex rules')")
+    )
     self.assertFalse(
-        self.IsElementPresent("css=grr-wizard-form:contains('Integer rules')"))
+        self.IsElementPresent("css=grr-wizard-form:contains('Integer rules')")
+    )
 
     # Check that rules summary is present.
     self.assertTrue(
-        self.IsElementPresent(
-            "css=grr-wizard-form:contains('Client rule set')"))
+        self.IsElementPresent("css=grr-wizard-form:contains('Client rule set')")
+    )
 
     # Click on "Run" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Created Hunt')"
+    )
 
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
@@ -227,45 +279,60 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-hunts-list td:contains('gui_user')")
 
     # Check that correct details are displayed in hunt details tab.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-inspector:contains('GenericHunt')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-inspector:contains('Flow Arguments')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-hunt-inspector:contains('GenericHunt')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-inspector:contains('Flow Arguments')",
+    )
 
     self.assertTrue(
-        self.IsElementPresent("css=grr-hunt-inspector:contains('Paths')"))
+        self.IsElementPresent("css=grr-hunt-inspector:contains('Paths')")
+    )
     self.assertTrue(
-        self.IsElementPresent("css=grr-hunt-inspector:contains('/tmp')"))
+        self.IsElementPresent("css=grr-hunt-inspector:contains('/tmp')")
+    )
 
     self.assertTrue(
         self.IsElementPresent(
-            "css=grr-hunt-inspector:contains('DummyOutputPlugin')"))
+            "css=grr-hunt-inspector:contains('DummyOutputPlugin')"
+        )
+    )
     self.assertTrue(
-        self.IsElementPresent("css=grr-hunt-inspector:contains('some regex')"))
+        self.IsElementPresent("css=grr-hunt-inspector:contains('some regex')")
+    )
 
     # Check that there's no deprecated rules summary.
     self.assertFalse(
-        self.IsElementPresent("css=grr-hunt-inspector:contains('Regex rules')"))
+        self.IsElementPresent("css=grr-hunt-inspector:contains('Regex rules')")
+    )
     self.assertFalse(
         self.IsElementPresent(
-            "css=grr-hunt-inspector:contains('Integer rules')"))
+            "css=grr-hunt-inspector:contains('Integer rules')"
+        )
+    )
 
     # Check that rules summary is present.
     self.assertTrue(
         self.IsElementPresent(
-            "css=grr-hunt-inspector:contains('Client Rule Set')"))
+            "css=grr-hunt-inspector:contains('Client Rule Set')"
+        )
+    )
 
     # Check that the hunt object was actually created
     hunts_list = sorted(
         data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+        key=lambda x: x.create_time,
+    )
     self.assertLen(hunts_list, 1)
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
     hunt = mig_hunt_objects.ToRDFHunt(hunt)
-    self.assertEqual(hunt.args.standard.flow_name,
-                     file_finder.FileFinder.__name__)
+    self.assertEqual(
+        hunt.args.standard.flow_name, file_finder.FileFinder.__name__
+    )
 
     args = hunt.args.standard.flow_args.Unpack(rdf_file_finder.FileFinderArgs)
     self.assertEqual(args.paths[0], "/tmp")
@@ -279,7 +346,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     lib_hunt.StartHunt(hunt.hunt_id)
 
     hunt_rules = self.FindForemanRules(
-        rdfvalue.RDFURN("hunts").Add(hunt.hunt_id))
+        rdfvalue.RDFURN("hunts").Add(hunt.hunt_id)
+    )
 
     # Check that the hunt was created with correct rules
     self.assertLen(hunt_rules, 1)
@@ -289,26 +357,31 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     r = hunt_rules[0].client_rule_set
 
-    self.assertEqual(r.match_mode,
-                     foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY)
+    self.assertEqual(
+        r.match_mode, foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY
+    )
     self.assertLen(r.rules, 3)
 
-    self.assertEqual(r.rules[0].rule_type,
-                     foreman_rules.ForemanClientRule.Type.OS)
+    self.assertEqual(
+        r.rules[0].rule_type, foreman_rules.ForemanClientRule.Type.OS
+    )
     self.assertEqual(r.rules[0].os.os_windows, False)
     self.assertEqual(r.rules[0].os.os_linux, False)
     self.assertEqual(r.rules[0].os.os_darwin, True)
 
-    self.assertEqual(r.rules[1].rule_type,
-                     foreman_rules.ForemanClientRule.Type.INTEGER)
+    self.assertEqual(
+        r.rules[1].rule_type, foreman_rules.ForemanClientRule.Type.INTEGER
+    )
     self.assertEqual(r.rules[1].integer.field, "CLIENT_CLOCK")
     self.assertEqual(
         r.rules[1].integer.operator,
-        foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN)
+        foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
+    )
     self.assertEqual(r.rules[1].integer.value, 1336650631137737)
 
-    self.assertEqual(r.rules[2].rule_type,
-                     foreman_rules.ForemanClientRule.Type.REGEX)
+    self.assertEqual(
+        r.rules[2].rule_type, foreman_rules.ForemanClientRule.Type.REGEX
+    )
     self.assertEqual(r.rules[2].regex.field, "SYSTEM")
     self.assertEqual(r.rules[2].regex.attribute_regex, "Linux")
 
@@ -318,22 +391,25 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('What to run?')"
+    )
 
     # Click on the FileFinder item in Filesystem flows list
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
     self.Click("css=#_Filesystem > i.jstree-icon")
     self.Click("link=File Finder")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Step 1 out of 6')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Step 1 out of 6')"
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Step 2 out of 6')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Step 2 out of 6')"
+    )
 
   def testLiteralExpressionIsProcessedCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
@@ -344,8 +420,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('What to run?')"
+    )
 
     # Click on Filesystem item in flows list
     self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
@@ -355,55 +432,67 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("link=File Finder")
 
     self.Click("css=label:contains('Conditions') ~ * button")
-    self.Select("css=label:contains('Condition type') ~ * select",
-                "Contents literal match")
+    self.Select(
+        "css=label:contains('Condition type') ~ * select",
+        "Contents literal match",
+    )
     self.Type("css=label:contains('Literal') ~ * input", "foo\\x0d\\xc8bar")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Where to run?')"
+    )
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Review')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Review')"
+    )
 
     # Check that the arguments summary is present.
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-wizard-form:contains('%s')" % file_finder.FileFinder.__name__)
+        "css=grr-wizard-form:contains('%s')" % file_finder.FileFinder.__name__,
+    )
     self.WaitUntil(self.IsTextPresent, b"foo\\x0d\\xc8bar")
 
     # Click on "Run" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Created Hunt')"
+    )
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
     hunts_list = sorted(
         data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+        key=lambda x: x.create_time,
+    )
     self.assertLen(hunts_list, 1)
 
     # Check that the hunt was created with a correct literal value.
     hunt = hunts_list[0]
     hunt = mig_hunt_objects.ToRDFHunt(hunt)
-    self.assertEqual(hunt.args.standard.flow_name,
-                     file_finder.FileFinder.__name__)
+    self.assertEqual(
+        hunt.args.standard.flow_name, file_finder.FileFinder.__name__
+    )
 
     args = hunt.args.standard.flow_args.Unpack(rdf_file_finder.FileFinderArgs)
-    self.assertEqual(args.conditions[0].contents_literal_match.literal,
-                     b"foo\x0d\xc8bar")
+    self.assertEqual(
+        args.conditions[0].contents_literal_match.literal, b"foo\x0d\xc8bar"
+    )
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/legacy#main=ManageHunts")
@@ -415,15 +504,19 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
 
     # There should be no dummy output plugin visible.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-wizard-form:contains('Dummy do do')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Dummy do do')"
+    )
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider(
@@ -438,15 +531,21 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
       # Click on "Next" button
       self.Click("css=grr-new-hunt-wizard-form button.Next")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-wizard-form:contains('Hunt parameters')")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=grr-wizard-form:contains('Hunt parameters')",
+      )
 
       # Dummy output plugin should be added by default.
       self.Click("css=grr-new-hunt-wizard-form button.Next")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-wizard-form:contains('How to process results')")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-wizard-form:contains('DummyOutputPlugin')")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=grr-wizard-form:contains('How to process results')",
+      )
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=grr-wizard-form:contains('DummyOutputPlugin')",
+      )
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     client_id = self.SetupClient(0)
@@ -454,8 +553,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     data_store.REL_DB.WriteGRRUser("owner1")
     data_store.REL_DB.WriteGRRUser("owner2")
 
-    self.AddClientLabel(client_id, u"owner1", u"foo")
-    self.AddClientLabel(client_id, u"owner2", u"bar")
+    self.AddClientLabel(client_id, "owner1", "foo")
+    self.AddClientLabel(client_id, "owner2", "bar")
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -480,13 +579,17 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     # Check that there's an option present for labels 'bar' (this option
     # should be selected) and for label 'foo'.
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form div.well "
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form div.well "
         ".form-group:has(label:contains('Label')) "
-        "select option:selected[label=bar]")
+        "select option:selected[label=bar]",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form div.well "
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form div.well "
         ".form-group:has(label:contains('Label')) "
-        "select option:not(:selected)[label=foo]")
+        "select option:not(:selected)[label=foo]",
+    )
 
   def testLabelsHuntRuleMatchesCorrectClients(self):
     client_ids = self.SetupClients(10)
@@ -495,9 +598,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     data_store.REL_DB.WriteGRRUser("owner2")
     data_store.REL_DB.WriteGRRUser("GRR")
 
-    self.AddClientLabel(client_ids[1], u"owner1", u"foo")
-    self.AddClientLabel(client_ids[1], u"owner2", u"bar")
-    self.AddClientLabel(client_ids[7], u"GRR", u"bar")
+    self.AddClientLabel(client_ids[1], "owner1", "foo")
+    self.AddClientLabel(client_ids[1], "owner2", "bar")
+    self.AddClientLabel(client_ids[7], "GRR", "bar")
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -509,14 +612,18 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     # Click 'Next' to go to the output plugins page, hunt parameters page
     # and then to hunt rules page.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Hunt parameters')"
+    )
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('How to process results')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-wizard-form:contains('How to process results')",
+    )
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Where to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Where to run?')"
+    )
 
     # Select 'Clients With Label' rule.
     self.Click("css=grr-configure-rules-page button[name=Add]")
@@ -524,27 +631,37 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Select(
         "css=grr-new-hunt-wizard-form div.well .form-group "
         ".form-group:has(label:contains('Label')):nth-last-of-type(1) "
-        "select", "foo")
-    self.Click("css=grr-new-hunt-wizard-form div.well .form-group "
-               ".form-group:has(label:contains('Add label')) button")
+        "select",
+        "foo",
+    )
+    self.Click(
+        "css=grr-new-hunt-wizard-form div.well .form-group "
+        ".form-group:has(label:contains('Add label')) button"
+    )
     self.Select(
         "css=grr-new-hunt-wizard-form div.well .form-group "
         ".form-group:has(label:contains('Label')):nth-last-of-type(1) "
-        "select", "bar")
+        "select",
+        "bar",
+    )
     self.Select(
         "css=grr-new-hunt-wizard-form div.well .form-group "
-        ".form-group:has(label:contains('Match mode')) select", "Match any")
+        ".form-group:has(label:contains('Match mode')) select",
+        "Match any",
+    )
 
     # Click 'Next' to go to hunt overview page.  Then click 'Next' to go to
     # submit the hunt and wait until it's created.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('Created Hunt')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('Created Hunt')"
+    )
 
     hunts_list = sorted(
         data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+        key=lambda x: x.create_time,
+    )
     hunt = hunts_list[0]
     lib_hunt.StartHunt(hunt.hunt_id)
 
@@ -560,22 +677,27 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.StartHunt(
         description=description,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=transfer.GetFile.__name__),
+            flow_name=transfer.GetFile.__name__
+        ),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.NTFS,
-            )),
+            )
+        ),
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
                 args=gui_test_lib.DummyOutputPlugin.args_type(
-                    filename_regex="blah!", fetch_binaries=True))
+                    filename_regex="blah!", fetch_binaries=True
+                ),
+            )
         ],
         client_rate=60,
         paused=True,
-        creator=creator or self.test_username)
+        creator=creator or self.test_username,
+    )
 
   def testPathAutocomplete(self):
     # Open Hunts
@@ -583,8 +705,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Open "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-wizard-form:contains('What to run?')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-wizard-form:contains('What to run?')"
+    )
 
     # Click on Filesystem item in flows list
     self.Click("css=#_Filesystem > i.jstree-icon")
@@ -597,13 +720,16 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     # Change "path"
     self.Type(input_selector, "/foo/%%path")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=[uib-typeahead-popup]:contains('%%environ_path%%')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=[uib-typeahead-popup]:contains('%%environ_path%%')",
+    )
 
     self.GetElement(input_selector).send_keys(keys.Keys.ENTER)
 
-    self.WaitUntilEqual("/foo/%%environ_path%%", self.GetValue,
-                        input_selector + ":text")
+    self.WaitUntilEqual(
+        "/foo/%%environ_path%%", self.GetValue, input_selector + ":text"
+    )
 
 
 if __name__ == "__main__":

@@ -1991,7 +1991,7 @@ message PersistenceFile {
   optional string source_urn = 2 [(sem_type) = {
     type: "RDFURN",
     description: "URN for rdfvalue that used this file for "
-                 " persistence. e.g. WindowsServiceInformation, StatEntry."
+                 " persistence. e.g. StatEntry."
   }];
 }
 

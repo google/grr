@@ -25,10 +25,6 @@
             "flow_name": {
               "type": "unicode",
               "value": "ListProcesses"
-            },
-            "notify_to_user": {
-              "type": "bool",
-              "value": false
             }
           }
         },
@@ -48,8 +44,7 @@
         "name": "ListProcesses",
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "ListProcesses",
-          "notify_to_user": false
+          "flow_name": "ListProcesses"
         },
         "started_at": 42000000,
         "state": "ERROR",
@@ -843,9 +838,7 @@
             "filename_regex": "."
           },
           "name": "ListProcesses",
-          "runner_args": {
-            "notify_to_user": true
-          }
+          "runner_args": {}
         }
       },
       "response": {
@@ -898,10 +891,6 @@
               "flow_name": {
                 "type": "unicode",
                 "value": "ListProcesses"
-              },
-              "notify_to_user": {
-                "type": "bool",
-                "value": true
               }
             }
           },
@@ -933,8 +922,7 @@
         "name": "ListProcesses",
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "ListProcesses",
-          "notify_to_user": true
+          "flow_name": "ListProcesses"
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -1240,8 +1228,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -1343,7 +1331,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
         }
@@ -1559,8 +1547,8 @@
             "value": "UNKNOWN"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -1630,7 +1618,7 @@
         "state": "PAUSED",
         "state_comment": "",
         "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -2562,7 +2550,6 @@
               ]
             }
           },
-          "labels": [],
           "last_seen_at": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -2674,7 +2661,6 @@
             }
           ]
         },
-        "labels": [],
         "last_seen_at": 42000000,
         "memory_size": 4294967296,
         "os_info": {
@@ -2852,7 +2838,6 @@
                   ]
                 }
               },
-              "labels": [],
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3057,7 +3042,6 @@
                   ]
                 }
               },
-              "labels": [],
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3169,7 +3153,6 @@
                 }
               ]
             },
-            "labels": [],
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -3239,7 +3222,6 @@
                 }
               ]
             },
-            "labels": [],
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "some-other-hostname.org",
@@ -3416,7 +3398,6 @@
                   ]
                 }
               },
-              "labels": [],
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3528,7 +3509,6 @@
                 }
               ]
             },
-            "labels": [],
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -3705,7 +3685,6 @@
                   ]
                 }
               },
-              "labels": [],
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3817,7 +3796,6 @@
                 }
               ]
             },
-            "labels": [],
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "some-other-hostname.org",
@@ -4302,7 +4280,16 @@
                 "value": {
                   "cpu_usage": {
                     "type": "CpuSeconds",
-                    "value": {}
+                    "value": {
+                      "system_cpu_time": {
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "user_cpu_time": {
+                        "type": "float",
+                        "value": 0.0
+                      }
+                    }
                   }
                 }
               },
@@ -4387,10 +4374,6 @@
               "network_bytes_limit": {
                 "type": "long",
                 "value": 8192
-              },
-              "notify_to_user": {
-                "type": "bool",
-                "value": true
               }
             }
           },
@@ -4500,7 +4483,10 @@
         "client_id": "C.1000000000000000",
         "context": {
           "client_resources": {
-            "cpu_usage": {}
+            "cpu_usage": {
+              "system_cpu_time": 0.0,
+              "user_cpu_time": 0.0
+            }
           },
           "create_time": 42000000,
           "creator": "api_test_user",
@@ -4523,8 +4509,7 @@
           "client_id": "aff4:/C.1000000000000000",
           "cpu_limit": 60,
           "flow_name": "Interrogate",
-          "network_bytes_limit": 8192,
-          "notify_to_user": true
+          "network_bytes_limit": 8192
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -4575,7 +4560,16 @@
                 "value": {
                   "cpu_usage": {
                     "type": "CpuSeconds",
-                    "value": {}
+                    "value": {
+                      "system_cpu_time": {
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "user_cpu_time": {
+                        "type": "float",
+                        "value": 0.0
+                      }
+                    }
                   }
                 }
               },
@@ -4668,10 +4662,6 @@
               "network_bytes_limit": {
                 "type": "long",
                 "value": 8192
-              },
-              "notify_to_user": {
-                "type": "bool",
-                "value": true
               }
             }
           },
@@ -4781,7 +4771,10 @@
         "client_id": "C.1000000000000000",
         "context": {
           "client_resources": {
-            "cpu_usage": {}
+            "cpu_usage": {
+              "system_cpu_time": 0.0,
+              "user_cpu_time": 0.0
+            }
           },
           "create_time": 42000000,
           "creator": "api_test_user",
@@ -4806,8 +4799,7 @@
           "client_id": "aff4:/C.1000000000000000",
           "cpu_limit": 60,
           "flow_name": "Interrogate",
-          "network_bytes_limit": 8192,
-          "notify_to_user": true
+          "network_bytes_limit": 8192
         },
         "started_at": 42000000,
         "state": "ERROR",
@@ -5168,8 +5160,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -5268,7 +5260,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
         }
@@ -5550,8 +5542,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -5650,7 +5642,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:567890"
         }
@@ -5897,8 +5889,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -6205,8 +6197,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -6294,7 +6286,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:556677"
         },
@@ -6389,7 +6381,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:DDEEFF"
         }
@@ -6449,10 +6441,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": true
                   }
                 }
               },
@@ -6773,8 +6761,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -6803,8 +6791,7 @@
           "name": "Interrogate",
           "runner_args": {
             "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "Interrogate",
-            "notify_to_user": true
+            "flow_name": "Interrogate"
           },
           "started_at": 42000000,
           "state": "RUNNING",
@@ -6903,7 +6890,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:667788"
         }
@@ -6918,94 +6905,86 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 44,
-            "y_value": 0
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 45,
-            "y_value": 1
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 55,
-            "y_value": 2
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 65,
-            "y_value": 3
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
           },
           {
-            "x_value": 75,
-            "y_value": 4
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
           },
           {
-            "x_value": 85,
-            "y_value": 5
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
           },
           {
-            "x_value": 95,
-            "y_value": 6
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
           },
           {
-            "x_value": 105,
-            "y_value": 7
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
           },
           {
-            "x_value": 115,
-            "y_value": 8
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
           },
           {
-            "x_value": 125,
-            "y_value": 9
-          },
-          {
-            "x_value": 135,
-            "y_value": 10
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ],
         "start_points": [
           {
-            "x_value": 44,
-            "y_value": 0
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 45,
-            "y_value": 1
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 55,
-            "y_value": 2
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 65,
-            "y_value": 3
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
           },
           {
-            "x_value": 75,
-            "y_value": 4
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
           },
           {
-            "x_value": 85,
-            "y_value": 5
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
           },
           {
-            "x_value": 95,
-            "y_value": 6
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
           },
           {
-            "x_value": 105,
-            "y_value": 7
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
           },
           {
-            "x_value": 115,
-            "y_value": 8
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
           },
           {
-            "x_value": 125,
-            "y_value": 9
-          },
-          {
-            "x_value": 135,
-            "y_value": 10
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ]
       },
@@ -7018,38 +6997,86 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 66.75,
-            "y_value": 3
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 89.5,
-            "y_value": 5
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 112.25,
-            "y_value": 7
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 135.0,
-            "y_value": 10
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ],
         "start_points": [
           {
-            "x_value": 66.75,
-            "y_value": 3
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 89.5,
-            "y_value": 5
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 112.25,
-            "y_value": 7
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 135.0,
-            "y_value": 10
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ]
       },
@@ -7062,94 +7089,86 @@
       "response": {
         "complete_points": [
           {
-            "x_value": 44,
-            "y_value": 0
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 45,
-            "y_value": 1
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 55,
-            "y_value": 2
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 65,
-            "y_value": 3
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
           },
           {
-            "x_value": 75,
-            "y_value": 4
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
           },
           {
-            "x_value": 85,
-            "y_value": 5
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
           },
           {
-            "x_value": 95,
-            "y_value": 6
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
           },
           {
-            "x_value": 105,
-            "y_value": 7
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
           },
           {
-            "x_value": 115,
-            "y_value": 8
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
           },
           {
-            "x_value": 125,
-            "y_value": 9
-          },
-          {
-            "x_value": 135,
-            "y_value": 10
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ],
         "start_points": [
           {
-            "x_value": 44,
-            "y_value": 0
+            "x_value": 45.0,
+            "y_value": 1.0
           },
           {
-            "x_value": 45,
-            "y_value": 1
+            "x_value": 54.9900016784668,
+            "y_value": 2.0
           },
           {
-            "x_value": 55,
-            "y_value": 2
+            "x_value": 64.9800033569336,
+            "y_value": 3.0
           },
           {
-            "x_value": 65,
-            "y_value": 3
+            "x_value": 74.97000122070312,
+            "y_value": 4.0
           },
           {
-            "x_value": 75,
-            "y_value": 4
+            "x_value": 84.95999908447266,
+            "y_value": 5.0
           },
           {
-            "x_value": 85,
-            "y_value": 5
+            "x_value": 94.94999694824219,
+            "y_value": 6.0
           },
           {
-            "x_value": 95,
-            "y_value": 6
+            "x_value": 104.94000244140625,
+            "y_value": 7.0
           },
           {
-            "x_value": 105,
-            "y_value": 7
+            "x_value": 114.93000030517578,
+            "y_value": 8.0
           },
           {
-            "x_value": 115,
-            "y_value": 8
+            "x_value": 124.91999816894531,
+            "y_value": 9.0
           },
           {
-            "x_value": 125,
-            "y_value": 9
-          },
-          {
-            "x_value": 135,
-            "y_value": 10
+            "x_value": 134.91000366210938,
+            "y_value": 10.0
           }
         ]
       },
@@ -7429,8 +7448,8 @@
             "value": "UNKNOWN"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -7525,7 +7544,7 @@
         "state": "PAUSED",
         "state_comment": "",
         "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -7794,8 +7813,8 @@
             "value": "UNKNOWN"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -7888,7 +7907,7 @@
         "state": "PAUSED",
         "state_comment": "",
         "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -8125,8 +8144,8 @@
             "value": "UNKNOWN"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -8208,7 +8227,7 @@
         "state": "PAUSED",
         "state_comment": "",
         "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -10994,8 +11013,8 @@
                 "value": "UNKNOWN"
               },
               "total_cpu_usage": {
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "total_net_usage": {
                 "type": "long",
@@ -11094,7 +11113,7 @@
           "state": "PAUSED",
           "state_comment": "",
           "state_reason": "UNKNOWN",
-          "total_cpu_usage": 0,
+          "total_cpu_usage": 0.0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
         }
@@ -12752,7 +12771,6 @@
       "api_method": "ListClientCrashes",
       "method": "GET",
       "response": {
-        "items": [],
         "total_count": 1
       },
       "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v1",
@@ -14087,7 +14105,6 @@
                 "type": "unicode",
                 "value": "ListProcesses"
               },
-              "nested_flows": [],
               "runner_args": {
                 "type": "FlowRunnerArgs",
                 "value": {
@@ -14098,10 +14115,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "ListProcesses"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": false
                   }
                 }
               },
@@ -14146,7 +14159,6 @@
                 "type": "unicode",
                 "value": "Interrogate"
               },
-              "nested_flows": [],
               "runner_args": {
                 "type": "FlowRunnerArgs",
                 "value": {
@@ -14157,10 +14169,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": true
                   }
                 }
               },
@@ -14190,11 +14198,9 @@
             "is_robot": true,
             "last_active_at": 44000000,
             "name": "ListProcesses",
-            "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "ListProcesses",
-              "notify_to_user": false
+              "flow_name": "ListProcesses"
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -14207,11 +14213,9 @@
             "is_robot": false,
             "last_active_at": 43000000,
             "name": "Interrogate",
-            "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate",
-              "notify_to_user": true
+              "flow_name": "Interrogate"
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -14280,10 +14284,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "ListProcesses"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": false
                   }
                 }
               },
@@ -14355,10 +14355,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": true
                   }
                 }
               },
@@ -14395,8 +14391,7 @@
             },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "ListProcesses",
-              "notify_to_user": false
+              "flow_name": "ListProcesses"
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -14416,8 +14411,7 @@
             },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate",
-              "notify_to_user": true
+              "flow_name": "Interrogate"
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -14486,10 +14480,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "ListProcesses"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": false
                   }
                 }
               },
@@ -14526,8 +14516,7 @@
             },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "ListProcesses",
-              "notify_to_user": false
+              "flow_name": "ListProcesses"
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -14596,10 +14585,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": true
                   }
                 }
               },
@@ -14636,8 +14621,7 @@
             },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate",
-              "notify_to_user": true
+              "flow_name": "Interrogate"
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -14679,7 +14663,6 @@
                 "type": "unicode",
                 "value": "Interrogate"
               },
-              "nested_flows": [],
               "runner_args": {
                 "type": "FlowRunnerArgs",
                 "value": {
@@ -14690,10 +14673,6 @@
                   "flow_name": {
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "notify_to_user": {
-                    "type": "bool",
-                    "value": true
                   }
                 }
               },
@@ -14723,11 +14702,9 @@
             "is_robot": false,
             "last_active_at": 43000000,
             "name": "Interrogate",
-            "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate",
-              "notify_to_user": true
+              "flow_name": "Interrogate"
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -15096,8 +15073,8 @@
                     "value": "UNKNOWN"
                   },
                   "total_cpu_usage": {
-                    "type": "long",
-                    "value": 0
+                    "type": "float",
+                    "value": 0.0
                   },
                   "total_net_usage": {
                     "type": "long",
@@ -15200,7 +15177,7 @@
               "state": "PAUSED",
               "state_comment": "",
               "state_reason": "UNKNOWN",
-              "total_cpu_usage": 0,
+              "total_cpu_usage": 0.0,
               "total_net_usage": 0,
               "urn": "aff4:/hunts/H:123456"
             }
@@ -15603,7 +15580,6 @@
       "api_method": "ListHuntCrashes",
       "method": "GET",
       "response": {
-        "items": [],
         "total_count": 1
       },
       "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v1",
@@ -17036,9 +17012,7 @@
     {
       "api_method": "ListHunts",
       "method": "GET",
-      "response": {
-        "items": []
-      },
+      "response": {},
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
       "url": "/api/hunts?count=2&offset=0&with_state=started"
     }
@@ -18351,8 +18325,8 @@
             "value": "UNKNOWN"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -18434,7 +18408,7 @@
         "state": "PAUSED",
         "state_comment": "",
         "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -18674,8 +18648,8 @@
             "value": "TRIGGERED_BY_USER"
           },
           "total_cpu_usage": {
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "total_net_usage": {
             "type": "long",
@@ -18757,7 +18731,7 @@
         "state": "STOPPED",
         "state_comment": "Cancelled by user",
         "state_reason": "TRIGGERED_BY_USER",
-        "total_cpu_usage": 0,
+        "total_cpu_usage": 0.0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
       },
@@ -18919,7 +18893,6 @@
                   ]
                 }
               },
-              "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -19031,7 +19004,6 @@
                 }
               ]
             },
-            "labels": [],
             "last_seen_at": 42000000,
             "os_info": {
               "fqdn": "Host-0.example.com",

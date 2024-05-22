@@ -23,22 +23,26 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
     self.Click("link=Show export command")
 
-    expected_command = ("/usr/bin/grr_api_shell 'http://localhost:8000/' "
-                        "--exec_code 'grrapi.Client(\"%s\")."
-                        "Flow(\"%s\").GetFilesArchive()."
-                        "WriteToFile(\"./flow_results_%s_%s.zip\")'" % (
-                            self.client_id,
-                            session_id,
-                            self.client_id.replace(".", "_"),
-                            session_id.replace(":", "_"),
-                        ))
+    expected_command = (
+        "/usr/bin/grr_api_shell 'http://localhost:8000/' "
+        '--exec_code \'grrapi.Client("%s").'
+        'Flow("%s").GetFilesArchive().'
+        'WriteToFile("./flow_results_%s_%s.zip")\''
+        % (
+            self.client_id,
+            session_id,
+            self.client_id.replace(".", "_"),
+            session_id.replace(":", "_"),
+        )
+    )
     self.WaitUntil(self.IsTextPresent, expected_command)
 
   def testExportCommandIsNotShownWhenNoResults(self):
@@ -47,13 +51,15 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-results:contains('Value')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-results:contains('Value')"
+    )
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
@@ -61,13 +67,15 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-flow-results:contains('Value')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-results:contains('Value')"
+    )
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
 

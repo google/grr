@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """WSGI compliant middleware that adds CSP headers to all responses."""
+
 import json
 from typing import Iterable, Mapping
 from wsgiref import headers as wsgi_headers
@@ -57,7 +58,8 @@ def CspMiddleware(application):
 
   if report_uri and "report-uri" in csp_policy:
     raise RuntimeError(
-        "Report URI specified in both AdminUI.csp_report_uri and AdminUI.csp_policy."
+        "Report URI specified in both AdminUI.csp_report_uri and"
+        " AdminUI.csp_policy."
     )
 
   if report_uri:
@@ -77,7 +79,8 @@ def CspMiddleware(application):
 
     # Enable CSP only on certain paths.
     if include_url_prefixes and not path_info.startswith(
-        tuple(include_url_prefixes)):
+        tuple(include_url_prefixes)
+    ):
       csp_enabled = False
       tt_enabled = False
 

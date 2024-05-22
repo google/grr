@@ -17,10 +17,7 @@ message ArtifactSource {
     // ARTIFACT has been deprecated in favor of ARTIFACT_GROUP.
     ARTIFACT = 5;
     PATH = 6;
-    // TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
-    //
-    // [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
-    DIRECTORY = 7;
+    reserved 7;
     ARTIFACT_GROUP = 8;
 
     // TODO(user): these types will likely be separated out from artifacts in

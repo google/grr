@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
 
-
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 
 
 def GetAvailableReportPlugins():
   """Lists the registered report plugins."""
   return sorted(
-      REGISTRY.GetRegisteredPlugins().values(), key=lambda cls: cls.__name__)
+      REGISTRY.GetRegisteredPlugins().values(), key=lambda cls: cls.__name__
+  )
 
 
 def GetReportByName(name):
   """Maps report plugin names to report objects.
 
   Args:
-    name: The name of a plugin class. Also the name field of
-          ApiGetReportArgs and ApiReportDescriptor.
+    name: The name of a plugin class. Also the name field of ApiGetReportArgs
+      and ApiReportDescriptor.
 
   Returns:
     Report plugin object of class corresponding to the given name.
@@ -45,9 +45,11 @@ class _Registry(object):
 
     name = report_plugin_cls.__name__
     if name in self.plugins:
-      raise RuntimeError("Can't register two report plugins with the same "
-                         "name. In particular, can't register the same "
-                         "report plugin twice: %r" % name)
+      raise RuntimeError(
+          "Can't register two report plugins with the same "
+          "name. In particular, can't register the same "
+          "report plugin twice: %r" % name
+      )
 
     self.plugins[name] = report_plugin_cls
 

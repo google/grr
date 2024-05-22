@@ -19,8 +19,9 @@ class AuditTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertNotEmpty(entries)
     entry = entries[-1]
 
-    self.assertEqual(entry.http_request_path,
-                     "/api/v2/clients?count=50&offset=0&query=.")
+    self.assertEqual(
+        entry.http_request_path, "/api/v2/clients?count=50&offset=0&query=."
+    )
     self.assertEqual(entry.response_code, objects_pb2.APIAuditEntry.Code.OK)
     self.assertEqual(entry.router_method_name, "SearchClients")
     self.assertEqual(entry.username, "api_test_robot_user")

@@ -48,7 +48,7 @@ components' List Options container */
 }
 
 .mat-mdc-option.mat-mdc-option-active.mat-mdc-option-active,
-.mat-mdc-option:hover:not([disabled="false"]) {
+.mat-mdc-option:hover:not([disabled='false']) {
   background-color: mat.get-color-from-palette(c.$background, hover);
 }
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """A module with MySQL implementation of YARA-related database methods."""
 
-from typing import Text
-
 import MySQLdb
 
 from grr_response_server.databases import db
@@ -17,7 +15,7 @@ class MySQLDBYaraMixin(object):
   def WriteYaraSignatureReference(
       self,
       blob_id: blobs.BlobID,
-      username: Text,
+      username: str,
       cursor: MySQLdb.cursors.Cursor,
   ) -> None:
     """Marks specified blob id as a YARA signature."""

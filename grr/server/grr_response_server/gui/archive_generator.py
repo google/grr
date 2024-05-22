@@ -4,24 +4,25 @@
 import enum
 import io
 import os
-from typing import Dict, Iterable, Iterator
+from typing import Callable, Dict, Iterable, Iterator, Optional
 import zipfile
 
 import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
+from grr_response_server.databases import db
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def _ClientPathToString(client_path, prefix=""):
+def _ClientPathToString(client_path: db.ClientPath, prefix: str = "") -> str:
   """Returns a path-like String of client_path with optional prefix."""
   return os.path.join(prefix, client_path.client_id, client_path.vfs_path)
 
@@ -35,25 +36,24 @@ class ArchiveFormat(enum.Enum):
 # files archives for any flow or hunt. I'd expect this class to be phased out
 # as soon as flow-specific implementations mapping-based implementations
 # are done for all the flows (see FlowArchiveGenerator below).
-class CollectionArchiveGenerator(object):
+class CollectionArchiveGenerator:
   """Class that generates downloaded files archive from a collection."""
-
-  ZIP = ArchiveFormat.ZIP
-  TAR_GZ = ArchiveFormat.TAR_GZ
 
   FILES_SKIPPED_WARNING = (
       "# NOTE: Some files were skipped because they were referenced in the \n"
       "# collection but were not downloaded by GRR, so there were no data \n"
-      "# blobs in the data store to archive.\n").encode("utf-8")
+      "# blobs in the data store to archive.\n"
+  ).encode("utf-8")
 
   BATCH_SIZE = 1000
 
-  def __init__(self,
-               archive_format=ZIP,
-               prefix=None,
-               description=None,
-               predicate=None,
-               client_id=None):
+  def __init__(
+      self,
+      archive_format: ArchiveFormat = ArchiveFormat.ZIP,
+      prefix: Optional[str] = None,
+      description: Optional[str] = None,
+      predicate: Optional[Callable[db.ClientPath, bool]] = None,
+  ):
     """CollectionArchiveGenerator constructor.
 
     Args:
@@ -67,17 +67,17 @@ class CollectionArchiveGenerator(object):
       predicate: If not None, only the files matching the predicate will be
         archived, all others will be skipped. The predicate receives a
         db.ClientPath as input.
-      client_id: The client_id to use when exporting a flow results collection.
 
     Raises:
       ValueError: if prefix is None.
     """
     super().__init__()
 
-    if archive_format == self.ZIP:
+    if archive_format == ArchiveFormat.ZIP:
       self.archive_generator = utils.StreamingZipGenerator(
-          compression=zipfile.ZIP_DEFLATED)
-    elif archive_format == self.TAR_GZ:
+          compression=zipfile.ZIP_DEFLATED
+      )
+    elif archive_format == ArchiveFormat.TAR_GZ:
       self.archive_generator = utils.StreamingTarGenerator()
     else:
       raise ValueError("Unknown archive format: %s" % archive_format)
@@ -94,17 +94,16 @@ class CollectionArchiveGenerator(object):
     self.processed_files = set()
 
     self.predicate = predicate or (lambda _: True)
-    self.client_id = client_id
 
   @property
-  def output_size(self):
+  def output_size(self) -> int:
     return self.archive_generator.output_size
 
   @property
-  def total_files(self):
+  def total_files(self) -> int:
     return len(self.processed_files)
 
-  def _GenerateDescription(self):
+  def _GenerateDescription(self) -> Iterator[bytes]:
     """Generates description into a MANIFEST file in the archive."""
 
     manifest = {
@@ -112,7 +111,7 @@ class CollectionArchiveGenerator(object):
         "processed_files": len(self.processed_files),
         "archived_files": len(self.archived_files),
         "ignored_files": len(self.ignored_files),
-        "failed_files": len(self.failed_files)
+        "failed_files": len(self.failed_files),
     }
     if self.ignored_files:
       manifest["ignored_files_list"] = [
@@ -130,13 +129,19 @@ class CollectionArchiveGenerator(object):
 
     manifest_fd.seek(0)
     st = os.stat_result(
-        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0))
+        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0)
+    )
 
     for chunk in self.archive_generator.WriteFromFD(
-        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
+        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st
+    ):
       yield chunk
 
-  def _GenerateClientInfo(self, client_id, client_fd):
+  def _GenerateClientInfo(
+      self,
+      client_id: str,
+      client_fd: api_client.ApiClient,
+  ) -> Iterator[bytes]:
     """Yields chucks of archive information for given client."""
     summary_dict = client_fd.ToPrimitiveDict(stringify_leaf_fields=True)
     summary = yaml.safe_dump(summary_dict).encode("utf-8")
@@ -147,7 +152,10 @@ class CollectionArchiveGenerator(object):
     yield self.archive_generator.WriteFileChunk(summary)
     yield self.archive_generator.WriteFileFooter()
 
-  def Generate(self, items):
+  def Generate(
+      self,
+      items: Iterable[flows_pb2.FlowResult],
+  ) -> Iterator[bytes]:
     """Generates archive from a given collection.
 
     Iterates the collection and generates an archive by yielding contents
@@ -166,8 +174,7 @@ class CollectionArchiveGenerator(object):
       client_paths = set()
       for item in item_batch:
         try:
-          client_path = flow_export.CollectionItemToClientPath(
-              item, self.client_id)
+          client_path = flow_export.FlowResultToClientPath(item)
         except flow_export.ItemNotExportableError:
           continue
 
@@ -185,7 +192,8 @@ class CollectionArchiveGenerator(object):
           yield output
 
       self.processed_files |= client_paths - (
-          self.ignored_files | self.archived_files)
+          self.ignored_files | self.archived_files
+      )
 
     if client_ids:
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
@@ -202,7 +210,10 @@ class CollectionArchiveGenerator(object):
 
     yield self.archive_generator.Close()
 
-  def _WriteFileChunk(self, chunk):
+  def _WriteFileChunk(
+      self,
+      chunk: file_store.StreamedFileChunk,
+  ) -> Iterator[bytes]:
     """Yields binary chunks, respecting archive file headers and footers.
 
     Args:
@@ -227,13 +238,17 @@ class FlowArchiveGenerator:
 
   BATCH_SIZE = 1000
 
-  def __init__(self, flow: rdf_flow_objects.Flow,
-               archive_format: ArchiveFormat):
+  def __init__(
+      self,
+      flow: flows_pb2.Flow,
+      archive_format: ArchiveFormat,
+  ) -> None:
     self.flow = flow
     self.archive_format = archive_format
     if archive_format == ArchiveFormat.ZIP:
       self.archive_generator = utils.StreamingZipGenerator(
-          compression=zipfile.ZIP_DEFLATED)
+          compression=zipfile.ZIP_DEFLATED
+      )
       extension = "zip"
     elif archive_format == ArchiveFormat.TAR_GZ:
       self.archive_generator = utils.StreamingTarGenerator()
@@ -242,12 +257,16 @@ class FlowArchiveGenerator:
       raise ValueError(f"Unknown archive format: {archive_format}")
 
     self.prefix = "{}_{}_{}".format(
-        flow.client_id.replace(".", "_"), flow.flow_id, flow.flow_class_name)
+        flow.client_id.replace(".", "_"), flow.flow_id, flow.flow_class_name
+    )
     self.filename = f"{self.prefix}.{extension}"
     self.num_archived_files = 0
 
-  def _GenerateDescription(self, processed_files: Dict[str, str],
-                           missing_files: Iterable[str]) -> Iterable[bytes]:
+  def _GenerateDescription(
+      self,
+      processed_files: Dict[str, str],
+      missing_files: Iterable[str],
+  ) -> Iterable[bytes]:
     """Generates a MANIFEST file in the archive."""
 
     manifest = {
@@ -262,14 +281,19 @@ class FlowArchiveGenerator:
 
     manifest_fd.seek(0)
     st = os.stat_result(
-        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0))
+        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0)
+    )
 
     for chunk in self.archive_generator.WriteFromFD(
-        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
+        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st
+    ):
       yield chunk
 
-  def _WriteFileChunk(self, chunk: file_store.StreamedFileChunk,
-                      archive_paths_by_id: Dict[rdf_objects.PathID, str]):
+  def _WriteFileChunk(
+      self,
+      chunk: file_store.StreamedFileChunk,
+      archive_paths_by_id: Dict[rdf_objects.PathID, str],
+  ) -> Iterator[bytes]:
     """Yields binary chunks, respecting archive file headers and footers.
 
     Args:
@@ -292,7 +316,8 @@ class FlowArchiveGenerator:
       yield self.archive_generator.WriteFileFooter()
 
   def Generate(
-      self, mappings: Iterator[flow_base.ClientPathArchiveMapping]
+      self,
+      mappings: Iterator[flow_base.ClientPathArchiveMapping],
   ) -> Iterator[bytes]:
     """Generates archive from a given set of client path mappings.
 
@@ -315,10 +340,12 @@ class FlowArchiveGenerator:
 
       processed_in_batch = set()
       for chunk in file_store.StreamFilesChunks(
-          [m.client_path for m in mappings_batch]):
+          [m.client_path for m in mappings_batch]
+      ):
         processed_in_batch.add(chunk.client_path.path_id)
         processed_files[chunk.client_path.vfs_path] = archive_paths_by_id[
-            chunk.client_path.path_id]
+            chunk.client_path.path_id
+        ]
         for output in self._WriteFileChunk(chunk, archive_paths_by_id):
           yield output
 
@@ -334,5 +361,5 @@ class FlowArchiveGenerator:
     yield self.archive_generator.Close()
 
   @property
-  def output_size(self):
+  def output_size(self) -> int:
     return self.archive_generator.output_size

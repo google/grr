@@ -34,10 +34,13 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
     with test_lib.FakeTime(42):
       client_ref.AddLabels(["foo", "bar"])
 
-    self.assertCountEqual(client_ref.Get().data.labels, [
-        objects_pb2.ClientLabel(name="bar", owner=self.test_username),
-        objects_pb2.ClientLabel(name="foo", owner=self.test_username)
-    ])
+    self.assertCountEqual(
+        client_ref.Get().data.labels,
+        [
+            objects_pb2.ClientLabel(name="bar", owner=self.test_username),
+            objects_pb2.ClientLabel(name="foo", owner=self.test_username),
+        ],
+    )
 
   def testAddLabelsWithGeneratorArg(self):
     client_ref = self.api.Client(client_id=self.client_id)
@@ -50,10 +53,13 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
     with test_lib.FakeTime(42):
       client_ref.AddLabels(Gen())
 
-    self.assertCountEqual(client_ref.Get().data.labels, [
-        objects_pb2.ClientLabel(name="bar", owner=self.test_username),
-        objects_pb2.ClientLabel(name="foo", owner=self.test_username)
-    ])
+    self.assertCountEqual(
+        client_ref.Get().data.labels,
+        [
+            objects_pb2.ClientLabel(name="bar", owner=self.test_username),
+            objects_pb2.ClientLabel(name="foo", owner=self.test_username),
+        ],
+    )
 
   def testRemoveLabelsRaisesOnIncorrectArgs(self):
     client_ref = self.api.Client(client_id=self.client_id)
@@ -68,24 +74,30 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testRemoveLabel(self):
     with test_lib.FakeTime(42):
-      data_store.REL_DB.AddClientLabels(self.client_id, self.test_username,
-                                        ["bar", "foo"])
+      data_store.REL_DB.AddClientLabels(
+          self.client_id, self.test_username, ["bar", "foo"]
+      )
 
     client_ref = self.api.Client(client_id=self.client_id)
-    self.assertCountEqual(client_ref.Get().data.labels, [
-        objects_pb2.ClientLabel(name="bar", owner=self.test_username),
-        objects_pb2.ClientLabel(name="foo", owner=self.test_username)
-    ])
+    self.assertCountEqual(
+        client_ref.Get().data.labels,
+        [
+            objects_pb2.ClientLabel(name="bar", owner=self.test_username),
+            objects_pb2.ClientLabel(name="foo", owner=self.test_username),
+        ],
+    )
 
     client_ref.RemoveLabel("foo")
     self.assertCountEqual(
         client_ref.Get().data.labels,
-        [objects_pb2.ClientLabel(name="bar", owner=self.test_username)])
+        [objects_pb2.ClientLabel(name="bar", owner=self.test_username)],
+    )
 
   def testRemoveLabelsWithGeneratorArg(self):
     with test_lib.FakeTime(42):
-      data_store.REL_DB.AddClientLabels(self.client_id, self.test_username,
-                                        ["bar", "foo"])
+      data_store.REL_DB.AddClientLabels(
+          self.client_id, self.test_username, ["bar", "foo"]
+      )
 
     client_ref = self.api.Client(client_id=self.client_id)
 

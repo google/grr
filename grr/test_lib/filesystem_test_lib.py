@@ -7,10 +7,8 @@ import platform
 import subprocess
 import unittest
 
-from typing import Text
 
-
-def CreateFile(filepath: Text, content: bytes = b"") -> None:
+def CreateFile(filepath: str, content: bytes = b"") -> None:
   """Creates a file at specified path.
 
   Note that if a file at the specified path already exists, its old content will

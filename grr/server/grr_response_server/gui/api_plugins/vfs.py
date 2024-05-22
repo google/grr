@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
-import contextlib
+
 import csv
 import io
 import itertools
 import os
 import re
-from typing import Collection
-from typing import Dict
-from typing import Iterator
-from typing import Optional
-from typing import Set
-from typing import Tuple
+import stat
+from typing import Collection, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 import zipfile
 
 from grr_response_core import config
@@ -19,22 +15,25 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import text
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import decoders
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import notification
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import mig_filesystem
+from grr_response_server.flows.general import mig_transfer
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -42,7 +41,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 _ROOT_FILES_ALLOWLIST = ["fs", "registry", "temp"]
 
 
-def ValidateVfsPath(path):
+def ValidateVfsPath(path: str) -> None:
   """Validates a VFS path."""
 
   components = (path or "").lstrip("/").split("/")
@@ -50,10 +49,10 @@ def ValidateVfsPath(path):
     raise ValueError("Empty path is not a valid path: %s." % path)
 
   if components[0] not in _ROOT_FILES_ALLOWLIST:
-    raise ValueError("First path component was '%s', but has to be one of %s" %
-                     (components[0], ", ".join(_ROOT_FILES_ALLOWLIST)))
-
-  return True
+    raise ValueError(
+        "First path component was '%s', but has to be one of %s"
+        % (components[0], ", ".join(_ROOT_FILES_ALLOWLIST))
+    )
 
 
 # TODO(hanuszczak): Fix the linter warning properly.
@@ -75,7 +74,8 @@ class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):  # pylint:
 
     message = "{path_type} path '{path}' for client '{client_id}' not found"
     message = message.format(
-        client_id=client_id, path_type=path_type, path=path)
+        client_id=client_id, path_type=path_type, path=path
+    )
     super().__init__(message)
 
 
@@ -101,20 +101,24 @@ class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
       message = "Content for {} file with path '{}' for client '{}' not found"
       message = message.format(path_type, path, client_id)
     else:
-      message = ("Content for {} file with path '{}' and timestamp '{}' for "
-                 "client '{}' not found")
+      message = (
+          "Content for {} file with path '{}' and timestamp '{}' for "
+          "client '{}' not found"
+      )
       message = message.format(path_type, path, timestamp, client_id)
 
     super().__init__(message)
 
 
 class VfsRefreshOperationNotFoundError(
-    api_call_handler_base.ResourceNotFoundError):
+    api_call_handler_base.ResourceNotFoundError
+):
   """Raised when a vfs refresh operation could not be found."""
 
 
 class VfsFileContentUpdateNotFoundError(
-    api_call_handler_base.ResourceNotFoundError):
+    api_call_handler_base.ResourceNotFoundError
+):
   """Raised when a file content update operation could not be found."""
 
 
@@ -144,6 +148,7 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
   ApiAff4ObjectType represents a subset of all attributes of an Aff4Object
   defined by a certain class of the inheritance hierarchy of the Aff4Object.
   """
+
   protobuf = vfs_pb2.ApiAff4ObjectType
   rdf_deps = [
       ApiAff4ObjectAttribute,
@@ -157,6 +162,7 @@ class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
   structured by type. If an attribute is found multiple times, it is only
   added once at the type where it is first encountered.
   """
+
   protobuf = vfs_pb2.ApiAff4ObjectRepresentation
   rdf_deps = [
       ApiAff4ObjectType,
@@ -227,50 +233,53 @@ def _GenerateApiFileDetails(path_infos):
     if pi.hash_entry:
       hash_attrs.append(_Value(pi.timestamp, pi.hash_entry))
       size_attrs.append(
-          _Value(pi.timestamp, rdfvalue.RDFInteger(pi.hash_entry.num_bytes)))
+          _Value(pi.timestamp, rdfvalue.RDFInteger(pi.hash_entry.num_bytes))
+      )
     if pi.stat_entry:
       stat_attrs.append(_Value(pi.timestamp, pi.stat_entry))
 
       if pi.stat_entry.pathspec:
         pathspec_attrs.append(_Value(pi.timestamp, pi.stat_entry.pathspec))
 
-  return ApiAff4ObjectRepresentation(types=[
-      ApiAff4ObjectType(
-          name="AFF4Object",
-          attributes=[
-              ApiAff4ObjectAttribute(
-                  name="TYPE",
-                  values=type_attrs,
-              ),
-          ],
-      ),
-      ApiAff4ObjectType(
-          name="AFF4Stream",
-          attributes=[
-              ApiAff4ObjectAttribute(
-                  name="HASH",
-                  values=hash_attrs,
-              ),
-              ApiAff4ObjectAttribute(
-                  name="SIZE",
-                  values=size_attrs,
-              ),
-          ],
-      ),
-      ApiAff4ObjectType(
-          name="VFSFile",
-          attributes=[
-              ApiAff4ObjectAttribute(
-                  name="PATHSPEC",
-                  values=pathspec_attrs,
-              ),
-              ApiAff4ObjectAttribute(
-                  name="STAT",
-                  values=stat_attrs,
-              ),
-          ],
-      ),
-  ])
+  return ApiAff4ObjectRepresentation(
+      types=[
+          ApiAff4ObjectType(
+              name="AFF4Object",
+              attributes=[
+                  ApiAff4ObjectAttribute(
+                      name="TYPE",
+                      values=type_attrs,
+                  ),
+              ],
+          ),
+          ApiAff4ObjectType(
+              name="AFF4Stream",
+              attributes=[
+                  ApiAff4ObjectAttribute(
+                      name="HASH",
+                      values=hash_attrs,
+                  ),
+                  ApiAff4ObjectAttribute(
+                      name="SIZE",
+                      values=size_attrs,
+                  ),
+              ],
+          ),
+          ApiAff4ObjectType(
+              name="VFSFile",
+              attributes=[
+                  ApiAff4ObjectAttribute(
+                      name="PATHSPEC",
+                      values=pathspec_attrs,
+                  ),
+                  ApiAff4ObjectAttribute(
+                      name="STAT",
+                      values=stat_attrs,
+                  ),
+              ],
+          ),
+      ]
+  )
 
 
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
@@ -291,13 +300,19 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     if args.file_path.endswith("/"):
       args.file_path = args.file_path[:-1]
     if args.file_path in [
-        "fs", "registry", "temp", "fs/os", "fs/tsk", "fs/ntfs"
+        "fs",
+        "registry",
+        "temp",
+        "fs/os",
+        "fs/tsk",
+        "fs/ntfs",
     ]:
       api_file = ApiFile(
           name=args.file_path,
           path=args.file_path,
           is_directory=True,
-          details=_GenerateApiFileDetails([]))
+          details=_GenerateApiFileDetails([]),
+      )
       return ApiGetFileDetailsResult(file=api_file)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
@@ -313,14 +328,16 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
       )
     except db.UnknownPathError:
       raise FileNotFoundError(
-          client_id=client_id, path_type=path_type, components=components)
+          client_id=client_id, path_type=path_type, components=components
+      )
 
     path_info = None
     if proto_path_info is not None:
       path_info = mig_objects.ToRDFPathInfo(proto_path_info)
     last_collection_pi = file_store.GetLastCollectionPathInfo(
         db.ClientPath.FromPathInfo(client_id, path_info),
-        max_timestamp=args.timestamp)
+        max_timestamp=args.timestamp,
+    )
 
     proto_history = data_store.REL_DB.ReadPathInfoHistory(
         client_id=client_id,
@@ -434,9 +451,9 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       items.append(registry_item)
 
     if args.count:
-      items = items[args.offset:args.offset + args.count]
+      items = items[args.offset : args.offset + args.count]
     else:
-      items = items[args.offset:]
+      items = items[args.offset :]
 
     return ApiListFilesResult(items=items)
 
@@ -462,9 +479,9 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     items.append(tsk_item)
 
     if args.count:
-      items = items[args.offset:args.offset + args.count]
+      items = items[args.offset : args.offset + args.count]
     else:
-      items = items[args.offset:]
+      items = items[args.offset :]
 
     return ApiListFilesResult(items=items)
 
@@ -506,9 +523,9 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     items.sort(key=lambda item: item.path)
 
     if args.count:
-      items = items[args.offset:args.offset + args.count]
+      items = items[args.offset : args.offset + args.count]
     else:
-      items = items[args.offset:]
+      items = items[args.offset :]
 
     return ApiListFilesResult(items=items)
 
@@ -544,7 +561,7 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiBrowseFilesystemArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> ApiBrowseFilesystemResult:
     del context  # Unused.
 
@@ -565,7 +582,8 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
     for cur_components in all_components:
       path_types_to_query, children = self._ListDirectory(
-          client_id, path_types_to_query, cur_components, args.timestamp)
+          client_id, path_types_to_query, cur_components, args.timestamp
+      )
 
       if children is None:
         # When the current directory was not found, stop querying because
@@ -574,18 +592,24 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
       results.append(
           ApiBrowseFilesystemEntry(
-              path="/" + "/".join(cur_components), children=children))
+              path="/" + "/".join(cur_components), children=children
+          )
+      )
 
     return ApiBrowseFilesystemResult(items=results)
 
   def _GetDirectoryTree(
-      self, components: Collection[str]) -> Iterator[Collection[str]]:
+      self, components: Collection[str]
+  ) -> Iterator[Collection[str]]:
     yield []  # First, yield the root folder "/".
     for i in range(len(components)):
-      yield components[:i + 1]
+      yield components[: i + 1]
 
-  def _MergePathInfos(self, path_infos: Dict[str, rdf_objects.PathInfo],
-                      cur_path_infos: Collection[rdf_objects.PathInfo]) -> None:
+  def _MergePathInfos(
+      self,
+      path_infos: Dict[str, rdf_objects.PathInfo],
+      cur_path_infos: Collection[rdf_objects.PathInfo],
+  ) -> None:
     """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
 
     for proto_pi in cur_path_infos:
@@ -594,8 +618,11 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
       # If the VFS has the same file in two PathTypes, use the latest collected
       # version.
 
-      if (existing is None or existing.timestamp is None or
-          (pi.timestamp is not None and existing.timestamp < pi.timestamp)):
+      if (
+          existing is None
+          or existing.timestamp is None
+          or (pi.timestamp is not None and existing.timestamp < pi.timestamp)
+      ):
         path_infos[pi.basename] = pi
 
   def _ListDirectory(
@@ -616,7 +643,8 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
             client_id=client_id,
             path_type=path_type,
             components=components,
-            timestamp=timestamp)
+            timestamp=timestamp,
+        )
 
       except (db.UnknownPathError, db.NotDirectoryPathError):
         # Whenever a directory cannot be found with a given PathType, we remove
@@ -652,27 +680,40 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFileTextArgs
   result_type = ApiGetFileTextResult
+  proto_args_type = vfs_pb2.ApiGetFileTextArgs
+  proto_result_type = vfs_pb2.ApiGetFileTextResult
 
   def _Decode(self, codec_name, data):
     """Decode data with the given codec name."""
     try:
       return data.decode(codec_name, "replace")
-    except LookupError:
-      raise RuntimeError("Codec could not be found.")
-    except AssertionError:
-      raise RuntimeError("Codec failed to decode")
+    except LookupError as e:
+      raise RuntimeError("Codec could not be found.") from e
+    except AssertionError as e:
+      raise RuntimeError("Codec failed to decode") from e
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetFileTextArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetFileTextResult:
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
     client_path = db.ClientPath(str(args.client_id), path_type, components)
 
+    timestamp = None
+    if args.HasField("timestamp"):
+      timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
+
     try:
-      fd = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
-    except file_store.FileHasNoContentError:
-      raise FileContentNotFoundError(args.client_id, path_type, components,
-                                     args.timestamp)
+      fd = file_store.OpenFile(client_path, max_timestamp=timestamp)
+    except file_store.FileHasNoContentError as e:
+      raise FileContentNotFoundError(
+          args.client_id, path_type, components, timestamp
+      ) from e
 
     fd.seek(args.offset)
     # No need to protect against args.length == 0 case and large files:
@@ -680,13 +721,16 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     byte_content = fd.read(args.length or None)
 
     if args.encoding:
-      encoding = args.encoding.name.lower()
+      encoding = args.encoding
     else:
-      encoding = ApiGetFileTextArgs.Encoding.UTF_8.name.lower()
+      encoding = vfs_pb2.ApiGetFileTextArgs.Encoding.UTF_8
 
-    text_content = self._Decode(encoding, byte_content)
+    encoding_str = vfs_pb2.ApiGetFileTextArgs.Encoding.Name(encoding).lower()
+    text_content = self._Decode(encoding_str, byte_content)
 
-    return ApiGetFileTextResult(total_size=fd.size, content=text_content)
+    return vfs_pb2.ApiGetFileTextResult(
+        total_size=fd.size, content=text_content
+    )
 
 
 class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
@@ -701,6 +745,8 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the byte content for a given file."""
 
   args_type = ApiGetFileBlobArgs
+  proto_args_type = vfs_pb2.ApiGetFileBlobArgs
+
   CHUNK_SIZE = 1024 * 1024 * 4
 
   def _GenerateFile(self, file_obj, offset, length):
@@ -708,7 +754,12 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     for start in range(offset, offset + length, self.CHUNK_SIZE):
       yield file_obj.read(min(self.CHUNK_SIZE, offset + length - start))
 
-  def _WrapContentGenerator(self, generator, args, username):
+  def _WrapContentGenerator(
+      self,
+      generator: Iterable[bytes],
+      args: vfs_pb2.ApiGetFileBlobArgs,
+      username: str,
+  ) -> Iterator[bytes]:
     try:
       for item in generator:
         yield item
@@ -717,42 +768,60 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
       vfs_file_ref = rdf_objects.VfsFileReference(
           client_id=args.client_id,
           path_type=path_type,
-          path_components=components)
+          path_components=components,
+      )
       object_reference = rdf_objects.ObjectReference(
           reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-          vfs_file=vfs_file_ref)
+          vfs_file=vfs_file_ref,
+      )
 
       notification.Notify(
           username,
           rdf_objects.UserNotification.Type.TYPE_FILE_BLOB_FETCH_FAILED,
-          "File blob fetch failed for path %s on client %s: %s" %
-          (args.client_id, args.file_path, e), object_reference)
+          "File blob fetch failed for path %s on client %s: %s"
+          % (args.client_id, args.file_path, e),
+          object_reference,
+      )
       raise
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetFileBlobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
+    assert context is not None
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(str(args.client_id), path_type, components)
+    client_path = db.ClientPath(args.client_id, path_type, components)
+
+    timestamp = None
+    if args.HasField("timestamp"):
+      timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
 
     try:
-      file_obj = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
-    except file_store.FileNotFoundError:
-      raise FileNotFoundError(args.client_id, path_type, components)
-    except file_store.FileHasNoContentError:
-      raise FileContentNotFoundError(args.client_id, path_type, components,
-                                     args.timestamp)
+      file_obj = file_store.OpenFile(client_path, max_timestamp=timestamp)
+    except file_store.FileNotFoundError as e:
+      raise FileNotFoundError(args.client_id, path_type, components) from e
+    except file_store.FileHasNoContentError as e:
+      raise FileContentNotFoundError(
+          args.client_id, path_type, components, timestamp
+      ) from e
 
     size = max(0, file_obj.size - args.offset)
     if args.length and args.length < size:
       size = args.length
 
     generator = self._WrapContentGenerator(
-        self._GenerateFile(file_obj, args.offset, size), args, context.username)
+        self._GenerateFile(file_obj, args.offset, size), args, context.username
+    )
     return api_call_handler_base.ApiBinaryStream(
         filename=components[-1],
         content_generator=generator,
-        content_length=size)
+        content_length=size,
+    )
 
 
 class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):
@@ -774,25 +843,32 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFileVersionTimesArgs
   result_type = ApiGetFileVersionTimesResult
+  proto_args_type = vfs_pb2.ApiGetFileVersionTimesArgs
+  proto_result_type = vfs_pb2.ApiGetFileVersionTimesResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetFileVersionTimesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetFileVersionTimesResult:
+    del context  # unused
     ValidateVfsPath(args.file_path)
 
     try:
       path_type, components = rdf_objects.ParseCategorizedPath(
-          args.file_path.rstrip("/"))
+          args.file_path.rstrip("/")
+      )
     except ValueError:
       # If the path does not point to a file (i.e. "fs"), just return an
       # empty response.
-      return ApiGetFileVersionTimesResult(times=[])
+      return vfs_pb2.ApiGetFileVersionTimesResult()
 
-    proto_history = data_store.REL_DB.ReadPathInfoHistory(
+    history = data_store.REL_DB.ReadPathInfoHistory(
         str(args.client_id), path_type, components
     )
-    history = [mig_objects.ToRDFPathInfo(pi) for pi in proto_history]
     times = reversed([pi.timestamp for pi in history])
 
-    return ApiGetFileVersionTimesResult(times=times)
+    return vfs_pb2.ApiGetFileVersionTimesResult(times=times)
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
@@ -811,23 +887,31 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFileDownloadCommandArgs
   result_type = ApiGetFileDownloadCommandResult
+  proto_args_type = vfs_pb2.ApiGetFileDownloadCommandArgs
+  proto_result_type = vfs_pb2.ApiGetFileDownloadCommandResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetFileDownloadCommandArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetFileDownloadCommandResult:
+    del context  # unused
     ValidateVfsPath(args.file_path)
 
     output_fname = os.path.basename(args.file_path)
 
     code_to_execute = (
         """grrapi.Client("%s").File(r\"\"\"%s\"\"\").GetBlob()."""
-        """WriteToFile("./%s")""") % (args.client_id, args.file_path,
-                                      output_fname)
+        """WriteToFile("./%s")"""
+    ) % (args.client_id, args.file_path, output_fname)
 
-    export_command = u" ".join([
-        config.CONFIG["AdminUI.export_command"], "--exec_code",
-        utils.ShellQuote(code_to_execute)
+    export_command = " ".join([
+        config.CONFIG["AdminUI.export_command"],
+        "--exec_code",
+        utils.ShellQuote(code_to_execute),
     ])
 
-    return ApiGetFileDownloadCommandResult(command=export_command)
+    return vfs_pb2.ApiGetFileDownloadCommandResult(command=export_command)
 
 
 class ApiListKnownEncodingsResult(rdf_structs.RDFProtoStruct):
@@ -838,16 +922,22 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves available file encodings."""
 
   result_type = ApiListKnownEncodingsResult
+  proto_result_type = vfs_pb2.ApiListKnownEncodingsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiListKnownEncodingsResult:
 
-    encodings = sorted(ApiGetFileTextArgs.Encoding.enum_dict.keys())
+    encodings = sorted(vfs_pb2.ApiGetFileTextArgs.Encoding.keys())
 
-    return ApiListKnownEncodingsResult(encodings=encodings)
+    return vfs_pb2.ApiListKnownEncodingsResult(encodings=encodings)
 
 
 class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS path."""
+
   protobuf = vfs_pb2.ApiCreateVfsRefreshOperationArgs
   rdf_deps = [
       client.ApiClientId,
@@ -856,6 +946,7 @@ class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
 
 class ApiCreateVfsRefreshOperationResult(rdf_structs.RDFProtoStruct):
   """Can be immediately returned to poll the status."""
+
   protobuf = vfs_pb2.ApiCreateVfsRefreshOperationResult
 
 
@@ -868,10 +959,13 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiCreateVfsRefreshOperationArgs
   result_type = ApiCreateVfsRefreshOperationResult
+  proto_args_type = vfs_pb2.ApiCreateVfsRefreshOperationArgs
+  proto_result_type = vfs_pb2.ApiCreateVfsRefreshOperationResult
 
-  def _FindPathspec(self, args):
+  def _FindPathspec(self, args: vfs_pb2.ApiCreateVfsRefreshOperationArgs):
     path_type, components = rdf_objects.ParseCategorizedPath(
-        args.file_path.rstrip("/"))
+        args.file_path.rstrip("/")
+    )
 
     components_copy = components[:]
     all_components = []
@@ -880,62 +974,82 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
       components_copy = components_copy[:-1]
 
     res = data_store.REL_DB.ReadPathInfos(
-        str(args.client_id), path_type, all_components)
+        args.client_id, path_type, all_components
+    )
 
+    # Find the longest available "path_spec" that has a "stat_entry", if equal
+    # to the requested path return. Otherwise append a new "nested_path" with
+    # the missing part of the path and return.
     for k in sorted(res, key=len, reverse=True):
       path_info = res[k]
       if path_info is None:
         raise FileNotFoundError(args.client_id, path_type, components)
-      path_info = mig_objects.ToRDFPathInfo(path_info)
-      if path_info.stat_entry and path_info.stat_entry.pathspec:
-        ps = path_info.stat_entry.pathspec
 
+      if path_info.HasField("stat_entry") and path_info.stat_entry.HasField(
+          "pathspec"
+      ):
+        ps = path_info.stat_entry.pathspec
         if len(k) < len(components):
-          new_path = utils.JoinPath(*components[len(k):])
-          ps.Append(
-              rdf_paths.PathSpec(path=new_path, pathtype=ps.last.pathtype))
+          new_path = utils.JoinPath(*components[len(k) :])
+
+          pathspec = ps
+          last_pathtype = jobs_pb2.PathSpec.PathType.UNSET
+          while pathspec.HasField("nested_path"):
+            pathspec = pathspec.nested_path
+            last_pathtype = pathspec.pathtype
+
+          pathspec.nested_path = jobs_pb2.PathSpec(
+              path=new_path, pathtype=last_pathtype
+          )
         return ps
 
     # We don't have any pathspec in the database so we just send the path we
     # have with the correct path type and hope for the best.
-    pathspec = rdf_paths.PathSpec(path="/" + "/".join(components))
+    pathspec = jobs_pb2.PathSpec(path="/" + "/".join(components))
 
-    if path_type == rdf_objects.PathInfo.PathType.TSK:
-      pathspec.pathtype = pathspec.PathType.TSK
-    elif path_type == rdf_objects.PathInfo.PathType.NTFS:
-      pathspec.pathtype = pathspec.PathType.NTFS
-    elif path_type == rdf_objects.PathInfo.PathType.OS:
-      pathspec.pathtype = pathspec.PathType.OS
-    elif path_type == rdf_objects.PathInfo.PathType.REGISTRY:
-      pathspec.pathtype = pathspec.PathType.REGISTRY
-    elif path_type == rdf_objects.PathInfo.PathType.TEMP:
-      pathspec.pathtype = pathspec.PathType.TMPFILE
+    if path_type == objects_pb2.PathInfo.PathType.TSK:
+      pathspec.pathtype = jobs_pb2.PathSpec.PathType.TSK
+    elif path_type == objects_pb2.PathInfo.PathType.NTFS:
+      pathspec.pathtype = jobs_pb2.PathSpec.PathType.NTFS
+    elif path_type == objects_pb2.PathInfo.PathType.OS:
+      pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+    elif path_type == objects_pb2.PathInfo.PathType.REGISTRY:
+      pathspec.pathtype = jobs_pb2.PathSpec.PathType.REGISTRY
+    elif path_type == objects_pb2.PathInfo.PathType.TEMP:
+      pathspec.pathtype = jobs_pb2.PathSpec.PathType.TMPFILE
     else:
       raise ValueError("Invalid path_type: %r" % path_type)
-
     return pathspec
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiCreateVfsRefreshOperationArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiCreateVfsRefreshOperationResult:
     if args.max_depth == 1:
-      flow_args = filesystem.ListDirectoryArgs(
-          pathspec=self._FindPathspec(args))
+      flow_args = flows_pb2.ListDirectoryArgs(pathspec=self._FindPathspec(args))
+      flow_args = mig_filesystem.ToRDFListDirectoryArgs(flow_args)
       flow_cls = filesystem.ListDirectory
     else:
-      flow_args = filesystem.RecursiveListDirectoryArgs(
-          pathspec=self._FindPathspec(args), max_depth=args.max_depth)
+      flow_args = flows_pb2.RecursiveListDirectoryArgs(
+          pathspec=self._FindPathspec(args), max_depth=args.max_depth
+      )
+      flow_args = mig_filesystem.ToRDFRecursiveListDirectoryArgs(flow_args)
       flow_cls = filesystem.RecursiveListDirectory
 
     flow_id = flow.StartFlow(
         client_id=str(args.client_id),
         flow_cls=flow_cls,
         flow_args=flow_args,
-        creator=context.username if context else None)
+        creator=context.username if context else None,
+    )
 
-    return ApiCreateVfsRefreshOperationResult(operation_id=flow_id)
+    return vfs_pb2.ApiCreateVfsRefreshOperationResult(operation_id=flow_id)
 
 
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a refresh operation."""
+
   protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
   rdf_deps = [
       client.ApiClientId,
@@ -944,70 +1058,77 @@ class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
   """Indicates the state of a refresh operation."""
+
   protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateResult
 
 
-class ApiGetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler
-                                           ):
+class ApiGetVfsRefreshOperationStateHandler(
+    api_call_handler_base.ApiCallHandler
+):
   """Retrieves the state of the refresh operation specified."""
 
   args_type = ApiGetVfsRefreshOperationStateArgs
   result_type = ApiGetVfsRefreshOperationStateResult
+  proto_args_type = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
+  proto_result_type = vfs_pb2.ApiGetVfsRefreshOperationStateResult
 
-  def _RaiseOperationNotFoundError(self, args):
-    raise VfsRefreshOperationNotFoundError("Operation with id %s not found" %
-                                           args.operation_id)
-
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetVfsRefreshOperationStateArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetVfsRefreshOperationStateResult:
     try:
       flow_obj = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.operation_id)
       )
-    except db.UnknownFlowError:
-      self._RaiseOperationNotFoundError(args)
+    except db.UnknownFlowError as ex:
+      raise VfsRefreshOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      ) from ex
 
     if flow_obj.flow_class_name not in [
         "RecursiveListDirectory",
         "ListDirectory",
     ]:
-      self._RaiseOperationNotFoundError(args)
+      raise VfsRefreshOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      )
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(flow_obj)
-    complete = rdf_flow.flow_state != "RUNNING"
-    result = ApiGetVfsRefreshOperationStateResult()
+    complete = flow_obj.flow_state != flows_pb2.Flow.FlowState.RUNNING
+    result = vfs_pb2.ApiGetVfsRefreshOperationStateResult()
     if complete:
-      result.state = ApiGetVfsRefreshOperationStateResult.State.FINISHED
+      result.state = vfs_pb2.ApiGetVfsRefreshOperationStateResult.State.FINISHED
     else:
-      result.state = ApiGetVfsRefreshOperationStateResult.State.RUNNING
+      result.state = vfs_pb2.ApiGetVfsRefreshOperationStateResult.State.RUNNING
 
     return result
 
 
-def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
+def _GetTimelineStatEntries(
+    client_id: str,
+    file_path: str,
+    with_history: bool = True,
+) -> Iterable[tuple[str, jobs_pb2.StatEntry, jobs_pb2.Hash]]:
   """Gets timeline entries from REL_DB."""
   path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
-  client_id = str(api_client_id)
-
   try:
-    proto_root_path_info = data_store.REL_DB.ReadPathInfo(
+    root_path_info = data_store.REL_DB.ReadPathInfo(
         client_id, path_type, components
     )
   except db.UnknownPathError:
     return
 
   path_infos = []
-  for proto_path_info in itertools.chain(
-      [proto_root_path_info],
+  for path_info in itertools.chain(
+      [root_path_info],
       data_store.REL_DB.ListDescendantPathInfos(
           client_id, path_type, components
       ),
   ):
-    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
-
     # TODO(user): this is to keep the compatibility with current
     # AFF4 implementation. Check if this check is needed.
-    if path_info.directory:
+    if path_info.HasField("directory") and path_info.directory:
       continue
 
     categorized_path = rdf_objects.ToCategorizedPath(
@@ -1016,29 +1137,40 @@ def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
     if with_history:
       path_infos.append(path_info)
     else:
-      yield categorized_path, path_info.stat_entry, path_info.hash_entry
+      stat_entry, hash_entry = None, None
+      if path_info.HasField("stat_entry"):
+        stat_entry = path_info.stat_entry
+      if path_info.HasField("hash_entry"):
+        hash_entry = path_info.hash_entry
+      yield categorized_path, stat_entry, hash_entry
 
   if with_history:
-    proto_hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
+    hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
         client_id, path_type, [tuple(pi.components) for pi in path_infos]
     )
-    for proto_path_info in itertools.chain.from_iterable(
-        proto_hist_path_infos.values()
-    ):
-      path_info = mig_objects.ToRDFPathInfo(proto_path_info)
+    for path_info in itertools.chain.from_iterable(hist_path_infos.values()):
       categorized_path = rdf_objects.ToCategorizedPath(
           path_info.path_type, path_info.components
       )
-      yield categorized_path, path_info.stat_entry, path_info.hash_entry
+      stat_entry, hash_entry = None, None
+      if path_info.HasField("stat_entry"):
+        stat_entry = path_info.stat_entry
+      if path_info.HasField("hash_entry"):
+        hash_entry = path_info.hash_entry
+
+      yield categorized_path, stat_entry, hash_entry
 
 
-def _GetTimelineItems(client_id, file_path):
+def _GetTimelineItems(
+    client_id: str, file_path: str
+) -> Iterable[vfs_pb2.ApiVfsTimelineItem]:
   """Gets timeline items for a given client id and path."""
 
   items = []
 
   for file_path, stat_entry, _ in _GetTimelineStatEntries(
-      client_id, file_path, with_history=True):
+      client_id, file_path, with_history=True
+  ):
 
     # It may be that for a given timestamp only hash entry is available, we're
     # skipping those.
@@ -1046,25 +1178,42 @@ def _GetTimelineItems(client_id, file_path):
       continue
 
     # Add a new event for each MAC time if it exists.
-    for c in "mac":
-      timestamp = getattr(stat_entry, "st_%stime" % c)
-      if timestamp is None:
-        continue
-
-      item = ApiVfsTimelineItem(timestamp=timestamp)
-
-      # Remove aff4:/<client_id> to have a more concise path to the
-      # subject.
-      item.file_path = file_path
-      if c == "m":
-        item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
-      elif c == "a":
-        item.action = ApiVfsTimelineItem.FileActionType.ACCESS
-      elif c == "c":
-        item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
-
-      items.append(item)
-
+    if stat_entry.HasField("st_mtime"):
+      items.append(
+          vfs_pb2.ApiVfsTimelineItem(
+              timestamp=int(
+                  rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                      stat_entry.st_mtime
+                  )
+              ),
+              action=vfs_pb2.ApiVfsTimelineItem.FileActionType.MODIFICATION,
+              file_path=file_path,
+          )
+      )
+    if stat_entry.HasField("st_atime"):
+      items.append(
+          vfs_pb2.ApiVfsTimelineItem(
+              timestamp=int(
+                  rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                      stat_entry.st_atime
+                  )
+              ),
+              action=vfs_pb2.ApiVfsTimelineItem.FileActionType.ACCESS,
+              file_path=file_path,
+          )
+      )
+    if stat_entry.HasField("st_ctime"):
+      items.append(
+          vfs_pb2.ApiVfsTimelineItem(
+              timestamp=int(
+                  rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                      stat_entry.st_ctime
+                  )
+              ),
+              action=vfs_pb2.ApiVfsTimelineItem.FileActionType.METADATA_CHANGED,
+              file_path=file_path,
+          )
+      )
   return sorted(items, key=lambda x: x.timestamp, reverse=True)
 
 
@@ -1094,12 +1243,18 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetVfsTimelineArgs
   result_type = ApiGetVfsTimelineResult
+  proto_args_type = vfs_pb2.ApiGetVfsTimelineArgs
+  proto_result_type = vfs_pb2.ApiGetVfsTimelineResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetVfsTimelineArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetVfsTimelineResult:
     ValidateVfsPath(args.file_path)
 
     items = _GetTimelineItems(args.client_id, args.file_path)
-    return ApiGetVfsTimelineResult(items=items)
+    return vfs_pb2.ApiGetVfsTimelineResult(items=items)
 
 
 class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
@@ -1113,23 +1268,29 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   """Exports the timeline for a given file path."""
 
   args_type = ApiGetVfsTimelineAsCsvArgs
+  proto_args_type = vfs_pb2.ApiGetVfsTimelineAsCsvArgs
+
   CHUNK_SIZE = 1000
 
-  def _GenerateDefaultExport(self, items):
+  def _GenerateDefaultExport(
+      self, items: list[vfs_pb2.ApiVfsTimelineItem]
+  ) -> Iterable[bytes]:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
 
     # Write header. Since we do not stick to a specific timeline format, we
     # can export a format suited for TimeSketch import.
-    writer.writerow([u"Timestamp", u"Datetime", u"Message", u"Timestamp_desc"])
+    writer.writerow(["Timestamp", "Datetime", "Message", "Timestamp_desc"])
 
     for start in range(0, len(items), self.CHUNK_SIZE):
-      for item in items[start:start + self.CHUNK_SIZE]:
+      for item in items[start : start + self.CHUNK_SIZE]:
         writer.writerow([
-            str(item.timestamp.AsMicrosecondsSinceEpoch()),
             str(item.timestamp),
+            str(
+                rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(item.timestamp)
+            ),
             item.file_path,
-            str(item.action),
+            vfs_pb2.ApiVfsTimelineItem.FileActionType.Name(item.action),
         ])
 
       yield buffer.getvalue().encode("utf-8")
@@ -1137,24 +1298,31 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       buffer = io.StringIO()
       writer = csv.writer(buffer)
 
-  def _HandleDefaultFormat(self, args):
+  def _HandleDefaultFormat(
+      self,
+      args: vfs_pb2.ApiGetVfsTimelineAsCsvArgs,
+  ) -> api_call_handler_base.ApiBinaryStream:
     items = _GetTimelineItems(args.client_id, args.file_path)
     return api_call_handler_base.ApiBinaryStream(
         "%s_%s_timeline" % (args.client_id, os.path.basename(args.file_path)),
-        content_generator=self._GenerateDefaultExport(items))
+        content_generator=self._GenerateDefaultExport(items),
+    )
 
-  def _GenerateBodyExport(self, file_infos):
+  def _GenerateBodyExport(
+      self,
+      file_infos: Iterable[tuple[str, jobs_pb2.StatEntry, jobs_pb2.Hash]],
+  ) -> Iterable[bytes]:
     for path, st, hash_v in file_infos:
       if st is None:
         continue
 
       buffer = io.StringIO()
-      writer = csv.writer(buffer, delimiter=u"|", lineterminator="\n")
+      writer = csv.writer(buffer, delimiter="|", lineterminator="\n")
 
-      if hash_v and hash_v.md5:
-        hash_str = hash_v.md5.HexDigest()
+      if hash_v and hash_v.HasField("md5") and hash_v.md5:
+        hash_str = text.Hexify(hash_v.md5)
       else:
-        hash_str = u""
+        hash_str = ""
 
       # Details about Body format:
       # https://wiki.sleuthkit.org/index.php?title=Body_file
@@ -1163,29 +1331,39 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
           hash_str,
           path,
           str(st.st_ino),
-          str(st.st_mode),
+          str(stat.filemode(st.st_mode)),
           str(st.st_uid),
           str(st.st_gid),
           str(st.st_size),
-          str(int(st.st_atime or 0)),
-          str(int(st.st_mtime or 0)),
-          str(int(st.st_ctime or 0)),
-          str(int(st.st_btime or 0)),
+          str(st.st_atime),
+          str(st.st_mtime),
+          str(st.st_ctime),
+          str(st.st_btime),
       ])
-
       yield buffer.getvalue().encode("utf-8")
 
-  def _HandleBodyFormat(self, args):
+  def _HandleBodyFormat(
+      self, args: vfs_pb2.ApiGetVfsTimelineAsCsvArgs
+  ) -> api_call_handler_base.ApiBinaryStream:
     file_infos = _GetTimelineStatEntries(
-        args.client_id, args.file_path, with_history=False)
+        args.client_id, args.file_path, with_history=False
+    )
     return api_call_handler_base.ApiBinaryStream(
         "%s_%s_timeline" % (args.client_id, os.path.basename(args.file_path)),
-        content_generator=self._GenerateBodyExport(file_infos))
+        content_generator=self._GenerateBodyExport(file_infos),
+    )
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetVfsTimelineAsCsvArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
     ValidateVfsPath(args.file_path)
 
-    if args.format == args.Format.UNSET or args.format == args.Format.GRR:
+    if (
+        args.format == vfs_pb2.ApiGetVfsTimelineAsCsvArgs.Format.UNSET
+        or args.format == vfs_pb2.ApiGetVfsTimelineAsCsvArgs.Format.GRR
+    ):
       return self._HandleDefaultFormat(args)
     elif args.format == args.Format.BODY:
       return self._HandleBodyFormat(args)
@@ -1195,6 +1373,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS file."""
+
   protobuf = vfs_pb2.ApiUpdateVfsFileContentArgs
   rdf_deps = [
       client.ApiClientId,
@@ -1203,6 +1382,7 @@ class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
 
 class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
   """Can be immediately returned to poll the status."""
+
   protobuf = vfs_pb2.ApiUpdateVfsFileContentResult
 
 
@@ -1215,35 +1395,49 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiUpdateVfsFileContentArgs
   result_type = ApiUpdateVfsFileContentResult
+  proto_args_type = vfs_pb2.ApiUpdateVfsFileContentArgs
+  proto_result_type = vfs_pb2.ApiUpdateVfsFileContentResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiUpdateVfsFileContentArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiUpdateVfsFileContentResult:
+    assert context is not None
+
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
-    proto_path_info = data_store.REL_DB.ReadPathInfo(
+    path_info = data_store.REL_DB.ReadPathInfo(
         str(args.client_id), path_type, components
     )
-    path_info = mig_objects.ToRDFPathInfo(proto_path_info)
 
-    if (not path_info or not path_info.stat_entry or
-        not path_info.stat_entry.pathspec):
+    if (
+        not path_info
+        or not path_info.HasField("stat_entry")
+        or not path_info.stat_entry.HasField("pathspec")
+    ):
       raise FileNotFoundError(
           client_id=str(args.client_id),
           path_type=path_type,
-          components=components)
+          components=components,
+      )
 
-    flow_args = transfer.MultiGetFileArgs(
-        pathspecs=[path_info.stat_entry.pathspec])
+    flow_args = flows_pb2.MultiGetFileArgs(
+        pathspecs=[path_info.stat_entry.pathspec]
+    )
     flow_id = flow.StartFlow(
-        client_id=str(args.client_id),
+        client_id=args.client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=flow_args,
-        creator=context.username)
+        flow_args=mig_transfer.ToRDFMultiGetFileArgs(flow_args),
+        creator=context.username,
+    )
 
-    return ApiUpdateVfsFileContentResult(operation_id=flow_id)
+    return vfs_pb2.ApiUpdateVfsFileContentResult(operation_id=flow_id)
 
 
 class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a file content update operation."""
+
   protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
   rdf_deps = [
       client.ApiClientId,
@@ -1252,41 +1446,53 @@ class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetVfsFileContentUpdateStateResult(rdf_structs.RDFProtoStruct):
   """Indicates the state of a file content update operation."""
+
   protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateResult
 
 
 class ApiGetVfsFileContentUpdateStateHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Retrieves the state of the update operation specified."""
 
   args_type = ApiGetVfsFileContentUpdateStateArgs
   result_type = ApiGetVfsFileContentUpdateStateResult
+  proto_args_type = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
+  proto_result_type = vfs_pb2.ApiGetVfsFileContentUpdateStateResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetVfsFileContentUpdateStateArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetVfsFileContentUpdateStateResult:
     try:
-      proto_flow = data_store.REL_DB.ReadFlowObject(
+      flow_obj = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.operation_id)
       )
-    except db.UnknownFlowError:
-      raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+    except db.UnknownFlowError as e:
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      ) from e
 
-    if proto_flow.flow_class_name != "MultiGetFile":
-      raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+    if flow_obj.flow_class_name != "MultiGetFile":
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      )
 
-    result = ApiGetVfsFileContentUpdateStateResult()
-    rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
-    if rdf_flow.flow_state == "RUNNING":
-      result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
+    result = vfs_pb2.ApiGetVfsFileContentUpdateStateResult()
+    if flow_obj.flow_state == flows_pb2.Flow.FlowState.RUNNING:
+      result.state = vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.RUNNING
     else:
-      result.state = ApiGetVfsFileContentUpdateStateResult.State.FINISHED
+      result.state = (
+          vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State.FINISHED
+      )
 
     return result
 
 
 class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   """Arguments for GetVfsFilesArchive handler."""
+
   protobuf = vfs_pb2.ApiGetVfsFilesArchiveArgs
   rdf_deps = [
       client.ApiClientId,
@@ -1298,22 +1504,32 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Streams archive with files collected in the VFS of a client."""
 
   args_type = ApiGetVfsFilesArchiveArgs
+  proto_args_type = vfs_pb2.ApiGetVfsFilesArchiveArgs
 
-  def _GenerateContent(self, client_id, start_paths, timestamp, path_prefix):
+  def _GenerateContent(
+      self,
+      client_id: str,
+      start_paths: List[str],
+      path_prefix: str,
+      timestamp: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> Iterator[utils.StreamingZipGenerator]:
     client_paths = []
     for start_path in start_paths:
       path_type, components = rdf_objects.ParseCategorizedPath(start_path)
-      for pi in data_store.REL_DB.ListDescendantPathInfos(
-          client_id, path_type, components):
-        if pi.directory:
+      for path_info in data_store.REL_DB.ListDescendantPathInfos(
+          client_id, path_type, components
+      ):
+        if path_info.HasField("directory") and path_info.directory:
           continue
 
-        client_paths.append(db.ClientPath.FromPathInfo(client_id, pi))
+        client_paths.append(db.ClientPath.FromPathInfo(client_id, path_info))
 
     archive_generator = utils.StreamingZipGenerator(
-        compression=zipfile.ZIP_DEFLATED)
+        compression=zipfile.ZIP_DEFLATED
+    )
     for chunk in file_store.StreamFilesChunks(
-        client_paths, max_timestamp=timestamp):
+        client_paths, max_timestamp=timestamp
+    ):
       if chunk.chunk_index == 0:
         content_path = os.path.join(path_prefix, chunk.client_path.vfs_path)
         # TODO(user): Export meaningful file metadata.
@@ -1327,116 +1543,81 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     yield archive_generator.Close()
 
-  def _WrapContentGenerator(self, generator, args, username):
+  def _WrapContentGenerator(
+      self,
+      generator: Iterator[utils.StreamingZipGenerator],
+      args: vfs_pb2.ApiGetVfsFilesArchiveArgs,
+      username: str,
+  ) -> Iterator[utils.StreamingZipGenerator]:
     if args.file_path:
       path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
       vfs_file_ref = rdf_objects.VfsFileReference(
           client_id=args.client_id,
           path_type=path_type,
-          path_components=components)
+          path_components=components,
+      )
     else:
       vfs_file_ref = rdf_objects.VfsFileReference(client_id=args.client_id)
 
     object_reference = rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-        vfs_file=vfs_file_ref)
+        vfs_file=vfs_file_ref,
+    )
     try:
       for item in generator:
         yield item
       notification.Notify(
           username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
-          "Downloaded an archive of folder %s from client %s." %
-          (args.file_path, args.client_id), object_reference)
+          "Downloaded an archive of folder %s from client %s."
+          % (args.file_path, args.client_id),
+          object_reference,
+      )
 
     except Exception as e:
       notification.Notify(
           username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
-          "Archive generation failed for folder %s on client %s: %s" %
-          (args.file_path, args.client_id, e), object_reference)
+          "Archive generation failed for folder %s on client %s: %s"
+          % (args.file_path, args.client_id, e),
+          object_reference,
+      )
 
       raise
 
-  def Handle(self, args, context=None):
-    client_id = str(args.client_id)
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetVfsFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
+    assert context is not None
+
     path = args.file_path
     if not path:
       start_paths = ["fs/os", "fs/tsk", "registry", "temp", "fs/ntfs"]
-      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_", client_id)
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_", args.client_id)
     else:
       ValidateVfsPath(path)
       if path.rstrip("/") == "fs":
         start_paths = ["fs/os", "fs/tsk", "fs/ntfs"]
       else:
         start_paths = [path]
-      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
-                               client_id + "_" + path).strip("_")
+      prefix = "vfs_" + re.sub(
+          "[^0-9a-zA-Z]", "_", args.client_id + "_" + path
+      ).strip("_")
+
+    if args.HasField("timestamp"):
+      timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
+    else:
+      timestamp = None
 
     content_generator = self._WrapContentGenerator(
-        self._GenerateContent(client_id, start_paths, args.timestamp, prefix),
-        args, context.username)
+        self._GenerateContent(args.client_id, start_paths, prefix, timestamp),
+        args,
+        context.username,
+    )
     return api_call_handler_base.ApiBinaryStream(
-        prefix + ".zip", content_generator=content_generator)
-
-
-class ApiGetFileDecodersArgs(rdf_structs.RDFProtoStruct):
-
-  protobuf = vfs_pb2.ApiGetFileDecodersArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetFileDecodersResult(rdf_structs.RDFProtoStruct):
-
-  protobuf = vfs_pb2.ApiGetFileDecodersResult
-  rdf_deps = []
-
-
-class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
-  """An API handler for listing decoders available for specified file."""
-
-  def Handle(self, args, context=None):
-    result = ApiGetFileDecodersResult()
-
-    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(
-        client_id=str(args.client_id),
-        path_type=path_type,
-        components=components)
-
-    for decoder_name in decoders.FACTORY.Names():
-      decoder = decoders.FACTORY.Create(decoder_name)
-
-      filedesc = file_store.OpenFile(client_path)
-      filectx = contextlib.nullcontext(filedesc)
-
-      with filectx as filedesc:
-        if decoder.Check(filedesc):
-          result.decoder_names.append(decoder_name)
-
-    return result
-
-
-class ApiGetDecodedFileArgs(rdf_structs.RDFProtoStruct):
-
-  protobuf = vfs_pb2.ApiGetDecodedFileArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
-  """An API handler for decoding specified file."""
-
-  def Handle(self, args, context=None):
-    decoder = decoders.FACTORY.Create(args.decoder_name)
-
-    path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    client_path = db.ClientPath(str(args.client_id), path_type, components)
-
-    fd = file_store.OpenFile(client_path)
-    return api_call_handler_base.ApiBinaryStream(
-        filename=client_path.components[-1],
-        content_generator=decoder.Decode(fd))
+        prefix + ".zip", content_generator=content_generator
+    )

@@ -21,7 +21,9 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     # Select daily periodicity
     self.Type(
         "css=grr-new-cron-job-wizard-form "
-        "label:contains('Periodicity') ~ * input", "1d")
+        "label:contains('Periodicity') ~ * input",
+        "1d",
+    )
 
     # Click on "Next" button
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -39,11 +41,15 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-repeated-field:has(label:contains('Paths')) "
-        "input", "/tmp")
+        "input",
+        "/tmp",
+    )
     self.Select(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Pathtype')) "
-        "select", "NTFS")
+        "select",
+        "NTFS",
+    )
 
     # Click on "Next" button. Expect "Hunt parameters" page.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -52,11 +58,15 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Description')) "
-        "input", "Periodical hunt")
+        "input",
+        "Periodical hunt",
+    )
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Client Limit')) "
-        "input", "4242")
+        "input",
+        "4242",
+    )
 
     # Click on "Next" button. Expect "Output Processing" page.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -64,12 +74,16 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
 
     # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
-    self.Select("css=grr-new-cron-job-wizard-form select",
-                gui_test_lib.DummyOutputPlugin.__name__)
+    self.Select(
+        "css=grr-new-cron-job-wizard-form select",
+        gui_test_lib.DummyOutputPlugin.__name__,
+    )
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Filepath Regex')) "
-        "input", "some regex")
+        "input",
+        "some regex",
+    )
 
     # Click on "Next" button. Expect "Where to run?" page.
     self.Click("css=.Wizard button.Next")
@@ -83,10 +97,14 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     label = rule.ForemanStringField.SYSTEM.description
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "
-        "label:contains('Field') ~ * select", label)
+        "label:contains('Field') ~ * select",
+        label,
+    )
     self.Type(
         "css=grr-new-cron-job-wizard-form div.well "
-        "label:contains('Attribute regex') ~ * input", "Linux")
+        "label:contains('Attribute regex') ~ * input",
+        "Linux",
+    )
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Integer")
@@ -94,17 +112,25 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "
-        "label:contains('Field') ~ * select", label)
+        "label:contains('Field') ~ * select",
+        label,
+    )
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "
-        "label:contains('Operator') ~ * select", "GREATER_THAN")
+        "label:contains('Operator') ~ * select",
+        "GREATER_THAN",
+    )
     self.Type(
         "css=grr-new-cron-job-wizard-form div.well "
-        "label:contains('Value') ~ * input", "1336650631137737")
+        "label:contains('Value') ~ * input",
+        "1336650631137737",
+    )
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
-    self.Click("css=grr-new-cron-job-wizard-form div.well "
-               "label:contains('Os darwin') ~ * input[type=checkbox]")
+    self.Click(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Os darwin') ~ * input[type=checkbox]"
+    )
 
     # Click on "Next" button. Expect "Review" page.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")

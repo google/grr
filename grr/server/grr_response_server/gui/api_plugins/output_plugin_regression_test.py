@@ -14,18 +14,28 @@ from grr.test_lib import test_lib
 
 
 class ApiListOutputPluginDescriptorsHandlerTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiOutputPluginsListHandler."""
 
   api_method = "ListOutputPluginDescriptors"
   handler = output_plugin_plugin.ApiListOutputPluginDescriptorsHandler
 
   def Run(self):
-    with utils.MultiStubber((output_plugin.OutputPlugin, "classes", {
-        "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
-    }), (instant_output_plugin.InstantOutputPlugin, "classes", {
-        "CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin
-    })):
+    with utils.MultiStubber(
+        (
+            output_plugin.OutputPlugin,
+            "classes",
+            {
+                "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
+            },
+        ),
+        (
+            instant_output_plugin.InstantOutputPlugin,
+            "classes",
+            {"CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin},
+        ),
+    ):
       self.Check("ListOutputPluginDescriptors")
 
 
