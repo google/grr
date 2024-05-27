@@ -96,3 +96,28 @@ config_lib.DEFINE_integer(
     "Mysql.max_values_per_query", 10000, help="Deprecated.")
 
 config_lib.DEFINE_integer("Mysql.max_retries", 10, help="Deprecated.")
+
+# GCS blobstore config
+config_lib.DEFINE_string(
+    "Blobstore.gcs.project",
+    default=None,
+    help=(
+        "GCP project where GCS.blobstore_bucket is located. Only used when "
+        "Blobstore.implementation is GCSBlobStore."
+    ),
+)
+config_lib.DEFINE_string(
+    "Blobstore.gcs.bucket",
+    default=None,
+    help="GCS bucket to use when Blobstore.implementation is GCSBlobStore.",
+)
+config_lib.DEFINE_string(
+    "Blobstore.gcs.blob_prefix",
+    default="",
+    help=(
+        "An optional prefix to prepend to blob file names uploaded to GCS. "
+        "This can be used to simulate a 'subdirectory' for GCS blob storage. "
+        "I.e. if a value ending in '/' is set, such as 'blob_subdir/'. "
+        "Only used when Blobstore.implementation is GCSBlobStore."
+    ),
+)

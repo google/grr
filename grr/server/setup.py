@@ -174,7 +174,9 @@ setup_args = dict(
     },
     install_requires=[
         "google-api-python-client==1.12.11",
-        "google-auth==1.35.0",
+        "google-auth==2.23.3",
+        "google-cloud-storage==2.13.0",
+        "google-cloud-pubsub==2.18.4",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client-builder==%s"
         % VERSION.get("Version", "packagedepends"),
