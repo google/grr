@@ -23,11 +23,10 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Protocol
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import search as rdf_search
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import precondition
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
@@ -251,7 +250,7 @@ class UnknownSignedBinaryError(NotFoundError):
     """Initializes UnknownSignedBinaryError.
 
     Args:
-      binary_id: rdf_objects.SignedBinaryID for the signed binary.
+      binary_id: objects_pb2.SignedBinaryID for the signed binary.
       cause: A lower-level Exception raised by the database driver, which might
         have more details about the error.
     """
@@ -499,11 +498,20 @@ class ClientPath(object):
     path_id: A path id of the path (corresponding to the path components).
   """
 
-  def __init__(self, client_id, path_type, components):
+  def __init__(
+      self,
+      client_id: str,
+      path_type: objects_pb2.PathInfo.PathType,
+      components: Sequence[str],
+  ):
     precondition.ValidateClientId(client_id)
     _ValidateProtoEnumType(path_type, objects_pb2.PathInfo.PathType)
     _ValidatePathComponents(components)
-    self._repr = (client_id, path_type, tuple(components))
+    self._repr = (
+        client_id,
+        path_type,
+        tuple(components),
+    )
 
   @classmethod
   def OS(cls, client_id, components):
@@ -531,14 +539,18 @@ class ClientPath(object):
     return cls(client_id=client_id, path_type=path_type, components=components)
 
   @classmethod
-  def FromPathSpec(cls, client_id, path_spec):
+  def FromPathSpec(
+      cls, client_id: str, path_spec: rdf_paths.PathSpec
+  ) -> "ClientPath":
     path_info = mig_objects.ToProtoPathInfo(
         rdf_objects.PathInfo.FromPathSpec(path_spec)
     )
     return cls.FromPathInfo(client_id, path_info)
 
   @classmethod
-  def FromPathInfo(cls, client_id, path_info):
+  def FromPathInfo(
+      cls, client_id: str, path_info: objects_pb2.PathInfo
+  ) -> "ClientPath":
     return cls(
         client_id=client_id,
         path_type=path_info.path_type,
@@ -1361,29 +1373,6 @@ class Database(metaclass=abc.ABCMeta):
       grantor_username: String with a username of a user granting the approval.
     """
 
-  def IterateAllClientsFullInfo(
-      self,
-      min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      batch_size: int = 50000,
-  ) -> Iterator[rdf_objects.ClientFullInfo]:
-    """Iterates over all available clients and yields full info protobufs.
-
-    Args:
-      min_last_ping: If not None, only the clients with last-ping timestamps
-        newer than (or equal to) min_last_ping will be returned.
-      batch_size: Always reads <batch_size> client full infos at a time.
-
-    Yields:
-      An rdfvalues.objects.ClientFullInfo object for each client in the db.
-    """
-
-    for batch in self.ReadAllClientIDs(
-        min_last_ping=min_last_ping, batch_size=batch_size
-    ):
-      res = self.MultiReadClientFullInfo(batch)
-      for full_info in res.values():
-        yield mig_objects.ToRDFClientFullInfo(full_info)
-
   @abc.abstractmethod
   def ReadPathInfo(
       self,
@@ -1498,9 +1487,9 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadPathInfosHistories(
       self,
-      client_id: Text,
+      client_id: str,
       path_type: objects_pb2.PathInfo.PathType,
-      components_list: Iterable[Sequence[Text]],
+      components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths.
@@ -1520,9 +1509,9 @@ class Database(metaclass=abc.ABCMeta):
 
   def ReadPathInfoHistory(
       self,
-      client_id: Text,
+      client_id: str,
       path_type: objects_pb2.PathInfo.PathType,
-      components: Sequence[Text],
+      components: Sequence[str],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Sequence[objects_pb2.PathInfo]:
     """Reads a collection of hash and stat entry for given path.
@@ -1625,8 +1614,8 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadAPIAuditEntries(
       self,
-      username: Optional[Text] = None,
-      router_method_names: Optional[List[Text]] = None,
+      username: Optional[str] = None,
+      router_method_names: Optional[List[str]] = None,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> List[objects_pb2.APIAuditEntry]:
@@ -1650,7 +1639,7 @@ class Database(metaclass=abc.ABCMeta):
       self,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[Tuple[Text, rdfvalue.RDFDatetime], int]:
+  ) -> Dict[Tuple[str, rdfvalue.RDFDatetime], int]:
     """Returns audit entry counts grouped by user and calendar day.
 
     Examples:
@@ -1999,12 +1988,15 @@ class Database(metaclass=abc.ABCMeta):
 
     Returns:
       A Flow object.
+
+    Raises:
+      UnknownFlowError: The flow cannot be found.
     """
 
   @abc.abstractmethod
   def ReadAllFlowObjects(
       self,
-      client_id: Optional[Text] = None,
+      client_id: Optional[str] = None,
       parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
@@ -3182,7 +3174,7 @@ class Database(metaclass=abc.ABCMeta):
   def WriteYaraSignatureReference(
       self,
       blob_id: blobs.BlobID,
-      username: Text,
+      username: str,
   ) -> None:
     """Marks the specified blob id as a YARA signature.
 
@@ -3245,27 +3237,6 @@ class Database(metaclass=abc.ABCMeta):
       creator: str,
   ) -> Sequence[flows_pb2.ScheduledFlow]:
     """Lists all ScheduledFlows for the client and creator."""
-
-  @abc.abstractmethod
-  def StructuredSearchClients(
-      self,
-      expression: rdf_search.SearchExpression,
-      sort_order: rdf_search.SortOrder,
-      continuation_token: bytes,
-      number_of_results: int,
-  ) -> SearchClientsResult:
-    """Perform a search for clients.
-
-    Args:
-      expression: The search expression to use for the search.
-      sort_order: The sorting order to return the results in.
-      continuation_token: The continuation token, if any.
-      number_of_results: The number of clients to return at most.
-
-    Returns:
-      A tuple containing a sequence of client IDs, a continuation token and the
-      number of remaining results.
-    """
 
   @abc.abstractmethod
   def WriteBlobEncryptionKeys(
@@ -3566,7 +3537,7 @@ class DatabaseValidationWrapper(Database):
   ) -> Mapping[str, Sequence[objects_pb2.ClientLabel]]:
     _ValidateClientIds(client_ids)
     result = self.delegate.MultiReadClientLabels(client_ids)
-    precondition.AssertDictType(result, Text, List)
+    precondition.AssertDictType(result, str, List)
     for value in result.values():
       precondition.AssertIterableType(value, objects_pb2.ClientLabel)
     return result
@@ -3808,9 +3779,9 @@ class DatabaseValidationWrapper(Database):
 
   def ReadPathInfosHistories(
       self,
-      client_id: Text,
+      client_id: str,
       path_type: objects_pb2.PathInfo.PathType,
-      components_list: Iterable[Sequence[Text]],
+      components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     precondition.ValidateClientId(client_id)
@@ -3853,8 +3824,8 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAPIAuditEntries(
       self,
-      username: Optional[Text] = None,
-      router_method_names: Optional[List[Text]] = None,
+      username: Optional[str] = None,
+      router_method_names: Optional[List[str]] = None,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> List[objects_pb2.APIAuditEntry]:
@@ -3869,7 +3840,7 @@ class DatabaseValidationWrapper(Database):
       self,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[Tuple[Text, rdfvalue.RDFDatetime], int]:
+  ) -> Dict[Tuple[str, rdfvalue.RDFDatetime], int]:
     precondition.AssertOptionalType(min_timestamp, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.CountAPIAuditEntriesByUserAndDay(
@@ -4059,7 +4030,7 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAllFlowObjects(
       self,
-      client_id: Optional[Text] = None,
+      client_id: Optional[str] = None,
       parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
@@ -4323,9 +4294,9 @@ class DatabaseValidationWrapper(Database):
   ):
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
-    precondition.AssertOptionalType(with_substring, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
+    precondition.AssertOptionalType(with_substring, str)
 
     return self.delegate.ReadFlowResults(
         client_id,
@@ -4346,8 +4317,8 @@ class DatabaseValidationWrapper(Database):
   ):
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
 
     return self.delegate.CountFlowResults(
         client_id, flow_id, with_tag=with_tag, with_type=with_type
@@ -4392,8 +4363,8 @@ class DatabaseValidationWrapper(Database):
   ) -> Sequence[flows_pb2.FlowError]:
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
 
     return self.delegate.ReadFlowErrors(
         client_id,
@@ -4413,8 +4384,8 @@ class DatabaseValidationWrapper(Database):
   ) -> int:
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
 
     return self.delegate.CountFlowErrors(
         client_id, flow_id, with_tag=with_tag, with_type=with_type
@@ -4638,9 +4609,9 @@ class DatabaseValidationWrapper(Database):
   ) -> List[hunts_pb2.Hunt]:
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
-    precondition.AssertOptionalType(with_creator, Text)
+    precondition.AssertOptionalType(with_creator, str)
     precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
-    precondition.AssertOptionalType(with_description_match, Text)
+    precondition.AssertOptionalType(with_description_match, str)
     if created_by is not None:
       precondition.AssertIterableType(created_by, str)
     if not_created_by is not None:
@@ -4675,9 +4646,9 @@ class DatabaseValidationWrapper(Database):
   ):
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
-    precondition.AssertOptionalType(with_creator, Text)
+    precondition.AssertOptionalType(with_creator, str)
     precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
-    precondition.AssertOptionalType(with_description_match, Text)
+    precondition.AssertOptionalType(with_description_match, str)
     if created_by is not None:
       precondition.AssertIterableType(created_by, str)
     if not_created_by is not None:
@@ -4705,7 +4676,7 @@ class DatabaseValidationWrapper(Database):
       with_substring: Optional[str] = None,
   ) -> Sequence[flows_pb2.FlowLogEntry]:
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_substring, Text)
+    precondition.AssertOptionalType(with_substring, str)
 
     return self.delegate.ReadHuntLogEntries(
         hunt_id, offset, count, with_substring=with_substring
@@ -4726,9 +4697,9 @@ class DatabaseValidationWrapper(Database):
       with_timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Iterable[flows_pb2.FlowResult]:
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
-    precondition.AssertOptionalType(with_substring, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
+    precondition.AssertOptionalType(with_substring, str)
     precondition.AssertOptionalType(with_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.ReadHuntResults(
         hunt_id,
@@ -4742,8 +4713,8 @@ class DatabaseValidationWrapper(Database):
 
   def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(with_tag, Text)
-    precondition.AssertOptionalType(with_type, Text)
+    precondition.AssertOptionalType(with_tag, str)
+    precondition.AssertOptionalType(with_type, str)
     return self.delegate.CountHuntResults(
         hunt_id, with_tag=with_tag, with_type=with_type
     )
@@ -4832,7 +4803,7 @@ class DatabaseValidationWrapper(Database):
   def WriteYaraSignatureReference(
       self,
       blob_id: blobs.BlobID,
-      username: Text,
+      username: str,
   ) -> None:
     _ValidateUsername(username)
     return self.delegate.WriteYaraSignatureReference(blob_id, username)
@@ -4870,14 +4841,6 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
     _ValidateUsername(creator)
     return self.delegate.ListScheduledFlows(client_id, creator)
-
-  def StructuredSearchClients(
-      self,
-      expression: rdf_search.SearchExpression,
-      continuation_token: bytes,
-      number_of_results: int,
-  ) -> SearchClientsResult:
-    return self.delegate.StructuredSearchClient(expression, continuation_token)  # pytype: disable=attribute-error
 
   def WriteBlobEncryptionKeys(
       self,
@@ -4947,14 +4910,14 @@ def _ValidateProtoEnumType(value: int, expected_enum_type: ProtoEnumProtocol):
 
 
 def _ValidateStringId(typename, value):
-  precondition.AssertType(value, Text)
+  precondition.AssertType(value, str)
   if not value:
     message = "Expected %s `%s` to be non-empty" % (typename, value)
     raise ValueError(message)
 
 
 def _ValidateClientIds(client_ids):
-  precondition.AssertIterableType(client_ids, Text)
+  precondition.AssertIterableType(client_ids, str)
   for client_id in client_ids:
     precondition.ValidateClientId(client_id)
 
@@ -4987,7 +4950,7 @@ def _ValidateApprovalId(approval_id):
 def _ValidateApprovalType(approval_type):
   if (
       approval_type
-      == rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE
+      == objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE
   ):
     raise ValueError("Unexpected approval type: %s" % approval_type)
 
@@ -5048,7 +5011,7 @@ def _ValidatePathInfos(path_infos: Iterable[objects_pb2.PathInfo]) -> None:
 
 
 def _ValidatePathComponents(components):
-  precondition.AssertIterableType(components, Text)
+  precondition.AssertIterableType(components, str)
 
 
 def _ValidateNotificationType(notification_type):
@@ -5071,20 +5034,8 @@ def _ValidateDuration(duration):
   precondition.AssertType(duration, rdfvalue.Duration)
 
 
-def _ValidateClientPathID(client_path_id):
-  precondition.AssertType(client_path_id, rdf_objects.ClientPathID)
-
-
-def _ValidateBlobReference(blob_ref):
-  precondition.AssertType(blob_ref, rdf_objects.BlobReference)
-
-
 def _ValidateBlobID(blob_id):
   precondition.AssertType(blob_id, blobs.BlobID)
-
-
-def _ValidateBytes(value):
-  precondition.AssertType(value, bytes)
 
 
 def _ValidateSHA256HashID(sha256_hash_id):
@@ -5099,13 +5050,6 @@ def _ValidateMessageHandlerName(name):
   _ValidateStringLength(
       "MessageHandler names", name, MAX_MESSAGE_HANDLER_NAME_LENGTH
   )
-
-
-def _ValidateClientActivityBuckets(buckets):
-  precondition.AssertType(buckets, (set, frozenset))
-  precondition.AssertIterableType(buckets, int)
-  if not buckets:
-    raise ValueError("At least one bucket must be provided.")
 
 
 def _ValidateEmail(email):

@@ -34,14 +34,17 @@ class TestGroupManager(groups.GroupAccessManager):
     self._authorized_groups.setdefault(subject, []).append(group)
 
   def MemberOfAuthorizedGroup(self, username, subject):
-    if (username == "api_test_robot_user" and
-        "somegroup" in self._authorized_groups.get(subject, [])):
+    if (
+        username == "api_test_robot_user"
+        and "somegroup" in self._authorized_groups.get(subject, [])
+    ):
       return True
 
 
 class ApiCallRouterWithApprovalChecksE2ETest(
     hunt_test_lib.StandardHuntTestMixin,
-    api_integration_test_lib.ApiIntegrationTest):
+    api_integration_test_lib.ApiIntegrationTest,
+):
 
   def InitRouterConfig(self, router_config):
     router_config_file = os.path.join(self.temp_dir, "api_acls.yaml")
@@ -49,7 +52,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
       fd.write(router_config)
 
     config_overrider = test_lib.ConfigOverrider(
-        {"API.RouterACLConfigFile": router_config_file})
+        {"API.RouterACLConfigFile": router_config_file}
+    )
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
@@ -74,14 +78,16 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         hunt_id,
         approval_id=approval_id,
         requestor=requestor,
-        approver=u"Approver1",
-        admin=admin)
+        approver="Approver1",
+        admin=admin,
+    )
     self.GrantHuntApproval(
         hunt_id,
         approval_id=approval_id,
         requestor=requestor,
-        approver=u"Approver2",
-        admin=False)
+        approver="Approver2",
+        admin=False,
+    )
 
   def testUnauthorizedAccessToFileOnClientIsForbidden(self):
     """Tests that simple access requires a token."""
@@ -105,7 +111,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     with test_lib.FakeTime(100.0, increment=1e-3):
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.test_username)
+          client_id, requestor=self.test_username
+      )
 
       # This should work now.
       self.api.Client(client_id).File("fs/os/foo").Get()
@@ -143,7 +150,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     # Move the clocks forward to make sure the approval expires.
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_expiry"],
-        increment=1e-3):
+        increment=1e-3,
+    ):
       with self.assertRaises(grr_api_errors.AccessForbiddenError):
         self.api.Client(client_id).File("fs/os/foo").Get()
 
@@ -152,14 +160,17 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     self.InitDefaultRouter()
 
     hunt_id = self.CreateHunt()
-    self.assertRaises(grr_api_errors.AccessForbiddenError,
-                      self.api.Hunt(hunt_id).Start)
+    self.assertRaises(
+        grr_api_errors.AccessForbiddenError, self.api.Hunt(hunt_id).Start
+    )
 
     self.CreateHuntApproval(hunt_id, self.test_username, admin=False)
 
-    self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                           "Need at least 1 admin approver for access",
-                           self.api.Hunt(hunt_id).Start)
+    self.assertRaisesRegex(
+        grr_api_errors.AccessForbiddenError,
+        "Need at least 1 admin approver for access",
+        self.api.Hunt(hunt_id).Start,
+    )
 
     self.CreateHuntApproval(hunt_id, self.test_username, admin=True)
     self.api.Hunt(hunt_id).Start()
@@ -173,21 +184,25 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
         self.api.Client(client_id).CreateFlow,
-        name=flow_test_lib.SendingFlow.__name__)
+        name=flow_test_lib.SendingFlow.__name__,
+    )
 
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
     f = self.api.Client(client_id).CreateFlow(
-        name=flow_test_lib.SendingFlow.__name__)
+        name=flow_test_lib.SendingFlow.__name__
+    )
 
     # Move the clocks forward to make sure the approval expires.
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_expiry"],
-        increment=1e-3):
+        increment=1e-3,
+    ):
       with self.assertRaises(grr_api_errors.AccessForbiddenError):
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.test_username)
+          client_id, requestor=self.test_username
+      )
       self.api.Client(client_id).Flow(f.flow_id).Get()
 
   def testApprovalsAreCachedForLimitedTime(self):
@@ -198,23 +213,31 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     with test_lib.ConfigOverrider({"ACL.token_expiry": 30}):
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.test_username)
+          client_id, requestor=self.test_username
+      )
 
       f = self.api.Client(client_id).CreateFlow(
-          name=flow_test_lib.SendingFlow.__name__)
+          name=flow_test_lib.SendingFlow.__name__
+      )
 
       # Move the clocks past approval expiry time but before cache expiry time.
-      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.DurationSeconds("30s")):
+      with test_lib.FakeTime(
+          rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("30s")
+      ):
         # If this doesn't raise now, all answers were cached.
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
       with test_lib.FakeTime(
-          rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
-              api_router.AccessChecker.APPROVAL_CACHE_TIME, rdfvalue.SECONDS)):
+          rdfvalue.RDFDatetime.Now()
+          + rdfvalue.Duration.From(
+              api_router.AccessChecker.APPROVAL_CACHE_TIME, rdfvalue.SECONDS
+          )
+      ):
         # This must raise now.
-        self.assertRaises(grr_api_errors.AccessForbiddenError,
-                          self.api.Client(client_id).Flow(f.flow_id).Get)
+        self.assertRaises(
+            grr_api_errors.AccessForbiddenError,
+            self.api.Client(client_id).Flow(f.flow_id).Get,
+        )
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     self.InitDefaultRouter()
@@ -224,7 +247,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
-          name=flow_test_lib.ClientFlowWithoutCategory.__name__)
+          name=flow_test_lib.ClientFlowWithoutCategory.__name__
+      )
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     self.InitDefaultRouter()
@@ -233,7 +257,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
     self.api.Client(client_id).CreateFlow(
-        name=flow_test_lib.ClientFlowWithCategory.__name__)
+        name=flow_test_lib.ClientFlowWithCategory.__name__
+    )
 
   def testRestrictedFlowCanBeStartedByAdminsWithDefaultConfig(self):
     self.InitDefaultRouter()
@@ -244,7 +269,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
         self.api.Client(client_id).CreateFlow(name=flow_name)
@@ -257,15 +282,17 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
-        with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                    "restricted flow"):
+        with self.assertRaisesRegex(
+            grr_api_errors.AccessForbiddenError, "restricted flow"
+        ):
           self.api.Client(client_id).CreateFlow(name=flow_name)
 
   def testAdminAttributeIsIrrelevantOnFlowStartIfConfigOptionToIgnoreItIsSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -280,15 +307,17 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
-        with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                    "restricted flow"):
+        with self.assertRaisesRegex(
+            grr_api_errors.AccessForbiddenError, "restricted flow"
+        ):
           self.api.Client(client_id).CreateFlow(name=flow_name)
 
   def testUserAllowlistIsCheckedOnFlowStartIfConfigOptionToIgnoreAdminsIsNotSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -302,7 +331,8 @@ users:
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
     self.api.Client(client_id).CreateFlow(
-        name=administrative.LaunchBinary.__name__)
+        name=administrative.LaunchBinary.__name__
+    )
 
     # Check the negative case.
     self.InitRouterConfig(f"""
@@ -317,13 +347,16 @@ users:
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
-    with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                "restricted flow"):
+    with self.assertRaisesRegex(
+        grr_api_errors.AccessForbiddenError, "restricted flow"
+    ):
       self.api.Client(client_id).CreateFlow(
-          name=administrative.LaunchBinary.__name__)
+          name=administrative.LaunchBinary.__name__
+      )
 
   def testUserAllowlistIsCheckedOnFlowStartIfConfigOptionToIgnoreAdminsIsSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -338,7 +371,8 @@ users:
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
     self.api.Client(client_id).CreateFlow(
-        name=administrative.LaunchBinary.__name__)
+        name=administrative.LaunchBinary.__name__
+    )
 
     # Check the negative case.
     self.InitRouterConfig(f"""
@@ -354,15 +388,19 @@ users:
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
-    with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                "restricted flow"):
+    with self.assertRaisesRegex(
+        grr_api_errors.AccessForbiddenError, "restricted flow"
+    ):
       self.api.Client(client_id).CreateFlow(
-          name=administrative.LaunchBinary.__name__)
+          name=administrative.LaunchBinary.__name__
+      )
 
   def testGroupAllowlistIsCheckedOnFlowStartIfConfigOptionToIgnoreAdminsIsSet(
-      self):
+      self,
+  ):
     with test_lib.ConfigOverrider(
-        {"ACL.group_access_manager_class": TestGroupManager.__name__}):
+        {"ACL.group_access_manager_class": TestGroupManager.__name__}
+    ):
       self.InitRouterConfig(f"""
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
@@ -375,10 +413,12 @@ users:
 
       client_id = self.SetupClient(0)
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.test_username)
+          client_id, requestor=self.test_username
+      )
 
       self.api.Client(client_id).CreateFlow(
-          name=administrative.LaunchBinary.__name__)
+          name=administrative.LaunchBinary.__name__
+      )
 
       # Check the negative case.
       self.InitRouterConfig(f"""
@@ -393,12 +433,15 @@ users:
 
       client_id = self.SetupClient(0)
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.test_username)
+          client_id, requestor=self.test_username
+      )
 
-      with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                  "restricted flow"):
+      with self.assertRaisesRegex(
+          grr_api_errors.AccessForbiddenError, "restricted flow"
+      ):
         self.api.Client(client_id).CreateFlow(
-            name=administrative.LaunchBinary.__name__)
+            name=administrative.LaunchBinary.__name__
+        )
 
   def testRestrictedHuntCanBeStartedByAdminsWithDefaultConfig(self):
     self.InitDefaultRouter()
@@ -407,7 +450,7 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
         self.api.CreateHunt(flow_name)
@@ -417,15 +460,17 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
-        with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                    "restricted flow"):
+        with self.assertRaisesRegex(
+            grr_api_errors.AccessForbiddenError, "restricted flow"
+        ):
           self.api.CreateHunt(flow_name)
 
   def testAdminAttributeIsIrrelevantOnHuntCreateIfConfigOptionToIgnoreItIsSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -438,15 +483,17 @@ users:
 
     for flow_name in [
         administrative.LaunchBinary.__name__,
-        administrative.ExecutePythonHack.__name__
+        administrative.ExecutePythonHack.__name__,
     ]:
       with self.subTest(flow_name=flow_name):
-        with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                    "restricted flow"):
+        with self.assertRaisesRegex(
+            grr_api_errors.AccessForbiddenError, "restricted flow"
+        ):
           self.api.CreateHunt(flow_name)
 
   def testUserAllowlistIsCheckedOnHuntCreateIfConfigOptionToIgnoreAdminsIsNotSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -468,12 +515,14 @@ users:
   - {self.test_username}
 """)
 
-    with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                "restricted flow"):
+    with self.assertRaisesRegex(
+        grr_api_errors.AccessForbiddenError, "restricted flow"
+    ):
       self.api.CreateHunt(administrative.LaunchBinary.__name__)
 
   def testUserAllowlistIsCheckedOnHuntCreateIfConfigOptionToIgnoreAdminsIsSet(
-      self):
+      self,
+  ):
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
@@ -497,14 +546,17 @@ users:
   - {self.test_username}
 """)
 
-    with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                "restricted flow"):
+    with self.assertRaisesRegex(
+        grr_api_errors.AccessForbiddenError, "restricted flow"
+    ):
       self.api.CreateHunt(administrative.LaunchBinary.__name__)
 
   def testGroupAllowlistIsCheckedOnHuntCreateIfConfigOptionToIgnoreAdminsIsSet(
-      self):
+      self,
+  ):
     with test_lib.ConfigOverrider(
-        {"ACL.group_access_manager_class": TestGroupManager.__name__}):
+        {"ACL.group_access_manager_class": TestGroupManager.__name__}
+    ):
       self.InitRouterConfig(f"""
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
@@ -528,8 +580,9 @@ users:
     - {self.test_username}
   """)
 
-      with self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
-                                  "restricted flow"):
+      with self.assertRaisesRegex(
+          grr_api_errors.AccessForbiddenError, "restricted flow"
+      ):
         self.api.CreateHunt(administrative.LaunchBinary.__name__)
 
 

@@ -109,6 +109,9 @@ class ArtifactRegistry(object):
     # Field required by the utils.Synchronized annotation.
     self.lock = threading.RLock()
 
+    # Maps artifact name to the source from which it was loaded for debugging.
+    self._artifact_loaded_from: dict[str, str] = {}
+
   def _LoadArtifactsFromDatastore(self):
     """Load artifacts from the data store."""
     loaded_artifacts = []
@@ -280,23 +283,27 @@ class ArtifactRegistry(object):
         details = "artifact already exists and `overwrite_if_exists` is unset"
         raise rdf_artifacts.ArtifactDefinitionError(artifact_name, details)
       elif not overwrite_system_artifacts:
-        artifact_obj = self._artifacts[artifact_name]
-        if not artifact_obj.loaded_from.startswith("datastore:"):
+        loaded_from_datastore = self.IsLoadedFrom(artifact_name, "datastore:")
+        if not loaded_from_datastore:
           # This artifact was not uploaded to the datastore but came from a
           # file, refuse to overwrite.
           details = "system artifact cannot be overwritten"
           raise rdf_artifacts.ArtifactDefinitionError(artifact_name, details)
 
     # Preserve where the artifact was loaded from to help debugging.
-    artifact_rdfvalue.loaded_from = source
+    self._artifact_loaded_from[artifact_name] = source
     # Clear any stale errors.
     artifact_rdfvalue.error_message = None
     self._artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
+
+  def IsLoadedFrom(self, artifact_name: str, source: str) -> bool:
+    return self._artifact_loaded_from.get(artifact_name, "").startswith(source)
 
   @utils.Synchronized
   def UnregisterArtifact(self, artifact_name):
     try:
       del self._artifacts[artifact_name]
+      del self._artifact_loaded_from[artifact_name]
     except KeyError:
       raise ValueError("Artifact %s unknown." % artifact_name)
 
@@ -314,11 +321,12 @@ class ArtifactRegistry(object):
   def _UnregisterDatastoreArtifacts(self):
     """Remove artifacts that came from the datastore."""
     to_remove = []
-    for name, artifact in self._artifacts.items():
-      if artifact.loaded_from.startswith("datastore"):
+    for name in self._artifacts:
+      if self.IsLoadedFrom(name, "datastore"):
         to_remove.append(name)
     for key in to_remove:
       self._artifacts.pop(key)
+      self._artifact_loaded_from.pop(key)
 
   @utils.Synchronized
   def ReloadDatastoreArtifacts(self):

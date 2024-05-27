@@ -40,18 +40,28 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     # Check that shown default values of the controls are just default
     # values of the corresponding types.
     self.WaitUntilEqual(
-        "", self.GetValue, "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('String value')) input")
+        "",
+        self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('String value')) input",
+    )
     self.WaitUntilEqual(
-        "0", self.GetValue, "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Int value')) input")
+        "0",
+        self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Int value')) input",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Bool value')) input:not(:checked)")
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Bool value')) input:not(:checked)",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Enum value')) select "
-        "option:selected(label='OPTION_1 (default)')")
+        "option:selected(label='OPTION_1 (default)')",
+    )
 
   def testControlsWithDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
@@ -66,19 +76,29 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     # Check that shown default values of the controls are the default values
     # that we specified in the RDFValue definition.
     self.WaitUntilEqual(
-        "default string", self.GetValue, "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('String value with default')) input")
+        "default string",
+        self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('String value with default')) input",
+    )
     self.WaitUntilEqual(
-        "42", self.GetValue, "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Int value with default')) input")
+        "42",
+        self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Int value with default')) input",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Bool value with default')) "
-        "input:checked")
+        "input:checked",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Enum value with default')) select "
-        "option:selected(label='OPTION_2 (default)')")
+        "option:selected(label='OPTION_2 (default)')",
+    )
 
   def testFileFinderArgsPathsDocHintIsDisplayed(self):
     self.Open("/legacy#/hunts")
@@ -89,9 +109,11 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
     self.WaitUntil(
-        self.IsElementPresent, "css=label:contains(Paths) "
+        self.IsElementPresent,
+        "css=label:contains(Paths) "
         "a[href*='help/investigating-with-grr/flows/"
-        "specifying-file-paths.html']")
+        "specifying-file-paths.html']",
+    )
 
   def testFileFinderArgsHasOnePathAddedByDefault(self):
     self.Open("/legacy#/hunts")
@@ -101,8 +123,10 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.Click("css=#_Filesystem > i.jstree-icon")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=input[placeholder*='Type %% for autocompletion']")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=input[placeholder*='Type %% for autocompletion']",
+    )
 
   def testApproverInputShowsAutocompletion(self):
     self.CreateUser("sanchezrick")
@@ -121,17 +145,20 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
 
     self.Type(input_selector, "sanchez")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=[uib-typeahead-popup]:contains(sanchezrick)")
+    self.WaitUntil(
+        self.IsElementPresent, "css=[uib-typeahead-popup]:contains(sanchezrick)"
+    )
 
     self.GetElement(input_selector).send_keys(keys.Keys.ENTER)
 
-    self.WaitUntilEqual("sanchezrick, ", self.GetValue,
-                        input_selector + ":text")
+    self.WaitUntilEqual(
+        "sanchezrick, ", self.GetValue, input_selector + ":text"
+    )
 
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]", "Test")
     self.Click(
-        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])"
+    )
 
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
@@ -139,7 +166,8 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     handler = user_plugin.ApiListClientApprovalsHandler()
     args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
     res = handler.Handle(
-        args=args, context=api_call_context.ApiCallContext(self.test_username))
+        args=args, context=api_call_context.ApiCallContext(self.test_username)
+    )
     self.assertLen(res.items, 1)
     self.assertLen(res.items[0].notified_users, 1)
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
@@ -171,25 +199,31 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     # FileFinder's literal match condition has bytes field that should
     # be validated: it shouldn't contain Unicode characters.
     self.Click("css=label:contains('Conditions') ~ * button")
-    self.Select("css=label:contains('Condition type') ~ * select",
-                "Contents literal match")
-    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+    self.Select(
+        "css=label:contains('Condition type') ~ * select",
+        "Contents literal match",
+    )
+    self.Type("css=label:contains('Literal') ~ * input", "昨夜")
 
     self.WaitUntil(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Launch'):disabled")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Launch'):disabled"
+    )
 
     self.Type("css=label:contains('Literal') ~ * input", "something safe")
 
     self.WaitUntilNot(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Launch'):not(:disabled)")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Launch'):not(:disabled)"
+    )
 
   def testLaunchButtonInCopyFlowIsDisabledIfArgumentsInvalid(self):
     self.Open("/legacy#/clients/%s/launch-flow" % self.client_id)
@@ -197,8 +231,9 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     # Launch the flow.
     self.Click("css=#_Filesystem a")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
-    self.Type("css=grr-form-proto-repeated-field:contains('Paths') input",
-              "foo/bar")
+    self.Type(
+        "css=grr-form-proto-repeated-field:contains('Paths') input", "foo/bar"
+    )
     self.Click("css=button:contains('Launch')")
 
     # Open the copy dialog.
@@ -209,25 +244,31 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     # FileFinder's literal match condition has bytes field that should
     # be validated: it shouldn't contain Unicode characters.
     self.Click("css=label:contains('Conditions') ~ * button")
-    self.Select("css=label:contains('Condition type') ~ * select",
-                "Contents literal match")
-    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+    self.Select(
+        "css=label:contains('Condition type') ~ * select",
+        "Contents literal match",
+    )
+    self.Type("css=label:contains('Literal') ~ * input", "昨夜")
 
     self.WaitUntil(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Launch'):disabled")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Launch'):disabled"
+    )
 
     self.Type("css=label:contains('Literal') ~ * input", "something safe")
 
     self.WaitUntilNot(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Launch'):not(:disabled)")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Launch'):not(:disabled)"
+    )
 
   def testNextButtonInHuntWizardIsDisabledIfArgumentsInalid(self):
     self.Open("/legacy#/hunts")
@@ -239,25 +280,31 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
     # FileFinder's literal match condition has bytes field that should
     # be validated: it shouldn't contain Unicode characters.
     self.Click("css=label:contains('Conditions') ~ * button")
-    self.Select("css=label:contains('Condition type') ~ * select",
-                "Contents literal match")
-    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+    self.Select(
+        "css=label:contains('Condition type') ~ * select",
+        "Contents literal match",
+    )
+    self.Type("css=label:contains('Literal') ~ * input", "昨夜")
 
     self.WaitUntil(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Next'):disabled")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Next'):disabled"
+    )
 
     self.Type("css=label:contains('Literal') ~ * input", "something safe")
 
     self.WaitUntilNot(
         self.IsElementPresent,
         "css=.text-danger:contains('Unicode characters are not "
-        "allowed in a byte string')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Next'):not(:disabled)")
+        "allowed in a byte string')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Next'):not(:disabled)"
+    )
 
 
 if __name__ == "__main__":

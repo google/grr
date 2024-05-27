@@ -15,20 +15,27 @@ def RegisterApiCallRouters():
 
   # keep-sorted start block=yes
   api_call_router_registry.RegisterApiCallRouter(
-      "ApiCallRobotRouter", api_call_robot_router.ApiCallRobotRouter)
+      "ApiCallRobotRouter", api_call_robot_router.ApiCallRobotRouter
+  )
   api_call_router_registry.RegisterApiCallRouter(
-      "ApiCallRouterStub", api_call_router.ApiCallRouterStub)
+      "ApiCallRouterStub", api_call_router.ApiCallRouterStub
+  )
   api_call_router_registry.RegisterApiCallRouter(
       "ApiCallRouterWithApprovalChecks",
-      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+  )
   api_call_router_registry.RegisterApiCallRouter(
       "ApiCallRouterWithoutChecks",
-      api_call_router_without_checks.ApiCallRouterWithoutChecks)
+      api_call_router_without_checks.ApiCallRouterWithoutChecks,
+  )
   api_call_router_registry.RegisterApiCallRouter(
       "ApiLabelsRestrictedCallRouter",
-      api_labels_restricted_call_router.ApiLabelsRestrictedCallRouter)
-  api_call_router_registry.RegisterApiCallRouter("ApiRootRouter",
-                                                 api_root_router.ApiRootRouter)
+      api_labels_restricted_call_router.ApiLabelsRestrictedCallRouter,
+  )
   api_call_router_registry.RegisterApiCallRouter(
-      "DisabledApiCallRouter", api_call_router.DisabledApiCallRouter)
+      "ApiRootRouter", api_root_router.ApiRootRouter
+  )
+  api_call_router_registry.RegisterApiCallRouter(
+      "DisabledApiCallRouter", api_call_router.DisabledApiCallRouter
+  )
   # keep-sorted end

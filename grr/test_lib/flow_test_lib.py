@@ -403,11 +403,6 @@ def TestFlowHelper(flow_urn_or_cls_name,
 
 def StartFlow(flow_cls, client_id=None, flow_args=None, creator=None, **kwargs):
   """Starts (but not runs) a flow."""
-  try:
-    del kwargs["notify_to_user"]
-  except KeyError:
-    pass
-
   return flow.StartFlow(
       flow_cls=flow_cls,
       client_id=client_id,

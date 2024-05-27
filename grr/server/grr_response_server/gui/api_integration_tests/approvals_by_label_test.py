@@ -26,25 +26,28 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     super().setUp()
 
     self.client_nolabel_id = self.SetupClient(0)
-    self.client_legal_id = self.SetupClient(1, labels=[u"legal_approval"])
+    self.client_legal_id = self.SetupClient(1, labels=["legal_approval"])
     self.client_prod_id = self.SetupClient(
-        2, labels=[u"legal_approval", u"prod_admin_approval"])
+        2, labels=["legal_approval", "prod_admin_approval"]
+    )
 
-    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
+    cls = api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks
     cls.ClearCache()
     approver = test_lib.ConfigOverrider({
-        "API.DefaultRouter":
-            cls.__name__,
-        "ACL.approvers_config_file":
-            os.path.join(self.base_path, "approvers.yaml")
+        "API.DefaultRouter": cls.__name__,
+        "ACL.approvers_config_file": os.path.join(
+            self.base_path, "approvers.yaml"
+        ),
     })
     approver.Start()
     self.addCleanup(approver.Stop)
 
     # Get a fresh approval manager object and reload with test approvers.
     approval_manager_stubber = mock.patch.object(
-        client_approval_auth, "CLIENT_APPROVAL_AUTH_MGR",
-        client_approval_auth.ClientApprovalAuthorizationManager())
+        client_approval_auth,
+        "CLIENT_APPROVAL_AUTH_MGR",
+        client_approval_auth.ClientApprovalAuthorizationManager(),
+    )
     approval_manager_stubber.start()
     self.addCleanup(approval_manager_stubber.stop)
 
@@ -57,12 +60,14 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
 
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get,
+    )
 
     # approvers.yaml rules don't get checked because this client has no
     # labels. Regular approvals still required.
     self.RequestAndGrantClientApproval(
-        self.client_nolabel_id, requestor=self.context.username)
+        self.client_nolabel_id, requestor=self.context.username
+    )
 
     # Check we now have access
     self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get()
@@ -73,15 +78,18 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
 
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_legal_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_legal_id).File("fs/os/foo").Get,
+    )
 
     approval_id = self.RequestAndGrantClientApproval(
-        self.client_legal_id, requestor=self.context.username)
+        self.client_legal_id, requestor=self.context.username
+    )
     # This approval isn't enough, we need one from legal, so it should still
     # fail.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_legal_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_legal_id).File("fs/os/foo").Get,
+    )
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
@@ -89,7 +97,8 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
         self.client_legal_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"legal1")
+        approver="legal1",
+    )
 
     # Check we now have access
     self.api.Client(self.client_legal_id).File("fs/os/foo").Get()
@@ -108,15 +117,18 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     # No approvals yet, this should fail.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
     approval_id = self.RequestAndGrantClientApproval(
-        self.client_prod_id, requestor=self.context.username)
+        self.client_prod_id, requestor=self.context.username
+    )
 
     # This approval from "approver" isn't enough.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
@@ -124,12 +136,14 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"legal1")
+        approver="legal1",
+    )
 
     # We have "approver", "legal1": not enough.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
     # Grant an approval from a user in the prod_admin_approval list in
     # approvers.yaml
@@ -137,18 +151,21 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"prod2")
+        approver="prod2",
+    )
 
     # We have "approver", "legal1", "prod2": not enough.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"prod3")
+        approver="prod3",
+    )
 
     # We have "approver", "legal1", "prod2", "prod3": we should have
     # access.
@@ -161,26 +178,31 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     # No approvals yet, this should fail.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
     # Grant all the necessary approvals
     approval_id = self.RequestAndGrantClientApproval(
-        self.client_prod_id, requestor=self.context.username)
+        self.client_prod_id, requestor=self.context.username
+    )
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"legal1")
+        approver="legal1",
+    )
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"prod2")
+        approver="prod2",
+    )
     self.GrantClientApproval(
         self.client_prod_id,
         requestor=self.context.username,
         approval_id=approval_id,
-        approver=u"prod3")
+        approver="prod3",
+    )
 
     # We have "approver", "legal1", "prod2", "prod3" approvals but because
     # "notprod" user isn't in prod_admin_approval and
@@ -188,7 +210,8 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     # never get a complete approval.
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+        self.api.Client(self.client_prod_id).File("fs/os/foo").Get,
+    )
 
 
 def main(argv):

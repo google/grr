@@ -19,6 +19,7 @@ from grr_response_core.lib.registry import FlowRegistry
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import access_control
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -183,7 +184,9 @@ class FlowBase(metaclass=FlowRegistry):
 
     self._client_version = None
     self._client_os = None
-    self._client_knowledge_base = None
+    self._client_knowledge_base: Optional[knowledge_base_pb2.KnowledgeBase] = (
+        None
+    )
     self._client_info: Optional[rdf_client.ClientInformation] = None
 
     self._python_agent_support: Optional[bool] = None
@@ -1244,10 +1247,11 @@ class FlowBase(metaclass=FlowRegistry):
     return self._client_os
 
   @property
-  def client_knowledge_base(self) -> rdf_client.KnowledgeBase:
+  def client_knowledge_base(self) -> Optional[knowledge_base_pb2.KnowledgeBase]:
     if self._client_knowledge_base is None:
       self._client_knowledge_base = data_store_utils.GetClientKnowledgeBase(
-          self.client_id)
+          self.client_id
+      )
 
     return self._client_knowledge_base
 

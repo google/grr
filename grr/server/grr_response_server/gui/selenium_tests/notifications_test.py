@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Test the fileview interface."""
+
 from unittest import mock
 
 from absl import app
@@ -21,37 +22,50 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
   def GenerateNotifications(cls, client_id, username):
     """Generates fake notifications of different notification types."""
     session_id = flow_test_lib.StartFlow(
-        discovery.Interrogate, client_id=client_id, creator=username)
+        discovery.Interrogate, client_id=client_id, creator=username
+    )
 
     notification.Notify(
-        username, rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        username,
+        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         "Fake discovery message",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=client_id)))
+            client=rdf_objects.ClientReference(client_id=client_id),
+        ),
+    )
 
     # ViewObject: VirtualFileSystem
     notification.Notify(
-        username, rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+        username,
+        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
         "File fetch completed",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
                 client_id=client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
-                path_components=["proc", "10", "exe"])))
+                path_components=["proc", "10", "exe"],
+            ),
+        ),
+    )
 
     gui_test_lib.CreateFileVersion(
-        client_id, "fs/os/proc/10/exe", b"", timestamp=gui_test_lib.TIME_0)
+        client_id, "fs/os/proc/10/exe", b"", timestamp=gui_test_lib.TIME_0
+    )
 
     # ViewObject: Flow
     notification.Notify(
-        username, rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        username,
+        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
         "Fake view flow message",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=client_id, flow_id=session_id)))
+                client_id=client_id, flow_id=session_id
+            ),
+        ),
+    )
 
     # FlowError
     flow_base.TerminateFlow(client_id, session_id, "Fake flow error")
@@ -63,8 +77,9 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
     # Have something for us to look at.
     self.client_id = self.SetupClient(0)
-    self.session_id = self.GenerateNotifications(self.client_id,
-                                                 self.test_username)
+    self.session_id = self.GenerateNotifications(
+        self.client_id, self.test_username
+    )
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testNotifications(self):
@@ -102,33 +117,38 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('File fetch completed')")
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li.active a[grrtarget='client.vfs']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=li.active a[grrtarget='client.vfs']"
+    )
 
     # The tree is opened to the correct place
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
     # The stats pane shows the target file
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-file-details:contains('proc/10/exe')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-file-details:contains('proc/10/exe')"
+    )
 
     # Now select a FlowStatus notification,
     # should navigate to the broken flow.
     self.Click("css=button[id=notification_button]")
 
-    self.WaitUntilContains("terminated due to error", self.GetText,
-                           "css=td:contains('error')")
+    self.WaitUntilContains(
+        "terminated due to error", self.GetText, "css=td:contains('error')"
+    )
 
     self.Click("css=td:contains('terminated due to error')")
     self.WaitUntil(self.IsTextPresent, "Flow Information")
 
     # The navigation bar should manage the flows
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li.active a[grrtarget='client.flows']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=li.active a[grrtarget='client.flows']"
+    )
 
     # The stats pane shows the relevant flow
-    self.WaitUntilContains(self.session_id, self.GetText,
-                           "css=grr-flow-overview")
+    self.WaitUntilContains(
+        self.session_id, self.GetText, "css=grr-flow-overview"
+    )
 
   def testUserSettings(self):
     """Tests that user settings UI is working."""
@@ -146,8 +166,9 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
     # Check that the mode value was saved
     self.Click("css=grr-user-settings-button")
-    self.assertEqual("BASIC (default)",
-                     self.GetSelectedLabel(mode_selector).strip())
+    self.assertEqual(
+        "BASIC (default)", self.GetSelectedLabel(mode_selector).strip()
+    )
 
   def testServerErrorInApiShowsErrorButton(self):
 
@@ -165,10 +186,16 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
         self.Click("css=button#show_backtrace")
 
         # Check if message and traceback are shown.
-        self.WaitUntilContains("This is a another forced exception",
-                               self.GetText, "css=div[name=ServerErrorDialog]")
-        self.WaitUntilContains("Traceback (most recent call last):",
-                               self.GetText, "css=div[name=ServerErrorDialog]")
+        self.WaitUntilContains(
+            "This is a another forced exception",
+            self.GetText,
+            "css=div[name=ServerErrorDialog]",
+        )
+        self.WaitUntilContains(
+            "Traceback (most recent call last):",
+            self.GetText,
+            "css=div[name=ServerErrorDialog]",
+        )
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ import stat
 from typing import Iterable, Union
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -464,7 +463,8 @@ class GlobLogic(object):
     # /home/%%Usernames%%/* -> [ /home/user1/*, /home/user2/* ]
     for path in paths:
       patterns.extend(
-          path.Interpolate(knowledge_base=self.client_knowledge_base))
+          path.Interpolate(knowledge_base=self.client_knowledge_base)
+      )
 
     # Expand each glob pattern into a list of components. A component is either
     # a wildcard or a literal component.
@@ -829,113 +829,6 @@ class Glob(GlobLogic, flow_base.FlowBase):
     super().GlobReportMatch(stat_response)
 
     self.SendReply(stat_response)
-
-
-class DiskVolumeInfoArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.DiskVolumeInfoArgs
-
-
-def PathHasDriveLetter(path):
-  """Check path for windows drive letter.
-
-  Use 1:2 to avoid raising on single character paths.
-
-  Args:
-    path: path string
-
-  Returns:
-    True if this path has a drive letter.
-  """
-  return path[1:2] == ":"
-
-
-class DiskVolumeInfo(flow_base.FlowBase):
-  """Get disk volume info for a given path.
-
-  On linux and OS X we call StatFS on each path and return the results. For
-  windows we collect all the volume information and filter it using the drive
-  letters in the supplied path list.
-  """
-  args_type = DiskVolumeInfoArgs
-  category = "/Filesystem/"
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
-
-  def Start(self):
-    self.state.drive_letters = set()
-    self.state.system_root_required = False
-
-    if self.client_os == "Windows":
-      # Handle the case where a path is specified without the drive letter by
-      # collecting systemroot and making sure we report the disk usage for it.
-      for path in self.args.path_list:
-        if PathHasDriveLetter(path):
-          self.state.drive_letters.add(path[0:2])
-        else:
-          self.state.system_root_required = True
-      if self.state.system_root_required:
-        self.CallFlow(
-            # TODO(user): dependency loop between collectors.py and
-            # filesystem.py.
-            # collectors.ArtifactCollectorFlow.__name__,
-            "ArtifactCollectorFlow",
-            artifact_list=["WindowsEnvironmentVariableSystemRoot"],
-            next_state=self.StoreSystemRoot.__name__)
-        return
-
-    self.CallStateInline(next_state=self.CollectVolumeInfo.__name__)
-
-  def StoreSystemRoot(self, responses):
-    if not responses.success or not responses.First():
-      if self.state.drive_letters:
-        # We have at least one path that already has a drive letter so we'll log
-        # rather than raise.
-        self.Log("Error collecting SystemRoot artifact: %s", responses.status)
-      else:
-        raise flow_base.FlowError("Error collecting SystemRoot artifact: %s" %
-                                  responses.status)
-
-    drive = str(responses.First())[0:2]
-    if drive:
-      self.state.drive_letters.add(drive)
-    else:
-      self.Log("Bad result for systemdrive: %s", responses.First())
-
-    self.CallStateInline(next_state=self.CollectVolumeInfo.__name__)
-
-  def CollectVolumeInfo(self, responses):
-    del responses
-    if self.client_os == "Windows":
-      # No dependencies for WMI
-      deps = rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
-      self.CallFlow(
-          # TODO(user): dependency loop between collectors.py and
-          # filesystem.py.
-          # collectors.ArtifactCollectorFlow.__name__,
-          "ArtifactCollectorFlow",
-          artifact_list=["WMILogicalDisks"],
-          next_state=self.ProcessWindowsVolumes.__name__,
-          dependencies=deps)
-    else:
-      self.CallClient(
-          server_stubs.StatFS,
-          rdf_client_action.StatFSRequest(
-              path_list=self.args.path_list, pathtype=self.args.pathtype),
-          next_state=self.ProcessVolumes.__name__)
-
-  def ProcessWindowsVolumes(self, responses):
-    if not responses.success:
-      self.Log("Error running WMILogicalDisks artifact: %s", responses.status)
-
-    for response in responses:
-      if response.windowsvolume.drive_letter in self.state.drive_letters:
-        self.SendReply(response)
-
-  def ProcessVolumes(self, responses):
-    if not responses.success:
-      self.Log("Error running StatFS: %s", responses.status)
-
-    for response in responses:
-      self.SendReply(response)
 
 
 def _Depth(relative_path):

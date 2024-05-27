@@ -3,7 +3,6 @@
 
 from typing import Iterator
 from typing import Optional
-from typing import Text
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
@@ -122,12 +121,14 @@ class TimelineFlow(flow_base.FlowBase):
       self.SendReply(flow_result)
 
   def GetProgress(self) -> rdf_timeline.TimelineProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return rdf_timeline.TimelineProgress()
 
 
 def ProtoEntries(
-    client_id: Text,
-    flow_id: Text,
+    client_id: str,
+    flow_id: str,
 ) -> Iterator[timeline_pb2.TimelineEntry]:
   """Retrieves timeline entries for the specified flow.
 
@@ -143,8 +144,8 @@ def ProtoEntries(
 
 
 def Blobs(
-    client_id: Text,
-    flow_id: Text,
+    client_id: str,
+    flow_id: str,
 ) -> Iterator[bytes]:
   """Retrieves timeline blobs for the specified flow.
 

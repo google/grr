@@ -3,7 +3,6 @@
 import random
 from typing import Optional
 from typing import Sequence
-from typing import Text
 
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_server import data_store
@@ -13,10 +12,10 @@ from grr_response_server.rdfvalues import mig_flow_objects
 
 
 def WriteTimeline(
-    client_id: Text,
+    client_id: str,
     entries: Sequence[rdf_timeline.TimelineEntry],
-    hunt_id: Optional[Text] = None,
-) -> Text:
+    hunt_id: Optional[str] = None,
+) -> str:
   """Writes a timeline to the database (as fake flow result).
 
   Args:

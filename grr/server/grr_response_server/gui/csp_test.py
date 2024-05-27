@@ -34,8 +34,11 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
 
   def testBuildPolicy(self):
     expected_directives = [
-        "upgrade-insecure-requests", "default-src 'self'", "base-uri 'none'",
-        "object-src 'none'", "img-src 'self' https: data:"
+        "upgrade-insecure-requests",
+        "default-src 'self'",
+        "base-uri 'none'",
+        "object-src 'none'",
+        "img-src 'self' https: data:",
     ]
 
     result = csp.BuildPolicy(test_policy)
@@ -49,27 +52,36 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
           csp_report_only=False,
           tt_enabled=False,
           tt_report_only=False,
-          expected_headers=[]),
+          expected_headers=[],
+      ),
       dict(
-          testcase_name="Enable enforced Trusted Types, with an existing CSP header",
+          testcase_name=(
+              "Enable enforced Trusted Types, with an existing CSP header"
+          ),
           csp_enabled=False,
           csp_report_only=True,
           tt_enabled=True,
           tt_report_only=False,
           existing_headers=[(csp.HEADER_KEY_ENFORCE, "existing policy")],
-          expected_headers=[(csp.HEADER_KEY_ENFORCE, "existing policy"),
-                            (csp.HEADER_KEY_ENFORCE,
-                             "require-trusted-types-for 'script'")]),
+          expected_headers=[
+              (csp.HEADER_KEY_ENFORCE, "existing policy"),
+              (csp.HEADER_KEY_ENFORCE, "require-trusted-types-for 'script'"),
+          ],
+      ),
       dict(
           testcase_name="Enable enforced CSP, with custom policy",
           csp_enabled=True,
           csp_policy='{"frame-ancestors": ["\'self\'"], "foo": ["bar"]}',
           csp_report_only=False,
           tt_enabled=False,
-          expected_headers=[(csp.HEADER_KEY_ENFORCE,
-                             "frame-ancestors 'self'; foo bar")]),
+          expected_headers=[
+              (csp.HEADER_KEY_ENFORCE, "frame-ancestors 'self'; foo bar")
+          ],
+      ),
       dict(
-          testcase_name="Enable enforced CSP & trusted types, with custom policy",
+          testcase_name=(
+              "Enable enforced CSP & trusted types, with custom policy"
+          ),
           csp_enabled=True,
           csp_policy='{"frame-ancestors": ["\'self\'"], "foo": ["bar"]}',
           csp_report_only=False,
@@ -77,23 +89,29 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
           tt_report_only=False,
           expected_headers=[
               (csp.HEADER_KEY_ENFORCE, "frame-ancestors 'self'; foo bar"),
-              (csp.HEADER_KEY_ENFORCE, "require-trusted-types-for 'script'")
-          ]),
+              (csp.HEADER_KEY_ENFORCE, "require-trusted-types-for 'script'"),
+          ],
+      ),
       dict(
-          testcase_name="Enable report-only CSP, no trusted types, with report URL",
+          testcase_name=(
+              "Enable report-only CSP, no trusted types, with report URL"
+          ),
           csp_enabled=True,
           csp_report_only=True,
           tt_enabled=False,
           report_uri="test",
-          expected_headers=[(csp.HEADER_KEY_REPORT_ONLY, "report-uri test")]),
+          expected_headers=[(csp.HEADER_KEY_REPORT_ONLY, "report-uri test")],
+      ),
       dict(
           testcase_name="Enable report-only trusted types",
           csp_enabled=False,
           csp_report_only=False,
           tt_enabled=True,
           tt_report_only=True,
-          expected_headers=[(csp.HEADER_KEY_REPORT_ONLY,
-                             "require-trusted-types-for 'script'")]),
+          expected_headers=[
+              (csp.HEADER_KEY_REPORT_ONLY, "require-trusted-types-for 'script'")
+          ],
+      ),
       dict(
           testcase_name="Enable report-only trusted types with report URL",
           csp_enabled=False,
@@ -101,10 +119,11 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
           tt_enabled=True,
           tt_report_only=True,
           report_uri="test",
-          expected_headers=[
-              (csp.HEADER_KEY_REPORT_ONLY,
-               "require-trusted-types-for 'script'; report-uri test")
-          ]),
+          expected_headers=[(
+              csp.HEADER_KEY_REPORT_ONLY,
+              "require-trusted-types-for 'script'; report-uri test",
+          )],
+      ),
       dict(
           testcase_name="Set headers for URLs in the include list",
           csp_enabled=True,
@@ -116,22 +135,28 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
           include_prefixes=["/v2"],
           expected_headers=[
               (csp.HEADER_KEY_ENFORCE, "frame-ancestors 'self'; foo bar"),
-              (csp.HEADER_KEY_REPORT_ONLY, "require-trusted-types-for 'script'")
-          ]),
+              (
+                  csp.HEADER_KEY_REPORT_ONLY,
+                  "require-trusted-types-for 'script'",
+              ),
+          ],
+      ),
       dict(
           testcase_name="Don't set headers for URLs not in the include list",
           csp_enabled=True,
           tt_enabled=True,
           url_path="/v1/page.html",
           include_prefixes=["/v2"],
-          expected_headers=[]),
+          expected_headers=[],
+      ),
       dict(
           testcase_name="Don't set headers for URLs in the exclude list",
           csp_enabled=True,
           tt_enabled=True,
           url_path="/v1/page.html",
           exclude_prefixes=["/v1"],
-          expected_headers=[]),
+          expected_headers=[],
+      ),
       dict(
           testcase_name="Handle specifying both an include and exclude list",
           csp_enabled=True,
@@ -139,56 +164,78 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
           url_path="/v2/not-this-one.html",
           include_prefixes=["/v2"],
           exclude_prefixes=["/v2/not-this-one.html"],
-          expected_headers=[]),
+          expected_headers=[],
+      ),
       dict(
           testcase_name="Handle duplicate headers as a list",
           csp_enabled=False,
           tt_enabled=True,
-          existing_headers=[("Set-Cookie", "foo=bar"),
-                            ("Set-Cookie", "bin=baz")],
+          existing_headers=[
+              ("Set-Cookie", "foo=bar"),
+              ("Set-Cookie", "bin=baz"),
+          ],
           expected_headers=[
-              ("Set-Cookie", "foo=bar"), ("Set-Cookie", "bin=baz"),
-              (csp.HEADER_KEY_REPORT_ONLY, "require-trusted-types-for 'script'")
-          ]),
+              ("Set-Cookie", "foo=bar"),
+              ("Set-Cookie", "bin=baz"),
+              (
+                  csp.HEADER_KEY_REPORT_ONLY,
+                  "require-trusted-types-for 'script'",
+              ),
+          ],
+      ),
       dict(
           testcase_name="Handle duplicate headers as wsgi headers",
           csp_enabled=False,
           tt_enabled=True,
-          existing_headers=wsgi.Headers([("Set-Cookie", "foo=bar"),
-                                         ("Set-Cookie", "bin=baz")]),
+          existing_headers=wsgi.Headers(
+              [("Set-Cookie", "foo=bar"), ("Set-Cookie", "bin=baz")]
+          ),
           expected_headers=[
-              ("Set-Cookie", "foo=bar"), ("Set-Cookie", "bin=baz"),
-              (csp.HEADER_KEY_REPORT_ONLY, "require-trusted-types-for 'script'")
-          ]),
+              ("Set-Cookie", "foo=bar"),
+              ("Set-Cookie", "bin=baz"),
+              (
+                  csp.HEADER_KEY_REPORT_ONLY,
+                  "require-trusted-types-for 'script'",
+              ),
+          ],
+      ),
       dict(
           testcase_name="Handle headers as a dict",
           csp_enabled=False,
           tt_enabled=True,
           existing_headers={"Set-Cookie": "foo=bar"},
-          expected_headers=[("Set-Cookie", "foo=bar"),
-                            (csp.HEADER_KEY_REPORT_ONLY,
-                             "require-trusted-types-for 'script'")]),
+          expected_headers=[
+              ("Set-Cookie", "foo=bar"),
+              (
+                  csp.HEADER_KEY_REPORT_ONLY,
+                  "require-trusted-types-for 'script'",
+              ),
+          ],
+      ),
       dict(
           testcase_name="Raise an exception if multiple report URIs are given",
           csp_enabled=True,
           tt_enabled=False,
           csp_policy='{"report-uri": ["test"], "foo": ["bar"]}',
           report_uri="test",
-          expected_exception=RuntimeError),
+          expected_exception=RuntimeError,
+      ),
   )
-  def testCspMiddleware(self,
-                        csp_enabled=False,
-                        csp_policy="{}",
-                        csp_report_only=True,
-                        tt_enabled=False,
-                        tt_report_only=True,
-                        report_uri="",
-                        include_prefixes=(),
-                        exclude_prefixes=(),
-                        url_path="",
-                        existing_headers=(),
-                        expected_headers=(),
-                        expected_exception=None):
+  def testCspMiddleware(
+      self,
+      csp_enabled=False,
+      csp_policy="{}",
+      csp_report_only=True,
+      tt_enabled=False,
+      tt_report_only=True,
+      report_uri="",
+      include_prefixes=(),
+      exclude_prefixes=(),
+      url_path="",
+      existing_headers=(),
+      expected_headers=(),
+      expected_exception=None,
+  ):
     """Test if CSP headers are correctly set."""
     expected_output = "Response successfully processed"
     environ_stub = {"PATH_INFO": url_path}
@@ -209,7 +256,7 @@ class CspTest(parameterized.TestCase, test_lib.GRRBaseTest):
         "AdminUI.trusted_types_report_only": tt_report_only,
         "AdminUI.csp_report_uri": report_uri,
         "AdminUI.csp_include_url_prefixes": include_prefixes,
-        "AdminUI.csp_exclude_url_prefixes": exclude_prefixes
+        "AdminUI.csp_exclude_url_prefixes": exclude_prefixes,
     }):
       if expected_exception:
         with self.assertRaises(expected_exception):

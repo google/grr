@@ -5,13 +5,13 @@ from absl import app
 
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import config as config_plugin
-
 from grr_response_server.gui.api_plugins import config_test as config_plugin_test
 
 
 class ApiListGrrBinariesHandlerRegressionTest(
     config_plugin_test.ApiGrrBinaryTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest,
+):
 
   api_method = "ListGrrBinaries"
   handler = config_plugin.ApiListGrrBinariesHandler
@@ -24,7 +24,8 @@ class ApiListGrrBinariesHandlerRegressionTest(
 
 class ApiGetGrrBinaryHandlerRegressionTest(
     config_plugin_test.ApiGrrBinaryTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest,
+):
 
   api_method = "GetGrrBinary"
   handler = config_plugin.ApiGetGrrBinaryHandler
@@ -34,16 +35,20 @@ class ApiGetGrrBinaryHandlerRegressionTest(
 
     self.Check(
         "GetGrrBinary",
-        args=config_plugin.ApiGetGrrBinaryArgs(type="PYTHON_HACK", path="test"))
+        args=config_plugin.ApiGetGrrBinaryArgs(type="PYTHON_HACK", path="test"),
+    )
     self.Check(
         "GetGrrBinary",
         args=config_plugin.ApiGetGrrBinaryArgs(
-            type="EXECUTABLE", path="windows/test.exe"))
+            type="EXECUTABLE", path="windows/test.exe"
+        ),
+    )
 
 
 class ApiGetGrrBinaryBlobHandlerRegressionTest(
     config_plugin_test.ApiGrrBinaryTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest,
+):
 
   api_method = "GetGrrBinaryBlob"
   handler = config_plugin.ApiGetGrrBinaryBlobHandler
@@ -54,11 +59,15 @@ class ApiGetGrrBinaryBlobHandlerRegressionTest(
     self.Check(
         "GetGrrBinaryBlob",
         args=config_plugin.ApiGetGrrBinaryBlobArgs(
-            type="PYTHON_HACK", path="test"))
+            type="PYTHON_HACK", path="test"
+        ),
+    )
     self.Check(
         "GetGrrBinaryBlob",
         args=config_plugin.ApiGetGrrBinaryBlobArgs(
-            type="EXECUTABLE", path="windows/test.exe"))
+            type="EXECUTABLE", path="windows/test.exe"
+        ),
+    )
 
 
 def main(argv):

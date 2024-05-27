@@ -49,7 +49,8 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     poll_stubber = utils.MultiStubber(
         (grr_api_utils, "DEFAULT_POLL_INTERVAL", 0.1),
-        (grr_api_utils, "DEFAULT_POLL_TIMEOUT", 10))
+        (grr_api_utils, "DEFAULT_POLL_TIMEOUT", 10),
+    )
     poll_stubber.Start()
     self.addCleanup(poll_stubber.Stop)
 
@@ -73,7 +74,8 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     logging.info("Picked free AdminUI port for HTTP %d.", port)
 
     ApiIntegrationTest._server_trd = wsgiapp_testlib.ServerThread(
-        port, name="api_integration_server")
+        port, name="api_integration_server"
+    )
     ApiIntegrationTest._server_trd.StartAndWaitUntilServing()
 
     ApiIntegrationTest._api_set_up_done = True
@@ -81,7 +83,8 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
 class RootApiBinaryManagementTestRouter(
     api_root_router.ApiRootRouter,
-    api_call_router_without_checks.ApiCallRouterWithoutChecks):
+    api_call_router_without_checks.ApiCallRouterWithoutChecks,
+):
   """Root router combined with an unrestricted router for easier testing."""
 
 
@@ -93,18 +96,24 @@ class RootApiIntegrationTest(ApiIntegrationTest):
 
     default_router = RootApiBinaryManagementTestRouter
     root_api_config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": default_router.__name__})
+        {"API.DefaultRouter": default_router.__name__}
+    )
     root_api_config_overrider.Start()
     self.addCleanup(root_api_config_overrider.Stop)
 
-    patcher = mock.patch.object(api_call_router_registry,
-                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher = mock.patch.object(
+        api_call_router_registry, "_API_CALL_ROUTER_REGISTRY", {}
+    )
     patcher.start()
     self.addCleanup(patcher.stop)
     api_call_router_registry.RegisterApiCallRouter(
-        "RootApiBinaryManagementTestRouter", RootApiBinaryManagementTestRouter)
-    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(  # pylint:disable=g-long-lambda
-        "RootApiBinaryManagementTestRouter"))
+        "RootApiBinaryManagementTestRouter", RootApiBinaryManagementTestRouter
+    )
+    self.addCleanup(
+        lambda: api_call_router_registry.UnregisterApiCallRouter(  # pylint:disable=g-long-lambda
+            "RootApiBinaryManagementTestRouter"
+        )
+    )
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.

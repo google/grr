@@ -21,7 +21,6 @@ from grr_response_core import config
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -365,7 +364,9 @@ supported_os: [Linux]
                   artifact_registry.REGISTRY._artifacts)
     artifact_obj = artifact_registry.REGISTRY.GetArtifact(
         "WMIActiveScriptEventConsumer")
-    self.assertStartsWith(artifact_obj.loaded_from, "file:")
+    self.assertTrue(
+        artifact_registry.REGISTRY.IsLoadedFrom(artifact_obj.name, "file:")
+    )
 
     # The artifact is gone from the data store.
     with self.assertRaises(db.UnknownArtifactError):
@@ -514,30 +515,6 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     self.assertIn("It was bound to happen.", logs[1].message)
 
 
-class ArtifactFlowWindowsTest(ArtifactTest):
-
-  def setUp(self):
-    """Make sure things are initialized."""
-    super().setUp()
-    self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
-    self.LoadTestArtifacts()
-
-  @parser_test_lib.WithParser("WmiInstalledSoftware",
-                              wmi_parser.WMIInstalledSoftwareParser)
-  def testWMIQueryArtifact(self):
-    """Check we can run WMI based artifacts."""
-    client_id = self.SetupClient(
-        0, system="Windows", os_version="6.2", arch="AMD64")
-    col = self.RunCollectorAndGetResults(["WMIInstalledSoftware"],
-                                         client_id=client_id)
-
-    self.assertLen(col, 1)
-    package_list = col[0]
-    self.assertLen(package_list.packages, 3)
-    descriptions = [package.description for package in package_list.packages]
-    self.assertIn("Google Chrome", descriptions)
-
-
 class GrrKbTest(ArtifactTest):
 
   def _RunKBI(self, **kw):
@@ -681,10 +658,11 @@ class GrrKbDarwinTest(GrrKbTest):
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
-    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": []}):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.ClientVFSHandlerFixture):
-        kb = self._RunKBI()
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS,
+        vfs_test_lib.ClientVFSHandlerFixture,
+    ):
+      kb = self._RunKBI()
 
     self.assertEqual(kb.os_major_version, 10)
     self.assertEqual(kb.os_minor_version, 9)

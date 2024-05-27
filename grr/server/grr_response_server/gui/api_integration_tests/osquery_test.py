@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Integration tests for the Osquery flow, its API client and API endpoints."""
+
 import json
 
 from absl import app
@@ -26,7 +27,8 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
           action_mocks.OsqueryClientMock(),
           client_id=client_id,
           creator=self.test_username,
-          query="doesn't matter")
+          query="doesn't matter",
+      )
       result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
       result_flow.WaitUntilDone()
 

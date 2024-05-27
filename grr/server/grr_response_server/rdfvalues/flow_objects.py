@@ -10,9 +10,27 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+def ToOutputPluginBatchProcessingStatus(
+    log_entry: flows_pb2.FlowOutputPluginLogEntry,
+) -> output_plugin_pb2.OutputPluginBatchProcessingStatus:
+  """Converts a FlowOutputPluginLogEntry to a OutputPluginBatchProcessingStatus."""
+  LogEntryType = flows_pb2.FlowOutputPluginLogEntry.LogEntryType  # pylint: disable=invalid-name
+  if log_entry.log_entry_type == LogEntryType.LOG:
+    status = output_plugin_pb2.OutputPluginBatchProcessingStatus.Status.SUCCESS
+  elif log_entry.log_entry_type == LogEntryType.ERROR:
+    status = output_plugin_pb2.OutputPluginBatchProcessingStatus.Status.ERROR
+  else:
+    raise ValueError("Unexpected log_entry_type: %r" % log_entry.log_entry_type)
+
+  return output_plugin_pb2.OutputPluginBatchProcessingStatus(
+      summary=log_entry.message, batch_index=0, batch_size=0, status=status
+  )
 
 
 class FlowRequest(rdf_structs.RDFProtoStruct):

@@ -79,7 +79,9 @@ class CollectBrowserHistory(flow_base.FlowBase):
   }
 
   def GetProgress(self) -> CollectBrowserHistoryProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return CollectBrowserHistoryProgress()
 
   def GetFilesArchiveMappings(
       self, flow_results: Iterator[rdf_flow_objects.FlowResult]

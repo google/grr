@@ -41,14 +41,15 @@ class ReportPluginBase(object):
         name=cls.__name__,
         title=cls.TITLE,
         summary=cls.SUMMARY,
-        requires_time_range=cls.REQUIRES_TIME_RANGE)
+        requires_time_range=cls.REQUIRES_TIME_RANGE,
+    )
 
   def GetReportData(self, get_report_args):
     """Generates the data to be displayed in the report.
 
     Args:
-      get_report_args: ApiGetReportArgs passed from
-                       ApiListReportsHandler.
+      get_report_args: ApiGetReportArgs passed from ApiListReportsHandler.
+
     Raises:
       NotImplementedError: If not overridden.
 

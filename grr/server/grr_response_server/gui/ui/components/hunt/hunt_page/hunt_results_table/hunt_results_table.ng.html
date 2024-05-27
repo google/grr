@@ -23,6 +23,7 @@
             <app-timestamp
               *ngSwitchCase="CellComponent.TIMESTAMP"
               [date]="element.rowData[colDesc.key]"
+              [multiline]="true"
             ></app-timestamp>
 
             <expandable-hash *ngSwitchCase="CellComponent.HASH" [hashes]="element.rowData[colDesc.key]">
@@ -45,6 +46,7 @@
             <ng-container *ngSwitchCase="CellComponent.TRACE">
               <app-copy-button
                   [innerText]="element.rowData[colDesc.key]"
+                  [multiline]="true"
                   class="monospace">
               </app-copy-button>
             </ng-container>
@@ -60,7 +62,10 @@
             </button>
 
             <ng-container *ngSwitchDefault class="default-wrap">
-              <app-copy-button *ngIf="element.rowData[colDesc.key]?.toString()">{{
+              <app-copy-button
+                  style="width: 100%"
+                  *ngIf="element.rowData[colDesc.key]?.toString()"
+              >{{
                 element.rowData[colDesc.key]
               }}</app-copy-button>
             </ng-container>

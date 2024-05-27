@@ -23,21 +23,24 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def SetupTestHuntView(self, client_limit=0, client_count=10):
     # Create some clients and a hunt to view.
     hunt_id = self.CreateSampleHunt(
-        client_limit=client_limit, client_count=client_count)
+        client_limit=client_limit, client_count=client_count
+    )
 
     self.RunHunt(failrate=2)
 
     self.AddLogToHunt(hunt_id, self.client_ids[0], "TestLogLine")
     # Log an error just with some random traceback.
-    self.AddErrorToHunt(hunt_id, self.client_ids[1], "Client Error 1",
-                        traceback.format_exc())
+    self.AddErrorToHunt(
+        hunt_id, self.client_ids[1], "Client Error 1", traceback.format_exc()
+    )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     if client_limit == 0:
       self.assertEqual(hunt_counters.num_clients, client_count)
     else:
-      self.assertEqual(hunt_counters.num_clients, min(client_count,
-                                                      client_limit))
+      self.assertEqual(
+          hunt_counters.num_clients, min(client_count, client_limit)
+      )
 
     return hunt_id
 
@@ -82,8 +85,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RunHunt(client_ids=self.client_ids, failrate=failrate)
 
-    self.AddErrorToHunt(hunt_id, self.client_ids[1], "Client Error 1",
-                        traceback.format_exc())
+    self.AddErrorToHunt(
+        hunt_id, self.client_ids[1], "Client Error 1", traceback.format_exc()
+    )
 
     return hunt_id
 
@@ -158,7 +162,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntOverviewDirective.setAutoRefreshInterval(1000);")
+        "grrUi.hunt.huntOverviewDirective.setAutoRefreshInterval(1000);"
+    )
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -299,7 +304,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntNotificationIsShownAndClickable(self):
     hunt_id = self.CreateSampleHunt(
-        path=os.path.join(self.base_path, "test.plist"))
+        path=os.path.join(self.base_path, "test.plist")
+    )
 
     self.RequestAndGrantHuntApproval(hunt_id)
 
@@ -308,8 +314,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=#notification_button")
     self.Click("css=a:contains('has granted you access')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.row-selected td:contains('%s')" % hunt_id)
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr.row-selected td:contains('%s')" % hunt_id
+    )
     self.WaitUntil(self.IsTextPresent, hunt_id)
 
   def testLogsTabShowsLogsFromAllClients(self):
@@ -333,21 +340,25 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntLogDirective.setAutoRefreshInterval(1000);")
+        "grrUi.hunt.huntLogDirective.setAutoRefreshInterval(1000);"
+    )
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Log]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-log td:contains('foo-log')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-hunt-log td:contains('bar-log')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-hunt-log td:contains('foo-log')"
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-hunt-log td:contains('bar-log')"
+    )
 
     self.AddLogToHunt(hunt_id, self.client_ids[1], "bar-log")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-log td:contains('bar-log')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-hunt-log td:contains('bar-log')"
+    )
 
   def testLogsTabFiltersLogsByString(self):
     hunt_id = self.SetupHuntDetailView(failrate=-1)
@@ -401,34 +412,41 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testErrorsTabGetsAutoRefreshed(self):
     hunt_id = self.CreateSampleHunt()
-    self.AddErrorToHunt(hunt_id, self.client_ids[0], "foo-error",
-                        traceback.format_exc())
+    self.AddErrorToHunt(
+        hunt_id, self.client_ids[0], "foo-error", traceback.format_exc()
+    )
 
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntErrorsDirective.setAutoRefreshInterval(1000);")
+        "grrUi.hunt.huntErrorsDirective.setAutoRefreshInterval(1000);"
+    )
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Errors]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-errors td:contains('foo-error')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-hunt-errors td:contains('bar-error')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-hunt-errors td:contains('foo-error')"
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-hunt-errors td:contains('bar-error')"
+    )
 
-    self.AddErrorToHunt(hunt_id, self.client_ids[0], "bar-error",
-                        traceback.format_exc())
+    self.AddErrorToHunt(
+        hunt_id, self.client_ids[0], "bar-error", traceback.format_exc()
+    )
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-errors td:contains('bar-error')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-hunt-errors td:contains('bar-error')"
+    )
 
   def testErrorsTabShowsDatesInUTC(self):
     hunt_id = self.CreateSampleHunt()
     with test_lib.FakeTime(42):
-      self.AddErrorToHunt(hunt_id, self.client_ids[0], "Client Error 1",
-                          traceback.format_exc())
+      self.AddErrorToHunt(
+          hunt_id, self.client_ids[0], "Client Error 1", traceback.format_exc()
+      )
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -470,21 +488,28 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntCrashesDirective.setAutoRefreshInterval(1000);")
+        "grrUi.hunt.huntCrashesDirective.setAutoRefreshInterval(1000);"
+    )
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Crashes]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-crashes td:contains('%s')" % client_ids[0])
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-hunt-crashes td:contains('%s')" % client_ids[1])
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[0],
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[1],
+    )
 
     self.RunHuntWithClientCrashes([client_ids[1]])
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-hunt-crashes td:contains('%s')" % client_ids[1])
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[1],
+    )
 
   def testShowsResultsTabForIndividualFlowsOnClients(self):
     # Create and run the hunt.
@@ -535,13 +560,16 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     # Check for different context properties.
     self.WaitUntilContains(
-        hunt_id, self.GetText,
-        "css=table > tbody td.proto_key:contains(\"Session id\") "
-        "~ td.proto_value")
+        hunt_id,
+        self.GetText,
+        'css=table > tbody td.proto_key:contains("Session id") '
+        "~ td.proto_value",
+    )
     self.WaitUntilContains(
-        self.test_username, self.GetText,
-        "css=table > tbody td.proto_key:contains(\"Creator\") "
-        "~ td.proto_value")
+        self.test_username,
+        self.GetText,
+        'css=table > tbody td.proto_key:contains("Creator") ~ td.proto_value',
+    )
 
   def testHuntCreatorIsNotifiedWhenHuntIsStoppedDueToCrashes(self):
     hunt_id = self.StartHunt(crash_limit=3, creator=self.test_username)

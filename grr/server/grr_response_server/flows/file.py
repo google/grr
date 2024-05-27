@@ -32,7 +32,9 @@ class CollectFilesByKnownPath(transfer.MultiGetFileLogic, flow_base.FlowBase):
   progress_type = rdf_file_finder.CollectFilesByKnownPathProgress
 
   def GetProgress(self) -> rdf_file_finder.CollectFilesByKnownPathProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return rdf_file_finder.CollectFilesByKnownPathProgress()
 
   def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     super().Start(file_size=_MAX_FILE_SIZE)
@@ -192,7 +194,9 @@ class CollectMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
 
   def GetProgress(self) -> rdf_file_finder.CollectMultipleFilesProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return rdf_file_finder.CollectMultipleFilesProgress()
 
   def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """See base class."""
@@ -387,7 +391,9 @@ class HashMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
 
   def GetProgress(self) -> rdf_file_finder.HashMultipleFilesProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return rdf_file_finder.HashMultipleFilesProgress()
 
   def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """See base class."""

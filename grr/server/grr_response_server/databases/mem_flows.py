@@ -15,7 +15,6 @@ from typing import Mapping
 from typing import NewType
 from typing import Optional
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
@@ -27,8 +26,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.models import hunts
 
 
 T = TypeVar("T")
@@ -228,7 +226,7 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def ReadAllFlowObjects(
       self,
-      client_id: Optional[Text] = None,
+      client_id: Optional[str] = None,
       parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
@@ -270,9 +268,7 @@ class InMemoryDBFlowMixin(object):
     flow = self.ReadFlowObject(client_id, flow_id)
     if flow.parent_hunt_id:
       hunt_obj = self.ReadHuntObject(flow.parent_hunt_id)
-      if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(
-          hunt_obj.hunt_state
-      ):
+      if not hunts.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
         raise db.ParentHuntIsNotRunningError(
             client_id, flow_id, hunt_obj.hunt_id, hunt_obj.hunt_state
         )
@@ -399,7 +395,6 @@ class InMemoryDBFlowMixin(object):
 
       if request.needs_processing:
         flow = self.flows[(request.client_id, request.flow_id)]
-        flow = mig_flow_objects.ToRDFFlow(flow)
         if (
             flow.next_request_to_process == request.request_id
             or request.start_time
@@ -531,7 +526,6 @@ class InMemoryDBFlowMixin(object):
     for client_id, flow_id, request_id in requests_updated:
       flow_key = (client_id, flow_id)
       flow = self.flows[flow_key]
-      flow = mig_flow_objects.ToRDFFlow(flow)
       request_dict = self.flow_requests[flow_key]
       request = request_dict[request_id]
 

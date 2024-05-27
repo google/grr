@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for HTTP API."""
+
 import json
 from unittest import mock
 
@@ -45,7 +46,8 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, unused_args, context=None):
     return api_call_handler_base.ApiBinaryStream(
-        "test.ext", content_generator=self._Generate(), content_length=1337)
+        "test.ext", content_generator=self._Generate(), content_length=1337
+    )
 
 
 class SampleDeleteHandlerArgs(rdf_structs.RDFProtoStruct):
@@ -148,7 +150,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     request.path = path
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
-    request.user = u"test"
+    request.user = "test"
     request.email = None
     request.args = query_parameters or {}
     request.headers = {}
@@ -164,17 +166,23 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
-    patcher = mock.patch.object(api_call_router_registry,
-                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher = mock.patch.object(
+        api_call_router_registry, "_API_CALL_ROUTER_REGISTRY", {}
+    )
     patcher.start()
     self.addCleanup(patcher.stop)
-    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
-                                                   TestHttpApiRouter)
+    api_call_router_registry.RegisterApiCallRouter(
+        "TestHttpApiRouter", TestHttpApiRouter
+    )
     # pylint: disable=g-long-lambda
-    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(
-        "TestHttpApiRouter"))
-    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
-                                                   TestHttpApiRouter)
+    self.addCleanup(
+        lambda: api_call_router_registry.UnregisterApiCallRouter(
+            "TestHttpApiRouter"
+        )
+    )
+    api_call_router_registry.RegisterApiCallRouter(
+        "TestHttpApiRouter", TestHttpApiRouter
+    )
 
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.InitializeApiAuthManager()
@@ -183,7 +191,8 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
 
   def testReturnsMethodMetadataMatchingUrlAndMethod(self):
     router, method_metadata, router_args = self.router_matcher.MatchRouter(
-        self._CreateRequest("GET", "/test_sample/some/path"))
+        self._CreateRequest("GET", "/test_sample/some/path")
+    )
     _ = router
     _ = router_args
 
@@ -191,28 +200,30 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
 
   def testPathParamsAreReturnedWithMatchingHandler(self):
     router, method_metadata, router_args = self.router_matcher.MatchRouter(
-        self._CreateRequest("GET", "/test_sample/some/path"))
+        self._CreateRequest("GET", "/test_sample/some/path")
+    )
     _ = router
     _ = method_metadata
-    self.assertEqual(router_args,
-                     api_test_lib.SampleGetHandlerArgs(path="some/path"))
+    self.assertEqual(
+        router_args, api_test_lib.SampleGetHandlerArgs(path="some/path")
+    )
 
   def testRaisesIfNoHandlerMatchesUrl(self):
-    self.assertRaises(http_api.ApiCallRouterNotFoundError,
-                      self.router_matcher.MatchRouter,
-                      self._CreateRequest("GET", "/some/missing/path"))
+    self.assertRaises(
+        http_api.ApiCallRouterNotFoundError,
+        self.router_matcher.MatchRouter,
+        self._CreateRequest("GET", "/some/missing/path"),
+    )
 
 
-class HttpRequestHandlerTest(test_lib.GRRBaseTest,
-                             stats_test_lib.StatsTestMixin):
+class HttpRequestHandlerTest(
+    test_lib.GRRBaseTest, stats_test_lib.StatsTestMixin
+):
   """Test for HttpRequestHandler."""
 
-  def _CreateRequest(self,
-                     method,
-                     path,
-                     username=u"test",
-                     query_parameters=None,
-                     headers=None):
+  def _CreateRequest(
+      self, method, path, username="test", query_parameters=None, headers=None
+  ):
     request = mock.MagicMock()
     request.method = method
     request.path = path
@@ -246,17 +257,23 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
-    patcher = mock.patch.object(api_call_router_registry,
-                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher = mock.patch.object(
+        api_call_router_registry, "_API_CALL_ROUTER_REGISTRY", {}
+    )
     patcher.start()
     self.addCleanup(patcher.stop)
-    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
-                                                   TestHttpApiRouter)
+    api_call_router_registry.RegisterApiCallRouter(
+        "TestHttpApiRouter", TestHttpApiRouter
+    )
     # pylint: disable=g-long-lambda
-    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(
-        "TestHttpApiRouter"))
-    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
-                                                   TestHttpApiRouter)
+    self.addCleanup(
+        lambda: api_call_router_registry.UnregisterApiCallRouter(
+            "TestHttpApiRouter"
+        )
+    )
+    api_call_router_registry.RegisterApiCallRouter(
+        "TestHttpApiRouter", TestHttpApiRouter
+    )
 
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.InitializeApiAuthManager()
@@ -265,158 +282,195 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path", username=u"GRR"))
+        self._CreateRequest("GET", "/test_sample/some/path", username="GRR")
+    )
     self.assertEqual(response.status_code, 403)
 
   def testRendersGetHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path"))
+        self._CreateRequest("GET", "/test_sample/some/path")
+    )
 
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": ""
-        })
+        self._GetResponseContent(response),
+        {"method": "GET", "path": "some/path", "foo": ""},
+    )
     self.assertEqual(response.status_code, 200)
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/some/path"))
+        self._CreateRequest("HEAD", "/test_sample/some/path")
+    )
 
     self.assertEqual(self._GetResponseContent(response), {"status": "OK"})
     self.assertEqual(response.status_code, 200)
 
   def testHeadResponseHasSubjectAndReasonOnUnauthorizedAccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
+        self._CreateRequest("HEAD", "/test_sample/raising/some/path")
+    )
 
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "message": "Access denied by ACL: oh no",
-            "subject": "aff4:/foo/bar"
-        })
+        self._GetResponseContent(response),
+        {"message": "Access denied by ACL: oh no", "subject": "aff4:/foo/bar"},
+    )
     self.assertEqual(response.status_code, 403)
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
+        self._CreateRequest("HEAD", "/test_sample/raising/some/path")
+    )
 
-    self.assertEqual(response.headers["X-GRR-Unauthorized-Access-Subject"],
-                     "aff4:/foo/bar")
-    self.assertEqual(response.headers["X-GRR-Unauthorized-Access-Reason"],
-                     "oh no")
+    self.assertEqual(
+        response.headers["X-GRR-Unauthorized-Access-Subject"], "aff4:/foo/bar"
+    )
+    self.assertEqual(
+        response.headers["X-GRR-Unauthorized-Access-Reason"], "oh no"
+    )
 
   def testBinaryStreamIsCorrectlyStreamedViaGetMethod(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/streaming"))
+        self._CreateRequest("GET", "/test_sample/streaming")
+    )
 
     self.assertEqual(list(response.iter_encoded()), [b"foo", b"bar", b"blah"])
     self.assertEqual(response.headers["Content-Length"], "1337")
 
   def testBinaryStreamReturnsContentLengthViaHeadMethod(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/streaming"))
+        self._CreateRequest("HEAD", "/test_sample/streaming")
+    )
 
     self.assertEqual(response.headers["Content-Length"], "1337")
 
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
+            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}
+        )
+    )
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": "bar"
-        })
+        self._GetResponseContent(response),
+        {"method": "GET", "path": "some/path", "foo": "bar"},
+    )
 
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET",
-            "/test_sample/some/path",
-            query_parameters={"path": "foobar"}))
+            "GET", "/test_sample/some/path", query_parameters={"path": "foobar"}
+        )
+    )
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": ""
-        })
+        self._GetResponseContent(response),
+        {"method": "GET", "path": "some/path", "foo": ""},
+    )
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("DELETE", "/test_resource/R:123456"))
+        self._CreateRequest("DELETE", "/test_resource/R:123456")
+    )
 
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "method": "DELETE",
-            "resource": "R:123456"
-        })
+        self._GetResponseContent(response),
+        {"method": "DELETE", "resource": "R:123456"},
+    )
     self.assertEqual(response.status_code, 200)
 
   def testRendersPatchHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("PATCH", "/test_resource/R:123456"))
+        self._CreateRequest("PATCH", "/test_resource/R:123456")
+    )
 
     self.assertEqual(
-        self._GetResponseContent(response), {
-            "method": "PATCH",
-            "resource": "R:123456"
-        })
+        self._GetResponseContent(response),
+        {"method": "PATCH", "resource": "R:123456"},
+    )
     self.assertEqual(response.status_code, 200)
 
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):
     # pylint: disable=g-backslash-continuation
-    with self.assertStatsCounterDelta(
-        1, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "FORBIDDEN", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "NOT_FOUND", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "SERVER_ERROR", "unknown"]):
+    with (
+        self.assertStatsCounterDelta(
+            1,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "SUCCESS", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "FORBIDDEN", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "NOT_FOUND", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_ACCESS_PROBE_LATENCY,
+            fields=["SampleGet", "http", "SERVER_ERROR", "unknown"],
+        ),
+    ):
       # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(
-          self._CreateRequest("HEAD", "/test_sample/some/path"))
+          self._CreateRequest("HEAD", "/test_sample/some/path")
+      )
 
   def testStatsAreCorrectlyUpdatedOnGetRequests(self):
     # pylint: disable=g-backslash-continuation
-    with self.assertStatsCounterDelta(
-        1, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "FORBIDDEN", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "NOT_FOUND", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SERVER_ERROR", "unknown"]):
+    with (
+        self.assertStatsCounterDelta(
+            1,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "SUCCESS", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "FORBIDDEN", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "NOT_FOUND", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"],
+        ),
+        self.assertStatsCounterDelta(
+            0,
+            http_api.API_METHOD_LATENCY,
+            fields=["SampleGet", "http", "SERVER_ERROR", "unknown"],
+        ),
+    ):
       # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
@@ -425,94 +479,124 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     with self.assertStatsCounterDelta(
         1,
         http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/1.0"]):
+        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/1.0"],
+    ):
       self._RenderResponse(
           self._CreateRequest(
               "GET",
               "/test_sample/some/path",
-              headers={"X-User-Agent": "GRR-UI/1.0"}))
+              headers={"X-User-Agent": "GRR-UI/1.0"},
+          )
+      )
 
     with self.assertStatsCounterDelta(
         1,
         http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/2.0"]):
+        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/2.0"],
+    ):
       self._RenderResponse(
           self._CreateRequest(
               "GET",
               "/test_sample/some/path",
-              headers={"X-User-Agent": "GRR-UI/2.0"}))
+              headers={"X-User-Agent": "GRR-UI/2.0"},
+          )
+      )
 
   def testUnknownOriginsAreLabelledUnknown(self):
     with self.assertStatsCounterDelta(
         1,
         http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+        fields=["SampleGet", "http", "SUCCESS", "unknown"],
+    ):
       self._RenderResponse(
           self._CreateRequest(
               "GET",
               "/test_sample/some/path",
-              headers={"X-User-Agent": "GRR-UI/invalid"}))
+              headers={"X-User-Agent": "GRR-UI/invalid"},
+          )
+      )
 
     with self.assertStatsCounterDelta(
         1,
         http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+        fields=["SampleGet", "http", "SUCCESS", "unknown"],
+    ):
       self._RenderResponse(
           self._CreateRequest(
-              "GET", "/test_sample/some/path", headers={"X-User-Agent": ""}))
+              "GET", "/test_sample/some/path", headers={"X-User-Agent": ""}
+          )
+      )
 
     with self.assertStatsCounterDelta(
         1,
         http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+        fields=["SampleGet", "http", "SUCCESS", "unknown"],
+    ):
       self._RenderResponse(
-          self._CreateRequest("GET", "/test_sample/some/path", headers={}))
+          self._CreateRequest("GET", "/test_sample/some/path", headers={})
+      )
 
   def testStatsAreCorrectlyUpdatedOnVariousStatusCodes(self):
 
     def CheckMethod(url, method_name, status):
       # pylint: disable=g-backslash-continuation
-      with self.assertStatsCounterDelta(
-          1 if status == "SUCCESS" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "SUCCESS", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "FORBIDDEN" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "FORBIDDEN", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "RESOURCE_EXHAUSTED" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "RESOURCE_EXHAUSTED", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "NOT_FOUND" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "NOT_FOUND", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "NOT_IMPLEMENTED" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "NOT_IMPLEMENTED", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "INVALID_ARGUMENT" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "INVALID_ARGUMENT", "unknown"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "SERVER_ERROR" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "SERVER_ERROR", "unknown"]):
+      with (
+          self.assertStatsCounterDelta(
+              1 if status == "SUCCESS" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "SUCCESS", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "FORBIDDEN" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "FORBIDDEN", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "RESOURCE_EXHAUSTED" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "RESOURCE_EXHAUSTED", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "NOT_FOUND" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "NOT_FOUND", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "NOT_IMPLEMENTED" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "NOT_IMPLEMENTED", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "INVALID_ARGUMENT" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "INVALID_ARGUMENT", "unknown"],
+          ),
+          self.assertStatsCounterDelta(
+              1 if status == "SERVER_ERROR" else 0,
+              http_api.API_METHOD_LATENCY,
+              fields=[method_name, "http", "SERVER_ERROR", "unknown"],
+          ),
+      ):
         # pylint: enable=g-backslash-continuation
 
         self._RenderResponse(self._CreateRequest("GET", url))
 
     CheckMethod("/failure/not-found", "FailureNotFound", "NOT_FOUND")
     CheckMethod("/failure/server-error", "FailureServerError", "SERVER_ERROR")
-    CheckMethod("/failure/not-implemented", "FailureNotImplemented",
-                "NOT_IMPLEMENTED")
-    CheckMethod("/failure/resource-exhausted", "FailureResourceExhausted",
-                "RESOURCE_EXHAUSTED")
+    CheckMethod(
+        "/failure/not-implemented", "FailureNotImplemented", "NOT_IMPLEMENTED"
+    )
+    CheckMethod(
+        "/failure/resource-exhausted",
+        "FailureResourceExhausted",
+        "RESOURCE_EXHAUSTED",
+    )
     CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
-    CheckMethod("/failure/invalid-argument", "FailureInvalidArgument",
-                "INVALID_ARGUMENT")
+    CheckMethod(
+        "/failure/invalid-argument",
+        "FailureInvalidArgument",
+        "INVALID_ARGUMENT",
+    )
 
   def testGrrUserIsCreatedOnMethodCall(self):
     request = self._CreateRequest("HEAD", "/test_sample/some/path")

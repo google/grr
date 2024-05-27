@@ -7,16 +7,19 @@ from typing import Any
 from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_client
+from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -28,7 +31,6 @@ from grr_response_server import flow_responses
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
-from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import crowdstrike
 from grr_response_server.flows.general import hardware
 from grr_response_server.rdfvalues import mig_objects
@@ -353,13 +355,25 @@ class Interrogate(flow_base.FlowBase):
         next_state=self.ProcessHardwareInfo.__name__,
     )
 
-    non_kb_artifacts = config.CONFIG["Artifacts.non_kb_interrogate_artifacts"]
-    if non_kb_artifacts:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=non_kb_artifacts,
-          knowledge_base=kb,
-          next_state=self.ProcessArtifactResponses.__name__)
+    if kb.os == "Linux" or kb.os == "Darwin":
+      self.CallClient(
+          server_stubs.StatFS,
+          rdf_client_action.StatFSRequest(
+              path_list=["/"],
+          ),
+          next_state=self.ProcessRootStatFS.__name__,
+      )
+    elif kb.os == "Windows":
+      self.CallClient(
+          server_stubs.WmiQuery,
+          rdf_client_action.WMIRequest(
+              query="""
+              SELECT *
+                FROM Win32_LogicalDisk
+              """.strip(),
+          ),
+          next_state=self.ProcessWin32LogicalDisk.__name__,
+      )
 
     try:
       # Update the client index for the rdf_objects.ClientSnapshot.
@@ -378,17 +392,61 @@ class Interrogate(flow_base.FlowBase):
     for response in responses:
       self.state.client.hardware_info = response
 
-  def ProcessArtifactResponses(self, responses):
+  def ProcessRootStatFS(
+      self,
+      responses: flow_responses.Responses[rdf_client_fs.Volume],
+  ) -> None:
     if not responses.success:
-      self.Log("Error collecting artifacts: %s", responses.status)
-    if not list(responses):
+      self.Log("Failed to get root filesystem metadata: %s", responses.status)
+      return
+
+    self.state.client.volumes.extend(responses)
+
+  def ProcessWin32LogicalDisk(
+      self,
+      responses: flow_responses.Responses[rdf_protodict.Dict],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to collect `Win32_LogicalDisk`: %s", responses.status)
       return
 
     for response in responses:
-      if isinstance(response, rdf_client_fs.Volume):
-        self.state.client.volumes.append(response)
-      else:
-        raise ValueError("Unexpected response type: %s" % type(response))
+      volume = sysinfo_pb2.Volume()
+
+      if volume_name := response.get("VolumeName"):
+        volume.name = volume_name
+
+      if volume_serial_number := response.get("VolumeSerialNumber"):
+        volume.serial_number = volume_serial_number
+
+      if file_system := response.get("FileSystem"):
+        volume.file_system_type = file_system
+
+      if device_id := response.get("DeviceID"):
+        volume.windowsvolume.drive_letter = device_id
+
+      if drive_type := response.get("DriveType"):
+        volume.windowsvolume.drive_type = drive_type
+
+      # WMI gives us size and free space in bytes and does not give us sector
+      # sizes, we use 1 for these. It is not clear how correct doing it is but
+      # this is what the original parser did, so we replicate the behaviour.
+      volume.bytes_per_sector = 1
+      volume.sectors_per_allocation_unit = 1
+
+      if size := response.get("Size"):
+        try:
+          volume.total_allocation_units = int(size)
+        except (ValueError, TypeError) as error:
+          self.Log("Invalid Windows volume size: %s (%s)", size, error)
+
+      if free_space := response.get("FreeSpace"):
+        try:
+          volume.actual_available_allocation_units = int(free_space)
+        except (ValueError, TypeError) as error:
+          self.Log("Invalid Windows volume space: %s (%s)", free_space, error)
+
+      self.state.client.volumes.append(mig_client_fs.ToRDFVolume(volume))
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
@@ -508,19 +566,45 @@ class Interrogate(flow_base.FlowBase):
       self.Log("failed to collect users from `/etc/passwd.cache`: %s", status)
       return
 
-    users = []
+    users: list[knowledge_base_pb2.User] = []
 
     for response in responses:
       if not isinstance(response, rdf_file_finder.FileFinderResult):
         raise flow_base.FlowError(f"Unexpected response type: {type(response)}")
 
-      for index, match in enumerate(response.matches):
-        user = linux_file_parser.PasswdParser.ParseLine(
-            index,
-            match.data.decode("utf-8").strip(),
+      for match in response.matches:
+        match = match.data.decode("utf-8", "backslashreplace").strip()
+        if not match:
+          continue
+
+        try:
+          (username, _, uid, gid, full_name, homedir, shell) = match.split(":")
+        except ValueError:
+          self.Log("Unexpected `/etc/passwd.cache` line format: %s", match)
+          continue
+
+        try:
+          uid = int(uid)
+        except ValueError:
+          self.Log("Invalid `/etc/passwd.cache` UID: %s", uid)
+          continue
+
+        try:
+          gid = int(gid)
+        except ValueError:
+          self.Log("Invalid `/etc/passwd.cache` GID: %s", gid)
+          continue
+
+        users.append(
+            knowledge_base_pb2.User(
+                username=username,
+                uid=uid,
+                gid=gid,
+                full_name=full_name,
+                homedir=homedir,
+                shell=shell,
+            )
         )
-        if user is not None:
-          users.append(user)
 
     kb_users_by_username: dict[str, rdf_client.User] = {
         user.username: user for user in self.state.client.knowledge_base.users

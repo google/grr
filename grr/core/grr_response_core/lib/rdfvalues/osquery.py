@@ -3,7 +3,6 @@
 
 from typing import Iterator
 from typing import Sequence
-from typing import Text
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import osquery_pb2
@@ -49,7 +48,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
   protobuf = osquery_pb2.OsqueryTable
   rdf_deps = [OsqueryHeader, OsqueryRow]
 
-  def Column(self, column_name: Text) -> Iterator[Text]:
+  def Column(self, column_name: str) -> Iterator[str]:
     """Iterates over values of a given column.
 
     Args:

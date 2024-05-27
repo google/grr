@@ -16,8 +16,7 @@
         "name": "ListProcesses",
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
-          "flowName": "ListProcesses",
-          "notifyToUser": false
+          "flowName": "ListProcesses"
         },
         "startedAt": "42000000",
         "state": "ERROR",
@@ -223,9 +222,7 @@
             "filenameRegex": "."
           },
           "name": "ListProcesses",
-          "runnerArgs": {
-            "notifyToUser": true
-          }
+          "runnerArgs": {}
         }
       },
       "response": {
@@ -242,8 +239,7 @@
         "name": "ListProcesses",
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
-          "flowName": "ListProcesses",
-          "notifyToUser": true
+          "flowName": "ListProcesses"
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -1245,7 +1241,10 @@
         "clientId": "C.1000000000000000",
         "context": {
           "clientResources": {
-            "cpuUsage": {}
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            }
           },
           "createTime": "42000000",
           "creator": "api_test_user",
@@ -1270,8 +1269,7 @@
           "clientId": "aff4:/C.1000000000000000",
           "cpuLimit": "60",
           "flowName": "Interrogate",
-          "networkBytesLimit": "8192",
-          "notifyToUser": true
+          "networkBytesLimit": "8192"
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -1321,7 +1319,10 @@
         "clientId": "C.1000000000000000",
         "context": {
           "clientResources": {
-            "cpuUsage": {}
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            }
           },
           "createTime": "42000000",
           "creator": "api_test_user",
@@ -1348,8 +1349,7 @@
           "clientId": "aff4:/C.1000000000000000",
           "cpuLimit": "60",
           "flowName": "Interrogate",
-          "networkBytesLimit": "8192",
-          "notifyToUser": true
+          "networkBytesLimit": "8192"
         },
         "startedAt": "42000000",
         "state": "ERROR",
@@ -1835,8 +1835,7 @@
           "name": "Interrogate",
           "runnerArgs": {
             "clientId": "aff4:/C.1000000000000000",
-            "flowName": "Interrogate",
-            "notifyToUser": true
+            "flowName": "Interrogate"
           },
           "startedAt": "42000000",
           "state": "RUNNING",
@@ -1951,93 +1950,85 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
             "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 55.0,
+            "xValue": 54.990002,
             "yValue": 2.0
           },
           {
-            "xValue": 65.0,
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 75.0,
+            "xValue": 74.970001,
             "yValue": 4.0
           },
           {
-            "xValue": 85.0,
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 95.0,
+            "xValue": 94.949997,
             "yValue": 6.0
           },
           {
-            "xValue": 105.0,
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 115.0,
+            "xValue": 114.93,
             "yValue": 8.0
           },
           {
-            "xValue": 125.0,
+            "xValue": 124.92,
             "yValue": 9.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
             "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 55.0,
+            "xValue": 54.990002,
             "yValue": 2.0
           },
           {
-            "xValue": 65.0,
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 75.0,
+            "xValue": 74.970001,
             "yValue": 4.0
           },
           {
-            "xValue": 85.0,
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 95.0,
+            "xValue": 94.949997,
             "yValue": 6.0
           },
           {
-            "xValue": 105.0,
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 115.0,
+            "xValue": 114.93,
             "yValue": 8.0
           },
           {
-            "xValue": 125.0,
+            "xValue": 124.92,
             "yValue": 9.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ]
@@ -2051,37 +2042,85 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 66.75,
+            "xValue": 45.0,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 54.990002,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 89.5,
+            "xValue": 74.970001,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 112.25,
+            "xValue": 94.949997,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 114.93,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 124.92,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 66.75,
+            "xValue": 45.0,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 54.990002,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 89.5,
+            "xValue": 74.970001,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 112.25,
+            "xValue": 94.949997,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 114.93,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 124.92,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ]
@@ -2095,93 +2134,85 @@
       "response": {
         "completePoints": [
           {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
             "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 55.0,
+            "xValue": 54.990002,
             "yValue": 2.0
           },
           {
-            "xValue": 65.0,
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 75.0,
+            "xValue": 74.970001,
             "yValue": 4.0
           },
           {
-            "xValue": 85.0,
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 95.0,
+            "xValue": 94.949997,
             "yValue": 6.0
           },
           {
-            "xValue": 105.0,
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 115.0,
+            "xValue": 114.93,
             "yValue": 8.0
           },
           {
-            "xValue": 125.0,
+            "xValue": 124.92,
             "yValue": 9.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ],
         "startPoints": [
           {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
             "xValue": 45.0,
             "yValue": 1.0
           },
           {
-            "xValue": 55.0,
+            "xValue": 54.990002,
             "yValue": 2.0
           },
           {
-            "xValue": 65.0,
+            "xValue": 64.980003,
             "yValue": 3.0
           },
           {
-            "xValue": 75.0,
+            "xValue": 74.970001,
             "yValue": 4.0
           },
           {
-            "xValue": 85.0,
+            "xValue": 84.959999,
             "yValue": 5.0
           },
           {
-            "xValue": 95.0,
+            "xValue": 94.949997,
             "yValue": 6.0
           },
           {
-            "xValue": 105.0,
+            "xValue": 104.94,
             "yValue": 7.0
           },
           {
-            "xValue": 115.0,
+            "xValue": 114.93,
             "yValue": 8.0
           },
           {
-            "xValue": 125.0,
+            "xValue": 124.92,
             "yValue": 9.0
           },
           {
-            "xValue": 135.0,
+            "xValue": 134.91,
             "yValue": 10.0
           }
         ]
@@ -4302,8 +4333,7 @@
             "name": "ListProcesses",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses",
-              "notifyToUser": false
+              "flowName": "ListProcesses"
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4318,8 +4348,7 @@
             "name": "Interrogate",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate",
-              "notifyToUser": true
+              "flowName": "Interrogate"
             },
             "startedAt": "43000000",
             "state": "RUNNING",
@@ -4353,8 +4382,7 @@
             },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses",
-              "notifyToUser": false
+              "flowName": "ListProcesses"
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4378,8 +4406,7 @@
             },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate",
-              "notifyToUser": true
+              "flowName": "Interrogate"
             },
             "startedAt": "43000000",
             "state": "RUNNING",
@@ -4413,8 +4440,7 @@
             },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses",
-              "notifyToUser": false
+              "flowName": "ListProcesses"
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4448,8 +4474,7 @@
             },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate",
-              "notifyToUser": true
+              "flowName": "Interrogate"
             },
             "startedAt": "43000000",
             "state": "RUNNING",
@@ -4474,8 +4499,7 @@
             "name": "Interrogate",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate",
-              "notifyToUser": true
+              "flowName": "Interrogate"
             },
             "startedAt": "43000000",
             "state": "RUNNING",

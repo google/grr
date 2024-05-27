@@ -5,7 +5,6 @@ import os
 import platform
 from typing import Iterator
 from typing import Sequence
-from typing import Text
 import unittest
 
 from absl import app
@@ -963,7 +962,7 @@ class ExpandPathTest(absltest.TestCase):
 class DirHierarchyContext(object):
   """A context within which the file hierarchy exists."""
 
-  def __init__(self, dirpath: Text) -> None:
+  def __init__(self, dirpath: str) -> None:
     """Initializes the hierarchy context.
 
     Args:
@@ -978,7 +977,7 @@ class DirHierarchyContext(object):
 
     self._dirpath = dirpath
 
-  def __call__(self, components: Sequence[Text]) -> Text:
+  def __call__(self, components: Sequence[str]) -> str:
     """Constructs an absolute path to the specified file of the hierarchy.
 
     Args:
@@ -992,7 +991,7 @@ class DirHierarchyContext(object):
 
 @contextlib.contextmanager
 def DirHierarchy(
-    filepaths: Sequence[Sequence[Text]],
+    filepaths: Sequence[Sequence[str]],
 ) -> Iterator[DirHierarchyContext]:
   """A context manager that setups a fake directory hierarchy.
 

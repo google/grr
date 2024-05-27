@@ -217,7 +217,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       client_rate=0,
       client_limit=100,
       duration=None,
-      creator=None,
+      creator="test_creator",
       **kwargs,
   ):
     # Only initialize default flow_args value if default flow_runner_args value

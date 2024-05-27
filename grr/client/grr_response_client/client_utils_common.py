@@ -173,21 +173,84 @@ def IsExecutionAllowed(cmd, args):
         ("/bin/echo", ["1"]),
         ("/bin/mount", []),
         ("/bin/rpm", ["-qa"]),
-        ("/bin/rpm", ["--query", "--all"]),
+        (
+            "/bin/rpm",
+            [
+                "--query",
+                "--all",
+            ],
+        ),
+        (
+            "/bin/rpm",
+            [
+                "--query",
+                "--all",
+                "--queryformat",
+                "%{NAME}|%{EPOCH}|%{VERSION}|%{RELEASE}|%{ARCH}|%{INSTALLTIME}|%{VENDOR}|%{SOURCERPM}\n",
+            ],
+        ),
         ("/bin/sleep", ["10"]),
+        ("/opt/CrowdStrike/falconctl", ["-g", "--cid", "--aid"]),
         ("/sbin/auditctl", ["-l"]),
         ("/sbin/ifconfig", ["-a"]),
         ("/sbin/iptables", ["-L", "-n", "-v"]),
         ("/sbin/lsmod", []),
         ("/usr/bin/dpkg", ["--list"]),
         ("/usr/bin/last", []),
+        ("/usr/bin/who", []),
         ("/usr/bin/yum", ["list", "installed", "-q"]),
         ("/usr/bin/yum", ["repolist", "-v", "-q"]),
-        ("/usr/bin/who", []),
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/dmidecode", ["-q"]),
         ("/usr/sbin/sshd", ["-T"]),
-        ("/opt/CrowdStrike/falconctl", ["-g", "--cid", "--aid"]),
+        # Container Runtimes
+        ("/home/kubernetes/bin/crictl", ["ps", "-a", "-o", "json"]),
+        ("/usr/bin/crictl", ["ps", "-a", "-o", "json"]),
+        ("/usr/bin/ctr", ["namespaces", "list"]),
+        ("/usr/bin/ctr", ["--namespace", "k8s.io", "containers", "list"]),
+        ("/usr/bin/docker", ["ps", "-a", "--format", "json", "--no-trunc"]),
+        (
+            "/usr/sbin/chroot",
+            [
+                "/hostroot",
+                "/home/kubernetes/bin/crictl",
+                "ps",
+                "-a",
+                "-o",
+                "json",
+            ],
+        ),
+        (
+            "/usr/sbin/chroot",
+            ["/hostroot", "/usr/bin/crictl", "ps", "-a", "-o", "json"],
+        ),
+        (
+            "/usr/sbin/chroot",
+            ["/hostroot", "/usr/bin/ctr", "namespaces", "list"],
+        ),
+        (
+            "/usr/sbin/chroot",
+            [
+                "/hostroot",
+                "/usr/bin/ctr",
+                "--namespace",
+                "k8s.io",
+                "containers",
+                "list",
+            ],
+        ),
+        (
+            "/usr/sbin/chroot",
+            [
+                "/hostroot",
+                "/usr/bin/docker",
+                "ps",
+                "-a",
+                "--format",
+                "json",
+                "--no-trunc",
+            ],
+        ),
     ]
   elif platform.system() == "Darwin":
     allowlist = [
@@ -199,6 +262,7 @@ def IsExecutionAllowed(cmd, args):
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/kextstat", []),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
+        ("/Applications/Falcon.app/Contents/Resources/falconctl", ["stats"]),
     ]
   else:
     allowlist = []

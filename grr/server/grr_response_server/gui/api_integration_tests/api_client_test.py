@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from unittest import mock
 
 from absl import app
@@ -36,7 +35,8 @@ class ApiClientTest(api_integration_test_lib.ApiIntegrationTest):
   def testClientRefRepr(self):
     self.assertEqual(
         repr(self.api.Client("C.1000000000000000")),
-        "ClientRef(client_id='C.1000000000000000')")
+        "ClientRef(client_id='C.1000000000000000')",
+    )
 
 
 def main(argv):

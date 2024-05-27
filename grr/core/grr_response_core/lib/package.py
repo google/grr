@@ -6,7 +6,6 @@ import inspect
 import logging
 import os
 import sys
-from typing import Text
 
 import pkg_resources
 
@@ -56,7 +55,7 @@ def ResourcePath(package_name, filepath):
   return None
 
 
-def ModulePath(module_name) -> Text:
+def ModulePath(module_name) -> str:
   """Computes a path to the specified module.
 
   Args:

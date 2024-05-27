@@ -7,7 +7,6 @@ from typing import IO
 from typing import Iterable
 from typing import Iterator
 from typing import Optional
-from typing import Text
 from typing import TypeVar
 
 from grr_response_core.lib import rdfvalue
@@ -22,7 +21,7 @@ class ParseError(Exception):
     cause: An optional exception that caused this exception to be raised.
   """
 
-  def __init__(self, message: Text, cause: Optional[Exception] = None) -> None:
+  def __init__(self, message: str, cause: Optional[Exception] = None) -> None:
     """Initializes the error.
 
     Args:

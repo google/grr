@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   https://github.com/google/grr/pkgs/container/grr
 * Docker compose configuration file to run all GRR/Fleetspeak components in
   separate Docker containers.
+* Python API was extended by a function (`DecodeCrowdStrikeQuarantineEncoding`)
+  to decode a crowdstrike quarantine encoded file, given as a
+  `BinaryChunkIterator`.
 
 
 ### API removed
@@ -45,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   OSReleaseBreakdown7ReportPlugin, OSReleaseBreakdown14ReportPlugin,
   OSReleaseBreakdown30ReportPlugin, SystemFlowsReportPlugin,
   UserFlowsReportPlugin, MostActiveUsersReportPlugin, UserActivityReportPlugin).
+* GetFileDecoders API method
+  (`/api/clients/<client_id>/vfs-decoders/<path:file_path>`). Getting file
+  decoders functionality was removed as it was not used before.
+* GetDecodedFileBlob API method (`/api/clients/<client_id>/vfs-decoded-blob/`).
+  Get decoded file blob functionality was removed as it was unused before. Only
+  one decoder for decoding crowdstrike quarantine encoded files was implemented,
+  this functionality is now exposed via the Python API.
 
 ### Planned for removal
 

@@ -23,7 +23,8 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
   """Tests the CollectFilesByKnownPath Flow."""
 
   def _GenCollectedResult(
-      self, i: int) -> rdf_file_finder.CollectFilesByKnownPathResult:
+      self, i: int
+  ) -> rdf_file_finder.CollectFilesByKnownPathResult:
     return rdf_file_finder.CollectFilesByKnownPathResult(
         stat=rdf_client_fs.StatEntry(
             pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),
@@ -34,16 +35,21 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
                 "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5"
             ),
             sha1=binascii.unhexlify("6dd6bee591dfcb6d75eb705405302c3eab65e21a"),
-            md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a")),
-        status=rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED)
+            md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a"),
+        ),
+        status=rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED,
+    )
 
-  def _GenFailedResult(self,
-                       i: int) -> rdf_file_finder.CollectFilesByKnownPathResult:
+  def _GenFailedResult(
+      self, i: int
+  ) -> rdf_file_finder.CollectFilesByKnownPathResult:
     return rdf_file_finder.CollectFilesByKnownPathResult(
         stat=rdf_client_fs.StatEntry(
-            pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),),
+            pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),
+        ),
         status=rdf_file_finder.CollectFilesByKnownPathResult.Status.FAILED,
-        error=f"errormsg{i}")
+        error=f"errormsg{i}",
+    )
 
   def setUp(self):
     super().setUp()
@@ -56,11 +62,13 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     with flow_test_lib.FlowProgressOverride(
         file.CollectFilesByKnownPath,
-        rdf_file_finder.CollectFilesByKnownPathProgress(num_in_progress=1)):
+        rdf_file_finder.CollectFilesByKnownPathProgress(num_in_progress=1),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent,
@@ -68,35 +76,42 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-files-by-known-path-details result-accordion:contains('/file0')"
+          "css=collect-files-by-known-path-details"
+          " result-accordion:contains('/file0')",
       )
       self.Click(
-          "css=collect-files-by-known-path-details result-accordion:contains('/file0')"
+          "css=collect-files-by-known-path-details"
+          " result-accordion:contains('/file0')"
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-files-by-known-path-details .results:contains('No data')"
+          "css=collect-files-by-known-path-details .results:contains('No"
+          " data')",
       )
 
   def testDisplaysCollectedResult(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
-        paths=["/file0", "/file1", "/file2"])
+        paths=["/file0", "/file1", "/file2"]
+    )
     flow_id = flow_test_lib.StartFlow(
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     flow_test_lib.AddResultsToFlow(
-        self.client_id, flow_id,
-        [self._GenCollectedResult(i) for i in range(3)])
+        self.client_id, flow_id, [self._GenCollectedResult(i) for i in range(3)]
+    )
 
     with flow_test_lib.FlowProgressOverride(
         file.CollectFilesByKnownPath,
-        rdf_file_finder.CollectFilesByKnownPathProgress(num_collected=3)):
+        rdf_file_finder.CollectFilesByKnownPathProgress(num_collected=3),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.Click(
-          "css=collect-files-by-known-path-details result-accordion:contains('/file0 + 2 more')"
+          "css=collect-files-by-known-path-details"
+          " result-accordion:contains('/file0 + 2 more')"
       )
 
       self.WaitUntil(
@@ -107,27 +122,33 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       for i in range(3):
         self.WaitUntil(
             self.IsElementPresent,
-            f"css=collect-files-by-known-path-details .results:contains('{i} B')"
+            "css=collect-files-by-known-path-details"
+            f" .results:contains('{i} B')",
         )
 
   def testDisplaysFailedResult(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
-        paths=["/file0", "/file1"])
+        paths=["/file0", "/file1"]
+    )
     flow_id = flow_test_lib.StartFlow(
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id,
-                                   [self._GenFailedResult(i) for i in range(2)])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id, flow_id, [self._GenFailedResult(i) for i in range(2)]
+    )
 
     with flow_test_lib.FlowProgressOverride(
         file.CollectFilesByKnownPath,
-        rdf_file_finder.CollectFilesByKnownPathProgress(num_failed=2)):
+        rdf_file_finder.CollectFilesByKnownPathProgress(num_failed=2),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.Click(
-          "css=collect-files-by-known-path-details result-accordion:contains('/file0 + 1 more')"
+          "css=collect-files-by-known-path-details"
+          " result-accordion:contains('/file0 + 1 more')"
       )
 
       self.WaitUntil(
@@ -138,35 +159,46 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       for i in range(2):
         self.WaitUntil(
             self.IsElementPresent,
-            f"css=collect-files-by-known-path-details .results:contains('errormsg{i}')"
+            "css=collect-files-by-known-path-details"
+            f" .results:contains('errormsg{i}')",
         )
 
   def testDisplaysSuccessAndFailedResultAndWarning(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
-        paths=["/file0", "/file1"])
+        paths=["/file0", "/file1"]
+    )
     flow_id = flow_test_lib.StartFlow(
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-        self._GenFailedResult(0),
-        self._GenCollectedResult(1),
-    ])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id,
+        [
+            self._GenFailedResult(0),
+            self._GenCollectedResult(1),
+        ],
+    )
 
     with flow_test_lib.FlowProgressOverride(
         file.CollectFilesByKnownPath,
         rdf_file_finder.CollectFilesByKnownPathProgress(
-            num_collected=1, num_raw_fs_access_retries=1, num_failed=1)):
+            num_collected=1, num_raw_fs_access_retries=1, num_failed=1
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.Click(
-          "css=collect-files-by-known-path-details result-accordion:contains('/file0 + 1 more')"
+          "css=collect-files-by-known-path-details"
+          " result-accordion:contains('/file0 + 1 more')"
       )
 
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-files-by-known-path-details .results:contains('1 file fetched by parsing the raw disk image with libtsk or libfsntfs.')"
+          "css=collect-files-by-known-path-details .results:contains('1 file"
+          " fetched by parsing the raw disk image with libtsk or libfsntfs.')",
       )
 
       self.WaitUntil(
@@ -176,7 +208,8 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-files-by-known-path-details .results:contains('1 B')")
+          "css=collect-files-by-known-path-details .results:contains('1 B')",
+      )
 
       self.WaitUntil(
           self.IsElementPresent,
@@ -189,7 +222,8 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-files-by-known-path-details .results:contains('errormsg0')"
+          "css=collect-files-by-known-path-details"
+          " .results:contains('errormsg0')",
       )
 
   def testDownloadButtonFlowFinished(self):
@@ -198,7 +232,8 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
 
@@ -209,20 +244,27 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
                     type=rdf_file_finder.CollectFilesByKnownPathResult.__name__,
-                    count=1)
-            ])):
+                    count=1,
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=a[mat-stroked-button]:contains('Download')")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=a[mat-stroked-button]:contains('Download')",
+      )
 
   def testFlowError(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
-        paths=["/file0", "/file1"])
+        paths=["/file0", "/file1"]
+    )
     flow_id = flow_test_lib.StartFlow(
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     flow_test_lib.MarkFlowAsFailed(self.client_id, flow_id)
 
@@ -231,12 +273,14 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
 
   def testDisplaysArgumentsPopup(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
-        paths=["/file0", "/file1"])
+        paths=["/file0", "/file1"]
+    )
     flow_test_lib.StartFlow(
         file.CollectFilesByKnownPath,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
     self.WaitUntil(
@@ -259,8 +303,9 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         ' paths")'
     )
 
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=flow-args-form textarea[name=paths]")
+    element = self.WaitUntil(
+        self.GetVisibleElement, "css=flow-args-form textarea[name=paths]"
+    )
     element.send_keys("/foo/firstpath")
     element.send_keys(keys.Keys.ENTER)
     element.send_keys("/bar/secondpath")
@@ -271,16 +316,18 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
       handler = api_flow.ApiListFlowsHandler()
       flows = handler.Handle(
           api_flow.ApiListFlowsArgs(
-              client_id=self.client_id, top_flows_only=True),
-          context=api_call_context.ApiCallContext(
-              username=self.test_username)).items
+              client_id=self.client_id, top_flows_only=True
+          ),
+          context=api_call_context.ApiCallContext(username=self.test_username),
+      ).items
       return flows[0] if len(flows) == 1 else None
 
     flow = self.WaitUntil(FlowHasBeenStarted)
 
     self.assertEqual(flow.name, file.CollectFilesByKnownPath.__name__)
-    self.assertCountEqual(flow.args.paths,
-                          ["/foo/firstpath", "/bar/secondpath"])
+    self.assertCountEqual(
+        flow.args.paths, ["/foo/firstpath", "/bar/secondpath"]
+    )
 
 
 class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
@@ -300,10 +347,12 @@ class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
         self.client_id,
         "fs/os/foo/barfile",
         "Hello VFS View".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     self.Open(
-        f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile/text)")
+        f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile/text)"
+    )
 
     self.WaitUntilContains("barfile", self.GetText, "css=mat-drawer")
     self.WaitUntilContains("Hello VFS View", self.GetText, "css=mat-drawer")
@@ -313,23 +362,29 @@ class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
         self.client_id,
         "fs/os/foo/barfile",
         "Hello VFS View".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     self.Open(
-        f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile/stat)")
+        f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile/stat)"
+    )
 
     self.WaitUntilContains("barfile", self.GetText, "css=mat-drawer")
-    self.assertContainsInOrder([
-        "SHA-256",
-        "23406c404b29af3a449196db4833de182b9b955df14cef54fb6004189968c154"
-    ], self.GetText("css=mat-drawer"))
+    self.assertContainsInOrder(
+        [
+            "SHA-256",
+            "23406c404b29af3a449196db4833de182b9b955df14cef54fb6004189968c154",
+        ],
+        self.GetText("css=mat-drawer"),
+    )
 
   def testNavigateToFileInFilesView(self):
     gui_test_lib.CreateFileVersion(
         self.client_id,
         "fs/os/foofolder/subfolder/barfile",
         "Hello VFS View".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
 
@@ -351,15 +406,17 @@ class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains("text", self.GetCurrentUrlPath)
 
-    self.WaitUntilContains("Hello VFS View", self.GetText,
-                           "css=app-file-details")
+    self.WaitUntilContains(
+        "Hello VFS View", self.GetText, "css=app-file-details"
+    )
 
   def testTriggersMultiGetFilesFlow(self):
     gui_test_lib.CreateFileVersion(
         self.client_id,
         "fs/os/foo/barfile",
         "Hello VFS View".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1)
+        timestamp=gui_test_lib.TIME_1,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile)")
 
@@ -371,7 +428,8 @@ class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
 
     self.WaitUntil(
         self.IsElementPresent,
-        "css=flow-details:contains('MultiGetFile') .title:contains('/foo/barfile')"
+        "css=flow-details:contains('MultiGetFile')"
+        " .title:contains('/foo/barfile')",
     )
 
 
@@ -394,14 +452,17 @@ class MultiGetFileTest(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testCorrectlyDisplaysMultiGetFileResults(self):
-    flow_args = transfer.MultiGetFileArgs(pathspecs=[
-        rdf_paths.PathSpec.OS(path=f"/somefile{i}") for i in range(10)
-    ])
+    flow_args = transfer.MultiGetFileArgs(
+        pathspecs=[
+            rdf_paths.PathSpec.OS(path=f"/somefile{i}") for i in range(10)
+        ]
+    )
     flow_id = flow_test_lib.StartFlow(
         transfer.MultiGetFile,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     with flow_test_lib.FlowProgressOverride(
         transfer.MultiGetFile,
@@ -410,21 +471,27 @@ class MultiGetFileTest(gui_test_lib.GRRSeleniumTest):
             num_pending_files=2,
             num_skipped=0,
             num_collected=3,
-            num_failed=5)):
+            num_failed=5,
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('MultiGetFile')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('MultiGetFile')"
+      )
 
       flow_test_lib.AddResultsToFlow(
-          self.client_id, flow_id, [self._GenSampleResult(i) for i in range(3)])
+          self.client_id, flow_id, [self._GenSampleResult(i) for i in range(3)]
+      )
 
       self.Click(
-          "css=multi-get-file-flow-details result-accordion .title:contains('/somefile0 + 9 more')"
+          "css=multi-get-file-flow-details result-accordion"
+          " .title:contains('/somefile0 + 9 more')"
       )
       for i in range(3):
         self.WaitUntil(
             self.IsElementPresent,
-            f"css=multi-get-file-flow-details td:contains('/somefile{i}')")
+            f"css=multi-get-file-flow-details td:contains('/somefile{i}')",
+        )
 
 
 class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):

@@ -3,13 +3,11 @@
 
 import abc
 import collections
+from collections.abc import Sequence
 import hashlib
 import io
 import os
-from typing import Dict
-from typing import Iterable
-from typing import NamedTuple
-from typing import Optional
+from typing import Collection, Dict, Iterable, NamedTuple, Optional
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -30,7 +28,7 @@ class Error(Exception):
 class BlobNotFoundError(Error):
   """Raised when a blob was expected to exist, but couldn't be found."""
 
-  def __init__(self, blob_id):
+  def __init__(self, blob_id: blob_models.BlobID) -> None:
     super().__init__(
         "Could not find one of referenced blobs: {}. "
         "This is a sign of datastore inconsistency".format(blob_id))
@@ -47,7 +45,7 @@ class FileNotFoundError(Error):  # pylint: disable=redefined-builtin
 class FileHasNoContentError(Error):
   """Raised when trying to read a file that was never downloaded."""
 
-  def __init__(self, path):
+  def __init__(self, path: str) -> None:
     super().__init__("File was never collected: %r" % (path,))
 
 
@@ -100,18 +98,24 @@ class CompositeExternalFileStore(ExternalFileStore):
 
     self.nested_stores = nested_stores or []
 
-  def RegisterFileStore(self, fs):
+  def RegisterFileStore(self, fs: ExternalFileStore) -> None:
     if not isinstance(fs, ExternalFileStore):
       raise TypeError("Can only register objects of classes inheriting "
                       "from ExternalFileStore.")
 
     self.nested_stores.append(fs)
 
-  def AddFile(self, hash_id, metadata):
+  def AddFile(
+      self,
+      hash_id: rdf_objects.HashID,
+      metadata: FileMetadata,
+  ) -> None:
     for fs in self.nested_stores:
       fs.AddFile(hash_id, metadata)
 
-  def AddFiles(self, hash_id_metadatas):
+  def AddFiles(
+      self, hash_id_metadatas: Dict[rdf_objects.HashID, FileMetadata]
+  ) -> None:
     for nested_store in self.nested_stores:
       nested_store.AddFiles(hash_id_metadatas)
 
@@ -121,10 +125,15 @@ EXTERNAL_FILE_STORE = CompositeExternalFileStore()
 
 # TODO(user): this is a naive implementation as it reads one chunk
 # per REL_DB call. It has to be optimized.
-class BlobStream(object):
+class BlobStream:
   """File-like object for reading from blobs."""
 
-  def __init__(self, client_path, blob_refs, hash_id):
+  def __init__(
+      self,
+      client_path: db.ClientPath,
+      blob_refs: Iterable[rdf_objects.BlobReference],
+      hash_id: str,
+  ) -> None:
     self._client_path = client_path
     self._blob_refs = blob_refs
     self._hash_id = hash_id
@@ -137,7 +146,9 @@ class BlobStream(object):
     self._current_ref = None
     self._current_chunk = None
 
-  def _GetChunk(self):
+  def _GetChunk(
+      self,
+  ) -> tuple[Optional[bytes], Optional[rdf_objects.BlobReference]]:
     """Fetches a chunk corresponding to the current offset."""
 
     found_ref = None
@@ -162,7 +173,7 @@ class BlobStream(object):
 
     return self._current_chunk, self._current_ref
 
-  def Read(self, length=None):
+  def Read(self, length: Optional[int] = None) -> bytes:
     """Reads data."""
 
     if length is None:
@@ -189,12 +200,12 @@ class BlobStream(object):
 
     return result.getvalue()[:length]
 
-  def Tell(self):
+  def Tell(self) -> int:
     """Returns current reading cursor position."""
 
     return self._offset
 
-  def Seek(self, offset, whence=os.SEEK_SET):
+  def Seek(self, offset: int, whence=os.SEEK_SET) -> None:
     """Moves the reading cursor."""
 
     if whence == os.SEEK_SET:
@@ -211,16 +222,16 @@ class BlobStream(object):
   seek = utils.Proxy("Seek")
 
   @property
-  def size(self):
+  def size(self) -> int:
     """Size of the hashed data."""
     return self._length
 
   @property
-  def hash_id(self):
+  def hash_id(self) -> rdf_objects.HashID:
     """Hash ID identifying hashed data."""
     return self._hash_id
 
-  def Path(self):
+  def Path(self) -> str:
     return self._client_path.Path()
 
 
@@ -230,9 +241,10 @@ BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(120, rdfvalue.SECONDS)
 
 
 def AddFilesWithUnknownHashes(
-    client_path_blob_refs: Dict[db.ClientPath, Iterable[rdf_objects
-                                                        .BlobReference]],
-    use_external_stores: bool = True
+    client_path_blob_refs: Dict[
+        db.ClientPath, Iterable[rdf_objects.BlobReference]
+    ],
+    use_external_stores: bool = True,
 ) -> Dict[db.ClientPath, rdf_objects.SHA256HashID]:
   """Adds new files consisting of given blob references.
 
@@ -329,7 +341,11 @@ def AddFilesWithUnknownHashes(
   return client_path_hash_id
 
 
-def AddFileWithUnknownHash(client_path, blob_refs, use_external_stores=True):
+def AddFileWithUnknownHash(
+    client_path: db.ClientPath,
+    blob_refs: Sequence[rdf_objects.BlobReference],
+    use_external_stores: bool = True,
+) -> Dict[db.ClientPath, rdf_objects.SHA256HashID]:
   """Add a new file consisting of given blob IDs."""
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertIterableType(blob_refs, rdf_objects.BlobReference)
@@ -338,7 +354,9 @@ def AddFileWithUnknownHash(client_path, blob_refs, use_external_stores=True):
       use_external_stores=use_external_stores)[client_path]
 
 
-def CheckHashes(hash_ids):
+def CheckHashes(
+    hash_ids: Collection[rdf_objects.SHA256HashID],
+) -> Dict[rdf_objects.SHA256HashID, bool]:
   """Checks if files with given hashes are present in the file store.
 
   Args:
@@ -354,7 +372,10 @@ def CheckHashes(hash_ids):
   }
 
 
-def GetLastCollectionPathInfos(client_paths, max_timestamp=None):
+def GetLastCollectionPathInfos(
+    client_paths: Collection[db.ClientPath],
+    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+) -> Dict[db.ClientPath, rdf_objects.PathInfo]:
   """Returns PathInfos corresponding to last collection times.
 
   Args:
@@ -378,7 +399,10 @@ def GetLastCollectionPathInfos(client_paths, max_timestamp=None):
   return rdf_dict
 
 
-def GetLastCollectionPathInfo(client_path, max_timestamp=None):
+def GetLastCollectionPathInfo(
+    client_path: str,
+    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+) -> rdf_objects.PathInfo:
   """Returns PathInfo corresponding to the last file collection time.
 
   Args:
@@ -392,8 +416,9 @@ def GetLastCollectionPathInfo(client_path, max_timestamp=None):
     max_timestamp).
   """
 
-  return GetLastCollectionPathInfos([client_path],
-                                    max_timestamp=max_timestamp)[client_path]
+  return GetLastCollectionPathInfos([client_path], max_timestamp=max_timestamp)[
+      client_path
+  ]
 
 
 def OpenFile(
@@ -455,11 +480,18 @@ def OpenFile(
 STREAM_CHUNKS_READ_AHEAD = 500
 
 
-class StreamedFileChunk(object):
+class StreamedFileChunk:
   """An object representing a single streamed file chunk."""
 
-  def __init__(self, client_path, data, chunk_index, total_chunks, offset,
-               total_size):
+  def __init__(
+      self,
+      client_path: db.ClientPath,
+      data: bytes,
+      chunk_index: int,
+      total_chunks: int,
+      offset: int,
+      total_size: int,
+  ) -> None:
     """Initializes StreamedFileChunk object.
 
     Args:
@@ -479,7 +511,11 @@ class StreamedFileChunk(object):
     self.total_chunks = total_chunks
 
 
-def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
+def StreamFilesChunks(
+    client_paths: Collection[db.ClientPath],
+    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+    max_size: Optional[int] = None,
+) -> Iterable[StreamedFileChunk]:
   """Streams contents of given files.
 
   Args:
@@ -509,13 +545,14 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
   for k, v in proto_path_infos_by_cp.items():
     path_infos_by_cp[k] = None
     if v is not None:
-      path_infos_by_cp[k] = mig_objects.ToRDFPathInfo(v)
+      path_infos_by_cp[k] = v
 
   hash_ids_by_cp = {}
   for cp, pi in path_infos_by_cp.items():
     if pi:
       hash_ids_by_cp[cp] = rdf_objects.SHA256HashID.FromSerializedBytes(
-          pi.hash_entry.sha256.AsBytes())
+          pi.hash_entry.sha256
+      )
 
   blob_refs_by_hash_id = data_store.REL_DB.ReadHashBlobReferences(
       hash_ids_by_cp.values())
@@ -548,7 +585,8 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
 
   for batch in collection.Batch(all_chunks, STREAM_CHUNKS_READ_AHEAD):
     blobs = data_store.BLOBS.ReadBlobs(
-        [blob_id for cp, blob_id, i, num_blobs, offset, total_size in batch])
+        [blob_id for _, blob_id, _, _, _, _ in batch]
+    )
     for cp, blob_id, i, num_blobs, offset, total_size in batch:
       blob_data = blobs[blob_id]
       if blob_data is None:

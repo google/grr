@@ -16,7 +16,6 @@ from grr_response_server.export_converters import process
 from grr_response_server.export_converters import rdf_dict
 from grr_response_server.export_converters import rdf_primitives
 from grr_response_server.export_converters import software_package
-from grr_response_server.export_converters import windows_service_info
 
 
 # TODO: Test that this function contains all inheritors.
@@ -72,7 +71,4 @@ def RegisterExportConverters():
   export_converters_registry.Register(software_package.SoftwarePackageConverter)
   export_converters_registry.Register(
       software_package.SoftwarePackagesConverter
-  )
-  export_converters_registry.Register(
-      windows_service_info.WindowsServiceInformationConverter
   )

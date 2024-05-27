@@ -3,7 +3,6 @@
 
 from typing import Iterator
 from typing import Optional
-from typing import Text
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -81,7 +80,9 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
     flow_id = str(args.flow_id)
 
     opts = body.Opts()
-    opts.timestamp_subsecond_precision = args.body_opts.timestamp_subsecond_precision
+    opts.timestamp_subsecond_precision = (
+        args.body_opts.timestamp_subsecond_precision
+    )
     opts.backslash_escape = args.body_opts.backslash_escape
     opts.carriage_return_escape = args.body_opts.carriage_return_escape
     opts.non_printable_escape = args.body_opts.non_printable_escape
@@ -104,8 +105,8 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def _StreamRawGzchunked(
       self,
-      client_id: Text,
-      flow_id: Text,
+      client_id: str,
+      flow_id: str,
   ) -> api_call_handler_base.ApiBinaryStream:
     content = timeline.Blobs(client_id=client_id, flow_id=flow_id)
     content = map(chunked.Encode, content)
@@ -137,8 +138,10 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError(message)
 
     fmt = args.format
-    if (fmt != timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED and
-        fmt != timeline_pb2.ApiGetCollectedTimelineArgs.BODY):
+    if (
+        fmt != timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED
+        and fmt != timeline_pb2.ApiGetCollectedTimelineArgs.BODY
+    ):
       message = f"Incorrect timeline export format: {fmt}"
       raise ValueError(message)
 

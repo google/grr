@@ -25,7 +25,8 @@ class ReadLowLevelTest(gui_test_lib.GRRSeleniumTest):
     self.Type(
         "css=input[name=flowSearchBox]",
         "Read raw bytes from device",
-        end_with_enter=True)
+        end_with_enter=True,
+    )
 
     self.WaitUntil(self.IsElementPresent, "css=input[name=path]")
     self.WaitUntil(self.IsElementPresent, "css=input[name=length]")
@@ -37,40 +38,50 @@ class ReadLowLevelTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=button[type=submit]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('/place')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('123')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('456')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('/place')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('123')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('456')"
+    )
     self.assertLen(flow_test_lib.ListAllFlows(client_id=self.client_id), 1)
 
   def testDisplaysDownloadButtonAndArgs(self):
     flow_args = rdf_read_low_level.ReadLowLevelArgs(
-        path="/path", length="789", offset="987")
+        path="/path", length="789", offset="987"
+    )
 
     flow_id = flow_test_lib.StartFlow(
         read_low_level.ReadLowLevel,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
     print("flow_id", flow_id)
 
     self.Open(f"/v2/clients/{self.client_id}")
 
-    self.WaitUntil(self.IsElementPresent,
-                   f"css=.flow-id span:contains('{flow_id}')")
+    self.WaitUntil(
+        self.IsElementPresent, f"css=.flow-id span:contains('{flow_id}')"
+    )
 
     self.ScrollToBottom()
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('/path')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('789')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('987')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('/path')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('789')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion .title:contains('987')"
+    )
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=a[mat-stroked-button]:contains('Download')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=a[mat-stroked-button]:contains('Download')"
+    )
     flow_test_lib.MarkFlowAsFinished(client_id=self.client_id, flow_id=flow_id)
     with flow_test_lib.FlowResultMetadataOverride(
         read_low_level.ReadLowLevel,
@@ -79,24 +90,33 @@ class ReadLowLevelTest(gui_test_lib.GRRSeleniumTest):
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
                     type=rdf_read_low_level.ReadLowLevelFlowResult.__name__,
-                    count=1)
-            ])):
-      self.WaitUntil(self.IsElementPresent,
-                     "css=a[mat-stroked-button]:contains('Download')")
+                    count=1,
+                )
+            ],
+        ),
+    ):
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=a[mat-stroked-button]:contains('Download')",
+      )
 
     self.WaitUntil(
         self.IsElementPresent,
         f"css=a[href='/api/v2/clients/{self.client_id}/vfs-blob/temp/"
-        f"{self.client_id}_{flow_id}_path']")
+        f"{self.client_id}_{flow_id}_path']",
+    )
 
     self.Click("css=result-accordion .title:contains('/path')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion:contains('Path: /path')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion:contains('Length: 789')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion:contains('Offset: 987')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion:contains('Path: /path')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion:contains('Length: 789')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=result-accordion:contains('Offset: 987')"
+    )
 
 
 if __name__ == "__main__":

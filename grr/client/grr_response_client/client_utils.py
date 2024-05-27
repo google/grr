@@ -5,8 +5,6 @@ import logging
 import os
 import sys
 
-from typing import Text
-
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
@@ -38,7 +36,7 @@ CreateProcessFromSerializedFileDescriptor = (
 
 
 def StatEntryFromPath(
-    path: Text,
+    path: str,
     pathspec: rdf_paths.PathSpec,
     ext_attrs: bool = True,
     follow_symlink: bool = True,

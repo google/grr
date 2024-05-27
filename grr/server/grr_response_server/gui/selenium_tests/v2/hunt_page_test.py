@@ -6,6 +6,7 @@ from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto.api import hunt_pb2
 from grr_response_server import hunt
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
@@ -239,7 +240,7 @@ class HuntPageTest(
 
     hunts = _ListHunts(self.test_username)
     self.assertLen(hunts, 1)
-    self.assertEqual(hunts[0].state, api_hunt.ApiHunt.State.PAUSED)
+    self.assertEqual(hunts[0].state, hunt_pb2.ApiHunt.State.PAUSED)
 
     self.RequestAndGrantHuntApproval(hunt_id, requestor=self.test_username)
     self.WaitUntil(
@@ -293,7 +294,7 @@ class HuntPageTest(
 
     hunts = _ListHunts(self.test_username)
     self.assertLen(hunts, 1)
-    self.assertEqual(hunts[0].state, api_hunt.ApiHunt.State.PAUSED)
+    self.assertEqual(hunts[0].state, hunt_pb2.ApiHunt.State.PAUSED)
 
     self.RequestAndGrantHuntApproval(hunt_id, requestor=self.test_username)
     self.WaitUntil(
@@ -348,7 +349,7 @@ class HuntPageTest(
 
     hunts = _ListHunts(self.test_username)
     self.assertLen(hunts, 1)
-    self.assertEqual(hunts[0].state, api_hunt.ApiHunt.State.PAUSED)
+    self.assertEqual(hunts[0].state, hunt_pb2.ApiHunt.State.PAUSED)
     self.assertEqual(hunts[0].hunt_runner_args.client_rate, 60)
     self.assertEqual(hunts[0].hunt_runner_args.client_limit, 0)
 

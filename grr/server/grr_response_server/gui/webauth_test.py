@@ -33,43 +33,44 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     return self.success_response
 
   def testRejectsRequestWithoutRemoteUserHeader(self):
-    environ = werkzeug_test.EnvironBuilder(environ_base={
-        "REMOTE_ADDR": "127.0.0.1"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={"REMOTE_ADDR": "127.0.0.1"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
-        response.get_data(as_text=True), "No username header found.")
+        response.get_data(as_text=True), "No username header found."
+    )
 
   def testRejectsRequestFromUntrustedIp(self):
-    environ = werkzeug_test.EnvironBuilder(environ_base={
-        "REMOTE_ADDR": "127.0.0.2"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={"REMOTE_ADDR": "127.0.0.2"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertRegex(
         response.get_data(as_text=True),
         "Request sent from an IP not in AdminUI.remote_user_trusted_ips. "
-        "Source was .+")
+        "Source was .+",
+    )
 
   def testRejectsRequestWithEmptyUsername(self):
-    environ = werkzeug_test.EnvironBuilder(environ_base={
-        "REMOTE_ADDR": "127.0.0.1",
-        "HTTP_X_REMOTE_USER": ""
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={"REMOTE_ADDR": "127.0.0.1", "HTTP_X_REMOTE_USER": ""}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
-        response.get_data(as_text=True), "Empty username is not allowed.")
+        response.get_data(as_text=True), "Empty username is not allowed."
+    )
 
   def testProcessesRequestWithUsernameFromTrustedIp(self):
-    environ = werkzeug_test.EnvironBuilder(environ_base={
-        "REMOTE_ADDR": "127.0.0.1",
-        "HTTP_X_REMOTE_USER": "foo"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={"REMOTE_ADDR": "127.0.0.1", "HTTP_X_REMOTE_USER": "foo"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -81,7 +82,8 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
             "REMOTE_ADDR": "127.0.0.1",
             "HTTP_X_REMOTE_USER": "foo",
             "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
-        }).get_environ()
+        }
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -94,7 +96,8 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
             "REMOTE_ADDR": "127.0.0.1",
             "HTTP_X_REMOTE_USER": "foo",
             "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
-        }).get_environ()
+        }
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
@@ -111,7 +114,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
     config_overrider = test_lib.ConfigOverrider({
         "AdminUI.firebase_auth_domain": "foo-bar.firebaseapp.com",
-        "API.DefaultRouter": "DisabledApiCallRouter"
+        "API.DefaultRouter": "DisabledApiCallRouter",
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
@@ -143,54 +146,57 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
         response.get_data(as_text=True),
-        "JWT token validation failed: JWT token is missing.")
+        "JWT token validation failed: JWT token is missing.",
+    )
 
   def testReportsErrorWhenBearerPrefixIsMissing(self):
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={
-            "Authorization": "blah"
-        }).get_environ()
+        path="/foo", headers={"Authorization": "blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
         response.get_data(as_text=True),
-        "JWT token validation failed: JWT token is missing.")
+        "JWT token validation failed: JWT token is missing.",
+    )
 
   @mock.patch.object(
-      id_token, "verify_firebase_token", side_effect=ValueError("foobar error"))
+      id_token, "verify_firebase_token", side_effect=ValueError("foobar error")
+  )
   def testPassesThroughHomepageOnVerificationFailure(self, mock_method):
     _ = mock_method
 
-    environ = werkzeug_test.EnvironBuilder(headers={
-        "Authorization": "Bearer blah"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        headers={"Authorization": "Bearer blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(response, self.success_response)
 
   @mock.patch.object(
-      id_token, "verify_firebase_token", side_effect=ValueError("foobar error"))
+      id_token, "verify_firebase_token", side_effect=ValueError("foobar error")
+  )
   def testReportsErrorOnVerificationFailureOnNonHomepage(self, mock_method):
     _ = mock_method
 
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={
-            "Authorization": "Bearer blah"
-        }).get_environ()
+        path="/foo", headers={"Authorization": "Bearer blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
         response.get_data(as_text=True),
-        "JWT token validation failed: foobar error")
+        "JWT token validation failed: foobar error",
+    )
 
   @mock.patch.object(id_token, "verify_firebase_token")
   def testVerifiesTokenWithProjectIdFromDomain(self, mock_method):
-    environ = werkzeug_test.EnvironBuilder(headers={
-        "Authorization": "Bearer blah"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        headers={"Authorization": "Bearer blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)
@@ -199,32 +205,34 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(mock_method.call_args_list[0][1], dict(audience="foo-bar"))
 
   @mock.patch.object(
-      id_token, "verify_firebase_token", return_value={"iss": "blah"})
+      id_token, "verify_firebase_token", return_value={"iss": "blah"}
+  )
   def testReportsErrorIfIssuerIsWrong(self, mock_method):
     _ = mock_method
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={
-            "Authorization": "Bearer blah"
-        }).get_environ()
+        path="/foo", headers={"Authorization": "Bearer blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(
         response.get_data(as_text=True),
-        "JWT token validation failed: Wrong issuer.")
+        "JWT token validation failed: Wrong issuer.",
+    )
 
   @mock.patch.object(
       id_token,
       "verify_firebase_token",
       return_value={
           "iss": "https://securetoken.google.com/foo-bar",
-          "email": "foo@bar.com"
-      })
+          "email": "foo@bar.com",
+      },
+  )
   def testFillsRequestUserFromTokenEmailOnSuccess(self, mock_method):
     _ = mock_method
-    environ = werkzeug_test.EnvironBuilder(headers={
-        "Authorization": "Bearer blah"
-    }).get_environ()
+    environ = werkzeug_test.EnvironBuilder(
+        headers={"Authorization": "Bearer blah"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)
@@ -261,7 +269,8 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
             "-----BEGIN PUBLIC KEY-----\n"
             "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElmi1hJdqtbvdX1INOf5B9dWvkydY\n"
             "oowHUXiw8ELWzk/YHESNr8vXQoyOuLOEtLZeCQbFkeLUqxYp1sTArKNu/A==\n"
-            "-----END PUBLIC KEY-----\n"),
+            "-----END PUBLIC KEY-----\n"
+        ),
     }
 
     assertion_header = (
@@ -273,13 +282,12 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
         "aaaaaaaaaaaaaaayOegyMzkzOTQ2NCIsImV4cCI6MTU0Njk4MDUwNiwiaWF0Ijo"
         "xNTQ2OTc5OTA2LCJaaCI6InNwb3apaaaaaaaaaaaaaaapayJ9.NZwDs0U_fubYS"
         "OmYNJAI9ufgoC84zXOCzZkxclWBVXhb1dBVQHpO-VZW-lworDvKxX_BWqagKYTq"
-        "wc4ELBcKTQ")
+        "wc4ELBcKTQ"
+    )
 
     environ = werkzeug_test.EnvironBuilder(
         path="/",
-        headers={
-            "X-Goog-IAP-JWT-Assertion": assertion_header
-        },
+        headers={"X-Goog-IAP-JWT-Assertion": assertion_header},
     ).get_environ()
     request = http_request.HttpRequest(environ)
 
@@ -292,20 +300,21 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     response = manager.SecurityCheck(Handler, request)
 
     mock_get.assert_called_once_with(
-        "https://www.gstatic.com/iap/verify/public_key")
+        "https://www.gstatic.com/iap/verify/public_key"
+    )
     self.assertEqual(response.status_code, 401)
 
   @mock.patch.object(
       validate_iap,
       "ValidateIapJwtFromComputeEngine",
-      return_value=("temp", "temp"))
+      return_value=("temp", "temp"),
+  )
   def testSuccessfulKey(self, mock_method):
     """Validate account creation upon successful JWT Authentication."""
 
     environ = werkzeug_test.EnvironBuilder(
-        path="/", headers={
-            "X-Goog-IAP-JWT-Assertion": ("valid_key")
-        }).get_environ()
+        path="/", headers={"X-Goog-IAP-JWT-Assertion": "valid_key"}
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):
@@ -341,9 +350,11 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
     authorization = "{user}:{password}".format(user=user, password=password)
     token = base64.b64encode(authorization.encode("utf-8")).decode("ascii")
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={
+        path="/foo",
+        headers={
             "Authorization": "Basic %s" % token,
-        }).get_environ()
+        },
+    ).get_environ()
     request = http_request.HttpRequest(environ)
 
     def Handler(request, *args, **kwargs):

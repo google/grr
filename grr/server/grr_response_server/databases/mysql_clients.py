@@ -10,7 +10,6 @@ import MySQLdb.cursors
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
@@ -931,17 +930,6 @@ class MySQLDBClientMixin(object):
         "DELETE FROM clients WHERE client_id = %s",
         [db_utils.ClientIDToInt(client_id)],
     )
-
-  def StructuredSearchClients(
-      self,
-      expression: rdf_search.SearchExpression,
-      sort_order: rdf_search.SortOrder,
-      continuation_token: bytes,
-      number_of_results: int,
-  ) -> db.SearchClientsResult:
-    # Unused arguments
-    del self, expression, sort_order, continuation_token, number_of_results
-    raise NotImplementedError
 
 
 # We use the same value as other database implementations that we have some

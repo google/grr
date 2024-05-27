@@ -9,7 +9,6 @@ from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
@@ -19,6 +18,7 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
+from grr_response_server.models import hunts as model_hunts
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -2243,8 +2243,8 @@ class DatabaseTestHuntMixin(object):
 
     usage_stats = self.db.ReadHuntClientResourcesStats(hunt_id)
 
-    expected_cpu_bins = rdf_stats.ClientResourcesStats.CPU_STATS_BINS
-    expected_network_bins = rdf_stats.ClientResourcesStats.NETWORK_STATS_BINS
+    expected_cpu_bins = model_hunts.CPU_STATS_BINS
+    expected_network_bins = model_hunts.NETWORK_STATS_BINS
     expected_user_cpu_histogram = jobs_pb2.StatsHistogram(
         bins=[
             jobs_pb2.StatsHistogramBin(num=num, range_max_value=max_range)

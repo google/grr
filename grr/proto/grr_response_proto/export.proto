@@ -413,6 +413,22 @@ message ExportedSoftwarePackage {
   optional string description = 7;
   optional uint64 installed_on = 8;
   optional string installed_by = 9;
+
+  // Epoch of the package.
+  //
+  // This field is generally set only for packages on RedHad systems. See the
+  // official documentation for more details:
+  //
+  // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/epoch-scriplets-and-triggers_advanced-topics#packaging-epoch_epoch-scriplets-and-triggers
+  optional uint32 epoch = 10;
+
+  // Name of the RPM source package from which the binary package was built.
+  //
+  // This field is generally set only for packages on RedHad systems. See the
+  // official documentation for more details:
+  //
+  // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/rebuilding-a-binary-from-a-source-rpm_packaging-software
+  optional string source_rpm = 11;
 }
 
 message ExportedCronTabEntry {
@@ -476,24 +492,6 @@ message ExportedLaunchdPlist {
   optional bool keep_alive_network_state = 45;
   optional string keep_alive_path_state = 46;
   optional string keep_alive_other_job_enabled = 47;
-}
-
-message ExportedWindowsServiceInformation {
-  optional ExportedMetadata metadata = 1;
-  optional string name = 2;
-  optional string description = 3;
-  optional string state = 5;
-  optional string wmi_information = 6;
-  optional string display_name = 7;
-  optional string driver_package_id = 8;
-  optional WindowsServiceInformation.ErrorControl error_control = 9;
-  optional string image_path = 10;
-  optional string object_name = 11;
-  optional WindowsServiceInformation.ServiceMode startup_type = 12;
-  optional WindowsServiceInformation.ServiceType service_type = 13;
-  optional string group_name = 14;
-  optional string service_dll = 15;
-  optional string registry_key = 16;
 }
 
 message ExportedExecuteResponse {

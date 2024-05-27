@@ -2,7 +2,6 @@
 """Filesystem related client rdfvalues."""
 
 import stat
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -120,7 +119,7 @@ class StatMode(rdfvalue.RDFInteger):
 
   protobuf_type = "unsigned_integer"
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     """Pretty print the file mode."""
     type_char = "-"
 

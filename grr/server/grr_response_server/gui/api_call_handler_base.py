@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The base class for ApiCallHandlers."""
 
-from typing import Text
+from typing import Iterator, Optional
 
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -24,7 +24,12 @@ class ResourceExhaustedError(access_control.UnauthorizedAccess):
 class ApiBinaryStream(object):
   """Object to be returned from streaming API methods."""
 
-  def __init__(self, filename, content_generator=None, content_length=None):
+  def __init__(
+      self,
+      filename: str,
+      content_generator: Iterator[bytes],
+      content_length: Optional[int] = None,
+  ):
     """ApiBinaryStream constructor.
 
     Args:
@@ -37,7 +42,7 @@ class ApiBinaryStream(object):
     Raises:
       ValueError: if content_generator is None.
     """
-    precondition.AssertType(filename, Text)
+    precondition.AssertType(filename, str)
     self.filename = filename
     self.content_length = content_length
 

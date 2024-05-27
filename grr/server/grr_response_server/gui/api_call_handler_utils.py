@@ -4,8 +4,6 @@
 import re
 import sys
 
-from typing import Text
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_utils_pb2
@@ -27,7 +25,7 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       pass
     elif rdfvalue.RDFInteger.IsNumeric(value):
       value = rdfvalue.RDFInteger(value)
-    elif isinstance(value, Text):
+    elif isinstance(value, str):
       value = rdfvalue.RDFString(value)
     elif isinstance(value, bytes):
       value = rdfvalue.RDFBytes(value)
@@ -77,7 +75,7 @@ def FilterList(l, offset, count=0, filter_value=None):
 
   count = count or sys.maxsize
   if not filter_value:
-    return l[offset:offset + count]
+    return l[offset : offset + count]
 
   index = 0
   items = []

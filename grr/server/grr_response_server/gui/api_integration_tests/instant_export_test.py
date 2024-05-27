@@ -25,18 +25,21 @@ class ApiInstantExportTest(api_integration_test_lib.ApiIntegrationTest):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        RSS_size=42)
+        RSS_size=42,
+    )
 
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.TestFlowHelper(
         processes.ListProcesses.__name__,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
     exported_archive = result_flow.GetExportedResultsArchive(
-        csv_plugin.CSVInstantOutputPlugin.plugin_name)
+        csv_plugin.CSVInstantOutputPlugin.plugin_name
+    )
 
     out_fd = io.BytesIO()
     exported_archive.WriteToStream(out_fd)

@@ -23,7 +23,6 @@ from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -120,37 +119,6 @@ supported_os: [ "Linux" ]
       # cleared when the artifacts are reloaded from the datastore.
       with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
-
-  @parser_test_lib.WithAllParsers
-  def testProcessCollectedArtifacts(self):
-    """Tests downloading files from artifacts."""
-    self.skipTest("Deeply nested protobufs")
-    # TODO: Test disabled because of restriction of proto nesting
-    # depth. Enable open source test again when fixed.
-    self.client_id = self.SetupClient(0, system="Windows", os_version="6.2")
-
-    client_mock = action_mocks.FileFinderClientMock()
-
-    artifact_list = ["WindowsPersistenceMechanismFiles"]
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with test_lib.Instrument(transfer.MultiGetFile,
-                               "Start") as getfile_instrument:
-        flow_test_lib.TestFlowHelper(
-            collectors.ArtifactCollectorFlow.__name__,
-            client_mock,
-            artifact_list=artifact_list,
-            knowledge_base=self._GetKB(),
-            creator=self.test_username,
-            client_id=self.client_id,
-            split_output_by_artifact=True)
-
-        # Check MultiGetFile got called for our runkey files
-        # TODO(user): RunKeys for S-1-5-20 are not found because users.sid
-        # only expands to users with profiles.
-        pathspecs = getfile_instrument.args[0][0].args.pathspecs
-        self.assertCountEqual([x.path for x in pathspecs],
-                              [u"C:\\Windows\\TEMP\\A.exe"])
 
   def testBrokenArtifact(self):
     """Tests a broken artifact."""

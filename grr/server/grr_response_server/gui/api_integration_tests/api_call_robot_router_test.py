@@ -14,7 +14,6 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_robot_router
 from grr_response_server.gui import api_integration_test_lib
-
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -48,7 +47,8 @@ users:
       fd.write(router_config)
 
     config_overrider = test_lib.ConfigOverrider(
-        {"API.RouterACLConfigFile": router_config_file})
+        {"API.RouterACLConfigFile": router_config_file}
+    )
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
@@ -61,16 +61,18 @@ users:
     self.client_id = self.SetupClient(0)
 
   def testCreatingArbitraryFlowDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.test_username
+    )
 
     client_ref = self.api.Client(client_id=self.client_id)
     with self.assertRaises(errors.AccessForbiddenError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.test_username
+    )
 
     client_ref = self.api.Client(client_id=self.client_id)
 
@@ -78,18 +80,21 @@ users:
         paths=[
             os.path.join(self.base_path, "test.plist"),
             os.path.join(self.base_path, "numbers.txt"),
-            os.path.join(self.base_path, "numbers.txt.ver2")
+            os.path.join(self.base_path, "numbers.txt.ver2"),
         ],
-        action=rdf_file_finder.FileFinderAction.Download()).AsPrimitiveProto()
+        action=rdf_file_finder.FileFinderAction.Download(),
+    ).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args)
+        name=file_finder.FileFinder.__name__, args=args
+    )
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     # Now run the flow we just started.
     flow_test_lib.RunFlow(
         flow_obj.client_id,
         flow_obj.flow_id,
-        client_mock=action_mocks.FileFinderClientMock())
+        client_mock=action_mocks.FileFinderClientMock(),
+    )
 
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
@@ -101,7 +106,8 @@ users:
     # We expect results to be FileFinderResult.
     self.assertCountEqual(
         [os.path.basename(r.payload.stat_entry.pathspec.path) for r in results],
-        ["test.plist", "numbers.txt", "numbers.txt.ver2"])
+        ["test.plist", "numbers.txt", "numbers.txt.ver2"],
+    )
 
     # Now downloads the files archive.
     zip_stream = io.BytesIO()
@@ -127,32 +133,38 @@ users:
             "MANIFEST"
             # pyformat: enable
         ],
-        namelist)
+        namelist,
+    )
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.test_username
+    )
     flow_id = flow_test_lib.StartFlow(
-        flow_cls=file_finder.FileFinder, client_id=self.client_id)
+        flow_cls=file_finder.FileFinder, client_id=self.client_id
+    )
 
     flow_ref = self.api.Client(client_id=self.client_id).Flow(flow_id)
     with self.assertRaises(errors.AccessForbiddenError):
       flow_ref.Get()
 
   def testNoThrottlingDoneByDefault(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.test_username
+    )
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-        paths=["tests.plist"]).AsPrimitiveProto()
+        paths=["tests.plist"],
+    ).AsPrimitiveProto()
 
     client_ref = self.api.Client(client_id=self.client_id)
 
     # Create 60 flows in a row to check that no throttling is applied.
     for _ in range(20):
       flow_obj = client_ref.CreateFlow(
-          name=file_finder.FileFinder.__name__, args=args)
+          name=file_finder.FileFinder.__name__, args=args
+      )
       self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
   FILE_FINDER_THROTTLED_ROUTER_CONFIG = """
@@ -167,46 +179,56 @@ users:
 """.format(ROBOT_ROUTER_NAME)
 
   def testFileFinderThrottlingByFlowCountWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG % self.test_username
+    )
 
     args = []
     for p in ["tests.plist", "numbers.txt", "numbers.txt.ver2"]:
       args.append(
           rdf_file_finder.FileFinderArgs(
               action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-              paths=[p]).AsPrimitiveProto())
+              paths=[p],
+          ).AsPrimitiveProto()
+      )
 
     client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args[0])
+        name=file_finder.FileFinder.__name__, args=args[0]
+    )
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     flow_obj = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args[1])
+        name=file_finder.FileFinder.__name__, args=args[1]
+    )
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
-    with self.assertRaisesRegex(errors.ResourceExhaustedError,
-                                "2 flows run since"):
+    with self.assertRaisesRegex(
+        errors.ResourceExhaustedError, "2 flows run since"
+    ):
       client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
 
   def testFileFinderThrottlingByDuplicateIntervalWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG % self.test_username
+    )
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-        paths=["tests.plist"]).AsPrimitiveProto()
+        paths=["tests.plist"],
+    ).AsPrimitiveProto()
 
     client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args)
+        name=file_finder.FileFinder.__name__, args=args
+    )
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     flow_obj_2 = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args)
+        name=file_finder.FileFinder.__name__, args=args
+    )
     self.assertEqual(flow_obj.flow_id, flow_obj_2.flow_id)
 
   FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG = """
@@ -220,21 +242,26 @@ users:
 """.format(ROBOT_ROUTER_NAME)
 
   def testFileFinderMaxFileSizeOverrideWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG %
-                          self.test_username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG % self.test_username
+    )
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
-        paths=["tests.plist"]).AsPrimitiveProto()
+        paths=["tests.plist"],
+    ).AsPrimitiveProto()
 
     client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
-        name=file_finder.FileFinder.__name__, args=args)
+        name=file_finder.FileFinder.__name__, args=args
+    )
     flow_args = self.api.types.UnpackAny(flow_obj.data.args)
     self.assertEqual(flow_args.action.download.max_size, 5000000)
-    self.assertEqual(flow_args.action.download.oversized_file_policy,
-                     flow_args.action.download.SKIP)
+    self.assertEqual(
+        flow_args.action.download.oversized_file_policy,
+        flow_args.action.download.SKIP,
+    )
 
 
 def main(argv):

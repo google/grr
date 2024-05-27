@@ -336,7 +336,7 @@ describe('HttpApiService', () => {
     httpMock
       .expectOne({
         method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser/`,
+        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
       })
       .flush({});
 
@@ -361,7 +361,7 @@ describe('HttpApiService', () => {
     httpMock
       .expectOne({
         method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser/`,
+        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
       })
       .flush({
         scheduledFlows: [{scheduledFlowId: '123'}],
@@ -470,7 +470,7 @@ describe('HttpApiService', () => {
     httpMock
       .expectOne({
         method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser/`,
+        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
       })
       .flush({});
 
@@ -479,14 +479,14 @@ describe('HttpApiService', () => {
     httpMock
       .expectOne({
         method: 'DELETE',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/123/`,
+        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/123`,
       })
       .flush({});
 
     httpMock
       .expectOne({
         method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser/`,
+        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
       })
       .flush({
         scheduledFlows: [{scheduledFlowId: '456'}],

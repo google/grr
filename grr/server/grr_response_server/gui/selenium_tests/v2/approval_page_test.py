@@ -19,10 +19,12 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
         client_id,
         reason="t/1234",
         requestor="requestrick",
-        approver="approveannie")
+        approver="approveannie",
+    )
 
     self.Open(
-        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
+        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}"
+    )
 
     self.WaitUntil(self.IsTextPresent, client_id)
     self.WaitUntil(self.IsTextPresent, "foo.bar.bazzle")
@@ -34,9 +36,11 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     client_id = self.SetupClient(0)
     self.CreateUser("requestrick")
     approval_id = self.RequestClientApproval(
-        client_id, reason="t/1234", requestor="requestrick")
+        client_id, reason="t/1234", requestor="requestrick"
+    )
     self.Open(
-        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
+        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}"
+    )
 
     self.WaitUntil(self.IsElementPresent, "css=button:contains('Grant')")
 
@@ -70,10 +74,12 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
         client_id,
         reason="t/1234",
         requestor="requestrick",
-        approver="approveannie")
+        approver="approveannie",
+    )
 
     self.Open(
-        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
+        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}"
+    )
 
     # Change to pretty display name as soon as ScheduledFlowList uses these.
     self.WaitUntil(self.IsTextPresent, "CollectFilesByKnownPath")
@@ -82,10 +88,12 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     client_id = self.SetupClient(0)
     self.CreateUser("requestrick")
     approval_id = self.RequestClientApproval(
-        client_id, reason="t/1234", requestor="requestrick")
+        client_id, reason="t/1234", requestor="requestrick"
+    )
 
     self.Open(
-        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
+        f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}"
+    )
     self.WaitUntil(self.IsElementPresent, "css=a#fallback-link")
     self.Click("css=a#fallback-link")
 

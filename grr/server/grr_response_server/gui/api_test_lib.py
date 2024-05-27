@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
+
 import functools
 from typing import Type
 
@@ -30,8 +31,9 @@ class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetHandlerArgs
 
 
-def WithApiCallRouter(name,
-                      api_call_router_cls: Type[api_call_router.ApiCallRouter]):
+def WithApiCallRouter(
+    name, api_call_router_cls: Type[api_call_router.ApiCallRouter]
+):
   """Makes given function execute with specified router registered.
 
   Args:
@@ -62,8 +64,9 @@ class _ApiCallRouterContext(object):
     self._api_call_router = api_call_router_cls
 
   def __enter__(self):
-    api_call_router_registry.RegisterApiCallRouter(self._name,
-                                                   self._api_call_router)
+    api_call_router_registry.RegisterApiCallRouter(
+        self._name, self._api_call_router
+    )
 
   def __exit__(self, exc_type, exc_value, traceback):
     del exc_type, exc_value, traceback  # Unused.

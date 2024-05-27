@@ -7,7 +7,6 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db as abstract_db
@@ -15,9 +14,7 @@ from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import hardware
 from grr_response_server.models import protodicts
 from grr.test_lib import action_mocks
-from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import testing_startup
 
 
@@ -28,7 +25,6 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
     super().setUpClass()
     testing_startup.TestInit()
 
-  @parser_test_lib.WithAllParsers
   def testLinux(self):
     assert data_store.REL_DB is not None
     db: abstract_db.Database = data_store.REL_DB
@@ -41,21 +37,12 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
     snapshot.knowledge_base.os = "Linux"
     db.WriteClientSnapshot(snapshot)
 
-    class ActionMock(action_mocks.ActionMock):
-
-      def ExecuteCommand(
-          self,
-          args: rdf_client_action.ExecuteRequest,
-      ) -> Iterator[rdf_client_action.ExecuteResponse]:
-        args = mig_client_action.ToProtoExecuteRequest(args)
-
-        if args.cmd != "/usr/sbin/dmidecode":
-          raise RuntimeError(f"Unexpected command: {args.cmd}")
-
-        result = jobs_pb2.ExecuteResponse()
-        result.request.MergeFrom(args)
-        result.exit_status = 0
-        result.stdout = """\
+    flow_id = flow_test_lib.StartAndRunFlow(
+        hardware.CollectHardwareInfo,
+        action_mocks.ExecuteCommandActionMock(
+            cmd="/usr/sbin/dmidecode",
+            exit_status=0,
+            stdout="""\
 BIOS Information
         Vendor: Google
         Version: Google
@@ -92,19 +79,13 @@ Base Board Information
 System Boot Information
         Status: No errors detected
 
-""".encode("utf-8")
+""".encode("utf-8"),
+        ),
+        client_id=client_id,
+        creator=creator,
+    )
 
-        yield mig_client_action.ToRDFExecuteResponse(result)
-
-    with artifact_test_lib.PatchDefaultArtifactRegistry():
-      flow_id = flow_test_lib.StartAndRunFlow(
-          hardware.CollectHardwareInfo,
-          ActionMock(),
-          client_id=client_id,
-          creator=creator,
-      )
-
-      results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
 
     self.assertLen(results, 1)
 
@@ -127,7 +108,6 @@ System Boot Information
     self.assertEqual(result.bios_rom_size, "64 kB")
     self.assertEqual(result.bios_revision, "1.0")
 
-  @parser_test_lib.WithAllParsers
   def testMacos(self):
     assert data_store.REL_DB is not None
     db: abstract_db.Database = data_store.REL_DB
@@ -140,21 +120,13 @@ System Boot Information
     snapshot.knowledge_base.os = "Darwin"
     db.WriteClientSnapshot(snapshot)
 
-    class ActionMock(action_mocks.ActionMock):
-
-      def ExecuteCommand(
-          self,
-          args: rdf_client_action.ExecuteRequest,
-      ) -> Iterator[rdf_client_action.ExecuteResponse]:
-        args = mig_client_action.ToProtoExecuteRequest(args)
-
-        if args.cmd != "/usr/sbin/system_profiler":
-          raise RuntimeError(f"Unexpected command: {args.cmd}")
-
-        result = jobs_pb2.ExecuteResponse()
-        result.request.MergeFrom(args)
-        result.exit_status = 0
-        result.stdout = """\
+    flow_id = flow_test_lib.StartAndRunFlow(
+        hardware.CollectHardwareInfo,
+        action_mocks.ExecuteCommandActionMock(
+            cmd="/usr/sbin/system_profiler",
+            args=["-xml", "SPHardwareDataType"],
+            exit_status=0,
+            stdout="""\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -220,19 +192,13 @@ System Boot Information
         </dict>
 </array>
 </plist>
-""".encode("utf-8")
+""".encode("utf-8"),
+        ),
+        client_id=client_id,
+        creator=creator,
+    )
 
-        yield mig_client_action.ToRDFExecuteResponse(result)
-
-    with artifact_test_lib.PatchDefaultArtifactRegistry():
-      flow_id = flow_test_lib.StartAndRunFlow(
-          hardware.CollectHardwareInfo,
-          ActionMock(),
-          client_id=client_id,
-          creator=creator,
-      )
-
-      results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
 
     self.assertLen(results, 1)
 
@@ -242,7 +208,6 @@ System Boot Information
     self.assertEqual(result.system_uuid, "48F1516D-23AB-4242-BB81-6F32D193D3F2")
     self.assertEqual(result.bios_version, "10151.101.3")
 
-  @parser_test_lib.WithAllParsers
   def testWindows(self) -> None:
     assert data_store.REL_DB is not None
     db: abstract_db.Database = data_store.REL_DB
@@ -279,15 +244,14 @@ System Boot Information
 
         yield mig_protodict.ToRDFDict(protodicts.Dict(result))
 
-    with artifact_test_lib.PatchDefaultArtifactRegistry():
-      flow_id = flow_test_lib.StartAndRunFlow(
-          hardware.CollectHardwareInfo,
-          ActionMock(),
-          client_id=client_id,
-          creator=creator,
-      )
+    flow_id = flow_test_lib.StartAndRunFlow(
+        hardware.CollectHardwareInfo,
+        ActionMock(),
+        client_id=client_id,
+        creator=creator,
+    )
 
-      results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].serial_number, "2S42F1S3320HFN2179FV")

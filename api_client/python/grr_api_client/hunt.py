@@ -449,8 +449,7 @@ def CreateHunt(
 
   request = hunt_pb2.ApiCreateHuntArgs(flow_name=flow_name)
   if flow_args:
-    request.flow_args.value = flow_args.SerializeToString()
-    request.flow_args.type_url = utils.GetTypeUrl(flow_args)
+    request.flow_args.Pack(flow_args)
 
   if hunt_runner_args:
     request.hunt_runner_args.CopyFrom(hunt_runner_args)

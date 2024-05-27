@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """API handler for rendering descriptors of GRR data structures."""
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import reflection_pb2
@@ -129,11 +128,13 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
           category=router_method.category,
           doc=router_method.doc,
           http_route=router_method.http_methods[-1][1],
-          http_methods=[router_method.http_methods[-1][0]])
+          http_methods=[router_method.http_methods[-1][0]],
+      )
 
       if router_method.args_type:
         api_method.args_type_descriptor = (
-            api_value_renderers.BuildTypeDescriptor(router_method.args_type))
+            api_value_renderers.BuildTypeDescriptor(router_method.args_type)
+        )
 
       if router_method.result_type:
         if router_method.result_type == router_method.BINARY_STREAM_RESULT_TYPE:
@@ -141,8 +142,8 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
         else:
           api_method.result_kind = api_method.ResultKind.VALUE
           api_method.result_type_descriptor = (
-              api_value_renderers.BuildTypeDescriptor(
-                  router_method.result_type))
+              api_value_renderers.BuildTypeDescriptor(router_method.result_type)
+          )
       else:
         api_method.result_kind = api_method.ResultKind.NONE
 

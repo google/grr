@@ -39,7 +39,8 @@ class VersionValidationTest(api_integration_test_lib.ApiIntegrationTest):
 
   @skip.If(
       GetDistribution("grr-api-client") is None,
-      reason="PIP `grr-api-client` package not available.")
+      reason="PIP `grr-api-client` package not available.",
+  )
   def testInitHttpApiFailsForOutdatedVersion(self):
     handle = self._Handle()
     with mock.patch.object(metadata.ApiGetGrrVersionHandler, "Handle", handle):

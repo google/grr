@@ -15,6 +15,7 @@ from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import mig_foreman_rules
 from grr_response_server import notification
+from grr_response_server.models import hunts
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
@@ -506,7 +507,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   # foreman scheduling a client on an (already) paused hunt. Making sure
   # we don't lose clients in such a race by accepting clients for paused
   # hunts.
-  if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
+  if not hunts.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
     return
 
   hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)

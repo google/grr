@@ -14,6 +14,10 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins  # pylint: disable=unused-import
 from grr_response_core.lib.parsers import all as all_parsers
+# pylint: disable=unused-import
+# TODO: Remove once old clients are fully deprecated.
+from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
+# pylint: enable=unused-import
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import artifact
 from grr_response_server import cronjobs
@@ -26,7 +30,6 @@ from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.blob_stores import registry_init as bs_registry_init
-from grr_response_server.decoders import all as all_decoders
 from grr_response_server.export_converters import registry_init as ec_registry_init
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import gui_plugins  # pylint: disable=unused-import
@@ -83,7 +86,6 @@ def Init():
   server_logging.ServerLoggingStartupInit()
 
   bs_registry_init.RegisterBlobStores()
-  all_decoders.Register()
   all_parsers.Register()
   ec_registry_init.RegisterExportConverters()
   gui_api_registry_init.RegisterApiCallRouters()

@@ -22,7 +22,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
         client,
         client_id=self.client_id,
         creator=self.test_username,
-        check_flow_errors=False)
+        check_flow_errors=False,
+    )
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
     client_id = self.SetupClient(0)
@@ -33,8 +34,9 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilEqual(
         "/legacy#/clients/%s/host-info" % client_id, self.GetCurrentUrlPath
     )
-    self.WaitUntil(self.IsTextPresent,
-                   "You do not have an approval for this client.")
+    self.WaitUntil(
+        self.IsTextPresent, "You do not have an approval for this client."
+    )
 
   def testClientCrashedFlow(self):
     self.SetUpCrashedFlow()
@@ -52,8 +54,9 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, self.client_id)
 
     self.Click("css=a[grrtarget='client.flows']")
-    self.WaitUntil(self.IsTextPresent,
-                   flow_test_lib.FlowWithOneClientRequest.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, flow_test_lib.FlowWithOneClientRequest.__name__
+    )
 
     # Check that skull icon is in place.
     self.WaitUntil(self.IsElementPresent, "css=img[src$='skull-icon.png']")
@@ -62,11 +65,14 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains(FlowWithOneClientRequest)")
 
     # Check that "Flow Information" tab displays crash data.
-    self.WaitUntil(self.AllTextsPresent, [
-        "CLIENT_CRASHED",
-        self.client_id,
-        "Client crashed.",
-    ])
+    self.WaitUntil(
+        self.AllTextsPresent,
+        [
+            "CLIENT_CRASHED",
+            self.client_id,
+            "Client crashed.",
+        ],
+    )
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = self.SetupClients(10)
@@ -106,10 +112,16 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     # Select list of crashes.
     self.Click("css=a[grrtarget='client.crashes']")
 
-    self.WaitUntil(self.AllTextsPresent, [
-        client_ids[0], "Crash type", "Client Crash", "Crash message",
-        "Client killed during transaction"
-    ])
+    self.WaitUntil(
+        self.AllTextsPresent,
+        [
+            client_ids[0],
+            "Crash type",
+            "Client Crash",
+            "Crash message",
+            "Client killed during transaction",
+        ],
+    )
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):
     hunt_id, _ = self.SetUpCrashedFlowInHunt()
@@ -123,7 +135,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-hunt-crashes dt:contains('Timestamp') ~ dd:contains('UTC')")
+        "css=grr-hunt-crashes dt:contains('Timestamp') ~ dd:contains('UTC')",
+    )
 
 
 if __name__ == "__main__":

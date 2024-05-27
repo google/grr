@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """GRR Colab API errors."""
-from typing import Text, List, Optional
+from typing import List, Optional
 
 from grr_colab import flags
 from grr_response_proto import jobs_pb2
@@ -10,7 +10,7 @@ FLAGS = flags.FLAGS
 
 class UnknownClientError(Exception):
 
-  def __init__(self, client_id: Text, cause: Exception) -> None:
+  def __init__(self, client_id: str, cause: Exception) -> None:
     self.client_id = client_id
     self.cause = cause
     msg = 'Client with id {} does not exist: {}'.format(client_id, cause)
@@ -19,7 +19,7 @@ class UnknownClientError(Exception):
 
 class AmbiguousHostnameError(Exception):
 
-  def __init__(self, hostname: Text, clients: List[Text]) -> None:
+  def __init__(self, hostname: str, clients: List[str]) -> None:
     self.hostname = hostname
     self.clients = clients
     msg = 'Too many clients ({}) found for hostname: {}'.format(
@@ -29,7 +29,7 @@ class AmbiguousHostnameError(Exception):
 
 class UnknownHostnameError(Exception):
 
-  def __init__(self, hostname: Text) -> None:
+  def __init__(self, hostname: str) -> None:
     self.hostname = hostname
     msg = 'No clients found for hostname: {}'.format(hostname)
     super().__init__(msg)
@@ -37,7 +37,7 @@ class UnknownHostnameError(Exception):
 
 class ApprovalMissingError(Exception):
 
-  def __init__(self, client_id: Text, cause: Exception) -> None:
+  def __init__(self, client_id: str, cause: Exception) -> None:
     self.client_id = client_id
     self.cause = cause
     msg = 'No approval to the client {} found: {}'.format(client_id, cause)
@@ -53,10 +53,12 @@ class FlowTimeoutError(Exception):
     cause: Exception raised.
   """
 
-  def __init__(self,
-               client_id: Text,
-               flow_id: Text,
-               cause: Optional[Exception] = None) -> None:
+  def __init__(
+      self,
+      client_id: str,
+      flow_id: str,
+      cause: Optional[Exception] = None,
+  ) -> None:
     self.client_id = client_id
     self.flow_id = flow_id
     self.cause = cause
@@ -68,7 +70,7 @@ class FlowTimeoutError(Exception):
           msg, url)
     super().__init__(msg)
 
-  def _build_path_to_ui(self) -> Optional[Text]:
+  def _build_path_to_ui(self) -> Optional[str]:
     if not FLAGS.grr_admin_ui_url:
       return None
     url = '{}/v2/clients/{}/flows/{}'
@@ -77,7 +79,7 @@ class FlowTimeoutError(Exception):
 
 class NotDirectoryError(Exception):
 
-  def __init__(self, client_id: Text, path: Text) -> None:
+  def __init__(self, client_id: str, path: str) -> None:
     self.client_id = client_id
     self.path = path
     msg = 'Path `{}` for client {} is not a directory'.format(client_id, path)

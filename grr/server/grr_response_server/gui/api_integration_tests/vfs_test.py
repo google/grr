@@ -37,8 +37,9 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     fixture_test_lib.ClientFixture(self.client_id)
 
   def testGetFileFromRef(self):
-    file_ref = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads/a.txt")
+    file_ref = self.api.Client(client_id=self.client_id).File(
+        "fs/os/c/Downloads/a.txt"
+    )
     self.assertEqual(file_ref.path, "fs/os/c/Downloads/a.txt")
 
     file_obj = file_ref.Get()
@@ -47,35 +48,47 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(file_obj.data.name, "a.txt")
 
   def testGetFileForDirectory(self):
-    file_obj = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads").Get()
+    file_obj = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads")
+        .Get()
+    )
     self.assertEqual(file_obj.path, "fs/os/c/Downloads")
     self.assertTrue(file_obj.is_directory)
 
   def testListFiles(self):
-    files_iter = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads").ListFiles()
+    files_iter = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads")
+        .ListFiles()
+    )
     files_list = list(files_iter)
 
     self.assertCountEqual(
         [f.data.name for f in files_list],
-        ["a.txt", "b.txt", "c.txt", "d.txt", "sub1", "中国新闻网新闻中.txt"])
+        ["a.txt", "b.txt", "c.txt", "d.txt", "sub1", "中国新闻网新闻中.txt"],
+    )
 
   def testGetBlob(self):
     out = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
-        "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
+        "fs/tsk/c/bin/rbash"
+    ).GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), b"Hello world")
 
   def testGetBlobUnicode(self):
     vfs_test_lib.CreateFile(
-        db.ClientPath.TSK("C.1000000000000000", ["c", "bin", "中国新闻网新闻中"]),
-        b"Hello world")
+        db.ClientPath.TSK(
+            "C.1000000000000000", ["c", "bin", "中国新闻网新闻中"]
+        ),
+        b"Hello world",
+    )
 
     out = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
-        "fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
+        "fs/tsk/c/bin/中国新闻网新闻中"
+    ).GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), b"Hello world")
 
@@ -84,13 +97,16 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     # We write just the references, without actual data, simulating a case
     # when blobs were not written to the blob store for some reason.
     vfs_test_lib.CreateFileWithBlobRefsAndData(
-        db.ClientPath.OS("C.1000000000000000", ["c", "bin", "test"]), blob_refs,
-        [])
+        db.ClientPath.OS("C.1000000000000000", ["c", "bin", "test"]),
+        blob_refs,
+        [],
+    )
 
     out = io.BytesIO()
     with self.assertRaises(errors.UnknownError):
       self.api.Client(client_id=self.client_id).File(
-          "fs/os/c/bin/test").GetBlob().WriteToStream(out)
+          "fs/os/c/bin/test"
+      ).GetBlob().WriteToStream(out)
 
   def testGetBlobWithOffset(self):
     tsk = db.ClientPath.TSK("C.1000000000000000", ["c", "bin", "foobar"])
@@ -118,31 +134,43 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     timestamp = rdfvalue.RDFDatetime.Now()
     zip_stream = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
-        "fs/tsk/c/bin").GetFilesArchive().WriteToStream(zip_stream)
+        "fs/tsk/c/bin"
+    ).GetFilesArchive().WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
 
     namelist = zip_fd.namelist()
-    self.assertCountEqual(namelist, [
-        "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
-        "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash"
-    ])
+    self.assertCountEqual(
+        namelist,
+        [
+            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
+            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash",
+        ],
+    )
 
     for info in zip_fd.infolist():
       self.assertGreater(info.compress_size, 0)
 
     # Check that notification was pushed indicating the failure to the user.
-    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
-        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    pending_notifications = list(
+        self.api.GrrUser().ListPendingNotifications(
+            timestamp=timestamp.AsMicrosecondsSinceEpoch()
+        )
+    )
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED))
-    self.assertEqual(pending_notifications[0].data.reference.type,
-                     pending_notifications[0].data.reference.VFS)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
-                     self.client_id)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
-                     "fs/tsk/c/bin")
+        int(rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED),
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.type,
+        pending_notifications[0].data.reference.VFS,
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.client_id, self.client_id
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.vfs_path, "fs/tsk/c/bin"
+    )
 
   def testGetFilesArchiveFailsWhenFirstFileBlobIsMissing(self):
     _, blob_refs = vfs_test_lib.GenerateBlobRefs(10, "0")
@@ -150,69 +178,102 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     # when blobs were not written to the blob store for some reason.
     vfs_test_lib.CreateFileWithBlobRefsAndData(
         db.ClientPath.TSK("C.1000000000000000", ["c", "universe", "42"]),
-        blob_refs, [])
+        blob_refs,
+        [],
+    )
 
     zip_stream = io.BytesIO()
     timestamp = rdfvalue.RDFDatetime.Now()
     with self.assertRaises(errors.UnknownError):
       self.api.Client(client_id=self.client_id).File(
-          "fs/tsk/c/universe").GetFilesArchive().WriteToStream(zip_stream)
+          "fs/tsk/c/universe"
+      ).GetFilesArchive().WriteToStream(zip_stream)
 
     # Check that notification was pushed indicating the failure to the user.
-    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
-        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    pending_notifications = list(
+        self.api.GrrUser().ListPendingNotifications(
+            timestamp=timestamp.AsMicrosecondsSinceEpoch()
+        )
+    )
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(rdf_objects.UserNotification.Type
-            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
-    self.assertEqual(pending_notifications[0].data.reference.type,
-                     pending_notifications[0].data.reference.VFS)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
-                     self.client_id)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
-                     "fs/tsk/c/universe")
+        int(
+            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
+        ),
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.type,
+        pending_notifications[0].data.reference.VFS,
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.client_id, self.client_id
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.vfs_path,
+        "fs/tsk/c/universe",
+    )
 
   def testGetFilesArchiveDropsStreamingResponsesWhenSecondFileBlobIsMissing(
-      self):
+      self,
+  ):
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(1024 * 1024 * 10, "01")
     # We write just the references, without actual data, simulating a case
     # when blobs were not written to the blob store for some reason.
     vfs_test_lib.CreateFileWithBlobRefsAndData(
         db.ClientPath.TSK("C.1000000000000000", ["c", "universe", "42"]),
-        blob_refs, blob_data[:1])
+        blob_refs,
+        blob_data[:1],
+    )
 
     zip_stream = io.BytesIO()
     timestamp = rdfvalue.RDFDatetime.Now()
     self.api.Client(client_id=self.client_id).File(
-        "fs/tsk/c/universe").GetFilesArchive().WriteToStream(zip_stream)
+        "fs/tsk/c/universe"
+    ).GetFilesArchive().WriteToStream(zip_stream)
 
     with self.assertRaises(zipfile.BadZipfile):
       zipfile.ZipFile(zip_stream)
 
     # Check that notification was pushed indicating the failure to the user.
-    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
-        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    pending_notifications = list(
+        self.api.GrrUser().ListPendingNotifications(
+            timestamp=timestamp.AsMicrosecondsSinceEpoch()
+        )
+    )
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(rdf_objects.UserNotification.Type
-            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
-    self.assertEqual(pending_notifications[0].data.reference.type,
-                     pending_notifications[0].data.reference.VFS)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
-                     self.client_id)
-    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
-                     "fs/tsk/c/universe")
+        int(
+            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
+        ),
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.type,
+        pending_notifications[0].data.reference.VFS,
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.client_id, self.client_id
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.vfs.vfs_path,
+        "fs/tsk/c/universe",
+    )
 
   def testGetVersionTimes(self):
-    vtimes = self.api.Client(client_id=self.client_id).File(
-        "fs/os/c/Downloads/a.txt").GetVersionTimes()
+    vtimes = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads/a.txt")
+        .GetVersionTimes()
+    )
     self.assertLen(vtimes, 1)
 
   def testRefresh(self):
-    operation = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads").Refresh()
+    operation = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads")
+        .Refresh()
+    )
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
@@ -234,9 +295,11 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testRefreshRecursively(self):
-    operation = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads").RefreshRecursively(
-            max_depth=5)
+    operation = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads")
+        .RefreshRecursively(max_depth=5)
+    )
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
@@ -258,14 +321,18 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testCollect(self):
-    operation = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads/a.txt").Collect()
+    operation = (
+        self.api.Client(client_id=self.client_id)
+        .File("fs/os/c/Downloads/a.txt")
+        .Collect()
+    )
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
   def testCollectWaitUntilDone(self):
-    f = self.api.Client(
-        client_id=self.client_id).File("fs/os/c/Downloads/a.txt")
+    f = self.api.Client(client_id=self.client_id).File(
+        "fs/os/c/Downloads/a.txt"
+    )
 
     with flow_test_lib.TestWorker():
       operation = f.Collect()
@@ -289,14 +356,17 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     # FileFinder/ClientFileFinder behavior to match each other.
     args = rdf_file_finder.FileFinderArgs(
         paths=[os.path.join(self.base_path, "numbers.txt")],
-        action=rdf_file_finder.FileFinderAction.Download()).AsPrimitiveProto()
+        action=rdf_file_finder.FileFinderAction.Download(),
+    ).AsPrimitiveProto()
     client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args)
 
     flow_test_lib.FinishAllFlowsOnClient(
-        self.client_id, client_mock=action_mocks.FileFinderClientMock())
+        self.client_id, client_mock=action_mocks.FileFinderClientMock()
+    )
 
-    f = client_ref.File("fs/os" +
-                        os.path.join(self.base_path, "numbers.txt")).Get()
+    f = client_ref.File(
+        "fs/os" + os.path.join(self.base_path, "numbers.txt")
+    ).Get()
     self.assertNotEqual(f.data.hash.sha256, b"")
     self.assertGreater(f.data.hash.num_bytes, 0)
     self.assertGreater(f.data.last_collected, 0)
@@ -307,14 +377,17 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     args = rdf_file_finder.FileFinderArgs(
         paths=[os.path.join(self.base_path, "numbers.txt")],
         action=rdf_file_finder.FileFinderAction.Download(),
-        follow_links=True).AsPrimitiveProto()
+        follow_links=True,
+    ).AsPrimitiveProto()
     client_ref.CreateFlow(name=file_finder.ClientFileFinder.__name__, args=args)
 
     flow_test_lib.FinishAllFlowsOnClient(
-        self.client_id, client_mock=action_mocks.ClientFileFinderClientMock())
+        self.client_id, client_mock=action_mocks.ClientFileFinderClientMock()
+    )
 
-    f = client_ref.File("fs/os" +
-                        os.path.join(self.base_path, "numbers.txt")).Get()
+    f = client_ref.File(
+        "fs/os" + os.path.join(self.base_path, "numbers.txt")
+    ).Get()
     self.assertNotEqual(f.data.hash.sha256, b"")
     self.assertGreater(f.data.hash.num_bytes, 0)
     self.assertGreater(f.data.last_collected, 0)
@@ -326,19 +399,22 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     client_ref = self.api.Client(client_id=self.client_id)
     args = rdf_file_finder.FileFinderArgs(
         paths=[os.path.join(self.base_path, "numbers.txt")],
-        action=rdf_file_finder.FileFinderAction.Stat()).AsPrimitiveProto()
+        action=rdf_file_finder.FileFinderAction.Stat(),
+    ).AsPrimitiveProto()
     client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args)
 
     client_mock = action_mocks.FileFinderClientMock()
     flow_test_lib.FinishAllFlowsOnClient(
-        self.client_id, client_mock=client_mock)
+        self.client_id, client_mock=client_mock
+    )
 
     f = client_ref.File("fs/os" + os.path.join(self.base_path, "numbers.txt"))
     with flow_test_lib.TestWorker():
       operation = f.Collect()
       self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
       flow_test_lib.FinishAllFlowsOnClient(
-          self.client_id, client_mock=client_mock)
+          self.client_id, client_mock=client_mock
+      )
       self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
     f = f.Get()
@@ -353,32 +429,39 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
         attributes={
             "paths": [os.path.join(self.base_path, "numbers.txt")],
-        })
+        },
+    )
     artifact = rdf_artifacts.Artifact(
-        name="FakeArtifact", sources=[source], doc="fake artifact doc")
+        name="FakeArtifact", sources=[source], doc="fake artifact doc"
+    )
     registry_stub.RegisterArtifact(artifact)
 
     client_ref = self.api.Client(client_id=self.client_id)
     with mock.patch.object(artifact_registry, "REGISTRY", registry_stub):
       args = rdf_artifacts.ArtifactCollectorFlowArgs(
-          artifact_list=["FakeArtifact"]).AsPrimitiveProto()
+          artifact_list=["FakeArtifact"]
+      ).AsPrimitiveProto()
       client_ref.CreateFlow(
-          name=collectors.ArtifactCollectorFlow.__name__, args=args)
+          name=collectors.ArtifactCollectorFlow.__name__, args=args
+      )
 
       client_mock = action_mocks.FileFinderClientMock()
       flow_test_lib.FinishAllFlowsOnClient(
-          self.client_id, client_mock=client_mock)
+          self.client_id, client_mock=client_mock
+      )
 
-    f = client_ref.File("fs/os" +
-                        os.path.join(self.base_path, "numbers.txt")).Get()
+    f = client_ref.File(
+        "fs/os" + os.path.join(self.base_path, "numbers.txt")
+    ).Get()
     self.assertNotEqual(f.data.hash.sha256, b"")
     self.assertGreater(f.data.hash.num_bytes, 0)
     self.assertGreater(f.data.last_collected, 0)
     self.assertGreater(f.data.last_collected_size, 0)
 
   def testGetTimeline(self):
-    timeline = self.api.Client(
-        client_id=self.client_id).File("fs/os").GetTimeline()
+    timeline = (
+        self.api.Client(client_id=self.client_id).File("fs/os").GetTimeline()
+    )
     self.assertTrue(timeline)
     for item in timeline:
       self.assertIsInstance(item, vfs_pb2.ApiVfsTimelineItem)
@@ -386,7 +469,8 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
   def testGetTimelineAsCsv(self):
     out = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
-        "fs/os").GetTimelineAsCsv().WriteToStream(out)
+        "fs/os"
+    ).GetTimelineAsCsv().WriteToStream(out)
     self.assertTrue(out.getvalue())
 
 

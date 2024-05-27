@@ -8,7 +8,6 @@ import io
 from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Text
 from typing import Union
 
 from IPython.lib import pretty
@@ -107,14 +106,14 @@ class Client(object):
     self._summary: jobs_pb2.ClientSummary = None
 
   @classmethod
-  def with_id(cls, client_id: Text) -> 'Client':
+  def with_id(cls, client_id: str) -> 'Client':
     try:
       return cls(_api.get().Client(client_id).Get())
     except api_errors.UnknownError as e:
       raise errors.UnknownClientError(client_id, e)
 
   @classmethod
-  def with_hostname(cls, hostname: Text) -> 'Client':
+  def with_hostname(cls, hostname: str) -> 'Client':
     clients = cls.search(host=hostname)
     if not clients:
       raise errors.UnknownHostnameError(hostname)
@@ -123,13 +122,15 @@ class Client(object):
     return clients[0]
 
   @classmethod
-  def search(cls,
-             ip: Optional[Text] = None,
-             mac: Optional[Text] = None,
-             host: Optional[Text] = None,
-             version: Optional[int] = None,
-             labels: Optional[List[Text]] = None,
-             user: Optional[Text] = None) -> Sequence['Client']:
+  def search(
+      cls,
+      ip: Optional[str] = None,
+      mac: Optional[str] = None,
+      host: Optional[str] = None,
+      version: Optional[int] = None,
+      labels: Optional[List[str]] = None,
+      user: Optional[str] = None,
+  ) -> Sequence['Client']:
     """Searches for clients specified with keywords.
 
     Args:
@@ -144,7 +145,7 @@ class Client(object):
       A sequence of clients.
     """
 
-    def format_keyword(key: Text, value: Text) -> Text:
+    def format_keyword(key: str, value: str) -> str:
       return '{}:{}'.format(key, value)
 
     keywords = []
@@ -167,11 +168,11 @@ class Client(object):
     return representer.ClientList([cls(_) for _ in clients])
 
   @property
-  def id(self) -> Text:
+  def id(self) -> str:
     return self._client.client_id
 
   @property
-  def hostname(self) -> Text:
+  def hostname(self) -> str:
     if self._summary is not None:
       return self._summary.system_info.fqdn
     return self.knowledgebase.fqdn
@@ -187,19 +188,19 @@ class Client(object):
     return self._client.data.knowledge_base
 
   @property
-  def arch(self) -> Text:
+  def arch(self) -> str:
     if self._summary is not None:
       return self._summary.system_info.machine
     return self._client.data.os_info.machine
 
   @property
-  def kernel(self) -> Text:
+  def kernel(self) -> str:
     if self._summary is not None:
       return self._summary.system_info.kernel
     return self._client.data.os_info.kernel
 
   @property
-  def labels(self) -> Sequence[Text]:
+  def labels(self) -> Sequence[str]:
     return [_.name for _ in self._client.data.labels]
 
   @property
@@ -230,7 +231,7 @@ class Client(object):
   def cached(self) -> vfs.VFS:
     return self.os.cached
 
-  def request_approval(self, approvers: List[Text], reason: Text) -> None:
+  def request_approval(self, approvers: List[str], reason: str) -> None:
     """Sends approval request to the client for the current user.
 
     Args:
@@ -247,8 +248,9 @@ class Client(object):
 
     self._client.CreateApproval(reason=reason, notified_users=approvers)
 
-  def request_approval_and_wait(self, approvers: List[Text],
-                                reason: Text) -> None:
+  def request_approval_and_wait(
+      self, approvers: List[str], reason: str
+  ) -> None:
     """Sends approval request and waits until it's granted.
 
     Args:
@@ -307,7 +309,7 @@ class Client(object):
     results = [process(response.payload) for response in ps.ListResults()]
     return representer.ProcessList(results)
 
-  def ls(self, path: Text, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
+  def ls(self, path: str, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
     """Lists contents of a given directory.
 
     Args:
@@ -321,7 +323,7 @@ class Client(object):
     """
     return self.os.ls(path, max_depth)
 
-  def glob(self, path: Text) -> Sequence[jobs_pb2.StatEntry]:
+  def glob(self, path: str) -> Sequence[jobs_pb2.StatEntry]:
     """Globs for files on the given client.
 
     Args:
@@ -332,8 +334,9 @@ class Client(object):
     """
     return self.os.glob(path)
 
-  def grep(self, path: Text,
-           pattern: bytes) -> Sequence[jobs_pb2.BufferReference]:
+  def grep(
+      self, path: str, pattern: bytes
+  ) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -345,8 +348,9 @@ class Client(object):
     """
     return self.os.grep(path, pattern)
 
-  def fgrep(self, path: Text,
-            literal: bytes) -> Sequence[jobs_pb2.BufferReference]:
+  def fgrep(
+      self, path: str, literal: bytes
+  ) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -358,10 +362,9 @@ class Client(object):
     """
     return self.os.fgrep(path, literal)
 
-  def osquery(self,
-              query: Text,
-              timeout: int = 30000,
-              ignore_stderr_errors: bool = False) -> osquery_pb2.OsqueryTable:
+  def osquery(
+      self, query: str, timeout: int = 30000, ignore_stderr_errors: bool = False
+  ) -> osquery_pb2.OsqueryTable:
     """Runs given query on the client.
 
     Args:
@@ -385,15 +388,30 @@ class Client(object):
 
     _timeout.await_flow(oq)
 
-    result = list(oq.ListResults())[0].payload
-    if not isinstance(result, osquery_pb2.OsqueryResult):
-      raise TypeError(f'Unexpected flow result type: {type(result)}')
+    result_table = osquery_pb2.OsqueryTable()
+    # We use the query from the function parameter in case we don't get any
+    # result back (which may happen if the query yields no rows).
+    result_table.query = query
 
-    return result.table
+    for flow_result in oq.ListResults():
+      result_part = osquery_pb2.OsqueryResult()
+      if not flow_result.data.payload.Unpack(result_part):
+        raise TypeError(
+            f'Unexpected flow result type: {flow_result.data.payload.type_url}'
+        )
+
+      # Ideally, we would like to do `result.table.MergeFrom(result_part.table)`
+      # but unfortunately this would recursively merge header as well which will
+      # duplicate columns. Hence, we explicitly copy the `header` field but for
+      # rows we use concatenation.
+      result_table.header.CopyFrom(result_part.table.header)
+      result_table.rows.extend(result_part.table.rows)
+
+    return result_table
 
   def collect(
       self,
-      artifact: Text,
+      artifact: str,
   ) -> Sequence[Union[message.Message, api_utils.UnknownProtobuf]]:
     """Collects specified artifact.
 
@@ -418,9 +436,9 @@ class Client(object):
 
   def yara(
       self,
-      signature: Text,
+      signature: str,
       pids: Optional[Sequence[int]] = None,
-      regex: Optional[Text] = None,
+      regex: Optional[str] = None,
   ) -> Sequence[flows_pb2.YaraProcessScanMatch]:
     """Scans processes using provided YARA rule.
 
@@ -459,7 +477,7 @@ class Client(object):
 
     return [yara_result(result.payload) for result in yara.ListResults()]
 
-  def wget(self, path: Text) -> Text:
+  def wget(self, path: str) -> str:
     """Downloads a file and returns a link to it.
 
     Args:
@@ -470,7 +488,7 @@ class Client(object):
     """
     return self.os.wget(path)
 
-  def open(self, path: Text) -> io.BufferedIOBase:
+  def open(self, path: str) -> io.BufferedIOBase:
     """Opens a file object corresponding to the given path on the client.
 
     The returned file object is read-only.

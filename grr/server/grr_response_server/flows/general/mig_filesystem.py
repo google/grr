@@ -38,17 +38,3 @@ def ToProtoGlobArgs(rdf: filesystem.GlobArgs) -> flows_pb2.GlobArgs:
 
 def ToRDFGlobArgs(proto: flows_pb2.GlobArgs) -> filesystem.GlobArgs:
   return filesystem.GlobArgs.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoDiskVolumeInfoArgs(
-    rdf: filesystem.DiskVolumeInfoArgs,
-) -> flows_pb2.DiskVolumeInfoArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFDiskVolumeInfoArgs(
-    proto: flows_pb2.DiskVolumeInfoArgs,
-) -> filesystem.DiskVolumeInfoArgs:
-  return filesystem.DiskVolumeInfoArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )

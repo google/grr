@@ -3,7 +3,6 @@
 
 import sys
 import time
-from typing import Text
 
 from absl import app
 from absl import flags
@@ -31,7 +30,7 @@ _LOGGING_PATH = flags.DEFINE_string(
     "logging_path", None, "Base logging path for server components to use.")
 
 
-def FindGrrClientProcess(config_path: Text) -> psutil.Process:
+def FindGrrClientProcess(config_path: str) -> psutil.Process:
   """Finds the running GRR process."""
   for proc in psutil.process_iter(["pid", "cmdline", "create_time"]):
     name_found = False
@@ -46,13 +45,12 @@ def FindGrrClientProcess(config_path: Text) -> psutil.Process:
   raise RuntimeError("Couldn't find GRR client process.")
 
 
-def RunInterrogate(grr_api: api.GrrApi, client_id: Text) -> api_flow.Flow:
+def RunInterrogate(grr_api: api.GrrApi, client_id: str) -> api_flow.Flow:
   """Runs the Interrogate flow."""
   args = grr_api.types.CreateFlowArgs("Interrogate")
   args.lightweight = True
 
   runner_args = grr_api.types.CreateFlowRunnerArgs()
-  runner_args.notify_to_user = False
 
   flow = grr_api.Client(client_id).CreateFlow(
       name="Interrogate", args=args, runner_args=runner_args)

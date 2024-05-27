@@ -4,12 +4,12 @@
 from absl import app
 
 from grr_response_server.gui import api_regression_test_lib
-
 from grr_response_server.gui.api_plugins import reflection as reflection_plugin
 
 
 class ApiGetRDFValueDescriptorHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Regression test for ApiGetRDFValueDescriptorHandler."""
 
   api_method = "GetRDFValueDescriptor"
@@ -19,10 +19,13 @@ class ApiGetRDFValueDescriptorHandlerRegressionTest(
     self.Check(
         "GetRDFValueDescriptor",
         args=reflection_plugin.ApiGetRDFValueDescriptorArgs(
-            type="DurationSeconds"))
+            type="DurationSeconds"
+        ),
+    )
     self.Check(
         "GetRDFValueDescriptor",
-        args=reflection_plugin.ApiGetRDFValueDescriptorArgs(type="ApiFlow"))
+        args=reflection_plugin.ApiGetRDFValueDescriptorArgs(type="ApiFlow"),
+    )
 
 
 def main(argv):

@@ -3,7 +3,6 @@
 import csv
 import io
 from typing import Sequence
-from typing import Text
 
 from absl.testing import absltest
 
@@ -96,7 +95,7 @@ class TestTimelineWindows(test_base.EndToEndTest):
 
 def assertBodyEntrySanity(  # pylint: disable=invalid-name
     test: absltest.TestCase,
-    entry: Sequence[Text],
+    entry: Sequence[str],
 ) -> None:
   """Asserts that given row of a body file is sane."""
   # Size should be non-negative (some files might be empty, though).

@@ -5,7 +5,6 @@ from absl import app
 
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import gui_test_lib
-
 from grr.test_lib import test_lib
 
 
@@ -27,8 +26,9 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Last Local Clock")
     self.WaitUntil(self.IsTextPresent, "GRR Client Version")
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=h3:contains('Create a new approval')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
   def testBrowseVirtualFileSystemDoesNotAskForApproval(self):
     self.Open("/legacy#/clients/%s" % self.client_id)
@@ -38,11 +38,13 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
 
     # Make sure "Browse Virtual Filesystem" pane is displayed.
     self.WaitUntil(
-        self.IsTextPresent, "Please select a file or a folder to "
-        "see its details here.")
+        self.IsTextPresent,
+        "Please select a file or a folder to see its details here.",
+    )
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=h3:contains('Create a new approval')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
   def testStartFlowDoesNotAskForApproval(self):
     self.Open("/legacy#/clients/%s" % self.client_id)
@@ -53,8 +55,9 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
     # Make sure "Start new flows" pane is displayed.
     self.WaitUntil(self.IsTextPresent, "Please Select a flow to launch")
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=h3:contains('Create a new approval')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
   def testManageLaunchedFlowsDoesNotAskForApproval(self):
     self.Open("/legacy#/clients/%s" % self.client_id)
@@ -63,11 +66,13 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.flows']")
 
     # Make sure "Manage launched flows" pane is displayed.
-    self.WaitUntil(self.IsTextPresent,
-                   "Please select a flow to see its details here.")
+    self.WaitUntil(
+        self.IsTextPresent, "Please select a flow to see its details here."
+    )
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=h3:contains('Create a new approval')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
 
 if __name__ == "__main__":

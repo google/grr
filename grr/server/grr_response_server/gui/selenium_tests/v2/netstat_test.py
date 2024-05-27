@@ -18,16 +18,23 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
 
   def testFiltering(self):
     flow_id = flow_test_lib.StartFlow(
-        network.Netstat, creator=self.test_username, client_id=self.client_id)
+        network.Netstat, creator=self.test_username, client_id=self.client_id
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('All connections')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=result-accordion .title:contains('All connections')",
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-        rdf_client_network.NetworkConnection(process_name=f"process{i}")
-        for i in range(10)
-    ])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id,
+        [
+            rdf_client_network.NetworkConnection(process_name=f"process{i}")
+            for i in range(10)
+        ],
+    )
 
     self.Click("css=result-accordion .title:contains('All connections')")
     for i in range(10):
@@ -43,16 +50,23 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
         network.Netstat,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('Listening only')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=result-accordion .title:contains('Listening only')",
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-        rdf_client_network.NetworkConnection(process_name=f"process{i}")
-        for i in range(3)
-    ])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id,
+        [
+            rdf_client_network.NetworkConnection(process_name=f"process{i}")
+            for i in range(3)
+        ],
+    )
 
     self.Click("css=result-accordion .title:contains('Listening only')")
     for i in range(3):
@@ -72,16 +86,23 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
         network.Netstat,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('Listening only')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=result-accordion .title:contains('Listening only')",
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-        rdf_client_network.NetworkConnection(process_name=f"process{i}")
-        for i in range(15)
-    ])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id,
+        [
+            rdf_client_network.NetworkConnection(process_name=f"process{i}")
+            for i in range(15)
+        ],
+    )
 
     self.Click("css=result-accordion .title:contains('Listening only')")
     for i in range(10):
@@ -106,16 +127,23 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
         network.Netstat,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=flow_args)
+        flow_args=flow_args,
+    )
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=result-accordion .title:contains('All connections')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=result-accordion .title:contains('All connections')",
+    )
 
-    flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-        rdf_client_network.NetworkConnection(process_name=f"process{i}")
-        for i in range(15)
-    ])
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id,
+        [
+            rdf_client_network.NetworkConnection(process_name=f"process{i}")
+            for i in range(15)
+        ],
+    )
 
     self.Click("css=result-accordion .title:contains('All connections')")
     for i in range(10):
@@ -126,19 +154,22 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
     # rows.
     self.MatSelect("css=.bottom-paginator mat-select", "50")
     self.WaitUntilContains("50", self.GetText, "css=.top-paginator mat-select")
-    self.WaitUntilContains("50", self.GetText,
-                           "css=.bottom-paginator mat-select")
+    self.WaitUntilContains(
+        "50", self.GetText, "css=.bottom-paginator mat-select"
+    )
     for i in range(15):
       self.WaitUntil(self.IsElementPresent, f"css=td:contains('process{i}')")
     self.assertEqual(self.GetCssCount("css=td:contains('process')"), 15)
 
     self.MatSelect("css=.top-paginator mat-select", "10")
     self.WaitUntilContains("10", self.GetText, "css=.top-paginator mat-select")
-    self.WaitUntilContains("10", self.GetText,
-                           "css=.bottom-paginator mat-select")
+    self.WaitUntilContains(
+        "10", self.GetText, "css=.bottom-paginator mat-select"
+    )
     for i in range(10):
       self.WaitUntil(self.IsElementPresent, f"css=td:contains('process{i}')")
-    self.assertEqual(self.GetCssCount("css=td:contains('process')"), 10)
+    for i in range(10, 15):
+      self.WaitUntilNot(self.IsElementPresent, f"css=td:contains('process{i}')")
 
 
 if __name__ == "__main__":

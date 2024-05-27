@@ -42,10 +42,12 @@ SchemaReference = Dict[str, str]
 PrimitiveSchema = Dict[str, str]
 ArraySchema = Dict[str, Union[str, SchemaReference]]
 EnumSchema = Dict[str, Union[str, Tuple[str, ...]]]
-MessageSchema = Dict[str, Union[str, Dict[str, Union[SchemaReference,
-                                                     ArraySchema]]]]
-DescribedSchema = Dict[str, Union[str, List[SchemaReference],
-                                  List[ArraySchema]]]
+MessageSchema = Dict[
+    str, Union[str, Dict[str, Union[SchemaReference, ArraySchema]]]
+]
+DescribedSchema = Dict[
+    str, Union[str, List[SchemaReference], List[ArraySchema]]
+]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
@@ -53,12 +55,14 @@ TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
 
 class KeyValueDescriptor(NamedTuple):
   """A named tuple for `protobuf.map`'s `key` and `value` `FieldDescriptor`s."""
+
   key: FieldDescriptor
   value: FieldDescriptor
 
 
 class RouteInfo(NamedTuple):
   """A named tuple for the lists of route components and path arguments."""
+
   # A list of the HTTP method and the components of a URL path.
   route_comps: List[str]
   # A list of path components that represent required path parameters.
@@ -77,113 +81,67 @@ class RouteInfo(NamedTuple):
 primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
     rdf_proto2.TYPE_DOUBLE: {
         "name": "protobuf2.TYPE_DOUBLE",
-        "schema": {
-            "type": "number",
-            "format": "double"
-        },  # OAS (type, format)
+        "schema": {"type": "number", "format": "double"},  # OAS (type, format)
     },
     rdf_proto2.TYPE_FLOAT: {
         "name": "protobuf2.TYPE_FLOAT",
-        "schema": {
-            "type": "number",
-            "format": "float"
-        },  # OAS (type, format)
+        "schema": {"type": "number", "format": "float"},  # OAS (type, format)
     },
     rdf_proto2.TYPE_INT64: {
         "name": "protobuf2.TYPE_INT64",
-        "schema": {
-            "type": "string",
-            "format": "int64"
-        },
+        "schema": {"type": "string", "format": "int64"},
     },
     rdf_proto2.TYPE_UINT64: {
         "name": "protobuf2.TYPE_UINT64",
-        "schema": {
-            "type": "string",
-            "format": "uint64"
-        },
+        "schema": {"type": "string", "format": "uint64"},
     },
     rdf_proto2.TYPE_INT32: {
         "name": "protobuf2.TYPE_INT32",
-        "schema": {
-            "type": "integer",
-            "format": "int32"
-        },  # OAS (type, format)
+        "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
     },
     rdf_proto2.TYPE_FIXED64: {
         "name": "protobuf2.TYPE_FIXED64",
-        "schema": {
-            "type": "string",
-            "format": "fixed64"
-        }
+        "schema": {"type": "string", "format": "fixed64"},
     },
     rdf_proto2.TYPE_FIXED32: {
         "name": "protobuf2.TYPE_FIXED32",
-        "schema": {
-            "type": "number",
-            "format": "fixed32"
-        },
+        "schema": {"type": "number", "format": "fixed32"},
     },
     rdf_proto2.TYPE_BOOL: {
         "name": "protobuf2.TYPE_BOOL",
-        "schema": {
-            "type": "boolean"
-        },
+        "schema": {"type": "boolean"},
     },
     rdf_proto2.TYPE_STRING: {
         "name": "protobuf2.TYPE_STRING",
-        "schema": {
-            "type": "string"
-        },
+        "schema": {"type": "string"},
     },
     rdf_proto2.TYPE_BYTES: {
         "name": "protobuf2.TYPE_BYTES",
-        "schema": {
-            "type": "string",
-            "format": "byte"
-        },  # OAS (type, format)
+        "schema": {"type": "string", "format": "byte"},  # OAS (type, format)
     },
     rdf_proto2.TYPE_UINT32: {
         "name": "protobuf2.TYPE_UINT32",
-        "schema": {
-            "type": "number",
-            "format": "uint32"
-        },
+        "schema": {"type": "number", "format": "uint32"},
     },
     rdf_proto2.TYPE_SFIXED32: {
         "name": "protobuf2.TYPE_SFIXED32",
-        "schema": {
-            "type": "number",
-            "format": "sfixed32"
-        },
+        "schema": {"type": "number", "format": "sfixed32"},
     },
     rdf_proto2.TYPE_SFIXED64: {
         "name": "protobuf2.TYPE_SFIXED64",
-        "schema": {
-            "type": "string",
-            "format": "sfixed64"
-        },
+        "schema": {"type": "string", "format": "sfixed64"},
     },
     rdf_proto2.TYPE_SINT32: {
         "name": "protobuf2.TYPE_SINT32",
-        "schema": {
-            "type": "integer",
-            "format": "int32"
-        },  # OAS (type, format)
+        "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
     },
     rdf_proto2.TYPE_SINT64: {
         "name": "protobuf2.TYPE_SINT64",
-        "schema": {
-            "type": "string",
-            "format": "sint64"
-        },
+        "schema": {"type": "string", "format": "sint64"},
     },
     "BinaryStream": {
         "name": "BinaryStream",
-        "schema": {
-            "type": "string",
-            "format": "binary"
-        },
+        "schema": {"type": "string", "format": "binary"},
     },
 }
 
@@ -249,17 +207,18 @@ class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the API method for getting GRR version."""
 
   result_type = ApiGetGrrVersionResult
+  proto_result_type = metadata_pb2.ApiGetGrrVersionResult
 
   def Handle(
       self,
-      args: None,
+      args: Optional[None] = None,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> ApiGetGrrVersionResult:
+  ) -> metadata_pb2.ApiGetGrrVersionResult:
     del args, context  # Unused.
 
     version_dict = version.Version()
 
-    result = ApiGetGrrVersionResult()
+    result = metadata_pb2.ApiGetGrrVersionResult()
     result.major = version_dict["major"]
     result.minor = version_dict["minor"]
     result.revision = version_dict["revision"]
@@ -278,6 +237,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = None
   result_type = ApiGetOpenApiDescriptionResult
+  proto_result_type = metadata_pb2.ApiGetOpenApiDescriptionResult
 
   def __init__(self, router: Any) -> None:
     # TODO(hanuszczak): Break dependency cycle between this module and
@@ -314,12 +274,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     }
 
     if descriptor.values:
-      enum_schema_obj["enum"] = (
-          tuple([enum_value.name for enum_value in descriptor.values]))
-      enum_schema_obj["description"] = ("\n".join([
+      enum_schema_obj["enum"] = tuple(
+          [enum_value.name for enum_value in descriptor.values]
+      )
+      enum_schema_obj["description"] = "\n".join([
           f"{enum_value.name} == {enum_value.number}"
           for enum_value in descriptor.values
-      ]))
+      ])
     else:
       enum_schema_obj["enum"] = ()
 
@@ -360,10 +321,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     visiting.remove(type_name)
 
-    self.schema_objs[type_name] = cast(MessageSchema, {
-        "type": "object",
-        "properties": properties,
-    })
+    self.schema_objs[type_name] = cast(
+        MessageSchema,
+        {
+            "type": "object",
+            "properties": properties,
+        },
+    )
 
   def _CreateMapFieldSchema(
       self,
@@ -420,13 +384,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     visiting.remove(type_name)
 
     self.schema_objs[type_name] = cast(
-        Dict[str, Union[str, SchemaReference]], {
-            "description":
-                f"This is a map with real key type=\"{key_type_name}\" "
-                f"and value type=\"{value_type_name}\"",
+        Dict[str, Union[str, SchemaReference]],
+        {
+            "description": (
+                f'This is a map with real key type="{key_type_name}" '
+                f'and value type="{value_type_name}"'
+            ),
             "type": "object",
             "additionalProperties": _GetReferenceObject(value_type_name),
-        })
+        },
+    )
 
   def _CreateSchema(
       self,
@@ -440,7 +407,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if cls is None:
       raise ValueError("Trying to extract schema of None.")
 
-    if (inspect.isclass(cls) and issubclass(cls, rdf_structs.RDFProtoStruct)):
+    if inspect.isclass(cls) and issubclass(cls, rdf_structs.RDFProtoStruct):
       cls = cls.protobuf.DESCRIPTOR
 
     type_name = _GetTypeName(cls)
@@ -472,9 +439,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self._CreateEnumSchema(cls)
       return
 
-    raise TypeError(f"Don't know how to handle type \"{type_name}\" "
-                    f"which is not a protobuf message Descriptor, "
-                    f"nor an EnumDescriptor, nor a primitive type.")
+    raise TypeError(
+        f'Don\'t know how to handle type "{type_name}" '
+        "which is not a protobuf message Descriptor, "
+        "nor an EnumDescriptor, nor a primitive type."
+    )
 
   def _CreateFlowSchemas(self, visiting: Set[str]) -> None:
     """Creates OpenAPI schemas for flow args, progress, and result types."""
@@ -512,7 +481,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         for primitive_type in primitive_types.values()
     }
     self.schema_objs.update(
-        cast(Dict[str, Dict[str, str]], primitive_type_schemas))
+        cast(Dict[str, Dict[str, str]], primitive_type_schemas)
+    )
     # Add the OpenAPI schemas of the statically described RDF types.
     self.schema_objs.update(rdf_type_schemas)
 
@@ -551,8 +521,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     reference_obj = None
 
     # Get the array schema or the `Reference Object`.
-    if (field_descriptor.label == rdf_proto2.LABEL_REPEATED and
-        not _IsMapField(field_descriptor)):
+    if field_descriptor.label == rdf_proto2.LABEL_REPEATED and not _IsMapField(
+        field_descriptor
+    ):
       array_schema = _GetArraySchema(type_name)
     else:
       reference_obj = _GetReferenceObject(type_name)
@@ -568,8 +539,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         description += " "
 
       description += (
-          f"This field is part of the \"{containing_oneof.name}\" oneof. "
-          f"Only one field per oneof should be present.")
+          f'This field is part of the "{containing_oneof.name}" oneof. '
+          "Only one field per oneof should be present."
+      )
 
     # Add the description of the field's type which is stored with the type's
     # schema. Examples of such descriptions are the ones of RDF types, the ones
@@ -595,10 +567,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     #
     # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
     if description:
-      return cast(DescribedSchema, {
-          "description": description,
-          "allOf": [reference_obj or array_schema],
-      })
+      return cast(
+          DescribedSchema,
+          {
+              "description": description,
+              "allOf": [reference_obj or array_schema],
+          },
+      )
 
     if reference_obj is not None:
       return reference_obj
@@ -606,15 +581,17 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return array_schema
 
     raise AssertionError(  # Required by mypy.
-        "No array schema nor `Reference Object` were created.")
+        "No array schema nor `Reference Object` were created."
+    )
 
   def _GetParameters(
       self,
       required_path_params: Iterable[FieldDescriptor],
       optional_path_params: Iterable[FieldDescriptor],
       query_params: Iterable[FieldDescriptor],
-  ) -> List[Dict[str, Union[str, bool, SchemaReference, ArraySchema,
-                            DescribedSchema]]]:
+  ) -> List[
+      Dict[str, Union[str, bool, SchemaReference, ArraySchema, DescribedSchema]]
+  ]:
     """Create the OpenAPI description of the parameters of a route."""
     parameters = []
 
@@ -645,8 +622,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if not body_params:
       return {}
 
-    properties: (Dict[str, Union[SchemaReference, ArraySchema,
-                                 DescribedSchema]]) = dict()
+    properties: Dict[
+        str, Union[SchemaReference, ArraySchema, DescribedSchema]
+    ] = dict()
     for field_d in body_params:
       field_name = casing.SnakeToCamel(field_d.name)
       properties[field_name] = self._GetDescribedSchema(field_d)
@@ -671,16 +649,19 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     resp_success_obj: Dict[str, Union[str, Dict[str, Any]]] = dict()
 
     if result_type:
-      if (isinstance(result_type, type) and
-          issubclass(result_type, rdf_structs.RDFProtoStruct)):
+      if isinstance(result_type, type) and issubclass(
+          result_type, rdf_structs.RDFProtoStruct
+      ):
         result_type_name = _GetTypeName(
-            cast(rdf_structs.RDFProtoStruct, result_type).protobuf.DESCRIPTOR)
+            cast(rdf_structs.RDFProtoStruct, result_type).protobuf.DESCRIPTOR
+        )
       else:
         result_type_name = _GetTypeName(result_type)
 
       resp_success_obj["description"] = (
           f"The call to the {router_method_name} API method succeeded and it "
-          f"returned an instance of {result_type_name}.")
+          f"returned an instance of {result_type_name}."
+      )
 
       media_obj = {"schema": _GetReferenceObject(result_type_name)}
 
@@ -692,7 +673,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       resp_success_obj["content"] = content
     else:
       resp_success_obj["description"] = (
-          f"The call to the {router_method_name} API method succeeded.")
+          f"The call to the {router_method_name} API method succeeded."
+      )
 
     return resp_success_obj
 
@@ -702,9 +684,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> Dict[str, str]:
     """Create the OpenAPI description used by all undescribed HTTP responses."""
     resp_default_obj = {
-        "description":
-            f"The call to the {router_method_name} API method did not "
-            f"succeed.",
+        "description": (
+            f"The call to the {router_method_name} API method did not succeed."
+        ),
     }
 
     return resp_default_obj
@@ -722,23 +704,25 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     version_dict = version.Version()
 
     return {
-        "title":
-            "GRR Rapid Response API",
-        "description":
+        "title": "GRR Rapid Response API",
+        "description": (
             "GRR Rapid Response is an incident response framework "
-            "focused on remote live forensics.",
+            "focused on remote live forensics."
+        ),
         "contact": {
             "name": "GRR GitHub Repository",
-            "url": "https://github.com/google/grr"
+            "url": "https://github.com/google/grr",
         },
         "license": {
             "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0"
+            "url": "http://www.apache.org/licenses/LICENSE-2.0",
         },
-        "version": (f"{version_dict['major']}."
-                    f"{version_dict['minor']}."
-                    f"{version_dict['revision']}."
-                    f"{version_dict['release']}"),
+        "version": (
+            f"{version_dict['major']}."
+            f"{version_dict['minor']}."
+            f"{version_dict['revision']}."
+            f"{version_dict['release']}"
+        ),
     }
 
   def _GetServers(self) -> List[Dict[str, str]]:
@@ -760,9 +744,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
-        "schemas":
-            cast(Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
-                 self.schema_objs),
+        "schemas": cast(
+            Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
+            self.schema_objs,
+        ),
     }
 
   def _SeparateFieldsIntoParams(
@@ -770,15 +755,19 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       http_method: str,
       path: str,
       args_type: Type[rdf_structs.RDFProtoStruct],
-  ) -> Tuple[List[FieldDescriptor], List[FieldDescriptor],
-             List[FieldDescriptor]]:
+  ) -> Tuple[
+      List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
+  ]:
     """Group `FieldDescriptors` of a protobuf message by http param types."""
     field_descriptors = []
     if args_type:
-      if not (inspect.isclass(args_type) and
-              issubclass(args_type, rdf_structs.RDFProtoStruct)):
-        raise TypeError("Router method args type is not a RDFProtoStruct "
-                        "subclass.")
+      if not (
+          inspect.isclass(args_type)
+          and issubclass(args_type, rdf_structs.RDFProtoStruct)
+      ):
+        raise TypeError(
+            "Router method args type is not a RDFProtoStruct subclass."
+        )
       field_descriptors = args_type.protobuf.DESCRIPTOR.fields
 
     # Separate fields into params: path, query and part of the request body.
@@ -809,16 +798,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # The `Operation Object` associated with the current http method.
     operation_obj = {
         "tags": [router_method.category or "NoCategory"],
-        "description":
-            router_method.doc or "No description.",
-        "operationId":
-            urlparse.quote(f"{router_method.name}"),
-        "parameters":
-            self._GetParameters(required_path_params, optional_path_params,
-                                query_params),
+        "description": router_method.doc or "No description.",
+        "operationId": urlparse.quote(f"{router_method.name}"),
+        "parameters": self._GetParameters(
+            required_path_params, optional_path_params, query_params
+        ),
         "responses": {
-            "200": (self._GetResponseObject200(router_method.result_type,
-                                               router_method.name)),
+            "200": self._GetResponseObject200(
+                router_method.result_type, router_method.name
+            ),
             "default": self._GetResponseObjectDefault(router_method.name),
         },
     }
@@ -857,7 +845,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         # Separate the route parameters into path params, query params and
         # request body params.
         path_params, query_params, body_params = self._SeparateFieldsIntoParams(
-            http_method, path, router_method.args_type)
+            http_method, path, router_method.args_type
+        )
 
         # Separate the path params into required and optional path params.
         # First, extract path param names by normalizing the Werkzeug path arg
@@ -879,24 +868,29 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           else:
             raise AssertionError(
                 f"Path parameter {path_param_name} was not classified as "
-                f"required/optional.")
+                "required/optional."
+            )
 
         normalized_path = _NormalizePath(path)
         path_obj = paths_obj[normalized_path]
-        path_obj[http_method.lower()] = (
-            self._GetOperationDescription(router_method, req_path_params,
-                                          opt_path_params, query_params,
-                                          body_params))
+        path_obj[http_method.lower()] = self._GetOperationDescription(
+            router_method,
+            req_path_params,
+            opt_path_params,
+            query_params,
+            body_params,
+        )
 
     return paths_obj
 
   def Handle(
       self,
-      args: None,
+      args: Optional[None] = None,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> ApiGetOpenApiDescriptionResult:
+  ) -> metadata_pb2.ApiGetOpenApiDescriptionResult:
     """Handle requests for the OpenAPI description of the GRR API."""
-    result = ApiGetOpenApiDescriptionResult()
+    del args, context  # unused
+    result = metadata_pb2.ApiGetOpenApiDescriptionResult()
 
     if self.openapi_obj_json is not None:
       result.openapi_description = self.openapi_obj_json
@@ -943,8 +937,9 @@ def _NormalizePath(path: str) -> str:
   normalized_components = [
       _NormalizePathComponent(component) for component in components
   ]
-  if (normalized_components[1] == "api" and
-      (len(normalized_components) == 2 or normalized_components[2] != "v2")):
+  if normalized_components[1] == "api" and (
+      len(normalized_components) == 2 or normalized_components[2] != "v2"
+  ):
     # We describe the v2 API in the OpenAPI description.
     normalized_components.insert(2, "v2")
 
@@ -1049,7 +1044,8 @@ def _GetMapEntryTypeName(field_name: str) -> str:
 
 
 def _GetMapFieldKeyValueTypes(
-    field_descriptor: FieldDescriptor,) -> Optional[KeyValueDescriptor]:
+    field_descriptor: FieldDescriptor,
+) -> Optional[KeyValueDescriptor]:
   """Get `FieldDescriptor`s for the types of a map field, if the field is a map.
 
   `protobuf.map` fields are compiled as repeated fields of newly created types
@@ -1082,15 +1078,21 @@ def _GetMapFieldKeyValueTypes(
   if len(entry_descriptor.fields) != 2:
     return None
 
-  if (entry_descriptor.fields[0].name == "key" and
-      entry_descriptor.fields[1].name == "value"):
+  if (
+      entry_descriptor.fields[0].name == "key"
+      and entry_descriptor.fields[1].name == "value"
+  ):
     return KeyValueDescriptor(
-        key=entry_descriptor.fields[0], value=entry_descriptor.fields[1])
+        key=entry_descriptor.fields[0], value=entry_descriptor.fields[1]
+    )
 
-  if (entry_descriptor.fields[0].name == "value" and
-      entry_descriptor.fields[1].name == "key"):
+  if (
+      entry_descriptor.fields[0].name == "value"
+      and entry_descriptor.fields[1].name == "key"
+  ):
     return KeyValueDescriptor(
-        key=entry_descriptor.fields[1], value=entry_descriptor.fields[0])
+        key=entry_descriptor.fields[1], value=entry_descriptor.fields[0]
+    )
 
   return None
 
@@ -1116,6 +1118,7 @@ def _CompareComponentCollections(
 
 class UngroupedRoute:
   """A class for storing routes and their state during route grouping."""
+
   route: List[str]
   processed: bool
 
@@ -1219,13 +1222,15 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
 
     required_path_params = _ExtractPathParamsFromRouteList(stem_route)
     optional_path_params = (
-        _ExtractPathParamsFromRouteList(parent_route) - required_path_params)
+        _ExtractPathParamsFromRouteList(parent_route) - required_path_params
+    )
 
     grouped_routes.append(
         RouteInfo(
             route_comps=parent_route,
             req_path_param_comps=list(required_path_params),
             opt_path_param_comps=list(optional_path_params),
-        ))
+        )
+    )
 
   return grouped_routes

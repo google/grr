@@ -1,3 +1,4 @@
+// g3-format-v_3_1
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';

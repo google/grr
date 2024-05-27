@@ -10,7 +10,6 @@ an __iter__) method, but are serializable as an RDFProto.
 """
 
 from collections import abc
-from typing import Text
 
 from absl import app
 from absl.testing import absltest
@@ -416,7 +415,7 @@ class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     # Test iterator.
     sample_list = list(sample)
     self.assertIsInstance(sample_list, list)
-    self.assertIsInstance(sample_list[0], Text)
+    self.assertIsInstance(sample_list[0], str)
     self.assertIsInstance(sample_list[1], rdfvalue.RDFString)
 
     # Test initialization from a list of variable types.
