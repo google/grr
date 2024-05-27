@@ -2,7 +2,7 @@
 """This is the GRR frontend FS Server."""
 
 import logging
-from typing import FrozenSet, Sequence, Tuple
+from typing import FrozenSet, Optional, Sequence, Tuple
 
 import grpc
 
@@ -77,9 +77,21 @@ class GRRFSServer:
         ],
     )
 
+  def ProcessFromGRPC(
+      self, fs_msg: common_pb2.Message, context: grpc.ServicerContext
+  ) -> None:
+    """Fleetspeak message processing entrypoint for GRPC delivery."""
+    self.Process(fs_msg, context)
+
+  def ProcessFromCPS(self, fs_msg: common_pb2.Message) -> None:
+    """Fleetspeak message processing entrypoint for Cloud Pub/Sub delivery."""
+    self.Process(fs_msg, None)
+
   @FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
   @FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
-  def Process(self, fs_msg: common_pb2.Message, context: grpc.ServicerContext):
+  def Process(
+      self, fs_msg: common_pb2.Message, context: Optional[grpc.ServicerContext]
+  ) -> None:
     """Processes a single fleetspeak message."""
     request_start_time = rdfvalue.RDFDatetime.Now()
     logged_actions = []
@@ -188,7 +200,8 @@ class GRRFSServer:
             "Received message with unrecognized message_type: %s",
             fs_msg.message_type,
         )
-        context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+        if context:
+          context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
     except Exception:
       logging.exception("Exception processing message: %s", fs_msg)
       raise

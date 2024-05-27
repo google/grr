@@ -262,6 +262,11 @@ class CallLoggedTest(absltest.TestCase):
     logger.setLevel(logging.DEBUG)
     self.addCleanup(lambda: logger.setLevel(old_log_level))
 
+    # We also need to make sure logging hasn't been disabled.
+    old_log_level_override = logger.manager.disable
+    logging.disable(logging.NOTSET)
+    self.addCleanup(lambda: logging.disable(old_log_level_override))
+
   def testArgsAndResultPropagated(self):
     @db_utils.CallLogged
     def SampleCall(arg: int, kwarg: int = 0) -> Tuple[int, int]:

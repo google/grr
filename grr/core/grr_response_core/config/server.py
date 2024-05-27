@@ -308,6 +308,44 @@ config_lib.DEFINE_integer(
     help="Maximum number of client ids to place in a single Fleetspeak "
     "ListClients() API request.")
 
+config_lib.DEFINE_bool(
+    "Server.fleetspeak_cps_enabled",
+    default=False,
+    help=(
+        "Enable the Google Cloud Pub/Sub communication channel from Fleetspeak."
+        " When this is set to True, incoming messages from Fleetspeak are"
+        " fetched from a Cloud Pub/Sub subscription instead of being received"
+        " directly via GRPC."
+    ),
+)
+
+config_lib.DEFINE_string(
+    "Server.fleetspeak_cps_project",
+    default=None,
+    help=(
+        "Google Cloud project name to use when communicating with Fleetspeak "
+        "via Cloud Pub/Sub."
+    ),
+)
+
+config_lib.DEFINE_string(
+    "Server.fleetspeak_cps_subscription",
+    default=None,
+    help=(
+        "Cloud Pub/Sub subscription name to use for reading Fleetspeak "
+        "messages. This subscription must have been already created."
+    ),
+)
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_cps_concurrency",
+    default=20,
+    help=(
+        "The number of concurrent message-processing subscribers to spawn "
+        "when receiving Fleetspeak messages via Cloud Pub/Sub."
+    ),
+)
+
 config_lib.DEFINE_semantic_enum(
     rdf_paths.PathSpec.PathType,
     "Server.raw_filesystem_access_pathtype",

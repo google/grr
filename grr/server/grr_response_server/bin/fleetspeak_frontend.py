@@ -10,6 +10,7 @@ from absl import flags
 from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_cps
 from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend_server
 
@@ -41,15 +42,24 @@ def main(argv):
   fleetspeak_connector.Init()
 
   fsd = fleetspeak_frontend_server.GRRFSServer()
-  fleetspeak_connector.CONN.Listen(fsd.Process)
 
-  logging.info("Serving through Fleetspeak ...")
+  cleanup_fn = lambda: None
+  if config.CONFIG["Server.fleetspeak_cps_enabled"]:
+    cps = fleetspeak_cps.Subscriber()
+    cps.Start(fsd.ProcessFromCPS)
+    cleanup_fn = cps.Stop
+    logging.info("Waiting for messages via Fleetspeak Cloud Pub/Sub ...")
+  else:
+    fleetspeak_connector.CONN.Listen(fsd.ProcessFromGRPC)
+    logging.info("Waiting for messages via Fleetspeak GRPC ...")
 
   try:
     while True:
       time.sleep(600)
   except KeyboardInterrupt:
     print("Caught keyboard interrupt, stopping")
+
+  cleanup_fn()
 
 
 if __name__ == "__main__":
