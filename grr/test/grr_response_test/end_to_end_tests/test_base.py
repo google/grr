@@ -195,7 +195,6 @@ class EndToEndTest(absltest.TestCase, metaclass=EndToEndTestMetaclass):
     """Runs a flow and busy-waits until its completion."""
     if runner_args is None:
       runner_args = self.grr_api.types.CreateFlowRunnerArgs()
-    runner_args.notify_to_user = False
 
     flow = self.client.CreateFlow(
         name=flow_name, args=args, runner_args=runner_args)

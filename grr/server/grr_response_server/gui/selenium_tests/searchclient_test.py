@@ -11,8 +11,9 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestClientSearch(gui_test_lib.SearchClientTestBase,
-                       hunt_test_lib.StandardHuntTestMixin):
+class TestClientSearch(
+    gui_test_lib.SearchClientTestBase, hunt_test_lib.StandardHuntTestMixin
+):
 
   def setUp(self):
     super().setUp()
@@ -24,12 +25,15 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     # value, e.g. hostname will be Host-0, Host-1, etc.
     self.client_ids = self.SetupClients(15)
 
-    self.AddClientLabel(self.client_ids[0], self.test_username,
-                        u"common_test_label")
-    self.AddClientLabel(self.client_ids[0], self.test_username,
-                        u"unique_test_label")
-    self.AddClientLabel(self.client_ids[1], self.test_username,
-                        u"common_test_label")
+    self.AddClientLabel(
+        self.client_ids[0], self.test_username, "common_test_label"
+    )
+    self.AddClientLabel(
+        self.client_ids[0], self.test_username, "unique_test_label"
+    )
+    self.AddClientLabel(
+        self.client_ids[1], self.test_username, "common_test_label"
+    )
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_ids[0])
     snapshot.knowledge_base.users.add(username="sample_user")
@@ -48,8 +52,9 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
       # When we expect no elements at all, we have to check that Loading...
       # disappears and then nothing is displayed.
       self.WaitUntilNot(self.IsElementPresent, "css=tr:contains('Loading...')")
-      self.WaitUntilEqual(target_count, self.GetCssCount,
-                          "css=grr-clients-list tbody > tr")
+      self.WaitUntilEqual(
+          target_count, self.GetCssCount, "css=grr-clients-list tbody > tr"
+      )
     else:
       # When expect multiple elements we can just count all the rows that have
       # no "Loading..." init. Handling this case separately from target_count==0
@@ -57,15 +62,17 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
       # label will go off-screen and therefore won't be removed from DOM
       # by Angular code (it has to actually be visible in order to be removed).
       self.WaitUntilEqual(
-          target_count, self.GetCssCount,
-          "css=grr-clients-list tbody > tr:not(:contains('Loading...'))")
+          target_count,
+          self.GetCssCount,
+          "css=grr-clients-list tbody > tr:not(:contains('Loading...'))",
+      )
 
   def testPageTitleChangesAccordingToQuery(self):
     self.Open("/legacy#/search?q=foo")
-    self.WaitUntilEqual("GRR | Search for \"foo\"", self.GetPageTitle)
+    self.WaitUntilEqual('GRR | Search for "foo"', self.GetPageTitle)
 
     self.Type("client_query", text="host:Host-1", end_with_enter=True)
-    self.WaitUntilEqual("GRR | Search for \"host:Host-1\"", self.GetPageTitle)
+    self.WaitUntilEqual('GRR | Search for "host:Host-1"', self.GetPageTitle)
 
     # Not entering any search term checks for all clients.
     self.Open("/legacy#/search")
@@ -84,8 +91,10 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Open("/legacy")
     self.Type("client_query", text=client_name, end_with_enter=True)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-clients-list tr:contains('%s') " % client_name)
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-clients-list tr:contains('%s') " % client_name,
+    )
     self._WaitForSearchResults(target_count=1)
 
   def testSearchWithHostKeyword(self):
@@ -103,13 +112,15 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
     # The host keyword also searches FQDN, so we should find an item.
     self.Type(
-        "client_query", text="host:Host-1.example.com", end_with_enter=True)
+        "client_query", text="host:Host-1.example.com", end_with_enter=True
+    )
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown fqdns should yield an empty result.
     self.Type(
-        "client_query", text="host:Host-99.example.com", end_with_enter=True)
+        "client_query", text="host:Host-99.example.com", end_with_enter=True
+    )
 
     self._WaitForSearchResults(target_count=0)
 
@@ -118,13 +129,15 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
     # Several client have this label, so we should find them all.
     self.Type(
-        "client_query", text="label:common_test_label", end_with_enter=True)
+        "client_query", text="label:common_test_label", end_with_enter=True
+    )
 
     self._WaitForSearchResults(target_count=2)
 
     # Only one client has the unique label.
     self.Type(
-        "client_query", text="label:unique_test_label", end_with_enter=True)
+        "client_query", text="label:unique_test_label", end_with_enter=True
+    )
 
     self._WaitForSearchResults(target_count=1)
 
@@ -163,7 +176,8 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Open("/legacy")
 
     self.Type(
-        "client_query", text="user:" + self.test_username, end_with_enter=True)
+        "client_query", text="user:" + self.test_username, end_with_enter=True
+    )
 
     self._WaitForSearchResults(target_count=1)
 
@@ -206,8 +220,9 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     # If the popup is visible, check that clicking it will change the search
     # input.
     self.Click("css=grr-search-box ul.dropdown-menu li")
-    self.WaitUntilEqual("label:common_test_label", self.GetValue,
-                        "css=#client_query")
+    self.WaitUntilEqual(
+        "label:common_test_label", self.GetValue, "css=#client_query"
+    )
 
   def testBackButtonWorksAsExpected(self):
     self.RequestAndGrantClientApproval(self.client_ids[0])
@@ -217,34 +232,38 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Open("/legacy#/clients/" + client_name)
     self.WaitUntil(self.IsTextPresent, client_name)
     # Check that correct navigation link is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.active > a[grrtarget='client.hostInfo']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.active > a[grrtarget='client.hostInfo']"
+    )
 
     self.Click("css=a[grrtarget='client.launchFlows']")
     self.WaitUntil(self.IsTextPresent, "Please Select a flow to launch")
     # Check that correct navigation link is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.active > a[grrtarget='client.launchFlows']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.active > a[grrtarget='client.launchFlows']"
+    )
 
     # Back button should bring us to host information again.
     self.Back()
     self.WaitUntil(self.IsTextPresent, client_name)
     # Check that correct navigation link is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.active > a[grrtarget='client.hostInfo']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.active > a[grrtarget='client.hostInfo']"
+    )
 
     # Forward button should bring us to launch flows again.
     self.Forward()
     self.WaitUntil(self.IsTextPresent, "Please Select a flow to launch")
     # Check that correct navigation link is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.active > a[grrtarget='client.launchFlows']")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.active > a[grrtarget='client.launchFlows']"
+    )
 
   def testSuggestedReasonIsPropagatedFromSearchToApproval(self):
     client_id = self.SetupClient(0)
 
     self.Open("/legacy#/search?q=.&reason=t123")
-    self.WaitUntilEqual("GRR | Search for \".\"", self.GetPageTitle)
+    self.WaitUntilEqual('GRR | Search for "."', self.GetPageTitle)
 
     self.Click("css=tr:contains('{}')".format(client_id))
 
@@ -268,8 +287,11 @@ class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Settings")
 
     self.WaitUntil(self.IsTextPresent, "Mode")
-    self.WaitUntilEqual("BASIC (default)", self.GetSelectedLabel,
-                        "css=label:contains('Mode') ~ div.controls select")
+    self.WaitUntilEqual(
+        "BASIC (default)",
+        self.GetSelectedLabel,
+        "css=label:contains('Mode') ~ div.controls select",
+    )
 
 
 if __name__ == "__main__":

@@ -17,7 +17,6 @@ from MySQLdb import cursors
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
@@ -26,6 +25,7 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
+from grr_response_server.models import hunts
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 _HUNT_COLUMNS_SELECT = ", ".join((
@@ -1022,15 +1022,13 @@ class MySQLDBHuntMixin(object):
         STDDEV_POP(network_bytes_sent),
     """
 
-    scaled_bins = [
-        int(1000000 * b) for b in rdf_stats.ClientResourcesStats.CPU_STATS_BINS
-    ]
+    scaled_bins = [int(1000000 * b) for b in hunts.CPU_STATS_BINS]
 
     query += ", ".join([
         self._BinsToQuery(scaled_bins, "(user_cpu_time_used_micros)"),
         self._BinsToQuery(scaled_bins, "(system_cpu_time_used_micros)"),
         self._BinsToQuery(
-            rdf_stats.ClientResourcesStats.NETWORK_STATS_BINS,
+            hunts.NETWORK_STATS_BINS,
             "network_bytes_sent",
         ),
     ])
@@ -1074,29 +1072,23 @@ class MySQLDBHuntMixin(object):
 
     offset = 7
     user_cpu_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(
-        response[offset:], rdf_stats.ClientResourcesStats.CPU_STATS_BINS
-    ):
+    for b_num, b_max_value in zip(response[offset:], hunts.CPU_STATS_BINS):
       user_cpu_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
     stats.user_cpu_stats.histogram.CopyFrom(user_cpu_histogram)
 
-    offset += len(rdf_stats.ClientResourcesStats.CPU_STATS_BINS)
+    offset += len(hunts.CPU_STATS_BINS)
     system_cpu_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(
-        response[offset:], rdf_stats.ClientResourcesStats.CPU_STATS_BINS
-    ):
+    for b_num, b_max_value in zip(response[offset:], hunts.CPU_STATS_BINS):
       system_cpu_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
     stats.system_cpu_stats.histogram.CopyFrom(system_cpu_histogram)
 
-    offset += len(rdf_stats.ClientResourcesStats.CPU_STATS_BINS)
+    offset += len(hunts.CPU_STATS_BINS)
     network_bytes_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(
-        response[offset:], rdf_stats.ClientResourcesStats.NETWORK_STATS_BINS
-    ):
+    for b_num, b_max_value in zip(response[offset:], hunts.NETWORK_STATS_BINS):
       network_bytes_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
@@ -1157,7 +1149,7 @@ class MySQLDBHuntMixin(object):
     for fs, ct, lup in cursor.fetchall():
       result.append(
           db.FlowStateAndTimestamps(
-              flow_state=rdf_flow_objects.Flow.FlowState.FromInt(fs),
+              flow_state=fs,
               create_time=mysql_utils.TimestampToRDFDatetime(ct),
               last_update_time=mysql_utils.TimestampToRDFDatetime(lup),
           )

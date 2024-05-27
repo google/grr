@@ -238,6 +238,8 @@ message KnowledgeBase {
     description: "The system temporary directory.",
   }];
 
+  // TODO: This field should not be called "release" but "name"
+  // or "distribution".
   //
   // Linux specific distribution information.
   // See: lsb_release(1) man page, or the LSB Specification under the 'Command
@@ -246,6 +248,9 @@ message KnowledgeBase {
   optional string os_release = 9 [(sem_type) = {
     description: "Linux distribution name.",
   }];
+
+  // TODO: Create a field with system release information (stuff
+  // that does not fit `os_minor_version` and `os_major_version`).
 
   //
   // Windows specific system level parameters.

@@ -163,7 +163,8 @@ class ApiClientLibHuntTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_ids[0],
-          parent=flow.FlowParent.FromHuntID(hunt_id))
+          parent=flow.FlowParent.FromHuntID(hunt_id),
+      )
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[0], flow_id)
       flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
       flow_obj.error_message = "Error foo."
@@ -173,7 +174,8 @@ class ApiClientLibHuntTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_ids[1],
-          parent=flow.FlowParent.FromHuntID(hunt_id))
+          parent=flow.FlowParent.FromHuntID(hunt_id),
+      )
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[1], flow_id)
       flow_obj.flow_state = flows_pb2.Flow.FlowState.ERROR
       flow_obj.error_message = "Error bar."
@@ -195,8 +197,10 @@ class ApiClientLibHuntTest(
     hunt_id = self.StartHunt()
 
     client_ids = self.SetupClients(2)
-    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(client_id))
-                         for client_id in client_ids])
+    client_mocks = dict([
+        (client_id, flow_test_lib.CrashClientMock(client_id))
+        for client_id in client_ids
+    ])
     self.AssignTasksToClients(client_ids)
     hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks)
 
@@ -259,7 +263,8 @@ class ApiClientLibHuntTest(
 
     zip_stream = io.BytesIO()
     self.api.Hunt(hunt_id).GetExportedResults(
-        csv_plugin.CSVInstantOutputPlugin.plugin_name).WriteToStream(zip_stream)
+        csv_plugin.CSVInstantOutputPlugin.plugin_name
+    ).WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
 
     namelist = zip_fd.namelist()
@@ -327,8 +332,8 @@ class ApiClientLibHuntTest(
 
     buffer = io.BytesIO()
     self.api.Hunt(hunt_id).GetCollectedTimelines(
-        timeline_pb2.ApiGetCollectedTimelineArgs.Format.BODY).WriteToStream(
-            buffer)
+        timeline_pb2.ApiGetCollectedTimelineArgs.Format.BODY
+    ).WriteToStream(buffer)
 
     with zipfile.ZipFile(buffer, mode="r") as archive:
       with archive.open(f"{client_id}_{fqdn}.body", mode="r") as file:
@@ -427,7 +432,8 @@ class ApiClientLibHuntTest(
     client_ids = self.SetupClients(1)
 
     args = hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs(
-        description="test hunt")
+        description="test hunt"
+    )
     pca = args.per_client_args.add()
     pca.client_id = client_ids[0]
     pca.path_type = jobs_pb2.PathSpec.OS
@@ -437,8 +443,8 @@ class ApiClientLibHuntTest(
     h = self.api.CreatePerClientFileCollectionHunt(args)
     h.Start()
     self.RunHunt(
-        client_ids=client_ids,
-        client_mock=action_mocks.MultiGetFileClientMock())
+        client_ids=client_ids, client_mock=action_mocks.MultiGetFileClientMock()
+    )
 
     results = list(h.ListResults())
     self.assertLen(results, 1)

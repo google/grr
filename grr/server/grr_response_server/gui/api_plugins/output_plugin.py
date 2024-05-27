@@ -3,14 +3,11 @@
 
 import itertools
 
-
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import output_plugin_pb2
 from grr_response_proto.api import reflection_pb2
 from grr_response_server import instant_output_plugin
-
 from grr_response_server import output_plugin
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
@@ -18,6 +15,7 @@ from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   """Output plugin API entity."""
+
   protobuf = output_plugin_pb2.ApiOutputPlugin
   rdf_deps = [
       rdf_output_plugin.OutputPluginDescriptor,
@@ -29,6 +27,7 @@ class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
 
 class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   """Output plugin descriptor API entity."""
+
   protobuf = reflection_pb2.ApiOutputPluginDescriptor
 
   def InitFromOutputPluginClass(self, plugin_class):
@@ -56,7 +55,8 @@ class ApiListOutputPluginDescriptorsResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiListOutputPluginDescriptorsHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Renders all available output plugins definitions."""
 
   result_type = ApiListOutputPluginDescriptorsResult
@@ -80,5 +80,6 @@ class ApiListOutputPluginDescriptorsHandler(
     result = ApiListOutputPluginDescriptorsResult()
     result.items = itertools.chain(
         self._GetPlugins(output_plugin.OutputPlugin),
-        self._GetPlugins(instant_output_plugin.InstantOutputPlugin))
+        self._GetPlugins(instant_output_plugin.InstantOutputPlugin),
+    )
     return result

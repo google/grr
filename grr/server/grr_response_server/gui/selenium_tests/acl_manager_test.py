@@ -23,30 +23,37 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   def testNavigatorLinksDisabledForClientWithoutApproval(self):
     self.Open("/legacy#/clients/%s?navigator-test" % self.client_id_1)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[grrtarget='client.vfs'].disabled")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[grrtarget='client.launchFlows'].disabled")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[grrtarget='client.flows'].disabled")
+    self.WaitUntil(
+        self.IsElementPresent, "css=a[grrtarget='client.vfs'].disabled"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=a[grrtarget='client.launchFlows'].disabled"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=a[grrtarget='client.flows'].disabled"
+    )
 
     # Only the "Host Information" navigation link should be active.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[grrtarget='client.hostInfo']:not(.disabled)")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=a[grrtarget='client.hostInfo']:not(.disabled)",
+    )
 
   def testApprovalNotificationIsShownInHostInfoForUnapprovedClient(self):
     self.Open("/legacy#/clients/%s" % self.client_id_1)
 
-    self.WaitUntil(self.IsTextPresent,
-                   "You do not have an approval for this client.")
+    self.WaitUntil(
+        self.IsTextPresent, "You do not have an approval for this client."
+    )
 
   def testClickingOnRequestApprovalShowsApprovalDialog(self):
     self.Open("/legacy#/clients/%s" % self.client_id_1)
 
     self.Click("css=button[name=requestApproval]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=h3:contains('Create a new approval')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
   def testClientACLWorkflow(self):
     self.Open("/legacy")
@@ -54,8 +61,9 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Type("client_query", self.client_id_1)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(self.client_id_1, self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(
+        self.client_id_1, self.GetText, "css=span[type=subject]"
+    )
 
     # Choose client 1
     self.Click("css=td:contains('%s')" % self.client_id_1)
@@ -63,16 +71,21 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # We do not have an approval, so we need to request one.
     self.WaitUntil(self.IsElementPresent, "css=div.no-approval")
     self.Click("css=button[name=requestApproval]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=h3:contains('Create a new approval')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
     # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.test_username)
-    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
-              self.reason)
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_approver]",
+        self.test_username,
+    )
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_reason]", self.reason
+    )
     self.Click(
-        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])"
+    )
 
     self.WaitForNotification(self.test_username)
     # User test logs in as an approver.
@@ -84,10 +97,12 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=td:contains('grant access to GRR client')")
 
-    self.WaitUntilContains("Grant access", self.GetText,
-                           "css=h2:contains('Grant')")
-    self.WaitUntil(self.IsTextPresent,
-                   "The user %s has requested" % self.test_username)
+    self.WaitUntilContains(
+        "Grant access", self.GetText, "css=h2:contains('Grant')"
+    )
+    self.WaitUntil(
+        self.IsTextPresent, "The user %s has requested" % self.test_username
+    )
 
     self.Click("css=button:contains('Approve')")
 
@@ -104,8 +119,9 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('has granted you access')")
 
     # This is insufficient - we need 2 approvers.
-    self.WaitUntil(self.IsTextPresent,
-                   "You do not have an approval for this client.")
+    self.WaitUntil(
+        self.IsTextPresent, "You do not have an approval for this client."
+    )
 
     # Lets add another approver.
     approval_id = self.ListClientApprovals(requestor=self.test_username)[0].id
@@ -113,7 +129,8 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
         self.client_id_1,
         approval_id=approval_id,
         requestor=self.test_username,
-        approver=u"approver")
+        approver="approver",
+    )
 
     # Check if we see that the approval has already been granted.
     self.Open("/legacy")
@@ -122,8 +139,9 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=td:contains('grant access to GRR client')")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "This approval has already been granted!")
+    self.WaitUntil(
+        self.IsTextPresent, "This approval has already been granted!"
+    )
 
     # Try again:
     self.Open("/legacy")
@@ -142,27 +160,29 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   def testRecentReasonBox(self):
     self.Open("/legacy")
 
-    test_reason = u"ástæða"
+    test_reason = "ástæða"
     self.RequestAndGrantClientApproval(self.client_id_2, reason=test_reason)
 
     self.Type("client_query", self.client_id_2)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(self.client_id_2, self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(
+        self.client_id_2, self.GetText, "css=span[type=subject]"
+    )
 
     # Choose client 6
     self.Click("css=td:contains('%s')" % self.client_id_2)
 
-    self.WaitUntil(self.IsTextPresent, u"Access reason: %s" % test_reason)
+    self.WaitUntil(self.IsTextPresent, "Access reason: %s" % test_reason)
 
     # By now we should have a recent reason set, let's see if it shows up in the
     # ACL dialog.
     self.Type("client_query", self.client_id_1)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(self.client_id_1, self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(
+        self.client_id_1, self.GetText, "css=span[type=subject]"
+    )
 
     # Choose client 1
     self.Click("css=td:contains('%s')" % self.client_id_1)
@@ -170,46 +190,63 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # We do not have an approval, so check that the hint is shown, that the
     # interrogate button is disabled and that the menu is disabled.
     self.WaitUntil(self.IsElementPresent, "css=div.no-approval")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button:contains('Interrogate')[disabled]")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button:contains('Interrogate')[disabled]"
+    )
     self.WaitUntil(self.IsElementPresent, "css=a.nav-link.disabled")
 
     # Request an approval.
     self.Click("css=button[name=requestApproval]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=h3:contains('Create a new approval')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
     self.WaitUntilEqual(
-        2, self.GetCssCount, "css=grr-request-approval-dialog "
-        "select[name=acl_recent_reasons] option")
+        2,
+        self.GetCssCount,
+        "css=grr-request-approval-dialog "
+        "select[name=acl_recent_reasons] option",
+    )
     self.assertEqual(
         "Enter New Reason...",
-        self.GetText("css=grr-request-approval-dialog "
-                     "select[name=acl_recent_reasons] option:nth(0)"))
+        self.GetText(
+            "css=grr-request-approval-dialog "
+            "select[name=acl_recent_reasons] option:nth(0)"
+        ),
+    )
     self.assertEqual(
         test_reason,
-        self.GetText("css=grr-request-approval-dialog "
-                     "select[name=acl_recent_reasons] option:nth(1)"))
+        self.GetText(
+            "css=grr-request-approval-dialog "
+            "select[name=acl_recent_reasons] option:nth(1)"
+        ),
+    )
 
     # The reason text box should be there and enabled.
     element = self.GetElement(
-        "css=grr-request-approval-dialog input[name=acl_reason]")
+        "css=grr-request-approval-dialog input[name=acl_reason]"
+    )
     self.assertTrue(element.is_enabled())
 
     self.Select(
         "css=grr-request-approval-dialog select[name=acl_recent_reasons]",
-        test_reason)
+        test_reason,
+    )
 
     # Make sure clicking the recent reason greys out the reason text box.
     element = self.GetElement(
-        "css=grr-request-approval-dialog input[name=acl_reason]")
+        "css=grr-request-approval-dialog input[name=acl_reason]"
+    )
     self.assertFalse(element.is_enabled())
 
     # Ok now submit this.
-    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.test_username)
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_approver]",
+        self.test_username,
+    )
     self.Click(
-        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])"
+    )
 
     # "Request Approval" dialog should go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
@@ -218,7 +255,8 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     def GetApprovals():
       approvals = self.ListClientApprovals(requestor=self.test_username)
       return list(
-          a for a in approvals if a.subject.client_id == self.client_id_1)
+          a for a in approvals if a.subject.client_id == self.client_id_1
+      )
 
     self.WaitUntilEqual(1, lambda: len(GetApprovals()))
 

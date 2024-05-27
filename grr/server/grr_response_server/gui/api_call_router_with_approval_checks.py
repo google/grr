@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
 
-from typing import Optional, Text
+from typing import Optional
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -38,7 +38,8 @@ from grr_response_server.rdfvalues import mig_objects
 
 
 APPROVAL_SEARCHES = metrics.Counter(
-    "approval_searches", fields=[("reason_presence", str), ("source", str)])
+    "approval_searches", fields=[("reason_presence", str), ("source", str)]
+)
 
 RESTRICTED_FLOWS = [
     administrative.ExecuteCommand,
@@ -68,11 +69,12 @@ class AccessChecker(object):
       self._restricted_flow_group_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=self.APPROVAL_CACHE_TIME)
+        max_size=10000, max_age=self.APPROVAL_CACHE_TIME
+    )
 
   def _CheckAccess(self, username, subject_id, approval_type):
     """Checks access to a given subject by a given user."""
-    precondition.AssertType(subject_id, Text)
+    precondition.AssertType(subject_id, str)
 
     cache_key = (username, subject_id, approval_type)
     try:
@@ -160,11 +162,13 @@ class AccessChecker(object):
       return
 
     if self._restricted_flow_group_manager.MemberOfAuthorizedGroup(
-        username, self._AUTH_SUBJECT):
+        username, self._AUTH_SUBJECT
+    ):
       return
 
     raise access_control.UnauthorizedAccess(
-        "Not enough permissions to access restricted flows.")
+        "Not enough permissions to access restricted flows."
+    )
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
@@ -204,10 +208,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     if flow.parent_hunt_id != flow.flow_id:
       self.access_checker.CheckClientAccess(context, args.client_id)
 
-  def __init__(self,
-               params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
-               access_checker: Optional[AccessChecker] = None,
-               delegate: Optional[api_call_router.ApiCallRouter] = None):
+  def __init__(
+      self,
+      params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
+      access_checker: Optional[AccessChecker] = None,
+      delegate: Optional[api_call_router.ApiCallRouter] = None,
+  ):
     super().__init__(params=params)
 
     if not access_checker:
@@ -244,11 +250,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody is allowed to search clients.
 
     return self.delegate.SearchClients(args, context=context)
-
-  def StructuredSearchClients(self, args, context=None):
-    # Everybody is allowed to search clients.
-
-    return self.delegate.StructuredSearchClients(args, context=context)
 
   def VerifyAccess(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)
@@ -294,7 +295,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def KillFleetspeak(
       self,
       args: api_client.ApiKillFleetspeakArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.KillFleetspeak(args, context=context)
@@ -302,7 +303,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def RestartFleetspeakGrrService(
       self,
       args: api_client.ApiRestartFleetspeakGrrServiceArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.RestartFleetspeakGrrService(args, context=context)
@@ -310,7 +311,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def DeleteFleetspeakPendingMessages(
       self,
       args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
@@ -318,7 +319,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetFleetspeakPendingMessages(
       self,
       args: api_client.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.GetFleetspeakPendingMessages(args, context=context)
@@ -326,7 +327,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetFleetspeakPendingMessageCount(
       self,
       args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)
@@ -342,7 +343,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def BrowseFilesystem(
       self,
       args: api_vfs.ApiBrowseFilesystemArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_vfs.ApiBrowseFilesystemHandler:
     self.access_checker.CheckClientAccess(context, args.client_id)
 
@@ -410,14 +411,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.GetVfsFileContentUpdateState(args, context=context)
 
-  def GetFileDecoders(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.GetFileDecoders(args, context=context)
-
-  def GetDecodedFileBlob(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
-    return self.delegate.GetDecodedFileBlob(args, context=context)
-
   # Clients labels methods.
   # ======================
   #
@@ -454,7 +447,8 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def CreateFlow(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)
     self.access_checker.CheckIfCanStartClientFlow(
-        context.username, args.flow.name or args.flow.runner_args.flow_name)
+        context.username, args.flow.name or args.flow.runner_args.flow_name
+    )
 
     return self.delegate.CreateFlow(args, context=context)
 
@@ -527,11 +521,13 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetCollectedTimeline(self, args, context=None):
     try:
       flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.flow_id))
+          str(args.client_id), str(args.flow_id)
+      )
     except db.UnknownFlowError:
       raise api_call_handler_base.ResourceNotFoundError(
-          "Flow with client id %s and flow id %s could not be found" %
-          (args.client_id, args.flow_id))
+          "Flow with client id %s and flow id %s could not be found"
+          % (args.client_id, args.flow_id)
+      )
 
     if flow.flow_class_name != timeline.TimelineFlow.__name__:
       raise ValueError("Flow '{}' is not a timeline flow".format(flow.flow_id))
@@ -586,11 +582,13 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ):
     try:
       flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.flow_id))
+          str(args.client_id), str(args.flow_id)
+      )
     except db.UnknownFlowError:
       raise api_call_handler_base.ResourceNotFoundError(
-          "Flow with client id %s and flow id %s could not be found" %
-          (args.client_id, args.flow_id))
+          "Flow with client id %s and flow id %s could not be found"
+          % (args.client_id, args.flow_id)
+      )
 
     if flow.flow_class_name != osquery.OsqueryFlow.__name__:
       raise ValueError("Flow '{}' is not an osquery flow".format(flow.flow_id))
@@ -741,8 +739,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Note: after the hunt is created, even if it involved restricted flows,
     # normal approval ACL checks apply. Namely: another user can start
     # such a hunt, if such user gets a valid hunt approval.
-    self.access_checker.CheckIfCanStartClientFlow(context.username,
-                                                  args.flow_name)
+    self.access_checker.CheckIfCanStartClientFlow(
+        context.username, args.flow_name
+    )
 
     return self.delegate.CreateHunt(args, context=context)
 
@@ -759,7 +758,8 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       return hunt_obj
     except db.UnknownHuntError:
       raise api_call_handler_base.ResourceNotFoundError(
-          "Hunt with id %s could not be found" % hunt_id)
+          "Hunt with id %s could not be found" % hunt_id
+      )
 
   def DeleteHunt(self, args, context=None):
     hunt_obj = self._GetHuntObj(args.hunt_id, context=context)
@@ -789,13 +789,15 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetCollectedHuntTimelines(args, context=context)
 
   def CreatePerClientFileCollectionHunt(
-      self, args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext
+      self,
+      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
+      context: api_call_context.ApiCallContext,
   ) -> api_call_handler_base.ApiCallHandler:
     """Create a new per-client file collection hunt."""
     # Everybody can create a per-client file collection hunt.
     return self.delegate.CreatePerClientFileCollectionHunt(
-        args, context=context)
+        args, context=context
+    )
 
   # Stats metrics methods.
   # =====================
@@ -999,7 +1001,8 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can list flow descritors.
 
     return api_flow.ApiListFlowDescriptorsHandler(
-        self.access_checker.CheckIfCanStartClientFlow)
+        self.access_checker.CheckIfCanStartClientFlow
+    )
 
   def GetRDFValueDescriptor(self, args, context=None):
     # Everybody can get rdfvalue descriptors.
@@ -1042,4 +1045,5 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     """Returns a description of the API following the OpenAPI specification."""
     # Everybody can get the OpenAPI description.
     return self.delegate.GetOpenApiDescription(args, context=context)
+
   # pytype: enable=attribute-error

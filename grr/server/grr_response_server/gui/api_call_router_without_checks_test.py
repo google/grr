@@ -5,7 +5,6 @@ from absl import app
 
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
-
 from grr_response_server.gui import api_call_router_without_checks
 from grr.test_lib import test_lib
 

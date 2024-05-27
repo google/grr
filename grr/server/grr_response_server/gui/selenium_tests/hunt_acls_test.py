@@ -40,22 +40,28 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
 
     # This should be rejected now and a form request is made.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=h3:contains('Create a new approval')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=h3:contains('Create a new approval')"
+    )
 
     # This asks our user to approve the request.
-    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.test_username)
-    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
-              self.reason)
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_approver]",
+        self.test_username,
+    )
+    self.Type(
+        "css=grr-request-approval-dialog input[name=acl_reason]", self.reason
+    )
     self.Click(
-        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])"
+    )
 
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
@@ -68,10 +74,12 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("notification_button")
     self.Click("css=td:contains('Please grant access to hunt')")
 
-    self.WaitUntilContains("Grant access", self.GetText,
-                           "css=h2:contains('Grant')")
-    self.WaitUntil(self.IsTextPresent,
-                   "The user %s has requested" % self.test_username)
+    self.WaitUntilContains(
+        "Grant access", self.GetText, "css=h2:contains('Grant')"
+    )
+    self.WaitUntil(
+        self.IsTextPresent, "The user %s has requested" % self.test_username
+    )
 
     # Hunt overview should be visible
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
@@ -86,29 +94,35 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
-    self.WaitUntil(self.GetText,
-                   "css=td:contains('has granted you access to hunt')")
+    self.WaitUntil(
+        self.GetText, "css=td:contains('has granted you access to hunt')"
+    )
     self.Click("css=tr:contains('has granted you access') a")
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]:not([disabled])")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
 
     # This is insufficient - we need 2 approvers.
-    self.WaitUntilContains("Need at least 1 additional approver for access.",
-                           self.GetText, "css=grr-request-approval-dialog")
+    self.WaitUntilContains(
+        "Need at least 1 additional approver for access.",
+        self.GetText,
+        "css=grr-request-approval-dialog",
+    )
 
     # Lets add another approver.
     approval_id = self.ListHuntApprovals(requestor=self.test_username)[0].id
     self.GrantHuntApproval(
         hunt_id,
         approval_id=approval_id,
-        approver=u"approver",
+        approver="approver",
         requestor=self.test_username,
-        admin=False)
+        admin=False,
+    )
 
     self.WaitForNotification(self.test_username)
     self.Open("/legacy")
@@ -122,18 +136,22 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Run the hunt (it should be selected by default).
     self.Click("css=button[name=RunHunt]:not([disabled])")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
 
     # This is still insufficient - one of the approvers should have
     # "admin" label.
-    self.WaitUntilContains("Need at least 1 admin approver for access",
-                           self.GetText, "css=grr-request-approval-dialog")
+    self.WaitUntilContains(
+        "Need at least 1 admin approver for access",
+        self.GetText,
+        "css=grr-request-approval-dialog",
+    )
 
     # Let's make "approver" an admin.
-    self.CreateAdminUser(u"approver")
+    self.CreateAdminUser("approver")
 
     # Check if we see that the approval has already been granted.
     self.Open("/legacy")
@@ -141,8 +159,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Click("css=td:contains('Please grant access to hunt')")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "This approval has already been granted!")
+    self.WaitUntil(
+        self.IsTextPresent, "This approval has already been granted!"
+    )
 
     # And try again
     self.Open("/legacy")
@@ -154,8 +173,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Run the hunt (it should be selected by default).
     self.Click("css=button[name=RunHunt]:not([disabled])")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
     # Click on "Proceed" and wait for the success status message.
     self.Click("css=button[name=Proceed]")
 
@@ -166,18 +186,17 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Both hunts will be approved by user "approver".
     hunt1_id = self.StartHunt(paused=True, creator="otheruser")
     hunt2_id = self.StartHunt(paused=True, creator=self.test_username)
-    self.CreateAdminUser(u"approver")
+    self.CreateAdminUser("approver")
 
     self.RequestAndGrantHuntApproval(
-        hunt1_id,
-        reason=self.reason,
-        approver=u"approver",
-        requestor=u"otheruser")
+        hunt1_id, reason=self.reason, approver="approver", requestor="otheruser"
+    )
     self.RequestAndGrantHuntApproval(
         hunt2_id,
         reason=self.reason,
-        approver=u"approver",
-        requestor=self.test_username)
+        approver="approver",
+        requestor=self.test_username,
+    )
 
     return hunt1_id, hunt2_id
 
@@ -197,8 +216,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Run button and check that dialog appears.
     self.Click("css=button[name=RunHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -210,8 +230,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=ModifyHunt]:not([disabled])"
+    )
 
     # Modify hunt
 
@@ -220,7 +241,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Modify this hunt")
     self.WaitUntil(
         self.IsElementPresent,
-        "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input")
+        "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("name=Proceed")
@@ -236,8 +258,10 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     #
     # Check that test user can start/stop/modify hunt2.
     #
-    self.Click("css=tr:contains('%s') td:contains('%s')" %
-               (hunt2_id, self.test_username))
+    self.Click(
+        "css=tr:contains('%s') td:contains('%s')"
+        % (hunt2_id, self.test_username)
+    )
 
     # Modify hunt
 
@@ -259,8 +283,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button disappears.
@@ -271,15 +296,17 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=StopHunt]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=StopHunt]:not([disabled])"
+    )
 
     # Stop hunt
 
     # Click on Stop and wait for dialog again.
     self.Click("css=button[name=StopHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to stop this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to stop this hunt?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -290,15 +317,17 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=ModifyHunt]:not([disabled])"
+    )
 
   def _RequestAndOpenApprovalFromSelf(self, hunt_id):
     self.RequestHuntApproval(
         hunt_id,
         reason=self.reason,
         approver=self.test_username,
-        requestor=self.test_username)
+        requestor=self.test_username,
+    )
 
     self.WaitForNotification(self.test_username)
     self.Open("/legacy")
@@ -310,8 +339,10 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self.StartHunt(paused=True, creator=self.test_username)
     self._RequestAndOpenApprovalFromSelf(hunt_id)
 
-    self.WaitUntil(self.IsTextPresent,
-                   "This hunt is new. It wasn't copied from another hunt")
+    self.WaitUntil(
+        self.IsTextPresent,
+        "This hunt is new. It wasn't copied from another hunt",
+    )
     # Make sure that only the correct message appears and the others are not
     # shown.
     self.WaitUntilNot(self.IsTextPresent, "This hunt was copied from")
@@ -322,25 +353,34 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
-        action=rdf_file_finder.FileFinderAction(action_type="STAT"))
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"),
+    )
     session_id = flow_test_lib.StartFlow(
-        file_finder.FileFinder, client_id=self.client_id, flow_args=flow_args)
+        file_finder.FileFinder, client_id=self.client_id, flow_args=flow_args
+    )
 
     ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-        session_id, self.client_id)
+        session_id, self.client_id
+    )
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
     flow_args.action.action_type = "DOWNLOAD"
     flow_args.conditions = [
         rdf_file_finder.FileFinderCondition(
             condition_type="SIZE",
-            size=rdf_file_finder.FileFinderSizeCondition(min_file_size=42))
+            size=rdf_file_finder.FileFinderSizeCondition(min_file_size=42),
+        )
     ]
-    return self.StartHunt(
-        flow_args=flow_args,
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=file_finder.FileFinder.__name__),
-        original_object=ref), session_id
+    return (
+        self.StartHunt(
+            flow_args=flow_args,
+            flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+                flow_name=file_finder.FileFinder.__name__
+            ),
+            original_object=ref,
+        ),
+        session_id,
+    )
 
   def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
     h_id, _ = self._CreateHuntFromFlow()
@@ -349,17 +389,22 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
     # Make sure that only the correct message appears and the others are not
     # shown.
-    self.WaitUntilNot(self.IsTextPresent,
-                      "This hunt is new. It wasn't copied from another hunt")
+    self.WaitUntilNot(
+        self.IsTextPresent,
+        "This hunt is new. It wasn't copied from another hunt",
+    )
     self.WaitUntilNot(self.IsTextPresent, "This hunt was copied from")
 
     self.WaitUntil(self.IsElementPresent, "css=.diff-removed:contains('a/*')")
     self.WaitUntil(self.IsElementPresent, "css=.diff-added:contains('c/*')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.diff-changed:contains('Action'):contains('STAT')")
     self.WaitUntil(
         self.IsElementPresent,
-        "css=tr.diff-changed:contains('Action'):contains('DOWNLOAD')")
+        "css=tr.diff-changed:contains('Action'):contains('STAT')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr.diff-changed:contains('Action'):contains('DOWNLOAD')",
+    )
     self.WaitUntil(
         self.IsElementPresent,
         "css=tr.diff-added:not(:contains('Args')):contains('Conditions')"
@@ -379,16 +424,19 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   def _CreateHuntFromHunt(self):
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
-        action=rdf_file_finder.FileFinderAction(action_type="STAT"))
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"),
+    )
     flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
-        flow_name=file_finder.FileFinder.__name__)
+        flow_name=file_finder.FileFinder.__name__
+    )
     client_rule_set = self._CreateForemanClientRuleSet()
     source_h = self.StartHunt(
         flow_args=flow_args,
         flow_runner_args=flow_runner_args,
         description="foo-description",
         client_rule_set=client_rule_set,
-        paused=True)
+        paused=True,
+    )
 
     ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(source_h)
 
@@ -397,7 +445,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     client_rule_set.rules[0].regex.field = "FQDN"
     output_plugins = [
         rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name="TestOutputPluginWithArgs")
+            plugin_name="TestOutputPluginWithArgs"
+        )
     ]
     new_h = self.StartHunt(
         flow_args=flow_args,
@@ -406,7 +455,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         client_rule_set=client_rule_set,
         output_plugins=output_plugins,
         original_object=ref,
-        paused=True)
+        paused=True,
+    )
 
     return new_h, source_h
 
@@ -418,28 +468,37 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Make sure that only the correct message appears and the others are not
     # shown.
     self.WaitUntilNot(self.IsTextPresent, "This hunt was created from a flow")
-    self.WaitUntilNot(self.IsTextPresent,
-                      "This hunt is new. It wasn't copied from another hunt")
+    self.WaitUntilNot(
+        self.IsTextPresent,
+        "This hunt is new. It wasn't copied from another hunt",
+    )
 
     self.WaitUntil(self.IsElementPresent, "css=.diff-removed:contains('a/*')")
     self.WaitUntil(self.IsElementPresent, "css=.diff-added:contains('c/*')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.diff-changed:contains('foo-description')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.diff-changed:contains('bar-description')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr.diff-changed:contains('foo-description')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr.diff-changed:contains('bar-description')"
+    )
 
     self.WaitUntil(
-        self.IsElementPresent, "css=tr.diff-added:contains('Output Plugins'):"
-        "contains('TestOutputPluginWithArgs')")
+        self.IsElementPresent,
+        "css=tr.diff-added:contains('Output Plugins'):"
+        "contains('TestOutputPluginWithArgs')",
+    )
 
     self.WaitUntil(
         self.IsElementPresent,
         "css=td table.diff-removed:contains('Rule type'):"
-        "contains('REGEX'):contains('CLIENT_NAME')")
+        "contains('REGEX'):contains('CLIENT_NAME')",
+    )
     self.WaitUntil(
-        self.IsElementPresent, "css=td table.diff-added:contains('Rule type'):"
-        "contains('REGEX'):contains('FQDN')")
+        self.IsElementPresent,
+        "css=td table.diff-added:contains('Rule type'):"
+        "contains('REGEX'):contains('FQDN')",
+    )
 
   def testOriginalHuntLinkIsShownIfHuntCreatedFromHunt(self):
     new_h_id, source_h_id = self._CreateHuntFromHunt()

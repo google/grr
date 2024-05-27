@@ -97,8 +97,8 @@ describe('ApiHelperService', () => {
 
   it('uses helper with null webAuthType if no matches', (done) => {
     grrApiHelperService.registerHelper('Foo', null, fooHelper);
-    grrApiHelperService.registerHelper('Foo', 'SomeOtherAuthManager',
-                                       barHelper);
+    grrApiHelperService.registerHelper(
+        'Foo', 'SomeOtherAuthManager', barHelper);
 
     grrApiHelperService
         .buildStartFlow('C.1111222233334444', {

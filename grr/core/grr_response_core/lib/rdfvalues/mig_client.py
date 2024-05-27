@@ -193,20 +193,6 @@ def ToRDFStartupInfo(proto: jobs_pb2.StartupInfo) -> rdf_client.StartupInfo:
   return rdf_client.StartupInfo.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoWindowsServiceInformation(
-    rdf: rdf_client.WindowsServiceInformation,
-) -> sysinfo_pb2.WindowsServiceInformation:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFWindowsServiceInformation(
-    proto: sysinfo_pb2.WindowsServiceInformation,
-) -> rdf_client.WindowsServiceInformation:
-  return rdf_client.WindowsServiceInformation.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoOSXServiceInformation(
     rdf: rdf_client.OSXServiceInformation,
 ) -> sysinfo_pb2.OSXServiceInformation:
@@ -217,20 +203,6 @@ def ToRDFOSXServiceInformation(
     proto: sysinfo_pb2.OSXServiceInformation,
 ) -> rdf_client.OSXServiceInformation:
   return rdf_client.OSXServiceInformation.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoLinuxServiceInformation(
-    rdf: rdf_client.LinuxServiceInformation,
-) -> sysinfo_pb2.LinuxServiceInformation:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFLinuxServiceInformation(
-    proto: sysinfo_pb2.LinuxServiceInformation,
-) -> rdf_client.LinuxServiceInformation:
-  return rdf_client.LinuxServiceInformation.FromSerializedBytes(
       proto.SerializeToString()
   )
 

@@ -13,15 +13,17 @@ from grr.test_lib import artifact_test_lib
 
 
 class ApiListArtifactsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "ListArtifacts"
   handler = artifact_plugin.ApiListArtifactsHandler
 
   def Run(self):
     with artifact_test_lib.PatchCleanArtifactRegistry():
-      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                         "artifacts", "test_artifact.json")
+      test_artifacts_file = os.path.join(
+          config.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"
+      )
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
       self.Check("ListArtifacts")

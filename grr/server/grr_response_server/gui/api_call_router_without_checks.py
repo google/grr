@@ -5,7 +5,6 @@ from typing import Optional
 
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
-
 from grr_response_server.gui.api_plugins import artifact as api_artifact
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import config as api_config
@@ -44,9 +43,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def SearchClients(self, args, context=None):
     return api_client.ApiSearchClientsHandler()
 
-  def StructuredSearchClients(self, args, context=None):
-    return api_client.ApiStructuredSearchClientsHandler()
-
   def VerifyAccess(self, args, context=None):
     return api_client.ApiVerifyAccessHandler()
 
@@ -74,35 +70,35 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def KillFleetspeak(
       self,
       args: api_client.ApiKillFleetspeakArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
     return api_client.ApiKillFleetspeakHandler()
 
   def RestartFleetspeakGrrService(
       self,
       args: api_client.ApiRestartFleetspeakGrrServiceArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
     return api_client.ApiRestartFleetspeakGrrServiceHandler()
 
   def DeleteFleetspeakPendingMessages(
       self,
       args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     return api_client.ApiDeleteFleetspeakPendingMessagesHandler()
 
   def GetFleetspeakPendingMessages(
       self,
       args: api_client.ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
     return api_client.ApiGetFleetspeakPendingMessagesHandler()
 
   def GetFleetspeakPendingMessageCount(
       self,
       args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
     return api_client.ApiGetFleetspeakPendingMessageCountHandler()
 
@@ -115,7 +111,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def BrowseFilesystem(
       self,
       args: api_vfs.ApiBrowseFilesystemArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_vfs.ApiBrowseFilesystemHandler:
     return api_vfs.ApiBrowseFilesystemHandler()
 
@@ -154,12 +150,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def GetVfsFileContentUpdateState(self, args, context=None):
     return api_vfs.ApiGetVfsFileContentUpdateStateHandler()
-
-  def GetFileDecoders(self, args, context=None):
-    return api_vfs.ApiGetFileDecodersHandler()
-
-  def GetDecodedFileBlob(self, args, context=None):
-    return api_vfs.ApiGetDecodedFileHandler()
 
   # Clients labels methods.
   # ======================
@@ -381,8 +371,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
     return api_timeline.ApiGetCollectedHuntTimelinesHandler()
 
   def CreatePerClientFileCollectionHunt(
-      self, args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext
+      self,
+      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
+      context: api_call_context.ApiCallContext,
   ) -> api_hunt.ApiCreatePerClientFileCollectionHuntHandler:
     return api_hunt.ApiCreatePerClientFileCollectionHuntHandler()
 

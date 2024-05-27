@@ -4,6 +4,7 @@ import logging
 import ntpath
 import os
 import pathlib
+import re
 import stat
 from typing import Iterable
 from typing import Iterator
@@ -15,8 +16,6 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.parsers import linux_release_parser
-from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -33,6 +32,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
+from grr_response_server.flows.general import distro
 
 
 def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
@@ -71,20 +71,8 @@ class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
 class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
   """Flow that atttempts to initialize the knowledge base.
 
-  This flow processes all artifacts specified by the
-  Artifacts.knowledge_base config. We determine what knowledgebase
-  attributes are required, collect them, and return a filled
+  We collect required knowledgebase attributes are required and return a filled
   knowledgebase.
-
-  We don't try to fulfill dependencies in the tree order, the
-  reasoning is that some artifacts may fail, and some artifacts
-  provide the same dependency.
-
-  Instead we take an iterative approach and keep requesting artifacts
-  until all dependencies have been met.  If there is more than one
-  artifact that provides a dependency we will collect them all as they
-  likely have different performance characteristics, e.g. accuracy and
-  client impact.
   """
 
   category = "/Collectors/"
@@ -101,10 +89,8 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     if self.client_os == "Linux":
       if artifact_registry.REGISTRY.Exists("LinuxReleaseInfo"):
         self.CallFlow(
-            "ArtifactCollectorFlow",
-            artifact_list=["LinuxReleaseInfo"],
-            knowledge_base=self.state.knowledge_base,
-            next_state=self._ProcessLinuxReleaseInfo.__name__,
+            distro.CollectDistroInfo.__name__,
+            next_state=self._ProcessLinuxDistroInfo.__name__,
         )
       else:
         self.Log("`LinuxReleaseInfo` artifact not found, skipping...")
@@ -226,45 +212,21 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           next_state=self._ProcessWindowsProfiles.__name__,
       )
 
-  def _ProcessLinuxReleaseInfo(
+  def _ProcessLinuxDistroInfo(
       self,
-      responses: flow_responses.Responses[rdfvalue.RDFValue],
+      responses: flow_responses.Responses[distro.CollectDistroInfoResult],
   ) -> None:
     if not responses.success:
       self.Log("Failed to get Linux release information: %s", responses.status)
       return
 
-    knowledge_base = self.state.knowledge_base
-
-    pathspecs: list[rdf_paths.PathSpec] = []
-    files: list[file_store.BlobStream] = []
-
     for response in responses:
-      if not isinstance(response, rdf_client_fs.StatEntry):
-        self.Log("Unexpected response type: '%s'", type(response))
-        continue
-
-      path = db.ClientPath.FromPathSpec(self.client_id, response.pathspec)
-
-      pathspecs.append(response.pathspec)
-      files.append(file_store.OpenFile(path))
-
-    parser = linux_release_parser.LinuxReleaseParser()
-
-    for info in parser.ParseFiles(knowledge_base, pathspecs, files):
-      # The parser can sometimes yield an anomaly object.
-      if not (isinstance(info, dict) or isinstance(info, rdf_protodict.Dict)):
-        self.Log("Invalid release information: %s", info)
-        continue
-
-      if os_release := info.get("os_release"):
-        self.state.knowledge_base.os_release = os_release
-
-      if os_major_version := info.get("os_major_version"):
-        self.state.knowledge_base.os_major_version = os_major_version
-
-      if os_minor_version := info.get("os_minor_version"):
-        self.state.knowledge_base.os_minor_version = os_minor_version
+      if response.name:
+        self.state.knowledge_base.os_release = response.name
+      if response.version_major:
+        self.state.knowledge_base.os_major_version = response.version_major
+      if response.version_minor:
+        self.state.knowledge_base.os_minor_version = response.version_minor
 
   def _ProcessLinuxEnumerateUsers(
       self,
@@ -653,7 +615,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     time_zone_key_name = response.registry_data.string
     try:
-      time_zone = windows_registry_parser.ZONE_LIST[time_zone_key_name]
+      time_zone = _WINDOWS_TIME_ZONE_MAP[time_zone_key_name]
     except KeyError:
       self.Log("Failed to parse time zone key name: %r", time_zone_key_name)
       # We set the time zone as "unknown" with the raw value in case the call
@@ -686,7 +648,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     time_zone_standard_name = response.registry_data.string
     try:
-      time_zone = windows_registry_parser.ZONE_LIST[time_zone_standard_name]
+      time_zone = _WINDOWS_TIME_ZONE_MAP[time_zone_standard_name]
     except KeyError:
       self.Log(
           "Failed to parse time zone standard name: %r",
@@ -884,7 +846,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       sid = ntpath.basename(ntpath.dirname(response.stat_entry.pathspec.path))
       home = response.stat_entry.registry_data.string
 
-      if not windows_registry_parser.SID_RE.match(sid):
+      if not _WINDOWS_SID_REGEX.match(sid):
         # There are some system profiles that do not match, so we don't log any
         # errors and just silently continue.
         continue
@@ -975,7 +937,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
         continue
 
       sid = parts[hive_index + 1]
-      if not windows_registry_parser.SID_RE.match(sid):
+      if not _WINDOWS_SID_REGEX.match(sid):
         self.Log("Unexpected registry SID for %r", path)
         continue
 
@@ -1333,3 +1295,203 @@ def LoadArtifactsOnce():
   Datastore gets loaded second so it can override Artifacts in the files.
   """
   artifact_registry.REGISTRY.AddDefaultSources()
+
+
+_WINDOWS_SID_REGEX = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
+
+
+# Pre-built from the following Windows registry key:
+# `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones\`
+#
+# Note that these may not be consistent across Windows versions so may need
+# adjustment in the future.
+_WINDOWS_TIME_ZONE_MAP: dict[str, str] = {
+    "IndiaStandardTime": "Asia/Kolkata",
+    "EasternStandardTime": "EST5EDT",
+    "EasternDaylightTime": "EST5EDT",
+    "MountainStandardTime": "MST7MDT",
+    "MountainDaylightTime": "MST7MDT",
+    "PacificStandardTime": "PST8PDT",
+    "PacificDaylightTime": "PST8PDT",
+    "CentralStandardTime": "CST6CDT",
+    "CentralDaylightTime": "CST6CDT",
+    "SamoaStandardTime": "US/Samoa",
+    "HawaiianStandardTime": "US/Hawaii",
+    "AlaskanStandardTime": "US/Alaska",
+    "MexicoStandardTime2": "MST7MDT",
+    "USMountainStandardTime": "MST7MDT",
+    "CanadaCentralStandardTime": "CST6CDT",
+    "MexicoStandardTime": "CST6CDT",
+    "CentralAmericaStandardTime": "CST6CDT",
+    "USEasternStandardTime": "EST5EDT",
+    "SAPacificStandardTime": "EST5EDT",
+    "MalayPeninsulaStandardTime": "Asia/Kuching",
+    "PacificSAStandardTime": "Canada/Atlantic",
+    "AtlanticStandardTime": "Canada/Atlantic",
+    "SAWesternStandardTime": "Canada/Atlantic",
+    "NewfoundlandStandardTime": "Canada/Newfoundland",
+    "AzoresStandardTime": "Atlantic/Azores",
+    "CapeVerdeStandardTime": "Atlantic/Azores",
+    "GMTStandardTime": "GMT",
+    "GreenwichStandardTime": "GMT",
+    "W.CentralAfricaStandardTime": "Europe/Belgrade",
+    "W.EuropeStandardTime": "Europe/Belgrade",
+    "CentralEuropeStandardTime": "Europe/Belgrade",
+    "RomanceStandardTime": "Europe/Belgrade",
+    "CentralEuropeanStandardTime": "Europe/Belgrade",
+    "E.EuropeStandardTime": "Egypt",
+    "SouthAfricaStandardTime": "Egypt",
+    "IsraelStandardTime": "Egypt",
+    "EgyptStandardTime": "Egypt",
+    "NorthAsiaEastStandardTime": "Asia/Bangkok",
+    "SingaporeStandardTime": "Asia/Bangkok",
+    "ChinaStandardTime": "Asia/Bangkok",
+    "W.AustraliaStandardTime": "Australia/Perth",
+    "TaipeiStandardTime": "Asia/Bangkok",
+    "TokyoStandardTime": "Asia/Tokyo",
+    "KoreaStandardTime": "Asia/Seoul",
+    "@tzres.dll,-10": "Atlantic/Azores",
+    "@tzres.dll,-11": "Atlantic/Azores",
+    "@tzres.dll,-12": "Atlantic/Azores",
+    "@tzres.dll,-20": "Atlantic/Cape_Verde",
+    "@tzres.dll,-21": "Atlantic/Cape_Verde",
+    "@tzres.dll,-22": "Atlantic/Cape_Verde",
+    "@tzres.dll,-40": "Brazil/East",
+    "@tzres.dll,-41": "Brazil/East",
+    "@tzres.dll,-42": "Brazil/East",
+    "@tzres.dll,-70": "Canada/Newfoundland",
+    "@tzres.dll,-71": "Canada/Newfoundland",
+    "@tzres.dll,-72": "Canada/Newfoundland",
+    "@tzres.dll,-80": "Canada/Atlantic",
+    "@tzres.dll,-81": "Canada/Atlantic",
+    "@tzres.dll,-82": "Canada/Atlantic",
+    "@tzres.dll,-104": "America/Cuiaba",
+    "@tzres.dll,-105": "America/Cuiaba",
+    "@tzres.dll,-110": "EST5EDT",
+    "@tzres.dll,-111": "EST5EDT",
+    "@tzres.dll,-112": "EST5EDT",
+    "@tzres.dll,-120": "EST5EDT",
+    "@tzres.dll,-121": "EST5EDT",
+    "@tzres.dll,-122": "EST5EDT",
+    "@tzres.dll,-130": "EST5EDT",
+    "@tzres.dll,-131": "EST5EDT",
+    "@tzres.dll,-132": "EST5EDT",
+    "@tzres.dll,-140": "CST6CDT",
+    "@tzres.dll,-141": "CST6CDT",
+    "@tzres.dll,-142": "CST6CDT",
+    "@tzres.dll,-150": "America/Guatemala",
+    "@tzres.dll,-151": "America/Guatemala",
+    "@tzres.dll,-152": "America/Guatemala",
+    "@tzres.dll,-160": "CST6CDT",
+    "@tzres.dll,-161": "CST6CDT",
+    "@tzres.dll,-162": "CST6CDT",
+    "@tzres.dll,-170": "America/Mexico_City",
+    "@tzres.dll,-171": "America/Mexico_City",
+    "@tzres.dll,-172": "America/Mexico_City",
+    "@tzres.dll,-180": "MST7MDT",
+    "@tzres.dll,-181": "MST7MDT",
+    "@tzres.dll,-182": "MST7MDT",
+    "@tzres.dll,-190": "MST7MDT",
+    "@tzres.dll,-191": "MST7MDT",
+    "@tzres.dll,-192": "MST7MDT",
+    "@tzres.dll,-200": "MST7MDT",
+    "@tzres.dll,-201": "MST7MDT",
+    "@tzres.dll,-202": "MST7MDT",
+    "@tzres.dll,-210": "PST8PDT",
+    "@tzres.dll,-211": "PST8PDT",
+    "@tzres.dll,-212": "PST8PDT",
+    "@tzres.dll,-220": "US/Alaska",
+    "@tzres.dll,-221": "US/Alaska",
+    "@tzres.dll,-222": "US/Alaska",
+    "@tzres.dll,-230": "US/Hawaii",
+    "@tzres.dll,-231": "US/Hawaii",
+    "@tzres.dll,-232": "US/Hawaii",
+    "@tzres.dll,-260": "GMT",
+    "@tzres.dll,-261": "GMT",
+    "@tzres.dll,-262": "GMT",
+    "@tzres.dll,-271": "UTC",
+    "@tzres.dll,-272": "UTC",
+    "@tzres.dll,-280": "Europe/Budapest",
+    "@tzres.dll,-281": "Europe/Budapest",
+    "@tzres.dll,-282": "Europe/Budapest",
+    "@tzres.dll,-290": "Europe/Warsaw",
+    "@tzres.dll,-291": "Europe/Warsaw",
+    "@tzres.dll,-292": "Europe/Warsaw",
+    "@tzres.dll,-331": "Europe/Nicosia",
+    "@tzres.dll,-332": "Europe/Nicosia",
+    "@tzres.dll,-340": "Africa/Cairo",
+    "@tzres.dll,-341": "Africa/Cairo",
+    "@tzres.dll,-342": "Africa/Cairo",
+    "@tzres.dll,-350": "Europe/Sofia",
+    "@tzres.dll,-351": "Europe/Sofia",
+    "@tzres.dll,-352": "Europe/Sofia",
+    "@tzres.dll,-365": "Egypt",
+    "@tzres.dll,-390": "Asia/Kuwait",
+    "@tzres.dll,-391": "Asia/Kuwait",
+    "@tzres.dll,-392": "Asia/Kuwait",
+    "@tzres.dll,-400": "Asia/Baghdad",
+    "@tzres.dll,-401": "Asia/Baghdad",
+    "@tzres.dll,-402": "Asia/Baghdad",
+    "@tzres.dll,-410": "Africa/Nairobi",
+    "@tzres.dll,-411": "Africa/Nairobi",
+    "@tzres.dll,-412": "Africa/Nairobi",
+    "@tzres.dll,-434": "Asia/Tbilisi",
+    "@tzres.dll,-435": "Asia/Tbilisi",
+    "@tzres.dll,-440": "Asia/Muscat",
+    "@tzres.dll,-441": "Asia/Muscat",
+    "@tzres.dll,-442": "Asia/Muscat",
+    "@tzres.dll,-447": "Asia/Baku",
+    "@tzres.dll,-448": "Asia/Baku",
+    "@tzres.dll,-449": "Asia/Baku",
+    "@tzres.dll,-450": "Asia/Yerevan",
+    "@tzres.dll,-451": "Asia/Yerevan",
+    "@tzres.dll,-452": "Asia/Yerevan",
+    "@tzres.dll,-460": "Asia/Kabul",
+    "@tzres.dll,-461": "Asia/Kabul",
+    "@tzres.dll,-462": "Asia/Kabul",
+    "@tzres.dll,-471": "Asia/Yekaterinburg",
+    "@tzres.dll,-472": "Asia/Yekaterinburg",
+    "@tzres.dll,-511": "Asia/Aqtau",
+    "@tzres.dll,-512": "Asia/Aqtau",
+    "@tzres.dll,-570": "Asia/Chongqing",
+    "@tzres.dll,-571": "Asia/Chongqing",
+    "@tzres.dll,-572": "Asia/Chongqing",
+    "@tzres.dll,-650": "Australia/Darwin",
+    "@tzres.dll,-651": "Australia/Darwin",
+    "@tzres.dll,-652": "Australia/Darwin",
+    "@tzres.dll,-660": "Australia/Adelaide",
+    "@tzres.dll,-661": "Australia/Adelaide",
+    "@tzres.dll,-662": "Australia/Adelaide",
+    "@tzres.dll,-670": "Australia/Sydney",
+    "@tzres.dll,-671": "Australia/Sydney",
+    "@tzres.dll,-672": "Australia/Sydney",
+    "@tzres.dll,-680": "Australia/Brisbane",
+    "@tzres.dll,-681": "Australia/Brisbane",
+    "@tzres.dll,-682": "Australia/Brisbane",
+    "@tzres.dll,-721": "Pacific/Port_Moresby",
+    "@tzres.dll,-722": "Pacific/Port_Moresby",
+    "@tzres.dll,-731": "Pacific/Fiji",
+    "@tzres.dll,-732": "Pacific/Fiji",
+    "@tzres.dll,-840": "America/Argentina/Buenos_Aires",
+    "@tzres.dll,-841": "America/Argentina/Buenos_Aires",
+    "@tzres.dll,-842": "America/Argentina/Buenos_Aires",
+    "@tzres.dll,-880": "UTC",
+    "@tzres.dll,-930": "UTC",
+    "@tzres.dll,-931": "UTC",
+    "@tzres.dll,-932": "UTC",
+    "@tzres.dll,-1010": "Asia/Aqtau",
+    "@tzres.dll,-1020": "Asia/Dhaka",
+    "@tzres.dll,-1021": "Asia/Dhaka",
+    "@tzres.dll,-1022": "Asia/Dhaka",
+    "@tzres.dll,-1070": "Asia/Tbilisi",
+    "@tzres.dll,-1120": "America/Cuiaba",
+    "@tzres.dll,-1140": "Pacific/Fiji",
+    "@tzres.dll,-1460": "Pacific/Port_Moresby",
+    "@tzres.dll,-1530": "Asia/Yekaterinburg",
+    "@tzres.dll,-1630": "Europe/Nicosia",
+    "@tzres.dll,-1660": "America/Bahia",
+    "@tzres.dll,-1661": "America/Bahia",
+    "@tzres.dll,-1662": "America/Bahia",
+    "Central Standard Time": "CST6CDT",
+    "Pacific Standard Time": "PST8PDT",
+}

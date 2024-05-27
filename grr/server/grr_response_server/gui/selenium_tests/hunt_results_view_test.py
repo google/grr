@@ -31,44 +31,58 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
-    self.WaitUntil(self.IsTextPresent,
-                   "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0])
+    self.WaitUntil(
+        self.IsTextPresent, "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0]
+    )
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
   def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
-        [rdfvalue.RDFString("foo-result")])
+        [rdfvalue.RDFString("foo-result")]
+    )
 
     self.Open("/legacy#/hunts/%s/results" % hunt_id)
-    self.Click("css=td:contains('%s') button:has(.fa-info-circle)" %
-               self.client_ids[0])
+    self.Click(
+        "css=td:contains('%s') button:has(.fa-info-circle)" % self.client_ids[0]
+    )
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.modal-dialog:contains('Client %s')" % client_id)
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.modal-dialog:contains('Client %s')" % client_id,
+    )
 
   def testResultsViewGetsAutoRefreshed(self):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
-        [rdfvalue.RDFString("foo-result")])
+        [rdfvalue.RDFString("foo-result")]
+    )
 
     self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);"
+    )
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection td:contains('foo-result')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-results-collection td:contains('bar-result')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('foo-result')",
+    )
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('bar-result')",
+    )
 
-    self.AddResultsToHunt(hunt_id, client_id,
-                          [rdfvalue.RDFString("bar-result")])
+    self.AddResultsToHunt(
+        hunt_id, client_id, [rdfvalue.RDFString("bar-result")]
+    )
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection td:contains('bar-result')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection td:contains('bar-result')",
+    )
 
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
     hunt_id, _ = self.CreateGenericHuntWithCollection([])
@@ -81,33 +95,42 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedHuntResults",
-      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler(),
+  )
   def testHuntResultsCanBeDownloadedAsCsv(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(
-        mock_method, csv_plugin.CSVInstantOutputPlugin.plugin_name,
-        csv_plugin.CSVInstantOutputPlugin.friendly_name)
+        mock_method,
+        csv_plugin.CSVInstantOutputPlugin.plugin_name,
+        csv_plugin.CSVInstantOutputPlugin.friendly_name,
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedHuntResults",
-      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler(),
+  )
   def testHuntResultsCanBeDownloadedAsYaml(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(
         mock_method,
         yaml_plugin.YamlInstantOutputPluginWithExportConversion.plugin_name,
-        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name)
+        yaml_plugin.YamlInstantOutputPluginWithExportConversion.friendly_name,
+    )
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
       "GetExportedHuntResults",
-      return_value=api_hunt.ApiGetExportedHuntResultsHandler())
+      return_value=api_hunt.ApiGetExportedHuntResultsHandler(),
+  )
   def testHuntResultsCanBeDownloadedAsSqlite(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(
-        mock_method, sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
-        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name)
+        mock_method,
+        sqlite_plugin.SqliteInstantOutputPlugin.plugin_name,
+        sqlite_plugin.SqliteInstantOutputPlugin.friendly_name,
+    )
 
-  def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
-                                            plugin_display_name):
+  def checkHuntResultsCanBeDownloadedAsType(
+      self, mock_method, plugin, plugin_display_name
+  ):
     hunt_id, _ = self.CreateGenericHuntWithCollection()
 
     self.Open("/legacy#/hunts/%s/results" % hunt_id)
@@ -120,8 +143,10 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
         # and once for GET methods.
         mock_method.assert_called_with(
             api_hunt.ApiGetExportedHuntResultsArgs(
-                hunt_id=hunt_id, plugin_name=plugin),
-            context=mock.ANY)
+                hunt_id=hunt_id, plugin_name=plugin
+            ),
+            context=mock.ANY,
+        )
 
         return True
       except AssertionError:

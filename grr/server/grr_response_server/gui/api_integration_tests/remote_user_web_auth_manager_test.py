@@ -15,7 +15,7 @@ class RemoteUserWebAuthManagerTest(api_integration_test_lib.ApiIntegrationTest):
     super().setUp()
     config_overrider = test_lib.ConfigOverrider({
         "AdminUI.webauth_manager": "RemoteUserWebAuthManager",
-        "AdminUI.remote_user_trusted_ips": ["127.0.0.1", "::1"]
+        "AdminUI.remote_user_trusted_ips": ["127.0.0.1", "::1"],
     })
     config_overrider.Start()
     self.addCleanup(webauth.InitializeWebAuth)

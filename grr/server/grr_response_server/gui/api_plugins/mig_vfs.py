@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_proto.api import vfs_pb2
 from grr_response_server.gui.api_plugins import vfs
 
@@ -442,47 +443,5 @@ def ToRDFApiGetVfsFilesArchiveArgs(
     proto: vfs_pb2.ApiGetVfsFilesArchiveArgs,
 ) -> vfs.ApiGetVfsFilesArchiveArgs:
   return vfs.ApiGetVfsFilesArchiveArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiGetFileDecodersArgs(
-    rdf: vfs.ApiGetFileDecodersArgs,
-) -> vfs_pb2.ApiGetFileDecodersArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiGetFileDecodersArgs(
-    proto: vfs_pb2.ApiGetFileDecodersArgs,
-) -> vfs.ApiGetFileDecodersArgs:
-  return vfs.ApiGetFileDecodersArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiGetFileDecodersResult(
-    rdf: vfs.ApiGetFileDecodersResult,
-) -> vfs_pb2.ApiGetFileDecodersResult:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiGetFileDecodersResult(
-    proto: vfs_pb2.ApiGetFileDecodersResult,
-) -> vfs.ApiGetFileDecodersResult:
-  return vfs.ApiGetFileDecodersResult.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiGetDecodedFileArgs(
-    rdf: vfs.ApiGetDecodedFileArgs,
-) -> vfs_pb2.ApiGetDecodedFileArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiGetDecodedFileArgs(
-    proto: vfs_pb2.ApiGetDecodedFileArgs,
-) -> vfs.ApiGetDecodedFileArgs:
-  return vfs.ApiGetDecodedFileArgs.FromSerializedBytes(
       proto.SerializeToString()
   )

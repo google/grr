@@ -5,7 +5,6 @@ import logging
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import config as rdf_config
@@ -22,9 +21,12 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 # the list of redacted options and settings here may lead to scenario
 # when new sensitive option is added, but these lists are not updated.
 REDACTED_OPTIONS = [
-    "AdminUI.django_secret_key", "AdminUI.csrf_secret_key",
-    "BigQuery.service_acct_json", "Mysql.password", "Mysql.database_password",
-    "Worker.smtp_password"
+    "AdminUI.django_secret_key",
+    "AdminUI.csrf_secret_key",
+    "BigQuery.service_acct_json",
+    "Mysql.password",
+    "Mysql.database_password",
+    "Worker.smtp_password",
 ]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 
@@ -106,7 +108,8 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       section_data = {}
       for parameter in self._ListParametersInSection(descriptor.section):
         section_data[parameter] = ApiConfigOption().InitFromConfigOption(
-            parameter)
+            parameter
+        )
 
       sections[descriptor.section] = section_data
 
@@ -159,10 +162,12 @@ class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
 
 def _GetSignedBlobsRoots():
   return {
-      ApiGrrBinary.Type.PYTHON_HACK:
-          signed_binary_utils.GetAFF4PythonHackRoot(),
-      ApiGrrBinary.Type.EXECUTABLE:
+      ApiGrrBinary.Type.PYTHON_HACK: (
+          signed_binary_utils.GetAFF4PythonHackRoot()
+      ),
+      ApiGrrBinary.Type.EXECUTABLE: (
           signed_binary_utils.GetAFF4ExecutablesRoot()
+      ),
   }
 
 
@@ -180,7 +185,8 @@ def _GetSignedBinaryMetadata(binary_type, relative_path):
   root_urn = _GetSignedBlobsRoots()[binary_type]
   binary_urn = root_urn.Add(relative_path)
   blob_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-      binary_urn)
+      binary_urn
+  )
   binary_size = 0
   has_valid_signature = True
   for blob in blob_iterator:
@@ -199,7 +205,8 @@ def _GetSignedBinaryMetadata(binary_type, relative_path):
       type=binary_type,
       size=binary_size,
       timestamp=timestamp,
-      has_valid_signature=has_valid_signature)
+      has_valid_signature=has_valid_signature,
+  )
 
 
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
@@ -221,7 +228,8 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, unused_args, context=None):
     return ApiListGrrBinariesResult(
-        items=self._ListSignedBlobs(context=context))
+        items=self._ListSignedBlobs(context=context)
+    )
 
 
 class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
@@ -236,7 +244,8 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     return _GetSignedBinaryMetadata(
-        binary_type=args.type, relative_path=args.path)
+        binary_type=args.type, relative_path=args.path
+    )
 
 
 class ApiGetGrrBinaryBlobArgs(rdf_structs.RDFProtoStruct):
@@ -255,13 +264,16 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
     binary_urn = root_urn.Add(args.path)
     binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
     blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        binary_urn)
+        binary_urn
+    )
     chunk_iterator = signed_binary_utils.StreamSignedBinaryContents(
-        blob_iterator, chunk_size=self.CHUNK_SIZE)
+        blob_iterator, chunk_size=self.CHUNK_SIZE
+    )
     return api_call_handler_base.ApiBinaryStream(
         filename=binary_urn.Basename(),
         content_generator=chunk_iterator,
-        content_length=binary_size)
+        content_length=binary_size,
+    )
 
 
 class ApiUiConfig(rdf_structs.RDFProtoStruct):

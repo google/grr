@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "../../../material-theme" as c;
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
 
 $outline-width: 4px;
 $background: mat.get-color-from-palette(c.$background, hover);
@@ -13,7 +13,8 @@ $transition-time: 200ms;
   cursor: pointer;
   border-radius: $outline-width 0 0 $outline-width;
   background: $invisible;
-  transition: background-color $transition-time ease,
+  transition:
+    background-color $transition-time ease,
     outline-color $transition-time ease;
   outline: $outline-width solid $invisible;
 
@@ -51,7 +52,9 @@ $transition-time: 200ms;
     outline: $outline-width solid $background;
     background: $background;
 
-    transition: opacity $transition-time ease, transform $transition-time ease;
+    transition:
+      opacity $transition-time ease,
+      transform $transition-time ease;
   }
 
   &:hover {

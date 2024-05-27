@@ -19,7 +19,7 @@ as an attribute of the AFF4 object. This module defines this abstraction.
 import itertools
 import posixpath
 import re
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 
 
 class PathSpec(rdf_structs.RDFProtoStruct):
@@ -63,11 +64,6 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   @classmethod
   def Temp(cls, **kwargs):
     return cls(pathtype=PathSpec.PathType.TMPFILE, **kwargs)
-
-  def CopyConstructor(self, other):
-    # pylint: disable=protected-access
-    self.SetRawData(other._CopyRawData())
-    # pylint: enable=protected-access
 
   def __len__(self):
     """Return the total number of path components."""
@@ -281,7 +277,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     return client_urn.Add("/".join(result))
 
 
-def _unique(iterable):
+def _Unique(iterable: Iterable[str]) -> Sequence[str]:
   """Returns a list of unique values in preserved order."""
   return list(dict.fromkeys(iterable))
 
@@ -358,7 +354,7 @@ class GlobExpression(rdfvalue.RDFString):
 
       # Expand the attribute into the set of possibilities:
       alternatives = match.group(1).split(",")
-      components.append(_unique(alternatives))
+      components.append(_Unique(alternatives))
       offset = match.end()
 
     components.append([pattern[offset:]])
@@ -384,8 +380,10 @@ class GlobExpression(rdfvalue.RDFString):
       return re.escape(part)
 
   def ExplainComponents(
-      self, example_count: int, knowledge_base
-  ) -> Sequence[GlobComponentExplanation]:
+      self,
+      example_count: int,
+      knowledge_base: knowledge_base_pb2.KnowledgeBase,
+  ) -> Sequence[flows_pb2.GlobComponentExplanation]:
     """Returns a list of GlobComponentExplanations with examples."""
     parts = _COMPONENT_SPLIT_PATTERN.split(self._value)
     components = []
@@ -394,7 +392,7 @@ class GlobExpression(rdfvalue.RDFString):
       if not glob_part:
         continue
 
-      component = GlobComponentExplanation(glob_expression=glob_part)
+      component = flows_pb2.GlobComponentExplanation(glob_expression=glob_part)
 
       if GROUPING_PATTERN.match(glob_part):
         examples = self.InterpolateGrouping(glob_part)
@@ -415,7 +413,7 @@ class GlobExpression(rdfvalue.RDFString):
       else:
         examples = []
 
-      component.examples = list(itertools.islice(examples, example_count))
+      component.examples.extend(list(itertools.islice(examples, example_count)))
       components.append(component)
 
     return components

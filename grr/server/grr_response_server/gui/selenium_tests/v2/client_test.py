@@ -10,8 +10,9 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
 
   def testLabelsAreShownAndCanBeRemoved(self):
     client_id = self.SetupClient(0)
-    data_store.REL_DB.AddClientLabels(client_id, self.test_username,
-                                      ["mylabel", "foobar"])
+    data_store.REL_DB.AddClientLabels(
+        client_id, self.test_username, ["mylabel", "foobar"]
+    )
 
     self.Open(f"/v2/clients/{client_id}")
     self.WaitUntil(self.IsTextPresent, client_id)
@@ -23,7 +24,8 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
 
     self.assertEqual(
         ["foobar"],
-        [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)])
+        [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)],
+    )
 
   def testClientTimelineOpensInDrawer(self):
     mem_size = "1.00 KiB"
@@ -36,11 +38,12 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
     # use a different field for testing.
     self.WaitUntilNot(self.IsTextPresent, mem_size)
 
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=a:contains('View details')")
+    element = self.WaitUntil(
+        self.GetVisibleElement, "css=a:contains('View details')"
+    )
     self.assertEndsWith(
         element.get_attribute("href"),
-        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)"
+        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)",
     )
     element.click()
 
@@ -58,11 +61,12 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
     # use a different field for testing.
     self.WaitUntilNot(self.IsTextPresent, mem_size)
 
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=a:contains('View details')")
+    element = self.WaitUntil(
+        self.GetVisibleElement, "css=a:contains('View details')"
+    )
     self.assertEndsWith(
         element.get_attribute("href"),
-        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)"
+        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)",
     )
     element.click()
 

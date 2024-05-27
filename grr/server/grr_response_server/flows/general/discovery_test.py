@@ -5,6 +5,7 @@ import datetime
 import os
 import platform
 import socket
+from typing import Iterator
 from unittest import mock
 
 from absl import app
@@ -17,10 +18,15 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import mig_client_action
+from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import action_registry
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
@@ -158,12 +164,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     """Check that label indexes are updated."""
     self.assertCountEqual(
         client_index.ClientIndex().LookupClients(["label:Label2"]), [client_id])
-
-  def _CheckWindowsDiskInfo(self, client):
-    self.assertLen(client.volumes, 2)
-    for result in client.volumes:
-      self.assertIsInstance(result, rdf_client_fs.Volume)
-      self.assertIn(result.windowsvolume.drive_letter, ["Z:", "C:"])
 
   def _CheckRelease(self, client, desired_release, desired_version):
     release = client.knowledge_base.os_release
@@ -305,15 +305,13 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
 
-        with test_lib.ConfigOverrider({
-            "Artifacts.non_kb_interrogate_artifacts": ["WMILogicalDisks"],
-        }):
-          # Run the flow in the simulated way
-          flow_test_lib.TestFlowHelper(
-              discovery.Interrogate.__name__,
-              client_mock,
-              creator=self.test_username,
-              client_id=client_id)
+        # Run the flow in the simulated way
+        flow_test_lib.TestFlowHelper(
+            discovery.Interrogate.__name__,
+            client_mock,
+            creator=self.test_username,
+            client_id=client_id,
+        )
 
     client = self._OpenClient(client_id)
     self._CheckBasicInfo(client, "test_node.test", "Windows", 100 * 1000000)
@@ -332,12 +330,129 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     # No VFS test for the relational db.
     self._CheckLabels(client_id)
     self._CheckLabelIndex(client_id)
-    self._CheckWindowsDiskInfo(client)
     # No registry pathspec test for the relational db.
     self._CheckClientKwIndex(["Linux"], 0)
     self._CheckClientKwIndex(["Windows"], 1)
     self._CheckClientKwIndex(["Label2"], 1)
     self._CheckMemory(client)
+
+  def testInterrogateVolumesWindows(self):
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    creator = db_test_utils.InitializeUser(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Windows"
+    db.WriteClientSnapshot(snapshot)
+
+    class ActionMock(action_mocks.ActionMock):
+
+      def WmiQuery(
+          self,
+          args: rdf_client_action.WMIRequest,
+      ) -> Iterator[rdf_protodict.Dict]:
+        args = mig_client_action.ToProtoWMIRequest(args)
+
+        if not args.query.upper().startswith("SELECT "):
+          raise RuntimeError("Non-`SELECT` WMI query")
+
+        if "Win32_LogicalDisk" not in args.query:
+          raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
+
+        yield rdf_protodict.Dict({
+            "Access": 0,
+            "BlockSize": None,
+            "Caption": "C:",
+            "Compressed": False,
+            "Description": "Local Fixed Disk",
+            "DeviceID": "C:",
+            "DriveType": 3,
+            "FileSystem": "NTFS",
+            "FreeSpace": "1807140478976",
+            "InstallDate": None,
+            "MediaType": 12,
+            "Name": "C:",
+            "NumberOfBlocks": None,
+            "PNPDeviceID": None,
+            "Size": "2047370850304",
+            "SupportsDiskQuotas": False,
+            "SupportsFileBasedCompression": True,
+            "VolumeDirty": None,
+            "VolumeName": "gWindows",
+            "VolumeSerialNumber": "BCF3E28E",
+        })
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        discovery.Interrogate,
+        ActionMock(),
+        client_id=client_id,
+        creator=creator,
+        # We use minimal setup, so certain subflows spawned by interrogation can
+        # fail. We verify that the interrogation flow actually completed below.
+        check_flow_errors=False,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertLen(snapshot.volumes, 1)
+
+    volume = snapshot.volumes[0]
+    self.assertEqual(volume.name, "gWindows")
+    self.assertEqual(volume.serial_number, "BCF3E28E")
+    self.assertEqual(volume.file_system_type, "NTFS")
+    self.assertEqual(volume.windowsvolume.drive_letter, "C:")
+    self.assertEqual(volume.windowsvolume.drive_type, 3)
+
+  def testInterrogateVolumesUnix(self):
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    creator = db_test_utils.InitializeUser(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Linux"
+    db.WriteClientSnapshot(snapshot)
+
+    class ActionMock(action_mocks.ActionMock):
+
+      def StatFS(
+          self,
+          args: rdf_client_action.StatFSRequest,
+      ) -> Iterator[rdf_client_fs.Volume]:
+        args = mig_client_action.ToProtoStatFSRequest(args)
+
+        if not (len(args.path_list) == 1 and args.path_list[0] == "/"):
+          raise RuntimeError(f"Unexpected path list: {args.path_list}")
+
+        result = sysinfo_pb2.Volume()
+        result.unixvolume.mount_point = "/"
+
+        yield mig_client_fs.ToRDFVolume(result)
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        discovery.Interrogate,
+        ActionMock(),
+        client_id=client_id,
+        creator=creator,
+        # We use minimal setup, so certain subflows spawned by interrogation
+        # can fail. We verify that the interrogation flow actually completed
+        # below.
+        check_flow_errors=False,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertLen(snapshot.volumes, 1)
+    self.assertEqual(snapshot.volumes[0].unixvolume.mount_point, "/")
 
   @parser_test_lib.WithAllParsers
   @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
@@ -442,9 +557,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     ):
       with test_lib.ConfigOverrider({
           "Interrogate.collect_crowdstrike_agent_id": True,
-          "Artifacts.knowledge_base": [],
-          "Artifacts.knowledge_base_additions": [],
-          "Artifacts.non_kb_interrogate_artifacts": [],
       }):
         flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,

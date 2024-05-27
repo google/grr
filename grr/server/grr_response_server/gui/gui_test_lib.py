@@ -51,24 +51,33 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 _CHROME_DRIVER_PATH = flags.DEFINE_string(
-    "chrome_driver_path", None,
+    "chrome_driver_path",
+    None,
     "Path to the chrome driver binary. If not set, webdriver "
-    "will search on PATH for the binary.")
+    "will search on PATH for the binary.",
+)
 
 _CHROME_BINARY_PATH = flags.DEFINE_string(
-    "chrome_binary_path", None,
+    "chrome_binary_path",
+    None,
     "Path to the Chrome binary. If not set, webdriver will search for "
-    "Chrome on PATH.")
+    "Chrome on PATH.",
+)
 
 _USE_HEADLESS_CHROME = flags.DEFINE_bool(
-    "use_headless_chrome", False, "If set, run Chrome driver in "
+    "use_headless_chrome",
+    False,
+    "If set, run Chrome driver in "
     "headless mode. Useful when running tests in a window-manager-less "
-    "environment.")
+    "environment.",
+)
 
 _DISABLE_CHROME_SANDBOXING = flags.DEFINE_bool(
-    "disable_chrome_sandboxing", False,
+    "disable_chrome_sandboxing",
+    False,
     "Whether to disable chrome sandboxing (e.g when running in a Docker "
-    "container).")
+    "container).",
+)
 
 # A increasing sequence of times.
 TIME_0 = test_lib.FIXED_TIME
@@ -91,9 +100,11 @@ def CreateFileVersions(client_id):
   # This file already exists in the fixture at TIME_0, we write a
   # later version.
   CreateFileVersion(
-      client_id, "fs/os/c/Downloads/a.txt", content_1, timestamp=TIME_1)
+      client_id, "fs/os/c/Downloads/a.txt", content_1, timestamp=TIME_1
+  )
   CreateFileVersion(
-      client_id, "fs/os/c/Downloads/a.txt", content_2, timestamp=TIME_2)
+      client_id, "fs/os/c/Downloads/a.txt", content_2, timestamp=TIME_2
+  )
 
   return (content_1, content_2)
 
@@ -189,7 +200,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def _SetUpSelenium(port):
     """Set up Selenium session."""
     atexit.register(GRRSeleniumTest._TearDownSelenium)
-    GRRSeleniumTest.base_url = ("http://localhost:%s" % port)
+    GRRSeleniumTest.base_url = "http://localhost:%s" % port
 
     options = webdriver.ChromeOptions()
     prefs = {
@@ -218,7 +229,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     if _CHROME_DRIVER_PATH.value:
       GRRSeleniumTest.driver = webdriver.Chrome(
-          _CHROME_DRIVER_PATH.value, chrome_options=options)
+          _CHROME_DRIVER_PATH.value, chrome_options=options
+      )
     else:
       GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
 
@@ -231,7 +243,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # and the code in setUp().
     # pylint: disable=protected-access
     GRRSeleniumTest.driver.command_executor._commands["send_command"] = (
-        "POST", "/session/$sessionId/chromium/send_command")
+        "POST",
+        "/session/$sessionId/chromium/send_command",
+    )
     # pylint: enable=protected-access
     # pylint: enable=unreachable
 
@@ -253,13 +267,15 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
         # Start up a server in another thread
         GRRSeleniumTest._server_trd = wsgiapp_testlib.ServerThread(
-            port, name="SeleniumServerThread")
+            port, name="SeleniumServerThread"
+        )
         GRRSeleniumTest._server_trd.StartAndWaitUntilServing()
         GRRSeleniumTest._SetUpSelenium(port)
 
         jquery_path = package.ResourcePath(
             "grr-response-test",
-            "grr_response_test/test_data/jquery_3.1.0.min.js")
+            "grr_response_test/test_data/jquery_3.1.0.min.js",
+        )
         with open(jquery_path, mode="r", encoding="utf-8") as fd:
           GRRSeleniumTest._jquery_source = fd.read()
 
@@ -282,7 +298,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def _CheckJavascriptErrors(self):
     errors = self.driver.execute_script(
         "return (() => {const e = window.grrInterceptedJSErrors_ || []; "
-        "window.grrInterceptedJSErrors_ = []; return e;})();")
+        "window.grrInterceptedJSErrors_ = []; return e;})();"
+    )
 
     msgs = []
     for e in errors:
@@ -291,8 +308,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       msgs.append(msg)
 
     if msgs:
-      self.fail("Javascript error encountered during test: %s" %
-                "\n\t".join(msgs))
+      self.fail(
+          "Javascript error encountered during test: %s" % "\n\t".join(msgs)
+      )
 
   def DisableHttpErrorChecks(self):
     self.ignore_http_errors = True
@@ -301,7 +319,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def GetHttpErrors(self):
     return self.driver.execute_script(
         "return (() => {const e = window.grrInterceptedHTTPErrors_ || []; "
-        "window.grrInterceptedHTTPErrors_ = []; return e;})();")
+        "window.grrInterceptedHTTPErrors_ = []; return e;})();"
+    )
 
   def _CheckHttpErrors(self):
     if self.ignore_http_errors:
@@ -344,18 +363,25 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
 
-    self.fail("condition %s%s not met, body is: %s" %
-              (condition_cb.__name__, args,
-               self.driver.find_element_by_tag_name("body").text))
+    self.fail(
+        "condition %s%s not met, body is: %s"
+        % (
+            condition_cb.__name__,
+            args,
+            self.driver.find_element_by_tag_name("body").text,
+        )
+    )
 
   def _FindElements(self, selector):
     selector_type, effective_selector = selector.split("=", 1)
     if selector_type != "css":
       raise ValueError(
-          "Only CSS selector is supported for querying multiple elements.")
+          "Only CSS selector is supported for querying multiple elements."
+      )
 
     elems = self.driver.execute_script(
-        "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
+        'return $("' + effective_selector.replace('"', '\\"') + '");'
+    )
     return [e for e in elems if e.is_displayed()]
 
   def _FindElement(self, selector):
@@ -367,7 +393,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     if selector_type == "css":
       elems = self.driver.execute_script(
-          "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
+          'return $("' + effective_selector.replace('"', '\\"') + '");'
+      )
       elems = [e for e in elems if e.is_displayed()]
 
       if not elems:
@@ -410,7 +437,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.driver.get(self.base_url + url)
 
     jquery_present = self.driver.execute_script(
-        "return window.$ !== undefined;")
+        "return window.$ !== undefined;"
+    )
     if not jquery_present:
       self.driver.execute_script(GRRSeleniumTest._jquery_source)
 
@@ -501,14 +529,16 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def GetClipboard(self):
     return self.GetJavaScriptValue(
-        "return await navigator.clipboard.readText();")
+        "return await navigator.clipboard.readText();"
+    )
 
   def IsUserNotificationPresent(self, contains_string):
     self.Click("css=#notification_button")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-notification-dialog")
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=grr-user-notification-dialog:contains('Loading...')")
+        "css=grr-user-notification-dialog:contains('Loading...')",
+    )
 
     notifications_text = self.GetText("css=grr-user-notification-dialog")
     self.Click("css=grr-user-notification-dialog button:contains('Close')")
@@ -520,9 +550,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def _WaitForAjaxCompleted(self):
     self.WaitUntilEqual(
-        [], self.GetJavaScriptValue,
+        [],
+        self.GetJavaScriptValue,
         "return (window.$ && $('body') && $('body').injector && "
-        "$('body').injector().get('$http').pendingRequests) || []")
+        "$('body').injector().get('$http').pendingRequests) || []",
+    )
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):
@@ -538,8 +570,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       actual = self.GetValue(target)
       if text != actual:
         raise exceptions.WebDriverException(
-            f"Send_keys did not work correctly: Got '{actual}' but expected " +
-            f"'{text}'.")
+            f"Send_keys did not work correctly: Got '{actual}' but expected "
+            + f"'{text}'."
+        )
 
   @SeleniumAction
   def Click(self, target):
@@ -584,7 +617,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     element on the page. Use ScrollIntoView() in this case.
     """
     self.driver.execute_script(
-        "window.scrollTo(0, document.body.scrollHeight);")
+        "window.scrollTo(0, document.body.scrollHeight);"
+    )
 
   @SeleniumAction
   def DoubleClick(self, target):
@@ -622,12 +656,25 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     Raises:
       ValueError: An invalid selector was provided - must be CSS.
     """
-    selector_type, effective_selector = target.split("=", 1)
-    if selector_type != "css":
-      raise ValueError("Only CSS selector is supported for material select.")
-    self.WaitUntil(self.GetVisibleElement, target)
-    self.driver.execute_script(f"$('{effective_selector}').click()")
-    self.Click(f"css=mat-option:contains('{label}')")
+    self.Click(target)
+
+    def GetOption():
+      options = self.driver.execute_script(
+          """return $('.cdk-overlay-container mat-option').filter(
+            (_, el) => $(el).text().trim() === arguments[0])""",
+          label,
+      )
+
+      if not options:
+        return None
+
+      if len(options) != 1:
+        raise ValueError(
+            "Expected exactly one option to match, got %d" % len(options)
+        )
+      return options[0]
+
+    self.WaitUntil(GetOption).click()
 
   def IsChecked(self, target):
     return self.WaitUntil(self.GetVisibleElement, target).is_selected()
@@ -656,8 +703,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition %s(%s) not met (expected=%r, got_last_time=%r)" %
-              (condition_cb, args, target, condition_value))
+    self.fail(
+        "condition %s(%s) not met (expected=%r, got_last_time=%r)"
+        % (condition_cb, args, target, condition_value)
+    )
 
   def WaitUntilContains(self, target, condition_cb, *args):
     data = ""
@@ -678,8 +727,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition not met. got: {!r}, does not contain: {!r}".format(
-        data, target))
+    self.fail(
+        "condition not met. got: {!r}, does not contain: {!r}".format(
+            data, target
+        )
+    )
 
   def setUp(self):
     super().setUp()
@@ -687,7 +739,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Used by CheckHttpErrors
     self.ignore_http_errors = False
 
-    self.test_username = u"gui_user"
+    self.test_username = "gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
     # Make the user use the advanced gui so we can test it.
@@ -704,10 +756,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     if _USE_HEADLESS_CHROME.value:
       params = {
           "cmd": "Page.setDownloadBehavior",
-          "params": {
-              "behavior": "allow",
-              "downloadPath": self.temp_dir
-          }
+          "params": {"behavior": "allow", "downloadPath": self.temp_dir},
       }
       result = self.driver.execute("send_command", params)
       if result["status"] != 0:
@@ -723,7 +772,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     for _ in range(iterations):
       try:
         pending_notifications = data_store.REL_DB.ReadUserNotifications(
-            username, state=rdf_objects.UserNotification.State.STATE_PENDING)
+            username, state=rdf_objects.UserNotification.State.STATE_PENDING
+        )
         if pending_notifications:
           return
       except IOError:
@@ -736,33 +786,41 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
   """Common functionality for hunt gui tests."""
 
   def _CreateForemanClientRuleSet(self):
-    return foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-            regex=foreman_rules.ForemanRegexClientRule(
-                field="CLIENT_NAME", attribute_regex="GRR"))
-    ])
+    return foreman_rules.ForemanClientRuleSet(
+        rules=[
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
+                regex=foreman_rules.ForemanRegexClientRule(
+                    field="CLIENT_NAME", attribute_regex="GRR"
+                ),
+            )
+        ]
+    )
 
   def _CreateHuntWithDownloadedFile(self):
     hunt = self.CreateSampleHunt(
-        path=os.path.join(self.base_path, "test.plist"), client_count=1)
+        path=os.path.join(self.base_path, "test.plist"), client_count=1
+    )
 
     self.RunHunt(
         client_ids=self.client_ids,
-        client_mock=action_mocks.FileFinderClientMock())
+        client_mock=action_mocks.FileFinderClientMock(),
+    )
 
     return hunt
 
   def CheckState(self, state):
-    self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
+    self.WaitUntil(self.IsElementPresent, 'css=div[state="%s"]' % state)
 
-  def CreateSampleHunt(self,
-                       path=None,
-                       stopped=False,
-                       output_plugins=None,
-                       client_limit=0,
-                       client_count=10,
-                       creator=None):
+  def CreateSampleHunt(
+      self,
+      path=None,
+      stopped=False,
+      output_plugins=None,
+      client_limit=0,
+      client_count=10,
+      creator=None,
+  ):
     self.client_ids = self.SetupClients(client_count)
 
     self.hunt_urn = self.StartHunt(
@@ -793,21 +851,23 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
       values = [
           rdfvalue.RDFURN("aff4:/sample/1"),
           rdfvalue.RDFURN("aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0]),
-          rdfvalue.RDFURN("aff4:/sample/3")
+          rdfvalue.RDFURN("aff4:/sample/3"),
       ]
 
     hunt_urn = self.StartHunt(
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.AddResultsToHunt(hunt_urn, self.client_ids[0], values)
 
     return hunt_urn, self.client_ids[0]
 
 
-class SearchClientTestBase(hunt_test_lib.StandardHuntTestMixin,
-                           GRRSeleniumTest):
+class SearchClientTestBase(
+    hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest
+):
 
   def CreateSampleHunt(self, description, creator=None):
     return self.StartHunt(description=description, paused=True, creator=creator)
@@ -819,6 +879,7 @@ class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):
 
 class RecursiveTestFlow(flow_base.FlowBase):
   """A test flow which starts some subflows."""
+
   args_type = RecursiveTestFlowArgs
 
   # If a flow doesn't have a category, it can't be started/terminated by a
@@ -830,9 +891,8 @@ class RecursiveTestFlow(flow_base.FlowBase):
       for i in range(2):
         self.Log("Subflow call %d", i)
         self.CallFlow(
-            self.__class__.__name__,
-            depth=self.args.depth + 1,
-            next_state="End")
+            self.__class__.__name__, depth=self.args.depth + 1, next_state="End"
+        )
 
 
 class FlowWithOneLogStatement(flow_base.FlowBase):
@@ -850,7 +910,10 @@ class FlowWithOneStatEntryResult(flow_base.FlowBase):
         rdf_client_fs.StatEntry(
             pathspec=rdf_paths.PathSpec(
                 path="/some/unique/path",
-                pathtype=rdf_paths.PathSpec.PathType.OS)))
+                pathtype=rdf_paths.PathSpec.PathType.OS,
+            )
+        )
+    )
 
 
 class FlowWithOneNetworkConnectionResult(flow_base.FlowBase):
@@ -866,9 +929,11 @@ class FlowWithOneHashEntryResult(flow_base.FlowBase):
   def Start(self):
     hash_result = rdf_crypto.Hash(
         sha256=binascii.unhexlify(
-            "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5"),
+            "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5"
+        ),
         sha1=binascii.unhexlify("6dd6bee591dfcb6d75eb705405302c3eab65e21a"),
-        md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a"))
+        md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a"),
+    )
     self.SendReply(hash_result)
 
 

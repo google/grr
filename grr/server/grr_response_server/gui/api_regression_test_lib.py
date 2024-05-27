@@ -29,8 +29,10 @@ from grr.test_lib import test_lib
 from grr.test_lib import testing_startup
 
 _GENERATE = flags.DEFINE_string(
-    "generate", "",
-    "Generate golden regression data for tests using a given connection type.")
+    "generate",
+    "",
+    "Generate golden regression data for tests using a given connection type.",
+)
 
 
 class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
@@ -59,8 +61,9 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
       return
 
     for mixin in ApiRegressionTestMetaclass.connection_mixins.values():
-      if (mixin.skip_legacy_dynamic_proto_tests and
-          getattr(cls, "uses_legacy_dynamic_protos", False)):
+      if mixin.skip_legacy_dynamic_proto_tests and getattr(
+          cls, "uses_legacy_dynamic_protos", False
+      ):
         continue
 
       cls_name = "%s_%s" % (name, mixin.connection_type)
@@ -68,20 +71,23 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
           cls_name,
           (mixin, cls, test_lib.GRRBaseTest),
           # pylint: disable=protected-access
-          {"testForRegression": lambda x: x._testForRegression()})
+          {"testForRegression": lambda x: x._testForRegression()},
+      )
       module = sys.modules[cls.__module__]
       setattr(module, cls_name, test_cls)
 
 
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
-    api_regression_http.HttpApiV1RelationalDBRegressionTestMixin)
+    api_regression_http.HttpApiV1RelationalDBRegressionTestMixin
+)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
-    api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
+    api_regression_http.HttpApiV2RelationalDBRegressionTestMixin
+)
 
 
 class ApiRegressionTest(  # pylint: disable=invalid-metaclass
-    test_lib.GRRBaseTest,
-    metaclass=ApiRegressionTestMetaclass):
+    test_lib.GRRBaseTest, metaclass=ApiRegressionTestMetaclass
+):
   """Base class for API handlers regression tests.
 
   Regression tests are supposed to implement a single abstract Run() method.
@@ -95,7 +101,6 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
   Alternatively, if this class is used in
   api_handlers_regression_data_generate.py, then generated data will be
   aggregated with data from other test classes and printed to the stdout.
-
   """
 
   # Name of the ApiCallRouter's method that's tested in this class.
@@ -121,7 +126,9 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     p = psutil.Process(os.getpid())
     syscalls_stubber = utils.MultiStubber(
         (socket, "gethostname", lambda: "test.host"),
-        (os, "getpid", lambda: 42), (psutil, "Process", lambda _=None: p))
+        (os, "getpid", lambda: 42),
+        (psutil, "Process", lambda _=None: p),
+    )
     syscalls_stubber.Start()
     self.addCleanup(syscalls_stubber.Stop)
 
@@ -149,8 +156,9 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
   def _Replace(self, content, replace=None):
     """Applies replace function to a given content."""
     # replace the values of all tracebacks by <traceback content>
-    regex = re.compile(r'"traceBack": "Traceback[^"\\]*(?:\\.[^"\\]*)*"',
-                       re.DOTALL)
+    regex = re.compile(
+        r'"traceBack": "Traceback[^"\\]*(?:\\.[^"\\]*)*"', re.DOTALL
+    )
     content = regex.sub('"traceBack": "<traceback content>"', content)
 
     if replace:
@@ -176,7 +184,8 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
       pass
     else:
       test_class_name = (
-          test_class_name[:-len(self.__class__.connection_type)] + conn_type)
+          test_class_name[: -len(self.__class__.connection_type)] + conn_type
+      )
 
     return test_class_name
 
@@ -198,7 +207,8 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     mdata = router.GetAnnotatedMethods()[method]
 
     check = self.HandleCheck(
-        mdata, args=args, replace=lambda s: self._Replace(s, replace=replace))
+        mdata, args=args, replace=lambda s: self._Replace(s, replace=replace)
+    )
 
     check["test_class"] = self.golden_file_class_name
     check["api_method"] = method
@@ -239,7 +249,6 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
 
     # Always show the full diff, even when it's a bit larger.
     self.maxDiff = 100000  # pylint: disable=invalid-name
-
     self.assertEqual(relevant_checks, self.checks)
 
 
@@ -254,8 +263,9 @@ class ApiRegressionGoldenOutputGenerator(object):
   def _GroupRegressionTestsByHandler(self):
     result = {}
     for cls in ApiRegressionTest.classes.values():
-      if issubclass(cls, ApiRegressionTest) and getattr(cls, "HandleCheck",
-                                                        None):
+      if issubclass(cls, ApiRegressionTest) and getattr(
+          cls, "HandleCheck", None
+      ):
         result.setdefault(cls.handler, []).append(cls)
 
     return result
@@ -282,8 +292,9 @@ class ApiRegressionGoldenOutputGenerator(object):
           test_instance.setUp()
           try:
             test_instance.Run()
-            sample_data.setdefault(handler.__name__,
-                                   []).extend(test_instance.checks)
+            sample_data.setdefault(handler.__name__, []).extend(
+                test_instance.checks
+            )
           finally:
             try:
               test_instance.tearDown()
@@ -305,9 +316,9 @@ class ApiRegressionGoldenOutputGenerator(object):
     sys.stdout.buffer.write(json_sample_data.encode("utf-8"))
 
 
-def GetFlowTestReplaceDict(client_id=None,
-                           flow_id=None,
-                           replacement_flow_id="W:ABCDEF"):
+def GetFlowTestReplaceDict(
+    client_id=None, flow_id=None, replacement_flow_id="W:ABCDEF"
+):
   """Creates and returns a replacement dict for flow regression tests."""
   replace = {}
   if client_id and flow_id:

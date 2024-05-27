@@ -560,6 +560,75 @@ class RegexMatchCondition(ConditionTestMixin, absltest.TestCase):
     self.assertEqual(results[0].offset, 3)
     self.assertEqual(results[0].length, 4)
 
+  def testCaretAnchorMatching(self):
+    content = io.BytesIO(b"foobar")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"^foo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].data, b"foo")
+    self.assertEqual(results[0].offset, 0)
+    self.assertEqual(results[0].length, 3)
+
+  def testCaretAnchorNotMatching(self):
+    content = io.BytesIO(b"barfoobaz")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"^foo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertEmpty(results)
+
+  def testCaretAnchorNewline(self):
+    content = io.BytesIO(b"barfoo\nfoobaz")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"^foo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].data, b"foo")
+    self.assertEqual(results[0].offset, 7)
+    self.assertEqual(results[0].length, 3)
+
+  def testBeginAnchorMatching(self):
+    content = io.BytesIO(b"foobar")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"\\Afoo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].data, b"foo")
+    self.assertEqual(results[0].offset, 0)
+    self.assertEqual(results[0].length, 3)
+
+  def testBeginAnchorNotMatching(self):
+    content = io.BytesIO(b"barfoobaz")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"\\Afoo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertEmpty(results)
+
+  def testBeginAnchorNewline(self):
+    content = io.BytesIO(b"barfoo\nfoobaz")
+
+    params = rdf_file_finder.FileFinderCondition()
+    params.contents_regex_match.regex = b"\\Afoo"
+    condition = conditions.RegexMatchCondition(params)
+
+    results = list(condition.Search(content))
+    self.assertEmpty(results)
+
 
 def main(argv):
   test_lib.main(argv)

@@ -4,7 +4,6 @@
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Text
 from typing import Tuple
 
 from google.protobuf import message
@@ -95,7 +94,7 @@ class GrrApi(object):
   def GrrUser(self) -> user.GrrUser:
     return user.GrrUser(context=self._context)
 
-  def UploadYaraSignature(self, signature: Text) -> bytes:
+  def UploadYaraSignature(self, signature: str) -> bytes:
     """Uploads the specified YARA signature.
 
     Args:

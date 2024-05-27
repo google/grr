@@ -3,7 +3,7 @@
 import binascii
 import ipaddress
 import os
-from typing import Text, Optional, List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -86,12 +86,13 @@ def grr_list_artifacts_impl() -> pd.DataFrame:
 
 
 def grr_search_clients_impl(
-    ip: Optional[Text] = None,
-    mac: Optional[Text] = None,
-    host: Optional[Text] = None,
-    user: Optional[Text] = None,
-    version: Optional[Text] = None,
-    labels: Optional[List[Text]] = None) -> pd.DataFrame:
+    ip: Optional[str] = None,
+    mac: Optional[str] = None,
+    host: Optional[str] = None,
+    user: Optional[str] = None,
+    version: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+) -> pd.DataFrame:
   """Searches for clients with specified keywords.
 
   Args:
@@ -127,12 +128,13 @@ def grr_search_clients_impl(
 
 
 def grr_search_online_clients_impl(
-    ip: Optional[Text] = None,
-    mac: Optional[Text] = None,
-    host: Optional[Text] = None,
-    user: Optional[Text] = None,
-    version: Optional[Text] = None,
-    labels: Optional[List[Text]] = None) -> pd.DataFrame:
+    ip: Optional[str] = None,
+    mac: Optional[str] = None,
+    host: Optional[str] = None,
+    user: Optional[str] = None,
+    version: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+) -> pd.DataFrame:
   """Searches for online clients with specified keywords.
 
   Args:
@@ -150,8 +152,9 @@ def grr_search_online_clients_impl(
   return df[df.online == 'online'].reset_index(drop=True)
 
 
-def grr_set_client_impl(hostname: Optional[Text] = None,
-                        client: Optional[Text] = None) -> None:
+def grr_set_client_impl(
+    hostname: Optional[str] = None, client: Optional[str] = None
+) -> None:
   """Sets a new client for the current state.
 
   Args:
@@ -172,9 +175,9 @@ def grr_set_client_impl(hostname: Optional[Text] = None,
   _state.cur_dir = '/'
 
 
-def grr_request_approval_impl(reason: Text,
-                              approvers: List[Text],
-                              wait: bool = False) -> None:
+def grr_request_approval_impl(
+    reason: str, approvers: List[str], wait: bool = False
+) -> None:
   """Sends approval request to the selected client for the current user.
 
   Args:
@@ -197,7 +200,7 @@ def grr_request_approval_impl(reason: Text,
     _state.client.request_approval(approvers=approvers, reason=reason)
 
 
-def grr_id_impl() -> Text:
+def grr_id_impl() -> str:
   """Returns ID of the selected client.
 
   Returns:
@@ -211,7 +214,7 @@ def grr_id_impl() -> Text:
   return _state.client.id
 
 
-def grr_cd_impl(path: Text) -> None:
+def grr_cd_impl(path: str) -> None:
   """Changes the current directory.
 
   Args:
@@ -228,7 +231,7 @@ def grr_cd_impl(path: Text) -> None:
   _state.cur_dir = _build_absolute_path(path)
 
 
-def grr_pwd_impl() -> Text:
+def grr_pwd_impl() -> str:
   """Returns absolute path to the current directory.
 
   Returns:
@@ -242,9 +245,9 @@ def grr_pwd_impl() -> Text:
   return _state.cur_dir
 
 
-def grr_ls_impl(path: Optional[Text] = None,
-                cached: bool = False,
-                path_type: Text = OS) -> pd.DataFrame:
+def grr_ls_impl(
+    path: Optional[str] = None, cached: bool = False, path_type: str = OS
+) -> pd.DataFrame:
   """Lists files in the specified directory or the current directory.
 
   Args:
@@ -269,7 +272,7 @@ def grr_ls_impl(path: Optional[Text] = None,
   return convert.from_sequence(filesystem.ls(path))
 
 
-def grr_stat_impl(path: Text, path_type: Text = OS) -> pd.DataFrame:
+def grr_stat_impl(path: str, path_type: str = OS) -> pd.DataFrame:
   """Stats the file specified.
 
   Accepts glob expressions as a file path.
@@ -294,11 +297,12 @@ def grr_stat_impl(path: Text, path_type: Text = OS) -> pd.DataFrame:
 
 
 def grr_head_impl(
-    path: Text,
+    path: str,
     bytes: int = 4096,  # pylint: disable=redefined-builtin
     offset: int = 0,
     cached: bool = False,
-    path_type: Text = OS) -> bytes:
+    path_type: str = OS,
+) -> bytes:
   """Reads the first bytes of a specified file.
 
   Args:
@@ -329,11 +333,13 @@ def grr_head_impl(
     return f.read(bytes)
 
 
-def grr_grep_impl(pattern: Text,
-                  path: Text,
-                  fixed_strings: bool = False,
-                  path_type: Text = OS,
-                  hex_string: bool = False) -> pd.DataFrame:
+def grr_grep_impl(
+    pattern: str,
+    path: str,
+    fixed_strings: bool = False,
+    path_type: str = OS,
+    hex_string: bool = False,
+) -> pd.DataFrame:
   """Greps for a given content of a specified file.
 
   Args:
@@ -365,10 +371,9 @@ def grr_grep_impl(pattern: Text,
   return convert.from_sequence(filesystem.grep(path, byte_pattern))
 
 
-def grr_fgrep_impl(literal: Text,
-                   path: Text,
-                   path_type: Text = OS,
-                   hex_string: bool = False) -> pd.DataFrame:
+def grr_fgrep_impl(
+    literal: str, path: str, path_type: str = OS, hex_string: bool = False
+) -> pd.DataFrame:
   """Greps for a given literal content of a specified file.
 
   Is the same as running: %grr_grep -F
@@ -413,7 +418,7 @@ def grr_interrogate_impl() -> pd.DataFrame:
   return convert.from_message(_state.client.interrogate())
 
 
-def grr_hostname_impl() -> Text:
+def grr_hostname_impl() -> str:
   """Returns hostname of the selected client.
 
   Returns:
@@ -451,7 +456,7 @@ def grr_ifconfig_impl() -> pd.DataFrame:
   return df
 
 
-def grr_uname_impl(machine: bool = False, kernel_release: bool = False) -> Text:
+def grr_uname_impl(machine: bool = False, kernel_release: bool = False) -> str:
   """Returns certain system infornamtion.
 
   Args:
@@ -488,7 +493,7 @@ def grr_ps_impl() -> pd.DataFrame:
   return convert.from_sequence(_state.client.ps())
 
 
-def grr_osqueryi_impl(sql: Text) -> pd.DataFrame:
+def grr_osqueryi_impl(sql: str) -> pd.DataFrame:
   """Runs given SQL statement on client osquery.
 
   Args:
@@ -505,7 +510,7 @@ def grr_osqueryi_impl(sql: Text) -> pd.DataFrame:
   return convert.from_osquery_table(_state.client.osquery(sql))
 
 
-def grr_collect_impl(artifact: Text) -> pd.DataFrame:
+def grr_collect_impl(artifact: str) -> pd.DataFrame:
   """Collects specified artifact.
 
   Args:
@@ -522,9 +527,11 @@ def grr_collect_impl(artifact: Text) -> pd.DataFrame:
   return convert.from_sequence(_state.client.collect(artifact))
 
 
-def grr_yara_impl(signature: Text,
-                  pids: Optional[List[int]] = None,
-                  regex: Optional[Text] = None) -> pd.DataFrame:
+def grr_yara_impl(
+    signature: str,
+    pids: Optional[List[int]] = None,
+    regex: Optional[str] = None,
+) -> pd.DataFrame:
   """Scans processes using provided YARA rule.
 
   Args:
@@ -543,9 +550,7 @@ def grr_yara_impl(signature: Text,
   return convert.from_sequence(_state.client.yara(signature, pids, regex))
 
 
-def grr_wget_impl(path: Text,
-                  cached: bool = False,
-                  path_type: Text = OS) -> Text:
+def grr_wget_impl(path: str, cached: bool = False, path_type: str = OS) -> str:
   """Downloads a file and returns a link to it.
 
   Args:
@@ -570,7 +575,7 @@ def grr_wget_impl(path: Text,
   return filesystem.wget(path)
 
 
-def _build_absolute_path(path: Text) -> Text:
+def _build_absolute_path(path: str) -> str:
   if path.startswith('/'):
     abs_path = path
   else:
@@ -578,7 +583,7 @@ def _build_absolute_path(path: Text) -> Text:
   return os.path.normpath(abs_path)
 
 
-def _get_filesystem(path_type: Text) -> fs.FileSystem:
+def _get_filesystem(path_type: str) -> fs.FileSystem:
   """Returns filesystem depending on provided path type.
 
   Args:
@@ -634,8 +639,9 @@ def _add_last_seen_column(df: pd.DataFrame) -> pd.DataFrame:
   return df
 
 
-def _add_pretty_ipaddress_column(df: pd.DataFrame,
-                                 col_name: Text) -> pd.DataFrame:
+def _add_pretty_ipaddress_column(
+    df: pd.DataFrame, col_name: str
+) -> pd.DataFrame:
   """Adds a column with pretty representation of IP address value.
 
   Args:
@@ -649,7 +655,7 @@ def _add_pretty_ipaddress_column(df: pd.DataFrame,
   if col_name not in df.columns:
     return df
 
-  def convert_to_pretty_str(packed: bytes) -> Text:
+  def convert_to_pretty_str(packed: bytes) -> str:
     if len(packed) == 4:
       return str(ipaddress.IPv4Address(packed))
     return str(ipaddress.IPv6Address(packed))
@@ -658,7 +664,7 @@ def _add_pretty_ipaddress_column(df: pd.DataFrame,
   return convert.add_pretty_column(df, col_name, pretty_values)
 
 
-def _add_pretty_mac_column(df: pd.DataFrame, col_name: Text) -> pd.DataFrame:
+def _add_pretty_mac_column(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
   """Adds a column with pretty representation of MAC address value.
 
   Args:
@@ -672,7 +678,7 @@ def _add_pretty_mac_column(df: pd.DataFrame, col_name: Text) -> pd.DataFrame:
   if col_name not in df.columns:
     return df
 
-  def convert_to_pretty_str(packed: bytes) -> Text:
+  def convert_to_pretty_str(packed: bytes) -> str:
     if pd.isna(packed):
       return np.nan
     return client_textify.mac(packed)

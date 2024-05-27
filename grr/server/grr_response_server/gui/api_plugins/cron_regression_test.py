@@ -21,7 +21,8 @@ from grr.test_lib import test_lib
 
 class ApiListCronJobsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    cron_plugin_test.CronJobsTestMixin):
+    cron_plugin_test.CronJobsTestMixin,
+):
   """Test cron jobs list handler."""
 
   api_method = "ListCronJobs"
@@ -35,7 +36,8 @@ class ApiListCronJobsHandlerRegressionTest(
           periodicity="1d",
           lifetime="2h",
           description="foo",
-          enabled=False)
+          enabled=False,
+      )
 
     # ...one disabled cron job,
     with test_lib.FakeTime(84):
@@ -43,20 +45,23 @@ class ApiListCronJobsHandlerRegressionTest(
           flow_name=file_finder.ClientFileFinder.__name__,
           periodicity="7d",
           lifetime="1d",
-          description="bar")
+          description="bar",
+      )
 
     # ...and one failing cron job.
     with test_lib.FakeTime(126):
       cron_id_3 = self.CreateCronJob(
           flow_name=filesystem.ListDirectory.__name__,
           periodicity="7d",
-          lifetime="1d")
+          lifetime="1d",
+      )
 
     with test_lib.FakeTime(230):
       data_store.REL_DB.UpdateCronJob(
           cron_id_3,
           last_run_time=rdfvalue.RDFDatetime.Now(),
-          last_run_status=rdf_cronjobs.CronJobRun.CronJobRunStatus.ERROR)
+          last_run_status=rdf_cronjobs.CronJobRun.CronJobRunStatus.ERROR,
+      )
 
     self.Check(
         "ListCronJobs",
@@ -64,8 +69,9 @@ class ApiListCronJobsHandlerRegressionTest(
         replace={
             cron_id_1: "FileFinder",
             cron_id_2: "ClientFileFinder",
-            cron_id_3: "ListDirectory"
-        })
+            cron_id_3: "ListDirectory",
+        },
+    )
 
 
 def _GetRunId(cron_job_name):
@@ -89,7 +95,8 @@ def _SetupAndRunInterrogateClientsCronjob():
 
 
 class ApiCreateCronJobHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Test handler that creates a new cron job."""
 
   api_method = "CreateCronJob"
@@ -108,12 +115,14 @@ class ApiCreateCronJobHandlerRegressionTest(
 
     flow_name = file_finder.FileFinder.__name__
     flow_args = rdf_file_finder.FileFinderArgs(
-        paths=["c:\\windows\\system32\\notepad.*"])
+        paths=["c:\\windows\\system32\\notepad.*"]
+    )
 
     hunt_runner_args = rdf_hunts.HuntRunnerArgs()
     hunt_runner_args.client_rule_set.rules = [
         foreman_rules.ForemanClientRule(
-            os=foreman_rules.ForemanOsClientRule(os_windows=True))
+            os=foreman_rules.ForemanOsClientRule(os_windows=True)
+        )
     ]
     hunt_runner_args.description = "Foobar! (cron)"
 
@@ -125,13 +134,16 @@ class ApiCreateCronJobHandlerRegressionTest(
             flow_args=flow_args,
             hunt_runner_args=hunt_runner_args,
             periodicity=604800,
-            lifetime=3600),
-        replace=ReplaceCronJobUrn)
+            lifetime=3600,
+        ),
+        replace=ReplaceCronJobUrn,
+    )
 
 
 class ApiListCronJobRunsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    cron_plugin_test.CronJobsTestMixin):
+    cron_plugin_test.CronJobsTestMixin,
+):
   """Test cron job runs list handler."""
 
   api_method = "ListCronJobRuns"
@@ -154,7 +166,8 @@ class ApiListCronJobRunsHandlerRegressionTest(
 
 
 class ApiGetCronJobRunHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
   """Test cron job run getter handler."""
 
   api_method = "GetCronJobRun"
@@ -180,7 +193,8 @@ class ApiGetCronJobRunHandlerRegressionTest(
 
 class ApiForceRunCronJobRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    cron_plugin_test.CronJobsTestMixin):
+    cron_plugin_test.CronJobsTestMixin,
+):
   """Test cron job flow getter handler."""
 
   api_method = "ForceRunCronJob"
@@ -192,11 +206,14 @@ class ApiForceRunCronJobRegressionTest(
     self.Check(
         "ForceRunCronJob",
         args=cron_plugin.ApiForceRunCronJobArgs(cron_job_id=cron_job_id),
-        replace={cron_job_id: "FileFinder"})
+        replace={cron_job_id: "FileFinder"},
+    )
 
 
-class ApiModifyCronJobRegressionTest(api_regression_test_lib.ApiRegressionTest,
-                                     cron_plugin_test.CronJobsTestMixin):
+class ApiModifyCronJobRegressionTest(
+    api_regression_test_lib.ApiRegressionTest,
+    cron_plugin_test.CronJobsTestMixin,
+):
   """Test cron job flow getter handler."""
 
   api_method = "ModifyCronJob"
@@ -205,26 +222,26 @@ class ApiModifyCronJobRegressionTest(api_regression_test_lib.ApiRegressionTest,
   def Run(self):
     with test_lib.FakeTime(44):
       cron_job_id1 = self.CreateCronJob(
-          flow_name=file_finder.FileFinder.__name__)
+          flow_name=file_finder.FileFinder.__name__
+      )
       cron_job_id2 = self.CreateCronJob(
-          flow_name=file_finder.ClientFileFinder.__name__)
+          flow_name=file_finder.ClientFileFinder.__name__
+      )
 
     self.Check(
         "ModifyCronJob",
         args=cron_plugin.ApiModifyCronJobArgs(
-            cron_job_id=cron_job_id1, enabled=True),
-        replace={
-            cron_job_id1: "FileFinder",
-            cron_job_id2: "ClientFileFinder"
-        })
+            cron_job_id=cron_job_id1, enabled=True
+        ),
+        replace={cron_job_id1: "FileFinder", cron_job_id2: "ClientFileFinder"},
+    )
     self.Check(
         "ModifyCronJob",
         args=cron_plugin.ApiModifyCronJobArgs(
-            cron_job_id=cron_job_id2, enabled=False),
-        replace={
-            cron_job_id1: "FileFinder",
-            cron_job_id2: "ClientFileFinder"
-        })
+            cron_job_id=cron_job_id2, enabled=False
+        ),
+        replace={cron_job_id1: "FileFinder", cron_job_id2: "ClientFileFinder"},
+    )
 
 
 def main(argv):

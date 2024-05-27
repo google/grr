@@ -16,7 +16,8 @@ from grr.test_lib import test_lib
 
 
 class ApiSearchClientsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "SearchClients"
   handler = client_plugin.ApiSearchClientsHandler
@@ -28,11 +29,13 @@ class ApiSearchClientsHandlerRegressionTest(
 
       self.Check(
           "SearchClients",
-          args=client_plugin.ApiSearchClientsArgs(query=client_id))
+          args=client_plugin.ApiSearchClientsArgs(query=client_id),
+      )
 
 
 class ApiGetClientHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "GetClient"
   handler = client_plugin.ApiGetClientHandler
@@ -43,11 +46,13 @@ class ApiGetClientHandlerRegressionTest(
       client_id = self.SetupClient(0, memory_size=4294967296)
 
     self.Check(
-        "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
+        "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id)
+    )
 
 
 class ApiGetClientVersionsRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   mode = "FULL"
 
@@ -72,24 +77,31 @@ class ApiGetClientVersionsRegressionTest(
       self.Check(
           "GetClientVersions",
           args=client_plugin.ApiGetClientVersionsArgs(
-              client_id=client_id, mode=self.mode))
+              client_id=client_id, mode=self.mode
+          ),
+      )
       self.Check(
           "GetClientVersions",
           args=client_plugin.ApiGetClientVersionsArgs(
               client_id=client_id,
               end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
-              mode=self.mode))
+              mode=self.mode,
+          ),
+      )
       self.Check(
           "GetClientVersions",
           args=client_plugin.ApiGetClientVersionsArgs(
               client_id=client_id,
               start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
               end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(46),
-              mode=self.mode))
+              mode=self.mode,
+          ),
+      )
 
 
 class ApiGetLastClientIPAddressHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "GetLastClientIPAddress"
   handler = client_plugin.ApiGetLastClientIPAddressHandler
@@ -106,11 +118,13 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
 
     self.Check(
         "GetLastClientIPAddress",
-        args=client_plugin.ApiGetLastClientIPAddressArgs(client_id=client_id))
+        args=client_plugin.ApiGetLastClientIPAddressArgs(client_id=client_id),
+    )
 
 
 class ApiListClientsLabelsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest
+):
 
   api_method = "ListClientsLabels"
   handler = client_plugin.ApiListClientsLabelsHandler
@@ -120,8 +134,8 @@ class ApiListClientsLabelsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       client_ids = self.SetupClients(2)
 
-      self.AddClientLabel(client_ids[0], self.test_username, u"foo")
-      self.AddClientLabel(client_ids[0], self.test_username, u"bar")
+      self.AddClientLabel(client_ids[0], self.test_username, "foo")
+      self.AddClientLabel(client_ids[0], self.test_username, "bar")
 
     self.Check("ListClientsLabels")
 
@@ -137,7 +151,8 @@ class ApiListKbFieldsHandlerTest(api_regression_test_lib.ApiRegressionTest):
 
 class ApiListClientCrashesHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    hunt_test_lib.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin,
+):
 
   api_method = "ListClientCrashes"
   handler = client_plugin.ApiListClientCrashesHandler
@@ -161,17 +176,22 @@ class ApiListClientCrashesHandlerRegressionTest(
     self.Check(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(client_id=client_id),
-        replace=replace)
+        replace=replace,
+    )
     self.Check(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(
-            client_id=client_id, count=1),
-        replace=replace)
+            client_id=client_id, count=1
+        ),
+        replace=replace,
+    )
     self.Check(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(
-            client_id=client_id, offset=1, count=1),
-        replace=replace)
+            client_id=client_id, offset=1, count=1
+        ),
+        replace=replace,
+    )
 
 
 def main(argv):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
+
 import json
 import logging
 import os
 import threading
-from typing import Text
 
 from absl import flags
 import portpicker
@@ -28,7 +28,7 @@ _HTTP_ENDPOINTS = {}
 _HTTP_ENDPOINTS_LOCK = threading.RLock()
 
 
-class HttpApiRegressionTestMixinBase(object):
+class HttpApiRegressionTestMixinBase:
   """Load only API E2E test cases."""
 
   api_version = None
@@ -48,7 +48,8 @@ class HttpApiRegressionTestMixinBase(object):
         api_auth_manager.InitializeApiAuthManager()
 
         trd = wsgiapp_testlib.ServerThread(
-            port, name="ApiRegressionHttpConnectorV%d" % api_version)
+            port, name="ApiRegressionHttpConnectorV%d" % api_version
+        )
         trd.StartAndWaitUntilServing()
 
         _HTTP_ENDPOINTS[api_version] = "http://localhost:%d" % port
@@ -61,11 +62,11 @@ class HttpApiRegressionTestMixinBase(object):
 
   def _ParseJSON(self, json_str):
     """Parses response JSON."""
-    precondition.AssertType(json_str, Text)
+    precondition.AssertType(json_str, str)
 
     xssi_prefix = ")]}'\n"
     if json_str.startswith(xssi_prefix):
-      json_str = json_str[len(xssi_prefix):]
+      json_str = json_str[len(xssi_prefix) :]
 
     return json.loads(json_str)
 
@@ -81,7 +82,8 @@ class HttpApiRegressionTestMixinBase(object):
       body_proto = args.__class__().AsPrimitiveProto()
       json_format.Parse(request.data, body_proto)
       body_args = args.__class__.FromSerializedBytes(
-          body_proto.SerializeToString())
+          body_proto.SerializeToString()
+      )
       request.data = json.dumps(
           api_value_renderers.StripTypeInfo(
               api_value_renderers.RenderValue(body_args)
@@ -112,19 +114,22 @@ class HttpApiRegressionTestMixinBase(object):
 
     if self.__class__.api_version == 1:
       request, prepped_request = self._PrepareV1Request(
-          method_metadata.name, args=args)
+          method_metadata.name, args=args
+      )
     elif self.__class__.api_version == 2:
       request, prepped_request = self._PrepareV2Request(
-          method_metadata.name, args=args)
+          method_metadata.name, args=args
+      )
     else:
-      raise ValueError("api_version may be only 1 or 2, not %d" %
-                       flags.FLAGS.api_version)
+      raise ValueError(
+          "api_version may be only 1 or 2, not %d" % flags.FLAGS.api_version
+      )
 
     response = self.connector.session.send(prepped_request)
 
     check_result = {
         "url": replace(prepped_request.path_url),
-        "method": request.method
+        "method": request.method,
     }
 
     if request.data:
@@ -132,8 +137,10 @@ class HttpApiRegressionTestMixinBase(object):
       if request_payload:
         check_result["request_payload"] = request_payload
 
-    if (method_metadata.result_type ==
-        api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE):
+    if (
+        method_metadata.result_type
+        == api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE
+    ):
       check_result["response"] = replace(utils.SmartUnicode(response.content))
     else:
       content = response.content.decode("utf-8")
@@ -141,7 +148,8 @@ class HttpApiRegressionTestMixinBase(object):
 
     if self.__class__.api_version == 1:
       stripped_response = api_value_renderers.StripTypeInfo(
-          check_result["response"])
+          check_result["response"]
+      )
       if stripped_response != check_result["response"]:
         check_result["type_stripped_response"] = stripped_response
 
@@ -157,8 +165,9 @@ class HttpApiV1RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
 
   @property
   def output_file_name(self):
-    return os.path.join(DOCUMENT_ROOT,
-                        "angular-components/docs/api-docs-examples.json")
+    return os.path.join(
+        DOCUMENT_ROOT, "angular-components/docs/api-docs-examples.json"
+    )
 
 
 class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
@@ -170,5 +179,6 @@ class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
 
   @property
   def output_file_name(self):
-    return os.path.join(DOCUMENT_ROOT,
-                        "angular-components/docs/api-v2-docs-examples.json")
+    return os.path.join(
+        DOCUMENT_ROOT, "angular-components/docs/api-v2-docs-examples.json"
+    )

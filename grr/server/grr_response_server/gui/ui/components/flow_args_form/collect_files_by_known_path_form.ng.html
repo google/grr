@@ -8,7 +8,8 @@
               name="paths"
               autocomplete="off"></textarea>
     <mat-hint>
-      <app-literal-path-glob-expression-warning [path]="controls.paths.value"></app-literal-path-glob-expression-warning>
+      <app-literal-knowledgebase-expression-warning [path]="controls.paths.value"></app-literal-knowledgebase-expression-warning>
+      <app-literal-glob-expression-warning [path]="controls.paths.value"></app-literal-glob-expression-warning>
     </mat-hint>
   </mat-form-field>
   <div class="validation" [hidden]="!controls.paths.hasError('atLeastOnePathExpected')">

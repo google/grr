@@ -29,13 +29,15 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     session_id = flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Clicking on this should show the notifications table.
     self.Click("css=button[id=notification_button]")
@@ -56,21 +58,24 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     session_id = flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield b"foo"
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with mock.patch.object(archive_generator.CollectionArchiveGenerator,
-                           "Generate", RaisingStub):
+    with mock.patch.object(
+        archive_generator.CollectionArchiveGenerator, "Generate", RaisingStub
+    ):
       self.Open("/legacy#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
@@ -78,23 +83,28 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
 
-      self.WaitUntil(self.IsUserNotificationPresent,
-                     "Archive generation failed for flow %s" % session_id)
+      self.WaitUntil(
+          self.IsUserNotificationPresent,
+          "Archive generation failed for flow %s" % session_id,
+      )
       # There will be no failure message, as we can't get a status from an
       # iframe that triggers the download.
-      self.WaitUntilNot(self.IsTextPresent,
-                        "Can't generate archive: Unknown error")
+      self.WaitUntilNot(
+          self.IsTextPresent, "Can't generate archive: Unknown error"
+      )
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+    )
     session_id = flow_test_lib.TestFlowHelper(
         flows_transfer.GetFile.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s" % self.client_id)
 
@@ -103,8 +113,10 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     self.Click("link=Results")
     self.Click("css=button.DownloadButton")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
-    self.WaitUntil(self.IsUserNotificationPresent,
-                   "Downloaded archive of flow %s" % session_id)
+    self.WaitUntil(
+        self.IsUserNotificationPresent,
+        "Downloaded archive of flow %s" % session_id,
+    )
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """API handlers for user-related data and actions."""
+
 import collections
 import email
-import functools
 import itertools
 import logging
 
@@ -30,8 +30,9 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import mig_flow
+from grr_response_server.gui.api_plugins import mig_hunt
 from grr_response_server.models import users
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -152,7 +153,8 @@ class ApiNotificationReference(rdf_structs.RDFProtoStruct):
 
       if ref.vfs_file.path_type == rdf_objects.PathInfo.PathType.UNSET:
         raise ValueError(
-            "Can't init from VFS_FILE object reference with unset path_type.")
+            "Can't init from VFS_FILE object reference with unset path_type."
+        )
 
       self.vfs.vfs_path = ref.vfs_file.ToPath()
 
@@ -160,8 +162,10 @@ class ApiNotificationReference(rdf_structs.RDFProtoStruct):
       ref_ar = ref.approval_request
 
       if ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_NONE:
-        raise ValueError("Can't init from APPROVAL_REQUEST object reference "
-                         "with unset approval_type.")
+        raise ValueError(
+            "Can't init from APPROVAL_REQUEST object reference "
+            "with unset approval_type."
+        )
       elif ref_ar.approval_type == ref_ar.ApprovalType.APPROVAL_TYPE_CLIENT:
         self.type = self.Type.CLIENT_APPROVAL
         self.client_approval.approval_id = ref_ar.approval_id
@@ -178,8 +182,10 @@ class ApiNotificationReference(rdf_structs.RDFProtoStruct):
         self.cron_job_approval.username = ref_ar.requestor_username
         self.cron_job_approval.cron_job_id = ref_ar.subject_id
       else:
-        raise ValueError("Unexpected APPROVAL_REQUEST object reference type "
-                         "value: %d" % ref_ar.approval_type)
+        raise ValueError(
+            "Unexpected APPROVAL_REQUEST object reference type value: %d"
+            % ref_ar.approval_type
+        )
     else:
       raise ValueError("Unexpected reference type: %d" % ref.type)
 
@@ -241,7 +247,8 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
     if legacy_type == "Discovery":
       self.reference.type = reference_type_enum.CLIENT
       self.reference.client = ApiNotificationClientReference(
-          client_id=components[0])
+          client_id=components[0]
+      )
     elif legacy_type == "ViewObject":
       if len(components) >= 2 and components[0] == "hunts":
         self.reference.type = reference_type_enum.HUNT
@@ -254,7 +261,8 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
         self.reference.flow.flow_id = components[2]
         self.reference.flow.client_id = components[0]
       elif len(components) == 1 and rdf_client.ClientURN.Validate(
-          components[0]):
+          components[0]
+      ):
         self.reference.type = reference_type_enum.CLIENT
         self.reference.client.client_id = components[0]
       else:
@@ -265,8 +273,9 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
             if path.startswith(part):
               self.reference.type = reference_type_enum.VFS
               self.reference.vfs.client_id = components[0]
-              self.reference.vfs.vfs_path = (prefix +
-                                             path[len(part):]).lstrip("/")
+              self.reference.vfs.vfs_path = (prefix + path[len(part) :]).lstrip(
+                  "/"
+              )
               break
 
         if self.reference.type != reference_type_enum.VFS:
@@ -312,17 +321,19 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
     self.timestamp = notification.timestamp
     self.notification_type = notification.notification_type
     self.message = notification.message
-    self.is_pending = (notification.state == notification.State.STATE_PENDING)
+    self.is_pending = notification.state == notification.State.STATE_PENDING
     try:
       self.reference = ApiNotificationReference().InitFromObjectReference(
-          notification.reference)
+          notification.reference
+      )
     except ValueError as e:
       logging.exception(
-          "Can't initialize notification from an "
-          "object reference: %s", e)
+          "Can't initialize notification from an object reference: %s", e
+      )
       # In case of any initialization issue, simply create an empty reference.
       self.reference = ApiNotificationReference(
-          type=ApiNotificationReference.Type.UNSET)
+          type=ApiNotificationReference.Type.UNSET
+      )
 
     return self
 
@@ -401,29 +412,37 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     if not approval_subject_obj:
       approval_subject_obj = data_store.REL_DB.ReadClientFullInfo(
-          db_obj.subject_id)
+          db_obj.subject_id
+      )
       approval_subject_obj = mig_objects.ToRDFClientFullInfo(
           approval_subject_obj
       )
     self.subject = api_client.ApiClient().InitFromClientInfo(
-        db_obj.subject_id, approval_subject_obj)
+        db_obj.subject_id, approval_subject_obj
+    )
 
     return _InitApiApprovalFromDatabaseObject(self, db_obj)
 
   @property
   def subject_title(self):
-    return u"GRR client %s (%s)" % (self.subject.client_id,
-                                    self.subject.knowledge_base.fqdn)
+    return "GRR client %s (%s)" % (
+        self.subject.client_id,
+        self.subject.knowledge_base.fqdn,
+    )
 
   @property
   def review_url_path(self):
-    return (f"/v2/clients/{self.subject.client_id}/users/{self.requestor}"
-            f"/approvals/{self.id}")
+    return (
+        f"/v2/clients/{self.subject.client_id}/users/{self.requestor}"
+        f"/approvals/{self.id}"
+    )
 
   @property
   def review_url_path_legacy(self):
-    return (f"/#/users/{self.requestor}/approvals/client/"
-            f"{self.subject.client_id}/{self.id}")
+    return (
+        f"/#/users/{self.requestor}/approvals/client/"
+        f"{self.subject.client_id}/{self.id}"
+    )
 
   @property
   def subject_url_path(self):
@@ -441,7 +460,9 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
             approval_type=at,
             approval_id=self.id,
             subject_id=str(self.subject.client_id),
-            requestor_username=self.requestor))
+            requestor_username=self.requestor,
+        ),
+    )
 
 
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
@@ -459,38 +480,47 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
     if not approval_subject_obj:
       approval_subject_obj = data_store.REL_DB.ReadHuntObject(db_obj.subject_id)
-      approval_subject_obj = mig_hunt_objects.ToRDFHunt(approval_subject_obj)
+
       approval_subject_counters = data_store.REL_DB.ReadHuntCounters(
-          db_obj.subject_id)
-      self.subject = api_hunt.ApiHunt().InitFromHuntObject(
-          approval_subject_obj,
-          hunt_counters=approval_subject_counters,
-          with_full_summary=True)
+          db_obj.subject_id
+      )
+      self.subject = mig_hunt.ToRDFApiHunt(
+          api_hunt.InitApiHuntFromHuntObject(
+              approval_subject_obj,
+              hunt_counters=approval_subject_counters,
+              with_full_summary=True,
+          )
+      )
+    approval_subject_obj = mig_hunt_objects.ToRDFHunt(approval_subject_obj)
     original_object = approval_subject_obj.original_object
 
     if original_object.object_type == "FLOW_REFERENCE":
       original_flow = data_store.REL_DB.ReadFlowObject(
           original_object.flow_reference.client_id,
-          original_object.flow_reference.flow_id)
-      original_flow = mig_flow_objects.ToRDFFlow(original_flow)
-      self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
-          original_flow)
+          original_object.flow_reference.flow_id,
+      )
+      copied_from_flow = api_flow.InitApiFlowFromFlowObject(original_flow)
+      self.copied_from_flow = mig_flow.ToRDFApiFlow(copied_from_flow)
     elif original_object.object_type == "HUNT_REFERENCE":
       original_hunt = data_store.REL_DB.ReadHuntObject(
-          original_object.hunt_reference.hunt_id)
-      original_hunt = mig_hunt_objects.ToRDFHunt(original_hunt)
+          original_object.hunt_reference.hunt_id
+      )
       original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
-          original_object.hunt_reference.hunt_id)
-      self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(
-          original_hunt,
-          hunt_counters=original_hunt_counters,
-          with_full_summary=True)
+          original_object.hunt_reference.hunt_id
+      )
+      self.copied_from_hunt = mig_hunt.ToRDFApiHunt(
+          api_hunt.InitApiHuntFromHuntObject(
+              original_hunt,
+              hunt_counters=original_hunt_counters,
+              with_full_summary=True,
+          )
+      )
 
     return self
 
   @property
   def subject_title(self):
-    return u"hunt %s" % (self.subject.hunt_id)
+    return "hunt %s" % (self.subject.hunt_id)
 
   @property
   def review_url_path(self):
@@ -501,8 +531,10 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path_legacy(self):
-    return (f"/#/users/{self.requestor}/approvals/hunt/{self.subject.hunt_id}/"
-            f"{self.id}")
+    return (
+        f"/#/users/{self.requestor}/approvals/hunt/{self.subject.hunt_id}/"
+        f"{self.id}"
+    )
 
   @property
   def subject_url_path(self):
@@ -520,7 +552,9 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
             approval_type=at,
             approval_id=self.id,
             subject_id=str(self.subject.hunt_id),
-            requestor_username=self.requestor))
+            requestor_username=self.requestor,
+        ),
+    )
 
 
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
@@ -539,12 +573,13 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
     self._FillInSubject(
-        db_obj.subject_id, approval_subject_obj=approval_subject_obj)
+        db_obj.subject_id, approval_subject_obj=approval_subject_obj
+    )
     return self
 
   @property
   def subject_title(self):
-    return u"a cron job %s" % (self.subject.cron_job_id)
+    return "a cron job %s" % (self.subject.cron_job_id)
 
   @property
   def review_url_path(self):
@@ -552,8 +587,10 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path_legacy(self):
-    return (f"/#/users/{self.requestor}/approvals/cron-job/"
-            f"{self.subject.cron_job_id}/{self.id}")
+    return (
+        f"/#/users/{self.requestor}/approvals/cron-job/"
+        f"{self.subject.cron_job_id}/{self.id}"
+    )
 
   @property
   def subject_url_path(self):
@@ -571,7 +608,9 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
             approval_type=at,
             approval_id=self.id,
             subject_id=str(self.subject.cron_job_id),
-            requestor_username=self.requestor))
+            requestor_username=self.requestor,
+        ),
+    )
 
 
 _EMAIL_HEADER = """
@@ -642,9 +681,11 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
       return
 
     subject_template = jinja2.Template(
-        "Approval for {{ user }} to access {{ subject }}.", autoescape=True)
+        "Approval for {{ user }} to access {{ subject }}.", autoescape=True
+    )
     subject = subject_template.render(
-        user=approval.requestor, subject=approval.subject_title)
+        user=approval.requestor, subject=approval.subject_title
+    )
 
     template = jinja2.Template(_APPROVAL_REQUESTED_TEMPLATE, autoescape=True)
     base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
@@ -666,7 +707,8 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         subject_title=approval.subject_title,
         # If you feel like it, add a cute dog picture here :)
         html_signature=config.CONFIG["Email.approval_signature"],
-        text_signature=config.CONFIG["Email.signature"])
+        text_signature=config.CONFIG["Email.signature"],
+    )
 
     requestor_email = users.GetEmail(
         data_store.REL_DB.ReadGRRUser(approval.requestor)
@@ -683,15 +725,18 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         message=body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
-        message_id=approval.email_message_id)
+        message_id=approval.email_message_id,
+    )
 
   def CreateApprovalNotification(self, approval):
     for user in approval.notified_users:
       try:
         notification_lib.Notify(
-            user.strip(), self.__class__.approval_notification_type,
+            user.strip(),
+            self.__class__.approval_notification_type,
             "Please grant access to %s" % approval.subject_title,
-            approval.ObjectReference())
+            approval.ObjectReference(),
+        )
       except db.UnknownGRRUserError:
         # The relational db does not allow sending notifications to users that
         # don't exist. This should happen rarely but we need to catch this case.
@@ -717,7 +762,8 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     data_store.REL_DB.GrantApproval(
         approval_id=request.approval_id,
         requestor_username=context.username,
-        grantor_username=context.username)
+        grantor_username=context.username,
+    )
 
     stored_request = data_store.REL_DB.ReadApprovalRequest(
         context.username, request.approval_id
@@ -739,8 +785,9 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
 
-  def _FilterRelationalApprovalRequests(self, approval_requests,
-                                        approval_create_fn, state):
+  def _FilterRelationalApprovalRequests(
+      self, approval_requests, approval_create_fn, state
+  ):
     for ar in approval_requests:
       client_approval = approval_create_fn(ar)
 
@@ -767,20 +814,27 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
       )
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
-          "No approval with id=%s, type=%s, subject=%s could be found." %
-          (args.approval_id, self.__class__.approval_type,
-           args.BuildSubjectId()))
+          "No approval with id=%s, type=%s, subject=%s could be found."
+          % (
+              args.approval_id,
+              self.__class__.approval_type,
+              args.BuildSubjectId(),
+          )
+      )
 
     approval_obj = mig_objects.ToRDFApprovalRequest(proto_approval)
 
     if approval_obj.approval_type != self.__class__.approval_type:
       raise ValueError(
-          "Unexpected approval type: %s, expected: %s" %
-          (approval_obj.approval_type, self.__class__.approval_type))
+          "Unexpected approval type: %s, expected: %s"
+          % (approval_obj.approval_type, self.__class__.approval_type)
+      )
 
     if approval_obj.subject_id != args.BuildSubjectId():
-      raise ValueError("Unexpected subject id: %s, expected: %s" %
-                       (approval_obj.subject_id, args.BuildSubjectId()))
+      raise ValueError(
+          "Unexpected subject id: %s, expected: %s"
+          % (approval_obj.subject_id, args.BuildSubjectId())
+      )
 
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
@@ -832,9 +886,11 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
       return
 
     subject_template = jinja2.Template(
-        "Approval for {{ user }} to access {{ subject }}.", autoescape=True)
+        "Approval for {{ user }} to access {{ subject }}.", autoescape=True
+    )
     subject = subject_template.render(
-        user=approval.requestor, subject=approval.subject_title)
+        user=approval.requestor, subject=approval.subject_title
+    )
 
     template = jinja2.Template(_APPROVAL_GRANTED_TEMPLATE, autoescape=True)
     base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
@@ -856,13 +912,14 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         subject_url=subject_url,
         subject_title=approval.subject_title,
         html_signature=config.CONFIG["Email.approval_signature"],
-        text_signature=config.CONFIG["Email.signature"])
+        text_signature=config.CONFIG["Email.signature"],
+    )
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.
     headers = {
         "In-Reply-To": approval.email_message_id,
-        "References": approval.email_message_id
+        "References": approval.email_message_id,
     }
 
     requestor = data_store.REL_DB.ReadGRRUser(approval.requestor)
@@ -877,22 +934,26 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         message=body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
-        headers=headers)
+        headers=headers,
+    )
 
   def CreateGrantNotification(self, approval, context=None):
     notification_lib.Notify(
-        approval.requestor, self.__class__.approval_notification_type,
-        "%s has granted you access to %s." %
-        (context.username, approval.subject_title),
-        approval.subject.ObjectReference())
+        approval.requestor,
+        self.__class__.approval_notification_type,
+        "%s has granted you access to %s."
+        % (context.username, approval.subject_title),
+        approval.subject.ObjectReference(),
+    )
 
   def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 
     try:
-      data_store.REL_DB.GrantApproval(args.username, args.approval_id,
-                                      context.username)
+      data_store.REL_DB.GrantApproval(
+          args.username, args.approval_id, context.username
+      )
 
       proto_approval = data_store.REL_DB.ReadApprovalRequest(
           args.username, args.approval_id
@@ -900,9 +961,13 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
       approval_obj = mig_objects.ToRDFApprovalRequest(proto_approval)
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
-          "No approval with id=%s, type=%s, subject=%s could be found." %
-          (args.approval_id, self.__class__.approval_type,
-           args.BuildSubjectId()))
+          "No approval with id=%s, type=%s, subject=%s could be found."
+          % (
+              args.approval_id,
+              self.__class__.approval_type,
+              args.BuildSubjectId(),
+          )
+      )
 
     result = self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
@@ -936,7 +1001,8 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
+      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED
+  )
 
   def _CalculateExpiration(self, args):
     if not args.approval.expiration_time_us:
@@ -989,14 +1055,16 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED)
+      rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED
+  )
 
   def Handle(self, args, context=None):
     approval = super().Handle(args, context=context)
 
     if approval.is_valid:
       flow.StartScheduledFlows(
-          client_id=str(approval.subject.client_id), creator=approval.requestor)
+          client_id=str(approval.subject.client_id), creator=approval.requestor
+      )
 
     return approval
 
@@ -1038,28 +1106,6 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     if state == ApiListClientApprovalsArgs.State.INVALID:
       return not is_valid
 
-  def _BuildFilter(self, args):
-    filters = []
-
-    if args.client_id:
-      filters.append(functools.partial(self._CheckClientId, args.client_id))
-
-    if args.state:
-      filters.append(functools.partial(self._CheckState, args.state))
-
-    if filters:
-
-      def Filter(approval):
-        for f in filters:
-          if not f(approval):
-            return False
-
-        return True
-
-      return Filter
-    else:
-      return lambda approval: True  # Accept all by default.
-
   def Handle(self, args, context=None):
     subject_id = None
     if args.client_id:
@@ -1077,8 +1123,10 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     )
     approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
     approvals = self._FilterRelationalApprovalRequests(
-        approvals, lambda ar: ApiClientApproval().InitFromDatabaseObject(ar),
-        args.state)
+        approvals,
+        lambda ar: ApiClientApproval().InitFromDatabaseObject(ar),
+        args.state,
+    )
 
     if not args.count:
       end = None
@@ -1114,7 +1162,8 @@ class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED)
+      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED
+  )
 
 
 class ApiGetHuntApprovalArgs(ApiHuntApprovalArgsBase):
@@ -1148,7 +1197,8 @@ class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED)
+      rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED
+  )
 
 
 class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
@@ -1195,7 +1245,7 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
 
     items = [
         ApiHuntApproval().InitFromDatabaseObject(ar)
-        for ar in approvals[args.offset:end]
+        for ar in approvals[args.offset : end]
     ]
 
     return ApiListHuntApprovalsResult(items=items)
@@ -1225,9 +1275,11 @@ class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
   result_type = ApiCronJobApproval
 
   approval_type = (
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+  )
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED)
+      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED
+  )
 
 
 class ApiGetCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
@@ -1244,7 +1296,8 @@ class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
   result_type = ApiCronJobApproval
 
   approval_type = (
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+  )
 
 
 class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
@@ -1261,9 +1314,11 @@ class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):
   result_type = ApiCronJobApproval
 
   approval_type = (
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+  )
   approval_notification_type = (
-      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED)
+      rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED
+  )
 
 
 class ApiListCronJobApprovalsArgs(ApiCronJobApprovalArgsBase):
@@ -1303,7 +1358,7 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
 
     items = [
         ApiCronJobApproval().InitFromDatabaseObject(ar)
-        for ar in approvals[args.offset:end]
+        for ar in approvals[args.offset : end]
     ]
 
     return ApiListCronJobApprovalsResult(items=items)
@@ -1329,7 +1384,8 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
     result.InitFromDatabaseObject(rdf_user_record)
 
     result.interface_traits = (
-        self.interface_traits or ApiGrrUserInterfaceTraits())
+        self.interface_traits or ApiGrrUserInterfaceTraits()
+    )
 
     return result
 
@@ -1357,7 +1413,8 @@ class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetPendingUserNotificationsCountHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Returns the number of pending notifications for the current user."""
 
   result_type = ApiGetPendingUserNotificationsCountResult
@@ -1367,7 +1424,9 @@ class ApiGetPendingUserNotificationsCountHandler(
     ns = list(
         data_store.REL_DB.ReadUserNotifications(
             context.username,
-            state=rdf_objects.UserNotification.State.STATE_PENDING))
+            state=rdf_objects.UserNotification.State.STATE_PENDING,
+        )
+    )
     return ApiGetPendingUserNotificationsCountResult(count=len(ns))
 
 
@@ -1386,7 +1445,8 @@ class ApiListPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiListPendingUserNotificationsHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Returns pending notifications for the current user."""
 
   args_type = ApiListPendingUserNotificationsArgs
@@ -1397,7 +1457,8 @@ class ApiListPendingUserNotificationsHandler(
     ns = data_store.REL_DB.ReadUserNotifications(
         context.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
-        timerange=(args.timestamp, None))
+        timerange=(args.timestamp, None),
+    )
     ns = [mig_objects.ToRDFUserNotification(n) for n in ns]
 
     # TODO(user): Remove this, so that the order is reversed. This will
@@ -1412,7 +1473,8 @@ class ApiListPendingUserNotificationsHandler(
       ns.pop(0)
 
     return ApiListPendingUserNotificationsResult(
-        items=[ApiNotification().InitFromUserNotification(n) for n in ns])
+        items=[ApiNotification().InitFromUserNotification(n) for n in ns]
+    )
 
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
@@ -1423,7 +1485,8 @@ class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
 
 
 class ApiDeletePendingUserNotificationHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Removes the pending notification with the given timestamp."""
 
   args_type = ApiDeletePendingUserNotificationArgs
@@ -1449,7 +1512,8 @@ class ApiListAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiListAndResetUserNotificationsHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Returns the number of pending notifications for the current user."""
 
   args_type = ApiListAndResetUserNotificationsArgs
@@ -1463,7 +1527,8 @@ class ApiListAndResetUserNotificationsHandler(
         data_store.REL_DB.MinTimestamp(),
     )
     ns = data_store.REL_DB.ReadUserNotifications(
-        context.username, timerange=(back_timestamp, None))
+        context.username, timerange=(back_timestamp, None)
+    )
     ns = [mig_objects.ToRDFUserNotification(n) for n in ns]
 
     pending_timestamps = [
@@ -1496,7 +1561,8 @@ class ApiListAndResetUserNotificationsHandler(
         logging.error("Unable to convert notification %s: %s", n, e)
 
     return ApiListAndResetUserNotificationsResult(
-        items=api_notifications, total_count=total_count)
+        items=api_notifications, total_count=total_count
+    )
 
 
 class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
@@ -1531,7 +1597,7 @@ def _GetMostRequestedUsernames(context):
 
 
 class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
-  """"List suggestions for approver usernames."""
+  """List suggestions for approver usernames."""
 
   args_type = ApiListApproverSuggestionsArgs
   result_type = ApiListApproverSuggestionsResult
@@ -1547,7 +1613,8 @@ class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
       # actually registered users.
       all_usernames_set = set(all_usernames)
       usernames = [
-          u for u in _GetMostRequestedUsernames(context)
+          u
+          for u in _GetMostRequestedUsernames(context)
           if u in all_usernames_set
       ]
 

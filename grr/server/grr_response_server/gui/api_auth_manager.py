@@ -3,7 +3,6 @@
 
 import io
 import logging
-
 from typing import Iterable, Text, Type
 
 import yaml
@@ -67,8 +66,9 @@ class APIAuthorizationManager(object):
   def _CreateRouter(self, router_cls, params=None):
     """Creates a router with a given name and params."""
     if not router_cls.params_type and params:
-      raise ApiCallRouterDoesNotExpectParameters("%s is not configurable" %
-                                                 router_cls)
+      raise ApiCallRouterDoesNotExpectParameters(
+          "%s is not configurable" % router_cls
+      )
 
     rdf_params = None
     if router_cls.params_type:
@@ -78,8 +78,11 @@ class APIAuthorizationManager(object):
 
     return router_cls(params=rdf_params)
 
-  def __init__(self, acl_list: Iterable[APIAuthorization],
-               default_router_cls: Type[api_call_router.ApiCallRouter]):
+  def __init__(
+      self,
+      acl_list: Iterable[APIAuthorization],
+      default_router_cls: Type[api_call_router.ApiCallRouter],
+  ):
     """Initializes the manager by reading the config file."""
     precondition.AssertIterableType(acl_list, APIAuthorization)
 
@@ -117,13 +120,16 @@ class APIAuthorizationManager(object):
       router_id = str(index)
 
       if self.auth_manager.CheckPermissions(username, router_id):
-        logging.debug("Matched router %s to user %s", router.__class__.__name__,
-                      username)
+        logging.debug(
+            "Matched router %s to user %s", router.__class__.__name__, username
+        )
         return router
 
     logging.debug(
-        "No router ACL rule match for user %s. Using default "
-        "router %s", username, self.default_router.__class__.__name__)
+        "No router ACL rule match for user %s. Using default router %s",
+        username,
+        self.default_router.__class__.__name__,
+    )
     return self.default_router
 
 
@@ -143,8 +149,9 @@ def InitializeApiAuthManager(default_router_cls=None):
   if filepath:
     logging.info("Using API router ACL file: %s", filepath)
     with io.open(filepath, "r") as filedesc:
-      API_AUTH_MGR = APIAuthorizationManager.FromYaml(filedesc.read(),
-                                                      default_router_cls)
+      API_AUTH_MGR = APIAuthorizationManager.FromYaml(
+          filedesc.read(), default_router_cls
+      )
   else:
     API_AUTH_MGR = APIAuthorizationManager([], default_router_cls)
 

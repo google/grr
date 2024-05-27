@@ -11,8 +11,9 @@ from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
-class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
-                               ):
+class RootApiUserManagementTest(
+    api_integration_test_lib.RootApiIntegrationTest
+):
   """E2E test for root API user management calls."""
 
   def _GetPassword(self, username):
@@ -28,7 +29,8 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
 
   def testAdminUserIsCorrectlyAdded(self):
     user = self.api.root.CreateGrrUser(
-        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN
+    )
     self.assertEqual(user.username, "user_foo")
     self.assertEqual(user.data.username, "user_foo")
     self.assertEqual(user.data.user_type, user.USER_TYPE_ADMIN)
@@ -81,7 +83,8 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
 
   def testUserCanBeFetched(self):
     self.api.root.CreateGrrUser(
-        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN
+    )
 
     user = self.api.root.GrrUser("user_foo").Get()
     self.assertEqual(user.username, "user_foo")
@@ -89,7 +92,8 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
 
   def testUserCanBeDeleted(self):
     self.api.root.CreateGrrUser(
-        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN
+    )
 
     user = self.api.root.GrrUser("user_foo").Get()
     user.Delete()
@@ -109,7 +113,8 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
   def testCreateUserWithEmail_configOn(self):
     with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
       user = self.api.root.CreateGrrUser(
-          username="user_foo", email="foo@bar.org")
+          username="user_foo", email="foo@bar.org"
+      )
       self.assertEqual(user.data.email, "foo@bar.org")
 
   def testModifyUserSetEmail_configOn(self):

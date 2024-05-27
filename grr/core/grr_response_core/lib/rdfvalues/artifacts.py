@@ -101,13 +101,6 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
           "required_attributes": ["paths", "content_regex_list"],
           "output_type": "BufferReference",
       },
-      # TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
-      #
-      # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
-      artifact_pb2.ArtifactSource.DIRECTORY: {
-          "required_attributes": ["paths"],
-          "output_type": "StatEntry",
-      },
       artifact_pb2.ArtifactSource.LIST_FILES: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry",
@@ -258,8 +251,8 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
 
-  # GRR does not support ESXi.
-  IGNORE_OS_LIST = ("ESXi",)
+  # GRR does not support ESXi, Android and iOS.
+  IGNORE_OS_LIST = ("ESXi", "Android", "iOS")
 
   def ToJson(self):
     artifact_dict = self.ToPrimitiveDict()

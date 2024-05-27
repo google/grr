@@ -459,40 +459,40 @@ class CategorizedPathTest(absltest.TestCase):
 
   def testParseOs(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/os/foo/bar")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.OS)
     self.assertEqual(components, ("foo", "bar"))
 
   def testParseTsk(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/tsk/quux/norf")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TSK)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.TSK)
     self.assertEqual(components, ("quux", "norf"))
 
   def testParseNtfs(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "fs/ntfs/quux/norf")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.NTFS)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.NTFS)
     self.assertEqual(components, ("quux", "norf"))
 
   def testParseRegistry(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "registry/thud/blargh")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.REGISTRY)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.REGISTRY)
     self.assertEqual(components, ("thud", "blargh"))
 
   def testParseTemp(self):
     path_type, components = rdf_objects.ParseCategorizedPath("temp/os/registry")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TEMP)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.TEMP)
     self.assertEqual(components, ("os", "registry"))
 
   def testParseOsRoot(self):
     path_type, components = rdf_objects.ParseCategorizedPath("fs/os")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.OS)
     self.assertEqual(components, ())
 
   def testParseTskExtraSlashes(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "/fs///tsk/foo///bar")
-    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TSK)
+    self.assertEqual(path_type, objects_pb2.PathInfo.PathType.TSK)
     self.assertEqual(components, ("foo", "bar"))
 
   def testParseIncorrect(self):

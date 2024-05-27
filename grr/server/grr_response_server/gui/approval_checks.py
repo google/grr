@@ -28,8 +28,10 @@ def _CheckExpired(approval_request):
   if approval_request.expiration_time < rdfvalue.RDFDatetime.Now():
     raise access_control.UnauthorizedAccess(
         "Approval request is expired.",
-        subject=BuildLegacySubject(approval_request.subject_id,
-                                   approval_request.approval_type))
+        subject=BuildLegacySubject(
+            approval_request.subject_id, approval_request.approval_type
+        ),
+    )
 
 
 def _CheckHasEnoughGrants(approval_request):
@@ -38,12 +40,16 @@ def _CheckHasEnoughGrants(approval_request):
 
   missing = approvers_required - len(approvers)
   if missing > 0:
-    msg = ("Need at least %d additional approver%s for access." %
-           (missing, "s" if missing > 1 else ""))
+    msg = "Need at least %d additional approver%s for access." % (
+        missing,
+        "s" if missing > 1 else "",
+    )
     raise access_control.UnauthorizedAccess(
         msg,
-        subject=BuildLegacySubject(approval_request.subject_id,
-                                   approval_request.approval_type))
+        subject=BuildLegacySubject(
+            approval_request.subject_id, approval_request.approval_type
+        ),
+    )
 
 
 def _CheckHasAdminApprovers(approval_request):
@@ -56,8 +62,10 @@ def _CheckHasAdminApprovers(approval_request):
 
   raise access_control.UnauthorizedAccess(
       "Need at least 1 admin approver for access.",
-      subject=BuildLegacySubject(approval_request.subject_id,
-                                 approval_request.approval_type))
+      subject=BuildLegacySubject(
+          approval_request.subject_id, approval_request.approval_type
+      ),
+  )
 
 
 def CheckClientApprovalRequest(approval_request):
@@ -73,11 +81,15 @@ def CheckClientApprovalRequest(approval_request):
 
   labels = sorted(
       data_store.REL_DB.ReadClientLabels(approval_request.subject_id),
-      key=lambda l: l.name)
+      key=lambda l: l.name,
+  )
   for label in labels:
     client_approval_auth.CLIENT_APPROVAL_AUTH_MGR.CheckApproversForLabel(
         rdfvalue.RDFURN(approval_request.subject_id),
-        approval_request.requestor_username, approvers, label.name)
+        approval_request.requestor_username,
+        approvers,
+        label.name,
+    )
 
   return True
 
@@ -111,4 +123,5 @@ def CheckApprovalRequest(approval_request):
     return CheckCronJobApprovalRequest(approval_request)
   else:
     raise ValueError(
-        "Invalid approval type: %s" % approval_request.approval_type)
+        "Invalid approval type: %s" % approval_request.approval_type
+    )

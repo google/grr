@@ -27,15 +27,17 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
 
   def _UploadCustomArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
     with io.open(test_artifacts_file, mode="r", encoding="utf-8") as fd:
       artifact.UploadArtifactYamlFile(fd.read())
 
   def _LoadSystemArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   def setUp(self):
@@ -61,8 +63,10 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Collectors a")
 
-    self.assertEqual(collectors.ArtifactCollectorFlow.__name__,
-                     self.GetText("link=ArtifactCollectorFlow"))
+    self.assertEqual(
+        collectors.ArtifactCollectorFlow.__name__,
+        self.GetText("link=ArtifactCollectorFlow"),
+    )
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
 
@@ -74,7 +78,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "TestCmdArtifact")
     self.WaitUntil(self.IsTextPresent, "TestFilesArtifact")
 
-    self.Type("css=grr-artifacts-list-form input[type=text]", u"Cmd")
+    self.Type("css=grr-artifacts-list-form input[type=text]", "Cmd")
     self.WaitUntil(self.IsTextPresent, "TestCmdArtifact")
     self.WaitUntilNot(self.IsTextPresent, "TestFilesArtifact")
 
@@ -83,8 +87,9 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-artifacts-list-form button:contains('Add')")
     # Selected artifacts should be highlighted in bold.
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-artifacts-list-form "
-        "strong:contains('TestCmdArtifact')")
+        self.IsElementPresent,
+        "css=grr-artifacts-list-form strong:contains('TestCmdArtifact')",
+    )
 
     # Check the artifact description loaded.
     self.WaitUntil(self.IsTextPresent, "Test command artifact for dpkg.")
@@ -100,7 +105,8 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact')")
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user",
+    )
 
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
     self._UploadCustomArtifacts()
@@ -110,8 +116,10 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("link=ArtifactCollectorFlow")
 
     self.WaitUntil(
-        self.IsElementPresent, "css=*:contains('TestCmdArtifact') > "
-        "span[title~='Custom Uploaded Artifact'] > i.fa-user")
+        self.IsElementPresent,
+        "css=*:contains('TestCmdArtifact') > "
+        "span[title~='Custom Uploaded Artifact'] > i.fa-user",
+    )
 
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
@@ -121,13 +129,17 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("link=ArtifactCollectorFlow")
 
     self.DoubleClick(
-        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
+        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')"
+    )
     self.Click("css=button.Launch")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-artifact-name:contains('TestCmdArtifact')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-artifact-name:contains('TestCmdArtifact')",
+    )
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user",
+    )
 
   def testCustomArtifactsAreMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
@@ -137,12 +149,14 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("link=ArtifactCollectorFlow")
 
     self.DoubleClick(
-        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
+        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')"
+    )
     self.Click("css=button.Launch")
     self.WaitUntil(
         self.IsElementPresent,
         "css=grr-artifact-name:contains('TestCmdArtifact') "
-        "span[title~='Custom Uploaded Artifact'] > i.fa-user")
+        "span[title~='Custom Uploaded Artifact'] > i.fa-user",
+    )
 
 
 if __name__ == "__main__":

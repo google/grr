@@ -104,7 +104,11 @@ const UserDashboardController = class {
    * @private
    */
   onHunts_(response) {
-    this.hunts = response['data']['items'];
+    if ('items' in response['data']) {
+      this.hunts = response['data']['items'];
+    } else {
+      this.hunts = [];
+    }
   }
 
   /**

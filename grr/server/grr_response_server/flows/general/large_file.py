@@ -49,7 +49,9 @@ class CollectLargeFileFlow(flow_base.FlowBase):
   progress_type = CollectLargeFileFlowProgress
 
   def GetProgress(self) -> CollectLargeFileFlowProgress:
-    return self.state.progress
+    if hasattr(self.state, "progress"):
+      return self.state.progress
+    return CollectLargeFileFlowProgress()
 
   def Start(self) -> None:
     super().Start()

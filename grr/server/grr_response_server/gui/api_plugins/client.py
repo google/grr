@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 """API handlers for accessing and searching clients and managing labels."""
+
 import ipaddress
 import re
 import shlex
-from typing import Optional
+from typing import Optional, Sequence
 from urllib import parse as urlparse
 
+from google.protobuf import message as proto2_message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import mig_client
-from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -29,13 +30,14 @@ from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.models import clients as model_clients
 from grr_response_server.rdfvalues import objects as rdf_objects
-from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
-def UpdateClientsFromFleetspeak(clients):
+def UpdateClientsFromFleetspeak(
+    clients: Sequence[client_pb2.ApiClient],
+) -> None:
   """Updates ApiClient records to include info from Fleetspeak."""
   if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
     # FS not configured, or an outgoing connection is otherwise unavailable.
@@ -46,16 +48,21 @@ def UpdateClientsFromFleetspeak(clients):
   if not id_map:
     return
   res = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.ListClientsRequest(client_ids=list(id_map.keys())))
+      admin_pb2.ListClientsRequest(client_ids=list(id_map.keys()))
+  )
   for read in res.clients:
     api_client = id_map[read.client_id]
     api_client.last_seen_at = fleetspeak_utils.TSToRDFDatetime(
-        read.last_contact_time)
-    api_client.last_clock = fleetspeak_utils.TSToRDFDatetime(read.last_clock)
+        read.last_contact_time
+    ).AsMicrosecondsSinceEpoch()
+    api_client.last_clock = fleetspeak_utils.TSToRDFDatetime(
+        read.last_clock
+    ).AsMicrosecondsSinceEpoch()
 
 
 class InterrogateOperationNotFoundError(
-    api_call_handler_base.ResourceNotFoundError):
+    api_call_handler_base.ResourceNotFoundError
+):
   """Raised when an interrogate operation could not be found."""
 
 
@@ -105,7 +112,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
   ]
 
   def InitFromClientObject(
-      self, client_obj: rdf_objects.ClientSnapshot) -> "ApiClient":
+      self, client_obj: rdf_objects.ClientSnapshot
+  ) -> "ApiClient":
 
     # TODO(amoser): Deprecate all urns.
     self.urn = client_obj.client_id
@@ -170,9 +178,11 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     if client_info.HasField("last_snapshot"):
       # Just a sanity check to ensure that the object has correct client id.
       if client_info.last_snapshot.client_id != client_id:
-        raise ValueError(f"Invalid last snapshot client id: "
-                         f"{client_id} expected but "
-                         f"{client_info.last_snapshot.client_id} found")
+        raise ValueError(
+            "Invalid last snapshot client id: "
+            f"{client_id} expected but "
+            f"{client_info.last_snapshot.client_id} found"
+        )
 
       self.InitFromClientObject(client_info.last_snapshot)
     else:
@@ -215,7 +225,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
   def ObjectReference(self):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-        client=rdf_objects.ClientReference(client_id=str(self.client_id)))
+        client=rdf_objects.ClientReference(client_id=str(self.client_id)),
+    )
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
@@ -234,8 +245,14 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
+  proto_args_type = client_pb2.ApiSearchClientsArgs
+  proto_result_type = client_pb2.ApiSearchClientsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: client_pb2.ApiSearchClientsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiSearchClientsResult:
     end = args.count or db.MAX_COUNT
 
     keywords = shlex.split(args.query)
@@ -245,58 +262,27 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     index = client_index.ClientIndex()
 
     # LookupClients returns a sorted list of client ids.
-    clients = index.LookupClients(keywords)[args.offset:args.offset + end]
+    clients = index.LookupClients(keywords)[args.offset : args.offset + end]
 
     client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
     for client_id, client_info in client_infos.items():
-      client_info = mig_objects.ToRDFClientFullInfo(client_info)
-      api_clients.append(ApiClient().InitFromClientInfo(client_id, client_info))
+      api_clients.append(
+          model_clients.ApiClientFromClientFullInfo(client_id, client_info)
+      )
 
     UpdateClientsFromFleetspeak(api_clients)
-    return ApiSearchClientsResult(items=api_clients)
-
-
-class ApiStructuredSearchClientsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiStructuredSearchClientsArgs
-  rdf_deps = [rdf_search.SearchExpression, rdf_search.SortOrder]
-
-
-class ApiStructuredSearchClientsResult(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiStructuredSearchClientsResult
-  rdf_deps = [
-      ApiClient,
-  ]
-
-
-class ApiStructuredSearchClientsHandler(api_call_handler_base.ApiCallHandler):
-  """Renders results of a client structured search."""
-
-  args_type = ApiStructuredSearchClientsArgs
-  result_type = ApiStructuredSearchClientsResult
-
-  def Handle(self, args, context=None):
-    # TODO: Implement this method.
-    raise NotImplementedError()
-
-
-class ApiLabelsRestrictedStructuredSearchClientsHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Renders results of a client structured search."""
-
-  args_type = ApiStructuredSearchClientsArgs
-  result_type = ApiStructuredSearchClientsResult
-
-  def Handle(self, args, context=None):
-    # TODO: Implement this method.
-    raise NotImplementedError()
+    return client_pb2.ApiSearchClientsResult(items=api_clients)
 
 
 class ApiLabelsRestrictedSearchClientsHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Renders results of a client search."""
 
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
+  proto_args_type = client_pb2.ApiSearchClientsArgs
+  proto_result_type = client_pb2.ApiSearchClientsResult
 
   def __init__(self, allow_labels=None, allow_labels_owners=None):
     super().__init__()
@@ -306,8 +292,10 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
   def _VerifyLabels(self, labels):
     for label in labels:
-      if (label.name in self.allow_labels and
-          label.owner in self.allow_labels_owners):
+      if (
+          label.name in self.allow_labels
+          and label.owner in self.allow_labels_owners
+      ):
         return True
     return False
 
@@ -339,19 +327,19 @@ class ApiLabelsRestrictedSearchClientsHandler(
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
       for client_id, client_info in sorted(client_infos.items()):
-        client_info = mig_objects.ToRDFClientFullInfo(client_info)
         if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:
-          api_clients.append(ApiClient().InitFromClientInfo(
-              client_id, client_info))
+          api_clients.append(
+              model_clients.ApiClientFromClientFullInfo(client_id, client_info)
+          )
         index += 1
         if index >= end:
           UpdateClientsFromFleetspeak(api_clients)
-          return ApiSearchClientsResult(items=api_clients)
+          return client_pb2.ApiSearchClientsResult(items=api_clients)
 
     UpdateClientsFromFleetspeak(api_clients)
-    return ApiSearchClientsResult(items=api_clients)
+    return client_pb2.ApiSearchClientsResult(items=api_clients)
 
 
 class ApiVerifyAccessArgs(rdf_structs.RDFProtoStruct):
@@ -371,9 +359,11 @@ class ApiVerifyAccessHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiVerifyAccessArgs
   result_type = ApiVerifyAccessResult
+  proto_args_type = client_pb2.ApiVerifyAccessArgs
+  proto_result_type = client_pb2.ApiVerifyAccessResult
 
   def Handle(self, args, context=None):
-    return ApiVerifyAccessResult()
+    return client_pb2.ApiVerifyAccessResult()
 
 
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
@@ -389,24 +379,33 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetClientArgs
   result_type = ApiClient
+  proto_args_type = client_pb2.ApiGetClientArgs
+  proto_result_type = client_pb2.ApiClient
 
-  def Handle(self, args, context=None):
-    client_id = str(args.client_id)
+  def Handle(
+      self,
+      args: client_pb2.ApiGetClientArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiClient:
+    client_id = args.client_id
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     if info is None:
       raise api_call_handler_base.ResourceNotFoundError()
 
-    if args.timestamp:
+    if args.HasField("timestamp"):
       # Assume that a snapshot for this particular timestamp exists.
+      timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
       snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
-          client_id, timerange=(args.timestamp, args.timestamp))
+          client_id, timerange=(timestamp, timestamp)
+      )
 
       if snapshots:
         info.last_snapshot.CopyFrom(snapshots[0])
         info.last_startup_info.CopyFrom(info.last_snapshot.startup_info)
 
-    info = mig_objects.ToRDFClientFullInfo(info)
-    api_client = ApiClient().InitFromClientInfo(client_id, info)
+    api_client = model_clients.ApiClientFromClientFullInfo(client_id, info)
     UpdateClientsFromFleetspeak([api_client])
     return api_client
 
@@ -431,28 +430,40 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetClientVersionsArgs
   result_type = ApiGetClientVersionsResult
+  proto_args_type = client_pb2.ApiGetClientVersionsArgs
+  proto_result_type = client_pb2.ApiGetClientVersionsResult
 
-  def Handle(self, args, context=None):
-    end_time = args.end or rdfvalue.RDFDatetime.Now()
-    start_time = max(
-        args.start or end_time - rdfvalue.Duration.From(3, rdfvalue.MINUTES),
-        data_store.REL_DB.MinTimestamp(),
-    )
+  def Handle(
+      self,
+      args: client_pb2.ApiGetClientVersionsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetClientVersionsResult:
+    if args.end:
+      end_time = rdfvalue.RDFDatetime().FromMicrosecondsSinceEpoch(args.end)
+    else:
+      end_time = rdfvalue.RDFDatetime.Now()
+
+    if args.start:
+      start_time = rdfvalue.RDFDatetime().FromMicrosecondsSinceEpoch(args.start)
+    else:
+      start_time = end_time - rdfvalue.Duration.From(3, rdfvalue.MINUTES)
+    start_time = max(start_time, data_store.REL_DB.MinTimestamp())
+
     items = []
 
-    client_id = str(args.client_id)
     history = data_store.REL_DB.ReadClientSnapshotHistory(
-        client_id, timerange=(start_time, end_time))
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
+        args.client_id, timerange=(start_time, end_time)
+    )
+    labels = data_store.REL_DB.ReadClientLabels(args.client_id)
 
-    for client in history[::-1]:
-      c = ApiClient().InitFromClientObject(
-          mig_objects.ToRDFClientSnapshot(client)
-      )
-      c.labels = list(map(mig_objects.ToRDFClientLabel, labels))
+    for snapshot in history[::-1]:
+      c = model_clients.ApiClientFromClientSnapshot(snapshot)
+      # ClientSnapshot does not contain label information, so
+      # c.labels should be empty at this point.
+      c.labels.extend(labels)
       items.append(c)
 
-    return ApiGetClientVersionsResult(items=items)
+    return client_pb2.ApiGetClientVersionsResult(items=items)
 
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
@@ -474,18 +485,23 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetClientVersionTimesArgs
   result_type = ApiGetClientVersionTimesResult
+  proto_args_type = client_pb2.ApiGetClientVersionTimesArgs
+  proto_result_type = client_pb2.ApiGetClientVersionTimesResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: client_pb2.ApiGetClientVersionTimesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetClientVersionTimesResult:
     # TODO(amoser): Again, this is rather inefficient,if we moved
     # this call to the datastore we could make it much
     # faster. However, there is a chance that this will not be
     # needed anymore once we use the relational db everywhere, let's
     # decide later.
-    client_id = str(args.client_id)
-    history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
-    times = [rdfvalue.RDFDatetime(h.timestamp) for h in history]
+    history = data_store.REL_DB.ReadClientSnapshotHistory(args.client_id)
+    times = [h.timestamp for h in history]
 
-    return ApiGetClientVersionTimesResult(times=times)
+    return client_pb2.ApiGetClientVersionTimesResult(times=times)
 
 
 class ApiInterrogateClientArgs(rdf_structs.RDFProtoStruct):
@@ -504,16 +520,25 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiInterrogateClientArgs
   result_type = ApiInterrogateClientResult
+  proto_args_type = client_pb2.ApiInterrogateClientArgs
+  proto_result_type = client_pb2.ApiInterrogateClientResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: client_pb2.ApiInterrogateClientArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiInterrogateClientResult:
+    assert context is not None
+
     flow_id = flow.StartFlow(
         flow_cls=discovery.Interrogate,
-        client_id=str(args.client_id),
-        creator=context.username)
+        client_id=args.client_id,
+        creator=context.username,
+    )
 
     # TODO(user): don't encode client_id inside the operation_id, but
     # rather have it as a separate field.
-    return ApiInterrogateClientResult(operation_id=flow_id)
+    return client_pb2.ApiInterrogateClientResult(operation_id=flow_id)
 
 
 class ApiGetInterrogateOperationStateArgs(rdf_structs.RDFProtoStruct):
@@ -528,13 +553,20 @@ class ApiGetInterrogateOperationStateResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetInterrogateOperationStateHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Retrieves the state of the interrogate operation."""
 
   args_type = ApiGetInterrogateOperationStateArgs
   result_type = ApiGetInterrogateOperationStateResult
+  proto_args_type = client_pb2.ApiGetInterrogateOperationStateArgs
+  proto_result_type = client_pb2.ApiGetInterrogateOperationStateResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: client_pb2.ApiGetInterrogateOperationStateArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetInterrogateOperationStateResult:
     client_id = str(args.client_id)
     flow_id = str(args.operation_id)
 
@@ -544,22 +576,28 @@ class ApiGetInterrogateOperationStateHandler(
     # TODO(user): test both exception scenarios below.
     try:
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    except db.UnknownFlowError:
-      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+    except db.UnknownFlowError as e:
+      raise InterrogateOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      ) from e
 
     expected_flow_name = discovery.Interrogate.__name__
     if flow_obj.flow_class_name != expected_flow_name:
-      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+      raise InterrogateOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id
+      )
 
     complete = flow_obj.flow_state != flows_pb2.Flow.FlowState.RUNNING
 
-    result = ApiGetInterrogateOperationStateResult()
+    result = client_pb2.ApiGetInterrogateOperationStateResult()
     if complete:
-      result.state = ApiGetInterrogateOperationStateResult.State.FINISHED
+      result.state = (
+          client_pb2.ApiGetInterrogateOperationStateResult.State.FINISHED
+      )
     else:
-      result.state = ApiGetInterrogateOperationStateResult.State.RUNNING
+      result.state = (
+          client_pb2.ApiGetInterrogateOperationStateResult.State.RUNNING
+      )
 
     return result
 
@@ -578,7 +616,9 @@ class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
 def _GetAddrFromFleetspeak(client_id):
   res = fleetspeak_connector.CONN.outgoing.ListClients(
       admin_pb2.ListClientsRequest(
-          client_ids=[fleetspeak_utils.GRRIDToFleetspeakID(client_id)]))
+          client_ids=[fleetspeak_utils.GRRIDToFleetspeakID(client_id)]
+      )
+  )
   if not res.clients or not res.clients[0].last_contact_address:
     return "", None
   # last_contact_address typically includes a port
@@ -592,14 +632,20 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetLastClientIPAddressArgs
   result_type = ApiGetLastClientIPAddressResult
+  proto_args_type = client_pb2.ApiGetLastClientIPAddressArgs
+  proto_result_type = client_pb2.ApiGetLastClientIPAddressResult
 
-  def Handle(self, args, context=None):
-    client_id = str(args.client_id)
-
-    ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
+  def Handle(
+      self,
+      args: client_pb2.ApiGetLastClientIPAddressArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetLastClientIPAddressResult:
+    ip_str, ipaddr_obj = _GetAddrFromFleetspeak(args.client_id)
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
 
-    return ApiGetLastClientIPAddressResult(ip=ip_str, info=info, status=status)
+    return client_pb2.ApiGetLastClientIPAddressResult(
+        ip=ip_str, info=info, status=status
+    )
 
 
 class ApiListClientCrashesArgs(rdf_structs.RDFProtoStruct):
@@ -621,15 +667,22 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListClientCrashesArgs
   result_type = ApiListClientCrashesResult
+  proto_args_type = client_pb2.ApiListClientCrashesArgs
+  proto_result_type = client_pb2.ApiListClientCrashesResult
 
-  def Handle(self, args, context=None):
-    crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(args.client_id))
+  def Handle(
+      self,
+      args: client_pb2.ApiListClientCrashesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiListClientCrashesResult:
+    crashes = data_store.REL_DB.ReadClientCrashInfoHistory(args.client_id)
     total_count = len(crashes)
     result = api_call_handler_utils.FilterList(
-        crashes, args.offset, count=args.count, filter_value=args.filter)
+        crashes, args.offset, count=args.count, filter_value=args.filter
+    )
 
-    return ApiListClientCrashesResult(
-        items=list(map(mig_client.ToRDFClientCrash, result)),
+    return client_pb2.ApiListClientCrashesResult(
+        items=result,
         total_count=total_count,
     )
 
@@ -645,9 +698,16 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Adds labels to a given client."""
 
   args_type = ApiAddClientsLabelsArgs
+  proto_args_type = client_pb2.ApiAddClientsLabelsArgs
 
-  def Handle(self, args, context=None):
-    client_ids = list(map(str, args.client_ids))
+  def Handle(
+      self,
+      args: client_pb2.ApiAddClientsLabelsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
+    assert context is not None
+
+    client_ids = args.client_ids
     labels = args.labels
 
     data_store.REL_DB.MultiAddClientLabels(client_ids, context.username, labels)
@@ -673,8 +733,15 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Remove labels from a given client."""
 
   args_type = ApiRemoveClientsLabelsArgs
+  proto_args_type = client_pb2.ApiRemoveClientsLabelsArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: client_pb2.ApiRemoveClientsLabelsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
+    assert context is not None
+
     for client_id in args.client_ids:
       cid = str(client_id)
       data_store.REL_DB.RemoveClientLabels(cid, context.username, args.labels)
@@ -698,16 +765,22 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients labels."""
 
   result_type = ApiListClientsLabelsResult
+  proto_result_type = client_pb2.ApiListClientsLabelsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: Optional[proto2_message.Message] = None,  # Unused
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiListClientsLabelsResult:
     labels = data_store.REL_DB.ReadAllClientLabels()
 
     label_objects = []
     for name in labels:
-      label_objects.append(rdf_objects.ClientLabel(name=name))
+      label_objects.append(objects_pb2.ClientLabel(name=name))
 
-    return ApiListClientsLabelsResult(
-        items=sorted(label_objects, key=lambda l: l.name))
+    return client_pb2.ApiListClientsLabelsResult(
+        items=sorted(label_objects, key=lambda l: l.name)
+    )
 
 
 class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):
@@ -718,10 +791,12 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients knowledge base fields."""
 
   result_type = ApiListKbFieldsResult
+  proto_result_type = client_pb2.ApiListKbFieldsResult
 
   def Handle(self, args, context=None):
+    # TODO: Add a proto function counterpart.
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
-    return ApiListKbFieldsResult(items=sorted(fields))
+    return client_pb2.ApiListKbFieldsResult(items=sorted(fields))
 
 
 def _CheckFleetspeakConnection() -> None:
@@ -740,12 +815,15 @@ class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
   """Kills fleetspeak on the given client."""
 
   args_type = ApiKillFleetspeakArgs
+  proto_args_type = client_pb2.ApiKillFleetspeakArgs
 
-  def Handle(self,
-             args: ApiKillFleetspeakArgs,
-             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+  def Handle(
+      self,
+      args: client_pb2.ApiKillFleetspeakArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.KillFleetspeak(str(args.client_id), args.force)
+    fleetspeak_utils.KillFleetspeak(args.client_id, args.force)
 
 
 class ApiRestartFleetspeakGrrServiceArgs(rdf_structs.RDFProtoStruct):
@@ -755,17 +833,21 @@ class ApiRestartFleetspeakGrrServiceArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
-                                           ):
+class ApiRestartFleetspeakGrrServiceHandler(
+    api_call_handler_base.ApiCallHandler
+):
   """Restarts the GRR fleetspeak service on the given client."""
 
   args_type = ApiRestartFleetspeakGrrServiceArgs
+  proto_args_type = client_pb2.ApiRestartFleetspeakGrrServiceArgs
 
-  def Handle(self,
-             args: ApiRestartFleetspeakGrrServiceArgs,
-             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+  def Handle(
+      self,
+      args: client_pb2.ApiRestartFleetspeakGrrServiceArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.RestartFleetspeakGrrService(str(args.client_id))
+    fleetspeak_utils.RestartFleetspeakGrrService(args.client_id)
 
 
 class ApiDeleteFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
@@ -776,16 +858,20 @@ class ApiDeleteFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
 
 
 class ApiDeleteFleetspeakPendingMessagesHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Deletes pending fleetspeak messages for the given client."""
 
   args_type = ApiDeleteFleetspeakPendingMessagesArgs
+  proto_args_type = client_pb2.ApiDeleteFleetspeakPendingMessagesArgs
 
-  def Handle(self,
-             args: ApiDeleteFleetspeakPendingMessagesArgs,
-             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+  def Handle(
+      self,
+      args: client_pb2.ApiDeleteFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.DeleteFleetspeakPendingMessages(str(args.client_id))
+    fleetspeak_utils.DeleteFleetspeakPendingMessages(args.client_id)
 
 
 class ApiGetFleetspeakPendingMessageCountArgs(rdf_structs.RDFProtoStruct):
@@ -800,40 +886,33 @@ class ApiGetFleetspeakPendingMessageCountResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetFleetspeakPendingMessageCountHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Returns the number of fleetspeak messages pending for the given client."""
+
   args_type = ApiGetFleetspeakPendingMessageCountArgs
   result_type = ApiGetFleetspeakPendingMessageCountResult
+  proto_args_type = client_pb2.ApiGetFleetspeakPendingMessageCountArgs
+  proto_result_type = client_pb2.ApiGetFleetspeakPendingMessageCountResult
 
   def Handle(
       self,
-      args: ApiGetFleetspeakPendingMessageCountArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
-  ) -> ApiGetFleetspeakPendingMessageCountResult:
+      args: client_pb2.ApiGetFleetspeakPendingMessageCountArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetFleetspeakPendingMessageCountResult:
     _CheckFleetspeakConnection()
-    return ApiGetFleetspeakPendingMessageCountResult(
-        count=fleetspeak_utils.GetFleetspeakPendingMessageCount(
-            str(args.client_id)))
+    return client_pb2.ApiGetFleetspeakPendingMessageCountResult(
+        count=fleetspeak_utils.GetFleetspeakPendingMessageCount(args.client_id)
+    )
 
 
 class ApiFleetspeakAddress(rdf_structs.RDFProtoStruct):
   """Mirrors the fleetspeak proto `common_pb2.Address`."""
+
   protobuf = client_pb2.ApiFleetspeakAddress
   rdf_deps = [
       ApiClientId,
   ]
-
-  @classmethod
-  def FromFleetspeakProto(cls,
-                          proto: common_pb2.Address) -> "ApiFleetspeakAddress":
-    if proto.client_id:
-      client_id = fleetspeak_utils.FleetspeakIDToGRRID(proto.client_id)
-    else:
-      client_id = None
-    return ApiFleetspeakAddress(
-        client_id=client_id,
-        service_name=proto.service_name,
-    )
 
 
 class ApiFleetspeakAnnotations(rdf_structs.RDFProtoStruct):
@@ -842,27 +921,10 @@ class ApiFleetspeakAnnotations(rdf_structs.RDFProtoStruct):
   class Entry(rdf_structs.RDFProtoStruct):
     protobuf = client_pb2.ApiFleetspeakAnnotations.Entry
 
-    @classmethod
-    def FromFleetspeakProto(
-        cls, proto: common_pb2.Annotations.Entry
-    ) -> "ApiFleetspeakAnnotations.Entry":
-      return ApiFleetspeakAnnotations.Entry(
-          key=proto.key,
-          value=proto.value,
-      )
-
   protobuf = client_pb2.ApiFleetspeakAnnotations
   rdf_deps = [
       Entry,
   ]
-
-  @classmethod
-  def FromFleetspeakProto(
-      cls, proto: common_pb2.Annotations) -> "ApiFleetspeakAnnotations":
-    result = ApiFleetspeakAnnotations()
-    for entry in proto.entries:
-      result.entries.append(cls.Entry.FromFleetspeakProto(entry))
-    return result
 
 
 class ApiFleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
@@ -876,37 +938,19 @@ class ApiFleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
       Tag,
   ]
 
-  @classmethod
-  def FromFleetspeakProto(
-      cls, proto: common_pb2.ValidationInfo) -> "ApiFleetspeakValidationInfo":
-    result = ApiFleetspeakValidationInfo()
-    for key, value in proto.tags.items():
-      result.tags.append(cls.Tag(key=key, value=value))
-    return result
-
 
 class ApiFleetspeakMessageResult(rdf_structs.RDFProtoStruct):
   """Mirrors the proto `fleetspeak.MessageResult`."""
+
   protobuf = client_pb2.ApiFleetspeakMessageResult
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
 
-  @classmethod
-  def FromFleetspeakProto(
-      cls, proto: common_pb2.MessageResult) -> "ApiFleetspeakMessageResult":
-    result = ApiFleetspeakMessageResult(
-        failed=proto.failed,
-        failed_reason=proto.failed_reason,
-    )
-    if proto.HasField("processed_time"):
-      result.processed_time = rdfvalue.RDFDatetime.FromDatetime(
-          proto.processed_time.ToDatetime())
-    return result
-
 
 class ApiFleetspeakMessage(rdf_structs.RDFProtoStruct):
   """Mirrors the proto `fleetspeak.Message`."""
+
   protobuf = client_pb2.ApiFleetspeakMessage
   rdf_deps = [
       ApiFleetspeakAddress,
@@ -915,55 +959,6 @@ class ApiFleetspeakMessage(rdf_structs.RDFProtoStruct):
       ApiFleetspeakMessageResult,
       ApiFleetspeakAnnotations,
   ]
-
-  @classmethod
-  def FromFleetspeakProto(cls,
-                          proto: common_pb2.Message) -> "ApiFleetspeakMessage":
-    result = ApiFleetspeakMessage(
-        message_id=proto.message_id,
-        source_message_id=proto.source_message_id,
-        message_type=proto.message_type,
-        priority=cls._PriorityFromFleetspeakProto(proto.priority),
-        background=proto.background,
-    )
-    if proto.HasField("source"):
-      result.source = ApiFleetspeakAddress.FromFleetspeakProto(proto.source)
-    if proto.HasField("destination"):
-      result.destination = ApiFleetspeakAddress.FromFleetspeakProto(
-          proto.destination)
-    if proto.HasField("creation_time"):
-      result.creation_time = rdfvalue.RDFDatetime.FromDatetime(
-          proto.creation_time.ToDatetime())
-    if proto.HasField("data"):
-      result.data = cls._AnyFromFleetspeakProto(proto.data)
-    if proto.HasField("validation_info"):
-      result.validation_info = ApiFleetspeakValidationInfo.FromFleetspeakProto(
-          proto.validation_info)
-    if proto.HasField("result"):
-      result.result = ApiFleetspeakMessageResult.FromFleetspeakProto(
-          proto.result)
-    if proto.HasField("annotations"):
-      result.annotations = ApiFleetspeakAnnotations.FromFleetspeakProto(
-          proto.annotations)
-    return result
-
-  _PRIORITY_MAP = {
-      common_pb2.Message.Priority.MEDIUM:
-          client_pb2.ApiFleetspeakMessage.Priority.MEDIUM,
-      common_pb2.Message.Priority.LOW:
-          client_pb2.ApiFleetspeakMessage.Priority.LOW,
-      common_pb2.Message.Priority.HIGH:
-          client_pb2.ApiFleetspeakMessage.Priority.HIGH,
-  }
-
-  @classmethod
-  def _PriorityFromFleetspeakProto(
-      cls, proto: common_pb2.Message.Priority) -> Optional[int]:
-    return cls._PRIORITY_MAP.get(proto, None)
-
-  @classmethod
-  def _AnyFromFleetspeakProto(cls, proto) -> rdf_structs.AnyValue:
-    return rdf_structs.AnyValue(type_url=proto.type_url, value=proto.value)
 
 
 class ApiGetFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
@@ -975,37 +970,36 @@ class ApiGetFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetFleetspeakPendingMessagesResult(rdf_structs.RDFProtoStruct):
   """Result for ApiGetFleetspeakPendingMessagesHandler."""
+
   protobuf = client_pb2.ApiGetFleetspeakPendingMessagesResult
   rdf_deps = [
       ApiFleetspeakMessage,
   ]
 
-  @classmethod
-  def FromFleetspeakProto(
-      cls, proto: admin_pb2.GetPendingMessagesResponse
-  ) -> "ApiGetFleetspeakPendingMessagesResult":
-    result = ApiGetFleetspeakPendingMessagesResult()
-    for message in proto.messages:
-      result.messages.append(ApiFleetspeakMessage.FromFleetspeakProto(message))
-    return result
-
 
 class ApiGetFleetspeakPendingMessagesHandler(
-    api_call_handler_base.ApiCallHandler):
+    api_call_handler_base.ApiCallHandler
+):
   """Returns the fleetspeak pending messages for the given client."""
 
   args_type = ApiGetFleetspeakPendingMessagesArgs
   result_type = ApiGetFleetspeakPendingMessagesResult
+  proto_args_type = client_pb2.ApiGetFleetspeakPendingMessagesArgs
+  proto_result_type = client_pb2.ApiGetFleetspeakPendingMessagesResult
 
   def Handle(
       self,
-      args: ApiGetFleetspeakPendingMessagesArgs,
-      context: Optional[api_call_context.ApiCallContext] = None
-  ) -> ApiGetFleetspeakPendingMessagesResult:
+      args: client_pb2.ApiGetFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> client_pb2.ApiGetFleetspeakPendingMessagesResult:
     _CheckFleetspeakConnection()
-    return ApiGetFleetspeakPendingMessagesResult.FromFleetspeakProto(
-        fleetspeak_utils.GetFleetspeakPendingMessages(
-            str(args.client_id),
-            offset=args.offset,
-            limit=args.limit,
-            want_data=args.want_data))
+    return (
+        model_clients.ApiGetFleetspeakPendingMessagesResultFromFleetspeakProto(
+            fleetspeak_utils.GetFleetspeakPendingMessages(
+                str(args.client_id),
+                offset=args.offset,
+                limit=args.limit,
+                want_data=args.want_data,
+            )
+        )
+    )

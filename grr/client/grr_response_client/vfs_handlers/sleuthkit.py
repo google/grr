@@ -3,7 +3,6 @@
 
 import logging
 import stat
-from typing import Text
 
 import pytsk3
 
@@ -246,7 +245,7 @@ class TSKFile(vfs_base.VFSHandler):
     Returns:
       A StatEntry which can be used to re-open this exact VFS node.
     """
-    precondition.AssertOptionalType(append_name, Text)
+    precondition.AssertOptionalType(append_name, str)
 
     info = tsk_file.info
     response = rdf_client_fs.StatEntry()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_proto.api import config_pb2
 from grr_response_server.gui.api_plugins import config
 

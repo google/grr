@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from typing import Text
-
 from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
@@ -50,7 +48,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testPassesArguments(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(self, username: Text, db: abstract_db.Database):
+    def TestMethod(self, username: str, db: abstract_db.Database):
       db.WriteGRRUser(username)
 
       proto_user = db.ReadGRRUser(username)

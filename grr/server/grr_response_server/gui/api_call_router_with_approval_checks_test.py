@@ -27,8 +27,9 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
-                                          hunt_test_lib.StandardHuntTestMixin):
+class ApiCallRouterWithApprovalChecksTest(
+    test_lib.GRRBaseTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Tests for an ApiCallRouterWithApprovalChecks."""
 
   # ACCESS_CHECKED_METHODS is used to identify the methods that are tested
@@ -47,13 +48,12 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     self.access_checker_mock = mock.MagicMock()
 
     self.router = api_router.ApiCallRouterWithApprovalChecks(
-        delegate=self.delegate_mock, access_checker=self.access_checker_mock)
+        delegate=self.delegate_mock, access_checker=self.access_checker_mock
+    )
 
-  def CheckMethodIsAccessChecked(self,
-                                 method,
-                                 access_type,
-                                 args=None,
-                                 context=None):
+  def CheckMethodIsAccessChecked(
+      self, method, access_type, args=None, context=None
+  ):
     context = context or self.context
 
     # Check that legacy access control manager is called and that the method
@@ -61,7 +61,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     method(args, context=context)
     self.assertTrue(getattr(self.access_checker_mock, access_type).called)
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, context=context)
+        args, context=context
+    )
 
     self.delegate_mock.reset_mock()
     self.access_checker_mock.reset_mock()
@@ -69,8 +70,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     try:
       # Check that when exception is raised by legacy manager, the delegate
       # method is not called.
-      getattr(self.access_checker_mock,
-              access_type).side_effect = access_control.UnauthorizedAccess("")
+      getattr(self.access_checker_mock, access_type).side_effect = (
+          access_control.UnauthorizedAccess("")
+      )
 
       with self.assertRaises(access_control.UnauthorizedAccess):
         method(args, context=context)
@@ -95,7 +97,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     self.assertFalse(self.access_checker_mock.CheckDataStoreAccess.called)
 
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, context=context)
+        args, context=context
+    )
 
     self.delegate_mock.reset_mock()
     self.access_checker_mock.reset_mock()
@@ -108,11 +111,13 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.InterrogateClient, "CheckClientAccess", args=args)
+        self.router.InterrogateClient, "CheckClientAccess", args=args
+    )
 
     args = api_client.ApiListClientCrashesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListClientCrashes, "CheckClientAccess", args=args)
+        self.router.ListClientCrashes, "CheckClientAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "VerifyAccess",
@@ -129,8 +134,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "GetVfsTimeline",
       "GetVfsTimelineAsCsv",
       "UpdateVfsFileContent",
-      "GetFileDecoders",
-      "GetDecodedFileBlob",
       "KillFleetspeak",
       "RestartFleetspeakGrrService",
       "DeleteFleetspeakPendingMessages",
@@ -141,51 +144,63 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testVfsMethodsAreAccessChecked(self):
     args = api_vfs.ApiListFilesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFiles, "CheckClientAccess", args=args)
+        self.router.ListFiles, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiBrowseFilesystemArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.BrowseFilesystem, "CheckClientAccess", args=args)
+        self.router.BrowseFilesystem, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetVfsFilesArchiveArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetVfsFilesArchive, "CheckClientAccess", args=args)
+        self.router.GetVfsFilesArchive, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetFileDetailsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetFileDetails, "CheckClientAccess", args=args)
+        self.router.GetFileDetails, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetFileTextArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetFileText, "CheckClientAccess", args=args)
+        self.router.GetFileText, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetFileBlobArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetFileBlob, "CheckClientAccess", args=args)
+        self.router.GetFileBlob, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetFileVersionTimesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetFileVersionTimes, "CheckClientAccess", args=args)
+        self.router.GetFileVersionTimes, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetFileDownloadCommandArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetFileDownloadCommand, "CheckClientAccess", args=args)
+        self.router.GetFileDownloadCommand, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.CreateVfsRefreshOperation, "CheckClientAccess", args=args)
+        self.router.CreateVfsRefreshOperation, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetVfsTimelineArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetVfsTimeline, "CheckClientAccess", args=args)
+        self.router.GetVfsTimeline, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.GetVfsTimelineAsCsv, "CheckClientAccess", args=args)
+        self.router.GetVfsTimelineAsCsv, "CheckClientAccess", args=args
+    )
 
     args = api_vfs.ApiUpdateVfsFileContentArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.UpdateVfsFileContent, "CheckClientAccess", args=args)
+        self.router.UpdateVfsFileContent, "CheckClientAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "GetCollectedTimeline",
@@ -193,7 +208,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testGetCollectedTimelineRaisesIfFlowIsNotFound(self):
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=self.client_id, flow_id="12345678")
+        client_id=self.client_id, flow_id="12345678"
+    )
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.router.GetCollectedTimeline(args, context=self.context)
 
@@ -203,12 +219,15 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     flow_id = flow_test_lib.StartFlow(
         timeline.TimelineFlow,
         client_id=client_id,
-        parent=flow.FlowParent.FromHuntID(hunt_id))
+        parent=flow.FlowParent.FromHuntID(hunt_id),
+    )
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     self.CheckMethodIsNotAccessChecked(
-        self.router.GetCollectedTimeline, args=args)
+        self.router.GetCollectedTimeline, args=args
+    )
 
   def testGetCollectedTimelineRefusesAccessIfPartOfHuntButWrongFlow(self):
     client_id = self.SetupClient(0)
@@ -216,32 +235,39 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     flow_id = flow_test_lib.StartFlow(
         flow_test_lib.DummyFlow,
         client_id=client_id,
-        parent=flow.FlowParent.FromHuntID(hunt_id))
+        parent=flow.FlowParent.FromHuntID(hunt_id),
+    )
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     with self.assertRaises(ValueError):
       self.router.GetCollectedTimeline(args=args, context=self.context)
 
   def testGetCollectedTimelineRefusesAccessIfWrongFlow(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        flow_test_lib.DummyFlow, client_id=client_id)
+        flow_test_lib.DummyFlow, client_id=client_id
+    )
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     with self.assertRaises(ValueError):
       self.router.GetCollectedTimeline(args=args, context=self.context)
 
   def testGetCollectedTimelineChecksClientAccessIfNotPartOfHunt(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        timeline.TimelineFlow, client_id=client_id)
+        timeline.TimelineFlow, client_id=client_id
+    )
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     self.CheckMethodIsAccessChecked(
-        self.router.GetCollectedTimeline, "CheckClientAccess", args=args)
+        self.router.GetCollectedTimeline, "CheckClientAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "GetOsqueryResults",
@@ -249,7 +275,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testGetOsqueryResultsRaisesIfFlowIsNotFound(self):
     args = api_osquery.ApiGetOsqueryResultsArgs(
-        client_id=self.client_id, flow_id="12345678")
+        client_id=self.client_id, flow_id="12345678"
+    )
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.router.GetOsqueryResults(args, context=self.context)
 
@@ -259,10 +286,12 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     flow_id = flow_test_lib.StartFlow(
         osquery.OsqueryFlow,
         client_id=client_id,
-        parent=flow.FlowParent.FromHuntID(hunt_id))
+        parent=flow.FlowParent.FromHuntID(hunt_id),
+    )
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     self.CheckMethodIsNotAccessChecked(self.router.GetOsqueryResults, args=args)
 
   def testGetOsqueryResultsRefusesAccessIfPartOfHuntButWrongFlow(self):
@@ -271,20 +300,24 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     flow_id = flow_test_lib.StartFlow(
         flow_test_lib.DummyFlow,
         client_id=client_id,
-        parent=flow.FlowParent.FromHuntID(hunt_id))
+        parent=flow.FlowParent.FromHuntID(hunt_id),
+    )
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     with self.assertRaises(ValueError):
       self.router.GetOsqueryResults(args=args, context=self.context)
 
   def testGetOsqueryResultsRefusesAccessIfWrongFlow(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        flow_test_lib.DummyFlow, client_id=client_id)
+        flow_test_lib.DummyFlow, client_id=client_id
+    )
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     with self.assertRaises(ValueError):
       self.router.GetOsqueryResults(args=args, context=self.context)
 
@@ -293,9 +326,11 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     flow_id = flow_test_lib.StartFlow(osquery.OsqueryFlow, client_id=client_id)
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
-        client_id=client_id, flow_id=flow_id)
+        client_id=client_id, flow_id=flow_id
+    )
     self.CheckMethodIsAccessChecked(
-        self.router.GetOsqueryResults, "CheckClientAccess", args=args)
+        self.router.GetOsqueryResults, "CheckClientAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlows",
@@ -312,37 +347,46 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testClientFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiListFlowsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlows, "CheckClientAccess", args=args)
+        self.router.ListFlows, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckClientAccess", args=args)
+        self.router.CreateFlow, "CheckClientAccess", args=args
+    )
     self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckIfCanStartClientFlow", args=args)
+        self.router.CreateFlow, "CheckIfCanStartClientFlow", args=args
+    )
 
     args = api_flow.ApiCancelFlowArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.CancelFlow, "CheckClientAccess", args=args)
+        self.router.CancelFlow, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiListFlowRequestsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlowRequests, "CheckClientAccess", args=args)
+        self.router.ListFlowRequests, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiListFlowOutputPluginsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPlugins, "CheckClientAccess", args=args)
+        self.router.ListFlowOutputPlugins, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiListFlowOutputPluginLogsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPluginLogs, "CheckClientAccess", args=args)
+        self.router.ListFlowOutputPluginLogs, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiListFlowOutputPluginErrorsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPluginErrors, "CheckClientAccess", args=args)
+        self.router.ListFlowOutputPluginErrors, "CheckClientAccess", args=args
+    )
 
     args = api_flow.ApiListFlowLogsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
-        self.router.ListFlowLogs, "CheckClientAccess", args=args)
+        self.router.ListFlowLogs, "CheckClientAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "GetFlow",
@@ -498,15 +542,18 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testCronJobMethodsAreAccessChecked(self):
     args = api_cron.ApiForceRunCronJobArgs(cron_job_id="TestCronJob")
     self.CheckMethodIsAccessChecked(
-        self.router.ForceRunCronJob, "CheckCronJobAccess", args=args)
+        self.router.ForceRunCronJob, "CheckCronJobAccess", args=args
+    )
 
     args = api_cron.ApiModifyCronJobArgs(cron_job_id="TestCronJob")
     self.CheckMethodIsAccessChecked(
-        self.router.ModifyCronJob, "CheckCronJobAccess", args=args)
+        self.router.ModifyCronJob, "CheckCronJobAccess", args=args
+    )
 
     args = api_cron.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
     self.CheckMethodIsAccessChecked(
-        self.router.DeleteCronJob, "CheckCronJobAccess", args=args)
+        self.router.DeleteCronJob, "CheckCronJobAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "CreateHunt",
@@ -519,13 +566,15 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testCreatingHuntIsAccessChecked(self):
     args = api_hunt.ApiCreateHuntArgs(flow_name=osquery.OsqueryFlow.__name__)
     self.CheckMethodIsAccessChecked(
-        self.router.CreateHunt, "CheckIfCanStartClientFlow", args=args)
+        self.router.CreateHunt, "CheckIfCanStartClientFlow", args=args
+    )
 
   def testModifyHuntIsAccessChecked(self):
     args = api_hunt.ApiModifyHuntArgs(hunt_id="H:123456")
 
     self.CheckMethodIsAccessChecked(
-        self.router.ModifyHunt, "CheckHuntAccess", args=args)
+        self.router.ModifyHunt, "CheckHuntAccess", args=args
+    )
 
   def testDeleteHuntRaisesIfHuntNotFound(self):
     args = api_hunt.ApiDeleteHuntArgs(hunt_id="H:123456")
@@ -540,7 +589,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         self.router.DeleteHunt,
         "CheckHuntAccess",
         args=args,
-        context=api_call_context.ApiCallContext("foo"))
+        context=api_call_context.ApiCallContext("foo"),
+    )
 
   def testDeleteHuntIsNotAccessCheckedIfUserIsCreator(self):
     hunt_id = self.CreateHunt(creator=self.context.username)
@@ -551,12 +601,14 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testGetHuntFilesArchiveIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFilesArchiveArgs(hunt_id="H:123456")
     self.CheckMethodIsAccessChecked(
-        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args
+    )
 
   def testGetHuntFileIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFileArgs(hunt_id="H:123456")
     self.CheckMethodIsAccessChecked(
-        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "ListGrrBinaries",
@@ -565,16 +617,19 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ])
 
   def testListGrrBinariesIsAccessChecked(self):
-    self.CheckMethodIsAccessChecked(self.router.ListGrrBinaries,
-                                    "CheckIfHasAccessToRestrictedFlows")
+    self.CheckMethodIsAccessChecked(
+        self.router.ListGrrBinaries, "CheckIfHasAccessToRestrictedFlows"
+    )
 
   def testGetGrrBinaryIsAccessChecked(self):
-    self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
-                                    "CheckIfHasAccessToRestrictedFlows")
+    self.CheckMethodIsAccessChecked(
+        self.router.GetGrrBinary, "CheckIfHasAccessToRestrictedFlows"
+    )
 
   def testGetGrrBinaryBlobIsAccessChecked(self):
-    self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
-                                    "CheckIfHasAccessToRestrictedFlows")
+    self.CheckMethodIsAccessChecked(
+        self.router.GetGrrBinary, "CheckIfHasAccessToRestrictedFlows"
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlowDescriptors",
@@ -583,8 +638,10 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testListFlowDescriptorsIsAccessChecked(self):
     handler = self.router.ListFlowDescriptors(None, context=self.context)
     # Check that router's access_checker's method got passed into the handler.
-    self.assertEqual(handler.access_check_fn,
-                     self.router.access_checker.CheckIfCanStartClientFlow)
+    self.assertEqual(
+        handler.access_check_fn,
+        self.router.access_checker.CheckIfCanStartClientFlow,
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "GetGrrUser",
@@ -593,22 +650,29 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testGetGrrUserReturnsFullTraitsForWhenWithRestrictedFlowsAccess(self):
     handler = self.router.GetGrrUser(None, context=self.context)
 
-    self.assertEqual(handler.interface_traits,
-                     api_user.ApiGrrUserInterfaceTraits().EnableAll())
+    self.assertEqual(
+        handler.interface_traits,
+        api_user.ApiGrrUserInterfaceTraits().EnableAll(),
+    )
 
   def testGetGrrUserReturnsRestrictedTraitsWhenWithoutRestrictedFlowsAccess(
-      self):
+      self,
+  ):
     error = access_control.UnauthorizedAccess("some error")
-    self.access_checker_mock.CheckIfHasAccessToRestrictedFlows.side_effect = error
+    self.access_checker_mock.CheckIfHasAccessToRestrictedFlows.side_effect = (
+        error
+    )
     handler = self.router.GetGrrUser(None, context=self.context)
 
-    self.assertNotEqual(handler.interface_traits,
-                        api_user.ApiGrrUserInterfaceTraits().EnableAll())
+    self.assertNotEqual(
+        handler.interface_traits,
+        api_user.ApiGrrUserInterfaceTraits().EnableAll(),
+    )
 
   def testAllOtherMethodsAreNotAccessChecked(self):
-    unchecked_methods = (
-        set(self.router.__class__.GetAnnotatedMethods().keys()) -
-        set(self.ACCESS_CHECKED_METHODS))
+    unchecked_methods = set(
+        self.router.__class__.GetAnnotatedMethods().keys()
+    ) - set(self.ACCESS_CHECKED_METHODS)
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:

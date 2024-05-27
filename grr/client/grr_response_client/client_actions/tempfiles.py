@@ -9,7 +9,6 @@ import shutil
 import stat
 import sys
 import tempfile
-from typing import Text
 
 import psutil
 
@@ -189,8 +188,8 @@ def CreateGRRTempFileVFS(filename=None, mode="w+b"):
 
 def _CheckIfPathIsValidForDeletion(path, prefix=None, directories=None):
   """Checks if given path is valid for deletion."""
-  precondition.AssertType(path, Text)
-  precondition.AssertType(prefix, Text)
+  precondition.AssertType(path, str)
+  precondition.AssertType(prefix, str)
 
   if prefix and os.path.basename(path).startswith(prefix):
     return True
@@ -219,7 +218,7 @@ def DeleteGRRTempFile(path):
     ErrorNotTempFile: Filename must start with Client.tempfile_prefix.
     ErrorNotAFile: File to delete does not exist.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
 
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")

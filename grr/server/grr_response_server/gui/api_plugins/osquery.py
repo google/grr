@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """A module with API handlers related to the Osquery flow."""
+
 import csv
 import io
-from typing import Iterable
-from typing import Iterator
-from typing import Optional
-from typing import Text
+from typing import Iterable, Iterator, Optional
 
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -33,22 +31,23 @@ class ApiGetOsqueryResultsHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the timeline exporter."""
 
   args_type = ApiGetOsqueryResultsArgs
+  proto_args_type = api_osquery_pb2.ApiGetOsqueryResultsArgs
 
   def Handle(
       self,
-      args: ApiGetOsqueryResultsArgs,
+      args: api_osquery_pb2.ApiGetOsqueryResultsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the exporting of Osquery flow results."""
-    client_id = str(args.client_id)
-    flow_id = str(args.flow_id)
+    client_id = args.client_id
+    flow_id = args.flow_id
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     if flow_obj.flow_class_name != osquery.OsqueryFlow.__name__:
       message = f"Flow '{flow_id}' is not an Osquery flow"
       raise ValueError(message)
 
-    if args.format == ApiGetOsqueryResultsArgs.Format.CSV:  # pytype: disable=attribute-error
+    if args.format == api_osquery_pb2.ApiGetOsqueryResultsArgs.Format.CSV:
       return _StreamCsv(client_id=client_id, flow_id=flow_id)
 
     message = f"Incorrect Osquery results export format: {args.format}"
@@ -56,8 +55,8 @@ class ApiGetOsqueryResultsHandler(api_call_handler_base.ApiCallHandler):
 
 
 def _StreamCsv(
-    client_id: Text,
-    flow_id: Text,
+    client_id: str,
+    flow_id: str,
 ) -> api_call_handler_base.ApiBinaryStream:
   filename = f"osquery_{flow_id}.csv"
 
@@ -68,8 +67,8 @@ def _StreamCsv(
 
 
 def _FetchOsqueryResults(
-    client_id: Text,
-    flow_id: Text,
+    client_id: str,
+    flow_id: str,
 ) -> Iterator[rdf_osquery.OsqueryResult]:
   """Fetches results for given client and flow ids."""
   next_to_fetch = 0
@@ -80,7 +79,8 @@ def _FetchOsqueryResults(
         offset=next_to_fetch,
         count=_RESULTS_TO_FETCH_AT_ONCE,
         client_id=client_id,
-        flow_id=flow_id)
+        flow_id=flow_id,
+    )
 
     last_fetched_count = len(data_fetched)
     next_to_fetch += last_fetched_count
@@ -96,7 +96,8 @@ def _FetchOsqueryResults(
 
 
 def _ParseToCsvBytes(
-    osquery_results: Iterator[rdf_osquery.OsqueryResult],) -> Iterator[bytes]:
+    osquery_results: Iterator[rdf_osquery.OsqueryResult],
+) -> Iterator[bytes]:
   """Parses osquery results into chunks of bytes."""
   added_columns = False
 

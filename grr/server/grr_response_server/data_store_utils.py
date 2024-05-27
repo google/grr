@@ -6,9 +6,12 @@ This module serves simple functions that delegate calls to appropriate store
 provided in this module should be no longer useful.
 """
 
+from typing import Optional
+
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import mig_client
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -43,11 +46,13 @@ def GetFileHashEntry(fd):
   return mig_objects.ToRDFPathInfo(path_info).hash_entry
 
 
-def GetClientKnowledgeBase(client_id):
+def GetClientKnowledgeBase(
+    client_id: str,
+) -> Optional[knowledge_base_pb2.KnowledgeBase]:
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
   if client is None:
     return None
-  return mig_client.ToRDFKnowledgeBase(client.knowledge_base)
+  return client.knowledge_base
 
 
 def GetClientInformation(client_id: str) -> rdf_client.ClientInformation:

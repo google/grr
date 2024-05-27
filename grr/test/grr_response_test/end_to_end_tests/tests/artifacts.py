@@ -5,28 +5,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_test.end_to_end_tests import test_base
 
 
-class TestDarwinPersistenceMechanisms(test_base.EndToEndTest):
-
-  platforms = [test_base.EndToEndTest.Platform.DARWIN]
-
-  def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
-    args.artifact_list.append("DarwinPersistenceMechanisms")
-    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
-
-    results = list(f.ListResults())
-    self.assertGreater(len(results), 5)
-
-    launchservices = "/System/Library/CoreServices/launchservicesd"
-    # Payloads are expected to be of type PersistenceFile.
-    for r in results:
-      if r.payload.pathspec.path == launchservices:
-        return
-
-    self.fail("Service listing does not contain launchservices: %s." %
-              launchservices)
-
-
 class TestRootDiskVolumeUsage(test_base.EndToEndTest):
   """Test RootDiskVolumeUsage."""
 

@@ -26,11 +26,13 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RunHunt]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=RunHunt]:not([disabled])"
+    )
     self.WaitUntil(self.IsElementPresent, "css=button[name=StopHunt][disabled]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=ModifyHunt]:not([disabled])"
+    )
 
   def testToolbarStateForRunningHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=False)
@@ -49,10 +51,12 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
 
     self.WaitUntil(self.IsElementPresent, "css=button[name=RunHunt][disabled]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=StopHunt]:not([disabled])")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt][disabled]")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=StopHunt]:not([disabled])"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=ModifyHunt][disabled]"
+    )
 
   def testRunHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
@@ -67,8 +71,9 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Run button and check that dialog appears.
     self.Click("css=button[name=RunHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -83,8 +88,9 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to run this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to run this hunt?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -115,8 +121,9 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Stop button and check that dialog appears.
     self.Click("css=button[name=StopHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to stop this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to stop this hunt?"
+    )
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -132,8 +139,9 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on Stop and wait for dialog again.
     self.Click("css=button[name=StopHunt]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to stop this hunt?")
+    self.WaitUntil(
+        self.IsTextPresent, "Are you sure you want to stop this hunt?"
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -168,12 +176,16 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
-        "4483")
+        "4483",
+    )
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
-        "42")
-    self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              "1337s")
+        "42",
+    )
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
+        "1337s",
+    )
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -193,12 +205,16 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
-        "4483")
+        "4483",
+    )
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
-        "42")
-    self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              "1337s")
+        "42",
+    )
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
+        "1337s",
+    )
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.

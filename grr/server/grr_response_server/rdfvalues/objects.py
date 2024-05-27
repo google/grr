@@ -11,8 +11,8 @@ import itertools
 import os
 import stat
 from typing import Collection
-from typing import Text
-
+from typing import Sequence
+from typing import Tuple
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -78,7 +78,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     for interface in self.interfaces:
       if (interface.mac_address and
           interface.mac_address != b"\x00" * len(interface.mac_address)):
-        result.add(Text(interface.mac_address.human_readable_address))
+        result.add(str(interface.mac_address.human_readable_address))
     return sorted(result)
 
   def GetIPAddresses(self):
@@ -89,7 +89,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     for interface in self.interfaces:
       for address in interface.addresses:
         if address.human_readable_address not in filtered_ips:
-          result.append(Text(address.human_readable_address))
+          result.append(str(address.human_readable_address))
     return sorted(result)
 
   def GetSummary(self):
@@ -174,7 +174,7 @@ class ClientFullInfo(rdf_structs.RDFProtoStruct):
 
   def GetLabelsNames(self, owner=None):
     return set(
-        Text(l.name) for l in self.labels if not owner or l.owner == owner
+        str(l.name) for l in self.labels if not owner or l.owner == owner
     )
 
 
@@ -513,7 +513,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
 
 def _ValidatePathComponent(component):
-  if not isinstance(component, Text):
+  if not isinstance(component, str):
     raise TypeError("Non-unicode path component")
   if not component:
     raise ValueError("Empty path component")
@@ -540,36 +540,41 @@ def ParsePath(path: str) -> Collection[str]:
 # methods.
 
 
-def ParseCategorizedPath(path):
+def ParseCategorizedPath(
+    path: str,
+) -> Tuple["objects_pb2.PathInfo.PathType", Sequence[str]]:
   """Parses a categorized path string into type and list of components."""
   components = tuple(ParsePath(path))
   if components[0:2] == ("fs", "os"):
-    return PathInfo.PathType.OS, components[2:]
+    return objects_pb2.PathInfo.PathType.OS, components[2:]
   elif components[0:2] == ("fs", "tsk"):
-    return PathInfo.PathType.TSK, components[2:]
+    return objects_pb2.PathInfo.PathType.TSK, components[2:]
   elif components[0:1] == ("registry",):
-    return PathInfo.PathType.REGISTRY, components[1:]
+    return objects_pb2.PathInfo.PathType.REGISTRY, components[1:]
   elif components[0:1] == ("temp",):
-    return PathInfo.PathType.TEMP, components[1:]
+    return objects_pb2.PathInfo.PathType.TEMP, components[1:]
   elif components[0:2] == ("fs", "ntfs"):
-    return PathInfo.PathType.NTFS, components[2:]
+    return objects_pb2.PathInfo.PathType.NTFS, components[2:]
   else:
     raise ValueError(
         "Path {!r} does not start with a VFS prefix like /fs/os/".format(path))
 
 
-def ToCategorizedPath(path_type, components):
+def ToCategorizedPath(
+    path_type: objects_pb2.PathInfo.PathType,
+    components: Sequence[str],
+) -> str:
   """Translates a path type and a list of components to a categorized path."""
   try:
     prefix = {
-        PathInfo.PathType.OS: ("fs", "os"),
-        PathInfo.PathType.TSK: ("fs", "tsk"),
-        PathInfo.PathType.REGISTRY: ("registry",),
-        PathInfo.PathType.TEMP: ("temp",),
-        PathInfo.PathType.NTFS: ("fs", "ntfs"),
+        objects_pb2.PathInfo.PathType.OS: ("fs", "os"),
+        objects_pb2.PathInfo.PathType.TSK: ("fs", "tsk"),
+        objects_pb2.PathInfo.PathType.REGISTRY: ("registry",),
+        objects_pb2.PathInfo.PathType.TEMP: ("temp",),
+        objects_pb2.PathInfo.PathType.NTFS: ("fs", "ntfs"),
     }[path_type]
-  except KeyError:
-    raise ValueError("Unknown path type: `%s`" % path_type)
+  except KeyError as ex:
+    raise ValueError("Unknown path type: `%s`" % path_type) from ex
 
   return "/".join(itertools.chain(prefix, components))
 

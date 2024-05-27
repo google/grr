@@ -34,9 +34,11 @@ from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiNotificationTest(acl_test_lib.AclTestMixin,
-                          notification_test_lib.NotificationTestMixin,
-                          api_test_lib.ApiCallHandlerTest):
+class ApiNotificationTest(
+    acl_test_lib.AclTestMixin,
+    notification_test_lib.NotificationTestMixin,
+    api_test_lib.ApiCallHandlerTest,
+):
   """Tests for ApiNotification class."""
 
   def setUp(self):
@@ -45,8 +47,9 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
 
   def InitFromObj_(self, notification_type, reference, message=None):
     self.CreateUser(self.context.username)
-    notification.Notify(self.context.username, notification_type, message or "",
-                        reference)
+    notification.Notify(
+        self.context.username, notification_type, message or "", reference
+    )
     ns = self.GetUserNotifications(self.context.username)
 
     # Treat the notification as an object coming from REL_DB.
@@ -57,7 +60,9 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=self.client_id)))
+            client=rdf_objects.ClientReference(client_id=self.client_id),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "CLIENT")
     self.assertEqual(n.reference.client.client_id.ToString(), self.client_id)
@@ -67,7 +72,9 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=self.client_id)))
+            client=rdf_objects.ClientReference(client_id=self.client_id),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "CLIENT")
     self.assertEqual(n.reference.client.client_id.ToString(), self.client_id)
@@ -77,7 +84,9 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.HUNT,
-            hunt=rdf_objects.HuntReference(hunt_id="H:123456")))
+            hunt=rdf_objects.HuntReference(hunt_id="H:123456"),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "HUNT")
     self.assertEqual(n.reference.hunt.hunt_id, "H:123456")
@@ -87,7 +96,9 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
-            cron_job=rdf_objects.CronJobReference(cron_job_id="FooBar")))
+            cron_job=rdf_objects.CronJobReference(cron_job_id="FooBar"),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "CRON")
     self.assertEqual(n.reference.cron.cron_job_id, "FooBar")
@@ -98,7 +109,10 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=self.client_id, flow_id="F:123456")))
+                client_id=self.client_id, flow_id="F:123456"
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "FLOW")
     self.assertEqual(n.reference.flow.client_id.ToString(), self.client_id)
@@ -110,7 +124,10 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=self.client_id, flow_id="F:123456")))
+                client_id=self.client_id, flow_id="F:123456"
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "FLOW")
     self.assertEqual(n.reference.flow.client_id.ToString(), self.client_id)
@@ -124,7 +141,10 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
             vfs_file=rdf_objects.VfsFileReference(
                 client_id=self.client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
-                path_components=["foo", "bar"])))
+                path_components=["foo", "bar"],
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "VFS")
     self.assertEqual(n.reference.vfs.client_id.ToString(), self.client_id)
@@ -140,7 +160,10 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                 # UNSET path type is an invalid value here:
                 # it make it impossible to find the file.
                 path_type=rdf_objects.PathInfo.PathType.UNSET,
-                path_components=["foo", "bar"])))
+                path_components=["foo", "bar"],
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "UNSET")
 
@@ -150,11 +173,13 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType
-                .APPROVAL_TYPE_CLIENT,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
                 approval_id="foo-bar",
                 subject_id=self.client_id,
-                requestor_username=self.context.username)))
+                requestor_username=self.context.username,
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "CLIENT_APPROVAL")
 
@@ -169,11 +194,13 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType
-                .APPROVAL_TYPE_HUNT,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
                 approval_id="foo-bar",
                 subject_id="H:123456",
-                requestor_username=self.context.username)))
+                requestor_username=self.context.username,
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "HUNT_APPROVAL")
     self.assertEqual(n.reference.hunt_approval.hunt_id, "H:123456")
@@ -186,23 +213,27 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
             approval_request=rdf_objects.ApprovalRequestReference(
-                approval_type=rdf_objects.ApprovalRequest.ApprovalType
-                .APPROVAL_TYPE_CRON_JOB,
+                approval_type=rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
                 approval_id="foo-bar",
                 subject_id="FooBar",
-                requestor_username=self.context.username)))
+                requestor_username=self.context.username,
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "CRON_JOB_APPROVAL")
     self.assertEqual(n.reference.cron_job_approval.cron_job_id, "FooBar")
-    self.assertEqual(n.reference.cron_job_approval.username,
-                     self.context.username)
+    self.assertEqual(
+        n.reference.cron_job_approval.username, self.context.username
+    )
     self.assertEqual(n.reference.cron_job_approval.approval_id, "foo-bar")
 
   def testFileArchiveGenerationFailedNotificationIsParsedAsUnknownOrUnset(self):
     n = self.InitFromObj_(
         rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
         None,
-        message="blah")
+        message="blah",
+    )
     self.assertIn(n.reference.type, ["UNSET", "UNKNOWN"])
     self.assertEqual(n.message, "blah")
 
@@ -214,7 +245,10 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
             vfs_file=rdf_objects.VfsFileReference(
                 client_id=self.client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
-                path_components=["foo", "bar"])))
+                path_components=["foo", "bar"],
+            ),
+        ),
+    )
 
     self.assertEqual(n.reference.type, "VFS")
     self.assertEqual(n.reference.vfs.client_id.ToString(), self.client_id)
@@ -223,23 +257,27 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
   def testUnknownNotificationIsParsedCorrectly(self):
     urn = rdf_client.ClientURN(self.client_id).Add("foo/bar")
     n = user_plugin.ApiNotification().InitFromNotification(
-        rdf_flows.Notification(type="ViewObject", subject=urn))
+        rdf_flows.Notification(type="ViewObject", subject=urn)
+    )
     self.assertEqual(n.reference.type, "UNKNOWN")
     self.assertEqual(n.reference.unknown.subject_urn, urn)
 
     n = user_plugin.ApiNotification().InitFromNotification(
-        rdf_flows.Notification(type="FlowStatus", subject="foo/bar"))
+        rdf_flows.Notification(type="FlowStatus", subject="foo/bar")
+    )
     self.assertEqual(n.reference.type, "UNKNOWN")
     self.assertEqual(n.reference.unknown.subject_urn, "foo/bar")
 
   def testNotificationWithoutSubject(self):
     n = user_plugin.ApiNotification().InitFromNotification(
-        rdf_flows.Notification(type="ViewObject"))
+        rdf_flows.Notification(type="ViewObject")
+    )
     self.assertEqual(n.reference.type, "UNKNOWN")
 
 
 class ApiCreateApprovalHandlerTestMixin(
-    notification_test_lib.NotificationTestMixin, acl_test_lib.AclTestMixin):
+    notification_test_lib.NotificationTestMixin, acl_test_lib.AclTestMixin
+):
   """Base class for tests testing Create*ApprovalHandlers."""
 
   def SetUpApprovalTest(self):
@@ -289,20 +327,24 @@ class ApiCreateApprovalHandlerTestMixin(
 
     send_fn.assert_called_once()
     self.assertEqual(send_fn.call_args[1]["to_addresses"], "approver@localhost")
-    self.assertEqual(send_fn.call_args[1]["from_address"],
-                     f"{self.context.username}@localhost")
+    self.assertEqual(
+        send_fn.call_args[1]["from_address"],
+        f"{self.context.username}@localhost",
+    )
     self.assertEqual(send_fn.call_args[1]["cc_addresses"], "test@example.com")
 
     message = send_fn.call_args[1]["message"]
     self.assertIn(
         f"http://localhost:8000/#/users/{self.context.username}/approvals/",
-        message)
+        message,
+    )
     self.assertIn(self.context.username, message)
     self.assertIn("Running tests", message)  # Request reason.
 
 
-class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
-                                    api_test_lib.ApiCallHandlerTest):
+class ApiApprovalScheduledFlowsTest(
+    acl_test_lib.AclTestMixin, api_test_lib.ApiCallHandlerTest
+):
 
   def setUp(self):
     super().setUp()
@@ -313,17 +355,20 @@ class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
       with mock.patch.object(
           approval_checks,
           "CheckApprovalRequest",
-          side_effect=access_control.UnauthorizedAccess("foobazzle")):
+          side_effect=access_control.UnauthorizedAccess("foobazzle"),
+      ):
         approval_id = self.RequestAndGrantClientApproval(
             self.client_id,
             reason="blah",
             approver="approver",
-            requestor=self.context.username)
+            requestor=self.context.username,
+        )
 
         args = user_plugin.ApiGetClientApprovalArgs(
             client_id=self.client_id,
             approval_id=approval_id,
-            username=self.context.username)
+            username=self.context.username,
+        )
         handler = user_plugin.ApiGetClientApprovalHandler()
         result = handler.Handle(args, context=self.context)
 
@@ -336,19 +381,22 @@ class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
           self.client_id,
           reason="blah",
           approver="approver",
-          requestor=self.context.username)
+          requestor=self.context.username,
+      )
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
-        username=self.context.username)
+        username=self.context.username,
+    )
     handler = user_plugin.ApiGetClientApprovalHandler()
     approval = handler.Handle(args, context=self.context)
 
     self.assertTrue(approval.is_valid)
     self.assertTrue(start_mock.called)
     start_mock.assert_called_with(
-        client_id=self.client_id, creator=self.context.username)
+        client_id=self.client_id, creator=self.context.username
+    )
 
   def testErrorDuringStartFlowDoesNotBubbleUpToApprovalApiCall(self):
     flow.ScheduleFlow(
@@ -360,18 +408,20 @@ class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
     )
 
     with mock.patch.object(
-        flow, "StartFlow",
-        side_effect=ValueError("foobazzle")) as start_flow_mock:
+        flow, "StartFlow", side_effect=ValueError("foobazzle")
+    ) as start_flow_mock:
       approval_id = self.RequestAndGrantClientApproval(
           self.client_id,
           reason="blah",
           approver="approver",
-          requestor=self.context.username)
+          requestor=self.context.username,
+      )
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
-        username=self.context.username)
+        username=self.context.username,
+    )
     handler = user_plugin.ApiGetClientApprovalHandler()
     approval = handler.Handle(args, context=self.context)
 
@@ -379,8 +429,9 @@ class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
     self.assertTrue(start_flow_mock.called)
 
 
-class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
-                                      api_test_lib.ApiCallHandlerTest):
+class ApiGetClientApprovalHandlerTest(
+    acl_test_lib.AclTestMixin, api_test_lib.ApiCallHandlerTest
+):
   """Test for ApiGetClientApprovalHandler."""
 
   def setUp(self):
@@ -394,19 +445,23 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
         requestor=self.context.username,
         reason="blah",
         approver="approver",
-        email_cc_address="test@example.com")
+        email_cc_address="test@example.com",
+    )
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
-        username=self.context.username)
+        username=self.context.username,
+    )
     result = self.handler.Handle(args, context=self.context)
 
     self.assertEqual(result.subject.client_id.ToString(), self.client_id)
     self.assertEqual(result.reason, "blah")
     self.assertEqual(result.is_valid, False)
-    self.assertEqual(result.is_valid_message,
-                     "Need at least 1 additional approver for access.")
+    self.assertEqual(
+        result.is_valid_message,
+        "Need at least 1 additional approver for access.",
+    )
 
     self.assertEqual(result.notified_users, ["approver"])
     self.assertEqual(result.email_cc_addresses, ["test@example.com"])
@@ -419,12 +474,14 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
         self.client_id,
         reason="blah",
         approver="approver",
-        requestor=self.context.username)
+        requestor=self.context.username,
+    )
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
-        username=self.context.username)
+        username=self.context.username,
+    )
     result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(result.is_valid)
@@ -434,14 +491,16 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id="approval:112233",
-        username=self.context.username)
+        username=self.context.username,
+    )
 
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.handler.Handle(args, context=self.context)
 
 
-class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                         ApiCreateApprovalHandlerTestMixin):
+class ApiCreateClientApprovalHandlerTest(
+    api_test_lib.ApiCallHandlerTest, ApiCreateApprovalHandlerTestMixin
+):
   """Test for ApiCreateClientApprovalHandler."""
 
   def ReadApproval(self, approval_id):
@@ -460,7 +519,8 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler = user_plugin.ApiCreateClientApprovalHandler()
 
     self.args = user_plugin.ApiCreateClientApprovalArgs(
-        client_id=self.client_id)
+        client_id=self.client_id
+    )
     self.args.approval.reason = "Running tests"
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
@@ -471,13 +531,22 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
-    self.assertIn((f"http://localhost:8000/v2/clients/{self.client_id}/users/"
-                   f"{self.context.username}/approvals/{approval_id}"), message)
+    self.assertIn(
+        (
+            f"http://localhost:8000/v2/clients/{self.client_id}/users/"
+            f"{self.context.username}/approvals/{approval_id}"
+        ),
+        message,
+    )
     # Check for correct link to legacy UI.
     # TODO: Remove once new UI is stable.
     self.assertIn(
-        (f"http://localhost:8000/#/users/{self.context.username}/approvals/"
-         f"client/{self.client_id}/{approval_id}"), message)
+        (
+            f"http://localhost:8000/#/users/{self.context.username}/approvals/"
+            f"client/{self.client_id}/{approval_id}"
+        ),
+        message,
+    )
     self.assertIn(self.context.username, message)
     self.assertIn("Running tests", message)  # Request reason.
     self.assertIn(self.client_id, message)
@@ -563,8 +632,9 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.handler.Handle(self.args, self.context)
 
 
-class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                        acl_test_lib.AclTestMixin):
+class ApiListClientApprovalsHandlerTest(
+    api_test_lib.ApiCallHandlerTest, acl_test_lib.AclTestMixin
+):
   """Test for ApiListApprovalsHandler."""
 
   CLIENT_COUNT = 5
@@ -606,7 +676,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # We only requested approvals so far, so all of them should be invalid.
     args = user_plugin.ApiListClientApprovalsArgs(
-        state=user_plugin.ApiListClientApprovalsArgs.State.INVALID)
+        state=user_plugin.ApiListClientApprovalsArgs.State.INVALID
+    )
     result = self.handler.Handle(args, context=self.context)
 
     self.assertLen(result.items, self.CLIENT_COUNT)
@@ -615,7 +686,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.GrantClientApproval(
         self.client_ids[0],
         requestor=self.context.username,
-        approval_id=approval_ids[0])
+        approval_id=approval_ids[0],
+    )
     result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, self.CLIENT_COUNT - 1)
 
@@ -624,7 +696,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # We only requested approvals so far, so none of them is valid.
     args = user_plugin.ApiListClientApprovalsArgs(
-        state=user_plugin.ApiListClientApprovalsArgs.State.VALID)
+        state=user_plugin.ApiListClientApprovalsArgs.State.VALID
+    )
     result = self.handler.Handle(args, context=self.context)
 
     # We do not have any approved approvals yet.
@@ -634,11 +707,13 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.GrantClientApproval(
         self.client_ids[0],
         requestor=self.context.username,
-        approval_id=approval_ids[0])
+        approval_id=approval_ids[0],
+    )
     result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
-    self.assertEqual(result.items[0].subject.client_id.ToString(),
-                     self.client_ids[0])
+    self.assertEqual(
+        result.items[0].subject.client_id.ToString(), self.client_ids[0]
+    )
 
   def testFiltersApprovalsByClientIdAndState(self):
     client_id = self.client_ids[0]
@@ -647,11 +722,13 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Grant approval to a certain client.
     self.GrantClientApproval(
-        client_id, requestor=self.context.username, approval_id=approval_ids[0])
+        client_id, requestor=self.context.username, approval_id=approval_ids[0]
+    )
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id,
-        state=user_plugin.ApiListClientApprovalsArgs.State.VALID)
+        state=user_plugin.ApiListClientApprovalsArgs.State.VALID,
+    )
     result = self.handler.Handle(args, context=self.context)
 
     # We have a valid approval for the requested client.
@@ -672,7 +749,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.RequestClientApproval(client_id, reason="Request reason %d" % i)
 
     args = user_plugin.ApiListClientApprovalsArgs(
-        client_id=client_id, offset=0, count=5)
+        client_id=client_id, offset=0, count=5
+    )
     result = self.handler.Handle(args, context=self.context)
 
     # Approvals are returned newest to oldest, so the first five approvals
@@ -690,9 +768,11 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
-class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
-                                       hunt_test_lib.StandardHuntTestMixin,
-                                       api_test_lib.ApiCallHandlerTest):
+class ApiCreateHuntApprovalHandlerTest(
+    ApiCreateApprovalHandlerTestMixin,
+    hunt_test_lib.StandardHuntTestMixin,
+    api_test_lib.ApiCallHandlerTest,
+):
   """Test for ApiCreateHuntApprovalHandler."""
 
   def ReadApproval(self, approval_id):
@@ -716,8 +796,9 @@ class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
-                                      api_test_lib.ApiCallHandlerTest):
+class ApiListHuntApprovalsHandlerTest(
+    hunt_test_lib.StandardHuntTestMixin, api_test_lib.ApiCallHandlerTest
+):
   """Test for ApiListHuntApprovalsHandler."""
 
   def setUp(self):
@@ -731,7 +812,8 @@ class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
         hunt_id,
         reason="Running tests",
         approver="approver",
-        requestor=self.context.username)
+        requestor=self.context.username,
+    )
 
     args = user_plugin.ApiListHuntApprovalsArgs()
     result = self.handler.Handle(args, context=self.context)
@@ -772,8 +854,9 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
-                                         api_test_lib.ApiCallHandlerTest):
+class ApiListCronJobApprovalsHandlerTest(
+    acl_test_lib.AclTestMixin, api_test_lib.ApiCallHandlerTest
+):
   """Test for ApiListCronJobApprovalsHandler."""
 
   def setUp(self):
@@ -793,7 +876,8 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
         cron_job_id,
         reason="Running tests",
         approver="approver",
-        requestor=self.context.username)
+        requestor=self.context.username,
+    )
 
     args = user_plugin.ApiListCronJobApprovalsArgs()
     result = self.handler.Handle(args, context=self.context)
@@ -815,20 +899,25 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     result = self.handler.Handle(
-        None, context=api_call_context.ApiCallContext(username="foo"))
+        None, context=api_call_context.ApiCallContext(username="foo")
+    )
     self.assertEqual(result.settings.mode, "ADVANCED")
     self.assertEqual(result.settings.canary_mode, True)
 
   def testRendersTraitsPassedInConstructor(self):
     result = self.handler.Handle(
-        None, context=api_call_context.ApiCallContext(username="foo"))
+        None, context=api_call_context.ApiCallContext(username="foo")
+    )
     self.assertFalse(result.interface_traits.create_hunt_action_enabled)
 
     handler = user_plugin.ApiGetOwnGrrUserHandler(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits(
-            create_hunt_action_enabled=True))
+            create_hunt_action_enabled=True
+        )
+    )
     result = handler.Handle(
-        None, context=api_call_context.ApiCallContext(username="foo"))
+        None, context=api_call_context.ApiCallContext(username="foo")
+    )
     self.assertTrue(result.interface_traits.create_hunt_action_enabled)
 
 
@@ -843,26 +932,31 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     user = user_plugin.ApiGrrUser(username="foo")
     with self.assertRaises(ValueError):
       self.handler.Handle(
-          user, context=api_call_context.ApiCallContext(username="foo"))
+          user, context=api_call_context.ApiCallContext(username="foo")
+      )
 
     user = user_plugin.ApiGrrUser(username="bar")
     with self.assertRaises(ValueError):
       self.handler.Handle(
-          user, context=api_call_context.ApiCallContext(username="foo"))
+          user, context=api_call_context.ApiCallContext(username="foo")
+      )
 
   def testRaisesIfTraitsSetInRequest(self):
     user = user_plugin.ApiGrrUser(
-        interface_traits=user_plugin.ApiGrrUserInterfaceTraits())
+        interface_traits=user_plugin.ApiGrrUserInterfaceTraits()
+    )
     with self.assertRaises(ValueError):
       self.handler.Handle(
-          user, context=api_call_context.ApiCallContext(username="foo"))
+          user, context=api_call_context.ApiCallContext(username="foo")
+      )
 
   def testSetsSettingsForUserCorrespondingToToken(self):
     settings = user_plugin.GUISettings(mode="ADVANCED", canary_mode=True)
     user = user_plugin.ApiGrrUser(settings=settings)
 
     self.handler.Handle(
-        user, context=api_call_context.ApiCallContext(username="foo"))
+        user, context=api_call_context.ApiCallContext(username="foo")
+    )
 
     proto_user = data_store.REL_DB.ReadGRRUser("foo")
     rdf_user = mig_objects.ToRDFGRRUser(proto_user)
@@ -871,7 +965,8 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
 
 
 class ApiDeletePendingUserNotificationHandlerTest(
-    api_test_lib.ApiCallHandlerTest):
+    api_test_lib.ApiCallHandlerTest
+):
   """Test for ApiDeletePendingUserNotificationHandler."""
 
   TIME_0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
@@ -890,7 +985,9 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some message>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id)))
+              client=rdf_objects.ClientReference(client_id=self.client_id),
+          ),
+      )
 
       notification.Notify(
           self.context.username,
@@ -898,7 +995,9 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some message with identical time>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id)))
+              client=rdf_objects.ClientReference(client_id=self.client_id),
+          ),
+      )
 
     with test_lib.FakeTime(self.TIME_1):
       notification.Notify(
@@ -907,16 +1006,20 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some other message>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id)))
+              client=rdf_objects.ClientReference(client_id=self.client_id),
+          ),
+      )
 
   def _GetNotifications(self):
     pending = data_store.REL_DB.ReadUserNotifications(
         self.context.username,
-        state=rdf_objects.UserNotification.State.STATE_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_PENDING,
+    )
     pending = [mig_objects.ToRDFUserNotification(n) for n in pending]
     shown = data_store.REL_DB.ReadUserNotifications(
         self.context.username,
-        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING,
+    )
     shown = [mig_objects.ToRDFUserNotification(n) for n in shown]
     return pending, shown
 
@@ -928,7 +1031,8 @@ class ApiDeletePendingUserNotificationHandlerTest(
 
     # Delete a pending notification.
     args = user_plugin.ApiDeletePendingUserNotificationArgs(
-        timestamp=self.TIME_1)
+        timestamp=self.TIME_1
+    )
     self.handler.Handle(args, context=self.context)
 
     # After the deletion, two notifications should be pending and one shown.
@@ -947,7 +1051,8 @@ class ApiDeletePendingUserNotificationHandlerTest(
     # A timestamp not matching any pending notifications does not change any of
     # the collections.
     args = user_plugin.ApiDeletePendingUserNotificationArgs(
-        timestamp=self.TIME_2)
+        timestamp=self.TIME_2
+    )
     self.handler.Handle(args, context=self.context)
 
     # We should still have the same number of pending and shown notifications.
@@ -956,8 +1061,9 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.assertEmpty(shown)
 
 
-class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
-                                            api_test_lib.ApiCallHandlerTest):
+class ApiListApproverSuggestionsHandlerTest(
+    acl_test_lib.AclTestMixin, api_test_lib.ApiCallHandlerTest
+):
   """Test for ApiListApproverSuggestionsHandler."""
 
   def setUp(self):
@@ -1027,8 +1133,9 @@ class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
     self.assertEqual(result.suggestions[3].username, "sanchezsummer")
 
 
-class ApiGrantClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                        acl_test_lib.AclTestMixin):
+class ApiGrantClientApprovalHandlerTest(
+    api_test_lib.ApiCallHandlerTest, acl_test_lib.AclTestMixin
+):
   """Test for ApiGrantClientApprovalHandler."""
 
   def setUp(self):
@@ -1040,32 +1147,39 @@ class ApiGrantClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testSendsEmailWithApprovalGrantInformation(self):
     approval_id = self.RequestClientApproval(
-        self.client_id, reason="requestreason", requestor="requestuser")
+        self.client_id, reason="requestreason", requestor="requestuser"
+    )
 
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail") as send_fn:
       self.handler.Handle(
           user_plugin.ApiGrantClientApprovalArgs(
               client_id=self.client_id,
               approval_id=approval_id,
-              username="requestuser"), self.context)
+              username="requestuser",
+          ),
+          self.context,
+      )
 
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
     self.assertIn(
-        (f"href=\"http://localhost:8000/v2/clients/{self.client_id}\""),
-        message)
+        f'href="http://localhost:8000/v2/clients/{self.client_id}"', message
+    )
     # Check for correct link to legacy UI.
     # TODO: Remove once new UI is stable.
-    self.assertIn(f"href=\"http://localhost:8000/#/clients/{self.client_id}\"",
-                  message)
+    self.assertIn(
+        f'href="http://localhost:8000/#/clients/{self.client_id}"', message
+    )
     self.assertIn(self.context.username, message)
     self.assertIn("requestreason", message)
     self.assertIn(self.client_id, message)
 
 
-class ApiGrantHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                      hunt_test_lib.StandardHuntTestMixin,
-                                      acl_test_lib.AclTestMixin):
+class ApiGrantHuntApprovalHandlerTest(
+    api_test_lib.ApiCallHandlerTest,
+    hunt_test_lib.StandardHuntTestMixin,
+    acl_test_lib.AclTestMixin,
+):
   """Test for ApiGrantHuntApprovalHandler."""
 
   def setUp(self):
@@ -1077,14 +1191,18 @@ class ApiGrantHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testSendsEmailWithApprovalGrantInformation(self):
     approval_id = self.RequestHuntApproval(
-        self.hunt_id, reason="requestreason", requestor="requestuser")
+        self.hunt_id, reason="requestreason", requestor="requestuser"
+    )
 
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail") as send_fn:
       self.handler.Handle(
           user_plugin.ApiGrantHuntApprovalArgs(
               hunt_id=self.hunt_id,
               approval_id=approval_id,
-              username="requestuser"), self.context)
+              username="requestuser",
+          ),
+          self.context,
+      )
 
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
@@ -1093,8 +1211,9 @@ class ApiGrantHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     )
     # Check for correct link to legacy UI.
     # TODO: Remove once new UI is stable.
-    self.assertIn(f"href=\"http://localhost:8000/#/hunts/{self.hunt_id}\"",
-                  message)
+    self.assertIn(
+        f'href="http://localhost:8000/#/hunts/{self.hunt_id}"', message
+    )
     self.assertIn(self.context.username, message)
     self.assertIn("requestreason", message)
     self.assertIn(self.hunt_id, message)

@@ -11,12 +11,11 @@ from typing import Iterator
 from typing import Match
 from typing import NewType
 from typing import Set
-from typing import Text
 
 from grr_response_core.lib.util import collection
 
-VarId = NewType("VarId", Text)
-ScopeId = NewType("ScopeId", Text)
+VarId = NewType("VarId", str)
+ScopeId = NewType("ScopeId", str)
 
 VarConfig = Dict[VarId, Any]
 ScopeConfig = Dict[ScopeId, VarConfig]
@@ -66,11 +65,11 @@ class Substitution(object):
         key = match.group(0).decode("ascii")
         return self._substs[key].encode("utf-8")
 
-    elif isinstance(pattern, Text):
+    elif isinstance(pattern, str):
       substs = [re.escape(subst) for subst in self._substs]
       regex = re.compile("|".join(substs))
 
-      def Replacement(match: Match[Text]) -> Text:
+      def Replacement(match: Match[str]) -> str:
         key = match.group(0)
         return self._substs[key]
 
@@ -112,7 +111,7 @@ class Interpolator(Generic[AnyStr]):
       var_regex = re.compile(self._VAR_PLACEHOLDER_PATTERN.encode("ascii"))
       scope_regex = re.compile(self._SCOPE_PLACEHOLDER_PATTERN.encode("ascii"))
       decoder = lambda _: _.decode("ascii")
-    elif isinstance(pattern, Text):
+    elif isinstance(pattern, str):
       var_regex = re.compile(self._VAR_PLACEHOLDER_PATTERN)
       scope_regex = re.compile(self._SCOPE_PLACEHOLDER_PATTERN)
       decoder = lambda _: _
@@ -162,7 +161,7 @@ class Interpolator(Generic[AnyStr]):
 
     self._var_bindings[var_id].append(value)
 
-  def BindScope(self, scope_id: ScopeId, values: Dict[Text, Any]) -> None:
+  def BindScope(self, scope_id: ScopeId, values: Dict[str, Any]) -> None:
     """Associates given values with given scope.
 
     This can be called multiple times to associate multiple values.
@@ -194,3 +193,13 @@ class Interpolator(Generic[AnyStr]):
       for scope_config in collection.DictProduct(self._scope_bindings):
         subst = Substitution(var_config=var_config, scope_config=scope_config)
         yield subst.Substitute(self._pattern)
+
+
+def GetVarName(var_id: VarId) -> str:
+  """Returns a variable name for given variable id."""
+  return str(var_id).lower()
+
+
+def GetScopeName(scope_id: ScopeId) -> str:
+  """Returns a scope name for given scope id."""
+  return str(scope_id).lower()

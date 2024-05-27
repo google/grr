@@ -856,12 +856,12 @@ message DynamicTypeTest {{
     # having the same number of fields, but different fields which are set to
     # the default value.
     self.assertNotEqual(
-        rdf_client_stats.IOSample(write_count=6),
-        rdf_client_stats.IOSample(read_bytes=0),
+        rdf_client_stats.CpuSeconds(user_cpu_time=6),
+        rdf_client_stats.CpuSeconds(system_cpu_time=0),
     )
     self.assertNotEqual(
-        rdf_client_stats.IOSample(read_bytes=0),
-        rdf_client_stats.IOSample(write_count=6),
+        rdf_client_stats.CpuSeconds(system_cpu_time=0),
+        rdf_client_stats.CpuSeconds(user_cpu_time=6),
     )
 
   def testDefaultRepeatedSetterDoesNotChangeEquality(self):

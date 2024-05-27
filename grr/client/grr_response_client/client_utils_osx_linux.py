@@ -4,7 +4,6 @@
 import io
 import logging
 import os
-from typing import Text
 
 import xattr
 
@@ -22,7 +21,7 @@ def VerifyFileOwner(filename):
   return os.getuid() == stat_info.st_uid
 
 
-def CanonicalPathToLocalPath(path: Text) -> Text:
+def CanonicalPathToLocalPath(path: str) -> str:
   """Linux uses a normal path.
 
   We always want to encode as UTF-8 here. If the environment for the
@@ -38,13 +37,13 @@ def CanonicalPathToLocalPath(path: Text) -> Text:
   Returns:
     A unicode string.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
   return utils.NormalizePath(path)
 
 
-def LocalPathToCanonicalPath(path: Text) -> Text:
+def LocalPathToCanonicalPath(path: str) -> str:
   """Linux uses a normal path."""
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
   return utils.NormalizePath(path)
 
 
@@ -72,7 +71,7 @@ def GetExtAttrs(filepath):
   # `xattr` has decoded. Additionally, because the decoding that `xattr` does
   # may fail, we additionally guard against such exceptions.
   def EncodeUtf8(attr_name):
-    if isinstance(attr_name, Text):
+    if isinstance(attr_name, str):
       return attr_name.encode("utf-8")
     if isinstance(attr_name, bytes):
       return attr_name

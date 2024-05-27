@@ -20,7 +20,6 @@ from grr_response_client.client_actions import osx_linux
 from grr_response_client.client_actions import standard
 from grr_response_client.osx import objc
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -416,10 +415,17 @@ def OSXEnumerateRunningServicesFromClient(args):
 
   launchd_list = GetRunningLaunchDaemons()
 
-  parser = osx_launchd.OSXLaunchdJobDict(launchd_list)
-  for job in parser.Parse():
-    response = CreateServiceProto(job)
-    yield response
+  for launchd_item in launchd_list:
+    # We exclude rubbish like logged requests that are not real jobs.
+    label = launchd_item.get("Label", "")
+    if re.fullmatch(r"0x[a-z0-9]+\.anonymous\..+", label):
+      continue
+    if re.fullmatch(r"0x[a-z0-9]+\.mach_init\.crash_inspector", label):
+      continue
+    if re.fullmatch(r"0x[a-z0-9]+\.mach_init\.Inspector", label):
+      continue
+
+    yield CreateServiceProto(launchd_item)
 
 
 class OSXEnumerateRunningServices(actions.ActionPlugin):

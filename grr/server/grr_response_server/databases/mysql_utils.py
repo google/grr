@@ -7,7 +7,6 @@ import hashlib
 from typing import Iterable
 from typing import Optional
 from typing import Sequence
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -19,7 +18,7 @@ def StringToRDFProto(proto_type, value):
   return value if value is None else proto_type.FromSerializedBytes(value)
 
 
-def Hash(value: Text) -> bytes:
+def Hash(value: str) -> bytes:
   """Calculate a 32 byte cryptographic hash of a unicode string using SHA-256.
 
   This function allows using arbitrary length strings as primary keys in MySQL.
@@ -37,7 +36,7 @@ def Hash(value: Text) -> bytes:
   return hashlib.sha256(encoded).digest()
 
 
-def Placeholders(num: int, values: int = 1) -> Text:
+def Placeholders(num: int, values: int = 1) -> str:
   """Returns a string of placeholders for MySQL INSERTs.
 
   Examples:
@@ -59,7 +58,7 @@ def Placeholders(num: int, values: int = 1) -> Text:
   return ", ".join([value] * values)
 
 
-def NamedPlaceholders(iterable: Iterable[Text]) -> Text:
+def NamedPlaceholders(iterable: Iterable[str]) -> str:
   """Returns named placeholders from all elements of the given iterable.
 
   Use this function for VALUES of MySQL INSERTs.
@@ -81,7 +80,7 @@ def NamedPlaceholders(iterable: Iterable[Text]) -> Text:
   return "({})".format(placeholders)
 
 
-def Columns(iterable: Iterable[Text]) -> Text:
+def Columns(iterable: Iterable[str]) -> str:
   """Returns a string of column names for MySQL INSERTs.
 
   To account for Iterables with undefined order (dicts before Python 3.6),
@@ -130,7 +129,7 @@ def TimestampToMicrosecondsSinceEpoch(timestamp: float) -> int:
   return int(1000000 * timestamp)
 
 
-def ComponentsToPath(components: Sequence[Text]) -> Text:
+def ComponentsToPath(components: Sequence[str]) -> str:
   """Converts a list of path components to a canonical path representation.
 
   Args:
@@ -139,7 +138,7 @@ def ComponentsToPath(components: Sequence[Text]) -> Text:
   Returns:
     A canonical MySQL path representation.
   """
-  precondition.AssertIterableType(components, Text)
+  precondition.AssertIterableType(components, str)
   for component in components:
     if not component:
       raise ValueError("Empty path component in: {}".format(components))
@@ -153,7 +152,7 @@ def ComponentsToPath(components: Sequence[Text]) -> Text:
     return ""
 
 
-def PathToComponents(path: Text) -> tuple[str, ...]:
+def PathToComponents(path: str) -> tuple[str, ...]:
   """Converts a canonical path representation to a list of components.
 
   Args:
@@ -162,7 +161,7 @@ def PathToComponents(path: Text) -> tuple[str, ...]:
   Returns:
     A sequence of path components.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
   if path and not path.startswith("/"):
     raise ValueError("Path '{}' is not absolute".format(path))
 

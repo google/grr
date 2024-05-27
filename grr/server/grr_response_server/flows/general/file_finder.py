@@ -12,6 +12,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -501,7 +502,9 @@ class ClientFileFinder(flow_base.FlowBase):
     self.state.num_blob_waits = 0
 
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
-    kb = self.client_knowledge_base
+    kb: Optional[knowledge_base_pb2.ClientKnowledgeBase] = (
+        self.client_knowledge_base
+    )
 
     paths = list()
     missing_attrs = list()

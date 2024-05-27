@@ -45,7 +45,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     client_ids = sorted(self.SetupClients(2))
 
     clients = sorted(
-        self.api.SearchClients(query="."), key=lambda c: c.client_id)
+        self.api.SearchClients(query="."), key=lambda c: c.client_id
+    )
     self.assertLen(clients, 2)
 
     for i in range(2):
@@ -55,7 +56,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   def testListFlowsFromClientRef(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
 
     flows = list(self.api.Client(client_id=client_id).ListFlows())
 
@@ -67,7 +69,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   def testListFlowsFromClientObject(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
 
     client = self.api.Client(client_id=client_id).Get()
     flows = list(client.ListFlows())
@@ -82,11 +85,13 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     client_id = self.SetupClient(0)
     args = processes.ListProcessesArgs(
-        filename_regex=unicode_str, fetch_binaries=True)
+        filename_regex=unicode_str, fetch_binaries=True
+    )
 
     client_ref = self.api.Client(client_id=client_id)
     result_flow = client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
+    )
 
     got_flow = client_ref.Flow(flow_id=result_flow.flow_id).Get()
     self.assertEqual(got_flow.args.filename_regex, unicode_str)
@@ -94,14 +99,16 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   def testCreateFlowFromClientRef(self):
     client_id = self.SetupClient(0)
     args = processes.ListProcessesArgs(
-        filename_regex="blah", fetch_binaries=True)
+        filename_regex="blah", fetch_binaries=True
+    )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertEmpty(flows)
 
     client_ref = self.api.Client(client_id=client_id)
     client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
+    )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
@@ -111,14 +118,16 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   def testCreateFlowFromClientObject(self):
     client_id = self.SetupClient(0)
     args = processes.ListProcessesArgs(
-        filename_regex="blah", fetch_binaries=True)
+        filename_regex="blah", fetch_binaries=True
+    )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertEmpty(flows)
 
     client = self.api.Client(client_id=client_id).Get()
     client.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
+    )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
@@ -144,14 +153,16 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083,
-        RSS_size=42)
+        RSS_size=42,
+    )
 
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.TestFlowHelper(
         processes.ListProcesses.__name__,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
     results = list(result_flow.ListResults())
@@ -193,7 +204,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     )
 
     class StderrToStdoutParser(
-        parser.SingleResponseParser[rdf_client_action.ExecuteResponse]):
+        parser.SingleResponseParser[rdf_client_action.ExecuteResponse]
+    ):
 
       supported_artifacts = ["Echo"]
 
@@ -264,7 +276,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     client_id = self.SetupClient(0)
 
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id).Get()
     self.assertEqual(result_flow.data.state, result_flow.data.RUNNING)
 
@@ -285,7 +298,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     client_id = self.SetupClient(0)
 
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id).Get()
 
     def ProcessFlow():
@@ -304,7 +318,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     client_id = self.SetupClient(0)
 
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id).Get()
 
     with self.assertRaises(grr_api_errors.PollTimeoutError):
@@ -315,7 +330,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     # Start a flow. The exact type of the flow doesn't matter:
     # we'll add results manually.
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
 
     data_store.REL_DB.WriteFlowResults([
         mig_flow_objects.ToProtoFlowResult(
@@ -352,25 +368,31 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     blob_size = 1024 * 1024 * 4
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "ab")
     vfs_test_lib.CreateFileWithBlobRefsAndData(
-        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data)
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data
+    )
 
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "cd")
     vfs_test_lib.CreateFileWithBlobRefsAndData(
-        db.ClientPath.OS(client_id, ["foo", "bar2"]), blob_refs, blob_data)
+        db.ClientPath.OS(client_id, ["foo", "bar2"]), blob_refs, blob_data
+    )
 
     zip_stream = io.BytesIO()
     self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
-        zip_stream)
+        zip_stream
+    )
     zip_fd = zipfile.ZipFile(zip_stream)
 
     prefix = "%s_flow_ListProcesses_%s" % (client_id, flow_id)
     namelist = zip_fd.namelist()
-    self.assertCountEqual(namelist, [
-        "%s/MANIFEST" % prefix,
-        "%s/%s/client_info.yaml" % (prefix, client_id),
-        "%s/%s/fs/os/foo/bar1" % (prefix, client_id),
-        "%s/%s/fs/os/foo/bar2" % (prefix, client_id),
-    ])
+    self.assertCountEqual(
+        namelist,
+        [
+            "%s/MANIFEST" % prefix,
+            "%s/%s/client_info.yaml" % (prefix, client_id),
+            "%s/%s/fs/os/foo/bar1" % (prefix, client_id),
+            "%s/%s/fs/os/foo/bar2" % (prefix, client_id),
+        ],
+    )
 
     for info in zip_fd.infolist():
       self.assertGreater(info.compress_size, 0)
@@ -380,44 +402,59 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     _, blob_refs = vfs_test_lib.GenerateBlobRefs(10, "0")
     vfs_test_lib.CreateFileWithBlobRefsAndData(
-        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, [])
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, []
+    )
 
     zip_stream = io.BytesIO()
-    with self.assertRaisesRegex(grr_api_errors.UnknownError,
-                                "Could not find one of referenced blobs"):
+    with self.assertRaisesRegex(
+        grr_api_errors.UnknownError, "Could not find one of referenced blobs"
+    ):
       self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
-          zip_stream)
+          zip_stream
+      )
 
   def testGetFilesArchiveDropsStreamingResponsesWhenSecondFileBlobIsMissing(
-      self):
+      self,
+  ):
     client_id, flow_id = self._SetupFlowWithStatEntryResults()
 
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(1024 * 1024 * 4, "abc")
     vfs_test_lib.CreateFileWithBlobRefsAndData(
-        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data[0:2])
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data[0:2]
+    )
 
     zip_stream = io.BytesIO()
     timestamp = rdfvalue.RDFDatetime.Now()
     self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
-        zip_stream)
+        zip_stream
+    )
 
     with self.assertRaises(zipfile.BadZipfile):
       zipfile.ZipFile(zip_stream)
 
     # Check that notification was pushed indicating the failure to the user.
-    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
-        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    pending_notifications = list(
+        self.api.GrrUser().ListPendingNotifications(
+            timestamp=timestamp.AsMicrosecondsSinceEpoch()
+        )
+    )
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(rdf_objects.UserNotification.Type
-            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
-    self.assertEqual(pending_notifications[0].data.reference.type,
-                     pending_notifications[0].data.reference.FLOW)
-    self.assertEqual(pending_notifications[0].data.reference.flow.client_id,
-                     client_id)
-    self.assertEqual(pending_notifications[0].data.reference.flow.flow_id,
-                     flow_id)
+        int(
+            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
+        ),
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.type,
+        pending_notifications[0].data.reference.FLOW,
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.flow.client_id, client_id
+    )
+    self.assertEqual(
+        pending_notifications[0].data.reference.flow.flow_id, flow_id
+    )
 
   def testClientReprContainsClientId(self):
     client_id = self.SetupClient(0)
@@ -428,7 +465,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   def testFlowReprContainsMetadata(self):
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id=client_id)
+        processes.ListProcesses, client_id=client_id
+    )
 
     flow_ref = self.api.Client(client_id=client_id).Flow(flow_id)
     self.assertIn(client_id, repr(flow_ref))

@@ -825,9 +825,7 @@ export class HttpApiService {
   ): Observable<readonly apiInterfaces.ApiScheduledFlow[]> {
     return this.http
       .get<apiInterfaces.ApiListScheduledFlowsResult>(
-        // TODO: Remove trailing slash once redirect protocol
-        // is fixed.
-        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}/`,
+        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}`,
       )
       .pipe(
         map((res) => res.scheduledFlows ?? []),
@@ -972,8 +970,7 @@ export class HttpApiService {
 
   /** Unschedules a previously scheduled flow. */
   unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
-    // TODO: Remove trailing slash once redirect protocol is fixed.
-    const url = `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}/`;
+    const url = `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}`;
     return this.http.delete<{}>(url, {}).pipe(
       tap(() => {
         this.triggerListScheduledFlowsPoll$.next();

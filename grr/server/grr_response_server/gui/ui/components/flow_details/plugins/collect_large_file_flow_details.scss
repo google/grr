@@ -3,8 +3,8 @@
 @use '@angular/material' as mat;
 
 .key-value-table {
-  table-layout:fixed;
-  width:100%;
+  table-layout: fixed;
+  width: 100%;
   padding: 12px;
 
   td:first-of-type {

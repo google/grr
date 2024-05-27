@@ -72,7 +72,9 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     # request only as much.
     args = rdf_client.BufferReference()
     args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-    args.pathspec.path = "/Library/CS/registry.base"
+    args.pathspec.path = (
+        "/Library/Application Support/CrowdStrike/Falcon/registry.base"
+    )
     args.offset = 0
     args.length = 16
 

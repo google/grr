@@ -7,7 +7,6 @@ import logging
 import numbers
 from typing import Any
 from typing import Dict
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -33,6 +32,7 @@ class ApiRDFAllowedEnumValueDescriptor(rdf_structs.RDFProtoStruct):
 
 class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
   """Descriptor for an RDFValue Field."""
+
   protobuf = reflection_pb2.ApiRDFValueFieldDescriptor
   rdf_deps = [
       ApiRDFAllowedEnumValueDescriptor,
@@ -109,10 +109,12 @@ class ApiValueRenderer(metaclass=MetaclassRegistry):
 
       if not candidates:
         raise RuntimeError(
-            "No renderer found for value %s." % value.__class__.__name__)
+            "No renderer found for value %s." % value.__class__.__name__
+        )
 
       candidates = sorted(
-          candidates, key=lambda candidate: len(candidate[1].mro()))
+          candidates, key=lambda candidate: len(candidate[1].mro())
+      )
       renderer_cls = candidates[-1][0]
       cls._renderers_cache[cache_key] = renderer_cls
 
@@ -125,7 +127,8 @@ class ApiValueRenderer(metaclass=MetaclassRegistry):
 
   def _PassThrough(self, value):
     renderer = ApiValueRenderer.GetRendererForValueOrClass(
-        value, limit_lists=self.limit_lists)
+        value, limit_lists=self.limit_lists
+    )
     return renderer.RenderValue(value)
 
   def _IncludeTypeInfo(self, result, original_value):
@@ -154,7 +157,8 @@ class ApiValueRenderer(metaclass=MetaclassRegistry):
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(e)
       raise DefaultValueError(
-          "Can't create default for value %s: %s" % (value_cls.__name__, e))
+          "Can't create default for value %s: %s" % (value_cls.__name__, e)
+      )
 
   def BuildTypeDescriptor(self, value_cls):
     """Renders metadata of a given value class.
@@ -171,7 +175,8 @@ class ApiValueRenderer(metaclass=MetaclassRegistry):
         name=value_cls.__name__,
         parents=[klass.__name__ for klass in value_cls.__mro__],
         doc=value_cls.__doc__ or "",
-        kind="PRIMITIVE")
+        kind="PRIMITIVE",
+    )
 
     result.default = self.BuildDefaultValue(value_cls)
 
@@ -193,7 +198,7 @@ class ApiNumberRenderer(ApiValueRenderer):
 class ApiStringRenderer(ApiValueRenderer):
   """Renderer for strings."""
 
-  value_class = Text
+  value_class = str
 
   def RenderValue(self, value):
     return dict(type="unicode", value=value)
@@ -250,10 +255,11 @@ class ApiListRenderer(ApiValueRenderer):
     elif self.limit_lists == -1:
       return [self._PassThrough(v) for v in value]
     else:
-      result = [self._PassThrough(v) for v in list(value)[:self.limit_lists]]
+      result = [self._PassThrough(v) for v in list(value)[: self.limit_lists]]
       if len(value) > self.limit_lists:
         result.append(
-            dict(type=FetchMoreLink.__name__, url="to/be/implemented"))
+            dict(type=FetchMoreLink.__name__, url="to/be/implemented")
+        )
 
     return result
 
@@ -425,7 +431,8 @@ class ApiRDFValueDescriptorRenderer(ApiValueRenderer):
         name=value.name,
         mro=list(value.parents),
         doc=value.doc,
-        kind=value.kind.name.lower())
+        kind=value.kind.name.lower(),
+    )
 
     if value.fields:
       result["fields"] = []
@@ -479,7 +486,8 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         name=value_cls.__name__,
         parents=[klass.__name__ for klass in value_cls.__mro__],
         doc=value_cls.__doc__ or "",
-        kind="STRUCT")
+        kind="STRUCT",
+    )
 
     for field_desc in value_cls.type_infos:
       repeated = isinstance(field_desc, rdf_structs.ProtoList)
@@ -490,7 +498,8 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
           name=field_desc.name,
           index=field_desc.field_number,
           repeated=repeated,
-          dynamic=isinstance(field_desc, rdf_structs.ProtoDynamicEmbedded))
+          dynamic=isinstance(field_desc, rdf_structs.ProtoDynamicEmbedded),
+      )
 
       field_type = field_desc.type
       if field_type is not None:
@@ -514,11 +523,15 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
                   name=enum_label,
                   value=int(enum_value),
                   labels=labels,
-                  doc=enum_value.description))
+                  doc=enum_value.description,
+              )
+          )
 
-      if (field_desc.default is not None and
-          not issubclass(field_type, rdf_structs.RDFStruct) and
-          hasattr(field_desc, "GetDefault")):
+      if (
+          field_desc.default is not None
+          and not issubclass(field_type, rdf_structs.RDFStruct)
+          and hasattr(field_desc, "GetDefault")
+      ):
         default_val = field_desc.GetDefault()
         field.default = field.GetDefaultValueClass()(default_val)
 
@@ -550,8 +563,9 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
       # we can either construct all the RDFStruct classes with default
       # constructors or know exactly which classes can't be constructed
       # with default constructors.
-      logging.debug("Can't create default for struct %s: %s",
-                    field_type.__name__, e)
+      logging.debug(
+          "Can't create default for struct %s: %s", field_type.__name__, e
+      )
 
     return result
 
@@ -596,7 +610,8 @@ def RenderValue(value, limit_lists=-1):
     return None
 
   renderer = ApiValueRenderer.GetRendererForValueOrClass(
-      value, limit_lists=limit_lists)
+      value, limit_lists=limit_lists
+  )
   return renderer.RenderValue(value)
 
 

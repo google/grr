@@ -5,7 +5,6 @@
 # These imports populate the Flow registry
 from grr_response_server.flows import file
 from grr_response_server.flows.general import administrative
-from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import crowdstrike
 from grr_response_server.flows.general import discovery

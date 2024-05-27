@@ -8,9 +8,7 @@ import json
 import logging
 import time
 import traceback
-from typing import Dict
-from typing import Type
-from typing import TypeVar
+from typing import Dict, Type, TypeVar
 
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
@@ -41,7 +39,8 @@ _FIELDS = (
 )
 API_METHOD_LATENCY = metrics.Event("api_method_latency", fields=_FIELDS)
 API_ACCESS_PROBE_LATENCY = metrics.Event(
-    "api_access_probe_latency", fields=_FIELDS)
+    "api_access_probe_latency", fields=_FIELDS
+)
 
 
 class Error(Exception):
@@ -72,7 +71,7 @@ class InvalidRequestArgumentsInRouteError(Error):
   pass
 
 
-class RouterMatcher(object):
+class RouterMatcher:
   """Matches requests to routers (and caches them)."""
 
   def __init__(self):
@@ -92,14 +91,17 @@ class RouterMatcher(object):
     for _, metadata in router_cls.GetAnnotatedMethods().items():
       for http_method, path, unused_options in metadata.http_methods:
         routing_map.add(
-            routing.Rule(path, methods=[http_method], endpoint=metadata))
+            routing.Rule(path, methods=[http_method], endpoint=metadata)
+        )
         # This adds support for the next version of the API that uses
         # standardized JSON protobuf serialization.
         routing_map.add(
             routing.Rule(
                 path.replace("/api/", "/api/v2/"),
                 methods=[http_method],
-                endpoint=metadata))
+                endpoint=metadata,
+            )
+        )
 
     return routing_map
 
@@ -141,21 +143,22 @@ class RouterMatcher(object):
         try:
           args = FlatDictToRDFValue(unprocessed_request, args_type)
         except ValueError as error:
-          raise InvalidRequestArgumentsInRouteError(error)
+          raise InvalidRequestArgumentsInRouteError() from error
 
         for type_info in args.type_infos:
           try:
             if type_info.name in route_args:
               self._SetField(args, type_info, route_args[type_info.name])
           except Exception as e:  # pylint: disable=broad-except
-            raise InvalidRequestArgumentsInRouteError(e)
+            raise InvalidRequestArgumentsInRouteError() from e
 
       else:
         args = None
     elif request.method in ["POST", "DELETE", "PATCH"]:
       try:
         if request.content_type and request.content_type.startswith(
-            "multipart/form-data;"):
+            "multipart/form-data;"
+        ):
           payload = json.loads(request.form["_params_"].decode("utf-8"))
           args = method_metadata.args_type()
           args.FromDict(payload)
@@ -167,7 +170,8 @@ class RouterMatcher(object):
           args_proto = method_metadata.args_type().protobuf()
           json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
           args = method_metadata.args_type.FromSerializedBytes(
-              args_proto.SerializeToString())
+              args_proto.SerializeToString()
+          )
         else:
           json_data = request.get_data(as_text=True) or "{}"
           payload = json.loads(json_data)
@@ -175,16 +179,20 @@ class RouterMatcher(object):
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error while parsing POST request %s (%s): %s",
-                          request.path, request.method, e)
-        raise PostRequestParsingError(e)
+        logging.exception(
+            "Error while parsing POST request %s (%s): %s",
+            request.path,
+            request.method,
+            e,
+        )
+        raise PostRequestParsingError() from e
 
       for type_info in args.type_infos:
         if type_info.name in route_args:
           try:
             self._SetField(args, type_info, route_args[type_info.name])
           except Exception as e:  # pylint: disable=broad-except
-            raise InvalidRequestArgumentsInRouteError(e)
+            raise InvalidRequestArgumentsInRouteError() from e
     else:
       raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
 
@@ -196,18 +204,24 @@ class RouterMatcher(object):
     routing_map = self._GetRoutingMap(router)
 
     matcher = routing_map.bind(
-        "%s:%s" %
-        (request.environ["SERVER_NAME"], request.environ["SERVER_PORT"]))
+        "%s:%s"
+        % (request.environ["SERVER_NAME"], request.environ["SERVER_PORT"])
+    )
     try:
       match = matcher.match(request.path, request.method)
-    except werkzeug_exceptions.NotFound:
-      raise ApiCallRouterNotFoundError("No API router was found for (%s) %s" %
-                                       (request.path, request.method))
+    except werkzeug_exceptions.NotFound as e:
+      raise ApiCallRouterNotFoundError(
+          "No API router was found for (%s) %s" % (request.path, request.method)
+      ) from e
 
     router_method_metadata, route_args_dict = match
-    return (router, router_method_metadata,
-            self._GetArgsFromRequest(request, router_method_metadata,
-                                     route_args_dict))
+    return (
+        router,
+        router_method_metadata,
+        self._GetArgsFromRequest(
+            request, router_method_metadata, route_args_dict
+        ),
+    )
 
 
 class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
@@ -235,6 +249,7 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
 
 class JsonMode(object):
   """Enum class for various JSON encoding modes."""
+
   PROTO3_JSON_MODE = 0
   GRR_JSON_MODE = 1
   GRR_ROOT_TYPES_STRIPPED_JSON_MODE = 2
@@ -250,14 +265,13 @@ def GetRequestFormatMode(request, method_metadata):
     return JsonMode.GRR_TYPE_STRIPPED_JSON_MODE
 
   for http_method, unused_url, options in method_metadata.http_methods:
-    if (http_method == request.method and
-        options.get("strip_root_types", False)):
+    if http_method == request.method and options.get("strip_root_types", False):
       return JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE
 
   return JsonMode.GRR_JSON_MODE
 
 
-class HttpRequestHandler(object):
+class HttpRequestHandler:
   """Handles HTTP requests."""
 
   def _BuildContext(self, request):
@@ -279,18 +293,25 @@ class HttpRequestHandler(object):
 
     if format_mode == JsonMode.PROTO3_JSON_MODE:
       json_data = json_format.MessageToJson(
-          result.AsPrimitiveProto(), float_precision=8)
+          result.AsPrimitiveProto(), float_precision=8
+      )
       return json.loads(json_data)
     elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
       result_dict = {}
       for field, value in result.ListSetFields():
-        if isinstance(field,
-                      (rdf_structs.ProtoDynamicEmbedded,
-                       rdf_structs.ProtoEmbedded, rdf_structs.ProtoList)):
+        if isinstance(
+            field,
+            (
+                rdf_structs.ProtoDynamicEmbedded,
+                rdf_structs.ProtoEmbedded,
+                rdf_structs.ProtoList,
+            ),
+        ):
           result_dict[field.name] = api_value_renderers.RenderValue(value)
         else:
-          result_dict[field.name] = api_value_renderers.RenderValue(
-              value)["value"]
+          result_dict[field.name] = api_value_renderers.RenderValue(value)[
+              "value"
+          ]
       return result_dict
     elif format_mode == JsonMode.GRR_TYPE_STRIPPED_JSON_MODE:
       rendered_data = api_value_renderers.RenderValue(result)
@@ -323,22 +344,25 @@ class HttpRequestHandler(object):
 
     if result.__class__ != expected_type:
       raise UnexpectedResultTypeError(
-          "Expected %s, but got %s." %
-          (expected_type.__name__, result.__class__.__name__))
+          "Expected %s, but got %s."
+          % (expected_type.__name__, result.__class__.__name__)
+      )
 
     return result
 
   def __init__(self, router_matcher=None):
     self._router_matcher = router_matcher or RouterMatcher()
 
-  def _BuildResponse(self,
-                     status,
-                     rendered_data,
-                     method_name=None,
-                     headers=None,
-                     content_length=None,
-                     context=None,
-                     no_audit_log=False):
+  def _BuildResponse(
+      self,
+      status,
+      rendered_data,
+      method_name=None,
+      headers=None,
+      content_length=None,
+      context=None,
+      no_audit_log=False,
+  ):
     """Builds HttpResponse object from rendered data and HTTP status."""
 
     # To avoid IE content sniffing problems, escape the tags. Otherwise somebody
@@ -351,15 +375,18 @@ class HttpRequestHandler(object):
     )
     # XSSI protection and tags escaping
     rendered_str = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
-        ">", r"\u003e")
+        ">", r"\u003e"
+    )
 
     response = http_response.HttpResponse(
         rendered_str,
         status=status,
         content_type="application/json; charset=utf-8",
-        context=context)
-    response.headers[
-        "Content-Disposition"] = "attachment; filename=response.json"
+        context=context,
+    )
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=response.json"
+    )
     response.headers["X-Content-Type-Options"] = "nosniff"
 
     if method_name:
@@ -377,10 +404,9 @@ class HttpRequestHandler(object):
 
     return response
 
-  def _BuildStreamingResponse(self,
-                              binary_stream,
-                              method_name=None,
-                              context=None):
+  def _BuildStreamingResponse(
+      self, binary_stream, method_name=None, context=None
+  ):
     """Builds HttpResponse object for streaming."""
     precondition.AssertType(method_name, str)
 
@@ -401,9 +427,11 @@ class HttpRequestHandler(object):
         response=stream,
         content_type="binary/octet-stream",
         direct_passthrough=True,
-        context=context)
-    response.headers["Content-Disposition"] = ((
-        "attachment; filename=%s" % binary_stream.filename).encode("utf-8"))
+        context=context,
+    )
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=%s" % binary_stream.filename
+    ).encode("utf-8")
     if method_name:
       response.headers["X-API-Method"] = method_name.encode("utf-8")
 
@@ -422,44 +450,52 @@ class HttpRequestHandler(object):
     if not access_control.IsValidUsername(request.user):
       return self._BuildResponse(
           http.client.FORBIDDEN,
-          dict(message="Invalid username: %s" % request.user))
+          dict(message="Invalid username: %s" % request.user),
+      )
 
     try:
       router, method_metadata, args = self._router_matcher.MatchRouter(request)
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
-      logging.exception("Access denied to %s (%s): %s", request.path,
-                        request.method, e)
+      logging.exception(
+          "Access denied to %s (%s): %s", request.path, request.method, e
+      )
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject": e.subject
+          "X-GRR-Unauthorized-Access-Subject": e.subject,
       }
       return self._BuildResponse(
           http.client.FORBIDDEN,
           dict(
               message="Access denied by ACL: %s" % error_message,
-              subject=e.subject),
-          headers=additional_headers)
+              subject=e.subject,
+          ),
+          headers=additional_headers,
+      )
 
     except ApiCallRouterNotFoundError as e:
       error_message = str(e)
-      return self._BuildResponse(http.client.NOT_FOUND,
-                                 dict(message=error_message))
+      return self._BuildResponse(
+          http.client.NOT_FOUND, dict(message=error_message)
+      )
     except werkzeug_exceptions.MethodNotAllowed as e:
       error_message = str(e)
-      return self._BuildResponse(http.client.METHOD_NOT_ALLOWED,
-                                 dict(message=error_message))
+      return self._BuildResponse(
+          http.client.METHOD_NOT_ALLOWED, dict(message=error_message)
+      )
     except (InvalidRequestArgumentsInRouteError, PostRequestParsingError) as e:
       error_message = str(e)
-      return self._BuildResponse(http.client.UNPROCESSABLE_ENTITY,
-                                 dict(message=error_message))
+      return self._BuildResponse(
+          http.client.UNPROCESSABLE_ENTITY, dict(message=error_message)
+      )
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
 
       return self._BuildResponse(
           http.client.INTERNAL_SERVER_ERROR,
-          dict(message=str(e), traceBack=traceback.format_exc()))
+          dict(message=str(e), traceBack=traceback.format_exc()),
+      )
 
     request.method_metadata = method_metadata
     request.parsed_args = args
@@ -476,58 +512,77 @@ class HttpRequestHandler(object):
       handler = getattr(router, method_metadata.name)(args, context=context)
 
       if handler.args_type != method_metadata.args_type:
-        raise RuntimeError("Handler args type doesn't match "
-                           "method args type: %s vs %s" %
-                           (handler.args_type, method_metadata.args_type))
+        raise RuntimeError(
+            "Handler args type doesn't match method args type: %s vs %s"
+            % (handler.args_type, method_metadata.args_type)
+        )
 
       binary_result_type = (
-          api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE)
+          api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE
+      )
 
-      if (handler.result_type != method_metadata.result_type and
-          not (handler.result_type is None and
-               method_metadata.result_type == binary_result_type)):
-        raise RuntimeError("Handler result type doesn't match "
-                           "method result type: %s vs %s" %
-                           (handler.result_type, method_metadata.result_type))
+      if handler.result_type != method_metadata.result_type and not (
+          handler.result_type is None
+          and method_metadata.result_type == binary_result_type
+      ):
+        raise RuntimeError(
+            "Handler result type doesn't match method result type: %s vs %s"
+            % (handler.result_type, method_metadata.result_type)
+        )
 
       # HEAD method is only used for checking the ACLs for particular API
       # methods.
       if request.method == "HEAD":
         # If the request would return a stream, we add the Content-Length
         # header to the response.
-        if (method_metadata.result_type ==
-            method_metadata.BINARY_STREAM_RESULT_TYPE):
+        if (
+            method_metadata.result_type
+            == method_metadata.BINARY_STREAM_RESULT_TYPE
+        ):
+          if handler.proto_args_type:
+            args = args.AsPrimitiveProto()
           binary_stream = handler.Handle(args, context=context)
           return self._BuildResponse(
-              200, {"status": "OK"},
+              200,
+              {"status": "OK"},
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
               content_length=binary_stream.content_length,
-              context=context)
+              context=context,
+          )
         else:
           return self._BuildResponse(
-              200, {"status": "OK"},
+              200,
+              {"status": "OK"},
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
-              context=context)
+              context=context,
+          )
 
-      if (method_metadata.result_type ==
-          method_metadata.BINARY_STREAM_RESULT_TYPE):
+      if (
+          method_metadata.result_type
+          == method_metadata.BINARY_STREAM_RESULT_TYPE
+      ):
+        if handler.proto_args_type:
+          args = args.AsPrimitiveProto()
         binary_stream = handler.Handle(args, context=context)
         return self._BuildStreamingResponse(
-            binary_stream, method_name=method_metadata.name, context=context)
+            binary_stream, method_name=method_metadata.name, context=context
+        )
       else:
         format_mode = GetRequestFormatMode(request, method_metadata)
         result = self.CallApiHandler(handler, args, context=context)
         rendered_data = self._FormatResultAsJson(
-            result, format_mode=format_mode)
+            result, format_mode=format_mode
+        )
 
         return self._BuildResponse(
             200,
             rendered_data,
             method_name=method_metadata.name,
             no_audit_log=method_metadata.no_audit_log_required,
-            context=context)
+            context=context,
+        )
     # ResourceExhaustedError inherits from UnauthorizedAccess, so it
     # should be above UnauthorizedAccess in the code.
     except api_call_handler_base.ResourceExhaustedError as e:
@@ -537,26 +592,33 @@ class HttpRequestHandler(object):
           {"message": f"Quota exceeded: {error_message}"},
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
-      logging.warning("Access denied for %s (HTTP %s %s): %s",
-                      method_metadata.name, request.method, request.path,
-                      error_message)
+      logging.warning(
+          "Access denied for %s (HTTP %s %s): %s",
+          method_metadata.name,
+          request.method,
+          request.path,
+          error_message,
+      )
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject": e.subject
+          "X-GRR-Unauthorized-Access-Subject": e.subject,
       }
       return self._BuildResponse(
           http.client.FORBIDDEN,
           dict(
               message="Access denied by ACL: %s" % error_message,
-              subject=e.subject),
+              subject=e.subject,
+          ),
           headers=additional_headers,
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
     except api_call_handler_base.ResourceNotFoundError as e:
       error_message = str(e)
       return self._BuildResponse(
@@ -564,7 +626,8 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
     # ValueError is commonly raised by GRR code in arguments checks.
     except ValueError as e:
       error_message = str(e)
@@ -573,7 +636,8 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
     except NotImplementedError as e:
       error_message = str(e)
       return self._BuildResponse(
@@ -581,18 +645,24 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
     except Exception as e:  # pylint: disable=broad-except
       error_message = str(e)
-      logging.exception("Error while processing %s (%s) with %s: %s",
-                        request.path, request.method,
-                        handler.__class__.__name__, e)
+      logging.exception(
+          "Error while processing %s (%s) with %s: %s",
+          request.path,
+          request.method,
+          handler.__class__.__name__,
+          e,
+      )
       return self._BuildResponse(
           http.client.INTERNAL_SERVER_ERROR,
           dict(message=error_message, traceBack=traceback.format_exc()),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
+          context=context,
+      )
 
 
 def RenderHttpResponse(request):

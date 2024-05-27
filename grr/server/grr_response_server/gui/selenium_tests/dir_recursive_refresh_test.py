@@ -16,11 +16,14 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
         client_id,
         "fs/os/c/a.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_0)
+        timestamp=gui_test_lib.TIME_0,
+    )
     gui_test_lib.CreateFolder(
-        client_id, "fs/os/c/TestFolder", timestamp=gui_test_lib.TIME_0)
+        client_id, "fs/os/c/TestFolder", timestamp=gui_test_lib.TIME_0
+    )
     gui_test_lib.CreateFolder(
-        client_id, "fs/os/c/bin/TestBinFolder", timestamp=gui_test_lib.TIME_0)
+        client_id, "fs/os/c/bin/TestBinFolder", timestamp=gui_test_lib.TIME_0
+    )
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -40,18 +43,21 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
     # Check that the button got disabled
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RecursiveRefresh][disabled]")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=RecursiveRefresh][disabled]"
+    )
 
     self._RunUpdateFlow(self.client_id)
 
     # Ensure that refresh button is enabled again.
     #
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=button[name=RecursiveRefresh][disabled]")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=button[name=RecursiveRefresh][disabled]"
+    )
 
   def testRecursiveRefreshButtonGetsReenabledWhenUpdateEnds(self):
     self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -61,16 +67,20 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RecursiveRefresh][disabled]")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=RecursiveRefresh][disabled]"
+    )
 
     self._RunUpdateFlow(self.client_id)
 
     # Check that the button got enabled again.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RecursiveRefresh]:not([disabled])")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=button[name=RecursiveRefresh]:not([disabled])",
+    )
 
   def testSwitchingFoldersReEnablesRecursiveRefreshButton(self):
     self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -80,14 +90,16 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
     self.Click("css=#_fs-os-c-bin a")
 
     # Ensure that refresh button is enabled again.
     #
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=button[name=RecursiveRefresh][disabled]")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=button[name=RecursiveRefresh][disabled]"
+    )
 
   def testTreeAndFileListRefreshedWhenRecursiveRefreshCompletes(self):
     self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -97,7 +109,8 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
     self._RunUpdateFlow(self.client_id)
 
@@ -105,8 +118,9 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # be triggered.
     # Ensure that the tree got updated as well as files list.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('TestFolder')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#_fs-os-c-TestFolder i.jstree-icon")
+    self.WaitUntil(
+        self.IsElementPresent, "css=#_fs-os-c-TestFolder i.jstree-icon"
+    )
 
   def testViewUpdatedWhenRecursiveUpdateCompletesAfterSelectionChange(self):
     self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -116,11 +130,13 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
     # Change the selection while the update is in progress.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RecursiveRefresh][disabled]")
+    self.WaitUntil(
+        self.IsElementPresent, "css=button[name=RecursiveRefresh][disabled]"
+    )
     self.Click("css=#_fs-os-c-bin a")
 
     self._RunUpdateFlow(self.client_id)
@@ -129,10 +145,12 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # be triggered, even though the selection has changed during the update.
     #
     # Ensure that the tree got updated as well as files list.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#_fs-os-c-TestFolder i.jstree-icon")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#_fs-os-c-bin-TestBinFolder i.jstree-icon")
+    self.WaitUntil(
+        self.IsElementPresent, "css=#_fs-os-c-TestFolder i.jstree-icon"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=#_fs-os-c-bin-TestBinFolder i.jstree-icon"
+    )
 
   def testRecursiveListDirectory(self):
     """Tests that Recursive Refresh button triggers correct flow."""
@@ -141,8 +159,9 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(
+        "C.0000000000000001", self.GetText, "css=span[type=subject]"
+    )
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -165,17 +184,20 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Wait until the dialog is automatically closed.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=.modal-header:contains('Recursive Directory Refresh')")
+        "css=.modal-header:contains('Recursive Directory Refresh')",
+    )
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveListDirectory')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains('/c')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains(423)")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.tab-content td.proto_value:contains('/c')"
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=.tab-content td.proto_value:contains(423)"
+    )
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+// g3-format-v_3_1
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {

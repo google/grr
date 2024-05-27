@@ -2,7 +2,6 @@
 """Output_plugin related rdf values."""
 
 import logging
-from typing import Text
 from typing import TypeVar
 
 from grr_response_core.lib import rdfvalue
@@ -39,7 +38,7 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
     cls = registry.OutputPluginRegistry.PluginClassByName(self.plugin_name)
     return cls()
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     result = self.plugin_name
     if self.args:
       result += " <%r>" % self.args

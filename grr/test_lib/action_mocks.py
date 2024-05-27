@@ -7,6 +7,8 @@ import itertools
 import os
 from typing import Iterator
 from typing import Mapping
+from typing import Optional
+from typing import Sequence
 from typing import Type
 
 from grr_response_client import actions
@@ -702,50 +704,46 @@ System Information
     ]
 
 
-class UnixVolumeClientMock(ListDirectoryClientMock):
-  """A mock of client filesystem volumes."""
-  unix_local = rdf_client_fs.UnixVolume(mount_point="/usr")
-  unix_home = rdf_client_fs.UnixVolume(mount_point="/")
-  path_results = [
-      rdf_client_fs.Volume(
-          unixvolume=unix_local,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50,
-          total_allocation_units=100),
-      rdf_client_fs.Volume(
-          unixvolume=unix_home,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=10,
-          total_allocation_units=100)
-  ]
+class ExecuteCommandActionMock(ActionMock):
+  """Mock of agent that can execute a predefined command."""
 
-  def StatFS(self, _):
-    return self.path_results
+  def __init__(
+      self,
+      cmd: str,
+      args: Optional[Sequence[str]] = None,
+      exit_status: int = 0,
+      stdout: Optional[bytes] = None,
+      stderr: Optional[bytes] = None,
+  ) -> None:
+    super().__init__()
 
+    self._cmd = cmd
+    self._args = args
 
-class WindowsVolumeClientMock(ListDirectoryClientMock):
-  """A mock of client filesystem volumes."""
-  windows_d = rdf_client_fs.WindowsVolume(drive_letter="D:")
-  windows_c = rdf_client_fs.WindowsVolume(drive_letter="C:")
-  path_results = [
-      rdf_client_fs.Volume(
-          windowsvolume=windows_d,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50,
-          total_allocation_units=100),
-      rdf_client_fs.Volume(
-          windowsvolume=windows_c,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=10,
-          total_allocation_units=100)
-  ]
+    self._exit_status = exit_status
+    self._stdout = stdout
+    self._stderr = stderr
 
-  def WmiQuery(self, query):
-    if query.query == u"SELECT * FROM Win32_LogicalDisk":
-      return client_fixture.WMI_SAMPLE
-    else:
-      return None
+  def ExecuteCommand(
+      self,
+      args: rdf_client_action.ExecuteRequest,
+  ) -> Iterator[rdf_client_action.ExecuteResponse]:
+    """Performs a fake execution of the command."""
+    args = mig_client_action.ToProtoExecuteRequest(args)
+
+    if self._cmd != args.cmd:
+      raise RuntimeError(f"Unexpected command: {args.cmd}")
+    if self._args is not None and tuple(self._args) != tuple(args.args):
+      raise RuntimeError(f"Unexpected arguments: {args.args}")
+
+    result = jobs_pb2.ExecuteResponse()
+    result.request.MergeFrom(args)
+    result.exit_status = self._exit_status
+
+    if self._stdout is not None:
+      result.stdout = self._stdout
+
+    if self._stderr is not None:
+      result.stderr = self._stderr
+
+    yield mig_client_action.ToRDFExecuteResponse(result)

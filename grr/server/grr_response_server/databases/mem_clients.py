@@ -6,7 +6,6 @@ from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple, Typ
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
@@ -499,14 +498,3 @@ class InMemoryDBClientMixin(object):
 
     for kw in self.keywords:
       self.keywords[kw].pop(client_id, None)
-
-  def StructuredSearchClients(
-      self,
-      expression: rdf_search.SearchExpression,
-      sort_order: rdf_search.SortOrder,
-      continuation_token: bytes,
-      number_of_results: int,
-  ) -> db.SearchClientsResult:
-    # Unused arguments
-    del self, expression, sort_order, continuation_token, number_of_results
-    raise NotImplementedError

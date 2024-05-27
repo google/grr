@@ -8,7 +8,6 @@ import random
 import stat as stat_mode
 import time
 from typing import List
-from typing import Text
 
 from absl.testing import absltest
 
@@ -292,7 +291,7 @@ class GetFilesystemType(absltest.TestCase):
         timeline.GetFilesystemType(os.path.join(path, "foobar"))
 
 
-def _Touch(filepath: Text, content: bytes = b"") -> None:
+def _Touch(filepath: str, content: bytes = b"") -> None:
   with io.open(filepath, mode="wb") as filedesc:
     filedesc.write(content)
 

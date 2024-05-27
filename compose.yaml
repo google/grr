@@ -54,11 +54,7 @@ services:
     healthcheck:
       # As soon as any files have been written to the /client_installer we
       # assume the service is healthy.
-      test: |
-        if [[ -z "$(ls /client_installers/*.deb)" ]]; then
-          echo "Healthckeck: GRR client installer not available"
-          exit 1
-        fi
+      test: "/configs/healthchecks/grr-admin-ui.sh"
       timeout: 10s
       retries: 10
 
@@ -178,11 +174,7 @@ services:
       "/configs/client/install_client.sh && fleetspeak-client -config /configs/client/client.config"
     ]
     healthcheck:
-      test: |
-        if [[ "$(ps aux | grep grr_response_client.client | grep -v grep | wc -l)" == "0" ]]; then
-          echo "Healthckeck: GRR client process not running"
-          exit 1
-        fi
+      test: "/configs/healthchecks/grr-client.sh"
       timeout: 10s
       retries: 10
 

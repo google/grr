@@ -28,7 +28,8 @@ class ApiAnyValueRendererTest(absltest.TestCase):
     rendered = renderer.RenderValue(rdf_structs.AnyValue.Pack(value))
 
     self.assertEqual(
-        rendered, {
+        rendered,
+        {
             "type": "User",
             "value": {
                 "username": {
@@ -36,7 +37,8 @@ class ApiAnyValueRendererTest(absltest.TestCase):
                     "value": "foobar",
                 },
             },
-        })
+        },
+    )
 
   def testRenderValueNotExisting(self):
     value = rdf_structs.AnyValue()
@@ -47,7 +49,8 @@ class ApiAnyValueRendererTest(absltest.TestCase):
     rendered = renderer.RenderValue(value)
 
     self.assertEqual(
-        rendered, {
+        rendered,
+        {
             "type": "AnyValue",
             "value": {
                 "type_url": {
@@ -59,7 +62,8 @@ class ApiAnyValueRendererTest(absltest.TestCase):
                     "value": base64.b64encode(b"foobarbaz").decode("ascii"),
                 },
             },
-        })
+        },
+    )
 
 
 class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
@@ -71,16 +75,15 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=0)
     data = renderer.RenderValue(sample)
     self.assertEqual(
-        data, {
+        data,
+        {
             "type": "ApiRDFProtoStructRendererSample",
             "value": {
-                "index": {
-                    "type": "long",
-                    "value": 0
-                },
-                "values": "<lists are omitted>"
-            }
-        })
+                "index": {"type": "long", "value": 0},
+                "values": "<lists are omitted>",
+            },
+        },
+    )
 
   def testRendersProtoStructWithoutListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(index=0, values=["foo", "bar"])
@@ -89,22 +92,18 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     self.assertEqual(
-        data, {
+        data,
+        {
             "type": "ApiRDFProtoStructRendererSample",
             "value": {
-                "index": {
-                    "type": "long",
-                    "value": 0
-                },
-                "values": [{
-                    "type": "unicode",
-                    "value": "foo"
-                }, {
-                    "type": "unicode",
-                    "value": "bar"
-                }]
-            }
-        })
+                "index": {"type": "long", "value": 0},
+                "values": [
+                    {"type": "unicode", "value": "foo"},
+                    {"type": "unicode", "value": "bar"},
+                ],
+            },
+        },
+    )
 
   def testRendersProtoStructWithListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(index=0, values=["foo", "bar"])
@@ -113,22 +112,18 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     self.assertEqual(
-        data, {
+        data,
+        {
             "type": "ApiRDFProtoStructRendererSample",
             "value": {
-                "index": {
-                    "type": "long",
-                    "value": 0
-                },
-                "values": [{
-                    "type": "unicode",
-                    "value": u"foo"
-                }, {
-                    "url": "to/be/implemented",
-                    "type": "FetchMoreLink"
-                }]
-            }
-        })
+                "index": {"type": "long", "value": 0},
+                "values": [
+                    {"type": "unicode", "value": "foo"},
+                    {"url": "to/be/implemented", "type": "FetchMoreLink"},
+                ],
+            },
+        },
+    )
 
 
 class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
@@ -138,7 +133,9 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     sample = rdf_flows.GrrMessage(
         task_id=42,
         payload=ApiRDFProtoStructRendererSample(
-            index=43, values=["foo", "bar"]))
+            index=43, values=["foo", "bar"]
+        ),
+    )
 
     renderer = api_value_renderers.ApiGrrMessageRenderer()
     data = renderer.RenderValue(sample)
@@ -146,31 +143,22 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     model_data = {
         "type": "GrrMessage",
         "value": {
-            "task_id": {
-                "type": "long",
-                "value": 42
-            },
+            "task_id": {"type": "long", "value": 42},
             "payload_type": {
                 "type": "unicode",
-                "value": "ApiRDFProtoStructRendererSample"
+                "value": "ApiRDFProtoStructRendererSample",
             },
             "payload": {
                 "type": "ApiRDFProtoStructRendererSample",
                 "value": {
-                    "index": {
-                        "type": "long",
-                        "value": 43
-                    },
-                    "values": [{
-                        "type": "unicode",
-                        "value": "foo"
-                    }, {
-                        "type": "unicode",
-                        "value": "bar"
-                    }]
-                }
-            }
-        }
+                    "index": {"type": "long", "value": 43},
+                    "values": [
+                        {"type": "unicode", "value": "foo"},
+                        {"type": "unicode", "value": "bar"},
+                    ],
+                },
+            },
+        },
     }
 
     self.assertEqual(data, model_data)

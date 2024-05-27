@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """A module with YARA convenience wrappers for the GRR API."""
 
-from typing import Text
-
 from grr_api_client import context as api_context
 from grr_response_proto.api import yara_pb2
 
 
 def UploadYaraSignature(
-    signature: Text,
+    signature: str,
     context: api_context.GrrApiContext,
 ) -> bytes:
   """Uploads the specified YARA signature.

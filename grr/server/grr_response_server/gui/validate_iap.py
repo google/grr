@@ -35,8 +35,9 @@ class IAPValidationFailedError(Error):
   pass
 
 
-def ValidateIapJwtFromComputeEngine(iap_jwt, cloud_project_number,
-                                    backend_service_id):
+def ValidateIapJwtFromComputeEngine(
+    iap_jwt, cloud_project_number, backend_service_id
+):
   """Validates an IAP JWT for your (Compute|Container) Engine service.
 
   Args:
@@ -46,7 +47,7 @@ def ValidateIapJwtFromComputeEngine(iap_jwt, cloud_project_number,
       Project Info card in Cloud Console.
     backend_service_id: The ID of the backend service used to access the
       application. See https://cloud.google.com/iap/docs/signed-headers-howto
-        for details on how to get this value.
+      for details on how to get this value.
 
   Returns:
     A tuple of (user_id, user_email).
@@ -55,7 +56,8 @@ def ValidateIapJwtFromComputeEngine(iap_jwt, cloud_project_number,
     IAPValidationFailedError: if the validation has failed.
   """
   expected_audience = "/projects/{}/global/backendServices/{}".format(
-      cloud_project_number, backend_service_id)
+      cloud_project_number, backend_service_id
+  )
   return ValidateIapJwt(iap_jwt, expected_audience)
 
 
@@ -68,10 +70,13 @@ def ValidateIapJwt(iap_jwt, expected_audience):
       raise IAPValidationFailedError("No key ID")
     key = GetIapKey(key_id)
     decoded_jwt = jwt.decode(
-        iap_jwt, key, algorithms=["ES256"], audience=expected_audience)
+        iap_jwt, key, algorithms=["ES256"], audience=expected_audience
+    )
     return (decoded_jwt["sub"], decoded_jwt["email"])
-  except (jwt.exceptions.InvalidTokenError,
-          requests.exceptions.RequestException) as e:
+  except (
+      jwt.exceptions.InvalidTokenError,
+      requests.exceptions.RequestException,
+  ) as e:
     raise IAPValidationFailedError(e)
 
 
@@ -98,7 +103,9 @@ def GetIapKey(key_id):
     if resp.status_code != 200:
       raise KeysCanNotBeFetchedError(
           "Unable to fetch IAP keys: {} / {} / {}".format(
-              resp.status_code, resp.headers, resp.text))
+              resp.status_code, resp.headers, resp.text
+          )
+      )
     _KEY_CACHE = resp.json()
     key = _KEY_CACHE.get(key_id)
     if not key:

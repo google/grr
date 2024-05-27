@@ -3,7 +3,6 @@
 
 import ctypes
 import ctypes.util
-from typing import Text
 
 # kCFStringEncodingUTF8
 UTF8 = 134217984
@@ -162,7 +161,7 @@ class Foundation(object):
 
     self._LoadLibrary('Foundation', self.cftable)
 
-  def CFStringToPystring(self, value) -> Text:
+  def CFStringToPystring(self, value) -> str:
     length = (self.dll.CFStringGetLength(value) * 4) + 1
     buff = ctypes.create_string_buffer(length)
     self.dll.CFStringGetCString(value, buff, length * 4, UTF8)
@@ -356,13 +355,13 @@ class CFString(CFType):
       raise TypeError('CFString initializer must be python or objc string.')
 
   @property
-  def value(self) -> Text:
+  def value(self) -> str:
     return self.CFStringToPystring(self)
 
   def __len__(self):
     return self.dll.CFArrayGetCount(self.ref)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self.value
 
   def __repr__(self):

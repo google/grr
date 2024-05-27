@@ -26,7 +26,6 @@ const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
   [SourceType.ARTIFACT_GROUP]: 'Collects artifact',
   [SourceType.ARTIFACT]: 'Collects artifact',
   [SourceType.COMMAND]: 'Executes command',
-  [SourceType.DIRECTORY]: 'Collects directory',
   [SourceType.FILE]: 'Collects file',
   [SourceType.GREP]: 'Greps',
   [SourceType.GRR_CLIENT_ACTION]: 'Executes client action',
@@ -78,7 +77,6 @@ function getReadableSources(source: ArtifactSource): readonly string[] {
     case SourceType.COMMAND:
       return [source.cmdline];
 
-    case SourceType.DIRECTORY:
     case SourceType.FILE:
     case SourceType.GREP:
     case SourceType.PATH:

@@ -66,6 +66,7 @@ class RawConnector(connectors.Connector):
   def _CallMethod(self, method_name, args):
     router = self._MatchRouter(method_name, args)
 
+    # TODO: Remove this once all handler are migrated to protos.
     rdf_args = None
     if args is not None:
       mdata = router.__class__.GetAnnotatedMethods()[method_name]
@@ -73,8 +74,19 @@ class RawConnector(connectors.Connector):
 
     method = getattr(router, method_name)
     try:
-      handler = method(rdf_args, context=self._context)
-      return handler.Handle(rdf_args, context=self._context)
+      handler = method(args, context=self._context)
+
+      if handler.proto_args_type:
+        result = handler.Handle(args, context=self._context)
+      else:
+        result = handler.Handle(rdf_args, context=self._context)
+
+      if isinstance(result, message.Message):
+        rdf_cls = handler.result_type
+        proto_bytes = result.SerializeToString()
+        result = rdf_cls.FromSerializedBytes(proto_bytes)
+
+      return result
     except access_control.UnauthorizedAccess as e:
       raise errors.AccessForbiddenError(e)
     except api_call_handler_base.ResourceNotFoundError as e:

@@ -7,6 +7,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr.test_lib import test_lib
 
 
@@ -265,11 +266,11 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertFalse(regex.Match("/foo/bar2/blah.COM"))
 
   def testGlobExpressionSplitsIntoExplainableComponents(self):
-    kb = rdf_client.KnowledgeBase(
+    kb = knowledge_base_pb2.KnowledgeBase(
         users=[
-            rdf_client.User(homedir="/home/foo"),
-            rdf_client.User(homedir="/home/bar"),
-            rdf_client.User(homedir="/home/baz"),
+            knowledge_base_pb2.User(homedir="/home/foo"),
+            knowledge_base_pb2.User(homedir="/home/bar"),
+            knowledge_base_pb2.User(homedir="/home/baz"),
         ]
     )
 
@@ -305,7 +306,7 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(components[0].examples, ["/home/foo", "/home/bar"])
 
   def testExplainComponentsReturnsEmptyExamplesOnKbError(self):
-    kb = rdf_client.KnowledgeBase(users=[rdf_client.User()])
+    kb = knowledge_base_pb2.KnowledgeBase(users=[knowledge_base_pb2.User()])
     ge = rdf_paths.GlobExpression("%%users.appdir%%/foo")
 
     components = ge.ExplainComponents(2, kb)

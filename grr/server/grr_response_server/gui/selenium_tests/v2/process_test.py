@@ -21,7 +21,8 @@ class ListProcessesTest(gui_test_lib.GRRSeleniumTest):
     flow_id = flow_test_lib.StartFlow(
         processes.ListProcesses,
         creator=self.test_username,
-        client_id=self.client_id)
+        client_id=self.client_id,
+    )
     flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
 
     with flow_test_lib.FlowResultMetadataOverride(
@@ -30,17 +31,25 @@ class ListProcessesTest(gui_test_lib.GRRSeleniumTest):
             is_metadata_set=True,
             num_results_per_type_tag=[
                 rdf_flow_objects.FlowResultCount(
-                    type=rdf_client.Process.__name__, count=1)
-            ])):
+                    type=rdf_client.Process.__name__, count=1
+                )
+            ],
+        ),
+    ):
       self.Open(f"/v2/clients/{self.client_id}")
       self.WaitUntil(
           self.IsElementPresent, "css=.flow-title:contains('List processes')"
       )
 
-      flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
-          rdf_client.Process(
-              pid=5, name="testprocess", cmdline=["testprocess"])
-      ])
+      flow_test_lib.AddResultsToFlow(
+          self.client_id,
+          flow_id,
+          [
+              rdf_client.Process(
+                  pid=5, name="testprocess", cmdline=["testprocess"]
+              )
+          ],
+      )
 
       self.Click("css=result-accordion .title:contains('process')")
       self.WaitUntil(self.IsElementPresent, "css=:contains('testprocess')")

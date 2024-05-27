@@ -20,8 +20,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     super().setUp()
 
     self.json_file = os.path.realpath(
-        os.path.join(config.CONFIG["Test.data_dir"], "artifacts",
-                     "test_artifact.json"))
+        os.path.join(
+            config.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"
+        )
+    )
 
   def testArtifactUpload(self):
     self.Open("/legacy#main=ArtifactManagerView")
@@ -32,8 +34,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Upload Artifact")
 
     # Can't use self.Type here as it isn't a standard input box.
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=grr-upload-artifact-dialog input[type=file]")
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=grr-upload-artifact-dialog input[type=file]",
+    )
     element.send_keys(self.json_file)
 
     self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
@@ -56,8 +60,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Upload Artifact")
 
     # Can't use self.Type here as it isn't a standard input box.
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=grr-upload-artifact-dialog input[type=file]")
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=grr-upload-artifact-dialog input[type=file]",
+    )
     element.send_keys(self.json_file)
 
     # TODO(user): at the moment trying to overwrite a system artifact
@@ -65,8 +71,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     # HTTP 403 (Forbidden).
     with self.DisableHttpErrorChecks():
       self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
-      self.WaitUntil(self.IsTextPresent,
-                     "TestDrivers: system artifact cannot be overwritten")
+      self.WaitUntil(
+          self.IsTextPresent,
+          "TestDrivers: system artifact cannot be overwritten",
+      )
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
     client_id = self.SetupClient(0)
@@ -83,8 +91,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     # Upload the artifact.
     self.Click("css=a[grrtarget=artifacts]")
     self.Click("css=grr-artifact-manager-view button[name=UploadArtifact]")
-    element = self.WaitUntil(self.GetVisibleElement,
-                             "css=grr-upload-artifact-dialog input[type=file]")
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=grr-upload-artifact-dialog input[type=file]",
+    )
     element.send_keys(self.json_file)
     self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Artifact was successfully uploaded.")
@@ -106,14 +116,18 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
 
     # Click on TestDrivers checkbox and click Delete.
-    self.Click("css=grr-artifact-manager-view tr:contains('TestDrivers') "
-               "input[type=checkbox]")
+    self.Click(
+        "css=grr-artifact-manager-view tr:contains('TestDrivers') "
+        "input[type=checkbox]"
+    )
     self.Click("css=grr-artifact-manager-view button[name=DeleteArtifact]")
 
     # Check that dialog mentions TestDrivers and click on Proceed, then Close.
     self.WaitUntil(self.IsTextPresent, "Delete Selected Artifacts")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-delete-artifacts-dialog:contains('TestDrivers')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-delete-artifacts-dialog:contains('TestDrivers')",
+    )
     self.Click("css=grr-delete-artifacts-dialog button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Artifacts were deleted successfully.")
     self.Click("css=grr-delete-artifacts-dialog button[name=Close]")
@@ -138,8 +152,10 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     # Upload the artifact.
     self.Click("css=a[grrtarget=artifacts]")
-    self.Click("css=grr-artifact-manager-view tr:contains('TestDrivers') "
-               "input[type=checkbox]")
+    self.Click(
+        "css=grr-artifact-manager-view tr:contains('TestDrivers') "
+        "input[type=checkbox]"
+    )
     self.Click("css=grr-artifact-manager-view button[name=DeleteArtifact]")
     self.Click("css=grr-delete-artifacts-dialog button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Artifacts were deleted successfully.")

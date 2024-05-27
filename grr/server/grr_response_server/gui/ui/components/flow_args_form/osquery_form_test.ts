@@ -215,12 +215,12 @@ describe('OsqueryForm', () => {
       By.css('input[name=configurationPath]'),
     );
     expect(configPathInput.nativeElement.value).toBe('%%');
-    const pathGlobExpressionWarning = fixture.debugElement.query(
-      By.css('app-literal-path-glob-expression-warning span'),
+    const pathKnowledgebaseExpressionWarning = fixture.debugElement.query(
+      By.css('app-literal-knowledgebase-expression-warning span'),
     );
-    expect(pathGlobExpressionWarning.nativeElement.innerText).toContain(
-      'path uses %% literally',
-    );
+    expect(
+      pathKnowledgebaseExpressionWarning.nativeElement.innerText,
+    ).toContain('path uses %% literally');
   });
 
   it('shows a warning when both configuration path and content are set', async () => {

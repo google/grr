@@ -331,7 +331,6 @@ export enum SourceType {
   WMI,
   ARTIFACT,
   PATH,
-  DIRECTORY,
   ARTIFACT_GROUP,
   GRR_CLIENT_ACTION,
   LIST_FILES,
@@ -380,7 +379,6 @@ export interface CommandSource extends BaseArtifactSource {
 /** Artifact source that reads files. */
 export interface FileSource extends BaseArtifactSource {
   readonly type:
-    | SourceType.DIRECTORY
     | SourceType.FILE
     | SourceType.GREP
     | SourceType.PATH;
