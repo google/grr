@@ -3,7 +3,9 @@
 
 from typing import Optional
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
@@ -86,14 +88,24 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
+  proto_args_type = flow_pb2.ApiCreateFlowArgs
+  proto_result_type = flow_pb2.ApiFlow
 
-  def __init__(self, override_flow_name=None, override_flow_args=None):
+  def __init__(
+      self,
+      override_flow_name: str = None,
+      override_flow_args: Optional[any_pb2.Any] = None,
+  ) -> None:
     super().__init__()
 
     self.override_flow_name = override_flow_name
     self.override_flow_args = override_flow_args
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: flow_pb2.ApiCreateFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiFlow:
     if not args.client_id:
       raise RuntimeError("Client id has to be specified.")
 
@@ -103,9 +115,13 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     delegate = api_flow.ApiCreateFlowHandler()
     # Note that runner_args are dropped. From all the arguments We use only
     # the flow name and the arguments.
-    delegate_args = api_flow.ApiCreateFlowArgs(client_id=args.client_id)
+    delegate_args = flow_pb2.ApiCreateFlowArgs(client_id=args.client_id)
     delegate_args.flow.name = self.override_flow_name or args.flow.name
-    delegate_args.flow.args = self.override_flow_args or args.flow.args
+    if self.override_flow_args:
+      delegate_args.flow.args.CopyFrom(self.override_flow_args)
+    else:
+      delegate_args.flow.args.CopyFrom(args.flow.args)
+
     return delegate.Handle(delegate_args, context=context)
 
 
@@ -286,14 +302,24 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return new_args
 
-  def CreateFlow(self, args, context=None):
+  def CreateFlow(
+      self,
+      args: api_flow.ApiCreateFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> ApiRobotCreateFlowHandler:
     if not args.client_id:
       raise ValueError("client_id must be provided")
 
     if args.flow.name in self.allowed_file_finder_flow_names:
       self._CheckFileFinderArgs(args.flow.args)
       override_flow_name = self.effective_file_finder_flow_name
-      override_flow_args = self._FixFileFinderArgs(args.flow.args)
+      if file_finder_args := self._FixFileFinderArgs(args.flow.args):
+        override_flow_args = any_pb2.Any()
+        override_flow_args.Pack(
+            mig_file_finder.ToProtoFileFinderArgs(file_finder_args)
+        )
+      else:
+        override_flow_args = None
       throttler = self._GetFileFinderThrottler()
     elif args.flow.name in self.allowed_artifact_collector_flow_names:
       self._CheckArtifactCollectorFlowArgs(args.flow.args)

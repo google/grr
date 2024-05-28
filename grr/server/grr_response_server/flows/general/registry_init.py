@@ -22,6 +22,7 @@ from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import read_low_level
 from grr_response_server.flows.general import registry
 from grr_response_server.flows.general import registry_finder
+from grr_response_server.flows.general import software
 from grr_response_server.flows.general import timeline
 from grr_response_server.flows.general import transfer
 from grr_response_server.flows.general import webhistory

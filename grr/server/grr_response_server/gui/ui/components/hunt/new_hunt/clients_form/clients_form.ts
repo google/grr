@@ -5,7 +5,14 @@ import {
   HostBinding,
   HostListener,
 } from '@angular/core';
-import {FormArray, FormBuilder, FormControl, FormGroup} from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ValidationErrors,
+} from '@angular/forms';
 
 import {
   ForemanClientRule,
@@ -36,6 +43,22 @@ const OS_DEFAULTS = {
   'Darwin': false,
   'Linux': false,
 } as const;
+
+function atLeastOneOS(control: AbstractControl): ValidationErrors | null {
+  const group = control as FormGroup;
+  let hasTrueValue = false;
+  Object.keys(group.controls).forEach((key) => {
+    if (group.controls[key].value) {
+      hasTrueValue = true;
+    }
+  });
+
+  if (hasTrueValue) {
+    return {};
+  }
+
+  return {'nothingSelected': true};
+}
 
 /**
  * Provides the forms for new hunt configuration.
@@ -239,11 +262,17 @@ export class ClientsForm {
         [osName]: new FormControl<boolean>(osValue, {nonNullable: true}),
       })),
     );
-    return this.fb.group({
+    const osFormGroup = this.fb.group({
       'type': [ForemanClientRuleType.OS],
       'name': [name],
-      'options': this.fb.group(operatingSystemsControls),
+      'options': this.fb.group(
+        operatingSystemsControls as {[key: string]: FormControl<boolean>},
+        {
+          'validators': [atLeastOneOS],
+        },
+      ),
     });
+    return osFormGroup;
   }
 
   integerOperator(

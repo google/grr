@@ -10,6 +10,7 @@ syntax = "proto2";
 import "google/protobuf/any.proto";
 import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/api/client.proto";
+import "grr_response_proto/api/flow.proto";
 import "grr_response_proto/artifact.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
@@ -1351,4 +1352,85 @@ message ApiGetDecodedFileArgs {
   }];
   // TODO(hanuszczak): Add support for decoding file content as observed at
   // specific timestamp.
+}
+
+// Arguments for the API method that retrieves descriptors of all parsers that
+// are applicable to the results of the specified artifact collector flow.
+message ApiListFlowApplicableParsersArgs {
+  // An identifier of the client of the flow to list the parsers for.
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
+
+  // An identifier of the flow to list the parsers for.
+  optional string flow_id = 2 [(sem_type) = { type: "ApiFlowId" }];
+}
+
+// Results for the API method that retrieves descriptors of all parsers that are
+// applicable to the results of the specified artifact collector flow.
+message ApiListFlowApplicableParsersResult {
+  // Descriptors of all applicable parsers.
+  //
+  // Note that if the flow parsed its results already during its execution (i.e.
+  // it is not a flow with on-demand parsing) the list of parsers is going to be
+  // empty.
+  repeated ApiParserDescriptor parsers = 1;
+}
+
+// Describes a single parser registered within the system that processes results
+// of the artifact collector flow (if applicable).
+message ApiParserDescriptor {
+  // Enumeration of all parser types.
+  enum Type {
+    // An unknown parser.
+    UNKNOWN = 0;
+    // A parser that is able to parse a single response.
+    SINGLE_RESPONSE = 1;
+    // A parser that parses all responses at once.
+    MULTI_RESPONSE = 2;
+    // A parser that is able to parse contents of a single collected file.
+    SINGLE_FILE = 3;
+    // A parser that parses contents of all collected files at once.
+    MULTI_FILE = 4;
+  }
+
+  // A name under which the parser is registered in the system.
+  optional string name = 1;
+
+  // A type of the parser.
+  optional Type type = 2;
+}
+
+// Arguments for the API method that parses results of the artifact collection
+// flow on the fly.
+message ApiListParsedFlowResultsArgs {
+  // An identifier of the client of the flow to parse the responses for.
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
+
+  // An identifier of the flow to parse the responses for.
+  optional string flow_id = 2 [(sem_type) = { type: "ApiFlowId" }];
+
+  // An offset of the flow results to parse.
+  optional uint64 offset = 3;
+
+  // Number of flow results to parse.
+  //
+  // Note that the number of parsed responses can be different as a single flow
+  // result can be parsed into zero or more items.
+  optional uint64 count = 4;
+}
+
+// Results of the API method that parses results of the artifact collection flow
+// on the fly.
+message ApiListParsedFlowResultsResult {
+  // A collection of parsed flow results.
+  //
+  // Note that a single original flow response can result in multiple parsed
+  // flow responses.
+  repeated ApiFlowResult items = 1;
+
+  // A collection of parse errors.
+  //
+  // Note that having some values here does not necessarily mean that no items
+  // are returned: parsing one response can lead to an error, but parsing other
+  // one can succeed.
+  repeated string errors = 2;
 }

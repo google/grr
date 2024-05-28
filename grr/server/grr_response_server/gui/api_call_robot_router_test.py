@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 """Tests for ApiCallRobotRouter."""
 
+from typing import Optional
+
 from absl import app
 
+from google.protobuf import any_pb2
+from google.protobuf import message
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_proto import flows_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
@@ -36,35 +42,40 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
   def testPassesFlowArgsThroughIfNoOverridesSpecified(self):
     h = rr.ApiRobotCreateFlowHandler()
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
+    args = flow_pb2.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
-    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+    args.flow.args.Pack(flows_pb2.FileFinderArgs(paths=["foo"]))
 
     f = h.Handle(args=args, context=self.context)
-    self.assertEqual(f.args.paths, ["foo"])
+    flow_args = flows_pb2.FileFinderArgs()
+    f.args.Unpack(flow_args)
+    self.assertEqual(flow_args.paths, ["foo"])
 
   def testOverridesFlowNameIfOverrideArgIsSpecified(self):
     h = rr.ApiRobotCreateFlowHandler(
         override_flow_name=AnotherFileFinder.__name__
     )  # pylint: disable=undefined-variable
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
+    args = flow_pb2.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
-    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+    args.flow.args.Pack(flows_pb2.FileFinderArgs(paths=["foo"]))
 
     f = h.Handle(args=args, context=self.context)
     self.assertEqual(f.name, AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
 
   def testOverridesFlowArgsThroughIfOverridesSpecified(self):
-    override_flow_args = rdf_file_finder.FileFinderArgs(paths=["bar"])
+    override_flow_args = any_pb2.Any()
+    override_flow_args.Pack(flows_pb2.FileFinderArgs(paths=["bar"]))
     h = rr.ApiRobotCreateFlowHandler(override_flow_args=override_flow_args)
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
+    args = flow_pb2.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
-    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+    args.flow.args.Pack(flows_pb2.FileFinderArgs(paths=["foo"]))
 
     f = h.Handle(args=args, context=self.context)
-    self.assertEqual(f.args.paths, ["bar"])
+    flow_args = flows_pb2.FileFinderArgs()
+    f.args.Unpack(flow_args)
+    self.assertEqual(flow_args.paths, ["bar"])
 
 
 class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
@@ -234,7 +245,9 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         context=self.context,
     )
 
-    ha = handler.override_flow_args.action.hash
+    override_flow_args = flows_pb2.FileFinderArgs()
+    handler.override_flow_args.Unpack(override_flow_args)
+    ha = override_flow_args.action.hash
     self.assertEqual(ha.oversized_file_policy, ha.OversizedFilePolicy.SKIP)
     self.assertEqual(ha.max_size, 42)
 
@@ -266,9 +279,14 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         context=self.context,
     )
 
-    da = handler.override_flow_args.action.download
-    self.assertEqual(da.oversized_file_policy, da.OversizedFilePolicy.SKIP)
-    self.assertEqual(da.max_size, 42)
+    override_flow_args = flows_pb2.FileFinderArgs()
+    handler.override_flow_args.Unpack(override_flow_args)
+    override_da = override_flow_args.action.download
+    self.assertEqual(
+        override_da.oversized_file_policy,
+        flows_pb2.FileFinderHashActionOptions.OversizedFilePolicy.SKIP,
+    )
+    self.assertEqual(override_da.max_size, 42)
 
   def testArtifactCollectorWorksWhenEnabledAndArgumentsAreCorrect(self):
     router = None
@@ -399,15 +417,24 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
           context=self.context,
       )
 
-  def _CreateFlowWithRobotId(self, flow_name=None, flow_args=None):
+  def _CreateFlowWithRobotId(
+      self,
+      flow_name: Optional[str] = None,
+      flow_args: Optional[message.Message] = None,
+  ):
     flow_name = flow_name or file_finder.FileFinder.__name__
 
     handler = rr.ApiRobotCreateFlowHandler()
+
+    api_flow_args = flow_pb2.ApiCreateFlowArgs()
+    api_flow_args.client_id = self.client_id
+    if flow_name:
+      api_flow_args.flow.name = flow_name
+    if flow_args:
+      api_flow_args.flow.args.Pack(flow_args)
+
     flow_result = handler.Handle(
-        api_flow.ApiCreateFlowArgs(
-            client_id=self.client_id,
-            flow=api_flow.ApiFlow(name=flow_name, args=flow_args),
-        ),
+        args=api_flow_args,
         context=self.context,
     )
     return flow_result.flow_id
@@ -583,9 +610,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
 
     flow_id = self._CreateFlowWithRobotId(
         flow_name=AnotherArtifactCollector.__name__,  # pylint: disable=undefined-variable
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
-            artifact_list=["Foo"]
-        ),
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(artifact_list=["Foo"]),
     )
     handler = router.GetFlowFilesArchive(
         api_flow.ApiGetFlowFilesArchiveArgs(

@@ -1336,17 +1336,6 @@ export declare interface ApiListFilesResult {
   readonly items?: readonly ApiFile[];
 }
 
-/** ApiListFlowApplicableParsersArgs proto mapping. */
-export declare interface ApiListFlowApplicableParsersArgs {
-  readonly clientId?: string;
-  readonly flowId?: string;
-}
-
-/** ApiListFlowApplicableParsersResult proto mapping. */
-export declare interface ApiListFlowApplicableParsersResult {
-  readonly parsers?: readonly ApiParserDescriptor[];
-}
-
 /** ApiListFlowDescriptorsResult proto mapping. */
 export declare interface ApiListFlowDescriptorsResult {
   readonly items?: readonly ApiFlowDescriptor[];
@@ -1627,20 +1616,6 @@ export declare interface ApiListOutputPluginDescriptorsResult {
   readonly items?: readonly ApiOutputPluginDescriptor[];
 }
 
-/** ApiListParsedFlowResultsArgs proto mapping. */
-export declare interface ApiListParsedFlowResultsArgs {
-  readonly clientId?: string;
-  readonly flowId?: string;
-  readonly offset?: ProtoUint64;
-  readonly count?: ProtoUint64;
-}
-
-/** ApiListParsedFlowResultsResult proto mapping. */
-export declare interface ApiListParsedFlowResultsResult {
-  readonly items?: readonly ApiFlowResult[];
-  readonly errors?: readonly string[];
-}
-
 /** ApiListPendingUserNotificationsArgs proto mapping. */
 export declare interface ApiListPendingUserNotificationsArgs {
   readonly timestamp?: RDFDatetime;
@@ -1819,21 +1794,6 @@ export enum ApiOutputPluginDescriptorPluginType {
   LEGACY = 'LEGACY',
   INSTANT = 'INSTANT',
   LIVE = 'LIVE',
-}
-
-/** ApiParserDescriptor proto mapping. */
-export declare interface ApiParserDescriptor {
-  readonly name?: string;
-  readonly type?: ApiParserDescriptorType;
-}
-
-/** ApiParserDescriptor.Type proto mapping. */
-export enum ApiParserDescriptorType {
-  UNKNOWN = 'UNKNOWN',
-  SINGLE_RESPONSE = 'SINGLE_RESPONSE',
-  MULTI_RESPONSE = 'MULTI_RESPONSE',
-  SINGLE_FILE = 'SINGLE_FILE',
-  MULTI_FILE = 'MULTI_FILE',
 }
 
 /** ApiRDFAllowedEnumValueDescriptor proto mapping. */

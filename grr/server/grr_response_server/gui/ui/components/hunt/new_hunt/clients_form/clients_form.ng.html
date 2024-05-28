@@ -89,14 +89,20 @@
   <div [formGroup]="form" class="os-container">
     <div class="rule-content" [formGroup]="osOptionGroup(id)">
       <div class="os-rule-title">{{ title }}</div>
-        <mat-checkbox *ngFor="let os of operatingSystems | keyvalue"
-                    [id]="'condition_'+id+'_'+os.key | lowercase"
-                    [checked]="os.value"
-                    [formControl]="osOptionControl(id, os.key)"
-                    color="primary">
-          {{ os.key }}
-        </mat-checkbox>
+      <mat-checkbox *ngFor="let os of operatingSystems | keyvalue"
+                  [id]="'condition_'+id+'_'+os.key | lowercase"
+                  [checked]="os.value"
+                  [formControl]="osOptionControl(id, os.key)"
+                  color="primary">
+        {{ os.key }}
+      </mat-checkbox>
     </div>
+    <mat-error
+        class="rule-error"
+        [id]="'condition_'+id+'_error'"
+        *ngIf="osOptionGroup(id).hasError('nothingSelected')">
+      No clients will match, select at least one OS.
+    </mat-error>
   </div>
 </ng-template>
 
