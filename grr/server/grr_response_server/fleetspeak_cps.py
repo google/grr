@@ -20,7 +20,7 @@ class Subscriber:
   def __init__(self) -> None:
     for var in (
         "Server.fleetspeak_cps_project",
-        "Server.cleetspeak_cps_subscription",
+        "Server.fleetspeak_cps_subscription",
     ):
       if not config.CONFIG[var]:
         raise ConfigError(f"Missing config value for {var}")

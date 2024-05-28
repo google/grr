@@ -337,7 +337,6 @@ class ApiCallRouterWithApprovalChecksTest(
       "CreateFlow",
       "CancelFlow",
       "ListFlowRequests",
-      "ListFlowApplicableParsers",
       "ListFlowOutputPlugins",
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
@@ -391,7 +390,6 @@ class ApiCallRouterWithApprovalChecksTest(
   ACCESS_CHECKED_METHODS.extend([
       "GetFlow",
       "ListFlowResults",
-      "ListParsedFlowResults",
       "GetExportedFlowResults",
       "GetFlowResultsExportCommand",
       "GetFlowFilesArchive",
@@ -407,12 +405,6 @@ class ApiCallRouterWithApprovalChecksTest(
     )
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.router.ListFlowResults(args, context=self.context)
-
-    args = api_flow.ApiListParsedFlowResultsArgs(
-        client_id=self.client_id, flow_id="12345678"
-    )
-    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
-      self.router.ListParsedFlowResults(args, context=self.context)
 
     args = api_flow.ApiGetExportedFlowResultsArgs(
         client_id=self.client_id, flow_id="12345678"
@@ -448,13 +440,6 @@ class ApiCallRouterWithApprovalChecksTest(
         client_id=self.client_id, flow_id=flow_id
     )
     self.CheckMethodIsNotAccessChecked(self.router.ListFlowResults, args=args)
-
-    args = api_flow.ApiListParsedFlowResultsArgs(
-        client_id=self.client_id, flow_id=flow_id
-    )
-    self.CheckMethodIsNotAccessChecked(
-        self.router.ListParsedFlowResults, args=args
-    )
 
     args = api_flow.ApiGetExportedFlowResultsArgs(
         client_id=self.client_id, flow_id=flow_id
@@ -493,15 +478,6 @@ class ApiCallRouterWithApprovalChecksTest(
     )
     self.CheckMethodIsAccessChecked(
         self.router.ListFlowResults,
-        "CheckClientAccess",
-        args=args,
-    )
-
-    args = api_flow.ApiListParsedFlowResultsArgs(
-        client_id=self.client_id, flow_id=flow_id
-    )
-    self.CheckMethodIsAccessChecked(
-        self.router.ListParsedFlowResults,
         "CheckClientAccess",
         args=args,
     )

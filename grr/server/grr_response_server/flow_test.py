@@ -2,11 +2,14 @@
 """Tests for flows."""
 
 import random
+from typing import Optional
 from unittest import mock
 
 from absl import app
 from absl.testing import absltest
 
+from google.protobuf import any_pb2
+from google.protobuf import message as message_pb2
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -25,7 +28,6 @@ from grr_response_server.databases import db
 from grr_response_server.flows import file
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -607,19 +609,35 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     data_store.REL_DB.WriteGRRUser(username)
     return username
 
-  def ScheduleFlow(self, **kwargs):
-    merged_kwargs = {
-        "flow_name": file.CollectFilesByKnownPath.__name__,
-        "flow_args": rdf_file_finder.CollectFilesByKnownPathArgs(
-            paths=["/foo{}".format(random.randint(0, 1000))]
-        ),
-        "runner_args": rdf_flow_runner.FlowRunnerArgs(
-            cpu_limit=random.randint(0, 60)
-        ),
-        **kwargs,
-    }
+  def ScheduleFlow(
+      self,
+      client_id: str,
+      creator: str,
+      flow_name: Optional[str] = None,
+      flow_args: Optional[message_pb2.Message] = None,
+      runner_args: Optional[flows_pb2.FlowRunnerArgs] = None,
+  ) -> flows_pb2.ScheduledFlow:
+    if flow_name is None:
+      flow_name = file.CollectFilesByKnownPath.__name__
 
-    return flow.ScheduleFlow(**merged_kwargs)
+    if not flow_args:
+      flow_args = flows_pb2.CollectFilesByKnownPathArgs(
+          paths=["/foo{}".format(random.randint(0, 1000))]
+      )
+
+    if not runner_args:
+      runner_args = flows_pb2.FlowRunnerArgs(cpu_limit=random.randint(0, 60))
+
+    any_flow_args = any_pb2.Any()
+    any_flow_args.Pack(flow_args)
+
+    return flow.ScheduleFlow(
+        client_id=client_id,
+        creator=creator,
+        flow_name=flow_name,
+        flow_args=any_flow_args,
+        runner_args=runner_args,
+    )
 
   def testScheduleFlowCreatesMultipleScheduledFlows(self):
     client_id0 = self.SetupClient(0)
@@ -657,8 +675,8 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         creator=username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        flow_args=flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=flows_pb2.FlowRunnerArgs(cpu_limit=60),
     )
 
     flow.StartScheduledFlows(client_id, username)
@@ -725,8 +743,8 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         creator=username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        flow_args=flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=flows_pb2.FlowRunnerArgs(cpu_limit=60),
     )
 
     with mock.patch.object(
@@ -750,8 +768,8 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         creator=username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        flow_args=flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=flows_pb2.FlowRunnerArgs(cpu_limit=60),
     )
 
     with mock.patch.object(
@@ -775,16 +793,16 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         creator=username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        flow_args=flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=flows_pb2.FlowRunnerArgs(cpu_limit=60),
     )
 
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        flow_args=flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=flows_pb2.FlowRunnerArgs(cpu_limit=60),
     )
 
     with mock.patch.object(

@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Removed
+
+* Removed the `ListFlowApplicableParsers` API method.
+* Removed the `ListParsedFlowResults` API method.
+
+## [3.4.7.4] - 2024-05-28
+
 ### Removed
 
 * Removed support for Chipsec based flows.
@@ -13,13 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by individual and combination of system name, release and version).
 * Removed support for foreman rules using `uname` of an endpoint (this can be
   simulated by using 3 rules for system name, release and version).
-* GRR server Debian package is removed when github actions are updated. The
-  docker image and Docker Compose stack (see section "Added") are the
-  recommended wait of running GRR in the future.
 * Removed the `provides` field from the `Artifact` message. This change has been
   done in anticipation of the removal of the same field from the official GitHub
   repository (ForensicArtifacts/artifacts#275).
-
+* **GRR server Debian package**. We stopped providing the GRR server Debian
+  package as the main way of distributing GRR server and client binaries.
+  Instead we  make GRR Docker image a preferred way for running GRR in a
+  demo or production environment.  See the documentation [here](https://grr-doc.readthedocs.io/en/latest/installing-and-running-grr/via-docker-compose.html).
+* **Artifact parsers**. ArtifactCollector flow supported parsing collected files
+  and output of executed commands. Its parsers were not properly maintained,
+  were often outdated and fragile. We're converted selected parsers
+  into standalone flows (`CollectDistroInfo`, `CollectInstalledSoftware`, `CollectHardwareInfo`) and removed the artifact parsing subsystem.
+  The ArtifactCollector now works as if "apply_parsers" arguments
+  attribute is set to False. At some point the "apply_parsers" attribute will be
+  deprecated completely.
 
 ### Added
 * GRR docker image which contains all grr server components and client
@@ -31,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to decode a crowdstrike quarantine encoded file, given as a
   `BinaryChunkIterator`.
 
+### Fixed
+
+* YARA memory scanning improvements (matching context options, consuming less bandwidth).
 
 ### API removed
 
@@ -58,19 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned for removal
 
-Note: GRR release 3.4.7.1 is the **last release** containing the following
-features:
-
-* **Artifact parsers**. ArtifactCollector flow supports parsing collected files
-  and output of executed commands. Its parsers are not properly maintained,
-  are often outdated and fragile. We're going to convert selected parsers
-  into standalone flows and remove the artifact parsing subsystem:
-  the ArtifactCollector will always work as if "apply_parsers" arguments
-  attribute is set to False. Afterwards the "apply_parsers" attribute will be
-  deprecated completely. We will provide documentation on integrating
-  GRR and ArtifactCollector with well-maintained parsing frameworks like
-  [Plaso](https://plaso.readthedocs.io/en/latest/index.html).
-
 * **Built-in cron jobs**. Built-in cron jobs are primarily used for periodic
   hunts. We will provide documentation on how to easily replicate the
   current functionality using external scheduling systems (like Linux cron,
@@ -79,15 +85,6 @@ features:
   If your workflow depends on GRR built in cron jobs and you anticipate problems
   when migrating it to external schedulers, please reach out to us via email
   or GitHub.
-
-* **GRR server Debian package**. We will stop providing the GRR server Debian
-  package as the main way of distributing GRR server and client binaries.
-  Instead we will make GRR Docker image a preferred way for running GRR in a
-  demo or production environment.
-
-If your workflow depends on any of the above, please feel free reach out to
-us via [grr-users](https://groups.google.com/forum/#!forum/grr-users) Google
-Group or [GitHub](https://github.com/google/grr/issues).
 
 ## [3.4.7.1] - 2023-10-23
 

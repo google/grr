@@ -4,24 +4,18 @@
 import io
 import threading
 import time
-from typing import Iterable
 import zipfile
 
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.parsers import abstract as parser
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
-from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -29,7 +23,6 @@ from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -169,108 +162,6 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     self.assertLen(results, 1)
     self.assertEqual(process.AsPrimitiveProto(), results[0].payload)
-
-  def testListParsedFlowResults(self):
-    client_id = self.SetupClient(0)
-    flow_id = "4815162342ABCDEF"
-
-    flow = rdf_flow_objects.Flow()
-    flow.client_id = client_id
-    flow.flow_id = flow_id
-    flow.flow_class_name = collectors.ArtifactCollectorFlow.__name__
-    flow.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
-    flow.persistent_data = {"knowledge_base": rdf_client.KnowledgeBase()}
-    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
-
-    result = rdf_flow_objects.FlowResult()
-    result.client_id = client_id
-    result.flow_id = flow_id
-    result.tag = "artifact:Echo"
-
-    response = rdf_client_action.ExecuteResponse()
-    response.stderr = "Lorem ipsum.".encode("utf-8")
-
-    result.payload = response
-    data_store.REL_DB.WriteFlowResults(
-        [mig_flow_objects.ToProtoFlowResult(result)]
-    )
-
-    response = rdf_client_action.ExecuteResponse()
-    response.stderr = "Dolor sit amet.".encode("utf-8")
-
-    result.payload = response
-    data_store.REL_DB.WriteFlowResults(
-        [mig_flow_objects.ToProtoFlowResult(result)]
-    )
-
-    class StderrToStdoutParser(
-        parser.SingleResponseParser[rdf_client_action.ExecuteResponse]
-    ):
-
-      supported_artifacts = ["Echo"]
-
-      def ParseResponse(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          response: rdf_client_action.ExecuteResponse,
-      ) -> Iterable[rdf_client_action.ExecuteResponse]:
-        del knowledge_base  # Unused.
-
-        if not isinstance(response, rdf_client_action.ExecuteResponse):
-          raise TypeError(f"Unexpected response type: {type(response)}")
-
-        parsed_response = rdf_client_action.ExecuteResponse()
-        parsed_response.stdout = response.stderr
-
-        return [parsed_response]
-
-    with parser_test_lib._ParserContext("StderrToStdout", StderrToStdoutParser):
-      results = self.api.Client(client_id).Flow(flow_id).ListParsedResults()
-
-    stdouts = [result.payload.stdout.decode("utf-8") for result in results]
-    self.assertLen(stdouts, 2)
-    self.assertEqual(stdouts[0], "Lorem ipsum.")
-    self.assertEqual(stdouts[1], "Dolor sit amet.")
-
-  def testListFlowApplicableParsers(self):
-    client_id = self.SetupClient(0)
-    flow_id = "4815162342ABCDEF"
-
-    flow = rdf_flow_objects.Flow()
-    flow.client_id = client_id
-    flow.flow_id = flow_id
-    flow.flow_class_name = collectors.ArtifactCollectorFlow.__name__
-    flow.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
-    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow))
-
-    result = rdf_flow_objects.FlowResult()
-    result.client_id = client_id
-    result.flow_id = flow_id
-    result.tag = "artifact:Fake"
-    result.payload = rdf_client_action.ExecuteResponse(stderr=b"foobar")
-    data_store.REL_DB.WriteFlowResults(
-        [mig_flow_objects.ToProtoFlowResult(result)]
-    )
-
-    class FakeParser(parser.SingleResponseParser[None]):
-
-      supported_artifacts = ["Fake"]
-
-      def ParseResponse(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          response: rdfvalue.RDFValue,
-      ) -> Iterable[None]:
-        raise NotImplementedError()
-
-    with parser_test_lib._ParserContext("Fake", FakeParser):
-      results = self.api.Client(client_id).Flow(flow_id).ListApplicableParsers()
-
-    self.assertLen(results.parsers, 1)
-
-    result = results.parsers[0]
-    self.assertEqual(result.name, "Fake")
-    self.assertEqual(result.type, flow_pb2.ApiParserDescriptor.SINGLE_RESPONSE)
 
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):
     client_id = self.SetupClient(0)

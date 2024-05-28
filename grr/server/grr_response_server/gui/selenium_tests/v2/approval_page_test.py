@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from absl import app
 
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from google.protobuf import any_pb2
+from grr_response_proto import flows_pb2
 from grr_response_server import flow
 from grr_response_server.flows import file
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 
@@ -62,12 +62,14 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     self.CreateUser("requestrick")
     self.CreateUser("approveannie")
 
+    any_flow_args = any_pb2.Any()
+    any_flow_args.Pack(flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]))
     flow.ScheduleFlow(
         client_id=client_id,
         creator="requestrick",
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(),
+        flow_args=any_flow_args,
+        runner_args=flows_pb2.FlowRunnerArgs(),
     )
 
     approval_id = self.RequestClientApproval(

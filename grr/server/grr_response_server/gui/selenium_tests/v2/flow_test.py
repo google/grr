@@ -5,7 +5,10 @@ from absl import app
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import timeline_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import maintenance_utils
@@ -36,7 +39,7 @@ def _ListFlows(client_id: str, creator: str):
 def _ListScheduledFlows(client_id: str, creator: str):
   handler = api_flow.ApiListScheduledFlowsHandler()
   return handler.Handle(
-      api_flow.ApiListScheduledFlowsArgs(client_id=client_id, creator=creator),
+      flow_pb2.ApiListScheduledFlowsArgs(client_id=client_id, creator=creator),
       context=api_call_context.ApiCallContext(username=creator),
   ).scheduled_flows
 
@@ -117,7 +120,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(scheduled_flow.client_id, self.client_id)
     self.assertEqual(scheduled_flow.creator, self.test_username)
     self.assertEqual(scheduled_flow.flow_name, 'CollectMultipleFiles')
-    self.assertEqual(scheduled_flow.flow_args.path_expressions, ['/foo/test'])
+    flow_args = flows_pb2.CollectMultipleFilesArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.path_expressions, ['/foo/test'])
     self.assertFalse(scheduled_flow.error)
 
   def testApprovalGrantStartsScheduledFlow(self):
@@ -239,7 +244,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
 
     self.assertEqual(scheduled_flow.flow_name, timeline.TimelineFlow.__name__)
-    self.assertEqual(scheduled_flow.flow_args.root, b'/foo/test')
+    flow_args = timeline_pb2.TimelineArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.root, b'/foo/test')
 
   def testCollectMultipleFilesFlow(self):
     self.Open(f'/v2/clients/{self.client_id}')
@@ -322,7 +329,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
       return scheduled_flows[0] if len(scheduled_flows) == 1 else None
 
     scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
-    args = scheduled_flow.flow_args
+    args = flows_pb2.CollectMultipleFilesArgs()
+    scheduled_flow.flow_args.Unpack(args)
 
     self.assertEqual(
         scheduled_flow.flow_name, file.CollectMultipleFiles.__name__
@@ -332,27 +340,27 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     )
     self.assertEqual(
         args.modification_time.min_last_modified_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-01-01 11:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-01-01 11:00:00')),
     )
     self.assertEqual(
         args.modification_time.max_last_modified_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-01-02 22:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-01-02 22:00:00')),
     )
     self.assertEqual(
         args.access_time.min_last_access_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-02-01 11:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-02-01 11:00:00')),
     )
     self.assertEqual(
         args.access_time.max_last_access_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-02-02 22:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-02-02 22:00:00')),
     )
     self.assertEqual(
         args.inode_change_time.min_last_inode_change_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-03-01 11:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-03-01 11:00:00')),
     )
     self.assertEqual(
         args.inode_change_time.max_last_inode_change_time,
-        rdfvalue.RDFDatetime.FromHumanReadable('2000-03-02 22:00:00'),
+        int(rdfvalue.RDFDatetime.FromHumanReadable('2000-03-02 22:00:00')),
     )
     self.assertEqual(args.size.min_file_size, 1024)
     self.assertEqual(args.size.max_file_size, 2048)
@@ -400,9 +408,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         scheduled_flow.flow_name, collectors.ArtifactCollectorFlow.__name__
     )
-    self.assertEqual(
-        scheduled_flow.flow_args.artifact_list, ['FakeFileArtifact']
-    )
+    flow_args = flows_pb2.ArtifactCollectorFlowArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.artifact_list, ['FakeFileArtifact'])
 
   def testScheduleArtifactCollectorFlowWithDefaultArtifacts(self):
     artifact_registry.REGISTRY.AddDefaultSources()
@@ -438,9 +446,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         scheduled_flow.flow_name, collectors.ArtifactCollectorFlow.__name__
     )
-    self.assertEqual(
-        scheduled_flow.flow_args.artifact_list, ['LinuxHardwareInfo']
-    )
+    flow_args = flows_pb2.ArtifactCollectorFlowArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.artifact_list, ['LinuxHardwareInfo'])
 
   def _SetUpAdminUser(self):
     data_store.REL_DB.WriteGRRUser(
@@ -485,11 +493,13 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         scheduled_flow.flow_name, administrative.LaunchBinary.__name__
     )
+    flow_args = flows_pb2.LaunchBinaryArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
     self.assertEqual(
-        scheduled_flow.flow_args.binary,
+        flow_args.binary,
         'aff4:/config/executables/windows/test.exe',
     )
-    self.assertEqual(scheduled_flow.flow_args.command_line, '--foo --bar')
+    self.assertEqual(flow_args.command_line, '--foo --bar')
 
   def testScheduleLaunchExecutePythonHackFlow(self):
     self._SetUpAdminUser()
@@ -532,8 +542,12 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         scheduled_flow.flow_name, administrative.ExecutePythonHack.__name__
     )
-    self.assertEqual(scheduled_flow.flow_args.hack_name, 'windows/test.py')
-    self.assertEqual(scheduled_flow.flow_args.py_args['fookey'], 'foovalue')
+    flow_args = flows_pb2.ExecutePythonHackArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.hack_name, 'windows/test.py')
+    self.assertLen(flow_args.py_args.dat, 1)
+    self.assertEqual(flow_args.py_args.dat[0].k.string, 'fookey')
+    self.assertEqual(flow_args.py_args.dat[0].v.string, 'foovalue')
 
   def testDumpProcessMemoryFlow(self):
     self.Open(f'/v2/clients/{self.client_id}')
@@ -562,8 +576,10 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         scheduled_flow.flow_name, memory.DumpProcessMemory.__name__
     )
-    self.assertEqual(scheduled_flow.flow_args.process_regex, 'python\\d')
-    self.assertTrue(scheduled_flow.flow_args.skip_shared_regions)
+    flow_args = flows_pb2.YaraProcessDumpArgs()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.process_regex, 'python\\d')
+    self.assertTrue(flow_args.skip_shared_regions)
 
   def testYaraProcessScanFlow(self):
     self.Open(f'/v2/clients/{self.client_id}')
@@ -591,8 +607,10 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
 
     self.assertEqual(scheduled_flow.flow_name, memory.YaraProcessScan.__name__)
-    self.assertEqual(scheduled_flow.flow_args.process_regex, 'python\\d')
-    self.assertTrue(scheduled_flow.flow_args.skip_shared_regions)
+    flow_args = flows_pb2.YaraProcessScanRequest()
+    scheduled_flow.flow_args.Unpack(flow_args)
+    self.assertEqual(flow_args.process_regex, 'python\\d')
+    self.assertTrue(flow_args.skip_shared_regions)
 
 
 class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):

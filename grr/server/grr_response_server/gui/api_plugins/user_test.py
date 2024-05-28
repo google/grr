@@ -5,11 +5,12 @@ from unittest import mock
 
 from absl import app
 
+from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
 from grr_response_proto import user_pb2
 from grr_response_server import access_control
 from grr_response_server import cronjobs
@@ -25,7 +26,6 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
@@ -399,12 +399,14 @@ class ApiApprovalScheduledFlowsTest(
     )
 
   def testErrorDuringStartFlowDoesNotBubbleUpToApprovalApiCall(self):
+    any_flow_args = any_pb2.Any()
+    any_flow_args.Pack(flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]))
     flow.ScheduleFlow(
         client_id=self.client_id,
         creator=self.context.username,
         flow_name=file.CollectFilesByKnownPath.__name__,
-        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(),
+        flow_args=any_flow_args,
+        runner_args=flows_pb2.FlowRunnerArgs(),
     )
 
     with mock.patch.object(

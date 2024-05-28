@@ -147,6 +147,48 @@ describe('clients form test', () => {
     expect(text).toContain('Operating System');
   });
 
+  it('os rule validator shows warning to user', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    fixture.detectChanges();
+
+    await setCheckboxValue(fixture, '[id=condition_0_windows]', true);
+
+    expect(await getCheckboxValue(fixture, '[id=condition_0_windows]')).toBe(
+      true,
+    );
+    expect(await getCheckboxValue(fixture, '[id=condition_0_linux]')).toBe(
+      false,
+    );
+    expect(await getCheckboxValue(fixture, '[id=condition_0_darwin]')).toBe(
+      false,
+    );
+    expect(
+      fixture.debugElement.query(By.css('[name=condition_0] .rule-error')),
+    ).toBeNull();
+
+    // Add a second rule with no OS selected and show error
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(MatMenuHarness);
+    await selectMenuOptionAt(menu, 2);
+
+    expect(await getCheckboxValue(fixture, '[id=condition_1_windows]')).toBe(
+      false,
+    );
+    expect(await getCheckboxValue(fixture, '[id=condition_1_linux]')).toBe(
+      false,
+    );
+    expect(await getCheckboxValue(fixture, '[id=condition_1_darwin]')).toBe(
+      false,
+    );
+    expect(
+      fixture.debugElement.query(By.css('[name=condition_1] .rule-error')),
+    ).toBeTruthy();
+    expect(
+      fixture.debugElement.query(By.css('[name=condition_1] .rule-error'))
+        .nativeElement.textContent,
+    ).toContain('No clients will match');
+  });
+
   it('deletes the form when clicking cancel', () => {
     const fixture = TestBed.createComponent(ClientsForm);
     fixture.detectChanges();
