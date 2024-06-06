@@ -8,6 +8,8 @@ This package needs to stay simple so that it can be installed on windows and
 ancient versions of linux to build clients.
 """
 
+from typing import List
+
 import configparser
 import os
 import platform
@@ -26,10 +28,6 @@ THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 # setuptools uses the MANIFEST.in from the root dir.  Make sure we are in the
 # package dir.
 os.chdir(THIS_DIRECTORY)
-
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
-PROTOBUF = "protobuf==3.20.3"
 
 
 def get_config():
@@ -50,9 +48,9 @@ def compile_protos():
   # Using Popen to effectively suppress the output of the command below - no
   # need to fill in the logs with protoc's help.
   p = subprocess.Popen(
-      [sys.executable, "-m", "grpc_tools.protoc", "--help"],
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
+    [sys.executable, "-m", "grpc_tools.protoc", "--help"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
   )
   p.communicate()
   # If protoc is not installed, install it. This seems to be the only reliable
@@ -65,7 +63,7 @@ def compile_protos():
     # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
     # and reinstalled to the version required by grr-response-proto.
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF]
+      [sys.executable, "-m", "pip", "install", "--require-hashes", "build_requirements.txt"]
     )
 
   # If there's no makefile, we're likely installing from an sdist,
@@ -76,11 +74,23 @@ def compile_protos():
 
   # Only compile protobufs if we're inside GRR source tree.
   subprocess.check_call(
-      [sys.executable, "makefile.py", "--clean"], cwd=THIS_DIRECTORY
+    [sys.executable, "makefile.py", "--clean"], cwd=THIS_DIRECTORY
   )
 
 
 VERSION = get_config()
+
+
+def parse_requirements(filename: str) -> List[str]:
+  requirements = []
+  with open(filename) as file:
+    for line in file:
+      requirement = line.strip()
+      if (comment := requirement.find("#")) >= 0:
+        requirement = requirement[:comment].strip()
+      requirements.append(requirement)
+
+  return requirements
 
 
 class Sdist(sdist):
@@ -92,7 +102,7 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+      os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
     )
 
   def run(self):
@@ -108,49 +118,44 @@ class Develop(develop):
 
 
 setup_args = dict(
-    name="grr-response-client",
-    version=VERSION.get("Version", "packageversion"),
-    description="The GRR Rapid Response client.",
-    license="Apache License, Version 2.0",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    url="https://github.com/google/grr",
-    entry_points={
-        "console_scripts": [
-            (
-                "grr_fleetspeak_client = "
-                "grr_response_client.distro_entry:FleetspeakClient"
-            ),
-            (
-                "fleetspeak_client = "
-                "grr_response_client.distro_entry:FleetspeakClientWrapper"
-            ),
-        ]
-    },
-    cmdclass={
-        "sdist": Sdist,
-        "develop": Develop,
-    },
-    packages=find_packages(),
-    include_package_data=True,
-    python_requires=">=3.9",
-    install_requires=[
-        "absl-py==1.4.0",
-        "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "pytsk3==20230125",
-        "libfsntfs-python==20230606",
-        "fleetspeak-client-bin==0.1.13",
-    ],
-    extras_require={
-        # The following requirements are needed in Windows.
-        ':sys_platform=="win32"': [
-            "WMI==1.5.1",
-            "pywin32==303",
-        ],
-    },
+  name="grr-response-client",
+  version=VERSION.get("Version", "packageversion"),
+  description="The GRR Rapid Response client.",
+  license="Apache License, Version 2.0",
+  maintainer="GRR Development Team",
+  maintainer_email="grr-dev@googlegroups.com",
+  url="https://github.com/google/grr",
+  entry_points={
+    "console_scripts": [
+      (
+        "grr_fleetspeak_client = "
+        "grr_response_client.distro_entry:FleetspeakClient"
+      ),
+      (
+        "fleetspeak_client = "
+        "grr_response_client.distro_entry:FleetspeakClientWrapper"
+      ),
+    ]
+  },
+  cmdclass={
+    "sdist": Sdist,
+    "develop": Develop,
+  },
+  packages=find_packages(),
+  include_package_data=True,
+  python_requires=">=3.9",
+  install_requires=[
+    "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
+  ],
+  data_files=["requirements.in", "requirements_win.in",  "requirements_osx.in", "requirements_ubuntu.in"],
 )
 
-if platform.system() != "Windows":
-  setup_args["install_requires"].append("xattr==0.9.7")
+setup_args["install_requires"].extend(parse_requirements("requirements.in"))
+if platform.system() == "Windows":
+  setup_args["install_requires"].extend(parse_requirements("requirements_win.in"))
+if platform.system() == "Darwin":
+  setup_args["install_requires"].extend(parse_requirements("requirements_osx.in"))
+if platform.system() == "Linux":
+  setup_args["install_requires"].extend(parse_requirements("requirements_ubuntu.in"))
 
 setup(**setup_args)

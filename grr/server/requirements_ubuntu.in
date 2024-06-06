@@ -1,0 +1,3 @@
+# TODO: We currently release fleetspeak-server-bin packages
+# for Linux only.
+fleetspeak-server-bin==0.1.13

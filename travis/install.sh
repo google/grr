@@ -18,11 +18,6 @@ nodeenv -p --prebuilt --node=16.13.0
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"
 
-# Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
-unset _JAVA_OPTIONS
-
-# This causes 'gulp compile' to fail.
-unset JAVA_TOOL_OPTIONS
 
 # Install grr packages as links pointing to code in the
 # checked-out repository.

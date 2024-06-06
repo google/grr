@@ -28,5 +28,4 @@ grr/var
 grr_server*.tar.gz
 LICENSE
 README.md
-travis
 vagrant
