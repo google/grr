@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Setup configuration for the python grr modules."""
 
+from typing import List
+
 import configparser
 import itertools
 import os
@@ -34,8 +36,9 @@ def find_data_files(source, ignore_dirs=None):
 def sync_artifacts():
   """Sync the artifact repo with upstream for distribution."""
 
-  subprocess.check_call([sys.executable, "makefile.py"],
-                        cwd="grr_response_core/artifacts")
+  subprocess.check_call(
+    [sys.executable, "makefile.py"], cwd="grr_response_core/artifacts"
+  )
 
 
 def get_config():
@@ -56,6 +59,18 @@ def get_config():
 REL_INI_PATH, VERSION = get_config()
 
 
+def parse_requirements(filename: str) -> List[str]:
+  requirements = []
+  with open(filename) as file:
+    for line in file:
+      requirement = line.strip()
+      if (comment := requirement.find("#")) >= 0:
+        requirement = requirement[:comment].strip()
+      requirements.append(requirement)
+
+  return requirements
+
+
 class Develop(develop):
 
   def run(self):
@@ -68,9 +83,12 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      ("no-sync-artifacts", None,
-       "Don't sync the artifact repo. This is unnecessary for "
-       "clients and old client build OSes can't make the SSL connection."),
+    (
+      "no-sync-artifacts",
+      None,
+      "Don't sync the artifact repo. This is unnecessary for "
+      "clients and old client build OSes can't make the SSL connection.",
+    ),
   ]
 
   def initialize_options(self):
@@ -90,60 +108,50 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
+      os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+    )
 
 
 data_files = list(
-    itertools.chain(
-        find_data_files("executables"),
-        find_data_files("install_data"),
-        find_data_files("scripts"),
-        find_data_files("grr_response_core/artifacts"),
-        [REL_INI_PATH],
-    )
+  itertools.chain(
+    find_data_files("executables"),
+    find_data_files("install_data"),
+    find_data_files("scripts"),
+    find_data_files("grr_response_core/artifacts"),
+    [REL_INI_PATH],
+    ["requirements.in"],
+  )
 )
 
 setup_args = dict(
-    name="grr-response-core",
-    version=VERSION.get("Version", "packageversion"),
-    description="GRR Rapid Response",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    python_requires=">=3.6",
-    packages=find_packages(),
-    zip_safe=False,
-    include_package_data=True,
-    ext_modules=[
-        Extension(
-            name="grr_response_core._semantic",
-            sources=["accelerated/accelerated.c"],
-        )
-    ],
-    cmdclass={
-        "develop": Develop,
-        "install": install,
-        "sdist": Sdist,
-    },
-    install_requires=[
-        "cryptography==3.4.8",
-        "distro==1.7.0",
-        "fleetspeak==0.1.12",
-        "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
-        "ipaddr==2.2.0",
-        "pexpect==4.8.0",
-        "pip>=21.0.1",
-        "psutil==5.8.0",
-        "python-crontab==2.5.1",
-        "python-dateutil==2.8.2",
-        "pytz==2022.7.1",
-        "PyYAML==6.0.1",
-        "requests==2.25.1",
-        "yara-python==4.2.3",
-    ],
-    # Data files used by GRR. Access these via the config_lib "resource" filter.
-    data_files=data_files,
+  name="grr-response-core",
+  version=VERSION.get("Version", "packageversion"),
+  description="GRR Rapid Response",
+  license="Apache License, Version 2.0",
+  url="https://github.com/google/grr",
+  maintainer="GRR Development Team",
+  maintainer_email="grr-dev@googlegroups.com",
+  python_requires=">=3.6",
+  packages=find_packages(),
+  zip_safe=False,
+  include_package_data=True,
+  ext_modules=[
+    Extension(
+      name="grr_response_core._semantic",
+      sources=["accelerated/accelerated.c"],
+    )
+  ],
+  cmdclass={
+    "develop": Develop,
+    "install": install,
+    "sdist": Sdist,
+  },
+  install_requires=[
+    "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
+  ]
+  + parse_requirements("requirements.in"),
+  # Data files used by GRR. Access these via the config_lib "resource" filter.
+  data_files=data_files,
 )
 
 setup(**setup_args)

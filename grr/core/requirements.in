@@ -1,0 +1,14 @@
+cryptography==3.4.8
+distro==1.7.0
+fleetspeak==0.1.12
+ipaddr==2.2.0
+pexpect==4.9.0
+pip>=21.0.1
+psutil==6.0.0
+python-crontab==2.5.1
+python-dateutil==2.9.0.post0
+pytz==2022.7.1
+PyYAML==6.0.1
+requests==2.32.3
+urllib3==1.26.19
+yara-python==4.2.3

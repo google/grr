@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """setup.py file for a GRR API client library."""
 
+from typing import List
+
 import configparser
 import os
 import shutil
@@ -41,43 +43,47 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
+      os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+    )
 
 
 VERSION = get_config()
 
+
+def parse_requirements(filename: str) -> List[str]:
+  requirements = []
+  with open(filename) as file:
+    for line in file:
+      requirement = line.strip()
+      if (comment := requirement.find("#")) >= 0:
+        requirement = requirement[:comment].strip()
+      requirements.append(requirement)
+
+  return requirements
+
+
 setup_args = dict(
-    name="grr-api-client",
-    version=VERSION.get("Version", "packageversion"),
-    description="GRR API client library",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr/tree/master/api_client/python",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    cmdclass={
-        "sdist": Sdist,
-    },
-    packages=find_packages(),
-    entry_points={
-        "console_scripts": [
-            "grr_api_shell = grr_api_client.api_shell:main",
-        ]
-    },
-    install_requires=[
-        "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        # Note: grr-api-client might very much be used as a library and
-        # therefore shouldn't pin dependencies that might be shared with other
-        # pip packages.
-        "cryptography>=3.3.2",
-        "requests>=2.25.1,<3",
-        "Werkzeug>=2.1.2,<3",
-    ],
-    extra_requires={
-        "shell": [
-            "ipython==7.15.0",
-        ],
-    },
-    data=["version.ini"],
+  name="grr-api-client",
+  version=VERSION.get("Version", "packageversion"),
+  description="GRR API client library",
+  license="Apache License, Version 2.0",
+  url="https://github.com/google/grr/tree/master/api_client/python",
+  maintainer="GRR Development Team",
+  maintainer_email="grr-dev@googlegroups.com",
+  cmdclass={
+    "sdist": Sdist,
+  },
+  packages=find_packages(),
+  entry_points={
+    "console_scripts": [
+      "grr_api_shell = grr_api_client.api_shell:main",
+    ]
+  },
+  install_requires=[
+    "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
+  ]
+  + parse_requirements("requirements.in"),
+  data=["version.ini", "requirements.in"],
 )
 
 setup(**setup_args)

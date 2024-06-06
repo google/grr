@@ -1,0 +1,4 @@
+distro==1.7.0
+fleetspeak-client-bin==0.1.13
+olefile==0.46
+PyInstaller==5.13.2

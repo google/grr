@@ -1,0 +1,16 @@
+google-api-python-client==1.12.11
+google-auth==2.23.3
+google-cloud-pubsub==2.18.4
+google-cloud-storage==2.13.0
+ipython==7.15.0
+Jinja2==3.1.2
+pexpect==4.9.0
+portpicker==1.6.0b1
+prometheus_client==0.16.0
+protobuf==4.25.3
+psutil==6.0.0
+pyjwt==2.6.0
+pyOpenSSL==21.0.0 
+python-crontab==2.5.1
+python-debian==0.1.49
+Werkzeug==2.1.2

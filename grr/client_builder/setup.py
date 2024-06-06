@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Setup configuration for the grr-response-client-builder package."""
 
+from typing import List
+
 import configparser
 import os
 import shutil
@@ -31,6 +33,18 @@ def get_config():
 REL_INI_PATH, VERSION = get_config()
 
 
+def parse_requirements(filename: str) -> List[str]:
+  requirements = []
+  with open(filename) as file:
+    for line in file:
+      requirement = line.strip()
+      if (comment := requirement.find("#")) >= 0:
+        requirement = requirement[:comment].strip()
+      requirements.append(requirement)
+
+  return requirements
+
+
 class Sdist(sdist):
   """Custom sdist class that bundles GRR's version.ini."""
 
@@ -40,39 +54,40 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
+      os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+    )
 
 
-data_files = [REL_INI_PATH]
+data_files = [
+  REL_INI_PATH, 
+  "requirements.in",
+]
 
 setup_args = dict(
-    name="grr-response-client-builder",
-    version=VERSION.get("Version", "packageversion"),
-    description="GRR Rapid Response",
-    license="Apache License, Version 2.0",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    url="https://github.com/google/grr",
-    entry_points={
-        "console_scripts": [
-            "grr_client_build = %s"
-            % "grr_response_client_builder.distro_entry:ClientBuild",
-        ]
-    },
-    cmdclass={"sdist": Sdist},
-    packages=find_packages(),
-    include_package_data=True,
-    python_requires=">=3.9",
-    install_requires=[
-        "distro==1.7.0",
-        "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
-        "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "fleetspeak-client-bin==0.1.13",
-        "olefile==0.46",
-        "PyInstaller==5.13.2",
-    ],
-    # Data files used by GRR. Access these via the config_lib "resource" filter.
-    data_files=data_files,
+  name="grr-response-client-builder",
+  version=VERSION.get("Version", "packageversion"),
+  description="GRR Rapid Response",
+  license="Apache License, Version 2.0",
+  maintainer="GRR Development Team",
+  maintainer_email="grr-dev@googlegroups.com",
+  url="https://github.com/google/grr",
+  entry_points={
+    "console_scripts": [
+      "grr_client_build = %s"
+      % "grr_response_client_builder.distro_entry:ClientBuild",
+    ]
+  },
+  cmdclass={"sdist": Sdist},
+  packages=find_packages(),
+  include_package_data=True,
+  python_requires=">=3.9",
+  install_requires=[
+    "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
+    "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
+  ]
+  + parse_requirements("requirements.in"),
+  # Data files used by GRR. Access these via the config_lib "resource" filter.
+  data_files=data_files,
 )
 
 setup(**setup_args)
