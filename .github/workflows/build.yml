@@ -235,16 +235,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Setup
-        run: |
-          python -m venv "${HOME}/INSTALL"
-          source "${HOME}/INSTALL/bin/activate"
-          python -m pip install nodeenv
-          nodeenv -p --prebuilt --node=16.13.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.13.0
       - name: Build
         run: |
           set -ex
-          source "${HOME}/INSTALL/bin/activate"
           mkdir /tmp/sdists
           python grr/proto/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python grr/core/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
