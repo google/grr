@@ -253,10 +253,32 @@ jobs:
       - name: Upload sdists
         uses: actions/upload-artifact@v4
         with:
-          name: sdists
+          name: pypi-sdists
           path: /tmp/sdists
           retention-days: 3
-    
+  
+  publish-to-pypi-grr-response-test:
+    name: Publish grr-response-test to PyPI
+    on:
+      workflow_dispatch:
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-test
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the sdist
+      uses: actions/download-artifact@v3
+      with:
+        name: pypi-sdists
+        pattern: grr-response-test*.zip
+        path: dist/
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
   docker-compose-e2e-test:
     permissions:
       contents: 'read'
