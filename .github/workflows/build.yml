@@ -235,6 +235,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Setup
+        run: |
+          python -m venv "${HOME}/INSTALL"
+          source "${HOME}/INSTALL/bin/activate"
+          python -m pip install nodeenv
+          nodeenv -p --prebuilt --node=16.13.0
+          source "${HOME}/INSTALL/bin/activate"
       - name: Build
         run: |
           set -ex
