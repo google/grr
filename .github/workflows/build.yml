@@ -241,10 +241,10 @@ jobs:
           source "${HOME}/INSTALL/bin/activate"
           python -m pip install nodeenv
           nodeenv -p --prebuilt --node=16.13.0
-          source "${HOME}/INSTALL/bin/activate"
       - name: Build
         run: |
           set -ex
+          source "${HOME}/INSTALL/bin/activate"
           mkdir /tmp/sdists
           python grr/proto/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python grr/core/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
