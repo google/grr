@@ -1,0 +1,55 @@
+name: Publish to PyPi
+on:
+  workflow_dispatch:
+
+jobs:
+  build-pypi-packages:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.13.0
+      - name: Build
+        run: |
+          set -ex
+          mkdir /tmp/sdists
+          python grr/proto/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/core/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/client/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/client_builder/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/server/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/test/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python colab/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python api_client/python/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+      - name: Upload sdists
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-sdists
+          path: /tmp/sdists
+          retention-days: 3
+  
+  publish-to-pypi-grr-response-test:
+    name: Publish grr-response-test to PyPI
+    on:
+      workflow_dispatch:
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-test
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the sdist
+      uses: actions/download-artifact@v3
+      with:
+        name: pypi-sdists
+        pattern: grr-response-test*.zip
+        path: dist/
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
