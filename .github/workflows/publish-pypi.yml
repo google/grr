@@ -35,8 +35,6 @@ jobs:
   
   publish-to-pypi-grr-response-test:
     name: Publish grr-response-test to PyPI
-    on:
-      workflow_dispatch:
     needs:
     - build-pypi-packages
     runs-on: ubuntu-22.04
