@@ -252,7 +252,7 @@ jobs:
           python grr/client_builder/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python grr/server/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python grr/test/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
-          python grr/colab/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python colab/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python api_client/python/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
       - name: Upload sdists
         uses: actions/upload-artifact@v4
