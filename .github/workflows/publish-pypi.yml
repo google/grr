@@ -29,7 +29,7 @@ jobs:
       - name: Upload sdists
         uses: actions/upload-artifact@v4
         with:
-          name: pypi-sdists
+          name: sdists
           path: /tmp/sdists
           retention-days: 3
   
@@ -45,10 +45,10 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
     - name: Download the sdist
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: pypi-sdists
+        name: sdists
         pattern: grr-response-test*.zip
         path: dist/
-    - name: Publish distribution 📦 to PyPI
+    - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
