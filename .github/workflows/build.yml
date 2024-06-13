@@ -227,7 +227,7 @@ jobs:
           name: grr_base_image
           path: /tmp/grr_base_image.tar
           retention-days: 3
-    
+
   docker-compose-e2e-test:
     permissions:
       contents: 'read'

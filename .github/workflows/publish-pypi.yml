@@ -1,0 +1,228 @@
+name: Publish to PyPi
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-pypi-packages:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.13.0
+      - name: Build
+        run: |
+          set -ex
+          mkdir /tmp/sdists
+          python grr/proto/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/core/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/client/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/client_builder/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/server/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python grr/test/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python colab/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+          python api_client/python/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
+      - name: Upload grr-response-proto
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-proto
+          path: /tmp/sdists/grr-response-proto-[0-9]*.zip
+          retention-days: 3          
+      - name: Upload grr-response-core
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-core
+          path: /tmp/sdists/grr-response-core-[0-9]*.zip
+          retention-days: 3          
+      - name: Upload grr-response-client
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-client
+          path: /tmp/sdists/grr-response-client-[0-9]*.zip
+          retention-days: 3          
+      - name: Upload grr-response-client-builder
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-client-builder
+          path: /tmp/sdists/grr-response-client-builder-[0-9]*.zip
+          retention-days: 3          
+      - name: Upload grr-response-server
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-server
+          path: /tmp/sdists/grr-response-server-[0-9]*.zip
+          retention-days: 3              
+      - name: Upload grr-response-test
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-response-test
+          path: /tmp/sdists/grr-response-test-[0-9]*.zip
+          retention-days: 3
+      - name: Upload grr-colab
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-colab
+          path: /tmp/sdists/grr-colab-[0-9]*.zip
+          retention-days: 3          
+      - name: Upload grr-api-client
+        uses: actions/upload-artifact@v4
+        with:
+          name: grr-api-client
+          path: /tmp/sdists/grr-api-client-[0-9]*.zip
+          retention-days: 3          
+  
+  publish-to-pypi-grr-response-proto:
+    name: Publish grr-response-proto to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-proto
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-proto
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-response-core:
+    name: Publish grr-response-core to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-core
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-core
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-response-client:
+    name: Publish grr-response-client to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-client
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-client
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-response-client-builder:
+    name: Publish grr-response-client-builder to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-client-builder
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-client-builder
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-response-server:
+    name: Publish grr-response-server to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-server
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-server
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-response-test:
+    name: Publish grr-response-test to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-response-test
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-response-test
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-colab:
+    name: Publish grr-colab to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-colab
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-colab
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-pypi-grr-api-client:
+    name: Publish grr-api-client to PyPI
+    needs:
+    - build-pypi-packages
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/grr-api-client
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: grr-api-client
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
