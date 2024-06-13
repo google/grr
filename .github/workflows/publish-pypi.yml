@@ -26,11 +26,11 @@ jobs:
           python grr/test/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python colab/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
           python api_client/python/setup.py --quiet sdist --formats=zip --dist-dir="/tmp/sdists"
-      - name: Upload sdists
+      - name: Upload grr-response-test
         uses: actions/upload-artifact@v4
         with:
-          name: sdists
-          path: /tmp/sdists
+          name: grr-response-test
+          path: /tmp/sdists/grr-response-test*.zip
           retention-days: 3
   
   publish-to-pypi-grr-response-test:
@@ -44,11 +44,10 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
-    - name: Download the sdist
+    - name: Download the artifact
       uses: actions/download-artifact@v4
       with:
-        name: sdists
-        pattern: grr-response-test*.zip
+        name: grr-response-test
         path: dist/
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
