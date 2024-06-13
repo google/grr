@@ -95,7 +95,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-to-pypi-grr-response-core:
-    name: Publish grr-response-test to PyPI
+    name: Publish grr-response-core to PyPI
     needs:
     - build-pypi-packages
     runs-on: ubuntu-22.04
@@ -133,7 +133,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-to-pypi-grr-response-client-builder:
-    name: Publish grr-response-test to PyPI
+    name: Publish grr-response-client-builder to PyPI
     needs:
     - build-pypi-packages
     runs-on: ubuntu-22.04
@@ -152,7 +152,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-to-pypi-grr-response-server:
-    name: Publish grr-response-test to PyPI
+    name: Publish grr-response-server to PyPI
     needs:
     - build-pypi-packages
     runs-on: ubuntu-22.04
