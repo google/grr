@@ -8,6 +8,8 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server.flows import file
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
@@ -315,7 +317,7 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
     def FlowHasBeenStarted():
       handler = api_flow.ApiListFlowsHandler()
       flows = handler.Handle(
-          api_flow.ApiListFlowsArgs(
+          flow_pb2.ApiListFlowsArgs(
               client_id=self.client_id, top_flows_only=True
           ),
           context=api_call_context.ApiCallContext(username=self.test_username),
@@ -325,8 +327,10 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
     flow = self.WaitUntil(FlowHasBeenStarted)
 
     self.assertEqual(flow.name, file.CollectFilesByKnownPath.__name__)
+    flow_args = flows_pb2.CollectFilesByKnownPathArgs()
+    flow.args.Unpack(flow_args)
     self.assertCountEqual(
-        flow.args.paths, ["/foo/firstpath", "/bar/secondpath"]
+        flow_args.paths, ["/foo/firstpath", "/bar/secondpath"]
     )
 
 
@@ -676,7 +680,7 @@ class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
     def FlowHasBeenStarted():
       handler = api_flow.ApiListFlowsHandler()
       flows = handler.Handle(
-          api_flow.ApiListFlowsArgs(
+          flow_pb2.ApiListFlowsArgs(
               client_id=self.client_id, top_flows_only=True
           ),
           context=api_call_context.ApiCallContext(username=self.test_username),
@@ -686,8 +690,10 @@ class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
     flow = self.WaitUntil(FlowHasBeenStarted)
 
     self.assertEqual(flow.name, file.StatMultipleFiles.__name__)
+    flow_args = flows_pb2.StatMultipleFilesArgs()
+    flow.args.Unpack(flow_args)
     self.assertCountEqual(
-        flow.args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
+        flow_args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
     )
 
 
@@ -894,7 +900,7 @@ class HashMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
     def FlowHasBeenStarted():
       handler = api_flow.ApiListFlowsHandler()
       flows = handler.Handle(
-          api_flow.ApiListFlowsArgs(
+          flow_pb2.ApiListFlowsArgs(
               client_id=self.client_id, top_flows_only=True
           ),
           context=api_call_context.ApiCallContext(username=self.test_username),
@@ -904,8 +910,10 @@ class HashMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
     flow = self.WaitUntil(FlowHasBeenStarted)
 
     self.assertEqual(flow.name, file.HashMultipleFiles.__name__)
+    flow_args = flows_pb2.HashMultipleFilesArgs()
+    flow.args.Unpack(flow_args)
     self.assertCountEqual(
-        flow.args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
+        flow_args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
     )
 
 

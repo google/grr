@@ -5,12 +5,14 @@ import datetime
 import doctest
 import email
 import functools
+import ipaddress
 import itertools
 import logging
 import os
 import shutil
 import threading
 import time
+from typing import List, Optional
 import unittest
 from unittest import mock
 
@@ -20,12 +22,15 @@ import pkg_resources
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
+from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import objects_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import access_control
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -33,7 +38,6 @@ from grr_response_server import email_alerts
 from grr_response_server import fleetspeak_connector
 from grr_response_server import prometheus_stats_collector
 from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import testing_startup
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -153,43 +157,23 @@ class GRRBaseTest(absltest.TestCase):
 
   def SetupClient(
       self,
-      client_nr,
-      arch="x86_64",
-      fqdn=None,
-      labels=None,
-      last_boot_time=None,
-      install_time=None,
-      kernel="4.0.0",
-      os_version="buster/sid",
-      os_release=None,
-      ping=None,
-      system="Linux",
-      description=None,
-      users=None,
-      memory_size=None,
-  ):
-    """Prepares a test client mock to be used.
+      client_nr: Optional[int] = None,
+      arch: Optional[str] = "x86_64",
+      fqdn: Optional[str] = None,
+      labels: Optional[List[str]] = None,
+      last_boot_time: Optional[rdfvalue.RDFDatetime] = None,
+      install_time: Optional[rdfvalue.RDFDatetime] = None,
+      kernel: Optional[str] = "4.0.0",
+      os_version: Optional[str] = "buster/sid",
+      os_release: Optional[str] = None,
+      ping: Optional[rdfvalue.RDFDatetime] = None,
+      system: Optional[str] = "Linux",
+      description: Optional[str] = None,
+      users: Optional[List[knowledge_base_pb2.User]] = None,
+      memory_size: Optional[int] = None,
+  ) -> str:
+    """Prepares a test client mock to be used."""
 
-    Args:
-      client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd in
-        canonical representation.
-      arch: string
-      fqdn: string
-      labels: list of labels (strings)
-      last_boot_time: RDFDatetime
-      install_time: RDFDatetime
-      kernel: string
-      os_version: string
-      os_release: string
-      ping: RDFDatetime
-      system: string
-      description: string
-      users: list of rdf_client.User objects.
-      memory_size: bytes
-
-    Returns:
-      the client_id: string
-    """
     client = self._SetupTestClientObject(
         client_nr,
         arch=arch,
@@ -216,84 +200,106 @@ class GRRBaseTest(absltest.TestCase):
     """Sets up mock clients, one for each numerical index in 'indices'."""
     return [self.SetupClient(i, *args, **kwargs) for i in indices]
 
-  def _TestClientInfo(self, labels=None, description=None):
-    res = rdf_client.ClientInformation(
+  def _TestClientInfo(
+      self,
+      labels: Optional[List[str]] = None,
+      description: Optional[str] = None,
+  ) -> jobs_pb2.ClientInformation:
+    """Creates a test client information proto."""
+
+    res = jobs_pb2.ClientInformation(
         client_name="GRR Monitor",
         client_version=config.CONFIG["Source.version_numeric"],
         client_description=description,
         build_time="1980-01-01T12:00:00.000000+00:00",
     )
     if labels is None:
-      res.labels = ["label1", "label2"]
-    else:
-      res.labels = labels
+      labels = ["label1", "label2"]
+    res.labels.extend(labels)
+
     return res
 
-  def _TestInterfaces(self, client_nr):
-    ip1 = rdf_client_network.NetworkAddress()
-    ip1.human_readable_address = "192.168.0.%d" % client_nr
+  def _TestInterfaces(self, client_nr: int) -> List[jobs_pb2.Interface]:
+    """Creates a test interfaces proto."""
 
-    ip2 = rdf_client_network.NetworkAddress()
-    ip2.human_readable_address = "2001:abcd::%x" % client_nr
+    ip1_str = "192.168.0.%d" % client_nr
+    ip1 = jobs_pb2.NetworkAddress()
+    ip1.address_type = jobs_pb2.NetworkAddress.INET
+    ip1.packed_bytes = ipaddress.IPv4Address(ip1_str).packed
+
+    ip2_str = "2001:abcd::%x" % client_nr
+    ip2 = jobs_pb2.NetworkAddress()
+    ip2.address_type = jobs_pb2.NetworkAddress.INET6
+    ip2.packed_bytes = ipaddress.IPv6Address(ip2_str).packed
 
     mac1 = rdf_client_network.MacAddress.FromHumanReadableAddress(
-        "abcbccddee%02x" % client_nr)
-    mac1 = rdf_client_network.MacAddress.FromHumanReadableAddress(
-        "aabbccddee%02x" % client_nr)
+        "aabbccddee%02x" % client_nr
+    ).AsBytes()
     mac2 = rdf_client_network.MacAddress.FromHumanReadableAddress(
-        "bbccddeeff%02x" % client_nr)
+        "bbccddeeff%02x" % client_nr
+    ).AsBytes()
 
     return [
-        rdf_client_network.Interface(ifname="if0", addresses=[ip1, ip2]),
-        rdf_client_network.Interface(ifname="if1", mac_address=mac1),
-        rdf_client_network.Interface(ifname="if2", mac_address=mac2),
+        jobs_pb2.Interface(ifname="if0", addresses=[ip1, ip2]),
+        jobs_pb2.Interface(ifname="if1", mac_address=mac1),
+        jobs_pb2.Interface(ifname="if2", mac_address=mac2),
     ]
 
   def _SetupTestClientObject(
       self,
-      client_nr,
-      arch="x86_64",
-      fqdn=None,
-      install_time=None,
-      last_boot_time=None,
-      kernel="4.0.0",
-      memory_size=None,
-      os_version="buster/sid",
-      os_release=None,
-      ping=None,
-      system="Linux",
-      description=None,
-      users=None,
-      labels=None,
+      client_nr: int,
+      arch: str = "x86_64",
+      fqdn: Optional[str] = None,
+      install_time: Optional[rdfvalue.RDFDatetime] = None,
+      last_boot_time: Optional[rdfvalue.RDFDatetime] = None,
+      kernel: Optional[str] = "4.0.0",
+      memory_size: Optional[int] = None,
+      os_version: Optional[str] = "buster/sid",
+      os_release: Optional[str] = None,
+      ping: Optional[rdfvalue.RDFDatetime] = None,
+      system: Optional[str] = "Linux",
+      description: Optional[str] = None,
+      users: Optional[List[knowledge_base_pb2.User]] = None,
+      labels: Optional[List[str]] = None,
   ):
     """Prepares a test client object."""
-    client_id = u"C.1%015x" % client_nr
+    client_id = "C.1%015x" % client_nr
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id)
-    client.startup_info.client_info = self._TestClientInfo(
-        labels=labels, description=description
+    client = objects_pb2.ClientSnapshot(client_id=client_id)
+    client.startup_info.client_info.CopyFrom(
+        self._TestClientInfo(labels=labels, description=description)
     )
     if last_boot_time is not None:
-      client.startup_info.boot_time = last_boot_time
+      client.startup_info.boot_time = int(last_boot_time)
 
     client.knowledge_base.fqdn = fqdn or "Host-%x.example.com" % client_nr
     client.knowledge_base.os = system
-    client.knowledge_base.users = users or [
-        rdf_client.User(username=u"user1"),
-        rdf_client.User(username=u"user2"),
-    ]
+    if users is None:
+      users = [
+          knowledge_base_pb2.User(username="user1"),
+          knowledge_base_pb2.User(username="user2"),
+      ]
+    client.knowledge_base.users.extend(users)
 
-    client.os_version = os_version
-    client.os_release = os_release
-    client.arch = arch
-    client.kernel = kernel
+    if os_version:
+      client.os_version = os_version
+    if os_release:
+      client.os_release = os_release
+    if arch:
+      client.arch = arch
+    if kernel:
+      client.kernel = kernel
 
-    client.interfaces = self._TestInterfaces(client_nr)
-    client.install_time = install_time
+    client.interfaces.extend(self._TestInterfaces(client_nr))
+    if install_time:
+      client.install_time = int(install_time)
 
-    client.hardware_info = rdf_client.HardwareInfo(
-        system_manufacturer="System-Manufacturer-%x" % client_nr,
-        bios_version="Bios-Version-%x" % client_nr)
+    client.hardware_info.CopyFrom(
+        sysinfo_pb2.HardwareInfo(
+            system_manufacturer="System-Manufacturer-%x" % client_nr,
+            bios_version="Bios-Version-%x" % client_nr,
+        )
+    )
 
     if memory_size is not None:
       client.memory_size = memory_size
@@ -301,14 +307,14 @@ class GRRBaseTest(absltest.TestCase):
     ping = ping or rdfvalue.RDFDatetime.Now()
 
     data_store.REL_DB.WriteClientMetadata(client_id, last_ping=ping)
+    data_store.REL_DB.WriteClientSnapshot(client)
 
-    proto_client = mig_objects.ToProtoClientSnapshot(client)
-    data_store.REL_DB.WriteClientSnapshot(proto_client)
-
-    client_index.ClientIndex().AddClient(client)
+    client_index.ClientIndex().AddClient(
+        mig_objects.ToRDFClientSnapshot(client)
+    )
     if labels is not None:
       data_store.REL_DB.WriteGRRUser("GRR")
-      data_store.REL_DB.AddClientLabels(client_id, u"GRR", labels)
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
       client_index.ClientIndex().AddClientLabels(client_id, labels)
 
     return client

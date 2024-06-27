@@ -372,55 +372,6 @@ def CheckHashes(
   }
 
 
-def GetLastCollectionPathInfos(
-    client_paths: Collection[db.ClientPath],
-    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-) -> Dict[db.ClientPath, rdf_objects.PathInfo]:
-  """Returns PathInfos corresponding to last collection times.
-
-  Args:
-    client_paths: An iterable of ClientPath objects.
-    max_timestamp: When specified, onlys PathInfo with a timestamp lower or
-      equal to max_timestamp will be returned.
-
-  Returns:
-    A dict of ClientPath -> PathInfo where each PathInfo corresponds to a
-    collected
-    file. PathInfo may be None if no collection happened (ever or with a
-    timestamp
-    lower or equal then max_timestamp).
-  """
-  proto_dict = data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
-      client_paths, max_timestamp=max_timestamp
-  )
-  rdf_dict = {}
-  for k, v in proto_dict.items():
-    rdf_dict[k] = mig_objects.ToRDFPathInfo(v) if v is not None else None
-  return rdf_dict
-
-
-def GetLastCollectionPathInfo(
-    client_path: str,
-    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-) -> rdf_objects.PathInfo:
-  """Returns PathInfo corresponding to the last file collection time.
-
-  Args:
-    client_path: A ClientPath object.
-    max_timestamp: When specified, the returned PathInfo will correspond to the
-      latest file collection with a timestamp lower or equal to max_timestamp.
-
-  Returns:
-    PathInfo object corresponding to the latest collection or None if file
-    wasn't collected (ever or, when max_timestamp is specified, before
-    max_timestamp).
-  """
-
-  return GetLastCollectionPathInfos([client_path], max_timestamp=max_timestamp)[
-      client_path
-  ]
-
-
 def OpenFile(
     client_path: db.ClientPath,
     max_timestamp: Optional[rdfvalue.RDFDatetime] = None,

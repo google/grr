@@ -5,20 +5,23 @@ import collections
 import itertools
 import logging
 import re
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import mig_flows
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import mig_structs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import flow_pb2
+from grr_response_proto.api import output_plugin_pb2 as api_output_plugin_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -345,6 +348,18 @@ def _GetFlowClass(
       logging.warning("Failed to get flow class for %s: %s", flow_name, e)
 
 
+def InitApiFlowResultFromFlowResult(
+    result: flows_pb2.FlowResult,
+) -> flow_pb2.ApiFlowResult:
+  """Creates an ApiFlowResult from a FlowResult."""
+  api_flow_result = flow_pb2.ApiFlowResult()
+  if result.HasField("payload"):
+    api_flow_result.payload.CopyFrom(result.payload)
+  protobuf_utils.CopyAttr(result, api_flow_result, "timestamp")
+  protobuf_utils.CopyAttr(result, api_flow_result, "tag")
+  return api_flow_result
+
+
 class ApiFlowId(rdfvalue.RDFString):
   """Class encapsulating flows ids."""
 
@@ -445,19 +460,6 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def GetPayloadClass(self):
-    return rdfvalue.RDFValue.classes[self.payload_type]
-
-  def InitFromFlowResult(self, result):
-    p = result.payload
-    self.payload_type = p.__class__.__name__
-    self.payload = p
-    self.timestamp = result.timestamp
-    if result.tag:
-      self.tag = result.tag
-
-    return self
-
 
 class ApiFlowLog(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowLog
@@ -515,28 +517,38 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListFlowRequestsArgs
   result_type = ApiListFlowRequestsResult
+  proto_args_type = flow_pb2.ApiListFlowRequestsArgs
+  proto_result_type = flow_pb2.ApiListFlowRequestsResult
 
-  def Handle(self, args, context=None):
-    client_id = args.client_id.ToString()
+  def Handle(
+      self,
+      args: flow_pb2.ApiListFlowRequestsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiListFlowRequestsResult:
+
     requests_and_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        client_id, str(args.flow_id)
+        args.client_id, args.flow_id
     )
 
-    result = ApiListFlowRequestsResult()
+    result = flow_pb2.ApiListFlowRequestsResult()
     stop = None
-    if args.count:
+    if args.HasField("count"):
       stop = args.offset + args.count
 
     for request, response_dict in itertools.islice(
         requests_and_responses, args.offset, stop
     ):
-      request_state = rdf_flow_runner.RequestState(
-          client_id=client_id,
+      request_state = jobs_pb2.RequestState(
+          client_id=str(rdfvalue.RDFURN(args.client_id)),
           id=request.request_id,
           next_state=request.next_state,
-          session_id="{}/flows/{}".format(client_id, str(request.flow_id)),
+          session_id=str(
+              rdfvalue.SessionID(
+                  "{}/flows/{}".format(args.client_id, request.flow_id)
+              )
+          ),
       )
-      api_request = ApiFlowRequest(
+      api_request = flow_pb2.ApiFlowRequest(
           request_id=str(request.request_id), request_state=request_state
       )
 
@@ -549,12 +561,15 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
             response = mig_flow_objects.ToRDFFlowStatus(response)
           if isinstance(response, flows_pb2.FlowIterator):
             response = mig_flow_objects.ToRDFFlowIterator(response)
-          responses.append(response.AsLegacyGrrMessage())
+          responses.append(
+              mig_flows.ToProtoGrrMessage(response.AsLegacyGrrMessage())
+          )
 
         for r in responses:
-          r.ClearPayload()
+          r.ClearField("args_rdf_name")
+          r.ClearField("args")
 
-        api_request.responses = responses
+        api_request.responses.extend(responses)
 
       result.items.append(api_request)
 
@@ -581,18 +596,23 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListFlowResultsArgs
   result_type = ApiListFlowResultsResult
+  proto_args_type = flow_pb2.ApiListFlowResultsArgs
+  proto_result_type = flow_pb2.ApiListFlowResultsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: flow_pb2.ApiListFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiListFlowResultsResult:
     results = data_store.REL_DB.ReadFlowResults(
-        str(args.client_id),
-        str(args.flow_id),
+        args.client_id,
+        args.flow_id,
         args.offset,
         args.count or db.MAX_COUNT,
         with_substring=args.filter or None,
         with_tag=args.with_tag or None,
         with_type=args.with_type or None,
     )
-    results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
     if args.filter:
       # TODO: with_substring is implemented in a hacky way,
@@ -603,16 +623,16 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       total_count = None
     else:
       total_count = data_store.REL_DB.CountFlowResults(
-          str(args.client_id),
-          str(args.flow_id),
+          args.client_id,
+          args.flow_id,
           # TODO: Add with_substring to CountFlowResults().
           with_tag=args.with_tag or None,
           with_type=args.with_type or None,
       )
 
-    wrapped_items = [ApiFlowResult().InitFromFlowResult(r) for r in results]
+    wrapped_items = [InitApiFlowResultFromFlowResult(r) for r in results]
 
-    return ApiListFlowResultsResult(
+    return flow_pb2.ApiListFlowResultsResult(
         items=wrapped_items, total_count=total_count
     )
 
@@ -977,24 +997,30 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListFlowOutputPluginsArgs
   result_type = ApiListFlowOutputPluginsResult
+  proto_args_type = flow_pb2.ApiListFlowOutputPluginsArgs
+  proto_result_type = flow_pb2.ApiListFlowOutputPluginsResult
 
-  def Handle(self, args, context=None):
-    flow_obj = data_store.REL_DB.ReadFlowObject(
-        str(args.client_id), str(args.flow_id)
-    )
-    flow_obj = mig_flow_objects.ToRDFFlow(flow_obj)
-    output_plugins_states = flow_obj.output_plugins_states
+  def Handle(
+      self,
+      args: flow_pb2.ApiListFlowOutputPluginsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiListFlowOutputPluginsResult:
+    flow_obj = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
+
+    plugin_results: List[api_output_plugin_pb2.ApiOutputPlugin] = []
 
     type_indices = {}
-    result = []
-    for output_plugin_state in output_plugins_states:
-      plugin_state = output_plugin_state.plugin_state.Copy()
-      if "source_urn" in plugin_state:
-        del plugin_state["source_urn"]
-      if "token" in plugin_state:
-        del plugin_state["token"]
+    for output_plugin_state in flow_obj.output_plugins_states:
+      plugin_state = jobs_pb2.AttributedDict()
+      plugin_state.CopyFrom(output_plugin_state.plugin_state)
+
+      for index, item in enumerate(plugin_state.dat):
+        key = item.k.string
+        if key in ("token", "source_urn"):
+          del plugin_state.dat[index]
 
       plugin_descriptor = output_plugin_state.plugin_descriptor
+
       type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
       type_indices[plugin_descriptor.plugin_name] += 1
 
@@ -1004,14 +1030,14 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       # TODO(user): store output plugins states in the same way for flows
       # and hunts. Until this is done, we can emulate the same interface in
       # the HTTP API.
-      api_plugin = api_output_plugin.ApiOutputPlugin(
-          id=plugin_descriptor.plugin_name + "_%d" % type_index,
-          plugin_descriptor=plugin_descriptor,
-          state=plugin_state,
-      )
-      result.append(api_plugin)
+      api_plugin = api_output_plugin_pb2.ApiOutputPlugin()
+      api_plugin.id = f"{plugin_descriptor.plugin_name}_{type_index}"
+      api_plugin.plugin_descriptor.CopyFrom(plugin_descriptor)
+      api_plugin.state.Pack(plugin_state)
 
-    return ApiListFlowOutputPluginsResult(items=result)
+      plugin_results.append(api_plugin)
+
+    return flow_pb2.ApiListFlowOutputPluginsResult(items=plugin_results)
 
 
 def GetOutputPluginIndex(
@@ -1066,34 +1092,40 @@ class ApiListFlowOutputPluginLogsHandlerBase(
 
   log_entry_type = None
 
-  def Handle(self, args, context=None):
-    flow_obj = data_store.REL_DB.ReadFlowObject(
-        str(args.client_id), str(args.flow_id)
-    )
+  def Handle(
+      self,
+      args: Union[
+          flow_pb2.ApiListFlowOutputPluginLogsArgs,
+          flow_pb2.ApiListFlowOutputPluginErrorsArgs,
+      ],
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> Union[
+      flow_pb2.ApiListFlowOutputPluginLogsResult,
+      flow_pb2.ApiListFlowOutputPluginErrorsResult,
+  ]:
+    flow_obj = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
     index = GetOutputPluginIndex(flow_obj.output_plugins, args.plugin_id)
     output_plugin_id = "%d" % index
 
     logs = data_store.REL_DB.ReadFlowOutputPluginLogEntries(
-        str(args.client_id),
-        str(args.flow_id),
+        args.client_id,
+        args.flow_id,
         output_plugin_id,
         args.offset,
         args.count or db.MAX_COUNT,
         with_type=self.__class__.log_entry_type,
     )
     total_count = data_store.REL_DB.CountFlowOutputPluginLogEntries(
-        str(args.client_id),
-        str(args.flow_id),
+        args.client_id,
+        args.flow_id,
         output_plugin_id,
         with_type=self.__class__.log_entry_type,
     )
 
-    return self.result_type(
+    return self.proto_result_type(
         total_count=total_count,
         items=[
-            mig_flow_objects.ToRDFFlowOutputPluginLogEntry(
-                l
-            ).ToOutputPluginBatchProcessingStatus()
+            rdf_flow_objects.ToOutputPluginBatchProcessingStatus(l)
             for l in logs
         ],
     )
@@ -1123,6 +1155,8 @@ class ApiListFlowOutputPluginLogsHandler(
 
   args_type = ApiListFlowOutputPluginLogsArgs
   result_type = ApiListFlowOutputPluginLogsResult
+  proto_args_type = flow_pb2.ApiListFlowOutputPluginLogsArgs
+  proto_result_type = flow_pb2.ApiListFlowOutputPluginLogsResult
 
 
 class ApiListFlowOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
@@ -1149,6 +1183,8 @@ class ApiListFlowOutputPluginErrorsHandler(
 
   args_type = ApiListFlowOutputPluginErrorsArgs
   result_type = ApiListFlowOutputPluginErrorsResult
+  proto_args_type = flow_pb2.ApiListFlowOutputPluginErrorsArgs
+  proto_result_type = flow_pb2.ApiListFlowOutputPluginErrorsResult
 
 
 class ApiListFlowsArgs(rdf_structs.RDFProtoStruct):
@@ -1171,12 +1207,26 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListFlowsArgs
   result_type = ApiListFlowsResult
+  proto_args_type = flow_pb2.ApiListFlowsArgs
+  proto_result_type = flow_pb2.ApiListFlowsResult
 
-  def _HandleTopFlowsOnly(self, args):
+  def _HandleTopFlowsOnly(
+      self,
+      args: flow_pb2.ApiListFlowsArgs,
+  ) -> flow_pb2.ApiListFlowsResult:
+    min_started_at, max_started_at = None, None
+    if args.HasField("min_started_at"):
+      min_started_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.min_started_at
+      )
+    if args.HasField("max_started_at"):
+      max_started_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.max_started_at
+      )
     top_flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=str(args.client_id),
-        min_create_time=args.min_started_at,
-        max_create_time=args.max_started_at,
+        client_id=args.client_id,
+        min_create_time=min_started_at,
+        max_create_time=max_started_at,
         include_child_flows=False,
         not_created_by=access_control.SYSTEM_USERS
         if args.human_flows_only
@@ -1190,20 +1240,32 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         )
         for f_data in top_flows
     ]
-    result = [ToRDFApiFlow(f) for f in result]
     # TODO(hanuszczak): Consult with the team what should we do in case of flows
     # with missing information.
+    # TODO: Refactor sorting andfiltering of flows to DB layer.
     result.sort(key=lambda f: f.started_at or 0, reverse=True)
     result = result[args.offset :]
-    if args.count:
+    if args.HasField("count"):
       result = result[: args.count]
-    return ApiListFlowsResult(items=result)
+    return flow_pb2.ApiListFlowsResult(items=result)
 
-  def _HandleAllFlows(self, args):
+  def _HandleAllFlows(
+      self,
+      args: flow_pb2.ApiListFlowsArgs,
+  ) -> flow_pb2.ApiListFlowsResult:
+    min_started_at, max_started_at = None, None
+    if args.HasField("min_started_at"):
+      min_started_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.min_started_at
+      )
+    if args.HasField("max_started_at"):
+      max_started_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.max_started_at
+      )
     all_flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=str(args.client_id),
-        min_create_time=args.min_started_at,
-        max_create_time=args.max_started_at,
+        client_id=args.client_id,
+        min_create_time=min_started_at,
+        max_create_time=max_started_at,
         include_child_flows=True,
         not_created_by=access_control.SYSTEM_USERS
         if args.human_flows_only
@@ -1234,14 +1296,18 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     ]
     # TODO(hanuszczak): Consult with the team what should we do in case of flows
     # with missing information.
+    # TODO: Refactor sorting andfiltering of flows to DB layer.
     result.sort(key=lambda f: f.started_at or 0, reverse=True)
     result = result[args.offset :]
-    if args.count:
+    if args.HasField("count"):
       result = result[: args.count]
-    result = [ToRDFApiFlow(f) for f in result]
-    return ApiListFlowsResult(items=result)
+    return flow_pb2.ApiListFlowsResult(items=result)
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: flow_pb2.ApiListFlowsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiListFlowsResult:
     if args.top_flows_only:
       return self._HandleTopFlowsOnly(args)
     else:
@@ -1280,11 +1346,11 @@ def _SanitizeApiCreateFlowArgs(
   #
   # TODO(user): Refactor the code to remove the HIDDEN label from
   # FlowRunnerArgs.output_plugins.
-  for field_name, descriptor in runner_args.DESCRIPTOR.fields_by_name.items():
-    if field_name == "output_plugins":
-      continue
-    if descriptor.label == "HIDDEN":
-      runner_args.ClearField(field_name)
+  runner_args = mig_flow_runner.ToRDFFlowRunnerArgs(runner_args)
+  runner_args.ClearFieldsWithLabel(
+      rdf_structs.SemanticDescriptor.Labels.HIDDEN, exceptions="output_plugins"
+  )
+  runner_args = mig_flow_runner.ToProtoFlowRunnerArgs(runner_args)
 
   if args.HasField("original_flow"):
     runner_args.original_flow.flow_id = args.original_flow.flow_id

@@ -22,7 +22,6 @@ from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import osquery_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
 
@@ -88,7 +87,6 @@ class ClientTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.hostname, hostname)
     self.assertItemsEqual([client_id1, client_id2], context.exception.clients)
 
-  @parser_test_lib.WithAllParsers
   def testWithHostname_NoClients(self):
     hostname = 'noclients.loc.group.example.com'
 
@@ -217,7 +215,6 @@ class ClientTest(testing.ColabE2ETest):
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertEqual(client.hostname, hostname)
 
-  @parser_test_lib.WithAllParsers
   def testHostname_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
@@ -237,7 +234,6 @@ class ClientTest(testing.ColabE2ETest):
     self.assertLen(client.ifaces, 1)
     self.assertEqual(client.ifaces[0].ifname, ifname)
 
-  @parser_test_lib.WithAllParsers
   def testIfaces_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
@@ -281,7 +277,6 @@ class ClientTest(testing.ColabE2ETest):
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertEqual(client.arch, arch)
 
-  @parser_test_lib.WithAllParsers
   def testArch_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
@@ -300,7 +295,6 @@ class ClientTest(testing.ColabE2ETest):
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertEqual(client.kernel, kernel)
 
-  @parser_test_lib.WithAllParsers
   def testKernel_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
@@ -389,7 +383,6 @@ class ClientTest(testing.ColabE2ETest):
     finally:
       thread.join()
 
-  @parser_test_lib.WithAllParsers
   def testInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -497,7 +490,6 @@ class ClientTest(testing.ColabE2ETest):
 
     self.assertEqual(context.exception.client_id, ClientTest.FAKE_CLIENT_ID)
 
-  @parser_test_lib.WithAllParsers
   def testCollect(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 

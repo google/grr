@@ -66,7 +66,7 @@ export class NewHunt {
     this.huntApprovalLocalStore.requestApprovalStatus$;
   protected hasOriginInput: boolean | undefined = undefined;
 
-  titleControl = new FormControl('');
+  titleControl = new FormControl('', {updateOn: 'change'});
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
@@ -190,6 +190,10 @@ export class NewHunt {
         }),
       )
       .subscribe();
+
+    this.titleControl.valueChanges.subscribe((v) => {
+      this.newHuntLocalStore.setCurrentDescription(v ?? '');
+    });
   }
 
   runHunt() {

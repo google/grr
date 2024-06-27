@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 """Tests for root API user management calls."""
 
+from typing import Optional
+
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import root as grr_api_root
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_integration_test_lib
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
@@ -16,10 +19,9 @@ class RootApiUserManagementTest(
 ):
   """E2E test for root API user management calls."""
 
-  def _GetPassword(self, username):
-    proto_user = data_store.REL_DB.ReadGRRUser(username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    return rdf_user.password if rdf_user.HasField("password") else None
+  def _GetPassword(self, username: str) -> Optional[jobs_pb2.Password]:
+    user = data_store.REL_DB.ReadGRRUser(username)
+    return user.password if user.HasField("password") else None
 
   def testStandardUserIsCorrectlyAdded(self):
     user = self.api.root.CreateGrrUser(username="user_foo")
@@ -44,7 +46,7 @@ class RootApiUserManagementTest(
     self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
 
     password = self._GetPassword("user_foo")
-    self.assertTrue(password.CheckPassword("blah"))
+    self.assertTrue(rdf_crypto.CheckPassword(password, "blah"))
 
   def testUserModificationWorksCorrectly(self):
     user = self.api.root.CreateGrrUser(username="user_foo")
@@ -60,12 +62,12 @@ class RootApiUserManagementTest(
     user = self.api.root.CreateGrrUser(username="user_foo", password="blah")
 
     password = self._GetPassword("user_foo")
-    self.assertTrue(password.CheckPassword("blah"))
+    self.assertTrue(rdf_crypto.CheckPassword(password, "blah"))
 
     user.Modify(password="ohno")
 
     password = self._GetPassword("user_foo")
-    self.assertTrue(password.CheckPassword("ohno"))
+    self.assertTrue(rdf_crypto.CheckPassword(password, "ohno"))
 
   def testUsersAreCorrectlyListed(self):
     for i in range(10):

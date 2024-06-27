@@ -743,7 +743,6 @@ describe('hunt page test', () => {
         'payload': {
           'foo': 'bar',
         },
-        'payloadType': PayloadType.USER,
         'timestamp': '1',
       };
 

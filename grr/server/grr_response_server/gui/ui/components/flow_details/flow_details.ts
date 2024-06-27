@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
+import {makeFlowLink} from '../../lib/routing';
 
 import {
   ExportMenuItem,
@@ -89,6 +90,11 @@ export class FlowDetails implements OnChanges {
   /**
    * Flow list entry to display.
    */
+
+  flowLink$: Observable<string | null> = this.flow$.pipe(
+    map((flow) => makeFlowLink(flow?.clientId, flow?.flowId)),
+  );
+
   @Input()
   set flow(flow: Flow | null | undefined) {
     this.flow$.next(flow ?? null);

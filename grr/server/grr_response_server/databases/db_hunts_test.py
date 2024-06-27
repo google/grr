@@ -13,7 +13,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
@@ -1553,30 +1552,6 @@ class DatabaseTestHuntMixin(object):
               "(tag=%s, type=%s, substring=%s): %s vs %s"
               % (tag_value, type_value, substring_value, expected, results),
           )
-
-  def testReadHuntResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    hunt_id = db_test_utils.InitializeHunt(self.db)
-
-    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
-    sample_results = self._SampleSingleTypeHuntResults(
-        client_id=client_id, flow_id=flow_id, hunt_id=hunt_id
-    )
-    self._WriteHuntResults(sample_results)
-
-    type_name = rdf_client.ClientSummary.__name__
-    cls = rdfvalue.RDFValue.classes.pop(type_name)
-
-    results = self.db.ReadHuntResults(hunt_id, 0, 100)
-    rdfvalue.RDFValue.classes[type_name] = cls
-
-    self.assertLen(sample_results, len(results))
-    for r in results:
-      self.assertTrue(
-          r.payload.Is(objects_pb2.SerializedValueOfUnrecognizedType.DESCRIPTOR)
-      )
-      payload = objects_pb2.SerializedValueOfUnrecognizedType()
-      r.payload.Unpack(payload)
-      self.assertEqual(payload.type_name, type_name)
 
   def testReadHuntResultsIgnoresChildFlowsResults(self):
     client_id = db_test_utils.InitializeClient(self.db)

@@ -12,10 +12,12 @@ from absl import app
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
 from grr_response_proto import flows_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import timeline_pb2
 from grr_response_proto.api import hunt_pb2
-from grr_response_proto.api import timeline_pb2
+from grr_response_proto.api import timeline_pb2 as api_timeline_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.databases import db
@@ -24,10 +26,6 @@ from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.output_plugins import csv_plugin
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -281,21 +279,20 @@ class ApiClientLibHuntTest(
 
     hunt_id = "B1C2E3D4"
 
-    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj = hunts_pb2.Hunt()
     hunt_obj.hunt_id = hunt_id
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
-    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
-    flow_obj = rdf_flow_objects.Flow()
+    flow_obj = flows_pb2.Flow()
     flow_obj.client_id = client_id
     flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
     flow_obj.parent_hunt_id = hunt_id
-    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
+    data_store.REL_DB.WriteFlowObject(flow_obj)
 
-    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1 = timeline_pb2.TimelineEntry()
     entry_1.path = "/bar/baz/quux".encode("utf-8")
     entry_1.ino = 5926273453
     entry_1.size = 13373
@@ -304,7 +301,7 @@ class ApiClientLibHuntTest(
     entry_1.ctime_ns = 333 * 10**9
     entry_1.mode = 0o664
 
-    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2 = timeline_pb2.TimelineEntry()
     entry_2.path = "/bar/baz/quuz".encode("utf-8")
     entry_2.ino = 6037384564
     entry_2.size = 13374
@@ -314,25 +311,23 @@ class ApiClientLibHuntTest(
     entry_2.mode = 0o777
 
     entries = [entry_1, entry_2]
-    blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))
+    blobs = list(rdf_timeline.SerializeTimelineEntryStream(entries))
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
-    result = rdf_timeline.TimelineResult()
-    result.entry_batch_blob_ids = list(map(bytes, blob_ids))
+    result = timeline_pb2.TimelineResult()
+    result.entry_batch_blob_ids.extend(list(map(bytes, blob_ids)))
 
-    flow_result = rdf_flow_objects.FlowResult()
+    flow_result = flows_pb2.FlowResult()
     flow_result.client_id = client_id
     flow_result.flow_id = hunt_id
     flow_result.hunt_id = hunt_id
-    flow_result.payload = result
+    flow_result.payload.Pack(result)
 
-    data_store.REL_DB.WriteFlowResults(
-        [mig_flow_objects.ToProtoFlowResult(flow_result)]
-    )
+    data_store.REL_DB.WriteFlowResults([flow_result])
 
     buffer = io.BytesIO()
     self.api.Hunt(hunt_id).GetCollectedTimelines(
-        timeline_pb2.ApiGetCollectedTimelineArgs.Format.BODY
+        api_timeline_pb2.ApiGetCollectedTimelineArgs.Format.BODY
     ).WriteToStream(buffer)
 
     with zipfile.ZipFile(buffer, mode="r") as archive:
@@ -369,21 +364,20 @@ class ApiClientLibHuntTest(
 
     hunt_id = "A0B1D2C3"
 
-    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj = hunts_pb2.Hunt()
     hunt_obj.hunt_id = hunt_id
     hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
-    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj.hunt_state = hunts_pb2.Hunt.HuntState.PAUSED
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
-    flow_obj = rdf_flow_objects.Flow()
+    flow_obj = flows_pb2.Flow()
     flow_obj.client_id = client_id
     flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
     flow_obj.parent_hunt_id = hunt_id
-    data_store.REL_DB.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
+    data_store.REL_DB.WriteFlowObject(flow_obj)
 
-    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1 = timeline_pb2.TimelineEntry()
     entry_1.path = "/foo/bar".encode("utf-8")
     entry_1.ino = 7890178901
     entry_1.size = 4815162342
@@ -392,40 +386,38 @@ class ApiClientLibHuntTest(
     entry_1.ctime_ns = 567 * 10**9
     entry_1.mode = 0o654
 
-    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2 = timeline_pb2.TimelineEntry()
     entry_2.path = "/foo/baz".encode("utf-8")
-    entry_1.ino = 8765487654
+    entry_2.ino = 8765487654
     entry_2.size = 1337
-    entry_1.atime_ns = 987 * 10**9
-    entry_1.mtime_ns = 876 * 10**9
-    entry_1.ctime_ns = 765 * 10**9
+    entry_2.atime_ns = 987 * 10**9
+    entry_2.mtime_ns = 876 * 10**9
+    entry_2.ctime_ns = 765 * 10**9
     entry_2.mode = 0o757
 
     entries = [entry_1, entry_2]
-    blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))
+    blobs = list(rdf_timeline.SerializeTimelineEntryStream(entries))
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
-    result = rdf_timeline.TimelineResult()
-    result.entry_batch_blob_ids = list(map(bytes, blob_ids))
+    result = timeline_pb2.TimelineResult()
+    result.entry_batch_blob_ids.extend(list(map(bytes, blob_ids)))
 
-    flow_result = rdf_flow_objects.FlowResult()
+    flow_result = flows_pb2.FlowResult()
     flow_result.client_id = client_id
     flow_result.flow_id = hunt_id
-    flow_result.payload = result
+    flow_result.payload.Pack(result)
 
-    data_store.REL_DB.WriteFlowResults(
-        [mig_flow_objects.ToProtoFlowResult(flow_result)]
-    )
+    data_store.REL_DB.WriteFlowResults([flow_result])
 
     buffer = io.BytesIO()
 
-    fmt = timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
+    fmt = api_timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
     self.api.Hunt(hunt_id).GetCollectedTimelines(fmt).WriteToStream(buffer)
 
     with zipfile.ZipFile(buffer, mode="r") as archive:
       with archive.open(f"{client_id}_{fqdn}.gzchunked", mode="r") as file:
         chunks = chunked.ReadAll(file)
-        entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
+        entries = list(rdf_timeline.DeserializeTimelineEntryStream(chunks))
         self.assertEqual(entries, [entry_1, entry_2])
 
   def testCreatePerClientFileCollectionHunt(self):

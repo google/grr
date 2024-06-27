@@ -2,11 +2,9 @@
 """rdf value representation for artifact collector parameters."""
 
 import json
-from typing import Type
 
 import yaml
 
-from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -96,10 +94,6 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
       artifact_pb2.ArtifactSource.FILE: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry",
-      },
-      artifact_pb2.ArtifactSource.GREP: {
-          "required_attributes": ["paths", "content_regex_list"],
-          "output_type": "BufferReference",
       },
       artifact_pb2.ArtifactSource.LIST_FILES: {
           "required_attributes": ["paths"],
@@ -308,45 +302,12 @@ class Artifact(rdf_structs.RDFProtoStruct):
     return yaml.safe_dump(ordered_artifact_dict)
 
 
-class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
-  """Describes artifact processor."""
-
-  protobuf = artifact_pb2.ArtifactProcessorDescriptor
-
-  @classmethod
-  def FromParser(
-      cls, parser_cls: Type[parsers.Parser]
-  ) -> "ArtifactProcessorDescriptor":
-    """Creates a descriptor corresponding to the given parser.
-
-    Args:
-      parser_cls: A parser class for which the descriptor is to be created.
-
-    Returns:
-      A parser descriptor corresponding to the given parser.
-    """
-    # TODO(hanuszczak): Relying on a class docstring to get a description seems
-    # like a lazy hack. Lets not do that.
-    if parser_cls.__doc__:
-      description = parser_cls.__doc__.split("\n")[0]
-    else:
-      description = ""
-
-    output_types = [t.__name__ for t in parser_cls.output_types]
-    return cls(
-        name=parser_cls.__name__,
-        description=description,
-        output_types=output_types,
-    )
-
-
 class ArtifactDescriptor(rdf_structs.RDFProtoStruct):
   """Includes artifact, its JSON source, processors and additional info."""
 
   protobuf = artifact_pb2.ArtifactDescriptor
   rdf_deps = [
       Artifact,
-      ArtifactProcessorDescriptor,
   ]
 
 

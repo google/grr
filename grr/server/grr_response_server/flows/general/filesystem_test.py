@@ -11,11 +11,11 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_responses
@@ -224,8 +224,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def testGlob(self):
     """Test that glob works properly."""
     users = [
-        rdf_client.User(username="test"),
-        rdf_client.User(username="syslog")
+        knowledge_base_pb2.User(username="test"),
+        knowledge_base_pb2.User(username="syslog"),
     ]
     client_id = self.SetupClient(0, users=users)
 
@@ -233,8 +233,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # This glob selects all files which start with the username on this system.
     paths = [
-        os.path.join(self.base_path, "%%Users.username%%*"),
-        os.path.join(self.base_path, "VFSFixture/var/*/wtmp")
+        os.path.join(self.base_path, "%%users.username%%*"),
+        os.path.join(self.base_path, "VFSFixture/var/*/wtmp"),
     ]
 
     flow_test_lib.TestFlowHelper(
@@ -279,8 +279,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def testGlobWithStarStarRootPath(self):
     """Test ** expressions with root_path."""
     users = [
-        rdf_client.User(username="test"),
-        rdf_client.User(username="syslog")
+        knowledge_base_pb2.User(username="test"),
+        knowledge_base_pb2.User(username="syslog"),
     ]
     self.client_id = self.SetupClient(0, users=users)
 
@@ -516,9 +516,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def testGlobDirectory(self):
     """Test that glob expands directories."""
     users = [
-        rdf_client.User(username="test", appdata="test_data/index.dat"),
-        rdf_client.User(username="test2", appdata="test_data/History"),
-        rdf_client.User(username="test3", appdata="%%PATH%%"),
+        knowledge_base_pb2.User(username="test", appdata="test_data/index.dat"),
+        knowledge_base_pb2.User(username="test2", appdata="test_data/History"),
+        knowledge_base_pb2.User(username="test3", appdata="%%PATH%%"),
     ]
     self.client_id = self.SetupClient(0, users=users)
 
@@ -580,9 +580,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(
         flow_obj.error_message,
-        "Some attributes are not part of the knowledgebase: "
-        "weird_illegal_attribute")
-    self.assertIn("KbInterpolationUnknownAttributesError", flow_obj.backtrace)
+        "`%%Weird_illegal_attribute%%` does not exist",
+    )
 
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""

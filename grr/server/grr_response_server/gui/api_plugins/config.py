@@ -11,9 +11,9 @@ from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
+from grr_response_server import foreman_rules
 from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 
 # TODO(user): sensitivity of config options and sections should
@@ -29,6 +29,31 @@ REDACTED_OPTIONS = [
     "Worker.smtp_password",
 ]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
+
+
+def _IsSupportedValueType(value: any) -> bool:
+  """Returns whether the given config value type is supported in the UI.
+
+  Args:
+    value: value to validate.
+
+  Returns:
+    True if the value is supported in the UI, False otherwise.
+  """
+  if isinstance(value, float) and not value.is_integer():
+    return False
+  elif rdfvalue.RDFInteger.IsNumeric(value):
+    return True
+  elif isinstance(value, str):
+    return True
+  elif isinstance(value, bytes):
+    return True
+  elif isinstance(value, bool):
+    return True
+  elif isinstance(value, rdfvalue.RDFValue):
+    return True
+  else:
+    return False
 
 
 class ApiConfigOption(rdf_structs.RDFProtoStruct):
@@ -58,17 +83,26 @@ class ApiConfigOption(rdf_structs.RDFProtoStruct):
       return self
 
     if config_value is not None:
-      # TODO(user): this is a bit of a hack as we're reusing the logic
-      # from ApiDataObjectKeyValuePair. We should probably abstract this
-      # away into a separate function, so that we don't have to create
-      # an ApiDataObjectKeyValuePair object.
-      kv_pair = api_call_handler_utils.ApiDataObjectKeyValuePair()
-      kv_pair.InitFromKeyValue(name, config_value)
+      self.is_invalid = not _IsSupportedValueType(config_value)
 
-      self.is_invalid = kv_pair.invalid
-      if not self.is_invalid:
-        self.type = kv_pair.type
-        self.value = kv_pair.value
+      if self.is_invalid:
+        return self
+
+      if rdfvalue.RDFInteger.IsNumeric(config_value):
+        self.type = rdfvalue.RDFInteger.__name__
+        self.value = rdfvalue.RDFInteger(config_value)
+      elif isinstance(config_value, str):
+        self.type = rdfvalue.RDFString.__name__
+        self.value = rdfvalue.RDFString(config_value)
+      elif isinstance(config_value, bytes):
+        self.type = rdfvalue.RDFBytes.__name__
+        self.value = rdfvalue.RDFBytes(config_value)
+      elif isinstance(config_value, bool):
+        self.type = "bool"
+        self.value = config_value
+      elif isinstance(config_value, rdfvalue.RDFValue):
+        self.type = config_value.__class__.__name__
+        self.value = config_value
 
     return self
 
@@ -281,6 +315,7 @@ class ApiUiConfig(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_hunts.HuntRunnerArgs,
       rdf_config.AdminUIClientWarningsConfigOption,
+      rdf_config.AdminUIHuntConfig,
   ]
 
 
@@ -292,13 +327,45 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     del args, context  # Unused.
 
+    default_hunt_runner_args = rdf_hunts.HuntRunnerArgs()
+    hunt_config = config.CONFIG["AdminUI.hunt_config"]
+    if hunt_config and (
+        hunt_config.default_include_labels or hunt_config.default_exclude_labels
+    ):
+      default_hunt_runner_args.client_rule_set = (
+          foreman_rules.ForemanClientRuleSet(
+              match_mode=foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+          )
+      )
+      if hunt_config.default_include_labels:
+        default_hunt_runner_args.client_rule_set.rules.append(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.LABEL,
+                label=foreman_rules.ForemanLabelClientRule(
+                    match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY,
+                    label_names=hunt_config.default_include_labels,
+                ),
+            )
+        )
+      if hunt_config.default_exclude_labels:
+        default_hunt_runner_args.client_rule_set.rules.append(
+            foreman_rules.ForemanClientRule(
+                rule_type=foreman_rules.ForemanClientRule.Type.LABEL,
+                label=foreman_rules.ForemanLabelClientRule(
+                    match_mode=foreman_rules.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+                    label_names=hunt_config.default_exclude_labels,
+                ),
+            )
+        )
+
     return ApiUiConfig(
         heading=config.CONFIG["AdminUI.heading"],
         report_url=config.CONFIG["AdminUI.report_url"],
         help_url=config.CONFIG["AdminUI.help_url"],
         grr_version=config.CONFIG["Source.version_string"],
         profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
-        default_hunt_runner_args=rdf_hunts.HuntRunnerArgs(),
+        default_hunt_runner_args=default_hunt_runner_args,
+        hunt_config=config.CONFIG["AdminUI.hunt_config"],
         client_warnings=config.CONFIG["AdminUI.client_warnings"],
         default_access_duration_seconds=config.CONFIG["ACL.token_expiry"],
         max_access_duration_seconds=config.CONFIG["ACL.token_max_expiry"],

@@ -4,13 +4,13 @@
 import hashlib
 import os
 import stat as stat_mode
-from typing import Iterator
-from typing import Optional
+from typing import Iterator, Optional
 
 import psutil
 
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_timeline
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import iterator
@@ -33,7 +33,10 @@ class Timeline(actions.ActionPlugin):
     """Executes the client action."""
     fstype = GetFilesystemType(args.root)
     entries = iterator.Counted(Walk(args.root))
-    for entry_batch in rdf_timeline.TimelineEntry.SerializeStream(entries):
+    proto_entries = (
+        mig_timeline.ToProtoTimelineEntry(entry) for entry in entries
+    )
+    for entry_batch in rdf_timeline.SerializeTimelineEntryStream(proto_entries):
       entry_batch_blob = rdf_protodict.DataBlob(data=entry_batch)
       self.SendReply(entry_batch_blob, session_id=self._TRANSFER_STORE_ID)
 

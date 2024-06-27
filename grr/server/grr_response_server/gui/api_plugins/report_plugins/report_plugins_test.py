@@ -4,18 +4,17 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import stats_pb2
 from grr_response_server import data_store
-from grr_response_server.gui.api_plugins import stats as stats_api
-from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins_test_mocks
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 from grr.test_lib import test_lib
 
-RepresentationType = rdf_report_plugins.ApiReportData.RepresentationType
-Action = rdf_events.AuditEvent.Action
+RepresentationType = stats_pb2.ApiReportData.RepresentationType
+Action = jobs_pb2.AuditEvent.Action
 
 
 class ReportPluginsTest(test_lib.GRRBaseTest):
@@ -47,9 +46,7 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
 
     desc = report_plugins_test_mocks.BarReportPlugin.GetReportDescriptor()
 
-    self.assertEqual(
-        desc.type, rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
-    )
+    self.assertEqual(desc.type, stats_pb2.ApiReportDescriptor.ReportType.SERVER)
     self.assertEqual(desc.title, "Bar Activity")
     self.assertEqual(
         desc.summary, "Reports bars' activity in the given time range."
@@ -102,10 +99,10 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=start,
-            duration=month_duration,
+            start_time=int(start),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
@@ -145,18 +142,18 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=now - month_duration,
-            duration=month_duration,
+            start_time=int(now - month_duration),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
     self.assertEqual(
         api_report_data,
-        rdf_report_plugins.ApiReportData(
+        stats_pb2.ApiReportData(
             representation_type=RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            audit_chart=stats_pb2.ApiAuditChartReportData(
                 used_fields=["action", "client", "timestamp", "user"], rows=[]
             ),
         ),
@@ -184,10 +181,10 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=start,
-            duration=month_duration,
+            start_time=int(start),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
@@ -201,7 +198,13 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
     self.assertEqual(
         [
-            (row.action, row.timestamp.Format("%Y/%m/%d"), row.user)
+            (
+                row.action,
+                rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                    row.timestamp
+                ).Format("%Y/%m/%d"),
+                row.user,
+            )
             for row in api_report_data.audit_chart.rows
         ],
         [
@@ -227,18 +230,18 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=now - month_duration,
-            duration=month_duration,
+            start_time=int(now - month_duration),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
     self.assertEqual(
         api_report_data,
-        rdf_report_plugins.ApiReportData(
+        stats_pb2.ApiReportData(
             representation_type=RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            audit_chart=stats_pb2.ApiAuditChartReportData(
                 used_fields=["action", "timestamp", "user"], rows=[]
             ),
         ),
@@ -280,16 +283,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=start,
-            duration=month_duration,
+            start_time=int(start),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
     self.assertEqual(
         api_report_data.representation_type,
-        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART,
+        stats_pb2.ApiReportData.RepresentationType.AUDIT_CHART,
     )
 
     self.assertCountEqual(
@@ -368,7 +371,9 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         [
             (
                 row.action,
-                row.timestamp.Format("%Y/%m/%d"),
+                rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                    row.timestamp
+                ).Format("%Y/%m/%d"),
                 row.user,
                 str(row.urn),
             )
@@ -386,10 +391,10 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=now - month_duration,
-            duration=month_duration,
+            start_time=int(now - month_duration),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
@@ -438,16 +443,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=start,
-            duration=month_duration,
+            start_time=int(start),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 
     self.assertEqual(
         api_report_data.representation_type,
-        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART,
+        stats_pb2.ApiReportData.RepresentationType.AUDIT_CHART,
     )
 
     self.assertCountEqual(
@@ -473,7 +478,9 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         [
             (
                 row.action,
-                row.timestamp.Format("%Y/%m/%d"),
+                rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                    row.timestamp
+                ).Format("%Y/%m/%d"),
                 row.user,
                 str(row.urn),
             )
@@ -491,10 +498,10 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(
+        stats_pb2.ApiGetReportArgs(
             name=report.__class__.__name__,
-            start_time=now - month_duration,
-            duration=month_duration,
+            start_time=int(now - month_duration),
+            duration=month_duration.ToInt(timeunit=rdfvalue.MICROSECONDS),
         )
     )
 

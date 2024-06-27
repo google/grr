@@ -4,6 +4,7 @@ from typing import Iterable
 
 from absl import app
 
+from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import retry
 from grr_response_proto import flows_pb2
@@ -280,6 +281,50 @@ class HuntCreationTest(
 
     self._ListHuntsAndAssertCount(self.test_username, 0)
     self.WaitUntil(self.IsElementPresent, "css=.mdc-snackbar")
+
+  def testHuntPresubmit(self):
+    client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(client_id)
+    flow_id = flow_test_lib.StartFlow(
+        network.Netstat,
+        creator=self.test_username,
+        client_id=client_id,
+        flow_args=network.NetstatArgs(),
+    )
+
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      self.Open(f"/v2/new-hunt?clientId={client_id}&flowId={flow_id}")
+
+      # Make sure default exclude labels are displayed.
+      self.WaitUntil(
+          self.IsElementPresent, "css=input[id=condition_1_label_name_0]"
+      )
+      self.Type("css=input[id=condition_1_label_name_0]", "no-no")
+
+      self.WaitUntilNot(
+          self.IsElementPresent, "css=mat-card.warning:contains('not cool')"
+      )
+
+      # Removing the label should trigger the warning.
+      self.Click("css=[name=condition_1] button#close")
+
+      # Make sure the warning is now displayed.
+      self.WaitUntil(
+          self.IsElementPresent, "css=mat-card.warning:contains('not cool')"
+      )
+
+      # Fill out necessary approval information and create hunt.
+      self.Type("css=approval-card input[name=reason]", "because")
+      self.Click("css=button[id=runHunt]")
+
+      self._ListHuntsAndAssertCount(self.test_username, 0)
+      # Also fails in the API level,
+      self.WaitUntil(self.IsElementPresent, "css=.mdc-snackbar")
 
 
 if __name__ == "__main__":

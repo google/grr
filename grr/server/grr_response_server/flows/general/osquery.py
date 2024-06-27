@@ -258,6 +258,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
   ) -> None:
     if not responses.success:
       status = responses.status
+      assert status is not None, "Failed response status must be set."
 
       message = f"{status.error_message}: {status.backtrace}"
       self._UpdateProgressWithError(message)

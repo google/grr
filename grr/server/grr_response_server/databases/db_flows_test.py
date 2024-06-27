@@ -16,7 +16,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_proto import objects_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
@@ -2635,31 +2634,6 @@ class DatabaseTestFlowMixin(object):
               % (tag_value, type_value, substring_value, expected, results),
           )
 
-  def testReadFlowResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    sample_results = self._WriteFlowResults(
-        self._SampleResults(client_id, flow_id), multiple_timestamps=True
-    )
-
-    type_name = jobs_pb2.ClientSummary.__name__
-    try:
-      cls = rdfvalue.RDFValue.classes.pop(type_name)
-
-      results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
-    finally:
-      rdfvalue.RDFValue.classes[type_name] = cls
-
-    self.assertLen(sample_results, len(results))
-    for r in results:
-      self.assertTrue(
-          r.payload.Is(objects_pb2.SerializedValueOfUnrecognizedType.DESCRIPTOR)
-      )
-      unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType()
-      r.payload.Unpack(unrecognized_value)
-      self.assertEqual(unrecognized_value.type_name, type_name)
-
   def testCountFlowResultsReturnsCorrectResultsCount(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
@@ -3040,31 +3014,6 @@ class DatabaseTestFlowMixin(object):
             "Error items do not match for (tag=%s, type=%s): %s vs %s"
             % (tag_value, type_value, expected, errors),
         )
-
-  def testReadFlowErrorsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    sample_errors = self._WriteFlowErrors(
-        self._CreateErrors(client_id, flow_id), multiple_timestamps=True
-    )
-
-    type_name = rdf_client.ClientSummary.__name__
-    try:
-      cls = rdfvalue.RDFValue.classes.pop(type_name)
-
-      errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
-    finally:
-      rdfvalue.RDFValue.classes[type_name] = cls
-
-    self.assertLen(sample_errors, len(errors))
-    for r in errors:
-      self.assertTrue(
-          r.payload.Is(objects_pb2.SerializedValueOfUnrecognizedType.DESCRIPTOR)
-      )
-      unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType()
-      r.payload.Unpack(unrecognized_value)
-      self.assertEqual(unrecognized_value.type_name, type_name)
 
   def testCountFlowErrorsReturnsCorrectErrorsCount(self):
     client_id = db_test_utils.InitializeClient(self.db)

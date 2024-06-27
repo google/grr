@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """API handlers for stats."""
 
+from typing import Optional
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import stats_collector_instance
 from grr_response_proto.api import stats_pb2
 from grr_response_server.gui import admin_ui_metrics
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
@@ -22,14 +25,17 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
   """Lists the reports."""
 
   result_type = ApiListReportsResult
+  proto_result_type = stats_pb2.ApiListReportsResult
 
-  def Handle(self, args, context):
-    return ApiListReportsResult(
+  def Handle(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> stats_pb2.ApiListReportsResult:
+    return stats_pb2.ApiListReportsResult(
         reports=sorted(
             (
-                rdf_report_plugins.ApiReport(
-                    desc=report_cls.GetReportDescriptor(), data=None
-                )
+                stats_pb2.ApiReport(desc=report_cls.GetReportDescriptor())
                 for report_cls in report_plugins.GetAvailableReportPlugins()
             ),
             key=lambda report: (report.desc.type, report.desc.title),
@@ -50,14 +56,20 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetReportArgs
   result_type = rdf_report_plugins.ApiReport
+  proto_args_type = stats_pb2.ApiGetReportArgs
+  proto_result_type = stats_pb2.ApiReport
 
-  def Handle(self, args, context):
+  def Handle(
+      self,
+      args: stats_pb2.ApiGetReportArgs,
+      context: Optional[api_call_context.ApiCallContext],
+  ) -> stats_pb2.ApiReport:
     report = report_plugins.GetReportByName(args.name)
 
     if not args.client_label:
       args.client_label = "All"
 
-    return rdf_report_plugins.ApiReport(
+    return stats_pb2.ApiReport(
         desc=report.GetReportDescriptor(), data=report.GetReportData(args)
     )
 
@@ -82,8 +94,14 @@ class ApiIncrementCounterMetricHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiIncrementCounterMetricArgs
   result_type = ApiIncrementCounterMetricResult
+  proto_args_type = stats_pb2.ApiIncrementCounterMetricArgs
+  proto_result_type = stats_pb2.ApiIncrementCounterMetricResult
 
-  def Handle(self, args, context):
+  def Handle(
+      self,
+      args: stats_pb2.ApiIncrementCounterMetricArgs,
+      context: Optional[api_call_context.ApiCallContext],
+  ) -> stats_pb2.ApiIncrementCounterMetricResult:
     if not args.metric_name:
       raise ValueError("Missing `metric_name` input (must be provided).")
 
@@ -109,4 +127,4 @@ class ApiIncrementCounterMetricHandler(api_call_handler_base.ApiCallHandler):
         args.metric_name, fields=fields
     )
 
-    return ApiIncrementCounterMetricResult()
+    return stats_pb2.ApiIncrementCounterMetricResult()

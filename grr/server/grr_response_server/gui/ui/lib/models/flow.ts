@@ -335,7 +335,6 @@ export enum SourceType {
   GRR_CLIENT_ACTION,
   LIST_FILES,
   ARTIFACT_FILES,
-  GREP,
   COMMAND,
   REKALL_PLUGIN,
 }
@@ -380,7 +379,6 @@ export interface CommandSource extends BaseArtifactSource {
 export interface FileSource extends BaseArtifactSource {
   readonly type:
     | SourceType.FILE
-    | SourceType.GREP
     | SourceType.PATH;
   readonly paths: readonly string[];
 }

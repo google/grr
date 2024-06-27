@@ -5,10 +5,8 @@ To reduce the size of this module, additional collector flow tests are split out
 into collectors_*_test.py files.
 """
 
-import itertools
 import os
 import shutil
-from typing import IO
 from unittest import mock
 
 from absl import app
@@ -17,16 +15,12 @@ import psutil
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import factory
-from grr_response_core.lib import parser
-from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import temp
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
@@ -84,9 +78,12 @@ class TestArtifactCollectors(
   """Test the artifact collection mechanism with fake artifacts."""
 
   def testInterpolateArgs(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = db_test_utils.InitializeFlow(data_store.REL_DB, client_id)
+
     args = rdf_artifacts.ArtifactCollectorFlowArgs()
     collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(args=args)
+        rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id, args=args)
     )
 
     kb = rdf_client.KnowledgeBase()
@@ -129,13 +126,13 @@ class TestArtifactCollectors(
     # Ignore the failure in users.desktop, report the others.
     collect_flow.args.ignore_interpolation_errors = True
     list_args = collect_flow.InterpolateList(
-        ["%%users.desktop%%", r"%%users.username%%\aa"]
+        ["%%users.uid%%", r"%%users.username%%\aa"]
     )
     self.assertCountEqual(list_args, [r"test1\aa", r"test2\aa"])
 
     # Both fail.
     list_args = collect_flow.InterpolateList(
-        [r"%%users.desktop%%\aa", r"%%users.sid%%\aa"]
+        [r"%%users.uid%%\aa", r"%%users.sid%%\aa"]
     )
     self.assertCountEqual(list_args, [])
 
@@ -154,44 +151,6 @@ class TestArtifactCollectors(
         collect_flow._CombineRegex([b"a|b", b"[^_]b", b"c|d"]),
         b"(a|b)|([^_]b)|(c|d)",
     )
-
-  def testGrep(self):
-    class MockCallFlow(object):
-
-      def CallFlow(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-    mock_call_flow = MockCallFlow()
-    with mock.patch.object(
-        collectors.ArtifactCollectorFlow, "CallFlow", mock_call_flow.CallFlow
-    ):
-      args = mock.Mock()
-      args.ignore_interpolation_errors = False
-
-      collect_flow = collectors.ArtifactCollectorFlow(
-          rdf_flow_objects.Flow(args=args)
-      )
-      kb = rdf_client.KnowledgeBase()
-      kb.MergeOrAddUser(rdf_client.User(username="test1"))
-      kb.MergeOrAddUser(rdf_client.User(username="test2"))
-      collect_flow.state["knowledge_base"] = kb
-      collect_flow.current_artifact_name = "blah"
-
-      collector = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.GREP,
-          attributes={
-              "paths": ["/etc/passwd"],
-              "content_regex_list": [b"^a%%users.username%%b$"],
-          },
-      )
-      collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK, None)
-
-    conditions = mock_call_flow.kwargs["conditions"]
-    self.assertLen(conditions, 1)
-    regexes = conditions[0].contents_regex_match.regex.AsBytes()
-    self.assertCountEqual(regexes.split(b"|"), [b"(^atest1b$)", b"(^atest2b$)"])
-    self.assertEqual(mock_call_flow.kwargs["paths"], ["/etc/passwd"])
 
   def testGetArtifact(self):
     """Test we can get a basic artifact."""
@@ -424,35 +383,6 @@ class TestArtifactCollectors(
 
     return flow_test_lib.GetFlowResults(client_id, flow_id)
 
-  @mock.patch.object(
-      parsers,
-      "SINGLE_RESPONSE_PARSER_FACTORY",
-      factory.Factory(parsers.SingleResponseParser),
-  )
-  def testParsingFailure(self):
-    """Test a command artifact where parsing the response fails."""
-
-    filesystem_test_lib.Command("/bin/echo", args=["1"])
-
-    InitGRRWithTestArtifacts(self)
-
-    client_id = self.SetupClient(0, system="Linux")
-
-    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
-        "TestCmd", TestCmdNullParser
-    )
-    artifact_list = ["TestUntypedEchoArtifact"]
-
-    flow_id = flow_test_lib.StartAndRunFlow(
-        collectors.ArtifactCollectorFlow,
-        action_mocks.ActionMock(standard.ExecuteCommand),
-        artifact_list=artifact_list,
-        apply_parsers=True,
-        client_id=client_id,
-    )
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
-    self.assertEmpty(results)
-
   def testFlowProgressHasEntryForArtifactWithoutResults(self):
     client_id = self.SetupClient(0, system="Linux")
     with mock.patch.object(psutil, "process_iter", lambda: iter([])):
@@ -589,7 +519,6 @@ class TestArtifactCollectors(
         action_mocks.ActionMock(),
         artifact_list=["Planta"],
         client_id=client_id,
-        apply_parsers=False,
         use_raw_filesystem_access=True,
         implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
         max_file_size=1,
@@ -599,7 +528,6 @@ class TestArtifactCollectors(
     child_flows = data_store.REL_DB.ReadChildFlowObjects(client_id, flow_id)
     self.assertLen(child_flows, 1)
     args = mig_flow_objects.ToRDFFlow(child_flows[0]).args
-    self.assertEqual(args.apply_parsers, False)
     self.assertEqual(args.use_raw_filesystem_access, True)
     self.assertEqual(
         args.implementation_type,
@@ -607,29 +535,6 @@ class TestArtifactCollectors(
     )
     self.assertEqual(args.max_file_size, 1)
     self.assertEqual(args.ignore_interpolation_errors, True)
-
-  def testGrep2(self):
-    client_id = self.SetupClient(0, system="Linux")
-    client_mock = action_mocks.ClientFileFinderClientMock()
-    with temp.AutoTempFilePath() as temp_file_path:
-      with open(temp_file_path, "w") as f:
-        f.write("foo")
-      coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.GREP,
-          attributes={
-              "paths": [temp_file_path],
-              "content_regex_list": ["f|o+"],
-          },
-      )
-      self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(
-          client_id, client_mock, ["FakeArtifact"]
-      )
-    matches = itertools.chain.from_iterable(
-        [m.data for m in r.matches] for r in results
-    )
-    expected_matches = [b"f", b"oo"]
-    self.assertCountEqual(matches, expected_matches)
 
   def testDirectory(self):
     client_id = self.SetupClient(0, system="Linux")
@@ -867,56 +772,6 @@ class MeetsConditionsTest(test_lib.GRRBaseTest):
         supported_os=["Linux", "Windows"],
     )
     self.assertTrue(collectors.MeetsOSConditions(knowledge_base, source))
-
-
-class TestCmdParser(parser.CommandParser):
-  output_types = [rdf_client.SoftwarePackages]
-  supported_artifacts = ["TestEchoArtifact"]
-
-  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
-    del cmd, args, stderr, return_val, knowledge_base  # Unused
-    yield rdf_client.SoftwarePackages(
-        packages=[
-            rdf_client.SoftwarePackage.Installed(
-                name="Package",
-                description=stdout,
-                version="1",
-                architecture="amd64",
-            ),
-        ]
-    )
-
-
-class TestCmdNullParser(parser.CommandParser):
-  output_types = [rdf_client.SoftwarePackages]
-  supported_artifacts = ["TestUntypedEchoArtifact"]
-
-  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
-    del cmd, args, stderr, return_val, knowledge_base  # Unused
-    # This parser tests flow behavior when the input can't be parsed.
-    return []
-
-
-class TestFileParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]):
-  output_types = [rdf_protodict.AttributedDict]
-  supported_artifacts = ["TestFileArtifact"]
-
-  def ParseFile(
-      self,
-      knowledge_base: rdf_client.KnowledgeBase,
-      pathspec: rdf_paths.PathSpec,
-      filedesc: IO[bytes],
-  ):
-    del knowledge_base  # Unused.
-
-    lines = set([l.strip() for l in filedesc.read().splitlines()])
-
-    users = list(filter(None, lines))
-
-    filename = pathspec.path
-    cfg = {"filename": filename, "users": users}
-
-    yield rdf_protodict.AttributedDict(**cfg)
 
 
 def InitGRRWithTestArtifacts(self):

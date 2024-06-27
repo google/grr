@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* Added support for listing `%SystemDrive%\Users` as a supplementary mechanism
+  for collecting user profiles on Windows (additionally to using data from the
+  registry).
+
 ### Removed
 
 * Removed the `ListFlowApplicableParsers` API method.
 * Removed the `ListParsedFlowResults` API method.
+* Removed support for the `GREP` artifact source (these were internal to GRR and
+  not part of the [official specification](https://artifacts.readthedocs.io/en/latest/sources/Format-specification.html).
 
 ## [3.4.7.4] - 2024-05-28
 

@@ -1,34 +1,38 @@
 #!/usr/bin/env python
 """Tests for approval_checks module."""
 
+from typing import Iterable
 from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import approval_checks
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 
 
 def _CreateApprovalRequest(
-    approval_type, subject_id, expiration_time=None, grants=None
+    approval_type: objects_pb2.ApprovalRequest.ApprovalType,
+    subject_id: str,
+    expiration_time: rdfvalue.RDFDatetime = None,
+    grants: Iterable[objects_pb2.ApprovalGrant] = None,
 ):
   expiration_time = expiration_time or (
       rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS)
   )
-  return rdf_objects.ApprovalRequest(
+  return objects_pb2.ApprovalRequest(
       approval_type=approval_type,
       approval_id="1234",
       subject_id=subject_id,
       requestor_username="requestor",
       reason="reason",
-      timestamp=rdfvalue.RDFDatetime.Now(),
-      expiration_time=expiration_time,
+      timestamp=int(rdfvalue.RDFDatetime.Now()),
+      expiration_time=int(expiration_time),
       grants=grants,
   )
 
@@ -42,7 +46,7 @@ class CheckClientApprovalRequestTest(
         rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS)
     )
     return _CreateApprovalRequest(
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
         self.client_id,
         expiration_time=expiration_time,
         grants=grants,
@@ -63,7 +67,7 @@ class CheckClientApprovalRequestTest(
 
   def testRaisesWhenJustOneGrant(self):
     approval_request = self._CreateRequest(
-        grants=[rdf_objects.ApprovalGrant(grantor_username="grantor")]
+        grants=[objects_pb2.ApprovalGrant(grantor_username="grantor")]
     )
 
     with self.assertRaisesRegex(
@@ -77,8 +81,8 @@ class CheckClientApprovalRequestTest(
         expiration_time=rdfvalue.RDFDatetime.Now()
         - rdfvalue.Duration.From(1, rdfvalue.MINUTES),
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ],
     )
 
@@ -90,8 +94,8 @@ class CheckClientApprovalRequestTest(
   def testReturnsIfApprovalIsNotExpiredAndHasTwoGrants(self):
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -101,8 +105,8 @@ class CheckClientApprovalRequestTest(
   def testWhenAuthMgrActiveReturnsIfClientHasNoLabels(self, mock_mgr):
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -118,8 +122,8 @@ class CheckClientApprovalRequestTest(
 
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -158,8 +162,8 @@ class CheckClientApprovalRequestTest(
 
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -207,7 +211,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
 
   def testRaisesWhenJustOneGrant(self):
     approval_request = self._CreateRequest(
-        grants=[rdf_objects.ApprovalGrant(grantor_username="grantor1")]
+        grants=[objects_pb2.ApprovalGrant(grantor_username="grantor1")]
     )
 
     with self.assertRaisesRegex(
@@ -219,8 +223,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
   def testRaisesWhenNoGrantsFromAdmins(self):
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -238,8 +242,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
         expiration_time=rdfvalue.RDFDatetime.Now()
         - rdfvalue.Duration.From(1, rdfvalue.MINUTES),
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ],
     )
 
@@ -253,8 +257,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
 
     approval_request = self._CreateRequest(
         grants=[
-            rdf_objects.ApprovalGrant(grantor_username="grantor1"),
-            rdf_objects.ApprovalGrant(grantor_username="grantor2"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor1"),
+            objects_pb2.ApprovalGrant(grantor_username="grantor2"),
         ]
     )
 
@@ -264,14 +268,14 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
 class CheckHuntApprovalRequestTest(
     CheckHuntAndCronJobApprovalRequestTestMixin, test_lib.GRRBaseTest
 ):
-  APPROVAL_TYPE = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+  APPROVAL_TYPE = objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
 
 
 class CheckCronJobApprovalRequestTest(
     CheckHuntAndCronJobApprovalRequestTestMixin, test_lib.GRRBaseTest
 ):
   APPROVAL_TYPE = (
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+      objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
   )
 
 

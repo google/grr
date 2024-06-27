@@ -31,7 +31,7 @@ from grr.test_lib import test_lib
 def _ListFlows(client_id: str, creator: str):
   handler = api_flow.ApiListFlowsHandler()
   return handler.Handle(
-      api_flow.ApiListFlowsArgs(client_id=client_id, top_flows_only=True),
+      flow_pb2.ApiListFlowsArgs(client_id=client_id, top_flows_only=True),
       context=api_call_context.ApiCallContext(username=creator),
   ).items
 
@@ -661,7 +661,9 @@ class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(flows[0].client_id, self.client_id)
     self.assertEqual(flows[0].creator, self.test_username)
     self.assertEqual(flows[0].name, 'CollectMultipleFiles')
-    self.assertEqual(flows[0].args.path_expressions, ['/foo/test'])
+    flow_args = flows_pb2.CollectMultipleFilesArgs()
+    flows[0].args.Unpack(flow_args)
+    self.assertEqual(flow_args.path_expressions, ['/foo/test'])
 
 
 if __name__ == '__main__':

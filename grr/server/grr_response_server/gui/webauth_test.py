@@ -10,7 +10,7 @@ import requests
 from werkzeug import test as werkzeug_test
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import mig_crypto
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
@@ -333,10 +333,9 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
   # TODO: Stop using `rdf_crypto.Password`.
   def _SetupUser(self, user: str, password: str) -> None:
-    rdf_pw = rdf_crypto.Password()
-    rdf_pw.SetPassword(password)
-    proto_password = mig_crypto.ToProtoPassword(rdf_pw)
-    data_store.REL_DB.WriteGRRUser(user, proto_password)
+    password_proto = jobs_pb2.Password()
+    rdf_crypto.SetPassword(password_proto, password)
+    data_store.REL_DB.WriteGRRUser(user, password_proto)
 
   def testSecurityCheckUnicode(self):
     user = "żymścimił"

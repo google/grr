@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for binary management."""
 
+from typing import Optional
+
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto.api import config_pb2
 from grr_response_proto.api.root import binary_management_pb2
 from grr_response_server import access_control
 from grr_response_server import signed_binary_utils
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui.api_plugins import config as api_config
 
 
 class GrrBinaryNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -35,10 +39,12 @@ class ApiDeleteGrrBinaryArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
 
-def _GetBinaryRootUrn(binary_type):
-  if binary_type == api_config.ApiGrrBinary.Type.PYTHON_HACK:
+def _GetBinaryRootUrn(
+    binary_type: config_pb2.ApiGrrBinary.Type,
+) -> rdfvalue.RDFURN:
+  if binary_type == config_pb2.ApiGrrBinary.Type.PYTHON_HACK:
     return signed_binary_utils.GetAFF4PythonHackRoot()
-  elif binary_type == api_config.ApiGrrBinary.Type.EXECUTABLE:
+  elif binary_type == config_pb2.ApiGrrBinary.Type.EXECUTABLE:
     return signed_binary_utils.GetAFF4ExecutablesRoot()
   else:
     raise ValueError("Invalid binary type: %s" % binary_type)
@@ -48,8 +54,13 @@ class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Uploads GRR binary to a given path."""
 
   args_type = ApiUploadGrrBinaryArgs
+  proto_args_type = binary_management_pb2.ApiUploadGrrBinaryArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: binary_management_pb2.ApiUploadGrrBinaryArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     if not args.path:
       raise ValueError("Invalid binary path: %s" % args.path)
 
@@ -74,8 +85,13 @@ class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Deletes GRR binary with a given type and path."""
 
   args_type = ApiDeleteGrrBinaryArgs
+  proto_args_type = binary_management_pb2.ApiDeleteGrrBinaryArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: binary_management_pb2.ApiDeleteGrrBinaryArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     if not args.path:
       raise ValueError("Invalid binary path: %s" % args.path)
 

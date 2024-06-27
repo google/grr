@@ -4,8 +4,8 @@
 from unittest import mock
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import events as rdf_events
-from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import stats_pb2
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 
@@ -13,7 +13,7 @@ from grr_response_server.gui.api_plugins.report_plugins import report_plugins
 class FooReportPlugin(report_plugin_base.ReportPluginBase):
   """Stub report plugin."""
 
-  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.CLIENT
+  TYPE = stats_pb2.ApiReportDescriptor.ReportType.CLIENT
   TITLE = "Foo"
   SUMMARY = "Reports all foos."
 
@@ -21,30 +21,30 @@ class FooReportPlugin(report_plugin_base.ReportPluginBase):
 class BarReportPlugin(report_plugin_base.ReportPluginBase):
   """Stub report plugin."""
 
-  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
+  TYPE = stats_pb2.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Bar Activity"
   SUMMARY = "Reports bars' activity in the given time range."
   REQUIRES_TIME_RANGE = True
 
-  def GetReportData(self, get_report_args):
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART,
-        audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+  def GetReportData(
+      self, get_report_args: stats_pb2.ApiGetReportArgs
+  ) -> stats_pb2.ApiReportData:
+    return stats_pb2.ApiReportData(
+        representation_type=stats_pb2.ApiReportData.RepresentationType.AUDIT_CHART,
+        audit_chart=stats_pb2.ApiAuditChartReportData(
             used_fields=["action", "client", "timestamp", "user"],
             rows=[
-                rdf_events.AuditEvent(
+                jobs_pb2.AuditEvent(
                     user="user",
-                    action=rdf_events.AuditEvent.Action.USER_ADD,
-                    timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
-                        "2018/12/14"
+                    action=jobs_pb2.AuditEvent.Action.USER_ADD,
+                    timestamp=int(
+                        rdfvalue.RDFDatetime.FromHumanReadable("2018/12/14")
                     ),
                     id=42,
                 )
             ],
         ),
     )
-
-    return ret
 
 
 class MockedReportPlugins(object):

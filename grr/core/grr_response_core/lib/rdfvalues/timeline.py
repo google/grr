@@ -2,7 +2,7 @@
 """A module with RDF value wrappers for timeline protobufs."""
 
 import os
-from typing import Iterator
+from typing import Iterable, Iterator
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import gzchunked
@@ -73,19 +73,20 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
 
     return entry
 
-  @classmethod
-  def SerializeStream(
-      cls,
-      entries: Iterator["TimelineEntry"],
-  ) -> Iterator[bytes]:
-    return gzchunked.Serialize(_.SerializeToBytes() for _ in entries)
 
-  @classmethod
-  def DeserializeStream(
-      cls,
-      entries: Iterator[bytes],
-  ) -> Iterator["TimelineEntry"]:
-    return map(cls.FromSerializedBytes, gzchunked.Deserialize(entries))
+def SerializeTimelineEntryStream(
+    entries: Iterable[timeline_pb2.TimelineEntry],
+) -> Iterator[bytes]:
+  return gzchunked.Serialize(entry.SerializeToString() for entry in entries)
+
+
+def DeserializeTimelineEntryStream(
+    entries: Iterator[bytes],
+) -> Iterator[timeline_pb2.TimelineEntry]:
+  for entry in gzchunked.Deserialize(entries):
+    parsed_entry = timeline_pb2.TimelineEntry()
+    parsed_entry.ParseFromString(entry)
+    yield parsed_entry
 
 
 class TimelineProgress(rdf_structs.RDFProtoStruct):

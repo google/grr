@@ -88,9 +88,17 @@ export function makeLegacyLinkFromRoute(
 }
 
 /** Returns a link to the old UI, e.g. provide '#/clients/'. */
-export function makeLegacyLink(suffix: string = ''): string {
+export function makeLegacyLink(suffix = ''): string {
   const url = new URL(window.location.origin);
   url.pathname = LEGACY_ROUTE_PREFIX;
   url.hash = '';
   return url.toString() + suffix;
+}
+
+/** Returns a link to a flow, e.g. provides '#BASEURL/v2/clients/clientid/flow/flowid'. */
+export function makeFlowLink(clientId = '', flowId = ''): string {
+  let flowlink = '';
+  const url = new URL(window.location.origin);
+  flowlink = 'v2/clients/' + clientId + '/flows/' + flowId;
+  return url.toString() + flowlink;
 }

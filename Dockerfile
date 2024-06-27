@@ -1,6 +1,6 @@
 # A Docker image capable of running all GRR components.
 #
-# See https://hub.docker.com/r/grrdocker/grr/
+# See https://github.com/google/grr/pkgs/container/grr
 #
 # We have configured Github Actions to trigger an image build every
 # time a new a PUSH happens in the GRR github repository.

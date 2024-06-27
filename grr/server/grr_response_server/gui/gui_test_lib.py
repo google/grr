@@ -656,7 +656,24 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     Raises:
       ValueError: An invalid selector was provided - must be CSS.
     """
-    self.Click(target)
+    target = self.WaitUntil(self.GetElement, target)
+
+    # Latest versions of Angular Material use a different implementation of
+    # mat-select, which uses a different technique to increase the clickable
+    # area of the mat-select element. Thus we need to check if there's a
+    # touch-target element, and if so, use it for clicking.
+    touch_target = self.driver.execute_script(
+        """return $(arguments[0]).siblings('.mat-mdc-paginator-touch-target')[0]""",
+        target,
+    )
+    if touch_target:
+      target = touch_target
+
+    try:
+      target.click()
+    except exceptions.ElementNotInteractableException:
+      self.driver.execute_script("arguments[0].scrollIntoView();", target)
+      target.click()
 
     def GetOption():
       options = self.driver.execute_script(

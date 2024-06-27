@@ -25,6 +25,11 @@ import {
   ConfigGlobalStoreMock,
   mockConfigGlobalStore,
 } from '../../../../store/config_global_store_test_util';
+import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
+import {
+  NewHuntLocalStoreMock,
+  mockNewHuntLocalStore,
+} from '../../../../store/new_hunt_local_store_test_util';
 import {initTestEnvironment} from '../../../../testing';
 
 import {ClientsForm} from './clients_form';
@@ -80,8 +85,12 @@ async function selectBoxOption(
 
 describe('clients form test', () => {
   let configGlobalStoreMock: ConfigGlobalStoreMock;
+  let newHuntLocalStoreMock: NewHuntLocalStoreMock;
+
   beforeEach(waitForAsync(() => {
     configGlobalStoreMock = mockConfigGlobalStore();
+    newHuntLocalStoreMock = mockNewHuntLocalStore();
+
     TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, ClientsFormModule],
       providers: [
@@ -91,7 +100,11 @@ describe('clients form test', () => {
         },
       ],
       teardown: {destroyAfterEach: false},
-    }).compileComponents();
+    })
+      .overrideProvider(NewHuntLocalStore, {
+        useFactory: () => newHuntLocalStoreMock,
+      })
+      .compileComponents();
   }));
 
   it('toggles contents on click on toggle button', () => {
@@ -140,11 +153,46 @@ describe('clients form test', () => {
     ).not.toBeNull();
   });
 
-  it('renders an os form by default', () => {
+  it('renders forms by default', async () => {
     const fixture = TestBed.createComponent(ClientsForm);
     fixture.detectChanges();
-    const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Operating System');
+    newHuntLocalStoreMock.mockedObservables.defaultClientRuleSet$.next({
+      matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL,
+      rules: [
+        {ruleType: ForemanClientRuleType.OS},
+        {
+          ruleType: ForemanClientRuleType.LABEL,
+          label: {
+            matchMode: ForemanLabelClientRuleMatchMode.DOES_NOT_MATCH_ANY,
+            labelNames: ['label-1', 'label-2'],
+          },
+        },
+        {
+          ruleType: ForemanClientRuleType.REGEX,
+          regex: {attributeRegex: 'some*regex'},
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.css('[name=condition_0]')).nativeElement
+        .textContent,
+    ).toContain('Operating System');
+
+    expect(
+      await getSelectBoxValue(fixture, '[id=condition_1_match_mode]'),
+    ).toBe("Doesn't match any");
+    expect(await getInputValue(fixture, '[id=condition_1_label_name_0]')).toBe(
+      'label-1',
+    );
+    expect(await getInputValue(fixture, '[id=condition_1_label_name_1]')).toBe(
+      'label-2',
+    );
+
+    expect(await getInputValue(fixture, '[id=condition_2_regex_value]')).toBe(
+      'some*regex',
+    );
   });
 
   it('os rule validator shows warning to user', async () => {
@@ -493,5 +541,54 @@ describe('clients form test', () => {
     expect(await getCheckboxValue(fixture, '[id=condition_0_darwin]')).toBe(
       false,
     );
+  });
+
+  it('shows presubmit warning when the rules are not valid', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    newHuntLocalStoreMock.mockedObservables.presubmitOptions$.next({
+      markdownText: 'you shall not pass',
+      expectedExcludedLabels: ['no', 'also-no'],
+    });
+    fixture.detectChanges();
+
+    // We need at least one `valueChanges` so our combine latest activates.
+    await setCheckboxValue(fixture, '[id=condition_0_linux]', true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.css('mat-card.warning')).nativeElement
+        .textContent,
+    ).toContain('you shall not pass');
+  });
+
+  it('DOES NOT show presubmit warning when the rules are valid', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    newHuntLocalStoreMock.mockedObservables.presubmitOptions$.next({
+      markdownText: 'you shall not pass',
+      expectedExcludedLabels: ['no', 'also-no'],
+    });
+    fixture.detectChanges();
+
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(MatMenuHarness);
+    await selectMenuOptionAt(menu, 1); // adds Labels form
+    await selectBoxOption(
+      fixture,
+      '[id=condition_1_match_mode]',
+      "Doesn't match any",
+    );
+    await setInputValue(fixture, 'input[id=condition_1_label_name_0]', 'no');
+    const addLabelButton = fixture.debugElement.query(
+      By.css('#add-label-name'),
+    );
+    addLabelButton.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    await setInputValue(
+      fixture,
+      'input[id=condition_1_label_name_1]',
+      'also-no',
+    );
+
+    expect(fixture.debugElement.query(By.css('mat-card.warning'))).toBeFalsy();
   });
 });

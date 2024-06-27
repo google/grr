@@ -618,14 +618,7 @@ message ArtifactCollectorFlowArgs {
     default = false
   ];
 
-  optional bool apply_parsers = 8 [
-    (sem_type) = {
-      description: "If True, apply any relevant parser to the collected data. "
-                   "If False, return the raw collected data e.g Files or Registry Keys.",
-      label: ADVANCED,
-    },
-    default = true
-  ];
+  reserved 8;
 
   optional uint64 max_file_size = 9 [
     (sem_type) = {

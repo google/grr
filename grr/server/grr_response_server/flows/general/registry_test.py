@@ -6,10 +6,10 @@ import os
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server.flows.general import registry
@@ -17,7 +17,6 @@ from grr_response_server.flows.general import registry_finder
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -99,7 +98,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertCountEqual(basenames, ["Sidebar", "MctAdmin"])
 
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
-    user = rdf_client.User(sid="S-1-5-20")
+    user = knowledge_base_pb2.User(username="foo", sid="S-1-5-20")
     client_id = self.SetupClient(0, users=[user])
 
     session_id = self.RunFlow(client_id, [
@@ -322,7 +321,6 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 class TestRegistryFlows(RegistryFlowTest):
   """Test the Run Key registry flows."""
 
-  @parser_test_lib.WithAllParsers
   def testCollectRunKeyBinaries(self):
     """Read Run key from the client_fixtures to test parsing and storage."""
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")

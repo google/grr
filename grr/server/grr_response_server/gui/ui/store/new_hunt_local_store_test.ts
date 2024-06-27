@@ -7,6 +7,7 @@ import {
   ApiHuntState,
   ForemanClientRuleSet,
   ForemanClientRuleSetMatchMode,
+  ForemanClientRuleType,
   OutputPluginDescriptor,
 } from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
@@ -186,9 +187,94 @@ describe('NewHuntLocalStore', () => {
       },
     });
 
-    expect(await firstValueFrom(newHuntLocalStore.safetyLimits$)).toEqual(
-      jasmine.objectContaining(expected),
+    expect(
+      await firstValueFrom(newHuntLocalStore.defaultSafetyLimits$),
+    ).toEqual(jasmine.objectContaining(expected));
+  }));
+
+  it('updates client rule set', fakeAsync(async () => {
+    const expected: ForemanClientRuleSet = {
+      matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL,
+      rules: [
+        {ruleType: ForemanClientRuleType.OS},
+        {
+          ruleType: ForemanClientRuleType.LABEL,
+          label: {labelNames: ['some label']},
+        },
+        {
+          ruleType: ForemanClientRuleType.REGEX,
+          regex: {attributeRegex: 'some regex'},
+        },
+      ],
+    };
+
+    configGlobalStore.mockedObservables.uiConfig$.next({
+      defaultHuntRunnerArgs: {
+        clientRuleSet: {
+          matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL,
+          rules: [
+            {
+              ruleType: ForemanClientRuleType.LABEL,
+              label: {labelNames: ['some label']},
+            },
+            {
+              ruleType: ForemanClientRuleType.REGEX,
+              regex: {attributeRegex: 'some regex'},
+            },
+          ],
+        },
+      },
+    });
+
+    expect(
+      await firstValueFrom(newHuntLocalStore.defaultClientRuleSet$),
+    ).toEqual(jasmine.objectContaining(expected));
+  }));
+
+  it('emits EMPTY presubmit options - no config', fakeAsync(async () => {
+    configGlobalStore.mockedObservables.uiConfig$.next({
+      huntConfig: {
+        makeDefaultExcludeLabelsAPresubmitCheck: false,
+      },
+    });
+    newHuntLocalStore.setCurrentDescription('');
+
+    expect(
+      await firstValueFrom(newHuntLocalStore.presubmitOptions$),
+    ).toBeFalsy();
+  }));
+
+  it('emits EMPTY presubmit options - force tag', fakeAsync(async () => {
+    configGlobalStore.mockedObservables.uiConfig$.next({
+      huntConfig: {
+        makeDefaultExcludeLabelsAPresubmitCheck: true,
+      },
+    });
+    newHuntLocalStore.setCurrentDescription('something FORCE another thing');
+
+    expect(
+      await firstValueFrom(newHuntLocalStore.presubmitOptions$),
+    ).toBeFalsy();
+  }));
+
+  it('emits presubmit options', fakeAsync(async () => {
+    configGlobalStore.mockedObservables.uiConfig$.next({
+      huntConfig: {
+        makeDefaultExcludeLabelsAPresubmitCheck: true,
+        defaultExcludeLabels: ['exterminate', 'exterminate'],
+        presubmitWarningMessage: 'nonono',
+      },
+    });
+    newHuntLocalStore.setCurrentDescription('no skip tag');
+
+    const presubmitOptions = await firstValueFrom(
+      newHuntLocalStore.presubmitOptions$,
     );
+    expect(presubmitOptions?.markdownText).toContain('nonono');
+    expect(presubmitOptions?.expectedExcludedLabels).toEqual([
+      'exterminate',
+      'exterminate',
+    ]);
   }));
 
   it('runs a hunt', fakeAsync(() => {

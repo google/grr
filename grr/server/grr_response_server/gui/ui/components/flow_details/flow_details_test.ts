@@ -1,3 +1,4 @@
+import {Clipboard} from '@angular/cdk/clipboard';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
@@ -5,13 +6,12 @@ import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
-
 import {DefaultDetails} from '../../components/flow_details/plugins/default_details';
 import {MultiGetFileDetails} from '../../components/flow_details/plugins/multi_get_file_details';
 import {getExportedResultsCsvUrl} from '../../lib/api/http_api_service';
 import {
-  Flow,
   FLOW_LIST_ITEMS_BY_TYPE,
+  Flow,
   FlowDescriptor,
   FlowState,
   FlowType,
@@ -22,7 +22,6 @@ import {
   DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
   initTestEnvironment,
 } from '../../testing';
-
 import {FlowDetails} from './flow_details';
 import {FlowDetailsModule} from './module';
 import {FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
@@ -50,16 +49,30 @@ class TestHostComponent {
 }
 
 describe('FlowDetails Component', () => {
+  let clipboard: Partial<Clipboard>;
+
   beforeEach(waitForAsync(() => {
+    clipboard = {
+      copy: jasmine.createSpy('copy').and.returnValue(true),
+    };
+
     TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, FlowDetailsModule, RouterTestingModule],
       declarations: [TestHostComponent],
       providers: [
         ...STORE_PROVIDERS,
         DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
+        {
+          provide: Clipboard,
+          useFactory: () => clipboard,
+        },
       ],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
+
+    clipboard = {
+      copy: jasmine.createSpy('copy').and.returnValue(true),
+    };
   }));
 
   function createComponent(
@@ -81,6 +94,7 @@ describe('FlowDetails Component', () => {
   const SAMPLE_FLOW_LIST_ENTRY = Object.freeze(
     newFlow({
       flowId: '42',
+      clientId: 'C.123',
       lastActiveAt: new Date('2019-09-23T12:00:00+0000'),
       startedAt: new Date('2019-08-23T12:00:00+0000'),
       name: sampleFlowName,
@@ -418,5 +432,26 @@ describe('FlowDetails Component', () => {
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.menu-button'))).toBeFalsy();
+  });
+
+  it('emits the right copy link', () => {
+    const fixture = createComponent(
+      {...SAMPLE_FLOW_LIST_ENTRY, flowId: '456', clientId: 'C.123'},
+      SAMPLE_FLOW_DESCRIPTOR,
+      false,
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.css('app-copy-button.flow-link')),
+    ).toBeTruthy();
+
+    fixture.debugElement
+      .query(By.css('app-copy-button.flow-link'))
+      .triggerEventHandler('click', new MouseEvent('click'));
+
+    expect(clipboard.copy).toHaveBeenCalledOnceWith(
+      jasmine.stringMatching(new RegExp('^http.*/clients/C.123/flows/456')),
+    );
   });
 });

@@ -2,12 +2,12 @@
 """Clients-related part of GRR API client library."""
 
 from collections import abc
+import time
 from typing import Sequence
 
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
-from grr_response_core.lib import rdfvalue
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import user_pb2
@@ -209,10 +209,9 @@ class ClientBase(object):
 
     expiration_time_us = 0
     if expiration_duration_days != 0:
-      expiration_time_us = (
-          rdfvalue.RDFDatetime.Now()
-          + rdfvalue.Duration.From(expiration_duration_days, rdfvalue.DAYS)
-      ).AsMicrosecondsSinceEpoch()
+      expiration_time_us = int(
+          (time.time() + expiration_duration_days * 24 * 3600) * 1e6
+      )
 
     approval = user_pb2.ApiClientApproval(
         reason=reason,

@@ -12,3 +12,7 @@ class AdminUIClientWarningRule(rdf_structs.RDFProtoStruct):
 class AdminUIClientWarningsConfigOption(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.AdminUIClientWarningsConfigOption
   rdf_deps = [AdminUIClientWarningRule]
+
+
+class AdminUIHuntConfig(rdf_structs.RDFProtoStruct):
+  protobuf = config_pb2.AdminUIHuntConfig

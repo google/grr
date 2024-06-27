@@ -34,7 +34,7 @@
         "items": [
           {
             "count": "1",
-            "type": "RDFString"
+            "type": "DummyFlowResult"
           }
         ]
       },
@@ -1069,6 +1069,220 @@
       },
       "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
+    }
+  ],
+  "ApiGetConfigOptionHandler": [
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Client.company_name",
+        "type": "RDFString",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.StringValue",
+          "value": "Monstros S.A."
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Client.company_name"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "AdminUI.hunt_config",
+        "type": "AdminUIHuntConfig",
+        "value": {
+          "@type": "type.googleapis.com/grr.AdminUIHuntConfig",
+          "defaultExcludeLabels": [
+            "oh-oh"
+          ]
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/AdminUI.hunt_config"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "42"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "42"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "42"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "42"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Hunt.default_client_rate",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "42"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Hunt.default_client_rate"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Email.enable_custom_email_address",
+        "type": "RDFInteger",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "1"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Email.enable_custom_email_address"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": true,
+        "name": "Cron.disabled_cron_jobs"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Cron.disabled_cron_jobs"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Server.fleetspeak_last_ping_threshold",
+        "type": "Duration",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.UInt64Value",
+          "value": "3600000000"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Server.fleetspeak_last_ping_threshold"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "Server.raw_filesystem_access_pathtype",
+        "type": "EnumNamedValue",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.Int64Value",
+          "value": "1"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Server.raw_filesystem_access_pathtype"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "ClientBuilder.build_type",
+        "type": "RDFString",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.StringValue",
+          "value": "Debug"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/ClientBuilder.build_type"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": true,
+        "name": "ClientBuilder.target_platforms"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/ClientBuilder.target_platforms"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "ClientRepacker.output_filename",
+        "type": "RDFString",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.StringValue",
+          "value": "GRR_0.0.0.0_"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/ClientRepacker.output_filename"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isRedacted": true,
+        "name": "Mysql.password"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/Mysql.password"
     }
   ],
   "ApiGetCronJobApprovalHandler": [
@@ -4302,7 +4516,6 @@
                 "stUid": 139592
               }
             },
-            "payloadType": "FileFinderResult",
             "timestamp": "42000000"
           }
         ]
@@ -4907,19 +5120,17 @@
           {
             "clientId": "C.1000000000000000",
             "payload": {
-              "@type": "type.googleapis.com/google.protobuf.StringValue",
-              "value": "blah1"
+              "@type": "type.googleapis.com/grr.DummyFlowResult",
+              "flowOutput": "blah1"
             },
-            "payloadType": "RDFString",
             "timestamp": "2000000"
           },
           {
             "clientId": "C.1000000000000000",
             "payload": {
-              "@type": "type.googleapis.com/google.protobuf.StringValue",
-              "value": "blah2-foo"
+              "@type": "type.googleapis.com/grr.DummyFlowResult",
+              "flowOutput": "blah2-foo"
             },
-            "payloadType": "RDFString",
             "timestamp": "43000000"
           }
         ],
@@ -4936,10 +5147,9 @@
           {
             "clientId": "C.1000000000000000",
             "payload": {
-              "@type": "type.googleapis.com/google.protobuf.StringValue",
-              "value": "blah1"
+              "@type": "type.googleapis.com/grr.DummyFlowResult",
+              "flowOutput": "blah1"
             },
-            "payloadType": "RDFString",
             "timestamp": "2000000"
           }
         ],
@@ -4956,10 +5166,9 @@
           {
             "clientId": "C.1000000000000000",
             "payload": {
-              "@type": "type.googleapis.com/google.protobuf.StringValue",
-              "value": "blah2-foo"
+              "@type": "type.googleapis.com/grr.DummyFlowResult",
+              "flowOutput": "blah2-foo"
             },
-            "payloadType": "RDFString",
             "timestamp": "43000000"
           }
         ],
@@ -4976,10 +5185,9 @@
           {
             "clientId": "C.1000000000000000",
             "payload": {
-              "@type": "type.googleapis.com/google.protobuf.StringValue",
-              "value": "blah2-foo"
+              "@type": "type.googleapis.com/grr.DummyFlowResult",
+              "flowOutput": "blah2-foo"
             },
-            "payloadType": "RDFString",
             "timestamp": "43000000"
           }
         ],

@@ -6,6 +6,7 @@ from typing import Generator, Iterable, Iterator, Optional, Sequence, Tuple, Uni
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
@@ -44,8 +45,9 @@ def SignedBinaryIDFromURN(
         path=binary_urn.RelativeName(GetAFF4ExecutablesRoot()),
     )
   else:
-    raise ValueError("Unable to determine type of signed binary: %s." %
-                     binary_urn)
+    raise ValueError(
+        "Unable to determine type of signed binary: %s." % binary_urn
+    )
 
 
 def _SignedBinaryURNFromID(
@@ -68,11 +70,13 @@ class SignedBinaryNotFoundError(Exception):
     super().__init__("Binary with urn %s was not found." % binary_urn)
 
 
-def WriteSignedBinary(binary_urn: rdfvalue.RDFURN,
-                      binary_content: bytes,
-                      private_key: rdf_crypto.RSAPrivateKey,
-                      public_key: Optional[rdf_crypto.RSAPublicKey],
-                      chunk_size: int = 1024):
+def WriteSignedBinary(
+    binary_urn: rdfvalue.RDFURN,
+    binary_content: bytes,
+    private_key: rdf_crypto.RSAPrivateKey,
+    public_key: Optional[rdf_crypto.RSAPublicKey],
+    chunk_size: int = 1024,
+):
   """Signs a binary and saves it to the datastore.
 
   If a signed binary with the given URN already exists, its contents will get
@@ -89,11 +93,12 @@ def WriteSignedBinary(binary_urn: rdfvalue.RDFURN,
   """
   blob_references = objects_pb2.BlobReferences()
   for chunk_offset in range(0, len(binary_content), chunk_size):
-    chunk = binary_content[chunk_offset:chunk_offset + chunk_size]
+    chunk = binary_content[chunk_offset : chunk_offset + chunk_size]
     blob_rdf = rdf_crypto.SignedBlob()
     blob_rdf.Sign(chunk, private_key, verify_key=public_key)
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(
-        blob_rdf.SerializeToBytes())
+        blob_rdf.SerializeToBytes()
+    )
     blob_references.items.append(
         objects_pb2.BlobReference(
             offset=chunk_offset,
@@ -102,11 +107,14 @@ def WriteSignedBinary(binary_urn: rdfvalue.RDFURN,
         )
     )
   data_store.REL_DB.WriteSignedBinaryReferences(
-      SignedBinaryIDFromURN(binary_urn), blob_references)
+      SignedBinaryIDFromURN(binary_urn), blob_references
+  )
 
 
-def WriteSignedBinaryBlobs(binary_urn: rdfvalue.RDFURN,
-                           blobs: Iterable[rdf_crypto.SignedBlob]):
+def WriteSignedBinaryBlobs(
+    binary_urn: rdfvalue.RDFURN,
+    blobs: Iterable[jobs_pb2.SignedBlob],
+) -> None:
   """Saves signed blobs to the datastore.
 
   If a signed binary with the given URN already exists, its contents will get
@@ -119,7 +127,9 @@ def WriteSignedBinaryBlobs(binary_urn: rdfvalue.RDFURN,
   blob_references = objects_pb2.BlobReferences()
   current_offset = 0
   for blob in blobs:
-    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob.SerializeToBytes())
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(
+        blob.SerializeToString()
+    )
     blob_references.items.append(
         objects_pb2.BlobReference(
             offset=current_offset,
@@ -129,7 +139,8 @@ def WriteSignedBinaryBlobs(binary_urn: rdfvalue.RDFURN,
     )
     current_offset += len(blob.data)
   data_store.REL_DB.WriteSignedBinaryReferences(
-      SignedBinaryIDFromURN(binary_urn), blob_references)
+      SignedBinaryIDFromURN(binary_urn), blob_references
+  )
 
 
 def DeleteSignedBinary(binary_urn: rdfvalue.RDFURN):
@@ -143,11 +154,13 @@ def DeleteSignedBinary(binary_urn: rdfvalue.RDFURN):
   """
   try:
     data_store.REL_DB.ReadSignedBinaryReferences(
-        SignedBinaryIDFromURN(binary_urn))
+        SignedBinaryIDFromURN(binary_urn)
+    )
   except db.UnknownSignedBinaryError:
     raise SignedBinaryNotFoundError(binary_urn)
   data_store.REL_DB.DeleteSignedBinaryReferences(
-      SignedBinaryIDFromURN(binary_urn))
+      SignedBinaryIDFromURN(binary_urn)
+  )
 
 
 def FetchURNsForAllSignedBinaries() -> Sequence[rdfvalue.RDFURN]:
@@ -176,14 +189,16 @@ def FetchBlobsForSignedBinaryByID(
   """
   try:
     references, timestamp = data_store.REL_DB.ReadSignedBinaryReferences(
-        binary_id)
+        binary_id
+    )
   except db.UnknownSignedBinaryError:
     raise SignedBinaryNotFoundError(_SignedBinaryURNFromID(binary_id))
   blob_ids = [blob_models.BlobID(r.blob_id) for r in references.items]
   raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
   blobs = (
       rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
-      for raw_blob in raw_blobs)
+      for raw_blob in raw_blobs
+  )
   return blobs, timestamp
 
 
@@ -223,7 +238,7 @@ def FetchBlobForSignedBinaryByID(
 
 
 def FetchBlobsForSignedBinaryByURN(
-    binary_urn: rdfvalue.RDFURN
+    binary_urn: rdfvalue.RDFURN,
 ) -> Tuple[Iterator[rdf_crypto.SignedBlob], rdfvalue.RDFDatetime]:
   """Retrieves blobs for the given binary from the datastore.
 
@@ -265,13 +280,13 @@ def FetchBlobForSignedBinaryByURN(
 
 
 def FetchSizeOfSignedBinary(
-    binary_id_or_urn: Union[rdf_objects.SignedBinaryID,
-                            rdfvalue.RDFURN]) -> int:
+    binary_id_or_urn: Union[rdf_objects.SignedBinaryID, rdfvalue.RDFURN],
+) -> int:
   """Returns the size of the given binary (in bytes).
 
   Args:
     binary_id_or_urn: SignedBinaryID or RDFURN that uniquely identifies the
-        binary.
+      binary.
 
   Raises:
     SignedBinaryNotFoundError: If no signed binary with the given URN exists.
@@ -288,9 +303,9 @@ def FetchSizeOfSignedBinary(
   return last_reference.offset + last_reference.size
 
 
-def StreamSignedBinaryContents(blob_iterator: Iterator[rdf_crypto.SignedBlob],
-                               chunk_size: int = 1024
-                              ) -> Generator[bytes, None, None]:
+def StreamSignedBinaryContents(
+    blob_iterator: Iterator[rdf_crypto.SignedBlob], chunk_size: int = 1024
+) -> Generator[bytes, None, None]:
   """Yields the contents of the given binary in chunks of the given size.
 
   Args:

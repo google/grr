@@ -828,37 +828,40 @@ class HMAC:
       raise VerificationError(e)
 
 
+def _CalculateHash(password: bytes, salt: bytes, iteration_count: int) -> bytes:
+  kdf = pbkdf2.PBKDF2HMAC(
+      algorithm=hashes.SHA256(),
+      length=32,
+      salt=salt,
+      iterations=iteration_count,
+      backend=openssl.backend,
+  )
+  return kdf.derive(password)
+
+
+def SetPassword(proto: jobs_pb2.Password, password: str) -> None:
+  """Sets the password in the proto."""
+
+  proto.salt = b"%016x" % random.UInt64()
+  proto.iteration_count = 100000
+
+  # prevent non-descriptive 'key_material must be bytes' error later
+  password_bytes = password.encode("utf-8")
+
+  proto.hashed_pwd = _CalculateHash(
+      password_bytes, proto.salt, proto.iteration_count
+  )
+
+
+def CheckPassword(proto: jobs_pb2.Password, password: str) -> bool:
+  # prevent non-descriptive 'key_material must be bytes' error later
+  password_bytes = password.encode("utf-8")
+
+  h = _CalculateHash(password_bytes, proto.salt, proto.iteration_count)
+  return constant_time.bytes_eq(h, proto.hashed_pwd)
+
+
 class Password(rdf_structs.RDFProtoStruct):
   """A password stored in the database."""
 
   protobuf = jobs_pb2.Password
-
-  def _CalculateHash(self, password, salt, iteration_count):
-    kdf = pbkdf2.PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=iteration_count,
-        backend=openssl.backend,
-    )
-    return kdf.derive(password)
-
-  def SetPassword(self, password):
-    self.salt = b"%016x" % random.UInt64()
-    self.iteration_count = 100000
-
-    # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, str):
-      password = password.encode("utf-8")
-
-    self.hashed_pwd = self._CalculateHash(
-        password, self.salt, self.iteration_count
-    )
-
-  def CheckPassword(self, password):
-    # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, str):
-      password = password.encode("utf-8")
-
-    h = self._CalculateHash(password, self.salt, self.iteration_count)
-    return constant_time.bytes_eq(h, self.hashed_pwd)

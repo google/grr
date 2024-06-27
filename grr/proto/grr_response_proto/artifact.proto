@@ -25,7 +25,7 @@ message ArtifactSource {
     GRR_CLIENT_ACTION = 40;
     LIST_FILES = 41;
     ARTIFACT_FILES = 42;
-    GREP = 43;
+    reserved 43;
 
     COMMAND = 45;
     REKALL_PLUGIN = 46;
@@ -105,16 +105,6 @@ message Artifact {
   }];
 }
 
-message ArtifactProcessorDescriptor {
-  optional string name = 1
-      [(sem_type) = { description: "Processor's name as registered in GRR." }];
-  optional string description = 2
-      [(sem_type) = { description: "Description of this processor." }];
-  repeated string output_types = 3 [(sem_type) = {
-    description: "The semantic types that can be produced by the processor."
-  }];
-}
-
 message ArtifactDescriptor {
   optional Artifact artifact = 1
       [(sem_type) = { description: "Artifact itself." }];
@@ -124,9 +114,7 @@ message ArtifactDescriptor {
   repeated string path_dependencies = 3 [(sem_type) = {
     description: "Names of KB objects this artifact depends on."
   }];
-  repeated ArtifactProcessorDescriptor processors = 5 [(sem_type) = {
-    description: "Processors that will process this artifact's output."
-  }];
+  reserved 5;
   optional bool is_custom = 6 [(sem_type) = {
     description: "If True, this artifact was manually uploaded by the user."
   }];

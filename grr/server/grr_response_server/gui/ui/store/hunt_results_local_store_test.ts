@@ -41,7 +41,6 @@ function generateResultListFromResult<T extends HuntResultOrError>(
 
 const mockHuntResult: ApiHuntResult = {
   'clientId': 'mockClientId',
-  'payloadType': 'SomeResultType',
   'timestamp': '1669027009243432',
 };
 

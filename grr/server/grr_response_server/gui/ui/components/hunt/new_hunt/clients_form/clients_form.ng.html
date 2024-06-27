@@ -23,6 +23,20 @@
           <mat-option [value]="RuleSetMatchMode.MATCH_ANY">Match Any (or)</mat-option>
         </mat-select>
       </mat-form-field>
+
+      <!-- TODO: Refactor into markdown component. -->
+      <ng-container *ngIf="presubmitWarning$ | async as warning">
+        <mat-card class="warning">
+          <mat-card-content>
+            <mat-icon>info</mat-icon>
+            <div class="text-container" [innerHTML]="warning.htmlSnippet | sanitize"></div>
+            <button mat-button type="button" class="reset" (click)="resetDefault()" *ngIf="defaultClientRuleSet">
+              Reset default
+            </button>
+          </mat-card-content>
+        </mat-card>
+      </ng-container>
+
       <div *ngIf="conditions().controls.length > 0" class="rules-container">
         <div *ngFor="let condition of conditions().controls; let conditionIndex=index"
              [attr.name]="'condition_'+conditionIndex"

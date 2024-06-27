@@ -1,0 +1,59 @@
+// Copyright 2024 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.winreg;
+
+// [Predefined key][1] of the Windows registry.
+//
+// Note that the integer representation **does not** correspond to the `HKEY_*`
+// constants as defined in the [`winreg.h`] header (they are out of the allowed
+// range for Protocol Buffer enums).
+//
+// [1]: https://learn.microsoft.com/en-us/windows/win32/sysinfo/predefined-keys
+enum PredefinedKey {
+    UNKNOWN = 0;
+    CLASSES_ROOT = 1;
+    CURRENT_USER = 2;
+    LOCAL_MACHINE = 3;
+    USERS = 4;
+    PERFORMANCE_DATA = 5;
+    CURRENT_CONFIG = 6;
+    PERFORMANCE_TEXT = 7;
+    PERFORMANCE_NLSTEXT = 8;
+    CURRENT_USER_LOCAL_SETTINGS = 9;
+}
+
+// [Value][1] of the Windows registry.
+//
+// [1]: https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
+message Value {
+    // Name of the value.
+    string name = 1;
+
+    // Data associated with the value.
+    oneof data {
+        // Byte string.
+        bytes bytes = 2;
+        // Unicode string.
+        string string = 3;
+        // Unicode string with unexpanded references to environment variables.
+        string expand_string = 4;
+        // Sequence of unicode strings.
+        StringList multi_string = 5;
+        // Symbolic link to another registry key.
+        string link = 6;
+        // 32-bit number.
+        uint32 uint32 = 7;
+        // 64-bit number.
+        uint64 uint64 = 8;
+    }
+
+    // Wrapper for list of strings to be used in `oneof` fields.
+    message StringList {
+        // Actual list of strings.
+        repeated string values = 1;
+    }
+}

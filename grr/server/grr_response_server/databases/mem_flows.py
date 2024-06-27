@@ -932,22 +932,6 @@ class InMemoryDBFlowMixin(object):
       container_copy.append(x)
     results = sorted(container_copy, key=lambda r: r.timestamp)
 
-    # This is done in order to pass the tests that try to deserialize
-    # value of an unrecognized type.
-    for r in results:
-      # TODO: for separation of concerns reasons,
-      # ReadFlowResults/ReadFlowErrors shouldn't do the payload type validation,
-      # they should be completely agnostic to what payloads get written/read
-      # to/from the database. Keeping this logic here temporarily
-      # to narrow the scope of the RDFProtoStruct->protos migration.
-      cls_name = db_utils.TypeURLToRDFTypeName(r.payload.type_url)
-      if cls_name not in rdfvalue.RDFValue.classes:
-        unrecognized_value = objects_pb2.SerializedValueOfUnrecognizedType(
-            type_name=cls_name,
-            value=r.payload.value,
-        )
-        r.payload.Pack(unrecognized_value)
-
     if with_tag is not None:
       results = [i for i in results if i.tag == with_tag]
 

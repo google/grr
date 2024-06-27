@@ -8,7 +8,6 @@ from unittest import mock
 from absl import app
 
 from grr_response_core import config
-from grr_response_core.lib import rdfvalue
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_integration_test_lib
@@ -38,14 +37,14 @@ class ApiClientLibApprovalsTest(
     api_auth_manager.InitializeApiAuthManager()
 
   def testCreateClientApproval(self):
-    with mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now:
-      oneday_s = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
+    with mock.patch.object(time, "time") as mock_now:
+      oneday_s = 24 * 60 * 60
       mock_now.return_value = oneday_s  # 'Now' is 1 day past epoch
 
       # 'Now' is one day past epoch, plus default expiration duration
       twentyninedays_us = (
           config.CONFIG["ACL.token_expiry"] * 1000000
-      ) + oneday_s.AsMicrosecondsSinceEpoch()
+      ) + oneday_s * 1e6
 
       client_id = self.SetupClient(0)
       self.CreateUser("foo")
@@ -64,11 +63,9 @@ class ApiClientLibApprovalsTest(
 
   def testCreateClientApprovalNonDefaultExpiration(self):
     """Tests requesting approval with a non-default expiration duration."""
-    with mock.patch.object(rdfvalue.RDFDatetime, "Now") as mock_now:
-      mock_now.return_value = (  # 'Now' is 1 day past epoch
-          rdfvalue.RDFDatetime.FromSecondsSinceEpoch(24 * 60 * 60)
-      )
-      # 'Now' is one day past epoch, plus 120 days
+    with mock.patch.object(time, "time") as mock_now:
+      mock_now.return_value = 24 * 60 * 60  # 'time.time' is 1 day past epoch
+
       onetwentydays = 120
       onetwentyonedays_us = 121 * 24 * 60 * 60 * 1000000
 

@@ -5,7 +5,6 @@ import stat
 from typing import Collection, Optional, Sequence, Set, Tuple
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import interpolation
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -502,41 +501,22 @@ class ClientFileFinder(flow_base.FlowBase):
     self.state.num_blob_waits = 0
 
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
-    kb: Optional[knowledge_base_pb2.ClientKnowledgeBase] = (
-        self.client_knowledge_base
+    kb: knowledge_base_pb2.KnowledgeBase = (
+        self.client_knowledge_base or knowledge_base_pb2.KnowledgeBase()
     )
 
     paths = list()
-    missing_attrs = list()
-    unknown_attrs = list()
 
     for glob in globs:
-      # Only fail hard on missing knowledge base if there's actual
-      # interpolation to be done.
-      if kb is None:
-        interpolator = interpolation.Interpolator(str(glob))
-        if interpolator.Vars() or interpolator.Scopes():
-          self.Log(
-              f"Skipping glob '{glob}': can't interpolate with an "
-              "empty knowledge base"
-          )
-          continue
+      interpolation = artifact_utils.KnowledgeBaseInterpolation(
+          pattern=str(glob),
+          kb=kb,
+      )
 
-      try:
-        paths.extend(artifact_utils.InterpolateKbAttributes(str(glob), kb))
-      except artifact_utils.KbInterpolationMissingAttributesError as error:
-        missing_attrs.extend(error.attrs)
-        self.Log("Missing knowledgebase attributes: %s", error.attrs)
-      except artifact_utils.KbInterpolationUnknownAttributesError as error:
-        unknown_attrs.extend(error.attrs)
-        self.Log("Unknown knowledgebase attributes: %s", error.attrs)
+      for log in interpolation.logs:
+        self.Log("knowledgebase interpolation: %s", log)
 
-    if missing_attrs:
-      self.Error(f"Missing knowledgebase attributes: {missing_attrs}")
-      return None
-    if unknown_attrs:
-      self.Error(f"Unknown knowledgebase attributes: {unknown_attrs}")
-      return None
+      paths.extend(interpolation.results)
 
     if not paths:
       self.Error(

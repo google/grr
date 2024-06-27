@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import mig_crypto
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_server.databases import db
@@ -36,11 +36,10 @@ class DatabaseTestUsersMixin(object):
 
     # TODO: Stop using `rdf_crypto.Password`
     # TODO(hanuszczak): Passwords should be required to be unicode strings.
-    rdf_password = rdf_crypto.Password()
-    rdf_password.SetPassword(b"blah")
-    proto_password = mig_crypto.ToProtoPassword(rdf_password)
+    password_proto = jobs_pb2.Password()
+    rdf_crypto.SetPassword(password_proto, "blah")
 
-    expected.password.CopyFrom(proto_password)
+    expected.password.CopyFrom(password_proto)
 
     d.WriteGRRUser(
         EXAMPLE_NAME,

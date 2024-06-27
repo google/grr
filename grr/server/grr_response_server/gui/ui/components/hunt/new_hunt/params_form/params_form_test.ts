@@ -82,7 +82,7 @@ describe('params form test', () => {
       NewHuntLocalStore,
       fixture.debugElement,
     );
-    newHuntLocalStore.mockedObservables.safetyLimits$.next({
+    newHuntLocalStore.mockedObservables.defaultSafetyLimits$.next({
       clientRate: 200.0,
       clientLimit: BigInt(123),
       crashLimit: BigInt(100),

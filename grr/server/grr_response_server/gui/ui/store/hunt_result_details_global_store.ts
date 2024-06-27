@@ -29,6 +29,7 @@ import {
   ResultKey,
   toResultKey,
   toResultKeyString,
+  typeUrlToPayloadType,
 } from '../lib/models/result';
 import {isNonNull, isNull} from '../lib/preconditions';
 
@@ -90,7 +91,7 @@ function getPayloadTypeFromResultOrError(
   result: HuntResultOrError,
 ): PayloadType | undefined {
   if (isHuntResult(result)) {
-    return result.payloadType as PayloadType;
+    return typeUrlToPayloadType(result.payload?.['@type']);
   }
 
   if (isHuntError(result)) return PayloadType.API_HUNT_ERROR;

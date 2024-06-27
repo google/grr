@@ -3,20 +3,23 @@
 
 from absl import app
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import dummy_pb2
 from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
 from grr_response_server.databases import db
+# TODO: Import needed as Dummy proto is packed into Any and is then
+# converted to rdf value, which is unknown otherwise.
+from grr_response_server.flows.general import dummy  # pylint: disable=unused-import
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import flow_test_lib
@@ -120,26 +123,26 @@ class ApiListHuntResultsRegressionTest(
     )
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)):
+      payload = any_pb2.Any()
+      payload.Pack(dummy_pb2.DummyFlowResult(flow_output="blah1"))
       data_store.REL_DB.WriteFlowResults([
-          mig_flow_objects.ToProtoFlowResult(
-              rdf_flow_objects.FlowResult(
-                  client_id=client_id,
-                  flow_id=flow_id,
-                  hunt_id=hunt_id,
-                  payload=rdfvalue.RDFString("blah1"),
-              )
+          flows_pb2.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              payload=payload,
           )
       ])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43)):
+      payload = any_pb2.Any()
+      payload.Pack(dummy_pb2.DummyFlowResult(flow_output="blah2-foo"))
       data_store.REL_DB.WriteFlowResults([
-          mig_flow_objects.ToProtoFlowResult(
-              rdf_flow_objects.FlowResult(
-                  client_id=client_id,
-                  flow_id=flow_id,
-                  hunt_id=hunt_id,
-                  payload=rdfvalue.RDFString("blah2-foo"),
-              )
+          flows_pb2.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              payload=payload,
           )
       ])
 
@@ -185,15 +188,14 @@ class ApiCountHuntResultsByTypeRegressionTest(
         client_id=client_id,
         parent=flow.FlowParent.FromHuntID(hunt_id),
     )
-
+    payload = any_pb2.Any()
+    payload.Pack(dummy_pb2.DummyFlowResult(flow_output="blah1"))
     data_store.REL_DB.WriteFlowResults([
-        mig_flow_objects.ToProtoFlowResult(
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                hunt_id=hunt_id,
-                payload=rdfvalue.RDFString("blah1"),
-            )
+        flows_pb2.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_id,
+            payload=payload,
         )
     ])
 

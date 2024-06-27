@@ -11,7 +11,6 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import output_plugin_pb2
-from grr_response_server import output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -145,17 +144,6 @@ class FlowOutputPluginLogEntry(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
-
-  def ToOutputPluginBatchProcessingStatus(self):
-    if self.log_entry_type == self.LogEntryType.LOG:
-      status = output_plugin.OutputPluginBatchProcessingStatus.Status.SUCCESS
-    elif self.log_entry_type == self.LogEntryType.ERROR:
-      status = output_plugin.OutputPluginBatchProcessingStatus.Status.ERROR
-    else:
-      raise ValueError("Unexpected log_entry_type: %r" % self.log_entry_type)
-
-    return output_plugin.OutputPluginBatchProcessingStatus(
-        summary=self.message, batch_index=0, batch_size=0, status=status)
 
 
 class Flow(rdf_structs.RDFProtoStruct):

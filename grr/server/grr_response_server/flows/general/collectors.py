@@ -6,7 +6,6 @@ from typing import Optional, Sequence, Text
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -221,12 +220,6 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
                 max_size=self.args.max_file_size
             ),
         )
-      elif type_name == source_type.GREP:
-        self.Grep(
-            source,
-            _GetPathType(self.args, self.client_os),
-            _GetImplementationType(self.args),
-        )
       elif type_name == source_type.REGISTRY_KEY:
         self.GetRegistryKey(source)
       elif type_name == source_type.REGISTRY_VALUE:
@@ -310,60 +303,6 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         regex_combined = b"(%s)" % regex
     return regex_combined
 
-  def Grep(self, source, pathtype, implementation_type):
-    """Grep files in paths for any matches to content_regex_list.
-
-    When multiple regexes are supplied, combine
-    them into a single regex as an OR match so that we check all regexes at
-    once.
-
-    Args:
-      source: artifact source
-      pathtype: pathspec path typed
-      implementation_type: Pathspec implementation type to use.
-    """
-    path_list = self.InterpolateList(source.attributes.get("paths", []))
-
-    # `content_regex_list` elements should be binary strings, but forcing
-    # artifact creators to use verbose YAML syntax for binary literals would
-    # be cruel. Therefore, we allow both kind of strings and we convert to bytes
-    # if required.
-    content_regex_list = []
-    for content_regex in source.attributes.get("content_regex_list", []):
-      if isinstance(content_regex, Text):
-        content_regex = content_regex.encode("utf-8")
-      content_regex_list.append(content_regex)
-
-    content_regex_list = self.InterpolateList(content_regex_list)
-
-    regex_condition = rdf_file_finder.FileFinderContentsRegexMatchCondition(
-        regex=self._CombineRegex(content_regex_list),
-        bytes_before=0,
-        bytes_after=0,
-        mode="ALL_HITS",
-    )
-
-    file_finder_condition = rdf_file_finder.FileFinderCondition(
-        condition_type=(
-            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH
-        ),
-        contents_regex_match=regex_condition,
-    )
-
-    self.CallFlow(
-        file_finder.FileFinder.__name__,
-        paths=path_list,
-        conditions=[file_finder_condition],
-        action=rdf_file_finder.FileFinderAction(),
-        pathtype=pathtype,
-        implementation_type=implementation_type,
-        request_data={
-            "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
-        },
-        next_state=self.ProcessCollected.__name__,
-    )
-
   def GetRegistryKey(self, source):
     self.CallFlow(
         filesystem.Glob.__name__,
@@ -396,17 +335,21 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         # we do here.
         path = kvdict["key"]
 
-      expanded_paths = []
-      try:
-        expanded_paths = artifact_utils.InterpolateKbAttributes(
-            path, mig_client.ToProtoKnowledgeBase(self.state.knowledge_base)
-        )
-      except artifact_utils.KbInterpolationMissingAttributesError as error:
-        logging.error(str(error))
-        if not self.args.ignore_interpolation_errors:
-          raise
+      interpolation = artifact_utils.KnowledgeBaseInterpolation(
+          pattern=path,
+          kb=mig_client.ToProtoKnowledgeBase(self.state.knowledge_base),
+      )
 
-      new_paths.update(expanded_paths)
+      for log in interpolation.logs:
+        self.Log("knowledgebase registry path interpolation: %s", log)
+
+      if (
+          not interpolation.results
+          and not self.args.ignore_interpolation_errors
+      ):
+        raise flow_base.FlowError(f"Registry path {path!r} interpolation error")
+
+      new_paths.update(interpolation.results)
 
     if has_glob:
       self.CallFlow(
@@ -443,7 +386,6 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         ArtifactCollectorFlow.__name__,
         artifact_list=artifact_list,
         use_raw_filesystem_access=self.args.use_raw_filesystem_access,
-        apply_parsers=self.args.apply_parsers,
         implementation_type=self.args.implementation_type,
         max_file_size=self.args.max_file_size,
         ignore_interpolation_errors=self.args.ignore_interpolation_errors,
@@ -577,17 +519,21 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     if knowledgebase is None:
       knowledgebase = self.state.knowledge_base
 
-    try:
-      return artifact_utils.InterpolateKbAttributes(
-          pattern, mig_client.ToProtoKnowledgeBase(knowledgebase)
-      )
-    except artifact_utils.KbInterpolationMissingAttributesError as error:
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern=pattern,
+        kb=mig_client.ToProtoKnowledgeBase(knowledgebase),
+    )
+
+    for log in interpolation.logs:
+      self.Log("knowledgebase interpolation: %s", log)
+
+    if not interpolation.results:
       if self.args.old_client_snapshot_fallback:
         return []
-      if self.args.ignore_interpolation_errors:
-        logging.error(str(error))
-        return []
-      raise
+      if not self.args.ignore_interpolation_errors:
+        raise flow_base.FlowError(f"{pattern} interpolation error")
+
+    return interpolation.results
 
   def RunGrrClientAction(self, source):
     """Call a GRR Client Action."""
@@ -641,7 +587,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
       self.state.failed_count += 1
       self.state.artifacts_failed.append(artifact_name)
 
-    self._ParseResponses(list(responses), artifact_name, source)
+    self._ProcessResponses(list(responses), artifact_name, source)
 
   def ProcessCollectedRegistryStatEntry(self, responses):
     """Create AFF4 objects for registry statentries.
@@ -737,7 +683,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     if source:
       return source["returned_types"]
 
-  def _ParseResponses(self, responses, artifact_name, source):
+  def _ProcessResponses(self, responses, artifact_name, source):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
@@ -747,19 +693,11 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     """
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
-    if self.args.apply_parsers:
-      parser_factory = parsers.ArtifactParserFactory(artifact_name)
-      results = artifact.ApplyParsersToResponses(
-          parser_factory, responses, self
-      )
-    else:
-      results = responses
-
     # Increment artifact result count in flow progress.
     progress = self._GetOrInsertArtifactProgress(artifact_name)
-    progress.num_results += len(results)
+    progress.num_results += len(responses)
 
-    for result in results:
+    for result in responses:
       result_type = result.__class__.__name__
       if result_type == "Anomaly":
         self.SendReply(result)

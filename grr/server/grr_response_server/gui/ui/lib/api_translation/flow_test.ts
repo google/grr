@@ -89,16 +89,15 @@ describe('ApiFlowResult translation', () => {
     const apiFlowResult: ApiFlowResult = {
       payload: {
         '@type': 'example.com/grr.StatEntry',
-        path: newPathSpec('/foo/bar'),
+        'path': newPathSpec('/foo/bar'),
       },
-      payloadType: 'StatEntry',
       timestamp: '1571789996681000', // 2019-10-23T00:19:56.681Z
       tag: 'someTag',
     };
 
     const flowResult: FlowResult = {
       payload: {
-        path: newPathSpec('/foo/bar'),
+        'path': newPathSpec('/foo/bar'),
       },
       payloadType: 'StatEntry',
       tag: 'someTag',

@@ -38,6 +38,15 @@ export declare interface SafetyLimits {
   readonly perClientNetworkBytesLimit: bigint;
 }
 
+/** Configuration for displaying hunt presubmit information */
+export declare interface HuntPresubmit {
+  markdownText: string;
+  // Ideally, we'd have an expected ForemanClientRuleSet here.
+  // However, deep equality can be tricky in TS and we have no need for it yet.
+  // So for now, we'll just use a list of expected excluded labels.
+  expectedExcludedLabels?: string[];
+}
+
 /** ApiHunt.State proto mapping. */
 export enum HuntState {
   NOT_STARTED = 'NOT_STARTED',
