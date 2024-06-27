@@ -1,0 +1,27 @@
+pip==24.0
+pytest==6.2.5
+pytest-xdist==2.2.1
+setuptools==69.5.1
+wheel==0.43.0
+absl-py
+distro
+PyYAML
+psutil
+python-dateutil==2.9.0.post0
+cryptography
+pexpect==4.9.0
+olefile
+pyinstaller==5.13.2
+pytsk3
+yara-python
+xattr
+requests==2.32.3
+libfsntfs-python
+fleetspeak
+fleetspeak-client-bin
+# For osx:
+macholib>=1.8
+# On centos: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module
+# is compiled with 'OpenSSL 1.0.2k-fips  26 Jan 2017'.
+# See: https://github.com/urllib3/urllib3/issues/2168
+urllib3==1.26.18 

@@ -78,7 +78,10 @@ ADD . ${GRR_SOURCE}
 
 WORKDIR ${GRR_SOURCE}
 
-RUN ${VIRTUAL_ENV}/bin/python -m pip install \
+RUN ${VIRTUAL_ENV}/bin/python -m pip install --require-hashes \
+  -r travis/requirements/ubuntu.txt
+
+RUN ${VIRTUAL_ENV}/bin/python -m pip install --no-deps --no-index \
   -e grr/proto \
   -e grr/core \
   -e grr/client \

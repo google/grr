@@ -87,6 +87,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Verify requirements
+        run: |
+          ./travis/compile_requirements.sh ubuntu
+      - name: Upload requirements to GitHub artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-requirements
+          path: requirements/
+          retention-days: 3
       - name: Set up
         run: |
           sudo apt install fakeroot debhelper libffi-dev libssl-dev
@@ -94,7 +103,7 @@ jobs:
           virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
-          travis/install_client_builder.sh
+          travis/install_client_builder.sh ubuntu
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
@@ -115,9 +124,18 @@ jobs:
         run: |
           pip install --upgrade setuptools virtualenv
           virtualenv "${HOME}/INSTALL"
+      - name: Verify requirements
+        run: |
+          ./travis/compile_requirements.sh osx
+      - name: Upload requirements to GitHub artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-requirements
+          path: requirements/
+          retention-days: 3
       - name: Build installers
         run: |
-          travis/install_client_builder.sh
+          travis/install_client_builder.sh osx
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
@@ -136,6 +154,15 @@ jobs:
       DOCKER_USER: grrbot
     steps:
       - uses: actions/checkout@v4
+      - name: Verify requirements
+        run: |
+          ./travis/compile_requirements.sh centos
+      - name: Upload requirements to GitHub artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: centos-requirements
+          path: requirements/
+          retention-days: 3
       - name: Build installers
         run: |
           docker run -dit \
@@ -150,7 +177,7 @@ jobs:
           # registered in the environment variables.
           docker exec "${DOCKER_CONTAINER}" bash -l travis/set_up_test_user.sh
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"'
-          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh centos
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
           docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
           ls -la gcs_upload_dir
@@ -168,6 +195,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Verify requirements
+        run: |
+          .\travis\compile_requirements.bat
+      - name: Upload requirements to GitHub artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-requirements
+          path: requirements/
+          retention-days: 3
       - name: Build installers
         shell: bash
         run: |

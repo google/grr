@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """setup.py file for a GRR API client library."""
 
+from typing import List
+
 import configparser
 from distutils.command.build_py import build_py
 import os
@@ -15,10 +17,6 @@ from setuptools.command.sdist import sdist
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
-
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
-PROTOBUF = "protobuf>=3.20.3,<4"
 
 
 def get_config():
@@ -41,9 +39,11 @@ def compile_protos():
   """Builds necessary assets from sources."""
   # Using Popen to effectively suppress the output of the command below - no
   # need to fill in the logs with protoc's help.
-  p = subprocess.Popen([sys.executable, "-m", "grpc_tools.protoc", "--help"],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE)
+  p = subprocess.Popen(
+    [sys.executable, "-m", "grpc_tools.protoc", "--help"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+  )
   p.communicate()
   # If protoc is not installed, install it. This seems to be the only reliable
   # way to make sure that grpcio-tools gets intalled, no matter which Python
@@ -54,9 +54,9 @@ def compile_protos():
     # version. Otherwise latest protobuf library will be installed with
     # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
     # and reinstalled to the version required by grr-response-proto.
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF
-    ])
+    subprocess.check_call(
+      [sys.executable, "-m", "pip", "install", "--require-hashes", "-r", "build_requirements.txt"]
+    )
 
   # If there's no makefile, we're likely installing from an sdist,
   # so there's no need to compile the protos (they should be already
@@ -65,8 +65,21 @@ def compile_protos():
     return
 
   # Only compile protobufs if we're inside GRR source tree.
-  subprocess.check_call([sys.executable, "makefile.py", "--clean"],
-                        cwd=THIS_DIRECTORY)
+  subprocess.check_call(
+    [sys.executable, "makefile.py", "--clean"], cwd=THIS_DIRECTORY
+  )
+
+
+def parse_requirements(filename: str) -> List[str]:
+  requirements = []
+  with open(filename) as file:
+    for line in file:
+      requirement = line.strip()
+      if (comment := requirement.find("#")) >= 0:
+        requirement = requirement[:comment].strip()
+      requirements.append(requirement)
+
+  return requirements
 
 
 class Build(build_py):
@@ -93,7 +106,8 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
+      os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini
+    )
 
   def run(self):
     compile_protos()
@@ -104,23 +118,22 @@ VERSION = get_config()
 PACKAGES = find_packages()
 
 setup_args = dict(
-    name="grr-response-proto",
-    version=VERSION.get("Version", "packageversion"),
-    description="GRR API client library",
-    license="Apache License, Version 2.0",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    url="https://github.com/google/grr/tree/master/proto",
-    cmdclass={
-        "build_py": Build,
-        "develop": Develop,
-        "sdist": Sdist,
-    },
-    package_data={package: ["py.typed", "*.pyi"] for package in PACKAGES},
-    packages=PACKAGES,
-    install_requires=[
-        PROTOBUF,
-    ],
-    data=["version.ini"])
+  name="grr-response-proto",
+  version=VERSION.get("Version", "packageversion"),
+  description="GRR API client library",
+  license="Apache License, Version 2.0",
+  maintainer="GRR Development Team",
+  maintainer_email="grr-dev@googlegroups.com",
+  url="https://github.com/google/grr/tree/master/proto",
+  cmdclass={
+    "build_py": Build,
+    "develop": Develop,
+    "sdist": Sdist,
+  },
+  package_data={package: ["py.typed", "*.pyi"] for package in PACKAGES},
+  packages=PACKAGES,
+  install_requires=parse_requirements("requirements.in"),
+  data_files=["version.ini", "requirements.in"],
+)
 
 setup(**setup_args)

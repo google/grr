@@ -1,0 +1,4 @@
+absl-py==1.4.0
+fleetspeak-client-bin==0.1.13
+libfsntfs-python==20230606
+pytsk3==20230125
