@@ -13,17 +13,6 @@ labels: [Users]
 provides: [users.homedir, users.username, users.last_logon, users.full_name]
 supported_os: [Linux]
 ---
-name: LinuxPasswdHomedirs
-doc: Grep passwd file for user homedirs.
-sources:
-- type: GREP
-  attributes:
-    paths: ['/etc/passwd']
-    content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
-provides: [users.homedir, users.full_name]
-labels: [Authentication]
-supported_os: [Linux]
----
 name: RedhatYumPackagesList
 doc: Linux output of yum list installed.
 sources:

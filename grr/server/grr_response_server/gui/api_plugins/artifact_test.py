@@ -79,7 +79,9 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
         config.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"
     )
     with open(test_artifacts_file, "rb") as fd:
-      args = self.handler.args_type(artifact=fd.read())
+      args = api_artifact_pb2.ApiUploadArtifactArgs(
+          artifact=fd.read().decode("utf-8")
+      )
 
     with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
       registry.GetArtifact("TestDrivers")
@@ -108,7 +110,7 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.UploadTestArtifacts()
     count = len(registry.GetArtifacts(reload_datastore_artifacts=True))
 
-    args = self.handler.args_type(
+    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
         names=["TestFilesArtifact", "WMIActiveScriptEventConsumer"]
     )
     self.handler.Handle(args, context=self.context)
@@ -120,13 +122,17 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testDeleteDependency(self, registry):
     self.UploadTestArtifacts()
-    args = self.handler.args_type(names=["TestAggregationArtifact"])
+    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
+        names=["TestAggregationArtifact"]
+    )
     with self.assertRaises(ValueError):
       self.handler.Handle(args, context=self.context)
 
   def testDeleteNonExistentArtifact(self, registry):
     self.UploadTestArtifacts()
-    args = self.handler.args_type(names=["NonExistentArtifact"])
+    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
+        names=["NonExistentArtifact"]
+    )
     e = self.assertRaises(ValueError)
     with e:
       self.handler.Handle(args, context=self.context)

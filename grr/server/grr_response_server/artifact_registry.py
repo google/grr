@@ -10,7 +10,6 @@ import yaml
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parsers
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -630,23 +629,4 @@ def GetArtifactPathDependencies(rdf_artifact):
       for path in paths:
         for match in artifact_utils.INTERPOLATED_REGEX.finditer(path):
           deps.add(match.group()[2:-2])  # Strip off %%.
-  deps.update(GetArtifactParserDependencies(rdf_artifact))
-  return deps
-
-
-def GetArtifactParserDependencies(rdf_artifact):
-  """Return the set of knowledgebase path dependencies required by the parser.
-
-  Args:
-    rdf_artifact: RDF artifact object.
-
-  Returns:
-    A set of strings for the required kb objects e.g.
-    ["users.appdata", "systemroot"]
-  """
-  factory = parsers.ArtifactParserFactory(str(rdf_artifact.name))
-
-  deps = set()
-  for p in factory.AllParserTypes():
-    deps.update(p.knowledgebase_dependencies)
   return deps

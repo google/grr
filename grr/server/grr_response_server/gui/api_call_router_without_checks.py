@@ -3,6 +3,7 @@
 
 from typing import Optional
 
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui.api_plugins import artifact as api_artifact
@@ -437,8 +438,25 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
     return api_user.ApiListAndResetUserNotificationsHandler()
 
   def GetGrrUser(self, args, context=None):
-    interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
-    interface_traits.hunt_approval_required = False
+    interface_traits = api_user_pb2.ApiGrrUserInterfaceTraits(
+        cron_jobs_nav_item_enabled=True,
+        create_cron_job_action_enabled=True,
+        hunt_manager_nav_item_enabled=True,
+        create_hunt_action_enabled=True,
+        show_statistics_nav_item_enabled=True,
+        server_load_nav_item_enabled=True,
+        manage_binaries_nav_item_enabled=True,
+        upload_binary_action_enabled=True,
+        settings_nav_item_enabled=True,
+        artifact_manager_nav_item_enabled=True,
+        upload_artifact_action_enabled=True,
+        search_clients_action_enabled=True,
+        browse_virtual_file_system_nav_item_enabled=True,
+        start_client_flow_nav_item_enabled=True,
+        manage_client_flows_nav_item_enabled=True,
+        modify_client_labels_action_enabled=True,
+        hunt_approval_required=False,
+    )
     return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, context=None):

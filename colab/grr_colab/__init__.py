@@ -424,7 +424,6 @@ class Client(object):
 
     args = flows_pb2.ArtifactCollectorFlowArgs()
     args.artifact_list.append(artifact)
-    args.apply_parsers = True
 
     try:
       ac = self._client.CreateFlow(name='ArtifactCollectorFlow', args=args)

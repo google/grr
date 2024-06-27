@@ -10,6 +10,7 @@ from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import api_call_router_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import groups
@@ -84,15 +85,15 @@ class AccessChecker(object):
     except KeyError:
       APPROVAL_SEARCHES.Increment(fields=["-", "reldb"])
 
-    proto_approvals = data_store.REL_DB.ReadApprovalRequests(
+    approvals = data_store.REL_DB.ReadApprovalRequests(
         username, approval_type, subject_id=subject_id, include_expired=False
     )
-    approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
 
     errors = []
     for approval in approvals:
       try:
         approval_checks.CheckApprovalRequest(approval)
+        approval = mig_objects.ToRDFApprovalRequest(approval)
         self.acl_cache.Put(cache_key, approval)
         return approval
       except access_control.UnauthorizedAccess as e:
@@ -926,7 +927,25 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetGrrUser(self, args, context=None):
     # Everybody can get their own user settings.
 
-    interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
+    interface_traits = api_user_pb2.ApiGrrUserInterfaceTraits(
+        cron_jobs_nav_item_enabled=True,
+        create_cron_job_action_enabled=True,
+        hunt_manager_nav_item_enabled=True,
+        create_hunt_action_enabled=True,
+        show_statistics_nav_item_enabled=True,
+        server_load_nav_item_enabled=True,
+        manage_binaries_nav_item_enabled=True,
+        upload_binary_action_enabled=True,
+        settings_nav_item_enabled=True,
+        artifact_manager_nav_item_enabled=True,
+        upload_artifact_action_enabled=True,
+        search_clients_action_enabled=True,
+        browse_virtual_file_system_nav_item_enabled=True,
+        start_client_flow_nav_item_enabled=True,
+        manage_client_flows_nav_item_enabled=True,
+        modify_client_labels_action_enabled=True,
+        hunt_approval_required=True,
+    )
     try:
       # Without access to restricted flows, one can not launch Python hacks and
       # binaries. Hence, we don't display the "Manage binaries" page.

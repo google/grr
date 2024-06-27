@@ -15,6 +15,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.models import hunts
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
@@ -415,8 +416,7 @@ class InMemoryDBHuntMixin(object):
   def CountHuntResultsByType(self, hunt_id: str) -> Mapping[str, int]:
     result = {}
     for hr in self.ReadHuntResults(hunt_id, 0, sys.maxsize):
-      hr = mig_flow_objects.ToRDFFlowResult(hr)
-      key = hr.payload.__class__.__name__
+      key = db_utils.TypeURLToRDFTypeName(hr.payload.type_url)
       result[key] = result.setdefault(key, 0) + 1
 
     return result

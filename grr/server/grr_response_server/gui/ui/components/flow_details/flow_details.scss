@@ -32,6 +32,14 @@
       align-items: flex-start;
     }
 
+    .row-left {
+      display: flex;
+      gap: 5px;
+      flex-flow: row wrap;
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
     .flow-id {
       font-size: 10px;
       color: mat.get-color-from-palette(c.$foreground, text-light);

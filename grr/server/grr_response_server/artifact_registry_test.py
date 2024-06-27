@@ -216,12 +216,11 @@ class ArtifactSourceTest(absltest.TestCase):
 
   def testValidateMissingRequiredAttributes(self):
     source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.GREP,
-        attributes={
-            "paths": ["/etc", "/dev", "/opt"],
-        })
+        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
+        attributes={},
+    )
 
-    expected = "missing required attributes: 'content_regex_list'"
+    expected = "missing required attributes: 'paths'"
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
                                 expected):
       source.Validate()

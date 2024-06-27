@@ -18,6 +18,7 @@ import {
   RegistryValue,
   ScheduledFlow,
 } from '../models/flow';
+import {typeUrlToPayloadType} from '../models/result';
 import {PathSpec, PathSpecSegment, StatEntry} from '../models/vfs';
 import {
   PreconditionError,
@@ -126,12 +127,11 @@ export function translateFlowResult(
   apiFlowResult: apiInterfaces.ApiFlowResult,
 ): FlowResult {
   assertKeyNonNull(apiFlowResult, 'payload');
-  assertKeyNonNull(apiFlowResult, 'payloadType');
   assertKeyNonNull(apiFlowResult, 'timestamp');
 
   return {
     payload: createUnknownObject(apiFlowResult.payload),
-    payloadType: apiFlowResult.payloadType,
+    payloadType: typeUrlToPayloadType(apiFlowResult.payload?.['@type']) ?? '',
     tag: apiFlowResult.tag ?? '',
     timestamp: createDate(apiFlowResult.timestamp),
   };

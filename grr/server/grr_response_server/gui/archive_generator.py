@@ -18,7 +18,8 @@ from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.gui.api_plugins import mig_client
+from grr_response_server.models import clients
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -198,10 +199,8 @@ class CollectionArchiveGenerator:
     if client_ids:
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
       for client_id, client_info in client_infos.items():
-        client_info = mig_objects.ToRDFClientFullInfo(client_info)
-        client = api_client.ApiClient()
-        client.InitFromClientInfo(client_id, client_info)
-
+        client = clients.ApiClientFromClientFullInfo(client_id, client_info)
+        client = mig_client.ToRDFApiClient(client)
         for chunk in self._GenerateClientInfo(client_id, client):
           yield chunk
 

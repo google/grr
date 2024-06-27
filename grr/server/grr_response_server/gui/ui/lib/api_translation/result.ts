@@ -64,7 +64,7 @@ export function toHuntResultRow(
   const key = getHuntResultKey(hr, huntId);
   return {
     'clientId': hr.clientId,
-    'payloadType': hr.payloadType,
+    'payloadType': ((hr.payload?.['@type'] as string) ?? '').split('.').pop(),
     'collectedAt': createOptionalDate(hr.timestamp),
     'detailsLink': ['result-details', key ?? ''],
   };

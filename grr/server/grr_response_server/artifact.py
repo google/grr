@@ -6,14 +6,8 @@ import os
 import pathlib
 import re
 import stat
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Sequence
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -21,17 +15,20 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_artifacts
+from grr_response_core.lib.rdfvalues import mig_client
+from grr_response_core.lib.rdfvalues import mig_client_action
+from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-from grr_response_server.databases import db
 from grr_response_server.flows.general import distro
 
 
@@ -196,6 +193,48 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           next_state=self._ProcessWindowsTimeZoneKeyName.__name__,
       )
 
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\TEMP"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsEnvTemp.__name__,
+      )
+
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\Path"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsEnvPath.__name__,
+      )
+
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\ComSpec"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsEnvComSpec.__name__,
+      )
+
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\windir"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsEnvWindir.__name__,
+      )
+
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsProfilesDirectory.__name__,
+      )
+
+      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"
+      self.CallClient(
+          server_stubs.GetFileStat,
+          args,
+          next_state=self._ProcessWindowsEnvAllUsersProfile.__name__,
+      )
+
       args = rdf_file_finder.FileFinderArgs()
       # TODO: There is no dedicated action for obtaining registry
       # values but `STAT` action of the file-finder will get it. This should be
@@ -295,57 +334,14 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     self.state.knowledge_base.environ_systemroot = system_root
     self.state.knowledge_base.environ_systemdrive = system_drive
 
-    # pylint: disable=line-too-long
-    # pyformat: disable
-    #
-    # TODO: The following values depend on `SystemRoot` so we have
-    # to schedule its collection after we have root. However, this requires
-    # intrinsic knowledge and is not much better than just hardcoding them.
-    # Instead, we should collect all variables as they are and then do the
-    # interpolation without hardcoding the dependencies.
-    #
-    # TODO: There is no dedicated action for obtaining registry
-    # values. The existing artifact collector uses `GetFileStat` action for
-    # this which is horrible.
-    args = rdf_client_action.GetFileStatRequest()
-    args.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\TEMP"
+    list_users_dir_args = jobs_pb2.ListDirRequest()
+    list_users_dir_args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+    list_users_dir_args.pathspec.path = f"{system_drive}\\Users"
     self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsEnvTemp.__name__,
+        server_stubs.ListDirectory,
+        mig_client_action.ToRDFListDirRequest(list_users_dir_args),
+        next_state=self._ProcessWindowsListUsersDir.__name__,
     )
-
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\Path"
-    self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsEnvPath.__name__,
-    )
-
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\ComSpec"
-    self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsEnvComSpec.__name__,
-    )
-
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\windir"
-    self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsEnvWindir.__name__,
-    )
-
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory"
-    self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsProfilesDirectory.__name__,
-    )
-    # pylint: enable=line-too-long
-    # pyformat: enable
 
   def _ProcessWindowsEnvProgramFilesDir(
       self,
@@ -450,46 +446,9 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    program_data = response.registry_data.string
-    # TODO: We should not hardcode the dependency on `%SystemRoot%`
-    # and do an interpolation pass once all variables are there.
-    program_data = artifact_utils.ExpandWindowsEnvironmentVariables(
-        program_data,
-        self.state.knowledge_base,
+    self.state.knowledge_base.environ_programdata = (
+        response.registry_data.string
     )
-
-    self.state.knowledge_base.environ_programdata = program_data
-    # TODO: Remove once this knowledge base field is removed.
-    self.state.knowledge_base.environ_allusersappdata = program_data
-
-    # pylint: disable=line-too-long
-    # pyformat: disable
-    #
-    # Interestingly, it looks like there is no such value in the registry on
-    # Windows 10. But the original artifact uses this path and there are other
-    # websites stating that it should be there [1, 2] we try this anyway.
-    #
-    # According to Wikipedia [3] this value since Windows Vista is deprecated in
-    # favour of `%PRORGAMDATA%` so e fallback to that in case we cannot retrieve
-    # it.
-    #
-    # [1]: https://renenyffenegger.ch/notes/Windows/dirs/ProgramData/index
-    # [2]: https://winreg-kb.readthedocs.io/en/latest/sources/system-keys/Environment-variables.html#currentversion-profilelist-key
-    # [3]: https://en.wikipedia.org/wiki/Environment_variable#ALLUSERSPROFILE
-    #
-    # TODO: There is no dedicated action for obtaining registry
-    # values. The existing artifact collector uses `GetFileStat` action for
-    # this which is horrible.
-    args = rdf_client_action.GetFileStatRequest()
-    args.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-    args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"
-    self.CallClient(
-        server_stubs.GetFileStat,
-        args,
-        next_state=self._ProcessWindowsEnvAllUsersProfile.__name__,
-    )
-    # pylint: enable=line-too-long
-    # pyformat: enable
 
   def _ProcessWindowsEnvDriverData(
       self,
@@ -681,15 +640,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    temp = response.registry_data.string
-    # TODO: We should not hardcode the dependency of `TEMP` on
-    # `SystemRoot` and do an interpolation pass once all variables are there.
-    temp = artifact_utils.ExpandWindowsEnvironmentVariables(
-        temp,
-        self.state.knowledge_base,
-    )
-
-    self.state.knowledge_base.environ_temp = temp
+    self.state.knowledge_base.environ_temp = response.registry_data.string
 
   def _ProcessWindowsEnvPath(
       self,
@@ -708,15 +659,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    path = response.registry_data.string
-    # TODO: We should not hardcode the dependency of `Path` on
-    # `SystemRoot` and do an interpolation pass once all variables are there.
-    path = artifact_utils.ExpandWindowsEnvironmentVariables(
-        path,
-        self.state.knowledge_base,
-    )
-
-    self.state.knowledge_base.environ_path = path
+    self.state.knowledge_base.environ_path = response.registry_data.string
 
   def _ProcessWindowsEnvComSpec(
       self,
@@ -735,15 +678,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    com_spec = response.registry_data.string
-    # TODO: We should not hardcode the dependency of `ComSpec` on
-    # `SystemRoot` and do an interpolation pass once all variables are there.
-    com_spec = artifact_utils.ExpandWindowsEnvironmentVariables(
-        com_spec,
-        self.state.knowledge_base,
-    )
-
-    self.state.knowledge_base.environ_comspec = com_spec
+    self.state.knowledge_base.environ_comspec = response.registry_data.string
 
   def _ProcessWindowsEnvWindir(
       self,
@@ -762,15 +697,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    windir = response.registry_data.string
-    # TODO: We should not hardcode the dependency of `windir` on
-    # `SystemRoot` and do an interpolation pass once all variables are there.
-    windir = artifact_utils.ExpandWindowsEnvironmentVariables(
-        windir,
-        self.state.knowledge_base,
-    )
-
-    self.state.knowledge_base.environ_windir = windir
+    self.state.knowledge_base.environ_windir = response.registry_data.string
 
   def _ProcessWindowsProfilesDirectory(
       self,
@@ -789,47 +716,34 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       message = f"Unexpected response type: {type(response)}"
       raise flow_base.FlowError(message)
 
-    profiles_directory = response.registry_data.string
-    # TODO: We should not hardcode the dependency on `SystemDrive`
-    # and do an interpolation pass once all variables are there.
-    profiles_directory = artifact_utils.ExpandWindowsEnvironmentVariables(
-        profiles_directory,
-        self.state.knowledge_base,
+    self.state.knowledge_base.environ_profilesdirectory = (
+        response.registry_data.string
     )
-
-    self.state.knowledge_base.environ_profilesdirectory = profiles_directory
 
   def _ProcessWindowsEnvAllUsersProfile(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
   ) -> None:
-    if responses.success:
-      if len(responses) != 1:
-        message = f"Unexpected number of responses: {len(responses)}"
-        raise flow_base.FlowError(message)
-
-      response = responses.First()
-      if not isinstance(response, rdf_client_fs.StatEntry):
-        message = f"Unexpected response type: {type(response)}"
-        raise flow_base.FlowError(message)
-
-      allusersprofile = response.registry_data.string
-    else:
+    if not responses.success:
       # Since Windows Vista `%PROGRAMDATA%` superseded `%ALLUSERSPROFILE%` [1],
-      # so we fall back to that in case we cannot obtain it (which is expected
-      # on most modern machines and thus we don't even log an error).
+      # so we actually expect this call to fail most of the time. Thus, we don't
+      # log anything or raise any errors.
       #
       # [1]: https://en.wikipedia.org/wiki/Environment_variable#ALLUSERSPROFILE
-      allusersprofile = self.state.knowledge_base.environ_programdata
+      return
 
-    # TODO: We should not hardcode dependency on `%ProgramData%`
-    # and do an interpolation pass once all variables are there.
-    allusersprofile = artifact_utils.ExpandWindowsEnvironmentVariables(
-        allusersprofile,
-        self.state.knowledge_base,
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    response = responses.First()
+    if not isinstance(response, rdf_client_fs.StatEntry):
+      message = f"Unexpected response type: {type(response)}"
+      raise flow_base.FlowError(message)
+
+    self.state.knowledge_base.environ_allusersprofile = (
+        response.registry_data.string
     )
-
-    self.state.knowledge_base.environ_allusersprofile = allusersprofile
 
   def _ProcessWindowsProfiles(
       self,
@@ -1014,9 +928,59 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
       user.userdomain = domain
 
+  def _ProcessWindowsListUsersDir(
+      self,
+      responses: flow_responses.Responses[rdfvalue.RDFValue],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to list Windows `Users` directory: %s", responses.status)
+      return
+
+    for response in responses:
+      if not isinstance(response, rdf_client_fs.StatEntry):
+        raise flow_base.FlowError(f"Unexpected response type: {type(response)}")
+
+      response = mig_client_fs.ToProtoStatEntry(response)
+
+      # There can be random files there as well. We are interested exclusively
+      # in folders as file does not indicate user profile.
+      if not stat.S_ISDIR(response.st_mode):
+        continue
+
+      # TODO: Remove once the `ListDirectory` action is fixed not
+      # to yield results with leading slashes on Windows.
+      response.pathspec.path = response.pathspec.path.removeprefix("/")
+
+      path = pathlib.PureWindowsPath(response.pathspec.path)
+
+      # There are certain profiles there that are not real "users" active on the
+      # machine and so we should not report them as such.
+      if path.name.upper() in [
+          "ADMINISTRATOR",
+          "ALL USERS",
+          "DEFAULT",
+          "DEFAULT USER",
+          "DEFAULTUSER0",
+          "PUBLIC",
+      ]:
+        continue
+
+      user = knowledge_base_pb2.User()
+      user.username = path.name
+      user.homedir = str(path)
+
+      self.state.knowledge_base.MergeOrAddUser(mig_client.ToRDFUser(user))
+
   def End(self, responses):
     """Finish up."""
     del responses
+
+    if self.client_os == "Windows":
+      self.state.knowledge_base = mig_client.ToRDFKnowledgeBase(
+          artifact_utils.ExpandKnowledgebaseWindowsEnvVars(
+              mig_client.ToProtoKnowledgeBase(self.state.knowledge_base),
+          ),
+      )
 
     # TODO: `%LOCALAPPDATA%` is a very often used variable that we
     # potentially not collect due to limitations of the Windows registry. For
@@ -1059,194 +1023,6 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           state_kb.os_minor_version = int(version[1])
       except ValueError:
         pass
-
-
-class ParseResults(object):
-  """A class representing results of parsing flow responses."""
-
-  def __init__(self):
-    self._responses: List[rdfvalue.RDFValue] = []
-    self._errors: List[parsers.ParseError] = []
-
-  def AddResponses(self, responses: Iterator[rdfvalue.RDFValue]) -> None:
-    self._responses.extend(responses)
-
-  def AddError(self, error: parsers.ParseError) -> None:
-    self._errors.append(error)
-
-  def Responses(self) -> Iterator[rdfvalue.RDFValue]:
-    return iter(self._responses)
-
-  def Errors(self) -> Iterator[parsers.ParseError]:
-    return iter(self._errors)
-
-
-class ParserApplicator(object):
-  """An utility class for applying many parsers to responses."""
-
-  def __init__(
-      self,
-      factory: parsers.ArtifactParserFactory,
-      client_id: str,
-      knowledge_base: rdf_client.KnowledgeBase,
-      timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ):
-    """Initializes the applicator.
-
-    Args:
-      factory: A parser factory that produces parsers to apply.
-      client_id: An identifier of the client for which the responses were
-        collected.
-      knowledge_base: A knowledge base of the client from which the responses
-        were collected.
-      timestamp: An optional timestamp at which parsers should interpret the
-        results. For example, parsers that depend on files, will receive content
-        of files as it was at the given timestamp.
-    """
-    self._factory = factory
-    self._client_id = client_id
-    self._knowledge_base = knowledge_base
-    self._timestamp = timestamp
-    self._results = ParseResults()
-
-  def Apply(self, responses: Sequence[rdfvalue.RDFValue]):
-    """Applies all known parsers to the specified responses.
-
-    Args:
-      responses: A sequence of responses to apply the parsers to.
-    """
-    for response in responses:
-      self._ApplySingleResponse(response)
-
-    self._ApplyMultiResponse(responses)
-
-    # File parsers accept only stat responses. It might be possible that an
-    # artifact declares multiple sources and has multiple parsers attached (each
-    # for different kind of source). Thus, artifacts are not "well typed" now
-    # we must supply parsers only with something they support.
-    stat_responses: List[rdf_client_fs.StatEntry] = []
-    for response in responses:
-      if isinstance(response, rdf_client_fs.StatEntry):
-        stat_responses.append(response)
-
-    has_single_file_parsers = self._factory.HasSingleFileParsers()
-    has_multi_file_parsers = self._factory.HasMultiFileParsers()
-
-    if has_single_file_parsers or has_multi_file_parsers:
-      pathspecs = [response.pathspec for response in stat_responses]
-      # It might be also the case that artifact has both regular response parser
-      # and file parser attached and sources that don't collect files but yield
-      # stat entries.
-      #
-      # TODO(hanuszczak): This is a quick workaround that works for now, but
-      # can lead to spurious file being parsed if the file was collected in the
-      # past and now only a stat entry response came. A proper solution would be
-      # to tag responses with artifact source and then make parsers define what
-      # sources they support.
-      pathspecs = list(filter(self._HasFile, pathspecs))
-      filedescs = [self._OpenFile(pathspec) for pathspec in pathspecs]
-
-      for pathspec, filedesc in zip(pathspecs, filedescs):
-        self._ApplySingleFile(pathspec, filedesc)
-
-      self._ApplyMultiFile(pathspecs, filedescs)
-
-  def Responses(self) -> Iterator[rdfvalue.RDFValue]:
-    """Returns an iterator over all parsed responses."""
-    yield from self._results.Responses()
-
-  def Errors(self) -> Iterator[parsers.ParseError]:
-    """Returns an iterator over errors that occurred during parsing."""
-    yield from self._results.Errors()
-
-  def _ApplySingleResponse(
-      self,
-      response: rdfvalue.RDFValue,
-  ) -> None:
-    """Applies all single-response parsers to the given response."""
-    for parser in self._factory.SingleResponseParsers():
-      try:
-        results = parser.ParseResponse(self._knowledge_base, response)
-        self._results.AddResponses(results)
-      except parsers.ParseError as error:
-        self._results.AddError(error)
-
-  def _ApplyMultiResponse(
-      self,
-      responses: Iterable[rdfvalue.RDFValue],
-  ) -> None:
-    """Applies all multi-response parsers to the given responses."""
-    for parser in self._factory.MultiResponseParsers():
-      try:
-        results = parser.ParseResponses(self._knowledge_base, responses)
-        self._results.AddResponses(results)
-      except parsers.ParseError as error:
-        self._results.AddError(error)
-
-  def _ApplySingleFile(
-      self,
-      pathspec: rdf_paths.PathSpec,
-      filedesc: file_store.BlobStream,
-  ) -> None:
-    """Applies all single-file parsers to the given file."""
-    for parser in self._factory.SingleFileParsers():
-      try:
-        results = parser.ParseFile(self._knowledge_base, pathspec, filedesc)
-        self._results.AddResponses(results)
-      except parsers.ParseError as error:
-        self._results.AddError(error)
-
-  def _ApplyMultiFile(
-      self,
-      pathspecs: Iterable[rdf_paths.PathSpec],
-      filedescs: Iterable[file_store.BlobStream],
-  ) -> None:
-    """Applies all multi-file parsers to the given file."""
-    for parser in self._factory.MultiFileParsers():
-      try:
-        results = parser.ParseFiles(self._knowledge_base, pathspecs, filedescs)
-        self._results.AddResponses(results)
-      except parsers.ParseError as error:
-        self._results.AddError(error)
-
-  def _HasFile(self, pathspec: rdf_paths.PathSpec) -> bool:
-    """Checks whether any file for the given pathspec was ever collected."""
-    client_path = db.ClientPath.FromPathSpec(self._client_id, pathspec)
-    return file_store.GetLastCollectionPathInfo(client_path) is not None
-
-  def _OpenFile(self, pathspec: rdf_paths.PathSpec) -> file_store.BlobStream:
-    # TODO(amoser): This is not super efficient, AFF4 provided an api to open
-    # all pathspecs at the same time, investigate if optimizing this is worth
-    # it.
-    client_path = db.ClientPath.FromPathSpec(self._client_id, pathspec)
-    return file_store.OpenFile(client_path, max_timestamp=self._timestamp)
-
-
-def ApplyParsersToResponses(parser_factory, responses, flow_obj):
-  """Parse responses with applicable parsers.
-
-  Args:
-    parser_factory: A parser factory for specific artifact.
-    responses: A list of responses from the client.
-    flow_obj: An artifact collection flow.
-
-  Returns:
-    A list of (possibly parsed) responses.
-  """
-  if not parser_factory.HasParsers():
-    # If we don't have any parsers, we expect to use the unparsed responses.
-    return responses
-
-  knowledge_base = flow_obj.state.knowledge_base
-  client_id = flow_obj.client_id
-
-  applicator = ParserApplicator(parser_factory, client_id, knowledge_base)
-  applicator.Apply(responses)
-
-  for error in applicator.Errors():
-    flow_obj.Log("Error encountered when parsing responses: %s", error)
-
-  return list(applicator.Responses())
 
 
 def UploadArtifactYamlFile(file_content,

@@ -8,6 +8,7 @@ from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_proto import objects_pb2
 from grr_response_server import signed_binary_utils
 from grr.test_lib import test_lib
@@ -40,7 +41,8 @@ class SignedBinaryIDFromURNTest(absltest.TestCase):
   def testRaisesWhenNeitherPythonHackNorExecutableURNIsPassed(self):
     with self.assertRaises(ValueError):
       signed_binary_utils.SignedBinaryIDFromURN(
-          rdfvalue.RDFURN("aff4:/foo/bar"))
+          rdfvalue.RDFURN("aff4:/foo/bar")
+      )
 
 
 class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
@@ -59,9 +61,11 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         binary_data,
         private_key=self._private_key,
         public_key=self._public_key,
-        chunk_size=3)
+        chunk_size=3,
+    )
     blobs_iter, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        test_urn)
+        test_urn
+    )
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
     self.assertIsInstance(blobs_iter, collections.abc.Iterator)
 
@@ -81,12 +85,15 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
         rdf_crypto.SignedBlob().Sign(b"\x33\x44\x55", self._private_key),
         rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
+        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key),
     ]
+    test_blobs = [mig_crypto.ToProtoSignedBlob(blob) for blob in test_blobs]
     signed_binary_utils.WriteSignedBinaryBlobs(test_urn, test_blobs)
     blobs_iter, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        test_urn)
+        test_urn
+    )
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
+    blobs_iter = [mig_crypto.ToProtoSignedBlob(blob) for blob in blobs_iter]
     self.assertCountEqual(list(blobs_iter), test_blobs)
 
   def testReadIndividualBlobsFromSignedBinary(self):
@@ -95,8 +102,9 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
         rdf_crypto.SignedBlob().Sign(b"\x33\x44\x55", self._private_key),
         rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
+        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key),
     ]
+    test_blobs = [mig_crypto.ToProtoSignedBlob(blob) for blob in test_blobs]
     signed_binary_utils.WriteSignedBinaryBlobs(test_urn, test_blobs)
 
     with self.assertRaises(ValueError):
@@ -107,8 +115,9 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
       self.assertEqual(blob.data, test_blob.data)
 
     with self.assertRaises(signed_binary_utils.BlobIndexOutOfBoundsError):
-      signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn,
-                                                        len(test_blobs))
+      signed_binary_utils.FetchBlobForSignedBinaryByURN(
+          test_urn, len(test_blobs)
+      )
 
   def testFetchSizeOfSignedBinary(self):
     binary1_urn = rdfvalue.RDFURN("aff4:/config/executables/foo1")
@@ -116,14 +125,18 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     binary1_data = b"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99"
     binary2_blobs = [
         rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x33\x44", self._private_key)
+        rdf_crypto.SignedBlob().Sign(b"\x33\x44", self._private_key),
+    ]
+    binary2_blobs = [
+        mig_crypto.ToProtoSignedBlob(blob) for blob in binary2_blobs
     ]
     signed_binary_utils.WriteSignedBinary(
         binary1_urn,
         binary1_data,
         private_key=self._private_key,
         public_key=self._public_key,
-        chunk_size=3)
+        chunk_size=3,
+    )
     signed_binary_utils.WriteSignedBinaryBlobs(binary2_urn, binary2_blobs)
     binary1_size = signed_binary_utils.FetchSizeOfSignedBinary(binary1_urn)
     binary2_size = signed_binary_utils.FetchSizeOfSignedBinary(binary2_urn)
@@ -134,14 +147,29 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     binary1_urn = rdfvalue.RDFURN("aff4:/config/executables/foo1")
     binary2_urn = rdfvalue.RDFURN("aff4:/config/executables/foo2")
     signed_binary_utils.WriteSignedBinaryBlobs(
-        binary1_urn, [rdf_crypto.SignedBlob().Sign(b"\x00", self._private_key)])
+        binary1_urn,
+        [
+            mig_crypto.ToProtoSignedBlob(
+                rdf_crypto.SignedBlob().Sign(b"\x00", self._private_key)
+            )
+        ],
+    )
     signed_binary_utils.WriteSignedBinaryBlobs(
-        binary2_urn, [rdf_crypto.SignedBlob().Sign(b"\x11", self._private_key)])
-    self.assertCountEqual(signed_binary_utils.FetchURNsForAllSignedBinaries(),
-                          [binary1_urn, binary2_urn])
+        binary2_urn,
+        [
+            mig_crypto.ToProtoSignedBlob(
+                rdf_crypto.SignedBlob().Sign(b"\x11", self._private_key)
+            )
+        ],
+    )
+    self.assertCountEqual(
+        signed_binary_utils.FetchURNsForAllSignedBinaries(),
+        [binary1_urn, binary2_urn],
+    )
     signed_binary_utils.DeleteSignedBinary(binary1_urn)
-    self.assertCountEqual(signed_binary_utils.FetchURNsForAllSignedBinaries(),
-                          [binary2_urn])
+    self.assertCountEqual(
+        signed_binary_utils.FetchURNsForAllSignedBinaries(), [binary2_urn]
+    )
 
   def testMissingSignedBinary(self):
     missing_urn = rdfvalue.RDFURN("aff4:/config/executables/not/exist")
@@ -159,9 +187,11 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         binary_data,
         private_key=self._private_key,
         public_key=self._public_key,
-        chunk_size=chunk_size)
+        chunk_size=chunk_size,
+    )
     blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        binary_urn)
+        binary_urn
+    )
     return blob_iterator
 
   def testStreamSignedBinary_SmallBlobs(self):
@@ -170,7 +200,8 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     # Stream binary content with a stream chunk size larger than the
     # size of individual blobs.
     chunk_generator = signed_binary_utils.StreamSignedBinaryContents(
-        blob_iterator, chunk_size=4)
+        blob_iterator, chunk_size=4
+    )
     expected_chunks = [
         b"\x00\x11\x22\x33",
         b"\x44\x55\x66\x77",
@@ -185,7 +216,8 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     # Stream binary content with a stream chunk size smaller than the
     # size of individual blobs.
     chunk_generator = signed_binary_utils.StreamSignedBinaryContents(
-        blob_iterator, chunk_size=4)
+        blob_iterator, chunk_size=4
+    )
     expected_chunks = [
         b"\x00\x11\x22\x33",
         b"\x44\x55\x66\x77",
@@ -200,7 +232,8 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     # Stream binary content with a chunk size larger than the size of the
     # binary.
     chunk_generator = signed_binary_utils.StreamSignedBinaryContents(
-        blob_iterator, chunk_size=15)
+        blob_iterator, chunk_size=15
+    )
     self.assertCountEqual(list(chunk_generator), [binary_data])
 
   def testUpdateSignedBinary(self):
@@ -209,7 +242,8 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     self._WriteTestBinaryAndGetBlobIterator(binary1_data, 10)
     blob_iterator = self._WriteTestBinaryAndGetBlobIterator(binary2_data, 10)
     chunk_generator = signed_binary_utils.StreamSignedBinaryContents(
-        blob_iterator, chunk_size=10)
+        blob_iterator, chunk_size=10
+    )
     self.assertCountEqual(list(chunk_generator), [binary2_data])
 
 

@@ -1,4 +1,3 @@
-// g3-format-v_3_1
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
@@ -44,11 +43,10 @@ export class ExecutePythonHackDetails extends Plugin {
   );
 
   readonly textContent$ = this.flowResultsLocalStore.results$.pipe(
-    map(
-      (results) =>
-        (
-          results[0]?.payload as ExecutePythonHackResult | undefined
-        )?.resultString?.split('\n'),
+    map((results) =>
+      (
+        results[0]?.payload as ExecutePythonHackResult | undefined
+      )?.resultString?.split('\n'),
     ),
     filter(isNonNull),
   );

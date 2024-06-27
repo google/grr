@@ -43,6 +43,8 @@ export class ReadLowLevelDetails extends Plugin {
   override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     // Strips punctuation.
     const args = this.flow.args as ReadLowLevelArgs | undefined;
+    //   TS1501: This regular expression flag is only available when targeting 'es6' or later.
+    // @ts-ignore
     const alphanumericOnly = args?.path?.replace(/[^\p{L}\s]/gu, '') ?? '';
     const archiveFileName = `${this.flow.clientId}_${this.flow.flowId}_${alphanumericOnly}`;
     return [

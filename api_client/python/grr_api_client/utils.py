@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
 
+import io
+import itertools
+import struct
 import time
 from typing import Any
 from typing import Callable
@@ -10,6 +13,8 @@ from typing import Iterator
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
+
+from cryptography.hazmat.primitives.ciphers import aead
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
@@ -305,6 +310,97 @@ def MessageToFlatDict(
 def Xor(bytestr: bytes, key: int) -> bytes:
   """Returns a `bytes` object where each byte has been xored with key."""
   return bytes([byte ^ key for byte in bytestr])
+
+
+class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+  """A raw file-like object that reads chunk stream on demand."""
+
+  def __init__(self, chunks: Iterator[bytes]) -> None:
+    """Initializes the object."""
+    super().__init__()
+    self._chunks = chunks
+    self._buf = io.BytesIO()
+
+  def readable(self) -> bool:
+    return True
+
+  def readall(self) -> bytes:
+    return b"".join(self._chunks)
+
+  def readinto(self, buf: bytearray) -> int:
+    if self._buf.tell() == len(self._buf.getbuffer()):
+      self._buf.seek(0, io.SEEK_SET)
+      self._buf.truncate()
+      self._buf.write(next(self._chunks, b""))
+      self._buf.seek(0, io.SEEK_SET)
+
+    return self._buf.readinto(buf)
+
+
+def AEADDecrypt(stream: IO[bytes], key: bytes) -> IO[bytes]:
+  """Decrypts given file-like object using AES algorithm in GCM mode.
+
+  Refer to the encryption documentation to learn about the details of the format
+  that this function allows to decode.
+
+  Args:
+    stream: A file-like object to decrypt.
+    key: A secret key used for decrypting the data.
+
+  Returns:
+    A file-like object with decrypted data.
+  """
+  aesgcm = aead.AESGCM(key)
+
+  def Generate() -> Iterator[bytes]:
+    # Buffered reader should accept `IO[bytes]` but for now it accepts only
+    # `RawIOBase` (which is a concrete base class for all I/O implementations).
+    reader = io.BufferedReader(stream)  # pytype: disable=wrong-arg-types
+
+    # We abort early if there is no data in the stream. Otherwise we would try
+    # to read nonce and fail.
+    if not reader.peek():
+      return
+
+    for idx in itertools.count():
+      nonce = reader.read(_AEAD_NONCE_SIZE)
+
+      # As long there is some data in the buffer (and there should be because of
+      # the initial check) there should be a fixed-size nonce prepended to each
+      # chunk.
+      if len(nonce) != _AEAD_NONCE_SIZE:
+        raise EOFError(f"Incorrect nonce length: {len(nonce)}")
+
+      chunk = reader.read(_AEAD_CHUNK_SIZE + 16)
+
+      # `BufferedReader#peek` will return non-empty byte string if there is more
+      # data available in the stream.
+      is_last = reader.peek() == b""  # pylint: disable=g-explicit-bool-comparison
+
+      adata = _AEAD_ADATA_FORMAT.pack(idx, is_last)
+
+      yield aesgcm.decrypt(nonce, chunk, adata)
+
+      if is_last:
+        break
+
+  return io.BufferedReader(_Unchunked(Generate()))
+
+
+# We use 12 bytes (96 bits) as it is the recommended IV length by NIST for best
+# performance [1]. See AESGCM documentation for more details.
+#
+# [1]: https://csrc.nist.gov/publications/detail/sp/800-38d/final
+_AEAD_NONCE_SIZE = 12
+
+# Because chunk size is crucial to the security of the whole procedure, we don't
+# let users pick their own chunk size. Instead, we use a fixed-size chunks of
+# 4 mebibytes.
+_AEAD_CHUNK_SIZE = 4 * 1024 * 1024
+
+# As associated data for each encrypted chunk we use an integer denoting chunk
+# id followed by a byte with information whether this is the last chunk.
+_AEAD_ADATA_FORMAT = struct.Struct("!Q?")
 
 
 def RegisterProtoDescriptors(

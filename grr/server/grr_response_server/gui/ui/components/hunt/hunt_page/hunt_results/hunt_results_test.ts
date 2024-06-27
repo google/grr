@@ -176,7 +176,6 @@ describe('HuntResults', () => {
         'payload': {
           'foo': 'bar',
         },
-        'payloadType': PayloadType.USER,
         'timestamp': '1',
       };
 
@@ -212,7 +211,6 @@ describe('HuntResults', () => {
         'payload': {
           'foo': 'bar',
         },
-        'payloadType': PayloadType.USER,
         'timestamp': '1',
       };
 

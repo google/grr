@@ -28,20 +28,6 @@ def ToRDFArtifact(proto: artifact_pb2.Artifact) -> rdf_artifacts.Artifact:
   return rdf_artifacts.Artifact.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoArtifactProcessorDescriptor(
-    rdf: rdf_artifacts.ArtifactProcessorDescriptor,
-) -> artifact_pb2.ArtifactProcessorDescriptor:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFArtifactProcessorDescriptor(
-    proto: artifact_pb2.ArtifactProcessorDescriptor,
-) -> rdf_artifacts.ArtifactProcessorDescriptor:
-  return rdf_artifacts.ArtifactProcessorDescriptor.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoArtifactDescriptor(
     rdf: rdf_artifacts.ArtifactDescriptor,
 ) -> artifact_pb2.ArtifactDescriptor:

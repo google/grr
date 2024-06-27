@@ -92,9 +92,13 @@ const UserDashboardController = class {
    * @private
    */
   onClientApprovals_(response) {
-    this.clientApprovals =
-        filterOutDuplicateApprovals(response['data']['items'])
-            .slice(0, MAX_SHOWN_CLIENTS);
+    if ('items' in response['data']) {
+      this.clientApprovals =
+          filterOutDuplicateApprovals(response['data']['items'])
+              .slice(0, MAX_SHOWN_CLIENTS);
+    } else {
+      this.clientApprovals = [];
+    }
   }
 
   /**

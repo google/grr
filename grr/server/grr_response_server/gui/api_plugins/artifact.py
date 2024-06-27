@@ -3,7 +3,6 @@
 
 from typing import Optional
 
-from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -55,16 +54,6 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
           ),
       )
 
-      # TODO: Remove this once there are no more parsers.
-      factory = parsers.ArtifactParserFactory(str(proto_artifact.name))
-      for parser_cls in factory.AllParserTypes():
-        rdf_desc = rdf_artifacts.ArtifactProcessorDescriptor.FromParser(
-            parser_cls
-        )
-        descriptor.processors.append(
-            mig_artifacts.ToProtoArtifactProcessorDescriptor(rdf_desc)
-        )
-
       result.append(descriptor)
 
     return result
@@ -105,8 +94,13 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact upload."""
 
   args_type = ApiUploadArtifactArgs
+  proto_args_type = api_artifact_pb2.ApiUploadArtifactArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: api_artifact_pb2.ApiUploadArtifactArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     artifact.UploadArtifactYamlFile(
         args.artifact, overwrite=True, overwrite_system_artifacts=False
     )
@@ -120,6 +114,11 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact deletion."""
 
   args_type = ApiDeleteArtifactsArgs
+  proto_args_type = api_artifact_pb2.ApiDeleteArtifactsArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     artifact_registry.DeleteArtifactsFromDatastore(set(args.names))

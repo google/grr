@@ -17,3 +17,19 @@ message AdminUIClientWarningRule {
     (sem_type) = { description: "Warning message text (may contain markdown)." }
   ];
 }
+
+message AdminUIHuntConfig {
+  repeated string default_include_labels = 1 [(sem_type) = {
+    description: "List of labels to be included in a hunt by default."
+  }];
+  repeated string default_exclude_labels = 2 [(sem_type) = {
+    description: "List of labels to be excluded from a hunt by default."
+  }];
+  optional bool make_default_exclude_labels_a_presubmit_check = 3
+      [(sem_type) = {
+        description: "Whether to make default exclude labels a presubmit check."
+      }];
+  optional string presubmit_warning_message = 4 [(sem_type) = {
+    description: "Warning message text to be shown to users when `exclude_labels` are included in a hunt (may contain markdown)."
+  }];
+}

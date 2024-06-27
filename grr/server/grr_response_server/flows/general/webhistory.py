@@ -122,7 +122,6 @@ class CollectBrowserHistory(flow_base.FlowBase):
       flow_id = self.CallFlow(
           collectors.ArtifactCollectorFlow.__name__,
           artifact_list=self.BROWSER_TO_ARTIFACTS_MAP[browser],
-          apply_parsers=False,
           request_data={"browser": browser},
           next_state=self.ProcessArtifactResponses.__name__)
       self.state.progress.browsers.append(

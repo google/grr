@@ -17,12 +17,12 @@ from absl import app
 from grr_response_client import vfs
 from grr_response_client.client_actions.file_finder_utils import uploading
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -1332,8 +1332,8 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertCountEqual(relpaths, [u"厨房/卫浴洁.txt"])
 
   def testPathInterpolation(self):
-    bar = rdf_client.User(username="bar")
-    baz = rdf_client.User(username="baz")
+    bar = knowledge_base_pb2.User(username="bar")
+    baz = knowledge_base_pb2.User(username="baz")
     self.client_id = self.SetupClient(
         0, system="foo", fqdn="norf", users=[bar, baz])
 
@@ -1438,7 +1438,6 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
-    self.assertIn("Missing knowledgebase attributes", flow_obj.error_message)
 
     log_entries = data_store.REL_DB.ReadFlowLogEntries(
         client_id=client_id, flow_id=flow_id, offset=0, count=1024)
@@ -1468,13 +1467,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
-    self.assertIn("Unknown knowledgebase attributes", flow_obj.error_message)
-
-    log_entries = data_store.REL_DB.ReadFlowLogEntries(
-        client_id=client_id, flow_id=flow_id, offset=0, count=1024)
-    self.assertLen(log_entries, 2)
-    self.assertIn("foo", log_entries[0].message)
-    self.assertIn("bar", log_entries[1].message)
+    self.assertEqual("`%%foo%%` does not exist", flow_obj.error_message)
 
   def testSkipsGlobsWithInterpolationWhenNoKnowledgeBase(self):
     creator = db_test_utils.InitializeUser(data_store.REL_DB)
@@ -1500,8 +1493,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     )
     self.assertLen(log_entries, 1)
     self.assertIn(
-        "Skipping glob '%%os%%': can't interpolate with an empty knowledge"
-        " base",
+        "knowledgebase interpolation: 'os' is missing",
         log_entries[0].message,
     )
 

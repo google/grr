@@ -125,4 +125,22 @@
     right: 0;
     top: 0;
   }
+
+  mat-card.warning {
+    background-color: mat.get-color-from-palette(c.$background, danger-light);
+    margin-right: 140px;
+
+    mat-card-content {
+      display: flex;
+
+      > mat-icon {
+        flex-shrink: 0;
+        color: mat.get-color-from-palette(c.$foreground, danger-light);
+      }
+
+      .text-container {
+        margin: 0 1rem;
+      }
+    }
+  }
 }

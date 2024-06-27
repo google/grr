@@ -2,22 +2,17 @@
 """Tests for the artifact libraries."""
 
 import os
-from typing import IO
-from typing import Iterable
-from typing import Iterator
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import knowledge_base_pb2
 from grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
 
@@ -145,145 +140,6 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       source.attributes["names"] = backup  # Restore old source.
 
 
-class InterpolateKbAttributesTest(test_lib.GRRBaseTest):
-
-  def assertRaisesMissingAttrs(self):
-    error_cls = artifact_utils.KbInterpolationMissingAttributesError
-    return self.assertRaises(error_cls)
-
-  def assertRaisesUnknownAttrs(self):
-    error_cls = artifact_utils.KbInterpolationUnknownAttributesError
-    return self.assertRaises(error_cls)
-
-  def testMultipleUsers(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.extend([
-        knowledge_base_pb2.User(username="joe", uid=1),
-        knowledge_base_pb2.User(username="jim", uid=2),
-    ])
-
-    paths = artifact_utils.InterpolateKbAttributes(
-        "test%%users.username%%test", kb
-    )
-    paths = list(paths)
-    self.assertLen(paths, 2)
-    self.assertCountEqual(paths, ["testjoetest", "testjimtest"])
-
-  def testSimpleVariable(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.environ_allusersprofile = "c:\\programdata"
-
-    paths = artifact_utils.InterpolateKbAttributes(
-        "%%environ_allusersprofile%%\\a", kb)
-
-    self.assertEqual(list(paths), ["c:\\programdata\\a"])
-
-  def testWithoutInterpolationAndKnowledgeBase(self):
-    paths = artifact_utils.InterpolateKbAttributes(
-        "no/interpolation", knowledge_base=None
-    )
-
-    self.assertEqual(list(paths), ["no/interpolation"])
-
-  def testRaisesIfInterpolationWithoutKnowledgeBase(self):
-    with self.assertRaises(artifact_utils.KnowledgeBaseUninitializedError):
-      artifact_utils.InterpolateKbAttributes(
-          "%%interpolation%%", knowledge_base=None
-      )
-
-  def testUnknownAttributeVar(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-
-    with self.assertRaisesUnknownAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("%%nonexistent%%\\a", kb)
-
-    self.assertEqual(context.exception.attrs, ["nonexistent"])
-
-  def testUnknownAttributeScope(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-
-    with self.assertRaisesUnknownAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("%%nonexistent.username%%", kb)
-
-    self.assertEqual(context.exception.attrs, ["nonexistent"])
-
-  def testUnknownAttributeScopeVar(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.append(knowledge_base_pb2.User())
-    with self.assertRaisesUnknownAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("%%users.nonexistent%%", kb)
-
-    self.assertEqual(context.exception.attrs, ["users.nonexistent"])
-
-  def testUnknownAttributeScopeNotARealScope(self):
-    kb = knowledge_base_pb2.KnowledgeBase(os="Linux")
-
-    with self.assertRaisesUnknownAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("%%os.version%%", kb)
-
-    self.assertEqual(context.exception.attrs, ["os"])
-
-  def testMissingAttributeScope(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-
-    with self.assertRaisesMissingAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("test%%users.username%%test", kb)
-
-    self.assertEqual(context.exception.attrs, ["users"])
-
-  def testMissingAttributeScopeVar(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.append(knowledge_base_pb2.User(username="foo", uid=42))
-    with self.assertRaisesMissingAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("test%%users.temp%%test", kb)
-
-    self.assertEqual(context.exception.attrs, ["users.temp"])
-
-  def testEmptyAttribute(self):
-    kb = knowledge_base_pb2.KnowledgeBase(environ_allusersprofile="")
-
-    with self.assertRaisesMissingAttrs() as context:
-      artifact_utils.InterpolateKbAttributes("%%environ_allusersprofile%%", kb)
-
-    self.assertEqual(context.exception.attrs, ["environ_allusersprofile"])
-
-  def testSingleUserHasValueOthersDoNot(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.extend([
-        knowledge_base_pb2.User(username="foo", uid=1, temp="C:\\Temp"),
-        knowledge_base_pb2.User(username="bar", uid=2),
-        knowledge_base_pb2.User(username="baz", uid=3),
-    ])
-
-    paths = artifact_utils.InterpolateKbAttributes(r"%%users.temp%%\abcd", kb)
-    self.assertCountEqual(paths, ["C:\\Temp\\abcd"])
-
-  def testMultipleUsersHaveValues(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.extend([
-        knowledge_base_pb2.User(username="joe", uid=1, sid="sid1"),
-        knowledge_base_pb2.User(username="jim", uid=2, sid="sid2"),
-    ])
-    kb.environ_allusersprofile = "c:\\programdata"
-
-    paths = artifact_utils.InterpolateKbAttributes(
-        "%%environ_allusersprofile%%\\%%users.sid%%\\%%users.username%%", kb)
-    self.assertCountEqual(
-        paths, ["c:\\programdata\\sid1\\joe", "c:\\programdata\\sid2\\jim"])
-
-  def testMultipleUsersWithOneFullyApplicableValue(self):
-    kb = knowledge_base_pb2.KnowledgeBase()
-    kb.users.extend([
-        knowledge_base_pb2.User(username="foo", uid=1, temp="C:\\Temp"),
-        knowledge_base_pb2.User(username="bar", uid=2),
-        knowledge_base_pb2.User(username="baz", uid=3),
-    ])
-
-    paths = artifact_utils.InterpolateKbAttributes(
-        "%%users.temp%%\\%%users.username%%.txt", kb)
-    self.assertCountEqual(paths, ["C:\\Temp\\foo.txt"])
-
-
 class UserMergeTest(test_lib.GRRBaseTest):
 
   def testUserMergeWindows(self):
@@ -345,30 +201,6 @@ class UserMergeTest(test_lib.GRRBaseTest):
         [("desktop", u"/home/blake/Desktop", u"/home/blakey/Desktop")])
 
 
-class Parser1(parsers.SingleResponseParser):
-
-  supported_artifacts = ["artifact"]
-  knowledgebase_dependencies = ["appdata", "sid"]
-
-  def ParseResponse(self, knowledge_base, response):
-    raise NotImplementedError()
-
-
-class Parser2(parsers.MultiFileParser[None]):
-
-  supported_artifacts = ["artifact"]
-  knowledgebase_dependencies = ["sid", "desktop"]
-
-  def ParseFiles(
-      self,
-      knowledge_base: rdf_client.KnowledgeBase,
-      pathspecs: Iterable[rdf_paths.PathSpec],
-      filedescs: Iterable[IO[bytes]],
-  ) -> Iterator[None]:
-    del knowledge_base, pathspecs, filedescs  # Unused.
-    raise NotImplementedError()
-
-
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
@@ -382,31 +214,37 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         urls="http://blah")
     return result
 
-  @parser_test_lib.WithParser("Parser1", Parser1)
-  @parser_test_lib.WithParser("Parser2", Parser2)
   def testGetArtifactPathDependencies(self):
-    sources = [{
-        "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-        "attributes": {
-            "keys": [
-                r"%%current_control_set%%\Control\Session "
-                r"Manager\Environment\Path"
-            ]
-        }
-    },
-               {
-                   "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
-                   "attributes": {
-                       "query": "SELECT * FROM Win32_UserProfile "
-                                "WHERE SID='%%users.sid%%'"
-                   }
-               },
-               {
-                   "type": rdf_artifacts.ArtifactSource.SourceType.GREP,
-                   "attributes": {
-                       "content_regex_list": ["^%%users.username%%:"]
-                   }
-               }]
+    sources = [
+        {
+            "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
+            "attributes": {
+                "keys": [
+                    # pylint: disable=line-too-long
+                    # pyformat: disable
+                    r"%%current_control_set%%\Control\Session Manager\Environment\Path",
+                    # pylint: enable=line-too-long
+                    # pyformat: enable
+                ],
+            },
+        },
+        {
+            "type": rdf_artifacts.ArtifactSource.SourceType.WMI,
+            "attributes": {
+                "query": """
+                    SELECT *
+                      FROM Win32_UserProfile
+                     WHERE SID='%%users.sid%%'
+                """,
+            },
+        },
+        {
+            "type": rdf_artifacts.ArtifactSource.SourceType.PATH,
+            "attributes": {
+                "paths": ["/home/%%users.username%%"],
+            },
+        },
+    ]
 
     artifact = rdf_artifacts.Artifact(
         name="artifact",
@@ -417,13 +255,13 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     self.assertCountEqual(
         [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
-        ["REGISTRY_KEY", "WMI", "GREP"])
+        ["REGISTRY_KEY", "WMI", "PATH"],
+    )
 
     self.assertCountEqual(
-        ar.GetArtifactPathDependencies(artifact), [
-            "appdata", "sid", "desktop", "current_control_set", "users.sid",
-            "users.username"
-        ])
+        ar.GetArtifactPathDependencies(artifact),
+        ["current_control_set", "users.sid", "users.username"],
+    )
 
   def testValidateSyntax(self):
     sources = [{
@@ -523,6 +361,320 @@ class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):
             "userdomain": ["the_userdomain_1", "the_userdomain_2"],
             "userprofile": ["the_userprofile_1", "the_userprofile_2"]
         })
+
+
+class ExpandKnowledgebaseWindowsEnvVars(absltest.TestCase):
+
+  def testInvalidSystem(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Linux"
+
+    with self.assertRaises(ValueError) as context:
+      artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(str(context.exception), "Invalid system: 'Linux'")
+
+  def testCircularDependency(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.environ_systemdrive = "%SystemRoot%\\.."
+    kb.environ_systemroot = "%SystemDrive%\\Windows"
+
+    with self.assertRaises(ValueError) as context:
+      artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertStartsWith(str(context.exception), "Circular dependency")
+
+  def testDefaults(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+
+    kb = artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(kb.environ_systemdrive, "C:")
+    self.assertEqual(kb.environ_systemroot, "C:\\Windows")
+    self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
+    self.assertEqual(kb.environ_programfiles, "C:\\Program Files")
+    self.assertEqual(kb.environ_programfilesx86, "C:\\Program Files (x86)")
+
+  def testSimpleExpansion(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.environ_systemdrive = "X:"
+    kb.environ_temp = "%SystemDrive%\\Temporary"
+
+    kb = artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(kb.environ_systemdrive, "X:")
+    self.assertEqual(kb.environ_temp, "X:\\Temporary")
+
+  def testRecursiveExpansion(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.environ_systemdrive = "X:"
+    kb.environ_systemroot = "%SystemDrive%\\W1nd0w5"
+    kb.environ_temp = "%SystemRoot%\\T3mp"
+    kb.environ_allusersappdata = "%TEMP%\\U53r5"
+
+    kb = artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(kb.environ_systemdrive, "X:")
+    self.assertEqual(kb.environ_systemroot, "X:\\W1nd0w5")
+    self.assertEqual(kb.environ_temp, "X:\\W1nd0w5\\T3mp")
+    self.assertEqual(kb.environ_allusersappdata, "X:\\W1nd0w5\\T3mp\\U53r5")
+
+  def testMultiExpansion(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.environ_systemdrive = "X:"
+    kb.environ_comspec = "%SystemDrive%\\.."
+    kb.environ_temp = "%ComSpec%\\%SystemDrive%"
+
+    kb = artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(kb.environ_systemdrive, "X:")
+    self.assertEqual(kb.environ_comspec, "X:\\..")
+    self.assertEqual(kb.environ_temp, "X:\\..\\X:")
+
+  def testUnknownEnvVarRefs(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Windows"
+    kb.environ_systemdrive = "X:"
+    kb.environ_systemroot = "%SystemDrive%\\%SystemName%"
+
+    kb = artifact_utils.ExpandKnowledgebaseWindowsEnvVars(kb)
+
+    self.assertEqual(kb.environ_systemroot, "X:\\%SystemName%")
+
+
+class KnowledgeBaseInterpolationTest(absltest.TestCase):
+
+  def testSinglePattern(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.fqdn = "foo.example.com"
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="ping %%fqdn%%",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "ping foo.example.com")
+
+  def testMultiplePatterns(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.os = "Linux"
+    kb.fqdn = "foo.example.com"
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%fqdn%% (%%os%%)",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "foo.example.com (Linux)")
+
+  def testSingleUserSinglePattern(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="user0")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\Users\\%%users.username%%",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\user0")
+
+  def testSingleUserMultiplePatterns(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.environ_systemdrive = "X:"
+    kb.users.add(username="user0")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%environ_systemdrive%%\\Users\\%%users.username%%",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\user0")
+
+  def testMultipleUsers(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.environ_systemdrive = "X:"
+    kb.users.add(username="user0", sid="S-0-X-X-770")
+    kb.users.add(username="user1", sid="S-1-X-X-771")
+    kb.users.add(username="user2", sid="S-2-X-X-772")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%environ_systemdrive%%\\%%users.sid%%\\%%users.username%%",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 3)
+    self.assertEqual(interpolation.results[0], "X:\\S-0-X-X-770\\user0")
+    self.assertEqual(interpolation.results[1], "X:\\S-1-X-X-771\\user1")
+    self.assertEqual(interpolation.results[2], "X:\\S-2-X-X-772\\user2")
+
+  def testMultipleUsersNoPatterns(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo")
+    kb.users.add(username="bar")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\Users\\foo",
+        kb=kb,
+    )
+
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\foo")
+
+  def testNoUsers(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\Users\\%%users.username%%",
+        kb=kb,
+    )
+    self.assertEmpty(interpolation.results)
+    self.assertEmpty(interpolation.logs)
+
+  def testNoUsersNoPatterns(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\Users\\foo",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\foo")
+
+  def testUserWithoutUsername(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(sid="S-0-X-X-770")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\Users\\%%users.username%%",
+        kb=kb,
+    )
+    self.assertEmpty(interpolation.results)
+    self.assertIn("without username", interpolation.logs[0])
+
+  def testSingleUserMissingAttribute(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\SID\\%%users.sid%%",
+        kb=kb,
+    )
+    self.assertEmpty(interpolation.results)
+    self.assertIn("user 'foo' is missing 'sid'", interpolation.logs)
+
+  def testMultipleUsersMissingAttribute(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo", sid="S-0-X-X-770")
+    kb.users.add(username="bar")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="X:\\SID\\%%users.sid%%",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\SID\\S-0-X-X-770")
+    self.assertIn("user 'bar' is missing 'sid'", interpolation.logs)
+
+  def testMissingAttribute(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.fqdn = "foo.example.com"
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%fqdn%% (%%os%%)",
+        kb=kb,
+    )
+    self.assertEmpty(interpolation.results)
+    self.assertIn("'os' is missing", interpolation.logs)
+
+  def testUserNonExistingAttribute(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo")
+
+    with self.assertRaises(ValueError) as context:
+      artifact_utils.KnowledgeBaseInterpolation(
+          pattern="X:\\Users\\%%users.foobar%%",
+          kb=kb,
+      )
+
+    error = context.exception
+    self.assertEqual(str(error), "`%%users.foobar%%` does not exist")
+
+  def testNonExistingAttribute(self):
+    with self.assertRaises(ValueError) as context:
+      artifact_utils.KnowledgeBaseInterpolation(
+          pattern="X:\\%%foobar%%",
+          kb=knowledge_base_pb2.KnowledgeBase(),
+      )
+
+    error = context.exception
+    self.assertEqual(str(error), "`%%foobar%%` does not exist")
+
+  def testUserprofileFromUserprofile(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo", userprofile="X:\\Users\\foo")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%users.userprofile%%\\file.txt",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\foo\\file.txt")
+
+  def testDefaultUserprofileFromHomedir(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo", homedir="X:\\Users\\foo")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%users.userprofile%%\\file.txt",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\foo\\file.txt")
+    self.assertIn(
+        "using default 'X:\\\\Users\\\\foo' for 'userprofile' for user 'foo'",
+        interpolation.logs,
+    )
+
+  def testDefaultUserprofileFromUsernameSystemDrive(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.environ_systemdrive = "X:"
+    kb.users.add(username="foo")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%users.userprofile%%\\file.txt",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "X:\\Users\\foo\\file.txt")
+    self.assertIn(
+        "using default 'X:\\\\Users\\\\foo' for 'userprofile' for user 'foo'",
+        interpolation.logs,
+    )
+
+  def testDefaultUserprofileFromUsername(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.environ_systemdrive = "C:"
+    kb.users.add(username="foo")
+
+    interpolation = artifact_utils.KnowledgeBaseInterpolation(
+        pattern="%%users.userprofile%%\\file.txt",
+        kb=kb,
+    )
+    self.assertLen(interpolation.results, 1)
+    self.assertEqual(interpolation.results[0], "C:\\Users\\foo\\file.txt")
+    self.assertIn(
+        "using default 'C:\\\\Users\\\\foo' for 'userprofile' for user 'foo'",
+        interpolation.logs,
+    )
 
 
 def main(argv):

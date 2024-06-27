@@ -1434,3 +1434,9 @@ message ApiListParsedFlowResultsResult {
   // one can succeed.
   repeated string errors = 2;
 }
+
+message ArtifactProcessorDescriptor {
+  optional string name = 1;
+  optional string description = 2;
+  repeated string output_types = 3;
+}

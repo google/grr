@@ -40,13 +40,13 @@ class StatsTest(
           "bananas_de_pijamas_counter", fields=[("name", str), ("number", int)]
       )
 
-    args = stats.ApiIncrementCounterMetricArgs(
+    args = stats_pb2.ApiIncrementCounterMetricArgs(
         metric_name="bananas_de_pijamas_counter",
         field_values=[
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.STRING, string_value="b"
             ),
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.NUMBER, number_value=2
             ),
         ],
@@ -73,13 +73,13 @@ class StatsTest(
           "bananas_de_pijamas_counter", fields=[("name", str), ("number", int)]
       )
 
-    args = stats.ApiIncrementCounterMetricArgs(
+    args = stats_pb2.ApiIncrementCounterMetricArgs(
         metric_name="invalid_counter_does_not_exist",
         field_values=[
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.STRING, string_value="b"
             ),
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.NUMBER, number_value=2
             ),
         ],
@@ -103,13 +103,13 @@ class StatsTest(
           "bananas_de_pijamas_counter", fields=[("name", str), ("number", int)]
       )
 
-    args = stats.ApiIncrementCounterMetricArgs(
+    args = stats_pb2.ApiIncrementCounterMetricArgs(
         metric_name="invalid_counter_does_not_exist",
         field_values=[
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.STRING, string_value="b"
             ),
-            stats.FieldValue(
+            stats_pb2.FieldValue(
                 field_type=stats_pb2.FieldValue.NUMBER, number_value=2
             ),
         ],

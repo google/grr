@@ -1,0 +1,31 @@
+// Copyright 2024 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_winreg_value;
+
+import "grr_response_proto/rrg/winreg.proto";
+
+message Args {
+    // Root predefined key of the value to get.
+    rrg.winreg.PredefinedKey root = 1;
+
+    // Key relative to `root` of the value to get (e.g. `SOFTWARE\Microsoft`).
+    string key = 2;
+
+    // Name of the value to get.
+    string name = 3;
+}
+
+message Result {
+    // Root predefined key of the retrieved value.
+    rrg.winreg.PredefinedKey root = 1;
+
+    // Key relative to `root` of the retrieved value.
+    string key = 2;
+
+    // Retrieved value.
+    rrg.winreg.Value value = 3;
+}

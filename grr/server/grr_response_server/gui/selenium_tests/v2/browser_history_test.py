@@ -4,6 +4,8 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto.api import flow_pb2
 from grr_response_server.flows.general import webhistory
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
@@ -570,7 +572,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     def FlowHasBeenStarted():
       handler = api_flow.ApiListFlowsHandler()
       flows = handler.Handle(
-          api_flow.ApiListFlowsArgs(
+          flow_pb2.ApiListFlowsArgs(
               client_id=self.client_id, top_flows_only=True
           ),
           context=api_call_context.ApiCallContext(username=self.test_username),
@@ -581,8 +583,10 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     flow = self.WaitUntil(FlowHasBeenStarted)
 
     self.assertEqual(flow.name, webhistory.CollectBrowserHistory.__name__)
+    flow_args = flows_pb2.CollectBrowserHistoryArgs()
+    flow.args.Unpack(flow_args)
     self.assertCountEqual(
-        flow.args.browsers,
+        flow_args.browsers,
         [
             webhistory.CollectBrowserHistoryArgs.Browser.CHROME,
             # Only Firefox has been unchecked, so it should not appear.

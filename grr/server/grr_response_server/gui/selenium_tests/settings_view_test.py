@@ -3,6 +3,7 @@
 
 from absl import app
 
+from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import config_test as api_config_test
 from grr.test_lib import test_lib
@@ -15,17 +16,101 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
     with test_lib.ConfigOverrider({
         "ACL.group_access_manager_class": "Foo bar.",
         "AdminUI.bind": "127.0.0.1",
+        "AdminUI.hunt_config": rdf_config.AdminUIHuntConfig(
+            default_exclude_labels=["oh-oh"],
+        ),
+        "Source.version_major": 42,
+        "Hunt.default_client_rate": 42.0,
+        "Email.enable_custom_email_address": True,
+        "Cron.disabled_cron_jobs": ["Job1", "Job2"],
+        "Server.fleetspeak_last_ping_threshold": "1h",
+        "Server.raw_filesystem_access_pathtype": "TSK",
+        "ClientBuilder.build_type": "Debug",
+        "ClientBuilder.target_platforms": [
+            "darwin_amd64_dmg",
+            "linux_amd64_deb",
+        ],
+        "ClientRepacker.output_filename": (
+            "%(ClientRepacker.output_basename)%(ClientBuilder.output_extension)"
+        ),
+        "Mysql.password": "top-secret",
     }):
       self.Open("/legacy#/config")
 
       self.WaitUntil(self.IsTextPresent, "Configuration")
 
       # Check that configuration values are displayed.
-      self.WaitUntil(self.IsTextPresent, "ACL.group_access_manager_class")
-      self.WaitUntil(self.IsTextPresent, "Foo bar.")
-
-      self.WaitUntil(self.IsTextPresent, "AdminUI.bind")
-      self.WaitUntil(self.IsTextPresent, "127.0.0.1")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('ACL.group_access_manager_class'):contains('Foo"
+          " bar.')",
+      )
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('AdminUI.bind'):contains('127.0.0.1')",
+      )
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('PrivateKeys.executable_signing_private_key'):contains('(redacted)')",
+      )
+      # AdminUI.hunt_config is an RDFProtoStruct.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('AdminUI.hunt_config') tr:contains('Default exclude"
+          " labels'):contains('oh-oh')",
+      )
+      # Source.version_major is an int field.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Source.version_major'):contains('42')",
+      )
+      # Hunt.default_client_rate is a float field, displayed as an int.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Hunt.default_client_rate'):contains('42')",
+      )
+      # Email.enable_custom_email_address is a boolean field, displayed as int.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Email.enable_custom_email_address'):contains('1')",
+      )
+      # Cron.disabled_cron_jobs is a list (unsupported).
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Cron.disabled_cron_jobs'):not(:contains('Job1,"
+          " Job2'))",
+      )
+      # Server.fleetspeak_last_ping_threshold is an RDF Duration.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Server.fleetspeak_last_ping_threshold'):contains('3600000000')",
+      )
+      # Server.raw_filesystem_access_pathtype is an enum.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Server.raw_filesystem_access_pathtype'):contains('TSK')",
+      )
+      # ClientBuilder.build_type is a "choice".
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('ClientBuilder.build_type'):contains('Debug')",
+      )
+      # ClientBuilder.target_platforms is a "multi-choice" (unsupported).
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('ClientBuilder.target_platforms'):not(:contains('darwin_amd64_dmg,"
+          " linux_amd64_deb'))",
+      )
+      # ClientRepacker.output_filename is an "option".
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('ClientRepacker.output_filename'):contains('GRR_0.0.0.0_')",
+      )
+      # Mysql.password should be redacted.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=tr:contains('Mysql.password'):not(:contains('top-secret')):contains(redacted)",
+      )
 
 
 class TestManageBinariesView(

@@ -3,16 +3,14 @@ import ipaddress
 
 from absl.testing import absltest
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_proto.api import client_pb2
-from grr_response_server.gui.api_plugins import client
-from grr_response_server.gui.api_plugins import mig_client
 from grr_response_server.models import clients
-from grr_response_server.rdfvalues import mig_objects
 
 
 class FleetspeakValidationInfoFromDictTest(absltest.TestCase):
@@ -267,19 +265,6 @@ class ApiClientFromClientSnapshot(absltest.TestCase):
     got_api_client = clients.ApiClientFromClientSnapshot(snapshot)
     self.assertEqual(want_client, got_api_client)
 
-  # TODO: Remove compatibility test once migration is complete
-  # and we remove the RDFValue.
-  def testEquivalentToRDFConstructor(self):
-    in_proto = _GenerateClientSnapshot()
-    got_proto = clients.ApiClientFromClientSnapshot(in_proto)
-
-    in_rdf = mig_objects.ToRDFClientSnapshot(in_proto)
-
-    # Make sure it builds an equivalent RDFValue to the following:
-    want_rdf = client.ApiClient().InitFromClientObject(in_rdf)
-    want_proto = mig_client.ToProtoApiClient(want_rdf)
-    self.assertEqual(want_proto, got_proto)
-
 
 class ApiClientFromClientFullInfo(absltest.TestCase):
 
@@ -316,25 +301,6 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     )
 
     self.assertEqual(got_api_client, want_client)
-
-  # TODO: Remove compatibility test once migration is complete
-  # and we remove the RDFValue.
-  def testEquivalentToRDFConstructor_WithSnapshot(self):
-    snapshot = _GenerateClientSnapshot()
-    proto_input = objects_pb2.ClientFullInfo(last_snapshot=snapshot)
-
-    got_proto = clients.ApiClientFromClientFullInfo(
-        "C.0000000000000000", proto_input
-    )
-
-    rdf_input = mig_objects.ToRDFClientFullInfo(proto_input)
-
-    # Make sure it builds an equivalent RDFValue to the following:
-    want_rdf = client.ApiClient().InitFromClientInfo(
-        "C.0000000000000000", rdf_input
-    )
-    want_proto = mig_client.ToProtoApiClient(want_rdf)
-    self.assertEqual(want_proto, got_proto)
 
   def testWithSnapshot_BadId(self):
     snapshot = _GenerateClientSnapshot()
@@ -399,22 +365,40 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
 
     self.assertEqual(got_api_client, want_client)
 
-  # TODO: Remove compatibility test once migration is complete
-  # and we remove the RDFValue.
-  def testEquivalentToRDFConstructor_WithoutSnapshot(self):
-    proto_input = self._GenerateClientFullInfo(1, 2, 3)
-    got_proto = clients.ApiClientFromClientFullInfo(
-        "C.0000000000000000", proto_input
-    )
+  def testInitFromClientInfoAgeWithSnapshot(self):
+    first_seen_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-01-01")
+    last_snapshot_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-02-02")
 
-    rdf_input = mig_objects.ToRDFClientFullInfo(proto_input)
+    info = objects_pb2.ClientFullInfo()
+    info.metadata.first_seen = int(first_seen_time)
+    info.last_snapshot.client_id = "C.1122334455667788"
+    info.last_snapshot.timestamp = int(last_snapshot_time)
 
-    # Make sure it builds an equivalent RDFValue to the following:
-    want_rdf = client.ApiClient().InitFromClientInfo(
-        "C.0000000000000000", rdf_input
-    )
-    want_proto = mig_client.ToProtoApiClient(want_rdf)
-    self.assertEqual(want_proto, got_proto)
+    api_client = clients.ApiClientFromClientFullInfo("C.1122334455667788", info)
+
+    self.assertEqual(api_client.age, int(last_snapshot_time))
+
+  def testInitFromClientInfoWithoutSnapshot(self):
+    first_seen_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-01-01")
+
+    info = objects_pb2.ClientFullInfo()
+    info.metadata.first_seen = int(first_seen_time)
+
+    api_client = clients.ApiClientFromClientFullInfo("C.1122334455667788", info)
+
+    self.assertEqual(api_client.age, first_seen_time)
+
+  def testInitFromClientInfoRRG(self):
+    info = objects_pb2.ClientFullInfo()
+    info.last_rrg_startup.args.extend(["--foo", "--bar", "--baz"])
+    info.last_rrg_startup.metadata.version.major = 1
+    info.last_rrg_startup.metadata.version.minor = 2
+    info.last_rrg_startup.metadata.version.patch = 3
+
+    api_client = clients.ApiClientFromClientFullInfo("C.0123456789ABCDEF", info)
+
+    self.assertEqual(api_client.rrg_version, "1.2.3")
+    self.assertEqual(api_client.rrg_args, ["--foo", "--bar", "--baz"])
 
 
 if __name__ == "__main__":

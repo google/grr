@@ -12,6 +12,7 @@ import yaml
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -110,6 +111,139 @@ class ApiCreateHuntHandlerTest(
     self.assertRaises(
         ValueError, self.handler.Handle, args, context=self.context
     )
+
+  def testPresubmit_HasPresbmitRule(self):
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      args = hunt_pb2.ApiCreateHuntArgs(
+          flow_name=file_finder.ClientFileFinder.__name__,
+          hunt_runner_args=flows_pb2.HuntRunnerArgs(
+              client_rule_set=jobs_pb2.ForemanClientRuleSet(
+                  match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+                  rules=[
+                      jobs_pb2.ForemanClientRule(
+                          rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                          label=jobs_pb2.ForemanLabelClientRule(
+                              match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+                              label_names=["irrelevant"],
+                          ),
+                      ),
+                      jobs_pb2.ForemanClientRule(
+                          rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                          label=jobs_pb2.ForemanLabelClientRule(
+                              match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+                              label_names=["no-no"],
+                          ),
+                      ),
+                  ],
+              )
+          ),
+      )
+      # Should not raise.
+      self.handler.Handle(args, context=self.context)
+
+  def testPresubmit_HasPresbmitRuleWithExtraLabels(self):
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      args = hunt_pb2.ApiCreateHuntArgs(
+          flow_name=file_finder.ClientFileFinder.__name__,
+          hunt_runner_args=flows_pb2.HuntRunnerArgs(
+              client_rule_set=jobs_pb2.ForemanClientRuleSet(
+                  match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+                  rules=[
+                      jobs_pb2.ForemanClientRule(
+                          rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                          label=jobs_pb2.ForemanLabelClientRule(
+                              match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY,
+                              label_names=["no-no", "irrelevant"],
+                          ),
+                      ),
+                  ],
+              )
+          ),
+      )
+      # Should not raise.
+      self.handler.Handle(args, context=self.context)
+
+  def testPresubmit_NoLabelRule(self):
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      args = hunt_pb2.ApiCreateHuntArgs(
+          flow_name=file_finder.ClientFileFinder.__name__
+      )
+      self.assertRaises(
+          hunt_plugin.HuntPresubmitError,
+          self.handler.Handle,
+          args,
+          context=self.context,
+      )
+
+  def testPresubmit_WrongLabelRule(self):
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      args = hunt_pb2.ApiCreateHuntArgs(
+          flow_name=file_finder.ClientFileFinder.__name__,
+          hunt_runner_args=flows_pb2.HuntRunnerArgs(
+              client_rule_set=jobs_pb2.ForemanClientRuleSet(
+                  match_mode=jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL,
+                  rules=[
+                      jobs_pb2.ForemanClientRule(
+                          rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                          label=jobs_pb2.ForemanLabelClientRule(
+                              match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+                              label_names=["irrelevant"],
+                          ),
+                      ),
+                      # Rule uses `MATCH_ALL` instead of `DOES_NOT_MATCH_ANY`.
+                      jobs_pb2.ForemanClientRule(
+                          rule_type=jobs_pb2.ForemanClientRule.Type.LABEL,
+                          label=jobs_pb2.ForemanLabelClientRule(
+                              match_mode=jobs_pb2.ForemanLabelClientRule.MatchMode.MATCH_ALL,
+                              label_names=["no-no"],
+                          ),
+                      ),
+                  ],
+              )
+          ),
+      )
+      self.assertRaises(
+          hunt_plugin.HuntPresubmitError,
+          self.handler.Handle,
+          args,
+          context=self.context,
+      )
+
+  def testPresubmit_ForceSubmit(self):
+    hunt_cfg = rdf_config.AdminUIHuntConfig(
+        default_exclude_labels=["no-no"],
+        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_warning_message="not cool",
+    )
+    with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
+      args = hunt_pb2.ApiCreateHuntArgs(
+          flow_name=file_finder.ClientFileFinder.__name__,
+          hunt_runner_args=flows_pb2.HuntRunnerArgs(
+              description="something something FORCE=submit"
+          ),
+      )
+      # Should not raise.
+      self.handler.Handle(args, context=self.context)
 
 
 class ApiListHuntCrashesHandlerTest(
@@ -669,15 +803,14 @@ class ApiListHuntResultsHandlerTest(
         ],
     )
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
+        hunt_pb2.ApiListHuntResultsArgs(hunt_id=hunt_id),
         context=self.context,
     )
-
     self.assertCountEqual(
-        [r.payload_type for r in result.items],
+        [r.payload.TypeName() for r in result.items],
         [
-            rdf_file_finder.CollectFilesByKnownPathResult.__name__,
-            rdf_file_finder.FileFinderResult.__name__,
+            flows_pb2.CollectFilesByKnownPathResult.DESCRIPTOR.full_name,
+            flows_pb2.FileFinderResult.DESCRIPTOR.full_name,
         ]
         * 5,
     )
@@ -692,7 +825,7 @@ class ApiListHuntResultsHandlerTest(
         ],
     )
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, count=3),
+        hunt_pb2.ApiListHuntResultsArgs(hunt_id=hunt_id, count=3),
         context=self.context,
     )
 
@@ -708,15 +841,15 @@ class ApiListHuntResultsHandlerTest(
         ],
     )
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntResultsArgs(
+        hunt_pb2.ApiListHuntResultsArgs(
             hunt_id=hunt_id, with_type=rdf_file_finder.FileFinderResult.__name__
         ),
         context=self.context,
     )
 
     self.assertCountEqual(
-        [r.payload_type for r in result.items],
-        [rdf_file_finder.FileFinderResult.__name__] * 5,
+        [r.payload.TypeName() for r in result.items],
+        [flows_pb2.FileFinderResult.DESCRIPTOR.full_name] * 5,
     )
     self.assertEqual(result.total_count, 5)
 
@@ -729,17 +862,16 @@ class ApiListHuntResultsHandlerTest(
         ],
     )
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntResultsArgs(
+        hunt_pb2.ApiListHuntResultsArgs(
             hunt_id=hunt_id,
             count=3,
             with_type=rdf_file_finder.FileFinderResult.__name__,
         ),
         context=self.context,
     )
-
     self.assertCountEqual(
-        [r.payload_type for r in result.items],
-        [rdf_file_finder.FileFinderResult.__name__] * 3,
+        [r.payload.TypeName() for r in result.items],
+        [flows_pb2.FileFinderResult.DESCRIPTOR.full_name] * 3,
     )
     self.assertEqual(result.total_count, 5)
 

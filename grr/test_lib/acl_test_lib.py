@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 
-from typing import Optional
+from typing import List, Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui.api_plugins import user as api_user
@@ -59,13 +60,14 @@ class AclTestMixin(object):
     self.CreateUser(requestor)
     self.CreateUser(approver)
 
-    args = api_user.ApiCreateClientApprovalArgs(
+    args = api_user_pb2.ApiCreateClientApprovalArgs(
         client_id=client_id,
-        approval=api_user.ApiClientApproval(
+        approval=api_user_pb2.ApiClientApproval(
             reason=reason,
             notified_users=[approver],
-            email_cc_addresses=([email_cc_address]
-                                if email_cc_address else [])))
+            email_cc_addresses=([email_cc_address] if email_cc_address else []),
+        ),
+    )
     handler = api_user.ApiCreateClientApprovalHandler()
     result = handler.Handle(
         args, context=api_call_context.ApiCallContext(username=requestor))
@@ -136,12 +138,14 @@ class AclTestMixin(object):
         api_user.ApiListClientApprovalsArgs(),
         context=api_call_context.ApiCallContext(username=requestor)).items
 
-  def RequestHuntApproval(self,
-                          hunt_id,
-                          requestor=None,
-                          reason="Running tests",
-                          email_cc_address=None,
-                          approver=u"approver"):
+  def RequestHuntApproval(
+      self,
+      hunt_id: str,
+      requestor: Optional[str] = None,
+      reason: str = "Running tests",
+      email_cc_address: Optional[List[str]] = None,
+      approver: str = "approver",
+  ) -> str:
     """Request hunt approval for a given hunt."""
 
     if not requestor:
@@ -150,13 +154,14 @@ class AclTestMixin(object):
     self.CreateUser(requestor)
     self.CreateUser(approver)
 
-    args = api_user.ApiCreateHuntApprovalArgs(
+    args = api_user_pb2.ApiCreateHuntApprovalArgs(
         hunt_id=hunt_id,
-        approval=api_user.ApiHuntApproval(
+        approval=api_user_pb2.ApiHuntApproval(
             reason=reason,
             notified_users=[approver],
-            email_cc_addresses=([email_cc_address]
-                                if email_cc_address else [])))
+            email_cc_addresses=([email_cc_address] if email_cc_address else []),
+        ),
+    )
     handler = api_user.ApiCreateHuntApprovalHandler()
     result = handler.Handle(
         args, context=api_call_context.ApiCallContext(username=requestor))
@@ -219,12 +224,14 @@ class AclTestMixin(object):
         api_user.ApiListHuntApprovalsArgs(),
         context=api_call_context.ApiCallContext(username=requestor)).items
 
-  def RequestCronJobApproval(self,
-                             cron_job_id,
-                             requestor=None,
-                             reason="Running tests",
-                             email_cc_address=None,
-                             approver=u"approver"):
+  def RequestCronJobApproval(
+      self,
+      cron_job_id: str,
+      requestor: Optional[str] = None,
+      reason: str = "Running tests",
+      email_cc_address: Optional[List[str]] = None,
+      approver: str = "approver",
+  ) -> str:
     """Request cron job approval for a given cron job."""
 
     if not requestor:
@@ -233,13 +240,14 @@ class AclTestMixin(object):
     self.CreateUser(requestor)
     self.CreateUser(approver)
 
-    args = api_user.ApiCreateCronJobApprovalArgs(
+    args = api_user_pb2.ApiCreateCronJobApprovalArgs(
         cron_job_id=cron_job_id,
-        approval=api_user.ApiCronJobApproval(
+        approval=api_user_pb2.ApiCronJobApproval(
             reason=reason,
             notified_users=[approver],
-            email_cc_addresses=([email_cc_address]
-                                if email_cc_address else [])))
+            email_cc_addresses=([email_cc_address] if email_cc_address else []),
+        ),
+    )
     handler = api_user.ApiCreateCronJobApprovalHandler()
     result = handler.Handle(
         args, context=api_call_context.ApiCallContext(username=requestor))

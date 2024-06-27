@@ -94,12 +94,6 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
         type: SourceType.FILE,
         paths: (attributes.get('paths') as string[]) ?? [],
       };
-    case api.ArtifactSourceSourceType.GREP:
-      return {
-        ...base,
-        type: SourceType.GREP,
-        paths: (attributes.get('paths') as string[]) ?? [],
-      };
 
     case api.ArtifactSourceSourceType.PATH:
       return {

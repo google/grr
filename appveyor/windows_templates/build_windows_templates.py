@@ -11,54 +11,67 @@ import shutil
 import subprocess
 import sys
 import time
-
 from typing import Callable
 
 parser = argparse.ArgumentParser(description="Build windows templates.")
 
 parser.add_argument(
-    "--build_dir", default=r"C:\grrbuild", help="GRR build directory.")
+    "--build_dir", default=r"C:\grrbuild", help="GRR build directory."
+)
 
 parser.add_argument(
     "--grr_src",
     default=r"C:\grrbuild\grr",
-    help="Location of the grr src code. If it doesn't exist "
-    " at this path we'll try to check it out from github.")
+    help=(
+        "Location of the grr src code. If it doesn't exist "
+        " at this path we'll try to check it out from github."
+    ),
+)
 
 parser.add_argument(
     "--output_dir",
     default=r"C:\grrbuild\output",
-    help="Destination directory for the templates.")
+    help="Destination directory for the templates.",
+)
 
 parser.add_argument(
     "--test_repack_install",
     action="store_true",
     default=False,
-    help="Test repacking by calling repack on the template after building,"
-    "then try and install the result. For use by integration tests. If you use "
-    "this option you must run as admin.")
+    help=(
+        "Test repacking by calling repack on the template after building,then"
+        " try and install the result. For use by integration tests. If you use"
+        " this option you must run as admin."
+    ),
+)
 
 parser.add_argument(
     "--wheel_dir",
     default=None,
-    help="A directory that will be passed to pip as the wheel-dir parameter.")
+    help="A directory that will be passed to pip as the wheel-dir parameter.",
+)
 
 parser.add_argument(
     "--expect_service_running",
     dest="expect_service_running",
     action="store_true",
-    help="Triggers whether after installation the GRR service should be "
-    "running or not. Used for testing the installation.")
+    help=(
+        "Triggers whether after installation the GRR service should be "
+        "running or not. Used for testing the installation."
+    ),
+)
 parser.add_argument(
     "--noexpect_service_running",
     dest="expect_service_running",
-    action="store_false")
+    action="store_false",
+)
 parser.set_defaults(expect_service_running=True)
 
 parser.add_argument(
     "--config",
     default="",
-    help="Path to the config file to be used when building templates.")
+    help="Path to the config file to be used when building templates.",
+)
 
 
 args = parser.parse_args()
@@ -79,13 +92,16 @@ def _FileRetryLoop(path: str, f: Callable[[], None]) -> None:
       return
     except OSError as e:
       attempts += 1
-      if (e.errno == errno.EACCES and
-          attempts < _FILE_RETRY_LOOP_RETRY_TIME_SECS):
+      if (
+          e.errno == errno.EACCES
+          and attempts < _FILE_RETRY_LOOP_RETRY_TIME_SECS
+      ):
         # The currently installed GRR process may stick around for a few
         # seconds after the service is terminated (keeping the contents of
         # the installation directory locked).
-        logging.info("Permission-denied error while trying to process %s.",
-                     path)
+        logging.info(
+            "Permission-denied error while trying to process %s.", path
+        )
         time.sleep(1)
       else:
         raise
@@ -97,27 +113,6 @@ def _RmTree(path: str) -> None:
 
 def _Rename(src: str, dst: str) -> None:
   _FileRetryLoop(src, lambda: os.rename(src, dst))
-
-
-def _RmTreePseudoTransactional(path: str) -> None:
-  """Removes `path`.
-
-  Makes sure that either `path` is gone or that it is still present as
-  it was.
-
-  Args:
-    path: The path to remove.
-  """
-  temp_path = f"{path}_orphaned_{int(time.time())}"
-  logging.info("Trying to rename %s -> %s.", path, temp_path)
-
-  _Rename(path, temp_path)
-
-  try:
-    logging.info("Trying to remove %s.", temp_path)
-    _RmTree(temp_path)
-  except:  # pylint: disable=bare-except
-    logging.info("Failed to remove %s. Ignoring.", temp_path, exc_info=True)
 
 
 def _VerboseCheckCall(params):
@@ -141,8 +136,9 @@ class WindowsTemplateBuilder(object):
 
     self.virtualenv64 = os.path.join(args.build_dir, "python_64")
     self.grr_client_build64 = "grr_client_build"
-    self.virtualenv_python64 = os.path.join(self.virtualenv64,
-                                            r"Scripts\python.exe")
+    self.virtualenv_python64 = os.path.join(
+        self.virtualenv64, r"Scripts\python.exe"
+    )
 
     self.git = r"git"
 
@@ -180,13 +176,17 @@ class WindowsTemplateBuilder(object):
   def GitCheckoutGRR(self):
     os.chdir(args.build_dir)
     subprocess.check_call(
-        [self.git, "clone", "https://github.com/google/grr.git"])
+        [self.git, "clone", "https://github.com/google/grr.git"]
+    )
 
   def MakeProtoSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/proto"))
     subprocess.check_call([
-        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir
+        self.virtualenv_python64,
+        "setup.py",
+        "sdist",
+        "--formats=zip",
+        "--dist-dir=%s" % args.build_dir,
     ])
     return glob.glob(
         os.path.join(args.build_dir, "grr_response_proto-*.zip")
@@ -195,8 +195,12 @@ class WindowsTemplateBuilder(object):
   def MakeCoreSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/core"))
     subprocess.check_call([
-        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir, "--no-sync-artifacts"
+        self.virtualenv_python64,
+        "setup.py",
+        "sdist",
+        "--formats=zip",
+        "--dist-dir=%s" % args.build_dir,
+        "--no-sync-artifacts",
     ])
     return glob.glob(
         os.path.join(args.build_dir, "grr_response_core-*.zip")
@@ -205,8 +209,11 @@ class WindowsTemplateBuilder(object):
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/client/"))
     subprocess.check_call([
-        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir
+        self.virtualenv_python64,
+        "setup.py",
+        "sdist",
+        "--formats=zip",
+        "--dist-dir=%s" % args.build_dir,
     ])
     return glob.glob(
         os.path.join(args.build_dir, "grr_response_client-*.zip")
@@ -215,8 +222,11 @@ class WindowsTemplateBuilder(object):
   def MakeClientBuilderSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/client_builder/"))
     subprocess.check_call([
-        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir
+        self.virtualenv_python64,
+        "setup.py",
+        "sdist",
+        "--formats=zip",
+        "--dist-dir=%s" % args.build_dir,
     ])
     return glob.glob(
         os.path.join(args.build_dir, "grr_response_client_builder-*.zip")
@@ -242,8 +252,12 @@ class WindowsTemplateBuilder(object):
     """
     if args.config:
       build_args = [
-          "--verbose", "--config", args.config, "build", "--output",
-          args.output_dir
+          "--verbose",
+          "--config",
+          args.config,
+          "build",
+          "--output",
+          args.output_dir,
       ]
     else:
       build_args = ["--verbose", "build", "--output", args.output_dir]
@@ -268,9 +282,11 @@ class WindowsTemplateBuilder(object):
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
     dummy_config = os.path.join(
-        args.grr_src, "grr/test/grr_response_test/test_data/dummyconfig.yaml")
-    template_amd64 = glob.glob(os.path.join(args.output_dir,
-                                            "*_amd64*.zip")).pop()
+        args.grr_src, "grr/test/grr_response_test/test_data/dummyconfig.yaml"
+    )
+    template_amd64 = glob.glob(
+        os.path.join(args.output_dir, "*_amd64*.zip")
+    ).pop()
 
     fleetspeak_config = os.path.join(
         args.grr_src,
@@ -345,8 +361,9 @@ class WindowsTemplateBuilder(object):
       raise RuntimeError("Install failed, no files at: %s" % self.install_path)
 
     try:
-      output = subprocess.check_output(["sc", "query", self.service_name],
-                                       encoding="utf-8")
+      output = subprocess.check_output(
+          ["sc", "query", self.service_name], encoding="utf-8"
+      )
       service_running = "RUNNING" in output
     except subprocess.CalledProcessError as e:
       output = e.output
@@ -370,13 +387,15 @@ class WindowsTemplateBuilder(object):
     if self.expect_service_running:
       if not service_running:
         raise RuntimeError(
-            "GRR service not running after install, sc query output: %s" %
-            output)
+            "GRR service not running after install, sc query output: %s"
+            % output
+        )
     else:
       if service_running:
         raise RuntimeError(
             "GRR service running after install with expect_service_running == "
-            "False, sc query output: %s" % output)
+            "False, sc query output: %s" % output
+        )
 
   def _InstallInstallers(self):
     """Install the installer built by RepackTemplates."""

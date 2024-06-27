@@ -203,7 +203,7 @@ message User {
   }];
 }
 
-// Next ID: 40
+// Next ID: 41
 message KnowledgeBase {
   repeated User users = 32;
 
@@ -342,4 +342,5 @@ message KnowledgeBase {
   repeated bytes DEPRECATED_users = 1;
 
   reserved 39;
+  reserved 40;
 }

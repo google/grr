@@ -16,6 +16,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_proto import jobs_pb2
 from grr.test_lib import test_lib
 
 
@@ -472,18 +473,19 @@ class RDFX509CertTest(CryptoTestBase):
 class PasswordTest(CryptoTestBase):
 
   def testPassword(self):
-    sample = rdf_crypto.Password()
+    sample = jobs_pb2.Password()
 
-    sample.SetPassword(b"foo")
-    serialized = sample.SerializeToBytes()
+    rdf_crypto.SetPassword(sample, "foo")
+    serialized = sample.SerializeToString()
     self.assertNotIn(b"foo", serialized)
 
-    read_sample = rdf_crypto.Password.FromSerializedBytes(serialized)
+    read_sample = jobs_pb2.Password()
+    read_sample.ParseFromString(serialized)
 
-    self.assertFalse(sample.CheckPassword(b"bar"))
-    self.assertFalse(read_sample.CheckPassword(b"bar"))
-    self.assertTrue(sample.CheckPassword(b"foo"))
-    self.assertTrue(read_sample.CheckPassword(b"foo"))
+    self.assertFalse(rdf_crypto.CheckPassword(sample, "bar"))
+    self.assertFalse(rdf_crypto.CheckPassword(read_sample, "bar"))
+    self.assertTrue(rdf_crypto.CheckPassword(sample, "foo"))
+    self.assertTrue(rdf_crypto.CheckPassword(read_sample, "foo"))
 
 
 def _Tamper(string):

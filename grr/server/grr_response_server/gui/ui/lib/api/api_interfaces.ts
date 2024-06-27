@@ -56,6 +56,14 @@ export declare interface AdminUIClientWarningsConfigOption {
   readonly rules?: readonly AdminUIClientWarningRule[];
 }
 
+/** AdminUIHuntConfig proto mapping. */
+export declare interface AdminUIHuntConfig {
+  readonly defaultIncludeLabels?: readonly string[];
+  readonly defaultExcludeLabels?: readonly string[];
+  readonly makeDefaultExcludeLabelsAPresubmitCheck?: boolean;
+  readonly presubmitWarningMessage?: string;
+}
+
 /** AmazonCloudInstance proto mapping. */
 export declare interface AmazonCloudInstance {
   readonly instanceId?: string;
@@ -475,7 +483,6 @@ export declare interface ApiFlowRequest {
 /** ApiFlowResult proto mapping. */
 export declare interface ApiFlowResult {
   readonly payload?: Any;
-  readonly payloadType?: string;
   readonly timestamp?: RDFDatetime;
   readonly tag?: string;
 }
@@ -1171,7 +1178,6 @@ export declare interface ApiHuntReference {
 export declare interface ApiHuntResult {
   readonly clientId?: string;
   readonly payload?: Any;
-  readonly payloadType?: string;
   readonly timestamp?: RDFDatetime;
 }
 
@@ -1928,6 +1934,7 @@ export declare interface ApiUiConfig {
   readonly grrVersion?: string;
   readonly profileImageUrl?: string;
   readonly defaultHuntRunnerArgs?: HuntRunnerArgs;
+  readonly huntConfig?: AdminUIHuntConfig;
   readonly clientWarnings?: AdminUIClientWarningsConfigOption;
   readonly defaultAccessDurationSeconds?: ProtoUint64;
   readonly maxAccessDurationSeconds?: ProtoUint64;
@@ -2020,7 +2027,6 @@ export declare interface ArtifactCollectorFlowArgs {
   readonly splitOutputByArtifact?: boolean;
   readonly knowledgeBase?: KnowledgeBase;
   readonly errorOnNoResults?: boolean;
-  readonly applyParsers?: boolean;
   readonly maxFileSize?: ByteSize;
   readonly dependencies?: ArtifactCollectorFlowArgsDependency;
   readonly ignoreInterpolationErrors?: boolean;
@@ -2046,7 +2052,6 @@ export declare interface ArtifactDescriptor {
   readonly artifact?: Artifact;
   readonly dependencies?: readonly string[];
   readonly pathDependencies?: readonly string[];
-  readonly processors?: readonly ArtifactProcessorDescriptor[];
   readonly isCustom?: boolean;
   readonly errorMessage?: string;
 }
@@ -2065,13 +2070,6 @@ export declare interface ArtifactFilesDownloaderResult {
   readonly originalResult?: ProtoBytes;
   readonly foundPathspec?: PathSpec;
   readonly downloadedFile?: StatEntry;
-}
-
-/** ArtifactProcessorDescriptor proto mapping. */
-export declare interface ArtifactProcessorDescriptor {
-  readonly name?: string;
-  readonly description?: string;
-  readonly outputTypes?: readonly string[];
 }
 
 /** ArtifactProgress proto mapping. */
@@ -2102,7 +2100,6 @@ export enum ArtifactSourceSourceType {
   GRR_CLIENT_ACTION = 'GRR_CLIENT_ACTION',
   LIST_FILES = 'LIST_FILES',
   ARTIFACT_FILES = 'ARTIFACT_FILES',
-  GREP = 'GREP',
   COMMAND = 'COMMAND',
   REKALL_PLUGIN = 'REKALL_PLUGIN',
 }

@@ -68,7 +68,7 @@
               },
               "type": {
                 "type": "unicode",
-                "value": "RDFString"
+                "value": "DummyFlowResult"
               }
             }
           }
@@ -79,7 +79,7 @@
         "items": [
           {
             "count": 1,
-            "type": "RDFString"
+            "type": "DummyFlowResult"
           }
         ]
       },
@@ -304,7 +304,6 @@
                   ]
                 }
               },
-              "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -432,7 +431,6 @@
               }
             ]
           },
-          "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
@@ -1718,7 +1716,6 @@
               "value": "api_test_user"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -1902,7 +1899,6 @@
                   ]
                 }
               },
-              "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -1965,7 +1961,6 @@
         "approvers": [
           "api_test_user"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:111111",
@@ -2027,7 +2022,6 @@
               }
             ]
           },
-          "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
@@ -2065,7 +2059,6 @@
               "value": "approver"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -2245,7 +2238,6 @@
                   ]
                 }
               },
-              "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -2309,7 +2301,6 @@
           "api_test_user",
           "approver"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419245000000,
         "id": "approval:222222",
@@ -2370,7 +2361,6 @@
               }
             ]
           },
-          "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-1.example.com",
@@ -3815,6 +3805,241 @@
       "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
     }
   ],
+  "ApiGetConfigOptionHandler": [
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Client.company_name",
+        "type": "RDFString",
+        "value": {
+          "type": "RDFString",
+          "value": "Monstros S.A."
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": "Monstros S.A.",
+      "url": "/api/config/Client.company_name"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "AdminUI.hunt_config",
+        "type": "AdminUIHuntConfig",
+        "value": {
+          "type": "AdminUIHuntConfig",
+          "value": {
+            "default_exclude_labels": [
+              {
+                "type": "unicode",
+                "value": "oh-oh"
+              }
+            ]
+          }
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "default_exclude_labels": [
+          "oh-oh"
+        ]
+      },
+      "url": "/api/config/AdminUI.hunt_config"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 42
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 42,
+      "url": "/api/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 42
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 42,
+      "url": "/api/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 42
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 42,
+      "url": "/api/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Source.version_major",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 42
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 42,
+      "url": "/api/config/Source.version_major"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Hunt.default_client_rate",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 42
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 42,
+      "url": "/api/config/Hunt.default_client_rate"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Email.enable_custom_email_address",
+        "type": "RDFInteger",
+        "value": {
+          "type": "RDFInteger",
+          "value": 1
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 1,
+      "url": "/api/config/Email.enable_custom_email_address"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": true,
+        "name": "Cron.disabled_cron_jobs"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "url": "/api/config/Cron.disabled_cron_jobs"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Server.fleetspeak_last_ping_threshold",
+        "type": "Duration",
+        "value": {
+          "type": "Duration",
+          "value": 3600000000
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": 3600000000,
+      "url": "/api/config/Server.fleetspeak_last_ping_threshold"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "Server.raw_filesystem_access_pathtype",
+        "type": "EnumNamedValue",
+        "value": {
+          "type": "EnumNamedValue",
+          "value": "TSK"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": "TSK",
+      "url": "/api/config/Server.raw_filesystem_access_pathtype"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "ClientBuilder.build_type",
+        "type": "RDFString",
+        "value": {
+          "type": "RDFString",
+          "value": "Debug"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": "Debug",
+      "url": "/api/config/ClientBuilder.build_type"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": true,
+        "name": "ClientBuilder.target_platforms"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "url": "/api/config/ClientBuilder.target_platforms"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_invalid": false,
+        "name": "ClientRepacker.output_filename",
+        "type": "RDFString",
+        "value": {
+          "type": "RDFString",
+          "value": "GRR_0.0.0.0_"
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "type_stripped_response": "GRR_0.0.0.0_",
+      "url": "/api/config/ClientRepacker.output_filename"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "is_redacted": true,
+        "name": "Mysql.password"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
+      "url": "/api/config/Mysql.password"
+    }
+  ],
   "ApiGetCronJobApprovalHandler": [
     {
       "api_method": "GetCronJobApproval",
@@ -3828,7 +4053,6 @@
               "value": "api_test_user"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -3942,7 +4166,6 @@
         "approvers": [
           "api_test_user"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": false,
@@ -3993,7 +4216,6 @@
               "value": "approver"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -4104,7 +4326,6 @@
           "api_test_user",
           "approver"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "id": "approval:222222",
         "is_valid": true,
@@ -4893,7 +5114,6 @@
               "value": "api_test_user"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -5176,7 +5396,6 @@
         "approvers": [
           "api_test_user"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:111111",
@@ -5279,7 +5498,6 @@
               "value": "approver"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -5559,7 +5777,6 @@
           "api_test_user",
           "approver"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419245000000,
         "id": "approval:222222",
@@ -5898,7 +6115,6 @@
               }
             }
           },
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -6286,7 +6502,6 @@
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:556677"
         },
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:333333",
@@ -6454,7 +6669,6 @@
               }
             }
           },
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -6793,7 +7007,6 @@
           "state": "RUNNING",
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:444444",
@@ -10242,7 +10455,6 @@
               "value": "requestor"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -10422,7 +10634,6 @@
                   ]
                 }
               },
-              "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -10486,7 +10697,6 @@
           "api_test_user",
           "requestor"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:111111",
@@ -10547,7 +10757,6 @@
               }
             ]
           },
-          "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
@@ -10587,7 +10796,6 @@
               "value": "requestor"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -10698,7 +10906,6 @@
           "api_test_user",
           "requestor"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": true,
@@ -10750,7 +10957,6 @@
               "value": "requestor"
             }
           ],
-          "email_cc_addresses": [],
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
@@ -11030,7 +11236,6 @@
           "api_test_user",
           "requestor"
         ],
-        "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
         "expiration_time_us": 2419244000000,
         "id": "approval:111111",
@@ -11392,9 +11597,7 @@
     {
       "api_method": "ListApproverSuggestions",
       "method": "GET",
-      "response": {
-        "suggestions": []
-      },
+      "response": {},
       "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v1",
       "url": "/api/users/approver-suggestions?username_query=foo"
     },
@@ -11566,7 +11769,6 @@
                   "value": "approver"
                 }
               ],
-              "email_cc_addresses": [],
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
@@ -11746,7 +11948,6 @@
                       ]
                     }
                   },
-                  "labels": [],
                   "last_seen_at": {
                     "type": "RDFDatetime",
                     "value": 42000000
@@ -11813,7 +12014,6 @@
                   "value": "api_test_user"
                 }
               ],
-              "email_cc_addresses": [],
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
@@ -11997,7 +12197,6 @@
                       ]
                     }
                   },
-                  "labels": [],
                   "last_seen_at": {
                     "type": "RDFDatetime",
                     "value": 42000000
@@ -12065,7 +12264,6 @@
               "api_test_user",
               "approver"
             ],
-            "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
             "expiration_time_us": 2419245000000,
             "id": "approval:222222",
@@ -12126,7 +12324,6 @@
                   }
                 ]
               },
-              "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-1.example.com",
@@ -12150,7 +12347,6 @@
             "approvers": [
               "api_test_user"
             ],
-            "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
             "expiration_time_us": 2419244000000,
             "id": "approval:111111",
@@ -12212,7 +12408,6 @@
                   }
                 ]
               },
-              "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-0.example.com",
@@ -12250,7 +12445,6 @@
                   "value": "api_test_user"
                 }
               ],
-              "email_cc_addresses": [],
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
@@ -12434,7 +12628,6 @@
                       ]
                     }
                   },
-                  "labels": [],
                   "last_seen_at": {
                     "type": "RDFDatetime",
                     "value": 42000000
@@ -12501,7 +12694,6 @@
             "approvers": [
               "api_test_user"
             ],
-            "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
             "expiration_time_us": 2419244000000,
             "id": "approval:111111",
@@ -12563,7 +12755,6 @@
                   }
                 ]
               },
-              "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-0.example.com",
@@ -14011,10 +14202,6 @@
                   }
                 }
               },
-              "payload_type": {
-                "type": "unicode",
-                "value": "FileFinderResult"
-              },
               "timestamp": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -14045,7 +14232,6 @@
                 "st_uid": 139592
               }
             },
-            "payload_type": "FileFinderResult",
             "timestamp": 42000000
           }
         ]
@@ -14055,9 +14241,7 @@
     {
       "api_method": "ListFlowResults",
       "method": "GET",
-      "response": {
-        "items": []
-      },
+      "response": {},
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=benign"
     }
@@ -14800,7 +14984,6 @@
                   "value": "api_test_user"
                 }
               ],
-              "email_cc_addresses": [],
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
@@ -15087,7 +15270,6 @@
             "approvers": [
               "api_test_user"
             ],
-            "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
             "expiration_time_us": 2419243000000,
             "id": "approval:112233",
@@ -16143,12 +16325,13 @@
                 "value": "C.1000000000000000"
               },
               "payload": {
-                "type": "RDFString",
-                "value": "blah1"
-              },
-              "payload_type": {
-                "type": "unicode",
-                "value": "RDFString"
+                "type": "DummyFlowResult",
+                "value": {
+                  "flow_output": {
+                    "type": "unicode",
+                    "value": "blah1"
+                  }
+                }
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16164,12 +16347,13 @@
                 "value": "C.1000000000000000"
               },
               "payload": {
-                "type": "RDFString",
-                "value": "blah2-foo"
-              },
-              "payload_type": {
-                "type": "unicode",
-                "value": "RDFString"
+                "type": "DummyFlowResult",
+                "value": {
+                  "flow_output": {
+                    "type": "unicode",
+                    "value": "blah2-foo"
+                  }
+                }
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16185,14 +16369,16 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "payload": "blah1",
-            "payload_type": "RDFString",
+            "payload": {
+              "flow_output": "blah1"
+            },
             "timestamp": 2000000
           },
           {
             "client_id": "C.1000000000000000",
-            "payload": "blah2-foo",
-            "payload_type": "RDFString",
+            "payload": {
+              "flow_output": "blah2-foo"
+            },
             "timestamp": 43000000
           }
         ],
@@ -16213,12 +16399,13 @@
                 "value": "C.1000000000000000"
               },
               "payload": {
-                "type": "RDFString",
-                "value": "blah1"
-              },
-              "payload_type": {
-                "type": "unicode",
-                "value": "RDFString"
+                "type": "DummyFlowResult",
+                "value": {
+                  "flow_output": {
+                    "type": "unicode",
+                    "value": "blah1"
+                  }
+                }
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16234,8 +16421,9 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "payload": "blah1",
-            "payload_type": "RDFString",
+            "payload": {
+              "flow_output": "blah1"
+            },
             "timestamp": 2000000
           }
         ],
@@ -16256,12 +16444,13 @@
                 "value": "C.1000000000000000"
               },
               "payload": {
-                "type": "RDFString",
-                "value": "blah2-foo"
-              },
-              "payload_type": {
-                "type": "unicode",
-                "value": "RDFString"
+                "type": "DummyFlowResult",
+                "value": {
+                  "flow_output": {
+                    "type": "unicode",
+                    "value": "blah2-foo"
+                  }
+                }
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16277,8 +16466,9 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "payload": "blah2-foo",
-            "payload_type": "RDFString",
+            "payload": {
+              "flow_output": "blah2-foo"
+            },
             "timestamp": 43000000
           }
         ],
@@ -16299,12 +16489,13 @@
                 "value": "C.1000000000000000"
               },
               "payload": {
-                "type": "RDFString",
-                "value": "blah2-foo"
-              },
-              "payload_type": {
-                "type": "unicode",
-                "value": "RDFString"
+                "type": "DummyFlowResult",
+                "value": {
+                  "flow_output": {
+                    "type": "unicode",
+                    "value": "blah2-foo"
+                  }
+                }
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -16320,8 +16511,9 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "payload": "blah2-foo",
-            "payload_type": "RDFString",
+            "payload": {
+              "flow_output": "blah2-foo"
+            },
             "timestamp": 43000000
           }
         ],
@@ -17753,9 +17945,7 @@
     {
       "api_method": "ListPendingUserNotifications",
       "method": "GET",
-      "response": {
-        "items": []
-      },
+      "response": {},
       "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v1",
       "url": "/api/users/me/notifications/pending?timestamp=44000000"
     }

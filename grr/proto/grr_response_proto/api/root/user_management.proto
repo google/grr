@@ -10,7 +10,8 @@ package grr;
 message ApiCreateGrrUserArgs {
   optional string username = 1;
   optional ApiGrrUser.UserType user_type = 2;
-  optional string password = 3;
+  optional string password = 3
+      ;
   optional string email = 4;
 }
 
@@ -21,7 +22,8 @@ message ApiDeleteGrrUserArgs {
 message ApiModifyGrrUserArgs {
   optional string username = 1;
   optional ApiGrrUser.UserType user_type = 2;
-  optional string password = 3;
+  optional string password = 3
+      ;
   optional string email = 4;
 }
 

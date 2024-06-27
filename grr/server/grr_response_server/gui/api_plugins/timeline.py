@@ -49,15 +49,16 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the timeline exporter."""
 
   args_type = ApiGetCollectedTimelineArgs
+  proto_args_type = timeline_pb2.ApiGetCollectedTimelineArgs
 
   def Handle(
       self,
-      args: ApiGetCollectedTimelineArgs,
+      args: timeline_pb2.ApiGetCollectedTimelineArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the timeline export API call."""
-    client_id = str(args.client_id)
-    flow_id = str(args.flow_id)
+    client_id = args.client_id
+    flow_id = args.flow_id
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     if flow_obj.flow_class_name != timeline.TimelineFlow.__name__:
@@ -74,10 +75,10 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def _StreamBody(
       self,
-      args: ApiGetCollectedTimelineArgs,
+      args: timeline_pb2.ApiGetCollectedTimelineArgs,
   ) -> api_call_handler_base.ApiBinaryStream:
-    client_id = str(args.client_id)
-    flow_id = str(args.flow_id)
+    client_id = args.client_id
+    flow_id = args.flow_id
 
     opts = body.Opts()
     opts.timestamp_subsecond_precision = (
@@ -119,6 +120,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the hunt timelines exporter."""
 
   args_type = ApiGetCollectedHuntTimelinesArgs
+  proto_args_type = timeline_pb2.ApiGetCollectedHuntTimelinesArgs
 
   def __init__(self):
     super().__init__()
@@ -126,11 +128,11 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args: ApiGetCollectedHuntTimelinesArgs,
+      args: timeline_pb2.ApiGetCollectedHuntTimelinesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the hunt timelines export API call."""
-    hunt_id = str(args.hunt_id)
+    hunt_id = args.hunt_id
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     if hunt_obj.args.standard.flow_name != timeline.TimelineFlow.__name__:
@@ -151,7 +153,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateArchive(
       self,
-      args: ApiGetCollectedHuntTimelinesArgs,
+      args: timeline_pb2.ApiGetCollectedHuntTimelinesArgs,
   ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
     yield from self._GenerateHuntTimelines(args, zipgen)
@@ -159,14 +161,15 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateHuntTimelines(
       self,
-      args: ApiGetCollectedHuntTimelinesArgs,
+      args: timeline_pb2.ApiGetCollectedHuntTimelinesArgs,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
-    hunt_id = str(args.hunt_id)
 
     offset = 0
     while True:
-      flows = data_store.REL_DB.ReadHuntFlows(hunt_id, offset, _FLOW_BATCH_SIZE)
+      flows = data_store.REL_DB.ReadHuntFlows(
+          args.hunt_id, offset, _FLOW_BATCH_SIZE
+      )
 
       client_ids = [flow.client_id for flow in flows]
       client_snapshots = data_store.REL_DB.MultiReadClientSnapshot(client_ids)
@@ -175,11 +178,11 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
         snapshot = client_snapshots[flow.client_id]
         filename = _GetHuntTimelineFilename(snapshot, args.format)
 
-        subargs = ApiGetCollectedTimelineArgs()
+        subargs = timeline_pb2.ApiGetCollectedTimelineArgs()
         subargs.client_id = flow.client_id
         subargs.flow_id = flow.flow_id
         subargs.format = args.format
-        subargs.body_opts = args.body_opts
+        subargs.body_opts.CopyFrom(args.body_opts)
 
         yield zipgen.WriteFileHeader(filename)
         yield from map(zipgen.WriteFileChunk, self._GenerateTimeline(subargs))
@@ -190,7 +193,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateTimeline(
       self,
-      args: ApiGetCollectedTimelineArgs,
+      args: timeline_pb2.ApiGetCollectedTimelineArgs,
   ) -> Iterator[bytes]:
     return self._handler.Handle(args).GenerateContent()
 

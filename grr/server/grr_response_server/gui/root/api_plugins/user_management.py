@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for user management."""
 
+from typing import Optional
+
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_proto.api.root import user_management_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import user as api_user
-from grr_response_server.rdfvalues import mig_objects
 
 
 class ApiCreateGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -22,13 +25,19 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiCreateGrrUserArgs
   result_type = api_user.ApiGrrUser
+  proto_args_type = user_management_pb2.ApiCreateGrrUserArgs
+  proto_result_type = api_user_pb2.ApiGrrUser
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: user_management_pb2.ApiCreateGrrUserArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_user.ApiGrrUser:
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if args.user_type != args.UserType.USER_TYPE_ADMIN:
-      args.user_type = args.UserType.USER_TYPE_STANDARD
+    if args.user_type != api_user_pb2.ApiGrrUser.UserType.USER_TYPE_ADMIN:
+      args.user_type = api_user_pb2.ApiGrrUser.UserType.USER_TYPE_STANDARD
 
     if args.email:
       if config.CONFIG["Email.enable_custom_email_address"]:
@@ -41,19 +50,18 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     password = None
     if args.HasField("password"):
-      rdf_password = rdf_crypto.Password()
-      rdf_password.SetPassword(args.password)
-      password = mig_crypto.ToProtoPassword(rdf_password)
+      password = jobs_pb2.Password()
+      rdf_crypto.SetPassword(password, args.password)
+
     data_store.REL_DB.WriteGRRUser(
         username=args.username,
         password=password,
-        user_type=int(args.user_type),
+        user_type=args.user_type,
         email=email,
     )
     # TODO: Use function to get API from proto user.
-    proto_user = data_store.REL_DB.ReadGRRUser(args.username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
+    user = data_store.REL_DB.ReadGRRUser(args.username)
+    return api_user.InitApiGrrUserFromGrrUser(user)
 
 
 class ApiDeleteGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -64,10 +72,15 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Deletes a GRR user."""
 
   args_type = ApiDeleteGrrUserArgs
+  proto_args_type = user_management_pb2.ApiDeleteGrrUserArgs
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: user_management_pb2.ApiDeleteGrrUserArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> None:
     if not args.username:
-      raise ValueError("username can't be empty.")
+      raise ValueError("Username is not set")
 
     try:
       data_store.REL_DB.DeleteGRRUser(args.username)
@@ -84,28 +97,34 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiModifyGrrUserArgs
   result_type = api_user.ApiGrrUser
+  proto_args_type = user_management_pb2.ApiModifyGrrUserArgs
+  proto_result_type = api_user_pb2.ApiGrrUser
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: user_management_pb2.ApiModifyGrrUserArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_user.ApiGrrUser:
     if not args.username:
-      raise ValueError("username can't be empty.")
+      raise ValueError("Username is empty")
 
-    if args.HasField(
-        "user_type") and args.user_type != args.UserType.USER_TYPE_ADMIN:
-      args.user_type = args.UserType.USER_TYPE_STANDARD
+    if (
+        args.HasField("user_type")
+        and args.user_type != api_user_pb2.ApiGrrUser.UserType.USER_TYPE_ADMIN
+    ):
+      args.user_type = api_user_pb2.ApiGrrUser.UserType.USER_TYPE_STANDARD
 
     # query user, to throw if a nonexistent user should be modified
     data_store.REL_DB.ReadGRRUser(args.username)
 
     password = None
     if args.HasField("password"):
-      rdf_password = rdf_crypto.Password()
-      rdf_password.SetPassword(args.password)
-      password = mig_crypto.ToProtoPassword(rdf_password)
+      password = jobs_pb2.Password()
+      rdf_crypto.SetPassword(password, args.password)
 
+    user_type = None
     if args.HasField("user_type"):
-      user_type = int(args.user_type)
-    else:
-      user_type = None
+      user_type = args.user_type
 
     if args.HasField("email"):
       if config.CONFIG["Email.enable_custom_email_address"]:
@@ -120,12 +139,12 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
         username=args.username,
         password=password,
         user_type=user_type,
-        email=email)
+        email=email,
+    )
 
     # TODO: Use function to get API from proto user.
-    proto_user = data_store.REL_DB.ReadGRRUser(args.username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
+    user = data_store.REL_DB.ReadGRRUser(args.username)
+    return api_user.InitApiGrrUserFromGrrUser(user)
 
 
 class ApiListGrrUsersArgs(rdf_structs.RDFProtoStruct):
@@ -144,15 +163,21 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListGrrUsersArgs
   result_type = ApiListGrrUsersResult
+  proto_args_type = user_management_pb2.ApiListGrrUsersArgs
+  proto_result_type = user_management_pb2.ApiListGrrUsersResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: user_management_pb2.ApiListGrrUsersArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> user_management_pb2.ApiListGrrUsersResult:
     total_count = data_store.REL_DB.CountGRRUsers()
-    db_users = data_store.REL_DB.ReadGRRUsers(
-        offset=args.offset, count=args.count)
-    rdf_users = [mig_objects.ToRDFGRRUser(user) for user in db_users]
+    users = data_store.REL_DB.ReadGRRUsers(offset=args.offset, count=args.count)
     # TODO: Use function to get API from proto user.
-    items = [api_user.ApiGrrUser().InitFromDatabaseObject(u) for u in rdf_users]
-    return ApiListGrrUsersResult(total_count=total_count, items=items)
+    items = [api_user.InitApiGrrUserFromGrrUser(u) for u in users]
+    return user_management_pb2.ApiListGrrUsersResult(
+        total_count=total_count, items=items
+    )
 
 
 class ApiGetGrrUserArgs(rdf_structs.RDFProtoStruct):
@@ -164,15 +189,21 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetGrrUserArgs
   result_type = api_user.ApiGrrUser
+  proto_args_type = user_management_pb2.ApiGetGrrUserArgs
+  proto_result_type = api_user_pb2.ApiGrrUser
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: user_management_pb2.ApiGetGrrUserArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_user.ApiGrrUser:
     if not args.username:
-      raise ValueError("username can't be empty.")
+      raise ValueError("Username is empty.")
 
     try:
       # TODO: Use function to get API from proto user.
-      proto_user = data_store.REL_DB.ReadGRRUser(args.username)
-      rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-      return api_user.ApiGrrUser().InitFromDatabaseObject(rdf_user)
+      user = data_store.REL_DB.ReadGRRUser(args.username)
     except db.UnknownGRRUserError as e:
       raise api_call_handler_base.ResourceNotFoundError(e)
+
+    return api_user.InitApiGrrUserFromGrrUser(user)

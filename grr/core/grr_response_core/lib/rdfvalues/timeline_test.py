@@ -10,6 +10,7 @@ from absl.testing import absltest
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import statx
 from grr_response_core.lib.util import temp
+from grr_response_proto import timeline_pb2
 
 
 class TimelineEntryTest(absltest.TestCase):
@@ -70,11 +71,11 @@ class TimelineEntryTest(absltest.TestCase):
       self.assertEqual(entry.mtime_ns, statx_result.mtime_ns)
 
   def testSerializeAndDeserializeStream(self):
-    serialize = rdf_timeline.TimelineEntry.SerializeStream
-    deserialize = rdf_timeline.TimelineEntry.DeserializeStream
+    serialize = rdf_timeline.SerializeTimelineEntryStream
+    deserialize = rdf_timeline.DeserializeTimelineEntryStream
 
-    def RandomEntry() -> rdf_timeline.TimelineEntry:
-      entry = rdf_timeline.TimelineEntry()
+    def RandomEntry() -> timeline_pb2.TimelineEntry:
+      entry = timeline_pb2.TimelineEntry()
       entry.path = os.urandom(4096)
       entry.mode = random.randint(0x0000, 0xFFFF - 1)
       entry.size = random.randint(0, 1e9)
@@ -82,7 +83,7 @@ class TimelineEntryTest(absltest.TestCase):
 
     entries = [RandomEntry() for _ in range(3000)]
 
-    self.assertEqual(list(deserialize(serialize(iter(entries)))), entries)
+    self.assertEqual(list(deserialize(serialize(entries))), entries)
 
 
 if __name__ == "__main__":

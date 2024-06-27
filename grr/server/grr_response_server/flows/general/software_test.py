@@ -539,7 +539,7 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
 
   def testMacos(self) -> None:
     assert data_store.REL_DB is not None
-    db = abstract_db.Database = data_store.REL_DB
+    db: abstract_db.Database = data_store.REL_DB
 
     creator = db_test_utils.InitializeUser(db)
     client_id = db_test_utils.InitializeClient(db)

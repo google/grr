@@ -45,7 +45,6 @@ from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
-from grr.test_lib import parser_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -230,7 +229,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client = self._OpenClient(client_id)
     self._CheckCloudMetadata(client)
 
-  @parser_test_lib.WithAllParsers
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
     client_id = self._SetupMinimalClient()
@@ -251,7 +249,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client = self._OpenClient(client_id)
     self._CheckCloudMetadata(client)
 
-  @parser_test_lib.WithAllParsers
   def testInterrogateLinux(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
@@ -292,7 +289,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckClientLibraries(client)
     self._CheckMemory(client)
 
-  @parser_test_lib.WithAllParsers
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
@@ -454,7 +450,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertLen(snapshot.volumes, 1)
     self.assertEqual(snapshot.volumes[0].unixvolume.mount_point, "/")
 
-  @parser_test_lib.WithAllParsers
   @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
   def testFleetspeakClient(self, mock_labels_fn):
     mock_labels_fn.return_value = ["foo", "bar"]
@@ -492,7 +487,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(fs_validation_tags[0].key, "IP")
     self.assertEqual(fs_validation_tags[0].value, "12.34.56.78")
 
-  @parser_test_lib.WithAllParsers
   @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
   def testFleetspeakClient_OnlyGRRLabels(self, mock_labels_fn):
     mock_labels_fn.return_value = []
@@ -570,7 +564,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(client_snapshot.edr_agents[0].name, "CrowdStrike")
     self.assertEqual(client_snapshot.edr_agents[0].agent_id, agent_id)
 
-  @parser_test_lib.WithAllParsers
   def testSourceFlowIdIsSet(self):
     client_id = self._SetupMinimalClient()
     client_mock = action_mocks.InterrogatedClient()
@@ -850,7 +843,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(users[1].full_name, "Fó Fózyńczak")
     self.assertEqual(users[1].shell, "/bin/bash")
 
-  @parser_test_lib.WithAllParsers
   def testForemanTimeIsResetOnClientSnapshotWrite(self):
     client_id = self._SetupMinimalClient()
     data_store.REL_DB.WriteClientMetadata(

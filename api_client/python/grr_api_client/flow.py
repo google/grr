@@ -11,7 +11,6 @@ from google.protobuf import message
 from grr_api_client import context as api_context
 from grr_api_client import errors
 from grr_api_client import utils
-from grr_response_core.lib.util import aead
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import osquery_pb2
 from grr_response_proto.api import timeline_pb2
@@ -268,5 +267,5 @@ class Flow(FlowBase):
 
     with input_context as input_stream:
       with output_context as output_stream:
-        decrypted_stream = aead.Decrypt(input_stream, encryption_key)
+        decrypted_stream = utils.AEADDecrypt(input_stream, encryption_key)
         shutil.copyfileobj(decrypted_stream, output_stream)

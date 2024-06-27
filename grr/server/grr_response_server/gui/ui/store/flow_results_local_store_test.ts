@@ -70,8 +70,10 @@ describe('FlowResultsLocalStore', () => {
 
     httpApiService.mockedObservables.subscribeToResultsForFlow.next([
       {
-        payload: {foo: 42},
-        payloadType: 'foobar',
+        payload: {
+          '@type': 'type.googleapis.com/grr.Anomaly',
+          'foo': 42,
+        },
         tag: '',
         timestamp: '1',
       },
@@ -83,8 +85,10 @@ describe('FlowResultsLocalStore', () => {
 
     expect(await firstValueFrom(flowResultsLocalStore.results$)).toEqual([
       jasmine.objectContaining({
-        payload: {foo: 42},
-        payloadType: 'foobar',
+        payload: {
+          'foo': 42,
+        },
+        payloadType: 'Anomaly',
       }),
     ]);
   }));
@@ -126,16 +130,20 @@ describe('FlowResultsLocalStore', () => {
 
     httpApiService.mockedObservables.subscribeToResultsForFlow.next([
       {
-        payload: {foo: 42},
-        payloadType: 'foobar',
+        payload: {
+          '@type': 'type.googleapis.com/grr.Anomaly',
+          'foo': 42,
+        },
         tag: '',
         timestamp: '1',
       },
     ]);
     expect(await promise).toEqual([
       jasmine.objectContaining({
-        payload: {foo: 42},
-        payloadType: 'foobar',
+        payload: {
+          'foo': 42,
+        },
+        payloadType: 'Anomaly',
       }),
     ]);
   }));

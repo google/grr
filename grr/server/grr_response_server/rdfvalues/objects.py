@@ -579,6 +579,25 @@ def ToCategorizedPath(
   return "/".join(itertools.chain(prefix, components))
 
 
+def VfsFileReferenceToPath(
+    vfs_file_reference: objects_pb2.VfsFileReference,
+) -> str:
+  """Converts a reference into a VFS file path."""
+
+  if vfs_file_reference.path_type == PathInfo.PathType.OS:
+    return os.path.join("fs", "os", *vfs_file_reference.path_components)
+  elif vfs_file_reference.path_type == PathInfo.PathType.TSK:
+    return os.path.join("fs", "tsk", *vfs_file_reference.path_components)
+  elif vfs_file_reference.path_type == PathInfo.PathType.REGISTRY:
+    return os.path.join("registry", *vfs_file_reference.path_components)
+  elif vfs_file_reference.path_type == PathInfo.PathType.TEMP:
+    return os.path.join("temp", *vfs_file_reference.path_components)
+  elif vfs_file_reference.path_type == PathInfo.PathType.NTFS:
+    return os.path.join("fs", "ntfs", *vfs_file_reference.path_components)
+
+  raise ValueError("Unsupported path type: %s" % vfs_file_reference.path_type)
+
+
 class ClientReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientReference
   rdf_deps = []

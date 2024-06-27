@@ -1,9 +1,11 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   HostBinding,
   HostListener,
+  OnDestroy,
 } from '@angular/core';
 import {
   AbstractControl,
@@ -13,7 +15,8 @@ import {
   FormGroup,
   ValidationErrors,
 } from '@angular/forms';
-
+import {combineLatest} from 'rxjs';
+import {map} from 'rxjs/operators';
 import {
   ForemanClientRule,
   ForemanClientRuleSet,
@@ -26,7 +29,10 @@ import {
   ForemanRegexClientRuleForemanStringField,
 } from '../../../../lib/api/api_interfaces';
 import {toStringFormControls} from '../../../../lib/form';
+import {observeOnDestroy} from '../../../../lib/reactive';
+import {MarkdownPipe} from '../../../../pipes/markdown/markdown_pipe';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
+import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
 
 type ForemanEnumValue =
   | ForemanIntegerClientRuleForemanIntegerField
@@ -68,8 +74,11 @@ function atLeastOneOS(control: AbstractControl): ValidationErrors | null {
   templateUrl: './clients_form.ng.html',
   styleUrls: ['./clients_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [MarkdownPipe],
 })
-export class ClientsForm {
+export class ClientsForm implements AfterViewInit, OnDestroy {
+  readonly ngOnDestroy = observeOnDestroy(this);
+
   readonly RuleSetMatchMode = ForemanClientRuleSetMatchMode;
   readonly operatingSystems = OS_DEFAULTS;
   readonly fb = new FormBuilder();
@@ -183,8 +192,78 @@ export class ClientsForm {
   constructor(
     private readonly changeDetection: ChangeDetectorRef,
     private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly newHuntLocalStore: NewHuntLocalStore,
+    private readonly markdownPipe: MarkdownPipe,
   ) {}
 
+  defaultClientRuleSet: ForemanClientRuleSet | null = null;
+
+  ngAfterViewInit() {
+    this.newHuntLocalStore.defaultClientRuleSet$.subscribe((clientRuleSet) => {
+      this.defaultClientRuleSet = clientRuleSet;
+      this.setFormState(clientRuleSet);
+    });
+  }
+
+  presubmitWarning$ = combineLatest([
+    this.newHuntLocalStore.presubmitOptions$,
+    this.clientForm.valueChanges, // Run on form changes.
+  ]).pipe(
+    map(([presubmitOptions, _]) => {
+      if (!presubmitOptions || !presubmitOptions.expectedExcludedLabels) {
+        return null;
+      }
+
+      const passes = this.presubmitCheck(
+        presubmitOptions.expectedExcludedLabels,
+      );
+
+      if (!passes) {
+        return {
+          htmlSnippet: this.getHtmlFromMarkdown(presubmitOptions.markdownText),
+        };
+      }
+
+      return null;
+    }),
+  );
+
+  // Returns true if the check passes, false otherwise.
+  presubmitCheck(expectedExcludedLabels: string[]): boolean {
+    const current = this.buildRules();
+
+    if (current.matchMode !== ForemanClientRuleSetMatchMode.MATCH_ALL) {
+      return false;
+    }
+
+    const found = current?.rules?.some((rule) => {
+      if (rule.ruleType !== ForemanClientRuleType.LABEL) return false;
+      if (!rule.label) return false;
+      if (
+        rule.label.matchMode !==
+        ForemanLabelClientRuleMatchMode.DOES_NOT_MATCH_ANY
+      ) {
+        return false;
+      }
+      if (
+        (rule.label.labelNames?.length ?? 0) < expectedExcludedLabels.length
+      ) {
+        return false;
+      }
+      for (const label of expectedExcludedLabels) {
+        if (!rule.label.labelNames?.includes(label)) return false;
+      }
+      return true;
+    });
+
+    return found ?? false;
+  }
+
+  resetDefault() {
+    if (this.defaultClientRuleSet) {
+      this.setFormState(this.defaultClientRuleSet);
+    }
+  }
   conditions(): FormArray<FormGroup> {
     return this.conditionsArray;
   }
@@ -539,5 +618,18 @@ export class ClientsForm {
       this.hideContent = false;
       event.stopPropagation();
     }
+  }
+
+  // TODO: Refactor to markdown component.
+  private getHtmlFromMarkdown(markdown: string): string {
+    const html = this.markdownPipe.transform(markdown);
+    const anchorTag = '<a';
+    // We pass 'g' as a flag because we want to replace all occurrences:
+    const regex = new RegExp(anchorTag, 'g');
+    const replaceBy = `${anchorTag} target="_blank"`;
+
+    // We want links to open in a new browser tab when clicked. Therefore
+    // we replace anchor tags (if any) to fit the purpose.
+    return html.replace(regex, replaceBy);
   }
 }

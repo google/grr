@@ -87,28 +87,26 @@ class ApiGetFileDetailsHandlerTest(
     self.CreateFileVersions(self.client_id, self.file_path)
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(
-        client_id=self.client_id, file_path=""
-    )
+    args = vfs_pb2.ApiGetFileDetailsArgs(client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/"
     )
     with self.assertRaises(ValueError):
       self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/analysis"
     )
     with self.assertRaises(ValueError):
       self.handler.Handle(args, context=self.context)
 
   def testRaisesOnNonexistentPath(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/fs/os/foo/bar"
     )
     with self.assertRaises(vfs_plugin.FileNotFoundError):
@@ -116,7 +114,7 @@ class ApiGetFileDetailsHandlerTest(
 
   def testHandlerReturnsNewestVersionByDefault(self):
     # Get file version without specifying a timestamp.
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path
     )
     result = self.handler.Handle(args, context=self.context)
@@ -124,24 +122,24 @@ class ApiGetFileDetailsHandlerTest(
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age,
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(result.file.age),
         self.time_2,
         delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
     )
 
   def testHandlerReturnsClosestSpecificVersion(self):
     # Get specific version.
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id,
         file_path=self.file_path,
-        timestamp=self.time_1,
+        timestamp=int(self.time_1),
     )
     result = self.handler.Handle(args, context=self.context)
 
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age,
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(result.file.age),
         self.time_1,
         delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
     )
@@ -153,7 +151,7 @@ class ApiGetFileDetailsHandlerTest(
     attributes here and make sure they are returned.
     """
 
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path
     )
     result = self.handler.Handle(args, context=self.context)
@@ -176,13 +174,13 @@ class ApiGetFileDetailsHandlerTest(
     client_path = db.ClientPath(self.client_id, path_type, components)
     vfs_test_lib.CreateDirectory(client_path)
 
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path
     )
     result = self.handler.Handle(args, context=self.context)
     self.assertFalse(result.file.is_directory)
 
-    args = vfs_plugin.ApiGetFileDetailsArgs(
+    args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=dir_path
     )
     result = self.handler.Handle(args, context=self.context)
@@ -199,15 +197,15 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.file_path = "fs/os/etc"
 
   def testDoesNotRaiseIfFirstComponentIsEmpty(self):
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="")
+    args = vfs_pb2.ApiListFilesArgs(client_id=self.client_id, file_path="")
     self.handler.Handle(args, context=self.context)
 
   def testDoesNotRaiseIfPathIsRoot(self):
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
+    args = vfs_pb2.ApiListFilesArgs(client_id=self.client_id, file_path="/")
     self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentIsNotAllowlisted(self):
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id, file_path="/analysis"
     )
     with self.assertRaises(ValueError):
@@ -217,7 +215,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     fixture_test_lib.ClientFixture(self.client_id)
 
     # Fetch all children of a directory.
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id, file_path=self.file_path
     )
     result = self.handler.Handle(args, context=self.context)
@@ -231,7 +229,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     fixture_test_lib.ClientFixture(self.client_id)
 
     # Only fetch sub-directories.
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id,
         file_path=self.file_path,
         directories_only=True,
@@ -246,35 +244,35 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     # file_path is "fs/os/etc", a directory.
     self.CreateFileVersions(self.client_id, self.file_path + "/file")
 
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id,
         file_path=self.file_path,
-        timestamp=self.time_2,
+        timestamp=int(self.time_2),
     )
     result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertIsInstance(result.items[0].last_collected_size, int)
     self.assertEqual(result.items[0].last_collected_size, 13)
 
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id,
         file_path=self.file_path,
-        timestamp=self.time_1,
+        timestamp=int(self.time_1),
     )
     result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].last_collected_size, 11)
 
-    args = vfs_plugin.ApiListFilesArgs(
+    args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id,
         file_path=self.file_path,
-        timestamp=self.time_0,
+        timestamp=int(self.time_0),
     )
     result = self.handler.Handle(args, context=self.context)
     self.assertEmpty(result.items)
 
   def testRoot(self):
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
+    args = vfs_pb2.ApiListFilesArgs(client_id=self.client_id, file_path="/")
     result = self.handler.Handle(args, context=self.context)
     self.assertSameElements(
         [(item.name, item.path) for item in result.items],
@@ -282,7 +280,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     )
 
   def testFs(self):
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="fs")
+    args = vfs_pb2.ApiListFilesArgs(client_id=self.client_id, file_path="fs")
     result = self.handler.Handle(args, context=self.context)
     self.assertSameElements(
         [(item.name, item.path) for item in result.items],
@@ -325,7 +323,7 @@ class ApiBrowseFilesystemHandlerTest(
       )
 
   def testQueriesRootPathForEmptyPath(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(client_id=self.client_id, path="")
+    args = vfs_pb2.ApiBrowseFilesystemArgs(client_id=self.client_id, path="")
     results = self.handler.Handle(args, context=self.context)
 
     self.assertLen(results.items, 1)
@@ -333,9 +331,7 @@ class ApiBrowseFilesystemHandlerTest(
     self.assertLen(results.items[0].children, 1)
 
   def testQueriesRootPathForSingleSlashPath(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
-        client_id=self.client_id, path="/"
-    )
+    args = vfs_pb2.ApiBrowseFilesystemArgs(client_id=self.client_id, path="/")
     results = self.handler.Handle(args, context=self.context)
 
     self.assertLen(results.items, 1)
@@ -343,7 +339,7 @@ class ApiBrowseFilesystemHandlerTest(
     self.assertLen(results.items[0].children, 1)
 
   def testHandlerListsFilesAndDirectories(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id, path="/mixeddir"
     )
     results = self.handler.Handle(args, context=self.context)
@@ -355,7 +351,7 @@ class ApiBrowseFilesystemHandlerTest(
       self.assertIn("/mixeddir", item.path)
 
   def testHandlerCanListDirectoryTree(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id, path="/mixeddir", include_directory_tree=True
     )
     results = self.handler.Handle(args, context=self.context)
@@ -374,7 +370,7 @@ class ApiBrowseFilesystemHandlerTest(
     )
 
   def testHandlerCanListDirectoryTreeWhenPointingToFile(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id,
         path="/mixeddir/os-only",
         include_directory_tree=True,
@@ -392,7 +388,7 @@ class ApiBrowseFilesystemHandlerTest(
     self.assertEqual(results.items[1].children[1].name, "os-only")
 
   def testHandlerMergesFilesOfDifferentPathSpecs(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id, path="/mixeddir"
     )
     results = self.handler.Handle(args, context=self.context)
@@ -410,26 +406,26 @@ class ApiBrowseFilesystemHandlerTest(
     self.assertEqual(
         children,
         [
-            ("ntfs-then-os", rdf_paths.PathSpec.PathType.OS, len("OS")),
-            ("os-only", rdf_paths.PathSpec.PathType.OS, len("OS")),
-            ("os-then-ntfs", rdf_paths.PathSpec.PathType.NTFS, len("NTFS")),
-            ("tsk-only", rdf_paths.PathSpec.PathType.TSK, len("TSK")),
+            ("ntfs-then-os", jobs_pb2.PathSpec.PathType.OS, len("OS")),
+            ("os-only", jobs_pb2.PathSpec.PathType.OS, len("OS")),
+            ("os-then-ntfs", jobs_pb2.PathSpec.PathType.NTFS, len("NTFS")),
+            ("tsk-only", jobs_pb2.PathSpec.PathType.TSK, len("TSK")),
         ],
     )
 
   def testHandlerRespectsTimestamp(self):
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id,
         path="/mixeddir",
-        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
+        timestamp=int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)),
     )
     results = self.handler.Handle(args, context=self.context)
     self.assertEmpty(results.items[0].children)
 
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id,
         path="/mixeddir",
-        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1),
+        timestamp=int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)),
     )
     results = self.handler.Handle(args, context=self.context)
     self.assertLen(results.items, 1)
@@ -439,13 +435,13 @@ class ApiBrowseFilesystemHandlerTest(
     )
     self.assertEqual(
         results.items[0].children[0].stat.pathspec.pathtype,
-        rdf_paths.PathSpec.PathType.NTFS,
+        jobs_pb2.PathSpec.PathType.NTFS,
     )
 
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id,
         path="/mixeddir",
-        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+        timestamp=int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)),
     )
     results = self.handler.Handle(args, context=self.context)
     self.assertLen(results.items, 1)
@@ -455,13 +451,13 @@ class ApiBrowseFilesystemHandlerTest(
     )
     self.assertEqual(
         results.items[0].children[0].stat.pathspec.pathtype,
-        rdf_paths.PathSpec.PathType.OS,
+        jobs_pb2.PathSpec.PathType.OS,
     )
 
-    args = vfs_plugin.ApiBrowseFilesystemArgs(
+    args = vfs_pb2.ApiBrowseFilesystemArgs(
         client_id=self.client_id,
         path="/mixeddir",
-        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10),
+        timestamp=int(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10)),
     )
     results = self.handler.Handle(args, context=self.context)
     self.assertLen(results.items, 1)
@@ -471,7 +467,7 @@ class ApiBrowseFilesystemHandlerTest(
     )
     self.assertEqual(
         results.items[0].children[0].stat.pathspec.pathtype,
-        rdf_paths.PathSpec.PathType.OS,
+        jobs_pb2.PathSpec.PathType.OS,
     )
 
 

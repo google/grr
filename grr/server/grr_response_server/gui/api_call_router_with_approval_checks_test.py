@@ -6,6 +6,7 @@ from unittest import mock
 from absl import app
 
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -20,7 +21,6 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
-from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -628,7 +628,25 @@ class ApiCallRouterWithApprovalChecksTest(
 
     self.assertEqual(
         handler.interface_traits,
-        api_user.ApiGrrUserInterfaceTraits().EnableAll(),
+        api_user_pb2.ApiGrrUserInterfaceTraits(
+            cron_jobs_nav_item_enabled=True,
+            create_cron_job_action_enabled=True,
+            hunt_manager_nav_item_enabled=True,
+            create_hunt_action_enabled=True,
+            show_statistics_nav_item_enabled=True,
+            server_load_nav_item_enabled=True,
+            manage_binaries_nav_item_enabled=True,
+            upload_binary_action_enabled=True,
+            settings_nav_item_enabled=True,
+            artifact_manager_nav_item_enabled=True,
+            upload_artifact_action_enabled=True,
+            search_clients_action_enabled=True,
+            browse_virtual_file_system_nav_item_enabled=True,
+            start_client_flow_nav_item_enabled=True,
+            manage_client_flows_nav_item_enabled=True,
+            modify_client_labels_action_enabled=True,
+            hunt_approval_required=True,
+        ),
     )
 
   def testGetGrrUserReturnsRestrictedTraitsWhenWithoutRestrictedFlowsAccess(
@@ -642,7 +660,25 @@ class ApiCallRouterWithApprovalChecksTest(
 
     self.assertNotEqual(
         handler.interface_traits,
-        api_user.ApiGrrUserInterfaceTraits().EnableAll(),
+        api_user_pb2.ApiGrrUserInterfaceTraits(
+            cron_jobs_nav_item_enabled=True,
+            create_cron_job_action_enabled=True,
+            hunt_manager_nav_item_enabled=True,
+            create_hunt_action_enabled=True,
+            show_statistics_nav_item_enabled=True,
+            server_load_nav_item_enabled=True,
+            manage_binaries_nav_item_enabled=True,
+            upload_binary_action_enabled=True,
+            settings_nav_item_enabled=True,
+            artifact_manager_nav_item_enabled=True,
+            upload_artifact_action_enabled=True,
+            search_clients_action_enabled=True,
+            browse_virtual_file_system_nav_item_enabled=True,
+            start_client_flow_nav_item_enabled=True,
+            manage_client_flows_nav_item_enabled=True,
+            modify_client_labels_action_enabled=True,
+            hunt_approval_required=True,
+        ),
     )
 
   def testAllOtherMethodsAreNotAccessChecked(self):

@@ -13,7 +13,6 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins  # pylint: disable=unused-import
-from grr_response_core.lib.parsers import all as all_parsers
 # pylint: disable=unused-import
 # TODO: Remove once old clients are fully deprecated.
 from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
@@ -86,7 +85,6 @@ def Init():
   server_logging.ServerLoggingStartupInit()
 
   bs_registry_init.RegisterBlobStores()
-  all_parsers.Register()
   ec_registry_init.RegisterExportConverters()
   gui_api_registry_init.RegisterApiCallRouters()
 

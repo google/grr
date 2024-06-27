@@ -8,6 +8,7 @@ import re
 from typing import Iterable
 from typing import Iterator
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -55,6 +56,8 @@ from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
+
+FORCE_HUNT_TAG = "FORCE"
 
 # pyformat: disable
 
@@ -331,6 +334,18 @@ def InitApiHuntErrorFromFlowErrorInfo(
   return hunt_error
 
 
+def InitApiHuntResultFromFlowResult(
+    flow_result: flows_pb2.FlowResult,
+) -> hunt_pb2.ApiHuntResult:
+  """Init ApiFlowResult from FlowResult."""
+  api_flow_result = hunt_pb2.ApiHuntResult()
+  api_flow_result.payload.CopyFrom(flow_result.payload)
+  protobuf_utils.CopyAttr(flow_result, api_flow_result, "client_id")
+  protobuf_utils.CopyAttr(flow_result, api_flow_result, "timestamp")
+
+  return api_flow_result
+
+
 class Bucket:
   """A bucket for counts of timestamps."""
 
@@ -503,19 +518,6 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
       api_client.ApiClientId,
       rdfvalue.RDFDatetime,
   ]
-
-  def GetPayloadClass(self):
-    return rdfvalue.RDFValue.classes[self.payload_type]
-
-  def InitFromFlowResult(self, flow_result):
-    """Init from rdf_flow_objects.FlowResult."""
-
-    self.payload_type = flow_result.payload.__class__.__name__
-    self.payload = flow_result.payload
-    self.client_id = flow_result.client_id
-    self.timestamp = flow_result.timestamp
-
-    return self
 
 
 class ApiHuntClient(rdf_structs.RDFProtoStruct):
@@ -838,10 +840,16 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListHuntResultsArgs
   result_type = ApiListHuntResultsResult
+  proto_args_type = hunt_pb2.ApiListHuntResultsArgs
+  proto_result_type = hunt_pb2.ApiListHuntResultsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: hunt_pb2.ApiListHuntResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> hunt_pb2.ApiListHuntResultsResult:
     results = data_store.REL_DB.ReadHuntResults(
-        str(args.hunt_id),
+        args.hunt_id,
         args.offset,
         args.count or db.MAX_COUNT,
         with_substring=args.filter or None,
@@ -849,12 +857,11 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     )
 
     total_count = data_store.REL_DB.CountHuntResults(
-        str(args.hunt_id), with_type=args.with_type or None
+        args.hunt_id, with_type=args.with_type or None
     )
 
-    results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
-    return ApiListHuntResultsResult(
-        items=[ApiHuntResult().InitFromFlowResult(r) for r in results],
+    return hunt_pb2.ApiListHuntResultsResult(
+        items=[InitApiHuntResultFromFlowResult(r) for r in results],
         total_count=total_count,
     )
 
@@ -1667,6 +1674,10 @@ class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
 
+class HuntPresubmitError(Error):
+  """Raised when there is a hunt presubmit error."""
+
+
 class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt creation request."""
 
@@ -1674,6 +1685,51 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiHunt
   proto_args_type = hunt_pb2.ApiCreateHuntArgs
   proto_result_type = hunt_pb2.ApiHunt
+
+  def _HuntPresubmitCheck(
+      self,
+      client_rule_set: jobs_pb2.ForemanClientRuleSet,
+      expected_labels: Sequence[str],
+  ) -> bool:
+    """Very simple presubmit check for exclude labels rule.
+
+    Requires that the rule set has `MATCH_ALL` mode and it has the
+    `exclude_labels` list as a LABEL rule within the set.
+
+    This could be extended to be a more generic/complex check, but for now this
+    simple version should be enough for our needs.
+
+    Args:
+      client_rule_set: The rule set to check.
+      expected_labels: The labels that should be excluded.
+
+    Returns:
+      True if the presubmit check passes, False otherwise.
+    """
+    if (
+        client_rule_set.match_mode
+        != jobs_pb2.ForemanClientRuleSet.MatchMode.MATCH_ALL
+    ):
+      return False
+
+    for rule in client_rule_set.rules:
+      if rule.rule_type != jobs_pb2.ForemanClientRule.Type.LABEL:
+        continue
+      if not rule.label:
+        continue
+      if (
+          rule.label.match_mode
+          != jobs_pb2.ForemanLabelClientRule.MatchMode.DOES_NOT_MATCH_ANY
+      ):
+        continue
+      if len(rule.label.label_names) < len(expected_labels):
+        continue
+
+      found = set(expected_labels).issubset(set(rule.label.label_names))
+      if found:
+        return True
+
+    return False
 
   def Handle(
       self,
@@ -1702,6 +1758,25 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
       hunt_obj.args.standard.flow_args.CopyFrom(args.flow_args)
     hunt_obj.creator = context.username
 
+    hunt_cfg = config.CONFIG["AdminUI.hunt_config"]
+    presubmit_on = bool(
+        hunt_cfg and hunt_cfg.make_default_exclude_labels_a_presubmit_check
+    )
+    if presubmit_on and FORCE_HUNT_TAG not in hra.description:
+      passes = self._HuntPresubmitCheck(
+          hra.client_rule_set, hunt_cfg.default_exclude_labels
+      )
+      if not passes:
+        message = hunt_cfg.presubmit_warning_message + (
+            "\nHunt creation failed because the presubmit check failed. Please"
+            " check exclude the following labels"
+            f" {hunt_cfg.default_exclude_labels} or add a '{FORCE_HUNT_TAG}='"
+            " tag to the hunt description."
+        )
+        raise HuntPresubmitError(message)
+
+    # At this point, either the presubmit is off, the FORCE tag is set,
+    # or the presubmit passed, so we can set the client_rule_set.
     if hra.HasField("client_rule_set"):
       hunt_obj.client_rule_set.CopyFrom(hra.client_rule_set)
 
@@ -1742,6 +1817,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_obj.output_plugins.extend(hra.output_plugins)
 
+    # Effectively writes the hunt to the DB.
     hunt.CreateHunt(hunt_obj)
 
     return InitApiHuntFromHuntObject(hunt_obj, with_full_summary=True)

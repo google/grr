@@ -6,6 +6,7 @@ from selenium.webdriver.common import keys
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.gui import api_call_context
@@ -164,7 +165,7 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     handler = user_plugin.ApiListClientApprovalsHandler()
-    args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
+    args = api_user_pb2.ApiListClientApprovalsArgs(client_id=client_id)
     res = handler.Handle(
         args=args, context=api_call_context.ApiCallContext(self.test_username)
     )

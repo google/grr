@@ -18,6 +18,41 @@ export enum PayloadType {
 }
 
 /**
+ * typeUrlToPayloadType returns the PayloadType for a given typeUrl.
+ */
+export function typeUrlToPayloadType(
+  typeUrl: string | undefined,
+): PayloadType | undefined {
+  const typeName = typeUrl?.split('.').pop();
+  switch (typeName) {
+    case 'Anomaly':
+      return PayloadType.ANOMALY;
+    case 'ApiHuntResult':
+      return PayloadType.API_HUNT_RESULT;
+    case 'ClientSummary':
+      return PayloadType.CLIENT_SUMMARY;
+    case 'CollectFilesByKnownPathResult':
+      return PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT;
+    case 'FileFinderResult':
+      return PayloadType.FILE_FINDER_RESULT;
+    case 'KnowledgeBase':
+      return PayloadType.KNOWLEDGE_BASE;
+    case 'StatEntry':
+      return PayloadType.STAT_ENTRY;
+    case 'User':
+      return PayloadType.USER;
+    case 'ApiHuntError':
+      return PayloadType.API_HUNT_ERROR;
+    case 'ExecuteBinaryResponse':
+      return PayloadType.EXECUTE_BINARY_RESPONSE;
+    case 'ExecutePythonHackResult':
+      return PayloadType.EXECUTE_PYTHON_HACK_RESULT;
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Component describes which component that will be used to render the
  * cell contents.
  */

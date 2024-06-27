@@ -25,7 +25,6 @@ import {HuntResultsTable, RESULTS_BATCH_SIZE} from './hunt_results_table';
 
 const mockHuntResult: ApiHuntResult = {
   clientId: 'mockClientId',
-  payloadType: 'User',
   timestamp: '1669027009243432',
 };
 
@@ -308,10 +307,11 @@ describe('HuntResultsTable', () => {
       const mockFileFinderResult = {
         clientId: 'C.mockClientId',
         payload: {
+          '@type':
+            'type.googleapis.com/grr.FileFinderResult',
           'statEntry': createStatEntry(1),
           'hashEntry': {md5: 'hash'},
         },
-        payloadType: 'FileFinderResult',
         timestamp: '1669027009243432',
       };
 
@@ -543,8 +543,12 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.mockClientId',
-        payloadType: 'User',
         timestamp: '1669027009243432',
+        payload: {
+          '@type': 'type.googleapis.com/grr.User',
+          'uid': 5678,
+          'username': 'banana',
+        },
       };
 
       component.totalResultsCount = 1;
@@ -579,10 +583,11 @@ describe('HuntResultsTable', () => {
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.mockClientId',
         payload: {
+          '@type':
+            'type.googleapis.com/grr.FileFinderResult',
           'statEntry': createStatEntry(1),
           'hashEntry': {md5: 'hash'},
         },
-        payloadType: 'FileFinderResult',
         timestamp: '1669027009243432',
       };
 
@@ -629,8 +634,8 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.1234',
-        payloadType: 'Anomaly',
         payload: {
+          '@type': 'type.googleapis.com/grr.Anomaly',
           'type': 'UNKNOWN_ANOMALY_TYPE',
           'severity': 'VERY_HIGH',
           'confidence': 'VERY_LOW',
@@ -671,8 +676,9 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.1234',
-        payloadType: 'ClientSummary',
         payload: {
+          '@type': 'type.googleapis.com/grr.ClientSummary',
+          'value': 'some value',
           'systemInfo': {fqdn: 'griffindor.pc'},
           'users': [{username: 'hermione'}, {username: 'neville'}],
         },
@@ -732,8 +738,8 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockKnowledgeBaseHuntResult: ApiHuntResult = {
         clientId: 'C.5678',
-        payloadType: 'KnowledgeBase',
         payload: {
+          '@type': 'type.googleapis.com/grr.KnowledgeBase',
           'os': 'Darwin',
           'fqdn': 'beltrano.mac',
           'users': [{username: 'beltrano'}],
@@ -795,8 +801,8 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockUserHuntResult: ApiHuntResult = {
         clientId: 'C.1234',
-        payloadType: 'User',
         payload: {
+          '@type': 'type.googleapis.com/grr.User',
           'uid': 5678,
           'username': 'banana',
           'lastLogon': 1,
@@ -835,8 +841,9 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockUserHuntResult: ApiHuntResult = {
         clientId: 'C.1234',
-        payloadType: 'ExecutePythonHackResult',
         payload: {
+          '@type':
+            'type.googleapis.com/grr.ExecutePythonHackResult',
           'resultString': 'potato',
         },
       };
@@ -871,8 +878,9 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockHuntResult: ApiHuntResult = {
         clientId: 'C.1234',
-        payloadType: 'ExecuteBinaryResponse',
         payload: {
+          '@type':
+            'type.googleapis.com/grr.ExecuteBinaryResponse',
           'exitStatus': 0,
           'stdout': btoa("I'm out"),
           'stderr': btoa("I'm groot"),
@@ -968,8 +976,10 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.mockClientId',
-        payload: undefined, // Payload is irrelevant for this test
-        payloadType: 'SomeNewResultType',
+        payload: {
+          '@type':
+            'type.googleapis.com/grr.SomeNewResultType',
+        },
         timestamp: '1669027009243432',
       };
 
@@ -1006,7 +1016,6 @@ describe('HuntResultsTable', () => {
       const component = fixture.componentInstance;
       const mockBaseHuntResult: ApiHuntResult = {
         clientId: 'C.mockClientId',
-        payloadType: 'User',
         timestamp: '1669027009243432',
       };
 

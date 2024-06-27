@@ -44,7 +44,7 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
   hideAdvancedParams = true;
 
   readonly defaultSafetyLimits$: Observable<SafetyLimits | undefined> =
-    this.newHuntLocalStore.safetyLimits$;
+    this.newHuntLocalStore.defaultSafetyLimits$;
 
   readonly controls = {
     expiryTime: new DurationFormControl(BigInt(0), {
@@ -86,7 +86,7 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
   ) {}
 
   ngAfterViewInit() {
-    this.newHuntLocalStore.safetyLimits$.subscribe((safetyLimits) => {
+    this.newHuntLocalStore.defaultSafetyLimits$.subscribe((safetyLimits) => {
       this.setFormState(safetyLimits);
     });
   }

@@ -170,8 +170,8 @@ message ApiHuntResult {
     description: "Result payload.",
     dynamic_type: "GetPayloadClass"
   }];
-  optional string payload_type = 4
-      [(sem_type) = { description: "Type of the payload." }];
+  reserved 4;
+
   optional uint64 timestamp = 5 [(sem_type) = {
     type: "RDFDatetime",
     description: "Timestamp indicating when result was written to the data "

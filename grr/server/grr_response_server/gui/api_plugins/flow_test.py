@@ -453,7 +453,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testReturnsTagsInResultsList(self):
     result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id
         )
     )
@@ -464,7 +464,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testCorrectlyFiltersByTag(self):
     foo_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, with_tag="tag:foo"
         )
     )
@@ -473,7 +473,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(foo_result.items[0].tag, "tag:foo")
 
     bar_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, with_tag="tag:bar"
         )
     )
@@ -483,7 +483,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testCorrectlyFiltersByType(self):
     foo_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id,
             flow_id=self.flow_id,
             with_type=rdfvalue.RDFString.__name__,
@@ -494,7 +494,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(foo_result.items[0].tag, "tag:foo")
 
     bar_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id,
             flow_id=self.flow_id,
             with_type=rdfvalue.RDFInteger.__name__,
@@ -506,7 +506,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testCorrectlyFiltersBySubstring(self):
     foo_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, filter="foo"
         )
     )
@@ -517,7 +517,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     # payload protobufs in their serialized protobuf form, meaning that integers
     # are going to be serialized as varints and not as unicode strings.
     bar_result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, filter="42"
         )
     )
@@ -525,7 +525,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testReturnsNothingWhenFilteringByNonExistingTag(self):
     result = self.handler.Handle(
-        flow_plugin.ApiListFlowResultsArgs(
+        flow_pb2.ApiListFlowResultsArgs(
             client_id=self.client_id,
             flow_id=self.flow_id,
             with_tag="non-existing",
@@ -550,7 +550,7 @@ class ApiExplainGlobExpressionHandlerTest(absltest.TestCase):
 
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
-    snapshot.knowledge_base.users.add(homedir="/home/foo")
+    snapshot.knowledge_base.users.add(username="foo", homedir="/home/foo")
     db.WriteClientSnapshot(snapshot)
 
     handler = flow_plugin.ApiExplainGlobExpressionHandler()

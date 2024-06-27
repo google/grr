@@ -4,7 +4,7 @@
 Each report plugin is a subclass of ReportPluginBase.
 """
 
-from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr_response_proto.api import stats_pb2
 
 
 class ReportPluginBase(object):
@@ -25,7 +25,7 @@ class ReportPluginBase(object):
   REQUIRES_TIME_RANGE = False
 
   @classmethod
-  def GetReportDescriptor(cls):
+  def GetReportDescriptor(cls) -> stats_pb2.ApiReportDescriptor:
     """Returns plugins' metadata in ApiReportDescriptor."""
     if cls.TYPE is None:
       raise ValueError("%s.TYPE is uninitialized." % cls)
@@ -36,7 +36,7 @@ class ReportPluginBase(object):
     if cls.SUMMARY is None:
       raise ValueError("%s.SUMMARY is uninitialized." % cls)
 
-    return rdf_report_plugins.ApiReportDescriptor(
+    return stats_pb2.ApiReportDescriptor(
         type=cls.TYPE,
         name=cls.__name__,
         title=cls.TITLE,
@@ -44,7 +44,9 @@ class ReportPluginBase(object):
         requires_time_range=cls.REQUIRES_TIME_RANGE,
     )
 
-  def GetReportData(self, get_report_args):
+  def GetReportData(
+      self, get_report_args: stats_pb2.ApiGetReportArgs
+  ) -> stats_pb2.ApiReportData:
     """Generates the data to be displayed in the report.
 
     Args:

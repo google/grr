@@ -13,12 +13,12 @@ from MySQLdb.constants import CR as mysql_conn_errors
 from grr_response_core import config as grr_config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import config_pb2
 from grr_response_server import data_store
 from grr_response_server import signed_binary_utils
 from grr_response_server.bin import config_updater_util
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
@@ -272,12 +272,11 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       config_updater_util.GetUserSummary("foo_user")
 
   def _AssertStoredUserDetailsAre(self, username, password, is_admin):
-    proto_user = data_store.REL_DB.ReadGRRUser(username)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    self.assertTrue(rdf_user.password.CheckPassword(password))
+    user = data_store.REL_DB.ReadGRRUser(username)
+    self.assertTrue(rdf_crypto.CheckPassword(user.password, password))
     if is_admin:
       self.assertEqual(
-          rdf_user.user_type, objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
+          user.user_type, objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
       )
 
   def testArgparseBool_CaseInsensitive(self):

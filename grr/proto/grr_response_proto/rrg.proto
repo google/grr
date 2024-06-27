@@ -38,6 +38,8 @@ enum Action {
   LIST_INTERFACES = 11;
   // List filesystem mounts available on the system.
   LIST_MOUNTS = 12;
+  // Get a value from the Windows Registry (Windows-only).
+  GET_WINREG_VALUE = 13;
 
   // TODO: Define more actions that should be supported.
 

@@ -1,0 +1,5 @@
+ALTER TABLE flow_results
+ADD COLUMN payload_any MEDIUMBLOB DEFAULT NULL AFTER payload;
+
+ALTER TABLE flow_errors
+ADD COLUMN payload_any MEDIUMBLOB DEFAULT NULL AFTER payload;

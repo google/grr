@@ -2,12 +2,17 @@
   <div class="header">
     <!-- Basic flow information. -->
     <div class="col-left">
+      <div class="row-left">
       <a
         class="flow-title text-link-hover"
         [routerLink]="['/clients', flow?.clientId, 'flows', flow?.flowId]"
       >
         {{flowTitle$|async}}
       </a>
+      <app-copy-button class="flow-link" [overrideCopyText]="(flowLink$ | async)">
+        <mat-icon>link</mat-icon>
+      </app-copy-button>
+    </div>
       <app-copy-button class="mat-small monospace flow-id">
         {{flow?.flowId}}
       </app-copy-button>

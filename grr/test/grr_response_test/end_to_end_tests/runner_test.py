@@ -13,7 +13,8 @@ from grr_api_client import config as api_config
 from grr_api_client import context
 from grr_api_client import types
 from grr_api_client import utils as api_utils
-from grr_response_server.gui.api_plugins import client as plugin_client
+from grr_response_server.gui.api_plugins import mig_client
+from grr_response_server.models import clients
 from grr_response_test.end_to_end_tests import fake_tests
 from grr_response_test.end_to_end_tests import runner
 from grr_response_test.end_to_end_tests import test_base
@@ -351,8 +352,8 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
 
   def _CreateApiClient(self, platform):
     client_snapshot = self._SetupTestClientObject(0, system=platform)
-    api_client = plugin_client.ApiClient()
-    api_client.InitFromClientObject(client_snapshot)
+    api_client = clients.ApiClientFromClientSnapshot(client_snapshot)
+    api_client = mig_client.ToRDFApiClient(api_client)
     return api_client
 
 

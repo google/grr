@@ -7,7 +7,7 @@ import itertools
 import os
 import re
 import stat
-from typing import Collection, Dict, Iterable, Iterator, List, Optional, Set, Tuple
+from typing import Collection, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 import zipfile
 
 from grr_response_core import config
@@ -201,7 +201,9 @@ class ApiGetFileDetailsResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-def _GenerateApiFileDetails(path_infos):
+def _GenerateApiFileDetails(
+    path_infos: Sequence[rdf_objects.PathInfo],
+) -> ApiAff4ObjectRepresentation:
   """Generate file details based on path infos history."""
 
   type_attrs = []
@@ -287,8 +289,14 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFileDetailsArgs
   result_type = ApiGetFileDetailsResult
+  proto_args_type = vfs_pb2.ApiGetFileDetailsArgs
+  proto_result_type = vfs_pb2.ApiGetFileDetailsResult
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiGetFileDetailsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiGetFileDetailsResult:
     ValidateVfsPath(args.file_path)
 
     # Directories are not really "files" so they cannot be stored in the
@@ -307,58 +315,63 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
         "fs/tsk",
         "fs/ntfs",
     ]:
-      api_file = ApiFile(
+      api_file = vfs_pb2.ApiFile(
           name=args.file_path,
           path=args.file_path,
           is_directory=True,
-          details=_GenerateApiFileDetails([]),
+          details=ToProtoApiAff4ObjectRepresentation(
+              _GenerateApiFileDetails([])
+          ),
       )
-      return ApiGetFileDetailsResult(file=api_file)
+      return vfs_pb2.ApiGetFileDetailsResult(file=api_file)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-
-    client_id = str(args.client_id)
-
+    args_timestamp = None
+    if args.HasField("timestamp"):
+      args_timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
     try:
-      proto_path_info = data_store.REL_DB.ReadPathInfo(
-          client_id=client_id,
+      path_info = data_store.REL_DB.ReadPathInfo(
+          client_id=args.client_id,
           path_type=path_type,
           components=components,
-          timestamp=args.timestamp,
+          timestamp=args_timestamp,
       )
-    except db.UnknownPathError:
+    except db.UnknownPathError as ex:
       raise FileNotFoundError(
-          client_id=client_id, path_type=path_type, components=components
-      )
+          client_id=args.client_id, path_type=path_type, components=components
+      ) from ex
 
-    path_info = None
-    if proto_path_info is not None:
-      path_info = mig_objects.ToRDFPathInfo(proto_path_info)
-    last_collection_pi = file_store.GetLastCollectionPathInfo(
-        db.ClientPath.FromPathInfo(client_id, path_info),
-        max_timestamp=args.timestamp,
+    client_path = db.ClientPath.FromPathInfo(args.client_id, path_info)
+    last_collection_pi = (
+        data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
+            [client_path],
+            max_timestamp=args_timestamp,
+        )[client_path]
     )
 
-    proto_history = data_store.REL_DB.ReadPathInfoHistory(
-        client_id=client_id,
+    history = data_store.REL_DB.ReadPathInfoHistory(
+        client_id=args.client_id,
         path_type=path_type,
         components=components,
-        cutoff=args.timestamp,
+        cutoff=args_timestamp,
     )
-    history = [mig_objects.ToRDFPathInfo(pi) for pi in proto_history]
     history.reverse()
 
     # It might be the case that we do not have any history about the file, but
     # we have some information because it is an implicit path.
     if not history:
       history = [path_info]
-
-    file_obj = ApiFile(
+    history = [mig_objects.ToRDFPathInfo(pi) for pi in history]
+    file_obj = vfs_pb2.ApiFile(
         name=components[-1],
         path=rdf_objects.ToCategorizedPath(path_type, components),
         stat=path_info.stat_entry,
         hash=path_info.hash_entry,
-        details=_GenerateApiFileDetails(history),
+        details=ToProtoApiAff4ObjectRepresentation(
+            _GenerateApiFileDetails(history)
+        ),
         is_directory=path_info.directory,
         age=path_info.timestamp,
     )
@@ -367,7 +380,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
       file_obj.last_collected = last_collection_pi.timestamp
       file_obj.last_collected_size = last_collection_pi.hash_entry.num_bytes
 
-    return ApiGetFileDetailsResult(file=file_obj)
+    return vfs_pb2.ApiGetFileDetailsResult(file=file_obj)
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
@@ -385,23 +398,23 @@ class ApiListFilesResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-def _PathInfoToApiFile(path_info: rdf_objects.PathInfo) -> ApiFile:
+def _PathInfoToApiFile(path_info: objects_pb2.PathInfo) -> vfs_pb2.ApiFile:
   """Converts a PathInfo to an ApiFile."""
-  if path_info.path_type == rdf_objects.PathInfo.PathType.OS:
+  if path_info.path_type == objects_pb2.PathInfo.PathType.OS:
     prefix = "fs/os/"
-  elif path_info.path_type == rdf_objects.PathInfo.PathType.TSK:
+  elif path_info.path_type == objects_pb2.PathInfo.PathType.TSK:
     prefix = "fs/tsk/"
-  elif path_info.path_type == rdf_objects.PathInfo.PathType.NTFS:
+  elif path_info.path_type == objects_pb2.PathInfo.PathType.NTFS:
     prefix = "fs/ntfs/"
-  elif path_info.path_type == rdf_objects.PathInfo.PathType.REGISTRY:
+  elif path_info.path_type == objects_pb2.PathInfo.PathType.REGISTRY:
     prefix = "registry/"
-  elif path_info.path_type == rdf_objects.PathInfo.PathType.TEMP:
+  elif path_info.path_type == objects_pb2.PathInfo.PathType.TEMP:
     prefix = "temp/"
   else:
     raise ValueError(f"Unknown PathType {path_info.path_type}")
 
-  api_file = ApiFile(
-      name=path_info.basename,
+  api_file = vfs_pb2.ApiFile(
+      name=path_info.components[-1] if path_info.components else "",
       path=prefix + "/".join(path_info.components),
       # TODO(hanuszczak): `PathInfo#directory` tells us whether given path has
       # ever been observed as a directory. Is this what we want here or should
@@ -410,10 +423,10 @@ def _PathInfoToApiFile(path_info: rdf_objects.PathInfo) -> ApiFile:
       age=path_info.timestamp,
   )
 
-  if path_info.stat_entry:
-    api_file.stat = path_info.stat_entry
+  if path_info.HasField("stat_entry"):
+    api_file.stat.CopyFrom(path_info.stat_entry)
 
-  if path_info.last_hash_entry_timestamp:
+  if path_info.HasField("last_hash_entry_timestamp"):
     api_file.last_collected = path_info.last_hash_entry_timestamp
     api_file.last_collected_size = path_info.hash_entry.num_bytes
 
@@ -425,26 +438,30 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiListFilesArgs
   result_type = ApiListFilesResult
+  proto_args_type = vfs_pb2.ApiListFilesArgs
+  proto_result_type = vfs_pb2.ApiListFilesResult
 
-  def _GetRootChildren(self, args, context=None):
-    client_id = str(args.client_id)
+  def _GetRootChildren(
+      self,
+      args: vfs_pb2.ApiListFilesArgs,
+  ) -> vfs_pb2.ApiListFilesResult:
 
     items = []
 
-    fs_item = ApiFile()
+    fs_item = vfs_pb2.ApiFile()
     fs_item.name = "fs"
     fs_item.path = "fs"
     fs_item.is_directory = True
     items.append(fs_item)
 
-    temp_item = ApiFile()
+    temp_item = vfs_pb2.ApiFile()
     temp_item.name = "temp"
     temp_item.path = "temp"
     temp_item.is_directory = True
     items.append(temp_item)
 
-    if data_store_utils.GetClientOs(client_id) == "Windows":
-      registry_item = ApiFile()
+    if data_store_utils.GetClientOs(args.client_id) == "Windows":
+      registry_item = vfs_pb2.ApiFile()
       registry_item.name = "registry"
       registry_item.path = "registry"
       registry_item.is_directory = True
@@ -455,24 +472,26 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     else:
       items = items[args.offset :]
 
-    return ApiListFilesResult(items=items)
+    return vfs_pb2.ApiListFilesResult(items=items)
 
-  def _GetFilesystemChildren(self, args):
+  def _GetFilesystemChildren(
+      self, args: vfs_pb2.ApiListFilesArgs
+  ) -> vfs_pb2.ApiListFilesResult:
     items = []
 
-    ntfs_item = ApiFile()
+    ntfs_item = vfs_pb2.ApiFile()
     ntfs_item.name = "ntfs"
     ntfs_item.path = "fs/ntfs"
     ntfs_item.is_directory = True
     items.append(ntfs_item)
 
-    os_item = ApiFile()
+    os_item = vfs_pb2.ApiFile()
     os_item.name = "os"
     os_item.path = "fs/os"
     os_item.is_directory = True
     items.append(os_item)
 
-    tsk_item = ApiFile()
+    tsk_item = vfs_pb2.ApiFile()
     tsk_item.name = "tsk"
     tsk_item.path = "fs/tsk"
     tsk_item.is_directory = True
@@ -483,34 +502,40 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     else:
       items = items[args.offset :]
 
-    return ApiListFilesResult(items=items)
+    return vfs_pb2.ApiListFilesResult(items=items)
 
-  def Handle(self, args, context=None):
+  def Handle(
+      self,
+      args: vfs_pb2.ApiListFilesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> vfs_pb2.ApiListFilesResult:
     if not args.file_path or args.file_path == "/":
-      return self._GetRootChildren(args, context=context)
+      return self._GetRootChildren(args)
 
     if args.file_path == "fs":
       return self._GetFilesystemChildren(args)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-
+    args_timestamp = None
+    if args.HasField("timestamp"):
+      args_timestamp = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          args.timestamp
+      )
     # TODO: This API handler should return a 404 response if the
     # path is not found. Currently, 500 is returned.
-    proto_child_path_infos = data_store.REL_DB.ListChildPathInfos(
-        client_id=args.client_id.ToString(),
+    child_path_infos = data_store.REL_DB.ListChildPathInfos(
+        client_id=args.client_id,
         path_type=path_type,
         components=components,
-        timestamp=args.timestamp,
+        timestamp=args_timestamp,
     )
 
     items = []
 
-    for child_path_info in proto_child_path_infos:
+    for child_path_info in child_path_infos:
       if args.directories_only and not child_path_info.directory:
         continue
-      items.append(
-          _PathInfoToApiFile(mig_objects.ToRDFPathInfo(child_path_info))
-      )
+      items.append(_PathInfoToApiFile(child_path_info))
 
     # TODO(hanuszczak): Instead of getting the whole list from the database and
     # then filtering the results we should do the filtering directly in the
@@ -527,7 +552,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     else:
       items = items[args.offset :]
 
-    return ApiListFilesResult(items=items)
+    return vfs_pb2.ApiListFilesResult(items=items)
 
 
 class ApiBrowseFilesystemArgs(rdf_structs.RDFProtoStruct):
@@ -557,22 +582,23 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiBrowseFilesystemArgs
   result_type = ApiBrowseFilesystemResult
+  proto_args_type = vfs_pb2.ApiBrowseFilesystemArgs
+  proto_result_type = vfs_pb2.ApiBrowseFilesystemResult
 
   def Handle(
       self,
-      args: ApiBrowseFilesystemArgs,
+      args: vfs_pb2.ApiBrowseFilesystemArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> ApiBrowseFilesystemResult:
+  ) -> vfs_pb2.ApiBrowseFilesystemResult:
     del context  # Unused.
 
     last_components = rdf_objects.ParsePath(args.path)
-    client_id = args.client_id.ToString()
     results = []
 
     path_types_to_query = {
-        rdf_objects.PathInfo.PathType.OS,
-        rdf_objects.PathInfo.PathType.TSK,
-        rdf_objects.PathInfo.PathType.NTFS,
+        objects_pb2.PathInfo.PathType.OS,
+        objects_pb2.PathInfo.PathType.TSK,
+        objects_pb2.PathInfo.PathType.NTFS,
     }
 
     if args.include_directory_tree:
@@ -582,7 +608,12 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
     for cur_components in all_components:
       path_types_to_query, children = self._ListDirectory(
-          client_id, path_types_to_query, cur_components, args.timestamp
+          args.client_id,
+          path_types_to_query,
+          cur_components,
+          rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(args.timestamp)
+          if args.HasField("timestamp")
+          else None,
       )
 
       if children is None:
@@ -591,12 +622,12 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
         break
 
       results.append(
-          ApiBrowseFilesystemEntry(
+          vfs_pb2.ApiBrowseFilesystemEntry(
               path="/" + "/".join(cur_components), children=children
           )
       )
 
-    return ApiBrowseFilesystemResult(items=results)
+    return vfs_pb2.ApiBrowseFilesystemResult(items=results)
 
   def _GetDirectoryTree(
       self, components: Collection[str]
@@ -607,34 +638,34 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
 
   def _MergePathInfos(
       self,
-      path_infos: Dict[str, rdf_objects.PathInfo],
-      cur_path_infos: Collection[rdf_objects.PathInfo],
+      path_infos: Dict[str, objects_pb2.PathInfo],
+      cur_path_infos: Collection[objects_pb2.PathInfo],
   ) -> None:
     """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
 
-    for proto_pi in cur_path_infos:
-      pi = mig_objects.ToRDFPathInfo(proto_pi)
-      existing = path_infos.get(pi.basename)
+    for pi in cur_path_infos:
+      existing = path_infos.get(pi.components[-1] if pi.components else "")
       # If the VFS has the same file in two PathTypes, use the latest collected
       # version.
 
       if (
           existing is None
-          or existing.timestamp is None
-          or (pi.timestamp is not None and existing.timestamp < pi.timestamp)
+          or not existing.HasField("timestamp")
+          or (pi.HasField("timestamp") and existing.timestamp < pi.timestamp)
       ):
-        path_infos[pi.basename] = pi
+        path_infos[pi.components[-1] if pi.components else ""] = pi
 
   def _ListDirectory(
       self,
       client_id: str,
-      path_types: Collection["rdf_objects.PathInfo.PathType"],
+      path_types: Collection["objects_pb2.PathInfo.PathType"],
       components: Collection[str],
-      timestamp: rdfvalue.RDFDatetime,
+      timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Tuple[
-      Set["rdf_objects.PathInfo.PathType"], Optional[Collection[ApiFile]]
+      Set["objects_pb2.PathInfo.PathType"],
+      Optional[Collection[vfs_pb2.ApiFile]],
   ]:
-    path_infos = {}
+    path_infos: Dict[str, objects_pb2.PathInfo] = {}
     existing_path_types = set(path_types)
 
     for path_type in path_types:
@@ -1621,3 +1652,17 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator
     )
+
+
+# TODO: Temporary copy of migration function due to cyclic
+# dependency.
+def ToProtoApiAff4ObjectRepresentation(
+    rdf: ApiAff4ObjectRepresentation,
+) -> vfs_pb2.ApiAff4ObjectRepresentation:
+  return rdf.AsPrimitiveProto()
+
+
+# TODO: Temporary copy of migration function due to cyclic
+# dependency.
+def ToRDFApiFile(proto: vfs_pb2.ApiFile) -> ApiFile:
+  return ApiFile.FromSerializedBytes(proto.SerializeToString())

@@ -41,6 +41,9 @@ class MetaclassRegistry(abc.ABCMeta):
         cls, abstract_attribute
     )
 
+  def IsDeprecated(cls):
+    return hasattr(cls, "deprecated")
+
   def __init__(cls, name, bases, env_dict):
     abc.ABCMeta.__init__(cls, name, bases, env_dict)
 
@@ -124,18 +127,25 @@ class FlowRegistry(MetaclassRegistry):
   """A dedicated registry that only contains new style flows."""
 
   FLOW_REGISTRY = {}
+  DEPRECATED_FLOWS = {}
 
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    if not cls.IsAbstract():
+    if cls.IsAbstract():
+      pass
+    elif cls.IsDeprecated():
+      cls.DEPRECATED_FLOWS[name] = cls
+    else:
       cls.FLOW_REGISTRY[name] = cls
 
   @classmethod
   def FlowClassByName(mcs, flow_name):
     flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
     if flow_cls is None:
-      raise ValueError("Flow '%s' not known." % flow_name)
+      flow_cls = mcs.DEPRECATED_FLOWS.get(flow_name)
+      if flow_cls is None:
+        raise ValueError("Flow '%s' not known." % flow_name)
 
     return flow_cls
 

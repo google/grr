@@ -268,9 +268,9 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def testGlobExpressionSplitsIntoExplainableComponents(self):
     kb = knowledge_base_pb2.KnowledgeBase(
         users=[
-            knowledge_base_pb2.User(homedir="/home/foo"),
-            knowledge_base_pb2.User(homedir="/home/bar"),
-            knowledge_base_pb2.User(homedir="/home/baz"),
+            knowledge_base_pb2.User(username="foo", homedir="/home/foo"),
+            knowledge_base_pb2.User(username="bar", homedir="/home/bar"),
+            knowledge_base_pb2.User(username="baz", homedir="/home/baz"),
         ]
     )
 

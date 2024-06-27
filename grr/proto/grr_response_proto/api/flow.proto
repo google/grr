@@ -125,8 +125,7 @@ message ApiFlowResult {
     description: "Result payload.",
     dynamic_type: "GetPayloadClass"
   }];
-  optional string payload_type = 2
-      [(sem_type) = { description: "Type of the payload." }];
+  reserved 2;
   optional uint64 timestamp = 3 [(sem_type) = {
     type: "RDFDatetime",
     description: "Timestamp indicating when result was written to the data "
