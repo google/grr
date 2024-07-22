@@ -18,7 +18,7 @@
     "jquery-migrate": "3.3.1",
     "jstree": "3.3.10",
     "marked": "^0.7.0",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "sass": "^1.43.4",
     "split.js": "1.6.2"
   },
