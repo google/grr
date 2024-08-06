@@ -67,6 +67,7 @@ services:
             - client/
 
   grr-fleetspeak-frontend:
+    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-fleetspeak-frontend
     hostname: grr-fleetspeak-frontend
@@ -86,9 +87,15 @@ services:
       - -config
       - /configs/server/grr.server.yaml
       - --verbose
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
 
   fleetspeak-admin:
-    build: ../fleetspeak
     image: ghcr.io/google/fleetspeak:latest
     container_name: fleetspeak-admin
     hostname: fleetspeak-admin
@@ -111,13 +118,8 @@ services:
       "-v",
       "1000"
     ]
-    develop:
-      watch:
-        - action: rebuild
-          path: ../fleetspeak/fleetspeak/src
 
   fleetspeak-frontend:
-    build: ../fleetspeak
     image: ghcr.io/google/fleetspeak:latest
     container_name: fleetspeak-frontend
     hostname: fleetspeak-frontend
@@ -141,10 +143,6 @@ services:
       "-v",
       "1000"
     ]
-    develop:
-      watch:
-        - action: rebuild
-          path: ../fleetspeak/fleetspeak/src
 
   grr-worker:
     build: .
