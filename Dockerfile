@@ -40,11 +40,11 @@ FROM ubuntu:22.04
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 # Buffering output (sometimes indefinitely if a thread is stuck in
 # a loop) makes for a non-optimal user experience when containers
 # are run in the foreground, so we disable that.
-ENV PYTHONUNBUFFERED 0
+ENV PYTHONUNBUFFERED=0
 
 RUN apt-get update && \
   apt-get install -y \
@@ -63,8 +63,8 @@ RUN apt-get update && \
 # building as part of Github Actions.
 COPY ./_installers* /client_templates
 
-ENV VIRTUAL_ENV /usr/share/grr-server
-ENV GRR_SOURCE /usr/src/grr
+ENV VIRTUAL_ENV=/usr/share/grr-server
+ENV GRR_SOURCE=/usr/src/grr
 
 RUN python -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
@@ -73,7 +73,7 @@ RUN ${VIRTUAL_ENV}/bin/python -m pip install wheel nodeenv grpcio-tools==1.60
 
 RUN ${VIRTUAL_ENV}/bin/nodeenv -p --prebuilt --node=16.13.0
 
-RUN mkdir ${GRR_SOURCE}
+RUN mkdir -p ${GRR_SOURCE}
 ADD . ${GRR_SOURCE}
 
 WORKDIR ${GRR_SOURCE}
