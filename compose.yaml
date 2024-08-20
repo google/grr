@@ -27,6 +27,7 @@ services:
       retries: 10
 
   grr-admin-ui:
+    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-admin-ui
     hostname: admin-ui
@@ -57,8 +58,16 @@ services:
       test: "/configs/healthchecks/grr-admin-ui.sh"
       timeout: 10s
       retries: 10
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
 
   grr-fleetspeak-frontend:
+    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-fleetspeak-frontend
     hostname: grr-fleetspeak-frontend
@@ -78,6 +87,13 @@ services:
       - -config
       - /configs/server/grr.server.yaml
       - --verbose
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
 
   fleetspeak-admin:
     image: ghcr.io/google/fleetspeak:latest
@@ -129,6 +145,7 @@ services:
     ]
 
   grr-worker:
+    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-worker
     volumes:
@@ -146,8 +163,16 @@ services:
       - -config
       - /configs/server/grr.server.yaml
       - --verbose
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
 
   grr-client:
+    build: .
     image: ubuntu:22.04
     container_name: grr-client
     depends_on:
@@ -177,6 +202,13 @@ services:
       test: "/configs/healthchecks/grr-client.sh"
       timeout: 10s
       retries: 10
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - server/
 
 volumes:
   db_data:

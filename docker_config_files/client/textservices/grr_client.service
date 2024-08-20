@@ -2,7 +2,7 @@ name: "GRR"
 factory: "Daemon"
 config: {
   [type.googleapis.com/fleetspeak.daemonservice.Config]: {
-    argv: "grrd"
+    argv: "/configs/client/grr_fleetspeak_client.sh"
     argv: "--config"
     argv: "/configs/client/grr.client.yaml"
   }
