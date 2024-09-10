@@ -382,3 +382,27 @@ config_lib.DEFINE_boolean(
         "`/etc/passwd.cache` file."
     ),
 )
+
+config_lib.DEFINE_string(
+    "Server.signed_url_service_account_email",
+    default=None,
+    help=(
+        "The email of the Service Account to use for signing the URL (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+    ),
+)
+
+config_lib.DEFINE_string(
+    "Server.signed_url_gcs_bucket_name",
+    default=None,
+    help=(
+        "The GCS bucket name to include in the signed URL (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+    ),
+)
+
+config_lib.DEFINE_integer(
+    "Server.signed_url_expire_hours",
+    default=12,
+    help=(
+        "The TTL until the signed URL expires (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+    ),
+)
