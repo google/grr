@@ -1,0 +1,75 @@
+# Run grr in watch mode with:
+# ```
+#   $ docker compose -f compose.yaml -f compose.watch.yaml watch
+# ```
+#
+# This is merging compose.watch.yaml with compose.yaml
+# (https://docs.docker.com/reference/compose-file/merge/) to apply adjustments
+# for running containers from source code:
+#   - Add `build: ...` to build images from local Dockerfiles.
+#   - Update `image: ... ` to prevent overwriting image tags fetched from github
+#     container registry.
+#   - Remove the admin ui healthcheck and it's dependency in the grr-client.
+#     The healthcheck indicated if the client templates were repacked into
+#     installers, as the client is installed from the debian installer in the
+#     default setup. But here we run the client from source.
+#     (The client templates are also not available in the locally build image,
+#     they are build in the github workflow.)
+#   - Update the grr-client entrypoint to start the client directly from source
+#     instead of first installing the debian installer.
+#   - Added `develop: watch: ...` to trigger a container sync and restart
+#     when the code changes.
+services:
+  grr-admin-ui:
+    build: .
+    image: watch-grr-admin-ui
+    healthcheck:
+      test: ""
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
+
+  grr-client:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.client
+    image: watch-grr-client
+    entrypoint: [
+      "/bin/bash",
+      "-c",
+      "fleetspeak-client -config /configs/client/client.config"
+    ]
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - server/
+
+  grr-fleetspeak-frontend:
+    build: .
+    image: watch-grr-fleetspeak-frontend
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
+
+  grr-worker:
+    build: .
+    image: watch-grr-worker
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./grr
+          target: /usr/src/grr/grr
+          ignore:
+            - client/
+

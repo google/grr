@@ -14,7 +14,12 @@
 #       "-component" "admin_ui" \
 #       "-config" "/configs/grr.server.yaml"
 #
-# - Run the grr client component:
+# - Run the grr client component via repacking client templates:
+#   Client installers for different operating systems are created by
+#   repacking client templates, which are included in the grr docker image.
+#   (they are currently only build in the github workflow that creates the
+#   grr docker image). To create these client installers and run a container
+#   with the GRR client follow these steps:
 #   -- Start the container and mount the client config directory:
 #       $ docker run -it \
 #          -v $(pwd)/docker_config_files/client:/configs \
@@ -35,6 +40,8 @@
 #             ...        COMMAND
 #             ...        fleetspeak-client -config /configs/client.config
 #             ...        python -m grr_response_client.client ...
+# - To run a GRR client container without repacking checkout out the
+#   Dockerfile.client file. 
 
 FROM ubuntu:22.04
 
