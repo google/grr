@@ -11,3 +11,4 @@ services:
 
   grr-client:
     image: ghcr.io/google/grr:testing
+    privileged: true
