@@ -23,3 +23,4 @@ GRRlog.txt
 *.log
 grr/server/grr_response_server/gui/static/third-party
 grr/server/grr_response_server/gui/ui/.angular
+gha-creds-*.json
