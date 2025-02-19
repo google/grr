@@ -188,7 +188,6 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: 'read'
-      id-token: 'write'
     needs:
       - build-centos
       - build-ubuntu
@@ -231,7 +230,6 @@ jobs:
   docker-compose-e2e-test:
     permissions:
       contents: 'read'
-      id-token: 'write'
     runs-on: ubuntu-22.04
     needs:
       - build-docker-image
