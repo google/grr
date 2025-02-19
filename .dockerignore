@@ -14,12 +14,14 @@
 *_pb2.*
 */*_pb2.*
 */*/*_pb2.*
+.git
 ACKNOWLEDGEMENTS
 AUTHORS
 build
 dist
 executables
 !executables/windows/templates/unzipsfx/*.exe
+gha-creds-*.json
 grr/config/grr_response_templates
 grr/gui/static/bower_components
 grr/gui/static/node_modules
