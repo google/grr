@@ -285,8 +285,9 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     env:
       REGISTRY: ghcr.io
-    packages: write
-    contents: write
+    permissions:
+      packages: write
+      contents: write
     runs-on: ubuntu-22.04
     needs:
       - test-ubuntu
