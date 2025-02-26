@@ -6,7 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 import functools
 import operator
-from typing import Collection, Mapping, Iterable, Sequence
+from typing import Collection, Iterable, Mapping, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -15,7 +15,8 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def GetClientIDsForHostnames(
-    hostnames: Iterable[str]) -> Mapping[str, Sequence[str]]:
+    hostnames: Iterable[str],
+) -> Mapping[str, Sequence[str]]:
   """Gets all client_ids for a given list of hostnames or FQDNS.
 
   Args:
@@ -37,7 +38,7 @@ def GetClientIDsForHostnames(
 
   result = {}
   for keyword, hits in results.items():
-    result[keyword[len("host:"):]] = hits
+    result[keyword[len("host:") :]] = hits
   return result
 
 
@@ -62,7 +63,8 @@ class ClientIndex(object):
       if k.startswith(self.START_TIME_PREFIX):
         try:
           start_time = rdfvalue.RDFDatetime.FromHumanReadable(
-              k[self.START_TIME_PREFIX_LEN:])
+              k[self.START_TIME_PREFIX_LEN :]
+          )
         except ValueError:
           pass
       else:
@@ -87,20 +89,24 @@ class ClientIndex(object):
     """
     if isinstance(keywords, str):
       raise ValueError(
-          "Keywords should be an iterable, not a string (got %s)." % keywords)
+          "Keywords should be an iterable, not a string (got %s)." % keywords
+      )
 
     start_time, filtered_keywords = self._AnalyzeKeywords(keywords)
 
     keyword_map = data_store.REL_DB.ListClientsForKeywords(
         list(map(self._NormalizeKeyword, filtered_keywords)),
-        start_time=start_time)
+        start_time=start_time,
+    )
 
-    relevant_set = functools.reduce(operator.and_, map(set,
-                                                       keyword_map.values()))
+    relevant_set = functools.reduce(
+        operator.and_, map(set, keyword_map.values())
+    )
     return sorted(relevant_set)
 
   def ReadClientPostingLists(
-      self, keywords: Iterable[str]) -> Mapping[str, Sequence[str]]:
+      self, keywords: Iterable[str]
+  ) -> Mapping[str, Sequence[str]]:
     """Looks up all clients associated with any of the given keywords.
 
     Args:
@@ -113,7 +119,8 @@ class ClientIndex(object):
     start_time, filtered_keywords = self._AnalyzeKeywords(keywords)
 
     return data_store.REL_DB.ListClientsForKeywords(
-        filtered_keywords, start_time=start_time)
+        filtered_keywords, start_time=start_time
+    )
 
   def AnalyzeClient(self, client: rdf_objects.ClientSnapshot) -> Sequence[str]:
     """Finds the client_id and keywords for a client.
@@ -162,7 +169,7 @@ class ClientIndex(object):
       if len(mac) == 12:
         # If looks like a mac address without ":" symbols, also add the keyword
         # with them.
-        TryAppend("mac", ":".join([mac[i:i + 2] for i in range(0, 12, 2)]))
+        TryAppend("mac", ":".join([mac[i : i + 2] for i in range(0, 12, 2)]))
 
     TryAppend("host", client.knowledge_base.fqdn)
     host = client.knowledge_base.fqdn.split(".", 1)[0]
@@ -244,7 +251,8 @@ class ClientIndex(object):
       client_id: The client_id.
     """
     labels_to_remove = set(
-        [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)])
+        [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)]
+    )
     self.RemoveClientLabels(client_id, labels_to_remove)
 
   def RemoveClientLabels(self, client_id: str, labels: Iterable[str]):

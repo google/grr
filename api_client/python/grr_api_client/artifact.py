@@ -29,3 +29,28 @@ def ListArtifacts(
   return utils.MapItemsIterator(
       lambda data: Artifact(data=data, context=context), items
   )
+
+
+def UploadArtifact(
+    context: api_context.GrrApiContext,
+    yaml: str,
+) -> None:
+  # pylint: disable=line-too-long
+  # fmt: off
+  """Uploads the given [YAML artifact definition][1] to the GRR server.
+
+  [1]: https://artifacts.readthedocs.io/en/latest/sources/Format-specification.html
+
+  Args:
+    context: GRR API context to use.
+    yaml: YAML with the artifact definition.
+
+  Returns:
+    Nothing.
+  """
+  # pylint: enable=line-too-long
+  # fmt: on
+  args = api_artifact_pb2.ApiUploadArtifactArgs()
+  args.artifact = yaml
+
+  context.SendRequest("UploadArtifact", args)

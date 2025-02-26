@@ -2,9 +2,10 @@
 """GRRafana HTTP server implementation."""
 
 import abc
+from collections.abc import Callable, Iterable
 import json
 import types
-from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Type
+from typing import Any, NamedTuple
 
 from absl import app
 from absl import flags
@@ -40,7 +41,7 @@ class _Datapoint(NamedTuple):
   value: int
 
 
-_Datapoints = List[_Datapoint]
+_Datapoints = list[_Datapoint]
 
 
 class _TargetWithDatapoints(NamedTuple):
@@ -53,8 +54,8 @@ class _TargetWithDatapoints(NamedTuple):
 class _TableQueryResult(NamedTuple):
   """A tuple that represents a processed client statistics query."""
 
-  columns: List[Dict[str, str]]
-  rows: List[List[Any]]
+  columns: list[dict[str, str]]
+  rows: list[list[Any]]
   type: str
 
 
@@ -83,7 +84,7 @@ class ClientResourceUsageMetric(Metric):
       self,
       name: str,
       record_values_extract_fn: Callable[
-          [List[resource_pb2.ClientResourceUsageRecord]], List[float]
+          [list[resource_pb2.ClientResourceUsageRecord]], list[float]
       ],
   ) -> None:
     super().__init__(name)
@@ -118,7 +119,7 @@ class ClientResourceUsageMetric(Metric):
     return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
 
-AVAILABLE_METRICS_LIST: List[Metric]
+AVAILABLE_METRICS_LIST: list[Metric]
 AVAILABLE_METRICS_LIST = [
     ClientResourceUsageMetric(
         "Mean User CPU Rate", lambda rl: [r.mean_user_cpu_rate for r in rl]
@@ -180,7 +181,7 @@ class Grrafana(object):
     endpoint, values = adapter.match()
     return endpoint(request, **values)  # pytype: disable=not-callable
 
-  # pyformat: disable
+  # fmt: off
   # pylint: disable=line-too-long
   # Good luck finding out what the types of these parameters are. Werkzeug's
   # documentation names `start_response` type as `StartResponse` [1] (super
@@ -195,7 +196,7 @@ class Grrafana(object):
   #
   # [1]: https://werkzeug.palletsprojects.com/en/2.2.x/wrappers/#werkzeug.wrappers.Response.__call__
   # [2]: https://peps.python.org/pep-0333/#the-start-response-callable
-  # pyformat: enable
+  # fmt: on
   # pylint: enable=line-too-long
   def __call__(
       self,
@@ -204,7 +205,7 @@ class Grrafana(object):
           [
               str,
               list[tuple[str, Any]],
-              tuple[Type[Exception], Exception, types.TracebackType],
+              tuple[type[Exception], Exception, types.TracebackType],
           ],
           Any,
       ],

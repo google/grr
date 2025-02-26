@@ -2,8 +2,7 @@ import {Location} from '@angular/common';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newFile, newPathSpec} from '../../lib/models/model_test_util';
@@ -31,11 +30,11 @@ describe('VfsSection', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule.withRoutes(CLIENT_ROUTES),
         ApiModule,
         NoopAnimationsModule,
         ClientPageModule,
         ClientDetailsModule,
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,

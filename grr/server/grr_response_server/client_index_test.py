@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.client_index."""
-
 import binascii
 import ipaddress
 
@@ -32,8 +30,9 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     kb.users = [
         rdf_client.User(
             username="Bert",
-            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"),
-        rdf_client.User(username="Ernie", full_name="Steve O'Bryan")
+            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson",
+        ),
+        rdf_client.User(username="Ernie", full_name="Steve O'Bryan"),
     ]
     keywords = index.AnalyzeClient(client)
 
@@ -71,15 +70,18 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
       ipv4_addr = rdf_client_network.NetworkAddress(
           address_type=rdf_client_network.NetworkAddress.Family.INET,
-          packed_bytes=ipaddress.IPv4Address("192.168.0.%d" % i).packed)
+          packed_bytes=ipaddress.IPv4Address("192.168.0.%d" % i).packed,
+      )
       ipv6_addr = rdf_client_network.NetworkAddress(
           address_type=rdf_client_network.NetworkAddress.Family.INET6,
-          packed_bytes=ipaddress.IPv6Address("2001:abcd::%d" % i).packed)
+          packed_bytes=ipaddress.IPv6Address("2001:abcd::%d" % i).packed,
+      )
 
       client.interfaces = [
           rdf_client_network.Interface(
               addresses=[ipv4_addr, ipv6_addr],
-              mac_address=binascii.unhexlify("aabbccddee0%d" % i))
+              mac_address=binascii.unhexlify("aabbccddee0%d" % i),
+          )
       ]
       res[client_id] = client
     return res
@@ -94,35 +96,46 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
     # Check unique identifiers.
     self.assertEqual(
-        index.LookupClients(["192.168.0.1"]), ["C.1000000000000001"])
+        index.LookupClients(["192.168.0.1"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["2001:aBcd::1"]), ["C.1000000000000001"])
+        index.LookupClients(["2001:aBcd::1"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["ip:192.168.0.1"]), ["C.1000000000000001"])
+        index.LookupClients(["ip:192.168.0.1"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["ip:2001:abcd::1"]), ["C.1000000000000001"])
+        index.LookupClients(["ip:2001:abcd::1"]), ["C.1000000000000001"]
+    )
     self.assertEqual(index.LookupClients(["host-2"]), ["C.1000000000000002"])
     self.assertEqual(
-        index.LookupClients(["C.1000000000000002"]), ["C.1000000000000002"])
+        index.LookupClients(["C.1000000000000002"]), ["C.1000000000000002"]
+    )
     self.assertEqual(
-        index.LookupClients(["aabbccddee01"]), ["C.1000000000000001"])
+        index.LookupClients(["aabbccddee01"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["mac:aabbccddee01"]), ["C.1000000000000001"])
+        index.LookupClients(["mac:aabbccddee01"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"])
+        index.LookupClients(["aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"]
+    )
     self.assertEqual(
-        index.LookupClients(["mac:aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"])
+        index.LookupClients(["mac:aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"]
+    )
 
     # IP prefixes of octets should work:
     self.assertCountEqual(index.LookupClients(["192.168.0"]), list(clients))
 
     # Hostname prefixes of tokens should work.
     self.assertEqual(
-        index.LookupClients(["host-2.example"]), ["C.1000000000000002"])
+        index.LookupClients(["host-2.example"]), ["C.1000000000000002"]
+    )
 
     # Intersections should work.
     self.assertEqual(
-        index.LookupClients(["192.168.0", "Host-2"]), ["C.1000000000000002"])
+        index.LookupClients(["192.168.0", "Host-2"]), ["C.1000000000000002"]
+    )
 
     # Universal keyword should find everything.
     self.assertCountEqual(index.LookupClients(["."]), list(clients))
@@ -139,9 +152,11 @@ class ClientIndexTest(test_lib.GRRBaseTest):
         index.AddClient(client)
 
     self.assertEqual(
-        len(index.LookupClients([".", "start_date:2014-10-20"])), 5)
+        len(index.LookupClients([".", "start_date:2014-10-20"])), 5
+    )
     self.assertEqual(
-        len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
+        len(index.LookupClients([".", "start_date:2014-10-21"])), 0
+    )
 
     # Ignore the keyword if the date is not readable.
     self.assertEmpty(index.LookupClients([".", "start_date:XXX"]))
@@ -150,8 +165,9 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     client_id = next(iter(self._SetupClients(1).keys()))
     data_store.REL_DB.WriteGRRUser("owner")
     data_store.REL_DB.WriteClientMetadata(client_id)
-    data_store.REL_DB.AddClientLabels(client_id, "owner",
-                                      ["testlabel_1", "testlabel_2"])
+    data_store.REL_DB.AddClientLabels(
+        client_id, "owner", ["testlabel_1", "testlabel_2"]
+    )
 
     index = client_index.ClientIndex()
     index.AddClientLabels(client_id, ["testlabel_1", "testlabel_2"])

@@ -71,7 +71,7 @@ describe('FlowResultsLocalStore', () => {
     httpApiService.mockedObservables.subscribeToResultsForFlow.next([
       {
         payload: {
-          '@type': 'type.googleapis.com/grr.Anomaly',
+          '@type': 'type.googleapis.com/grr.User',
           'foo': 42,
         },
         tag: '',
@@ -88,7 +88,7 @@ describe('FlowResultsLocalStore', () => {
         payload: {
           'foo': 42,
         },
-        payloadType: 'Anomaly',
+        payloadType: 'User',
       }),
     ]);
   }));
@@ -131,7 +131,7 @@ describe('FlowResultsLocalStore', () => {
     httpApiService.mockedObservables.subscribeToResultsForFlow.next([
       {
         payload: {
-          '@type': 'type.googleapis.com/grr.Anomaly',
+          '@type': 'type.googleapis.com/grr.User',
           'foo': 42,
         },
         tag: '',
@@ -143,7 +143,7 @@ describe('FlowResultsLocalStore', () => {
         payload: {
           'foo': 42,
         },
-        payloadType: 'Anomaly',
+        payloadType: 'User',
       }),
     ]);
   }));

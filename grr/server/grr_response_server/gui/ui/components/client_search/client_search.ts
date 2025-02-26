@@ -25,6 +25,7 @@ function toRow(c: Client) {
  * Component displaying the client search results.
  */
 @Component({
+  standalone: false,
   templateUrl: './client_search.ng.html',
   styleUrls: ['./client_search.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,42 +33,45 @@ function toRow(c: Client) {
 export class ClientSearch implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  protected readonly query$ = this.route.queryParamMap.pipe(
-    takeUntil(this.ngOnDestroy.triggered$),
-    map((params) => params.get('q') ?? ''),
-  );
+  protected readonly query$;
 
-  protected readonly clientLinkParams$: Observable<Params> =
-    this.route.queryParamMap.pipe(
-      takeUntil(this.ngOnDestroy.triggered$),
-      map((params) => params.get('reason')),
-      filter(isNonNull),
-      map((reason) => ({'reason': reason})),
-    );
+  protected readonly clientLinkParams$: Observable<Params>;
 
   /**
    * Table rows for the MatTable component.
    */
-  protected readonly rows$ = this.clientSearchLocalStore.clients$.pipe(
-    map((clients) => clients?.map(toRow) ?? []),
-  );
+  protected readonly rows$;
   /**
    * Table columns for the MatTable component.
    */
-  protected readonly columns = [
-    'clientId',
-    'fqdn',
-    'users',
-    'labels',
-    'online',
-    'lastSeenAt',
-  ] as const;
+  protected readonly columns;
 
   constructor(
     private readonly route: ActivatedRoute,
     protected readonly clientSearchLocalStore: ClientSearchLocalStore,
     private readonly router: Router,
   ) {
+    this.query$ = this.route.queryParamMap.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
+      map((params) => params.get('q') ?? ''),
+    );
+    this.clientLinkParams$ = this.route.queryParamMap.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
+      map((params) => params.get('reason')),
+      filter(isNonNull),
+      map((reason) => ({'reason': reason})),
+    );
+    this.rows$ = this.clientSearchLocalStore.clients$.pipe(
+      map((clients) => clients?.map(toRow) ?? []),
+    );
+    this.columns = [
+      'clientId',
+      'fqdn',
+      'users',
+      'labels',
+      'online',
+      'lastSeenAt',
+    ] as const;
     this.query$.subscribe((query) => {
       this.clientSearchLocalStore.searchClients(query);
     });

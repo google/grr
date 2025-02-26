@@ -2,12 +2,10 @@
 """This file implements a VFS abstraction on the client."""
 
 import abc
+from collections.abc import Iterable
 import io
 import os
-from typing import IO
-from typing import Iterable
-from typing import List
-from typing import Optional
+from typing import IO, Optional
 
 from grr_response_client import client_utils
 from grr_response_core.lib import utils
@@ -246,7 +244,7 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   def readline(self, limit: int = 0) -> bytes:
     raise io.UnsupportedOperation()
 
-  def readlines(self, hint: int = 0) -> List[bytes]:
+  def readlines(self, hint: int = 0) -> list[bytes]:
     raise io.UnsupportedOperation()
 
   def write(self, s: bytes) -> int:

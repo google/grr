@@ -4,6 +4,7 @@
 // These are the messages used in GRR
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -27,8 +28,10 @@ message HttpRequest {
 }
 
 // This message is sent between the client and the server.
-// Next field: 24
+// Next field: 25
 message GrrMessage {
+  reserved 20;
+
   optional string session_id = 1 [(sem_type) = {
     type: "FlowSessionID",
     description: "The session id of the flow that this message belongs to."
@@ -48,12 +51,14 @@ message GrrMessage {
                  "executed. It is set by the flow and is executed by the client."
   }];
 
+  // This field contains the payload carried by this message.
+  // It can be the input/output of a client action, or a status message.
+  optional google.protobuf.Any payload_any = 24 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+  }];
+
   // This field contains an encoded rdfvalue.
   optional bytes args = 5;
-
-  // Due to supersede the args field (not yet implemented). Contains the
-  // argument to the client action, or the response from the client action.
-  optional EmbeddedRDFValue arg = 20;
 
   optional string source = 6 [(sem_type) = {
     type: "RDFURN",
@@ -317,7 +322,7 @@ message GrrStatus {
 
   optional uint64 network_bytes_sent = 6;
 
-  optional string nanny_status = 7;
+  reserved 7;
 
   optional uint64 runtime_us = 8 [(sem_type) = {
     type: "Duration",
@@ -336,7 +341,7 @@ message ClientCrash {
   optional string crash_type = 5;
   optional string crash_message = 6;
   optional string backtrace = 7;
-  optional string nanny_status = 8;
+  reserved 8;
 }
 
 message HuntNotification {
@@ -523,49 +528,6 @@ message CpuSeconds {
   }];
   optional double system_cpu_time = 4 [(sem_type) = {
     friendly_name: "System cpu seconds used",
-  }];
-}
-
-message CpuSample {
-  optional float user_cpu_time = 1;
-  optional float system_cpu_time = 2;
-  optional float cpu_percent = 3;
-  optional uint64 timestamp = 4 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time of this sample."
-  }];
-}
-
-message IOSample {
-  optional uint64 read_count = 1;
-  optional uint64 write_count = 2;
-  optional uint64 read_bytes = 3;
-  optional uint64 write_bytes = 4;
-  optional uint64 timestamp = 5 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time of this sample."
-  }];
-}
-
-message ClientStats {
-  repeated CpuSample cpu_samples = 1;
-  optional uint64 RSS_size = 2;
-  optional uint64 VMS_size = 3;
-  optional float memory_percent = 4;
-  optional uint64 bytes_received = 5;
-  optional uint64 bytes_sent = 6;
-  repeated IOSample io_samples = 7;
-  optional uint64 create_time = 8 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time of the process creation of the GRR process."
-  }];
-  optional uint64 boot_time = 9 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time of the system boot."
-  }];
-  optional uint64 timestamp = 10 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time when this ClientStats sample was stored."
   }];
 }
 
@@ -1522,8 +1484,7 @@ message ForemanIntegerClientRule {
     LAST_BOOT_TIME = 3
         [(description) =
              "Last time the client machine rebooted (seconds from epoch)"];
-    CLIENT_CLOCK = 4
-        [(description) = "Client reported time (seconds from epoch)"];
+    reserved 4;
   }
   optional ForemanIntegerField field = 5;
 }
@@ -1688,10 +1649,8 @@ message Notification {
 
 // This is a way to serialize an arbitrary RDFValue.
 message EmbeddedRDFValue {
-  optional uint64 embedded_age = 1 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The age of this RDFValue."
-  }];
+  reserved 1;
+
   optional string name = 2;  // The type name of this RDFValue - used to
                              // retrieve the class for it.
   optional bytes data = 3;   // The serialized data of the RDFValue.

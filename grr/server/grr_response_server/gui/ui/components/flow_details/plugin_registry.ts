@@ -16,12 +16,14 @@ import {FileFinderDetails} from './plugins/file_finder_details';
 import {InterrogateDetails} from './plugins/interrogate_details';
 import {LaunchBinaryDetails} from './plugins/launch_binary_details';
 import {ListDirectoryDetails} from './plugins/list_directory_details';
+import {ListProcessesDetails} from './plugins/list_processes_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
 import {NetstatDetails} from './plugins/netstat_details';
 import {OnlineNotificationDetails} from './plugins/online_notification_details';
 import {OsqueryDetails} from './plugins/osquery_details';
 import {Plugin} from './plugins/plugin';
 import {ReadLowLevelDetails} from './plugins/read_low_level_details';
+import {TimelineDetails} from './plugins/timeline_details';
 import {YaraProcessScanDetails} from './plugins/yara_process_scan_details';
 
 /**
@@ -48,11 +50,13 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key in FlowType]?: Type<Plugin>} =
     [FlowType.INTERROGATE]: InterrogateDetails,
     [FlowType.LAUNCH_BINARY]: LaunchBinaryDetails,
     [FlowType.LIST_DIRECTORY]: ListDirectoryDetails,
+    [FlowType.LIST_PROCESSES]: ListProcessesDetails,
     [FlowType.MULTI_GET_FILE]: MultiGetFileDetails,
     [FlowType.NETSTAT]: NetstatDetails,
     [FlowType.ONLINE_NOTIFICATION]: OnlineNotificationDetails,
     [FlowType.OS_QUERY_FLOW]: OsqueryDetails,
     [FlowType.READ_LOW_LEVEL]: ReadLowLevelDetails,
     [FlowType.RECURSIVE_LIST_DIRECTORY]: ListDirectoryDetails,
+    [FlowType.TIMELINE_FLOW]: TimelineDetails,
     [FlowType.YARA_PROCESS_SCAN]: YaraProcessScanDetails,
   };

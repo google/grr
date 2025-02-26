@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.flowFormDirective');
-goog.module.declareLegacyNamespace();
 
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {ApiService} = goog.requireType('grrUi.core.apiService');
@@ -46,8 +45,10 @@ const FlowFormController = class {
 
     this.grrApiService_.get(DEFAULT_PLUGINS_URL)
         .then(function(response) {
-          if (angular.isDefined(response['data']['value'])) {
-            this.defaultOutputPluginNames = response['data']['value']['value'];
+          if (angular.isDefined(response['data']['value']['value']['value']) &&
+              response['data']['value']['value']['value']['value']) {
+            this.defaultOutputPluginNames =
+                response['data']['value']['value']['value']['value'];
           }
           return this.grrReflectionService_.getRDFValueDescriptor(
               'FlowRunnerArgs');

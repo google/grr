@@ -29,6 +29,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a ExecutePythonHack flow. */
 @Component({
+  standalone: false,
   templateUrl: './execute_python_hack_form.ng.html',
   styleUrls: ['./execute_python_hack_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,36 +76,41 @@ export class ExecutePythonHackForm extends FlowArgumentForm<
   // TODO: As future UX improvement, we could highlight Python
   // hacks that match the current client OS, since Python hacks are "bound" to
   // one OS on upload.
-  readonly hacks$ = this.configGlobalStore.binaries$.pipe(
-    map((binaries) =>
-      Array.from(
-        binaries.filter((b) => b.type === BinaryType.PYTHON_HACK),
-      ).sort(compareAlphabeticallyBy((b) => b.path)),
-    ),
-  );
+  readonly hacks$;
 
-  readonly filteredHacks$ = combineLatest([
-    this.hacks$,
-    this.controls.hackName.valueChanges.pipe(startWith('')),
-  ]).pipe(
-    map(([entries, searchString]) => {
-      searchString = searchString?.toLowerCase() ?? '';
-      return entries.filter((b) => b.path.toLowerCase().includes(searchString));
-    }),
-  );
+  readonly filteredHacks$;
 
-  readonly selectedHack$ = combineLatest([
-    this.hacks$,
-    this.controls.hackName.valueChanges,
-  ]).pipe(
-    map(([entries, searchString]) =>
-      entries.find((entry) => entry.path === searchString),
-    ),
-    startWith(undefined),
-  );
+  readonly selectedHack$;
 
   constructor(private readonly configGlobalStore: ConfigGlobalStore) {
     super();
+    this.hacks$ = this.configGlobalStore.binaries$.pipe(
+      map((binaries) =>
+        Array.from(
+          binaries.filter((b) => b.type === BinaryType.PYTHON_HACK),
+        ).sort(compareAlphabeticallyBy((b) => b.path)),
+      ),
+    );
+    this.filteredHacks$ = combineLatest([
+      this.hacks$,
+      this.controls.hackName.valueChanges.pipe(startWith('')),
+    ]).pipe(
+      map(([entries, searchString]) => {
+        searchString = searchString?.toLowerCase() ?? '';
+        return entries.filter((b) =>
+          b.path.toLowerCase().includes(searchString),
+        );
+      }),
+    );
+    this.selectedHack$ = combineLatest([
+      this.hacks$,
+      this.controls.hackName.valueChanges,
+    ]).pipe(
+      map(([entries, searchString]) =>
+        entries.find((entry) => entry.path === searchString),
+      ),
+      startWith(undefined),
+    );
   }
 
   trackHack(index: number, entry: Binary) {

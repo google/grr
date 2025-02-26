@@ -9,12 +9,42 @@ package rrg.action.get_file_metadata;
 import "grr_response_proto/rrg/fs.proto";
 
 message Args {
-  // Path to the file to get the metadata for.
+  // Root path to the file to get the metadata for.
+  //
+  // If `max_depth` is non-zero, metadata for subfolders and their contents up
+  // to that limit are returned as well.
   //
   // Note that if a path points to a symbolic link, the metadata associated
   // with the link itself will be returned, not the metadata of the file that
   // the link points to.
   rrg.fs.Path path = 1;
+
+  // Limit on the depth of recursion when visiting subfolders.
+  //
+  // The default value (0) means that there is no recursion and only metadata
+  // about the root path is returned.
+  uint32 max_depth = 2;
+
+  // Whether to collect [MD5 digest][1] of the file contents.
+  //
+  // Supported only if the `action-get_file_metadata-md5` feature is enabled.
+  //
+  // [1]: https://en.wikipedia.org/wiki/MD5
+  bool md5 = 3;
+
+  // Whether to collect [SHA-1 digest][1] of the file contents.
+  //
+  // Supported only if the `action-get_file_metadata-sha1` feature is enabled.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-1
+  bool sha1 = 4;
+
+  // Whether to collect [SHA-256 digest][2] of the file contents.
+  //
+  // Supported only if the `action-get_file_metadata-sha256` feature is enabled.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-2
+  bool sha256 = 5;
 }
 
 message Result {
@@ -36,4 +66,28 @@ message Result {
   // Note that this path might be relative. Moreover, it is not canonicalized
   // in any way and might not even exist (a dangling symlink).
   rrg.fs.Path symlink = 4;
+
+  // [MD5 digest][1] of the file contents.
+  //
+  // Collected only if the `action-get_file_metadata-md5` feature is enabled
+  // and `md5` argument was provided.
+  //
+  // [1]: https://en.wikipedia.org/wiki/MD5
+  bytes md5 = 5;
+
+  // [SHA-1 digest][1] of the file contents.
+  //
+  // Collected only if the `action-get_file_metadata-sha1` feature is enabled
+  // and `sha1` argument was provided.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-1
+  bytes sha1 = 6;
+
+  // [SHA-256 digest][1] of the file contents.
+  //
+  // Collected only if the `action-get_file_metadata-sha256` feature is enabled
+  // and `sha256` argument was provided.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-2
+  bytes sha256 = 7;
 }

@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.startFlowViewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 

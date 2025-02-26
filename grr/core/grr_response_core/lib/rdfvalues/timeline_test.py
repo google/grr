@@ -77,8 +77,8 @@ class TimelineEntryTest(absltest.TestCase):
     def RandomEntry() -> timeline_pb2.TimelineEntry:
       entry = timeline_pb2.TimelineEntry()
       entry.path = os.urandom(4096)
-      entry.mode = random.randint(0x0000, 0xFFFF - 1)
-      entry.size = random.randint(0, 1e9)
+      entry.mode = random.randint(int(0x0000), int(0xFFFF - 1))
+      entry.size = random.randint(0, int(1e9))
       return entry
 
     entries = [RandomEntry() for _ in range(3000)]

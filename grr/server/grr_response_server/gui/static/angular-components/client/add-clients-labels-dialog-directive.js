@@ -1,5 +1,4 @@
 goog.module('grrUi.client.addClientsLabelsDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -37,14 +36,14 @@ const AddClientsLabelsDialogController = class {
    * @export
    */
   proceed() {
-    var clients = [];
+    const clients = [];
     angular.forEach(this.scope_['clients'], function(clientObj) {
       clients.push(clientObj['value']['client_id']['value']);
     });
 
-    var deferred = this.q_.defer();
-    var url = '/clients/labels/add';
-    var params = {client_ids: clients, labels: [this.labelName]};
+    const deferred = this.q_.defer();
+    const url = '/clients/labels/add';
+    const params = {client_ids: clients, labels: [this.labelName]};
     this.grrApiService_.post(url, params)
         .then(
             function success() {

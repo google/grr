@@ -22,7 +22,7 @@ describe('json directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-json value="value" />';
+    const template = '<grr-json value="value"></grr-json>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

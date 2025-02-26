@@ -18,6 +18,5 @@ def ClientInit():
   client_logging.LogInit()
 
   if not config.CONFIG.ContextApplied(contexts.CLIENT_BUILD_CONTEXT):
-    config.CONFIG.Persist("Client.labels")
     config.CONFIG.Persist("Client.proxy_servers")
     config.CONFIG.Persist("Client.tempdir_roots")

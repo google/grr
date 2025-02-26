@@ -1,5 +1,4 @@
 goog.module('grrUi.user.user');
-goog.module.declareLegacyNamespace();
 
 const {ApproverInputDirective} = goog.require('grrUi.user.approverInputDirective');
 const {UserDashboardDirective} = goog.require('grrUi.user.userDashboardDirective');

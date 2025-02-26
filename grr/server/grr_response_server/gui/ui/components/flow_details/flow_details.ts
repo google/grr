@@ -1,3 +1,4 @@
+import {Clipboard} from '@angular/cdk/clipboard';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -16,6 +17,7 @@ import {map, startWith} from 'rxjs/operators';
 import {makeFlowLink} from '../../lib/routing';
 
 import {
+  ButtonType,
   ExportMenuItem,
   Plugin as FlowDetailsPlugin,
 } from '../../components/flow_details/plugins/plugin';
@@ -50,6 +52,7 @@ export enum FlowMenuAction {
  * Component that displays detailed information about a flow.
  */
 @Component({
+  standalone: false,
   selector: 'flow-details',
   templateUrl: './flow_details.ng.html',
   styleUrls: ['./flow_details.scss'],
@@ -57,6 +60,9 @@ export enum FlowMenuAction {
   providers: [FlowResultsLocalStore],
 })
 export class FlowDetails implements OnChanges {
+  readonly ButtonType = ButtonType;
+  constructor(private readonly clipboard: Clipboard) {}
+
   readonly colorScheme = ColorScheme;
 
   private detailsComponent: ComponentRef<FlowDetailsPlugin> | undefined;
@@ -68,6 +74,11 @@ export class FlowDetails implements OnChanges {
   private readonly flowDescriptor$ = new BehaviorSubject<FlowDescriptor | null>(
     null,
   );
+  private readonly webAuthType$ = new BehaviorSubject<string | null>(null);
+  private readonly exportCommandPrefix$ = new BehaviorSubject<string | null>(
+    null,
+  );
+
   readonly flowArgsViewData$: Observable<FlowArgsViewData | null> =
     combineLatest([this.flow$, this.flowDescriptor$]).pipe(
       map(([flow, flowDescriptor]) => {
@@ -88,12 +99,60 @@ export class FlowDetails implements OnChanges {
   ]).pipe(map(([flow, fd]) => getFlowTitleFromFlow(flow, fd)));
 
   /**
+   * Start flow API Request that is copied to clipboard.
+   */
+  startFlowRequest$: Observable<string | null> = combineLatest([
+    this.flow$,
+    this.webAuthType$,
+  ]).pipe(
+    map(([flow, webAuthType]) => {
+      if (!flow) {
+        return null;
+      }
+      return this.createFlowRequestStr(flow);
+    }),
+  );
+
+  /** Creates a API request to start a given flow. */
+  createFlowRequestStr(flow: Flow) {
+    return `CSRFTOKEN='curl ${window.location.origin} -o /dev/null -s -c - | grep csrftoken  | cut -f 7' \\
+  curl -X POST -H "Content-Type: application/json" -H "X-CSRFToken: $CSRFTOKEN" \\
+  ${window.location.origin}/api/v2/clients/${flow.clientId}/flows -d @- << EOF
+${JSON.stringify({flow: {args: flow.args, name: flow.name}}, null, 2)}
+EOF`;
+  }
+
+  /**
    * Flow list entry to display.
    */
 
   flowLink$: Observable<string | null> = this.flow$.pipe(
     map((flow) => makeFlowLink(flow?.clientId, flow?.flowId)),
   );
+
+  /**
+   * WebAuthType to use for create flow API requests.
+   */
+  @Input()
+  set webAuthType(webAuthType: string | null) {
+    this.webAuthType$.next(webAuthType ?? null);
+  }
+
+  get webAuthType() {
+    return this.webAuthType$.value;
+  }
+
+  /**
+   * exportCommandPrefix to .
+   */
+  @Input()
+  set exportCommandPrefix(exportCommandPrefix: string | null) {
+    this.exportCommandPrefix$.next(exportCommandPrefix ?? null);
+  }
+
+  get exportCommandPrefix() {
+    return this.exportCommandPrefix$.value;
+  }
 
   @Input()
   set flow(flow: Flow | null | undefined) {
@@ -158,6 +217,8 @@ export class FlowDetails implements OnChanges {
       );
     }
 
+    this.detailsComponent.instance.exportCommandPrefix =
+      this.exportCommandPrefix ?? '';
     this.detailsComponent.instance.flow = this.flow;
     // If the input bindings are set programmatically and not through a
     // template, and you have OnPush strategy, then change detection won't
@@ -190,7 +251,10 @@ export class FlowDetails implements OnChanges {
 
   get exportMenuItems() {
     return this.flow?.state === FlowState.FINISHED
-      ? this.detailsComponent?.instance?.getExportMenuItems(this.flow)
+      ? this.detailsComponent?.instance?.getExportMenuItems(
+          this.flow,
+          this.exportCommandPrefix ?? '',
+        )
       : undefined;
   }
 
@@ -200,5 +264,11 @@ export class FlowDetails implements OnChanges {
 
   trackExportMenuItem(index: number, entry: ExportMenuItem) {
     return entry.title;
+  }
+
+  copyToClipboard(str: string) {
+    if (str !== null) {
+      this.clipboard.copy(str);
+    }
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from typing import Sequence
+from collections.abc import Sequence
 
 from absl.testing import absltest
 

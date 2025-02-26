@@ -29,6 +29,7 @@ type Controls = ReturnType<typeof makeControls>;
  * A form that makes it possible to configure the list directory flow.
  */
 @Component({
+  standalone: false,
   selector: 'list-directory-form',
   templateUrl: './list_directory_form.ng.html',
   styleUrls: ['./list_directory_form.scss'],

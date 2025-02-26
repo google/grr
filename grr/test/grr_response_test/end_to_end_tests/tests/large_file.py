@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """End-to-end tests for the large file collection flow."""
+from collections.abc import Iterator
 import contextlib
 import datetime
 import io
-from typing import IO
-from typing import Iterator
-from typing import NamedTuple
+from typing import IO, NamedTuple
 
 from absl import flags
 from absl.testing import absltest

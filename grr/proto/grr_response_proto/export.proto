@@ -2,7 +2,6 @@
 
 syntax = "proto2";
 
-import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
@@ -223,6 +222,8 @@ message ExportedRegistryKey {
 }
 
 message ExportedProcess {
+  reserved 22;
+
   optional ExportedMetadata metadata = 1;
 
   optional uint32 pid = 2;
@@ -245,7 +246,6 @@ message ExportedProcess {
   optional uint32 num_threads = 19;
   optional float user_cpu_time = 20;
   optional float system_cpu_time = 21;
-  optional float cpu_percent = 22;
   optional uint64 rss_size = 23;
   optional uint64 vms_size = 24;
   optional float memory_percent = 25;
@@ -261,56 +261,6 @@ message ExportedNetworkConnection {
   optional NetworkConnection.State state = 6 [default = UNKNOWN];
   optional uint32 pid = 7;
   optional uint64 ctime = 8;
-}
-
-message ExportedAnomaly {
-  optional Anomaly.AnomalyType type = 1 [(sem_type) = {
-    description: "Type of anomaly this represents.",
-  }];
-
-  optional Anomaly.AnomalyLevel severity = 2 [(sem_type) = {
-    description: "Severity of the anomaly if it is a true positive.",
-  }];
-
-  optional Anomaly.AnomalyLevel confidence = 3 [(sem_type) = {
-    description: "Confidence that the anomaly is a true positive.",
-  }];
-
-  optional string symptom = 4 [(sem_type) = {
-    description: "A description of what is anomalous.",
-  }];
-
-  optional string explanation = 5 [(sem_type) = {
-    description: "A description of possible explanations for the anomaly if "
-                 "additional information is available.",
-  }];
-
-  optional string generated_by = 6 [(sem_type) = {
-    description: "String describing what generated the anomaly, this is "
-                 "normally the name of a parser or artifact.",
-  }];
-
-  // Not exporting PathSpec due to its recursive nature.
-
-  optional string anomaly_reference_id = 8 [(sem_type) = {
-    description: "A string used to reference the anomaly in the Anomaly "
-                 "database."
-  }];
-
-  optional string finding = 9 [(sem_type) = {
-    description: "String descriptions of data that triggered the Anomaly."
-  }];
-}
-
-message ExportedCheckResult {
-  optional ExportedMetadata metadata = 1;
-
-  optional string check_id = 2 [(sem_type) = {
-    description: "The check id, identifies what check is being reported."
-  }];
-  optional ExportedAnomaly anomaly = 3 [
-    (sem_type) = { description: "Specific finding indicating an issue exists." }
-  ];
 }
 
 message ExportedOpenFile {
@@ -363,7 +313,7 @@ message ExportedArtifactFilesDownloaderResult {
 }
 
 // Protobuf for YaraProcessScan flow results export.
-// Next field id: 9
+// Next field id: 10
 message ExportedYaraProcessScanMatch {
   optional ExportedMetadata metadata = 1;
 
@@ -387,6 +337,10 @@ message ExportedYaraProcessScanMatch {
 
   optional uint64 offset = 7 [(sem_type) = {
     description: "The offset of the Yara match.",
+  }];
+
+  optional bytes context = 9 [(sem_type) = {
+    description: "The context around the Yara match.",
   }];
 }
 
@@ -429,6 +383,15 @@ message ExportedSoftwarePackage {
   //
   // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/rebuilding-a-binary-from-a-source-rpm_packaging-software
   optional string source_rpm = 11;
+
+  // Name of the `.deb` source package from which the binary package was built.
+  //
+  // This field is generally set only for packages on Debian-based systems but
+  // might be missing often even there. See the official documentation for more
+  // details:
+  //
+  // https://wiki.debian.org/Packaging/SourcePackage
+  optional string source_deb = 12;
 }
 
 message ExportedCronTabEntry {

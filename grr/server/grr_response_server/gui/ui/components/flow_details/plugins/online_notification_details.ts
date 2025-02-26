@@ -11,6 +11,7 @@ import {Plugin} from './plugin';
  * Details about an OnlineNotification flow.
  */
 @Component({
+  standalone: false,
   selector: 'online-notification-details',
   templateUrl: './online_notification_details.ng.html',
 })

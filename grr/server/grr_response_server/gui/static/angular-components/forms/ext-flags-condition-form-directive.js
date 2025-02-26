@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.extFlagsConditionFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 /**

@@ -1,6 +1,6 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {MultiGetFileDetails} from '../../../components/flow_details/plugins/multi_get_file_details';
 import {PathSpecProgressStatus} from '../../../lib/api/api_interfaces';
@@ -24,7 +24,7 @@ describe('multi-get-file-details component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, PluginsModule, RouterModule.forRoot([])],
       providers: [],
       teardown: {destroyAfterEach: false},
     })

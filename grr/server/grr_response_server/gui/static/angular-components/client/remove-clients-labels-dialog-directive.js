@@ -1,5 +1,4 @@
 goog.module('grrUi.client.removeClientsLabelsDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 

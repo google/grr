@@ -22,6 +22,7 @@ from google.protobuf import descriptor
 from google.protobuf import message
 from google.protobuf import symbol_database
 from grr_api_client import errors
+from grr_response_proto import containers_pb2
 from grr_response_proto import crowdstrike_pb2
 from grr_response_proto import deprecated_pb2
 from grr_response_proto import dummy_pb2
@@ -41,6 +42,7 @@ from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import metadata_pb2
 from grr_response_proto.api import output_plugin_pb2
 from grr_response_proto.api import reflection_pb2
+from grr_response_proto.api import signed_commands_pb2
 from grr_response_proto.api import stats_pb2
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api import vfs_pb2
@@ -407,30 +409,34 @@ def RegisterProtoDescriptors(
     db: symbol_database.SymbolDatabase,
     *additional_descriptors: descriptor.FileDescriptor,
 ) -> None:
-  """Registers all API-releated descriptors in a given symbol DB."""
+  """Registers all API-related descriptors in a given symbol DB."""
+  # keep-sorted start
   db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(client_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(config_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(containers_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(cron_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(crowdstrike_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(dummy_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(flow_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(hunt_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(large_file_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(metadata_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(pipes_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(read_low_level_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(signed_commands_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(yara_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(crowdstrike_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(large_file_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(pipes_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(dummy_pb2.DESCRIPTOR)
+  # keep-sorted end
 
   db.RegisterFileDescriptor(
       wrappers_pb2.DESCRIPTOR

@@ -2,6 +2,7 @@
 """Tests for API client and flows-related API calls."""
 
 import io
+import tarfile
 import threading
 import time
 import zipfile
@@ -13,6 +14,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
@@ -150,8 +152,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     )
 
     client_id = self.SetupClient(0)
-    flow_id = flow_test_lib.TestFlowHelper(
-        processes.ListProcesses.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        processes.ListProcesses,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
         creator=self.test_username,
@@ -287,6 +289,42 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     for info in zip_fd.infolist():
       self.assertGreater(info.compress_size, 0)
+
+  def testGetFilesArchiveTargzGeneratesCorrectArchive(self):
+    client_id, flow_id = self._SetupFlowWithStatEntryResults()
+
+    blob_size = 1024 * 1024 * 4
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "ab")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data
+    )
+
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "cd")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar2"]), blob_refs, blob_data
+    )
+
+    tgz_stream = io.BytesIO()
+    self.api.Client(client_id).Flow(flow_id).GetFilesArchive(
+        archive_format=flow_pb2.ApiGetFlowFilesArchiveArgs.ArchiveFormat.TAR_GZ
+    ).WriteToStream(tgz_stream)
+    tgz_stream.seek(0)
+    tar = tarfile.open(fileobj=tgz_stream, mode="r:gz")
+
+    prefix = "%s_flow_ListProcesses_%s" % (client_id, flow_id)
+    namelist = tar.getnames()
+    self.assertCountEqual(
+        namelist,
+        [
+            "%s/MANIFEST" % prefix,
+            "%s/%s/client_info.yaml" % (prefix, client_id),
+            "%s/%s/fs/os/foo/bar1" % (prefix, client_id),
+            "%s/%s/fs/os/foo/bar2" % (prefix, client_id),
+        ],
+    )
+
+    for info in tar.getmembers():
+      self.assertGreater(info.size, 0)
 
   def testGetFilesArchiveFailsWhenFirstFileBlobIsMissing(self):
     client_id, flow_id = self._SetupFlowWithStatEntryResults()

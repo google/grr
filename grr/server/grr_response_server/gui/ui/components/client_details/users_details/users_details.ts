@@ -5,6 +5,7 @@ import {User} from '../../../lib/models/client';
  * Component the details for a single User.
  */
 @Component({
+  standalone: false,
   selector: 'users-details',
   templateUrl: './users_details.ng.html',
   styleUrls: ['./users_details.scss'],

@@ -94,8 +94,9 @@ class ArtifactRegistrySources(object):
         if filename.endswith(".json") or filename.endswith(".yaml"):
           yield os.path.join(dirpath, filename)
     except (IOError, OSError) as error:
-      logging.warning("problem with accessing artifact directory '%s': %s",
-                      dirpath, error)
+      logging.warning(
+          "problem with accessing artifact directory '%s': %s", dirpath, error
+      )
 
 
 class ArtifactRegistry(object):
@@ -132,7 +133,8 @@ class ArtifactRegistry(object):
     for artifact_value in artifact_list:
       try:
         self.RegisterArtifact(
-            artifact_value, source="datastore:", overwrite_if_exists=True)
+            artifact_value, source="datastore:", overwrite_if_exists=True
+        )
         loaded_artifacts.append(artifact_value)
       except rdf_artifacts.ArtifactDefinitionError as e:
         # TODO(hanuszczak): String matching on exception message is rarely
@@ -161,8 +163,7 @@ class ArtifactRegistry(object):
         try:
           Validate(artifact_obj)
         except rdf_artifacts.ArtifactDefinitionError as e:
-          logging.error("Artifact %s did not validate: %s", artifact_obj.name,
-                        e)
+          logging.exception("Artifact %s did not validate", artifact_obj.name)
           artifact_obj.error_message = str(e)
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
@@ -178,8 +179,11 @@ class ArtifactRegistry(object):
     # below. What are the real use cases?
 
     # Try to do the right thing with json/yaml formatted as a list.
-    if (isinstance(raw_list, list) and len(raw_list) == 1 and
-        isinstance(raw_list[0], list)):
+    if (
+        isinstance(raw_list, list)
+        and len(raw_list) == 1
+        and isinstance(raw_list[0], list)
+    ):
       raw_list = raw_list[0]
 
     # Convert json into artifact and validate.
@@ -198,7 +202,8 @@ class ArtifactRegistry(object):
       # seeing the artifact, even if the artifact's OS is not supported.
       if "supported_os" in artifact_dict:
         artifact_dict["supported_os"] = [
-            os for os in artifact_dict["supported_os"]
+            os
+            for os in artifact_dict["supported_os"]
             if os not in rdf_artifacts.Artifact.IGNORE_OS_LIST
         ]
 
@@ -213,7 +218,8 @@ class ArtifactRegistry(object):
       except (TypeError, AttributeError, type_info.TypeValueError) as e:
         name = artifact_dict.get("name")
         raise rdf_artifacts.ArtifactDefinitionError(
-            name, "invalid definition", cause=e)
+            name, "invalid definition", cause=e
+        )
 
     return valid_artifacts
 
@@ -229,17 +235,20 @@ class ArtifactRegistry(object):
             self.RegisterArtifact(
                 artifact_val,
                 source="file:%s" % file_path,
-                overwrite_if_exists=overwrite_if_exists)
+                overwrite_if_exists=overwrite_if_exists,
+            )
             loaded_artifacts.append(artifact_val)
-            logging.debug("Loaded artifact %s from %s", artifact_val.name,
-                          file_path)
+            logging.debug(
+                "Loaded artifact %s from %s", artifact_val.name, file_path
+            )
 
         loaded_files.append(file_path)
-      except (IOError, OSError) as e:
-        logging.error("Failed to open artifact file %s. %s", file_path, e)
-      except rdf_artifacts.ArtifactDefinitionError as e:
-        logging.error("Invalid artifact found in file %s with error: %s",
-                      file_path, e)
+      except (IOError, OSError):
+        logging.exception("Failed to open artifact file %s.", file_path)
+      except rdf_artifacts.ArtifactDefinitionError:
+        logging.exception(
+            "Invalid artifact found in file %s with error", file_path
+        )
         raise
 
     # Once all artifacts are loaded we can validate.
@@ -270,11 +279,13 @@ class ArtifactRegistry(object):
       self.AddDirSource(path)
 
   @utils.Synchronized
-  def RegisterArtifact(self,
-                       artifact_rdfvalue,
-                       source="datastore",
-                       overwrite_if_exists=False,
-                       overwrite_system_artifacts=False):
+  def RegisterArtifact(
+      self,
+      artifact_rdfvalue,
+      source="datastore",
+      overwrite_if_exists=False,
+      overwrite_system_artifacts=False,
+  ):
     """Registers a new artifact."""
     artifact_name = artifact_rdfvalue.name
     if artifact_name in self._artifacts:
@@ -342,12 +353,14 @@ class ArtifactRegistry(object):
         self.ReloadDatastoreArtifacts()
 
   @utils.Synchronized
-  def GetArtifacts(self,
-                   os_name=None,
-                   name_list=None,
-                   source_type=None,
-                   exclude_dependents=False,
-                   reload_datastore_artifacts=False):
+  def GetArtifacts(
+      self,
+      os_name=None,
+      name_list=None,
+      source_type=None,
+      exclude_dependents=False,
+      reload_datastore_artifacts=False,
+  ):
     """Retrieve artifact classes with optional filtering.
 
     All filters must match for the artifact to be returned.
@@ -370,8 +383,11 @@ class ArtifactRegistry(object):
     for artifact in self._artifacts.values():
 
       # artifact.supported_os = [] matches all OSes
-      if os_name and artifact.supported_os and (os_name
-                                                not in artifact.supported_os):
+      if (
+          os_name
+          and artifact.supported_os
+          and (os_name not in artifact.supported_os)
+      ):
         continue
       if name_list and artifact.name not in name_list:
         continue
@@ -407,7 +423,8 @@ class ArtifactRegistry(object):
     if not result:
       raise rdf_artifacts.ArtifactNotRegisteredError(
           "Artifact %s missing from registry. You may need to sync the "
-          "artifact repo by running make in the artifact directory." % name)
+          "artifact repo by running make in the artifact directory." % name
+      )
     return result
 
   @utils.Synchronized
@@ -438,7 +455,8 @@ REGISTRY = ArtifactRegistry()
 def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
   """Deletes a list of artifacts from the data store."""
   artifacts_list = REGISTRY.GetArtifacts(
-      reload_datastore_artifacts=reload_artifacts)
+      reload_datastore_artifacts=reload_artifacts
+  )
 
   to_delete = set(artifact_names)
   deps = set()
@@ -451,8 +469,9 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
 
   if deps:
     raise ValueError(
-        "Artifact(s) %s depend(s) on one of the artifacts to delete." %
-        (",".join(deps)))
+        "Artifact(s) %s depend(s) on one of the artifacts to delete."
+        % ",".join(deps)
+    )
 
   found_artifact_names = set()
   for artifact_value in artifacts_list:
@@ -461,8 +480,9 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
 
   if len(found_artifact_names) != len(to_delete):
     not_found = to_delete - found_artifact_names
-    raise ValueError("Artifact(s) to delete (%s) not found." %
-                     ",".join(not_found))
+    raise ValueError(
+        "Artifact(s) to delete (%s) not found." % ",".join(not_found)
+    )
 
   for artifact_name in to_delete:
     data_store.REL_DB.DeleteArtifact(str(artifact_name))
@@ -524,12 +544,14 @@ def ValidateDependencies(rdf_artifact):
       dependency_obj = REGISTRY.GetArtifact(dependency)
     except rdf_artifacts.ArtifactNotRegisteredError as e:
       raise rdf_artifacts.ArtifactDependencyError(
-          rdf_artifact, "missing dependency", cause=e)
+          rdf_artifact, "missing dependency", cause=e
+      )
 
     message = dependency_obj.error_message
     if message:
       raise rdf_artifacts.ArtifactDependencyError(
-          rdf_artifact, "dependency error", cause=message)
+          rdf_artifact, "dependency error", cause=message
+      )
 
 
 def Validate(rdf_artifact):
@@ -564,11 +586,7 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
   """
   deps = set()
   for source in rdf_artifact.sources:
-    # ARTIFACT is the legacy name for ARTIFACT_GROUP
-    # per: https://github.com/ForensicArtifacts/artifacts/pull/143
-    # TODO(user): remove legacy support after migration.
-    if source.type in (rdf_artifacts.ArtifactSource.SourceType.ARTIFACT,
-                       rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP):
+    if source.type == rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP:
       if source.attributes.GetItem("names"):
         deps.update(source.attributes.GetItem("names"))
 

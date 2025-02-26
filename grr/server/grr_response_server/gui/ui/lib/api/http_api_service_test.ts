@@ -607,6 +607,32 @@ describe('HttpApiService', () => {
     req.flush({});
   }));
 
+  it('fetchWebAuthType calls the correct endpoint', fakeAsync(() => {
+    httpApiService.fetchWebAuthType().subscribe();
+
+    const req = httpMock.expectOne({
+      method: 'GET',
+      url: '/api/v2/config/AdminUI.webauth_manager',
+    });
+
+    // Dummy assertion to prevent warnings about missing assertions.
+    expect(req).toBeTruthy();
+    req.flush({});
+  }));
+
+  it('fetchExportCommandPrefix calls the correct endpoint', fakeAsync(() => {
+    httpApiService.fetchExportCommandPrefix().subscribe();
+
+    const req = httpMock.expectOne({
+      method: 'GET',
+      url: '/api/v2/config/AdminUI.export_command',
+    });
+
+    // Dummy assertion to prevent warnings about missing assertions.
+    expect(req).toBeTruthy();
+    req.flush({});
+  }));
+
   describe('subscribeToHuntClientCompletionStats', () => {
     it(`Doesn't send a "size" HTTPParam if not specified`, fakeAsync(() => {
       const sub = httpApiService

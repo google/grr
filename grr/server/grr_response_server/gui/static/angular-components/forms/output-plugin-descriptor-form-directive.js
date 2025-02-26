@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.outputPluginDescriptorFormDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const reflectionService = goog.requireType('grrUi.core.reflectionService');

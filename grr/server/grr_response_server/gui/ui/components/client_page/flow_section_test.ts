@@ -1,8 +1,7 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
@@ -29,7 +28,7 @@ describe('FlowSection', () => {
         NoopAnimationsModule,
         ClientPageModule,
         ClientDetailsModule,
-        RouterTestingModule.withRoutes(CLIENT_ROUTES),
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,

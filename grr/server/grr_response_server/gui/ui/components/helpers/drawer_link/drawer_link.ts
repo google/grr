@@ -2,11 +2,17 @@ import {Directive, Host, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 
 /** Applies [routerLink] to elements having [drawerLink]. */
-@Directive({selector: 'a[drawerLink],area[drawerLink],button[drawerLink]'})
+@Directive({
+  standalone: false,
+  selector: 'a[drawerLink],area[drawerLink],button[drawerLink]',
+})
 export class DrawerRouterLink extends RouterLink {}
 
 /** Creates a [routerLink] opening the given route in the Drawer. */
-@Directive({selector: 'a[drawerLink],area[drawerLink],button[drawerLink]'})
+@Directive({
+  standalone: false,
+  selector: 'a[drawerLink],area[drawerLink],button[drawerLink]',
+})
 export class DrawerLink implements OnChanges {
   @Input() drawerLink?: Array<string | {}>;
 

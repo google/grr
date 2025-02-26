@@ -35,7 +35,7 @@ describe('semantic versioned proto directive', () => {
 
     const template = '<grr-host-history-dialog ' +
         'client-id="clientId" field-path="fieldPath" ' +
-        'close="close()" />';
+        'close="close()"></grr-host-history-dialog>';
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

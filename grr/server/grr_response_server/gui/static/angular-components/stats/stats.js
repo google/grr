@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.stats');
-goog.module.declareLegacyNamespace();
 
 const {AuditChartDirective} = goog.require('grrUi.stats.auditChartDirective');
 const {ChartDirective} = goog.require('grrUi.stats.chartDirective');

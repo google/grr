@@ -31,7 +31,7 @@ describe('Extended flags picker for macOS', () => {
 
     const template = `<grr-ext-flags-osx-picker
       bits-set="bitsSet"
-      bits-unset="bitsUnset" />`;
+      bits-unset="bitsUnset"></grr-ext-flags-osx-picker>`;
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

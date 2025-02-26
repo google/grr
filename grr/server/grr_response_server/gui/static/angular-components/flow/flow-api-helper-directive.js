@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.flowApiHelperDirective');
-goog.module.declareLegacyNamespace();
 
 const apiHelperService = goog.requireType('grrUi.docs.apiHelperService');
 const apiService = goog.requireType('grrUi.core.apiService');
@@ -48,9 +47,9 @@ const FlowApiHelperController = class {
     this.result = null;
 
     if (newValues.every(angular.isDefined)) {
-      var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
+      const flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
       this.grrApiService_.getV2(flowUrl).then(function(response) {
-        var flow = {
+        const flow = {
           args: response.data['args'],
           name: response.data['name'],
         };
@@ -61,7 +60,7 @@ const FlowApiHelperController = class {
           };
         }
 
-        var createFlow = {flow: flow};
+        const createFlow = {flow: flow};
         this.grrApiHelperService_.buildStartFlow(this.clientId, createFlow)
             .then(function(result) {
               this.result = result;

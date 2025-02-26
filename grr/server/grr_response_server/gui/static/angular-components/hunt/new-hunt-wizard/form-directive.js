@@ -44,8 +44,10 @@ const FormController = class {
 
     this.grrApiService_.get(DEFAULT_PLUGINS_URL)
         .then(function(response) {
-          if (angular.isDefined(response['data']['value'])) {
-            this.defaultOutputPluginNames = response['data']['value']['value'];
+          if (angular.isDefined(response['data']['value']['value']['value']) &&
+              response['data']['value']['value']['value']['value']) {
+            this.defaultOutputPluginNames =
+                response['data']['value']['value']['value']['value'];
           }
 
           return this.grrReflectionService_.getRDFValueDescriptor(
@@ -76,7 +78,7 @@ const FormController = class {
           angular.copy(this.descriptors_['RDFString']['default']);
     }
 
-    var hra = newValue['value']['hunt_runner_args'];
+    let hra = newValue['value']['hunt_runner_args'];
     if (angular.isUndefined(hra)) {
       hra = newValue['value']['hunt_runner_args'] =
           angular.copy(this.descriptors_['HuntRunnerArgs']['default']);
@@ -86,7 +88,7 @@ const FormController = class {
       if (this.defaultOutputPluginNames) {
         hra['value']['output_plugins'] = [];
         this.defaultOutputPluginNames.split(',').forEach((n) => {
-          var defaultPluginDescriptor = angular.copy(
+          const defaultPluginDescriptor = angular.copy(
               this.descriptors_['OutputPluginDescriptor']['default']);
           defaultPluginDescriptor['value']['plugin_name'] =
               angular.copy(this.descriptors_['RDFString']['default']);
@@ -134,9 +136,9 @@ const FormController = class {
    * @export
    */
   resolve() {
-    var onResolve = this.scope_['onResolve'];
+    const onResolve = this.scope_['onResolve'];
     if (onResolve && this.serverResponse) {
-      var huntId = this.serverResponse['data']['value']['hunt_id']['value'];
+      const huntId = this.serverResponse['data']['value']['hunt_id']['value'];
       onResolve({huntId: huntId});
     }
   }

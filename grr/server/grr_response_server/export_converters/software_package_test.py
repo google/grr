@@ -20,6 +20,7 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
         installed_by="user",
         epoch=7,
         source_rpm="foo-1.3.3.7.fc39.src.rpm",
+        source_deb="java-common (0.75)",
     )
 
     converter = software_package.SoftwarePackageConverter()
@@ -40,6 +41,7 @@ class SoftwarePackageConverterTest(export_test_lib.ExportTestBase):
             installed_by="user",
             epoch=7,
             source_rpm="foo-1.3.3.7.fc39.src.rpm",
+            source_deb="java-common (0.75)",
         ),
     )
 
@@ -60,6 +62,7 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               installed_by="user_%d" % i,
               epoch=i,
               source_rpm=f"foo_{i}.src.rpm",
+              source_deb=f"foo-{i}",
           )
       )
 
@@ -82,6 +85,7 @@ class SoftwarePackagesConverterTest(export_test_lib.ExportTestBase):
               installed_by="user_%d" % i,
               epoch=i,
               source_rpm=f"foo_{i}.src.rpm",
+              source_deb=f"foo-{i}",
           ),
       )
 

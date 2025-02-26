@@ -1,6 +1,3 @@
-Client.fleetspeak_enabled: true
-Client.server_urls:
-- fleetspeak-frontend
 Client.foreman_check_frequency: 10  # seconds
 
 Config.directory: /configs/client

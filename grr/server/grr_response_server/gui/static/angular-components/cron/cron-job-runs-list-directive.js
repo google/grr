@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.cronJobRunsListDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -42,7 +41,7 @@ const CronJobRunsListController = class {
    */
   onCronJobIdChange_(cronJobId) {
     if (angular.isString(cronJobId)) {
-      var components = cronJobId.split('/');
+      const components = cronJobId.split('/');
       this.cronJobId = components[components.length - 1];
       this.runsUrl = '/cron-jobs/' + this.cronJobId + '/runs';
     }

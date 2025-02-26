@@ -14,6 +14,7 @@ import {
  * only when there is at least one change
  */
 @Component({
+  standalone: false,
   selector: 'entry-history-button',
   templateUrl: './entry_history_button.ng.html',
   styleUrls: ['./entry_history_button.scss'],
@@ -27,10 +28,12 @@ export class EntryHistoryButton {
   constructor(
     private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
     private readonly dialog: MatDialog,
-  ) {}
+  ) {
+    this.clientEntryChanges$ =
+      this.clientDetailsGlobalStore.selectedClientEntriesChanged$;
+  }
 
-  readonly clientEntryChanges$ =
-    this.clientDetailsGlobalStore.selectedClientEntriesChanged$;
+  readonly clientEntryChanges$;
 
   openEntryHistoryDialog(clientVersions: readonly Client[]) {
     const data: EntryHistoryDialogParams = {

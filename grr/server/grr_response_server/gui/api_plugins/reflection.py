@@ -8,16 +8,15 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_value_renderers
 
 
-def _GetAllTypes():
-  # We have to provide info for python primitive types as well, as sometimes
-  # they may be used within FlowState objects.
+def _GetAllRDFTypes():
   all_types = rdfvalue.RDFValue.classes.copy()
+
   # We shouldn't render base RDFValue class.
   all_types.pop(rdfvalue.RDFValue.__name__, None)
   all_types.pop(rdfvalue.RDFPrimitive.__name__, None)
 
-  for cls in [bool, int, float, str]:
-    all_types[cls.__name__] = cls
+  # Remove primitive `bool` (that shouldn't be there).
+  all_types.pop("bool", None)
 
   return all_types
 
@@ -35,7 +34,7 @@ class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     _ = context
 
-    rdfvalue_class = _GetAllTypes()[args.type]
+    rdfvalue_class = _GetAllRDFTypes()[args.type]
     return api_value_renderers.BuildTypeDescriptor(rdfvalue_class)
 
 
@@ -46,52 +45,18 @@ class ApiListRDFValueDescriptorsResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
+class ApiListRDFValuesDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders descriptors of all available RDFValues."""
 
-  args_type = None
   result_type = ApiListRDFValueDescriptorsResult
 
   def Handle(self, unused_args, context=None):
     result = ApiListRDFValueDescriptorsResult()
 
-    all_types = _GetAllTypes()
+    all_types = _GetAllRDFTypes()
     for cls_name in sorted(all_types):
       cls = all_types[cls_name]
       result.items.append(api_value_renderers.BuildTypeDescriptor(cls))
-
-    # TODO(user): remove this special case as soon as Python 3 migration
-    # is done. This is needed, since in Python 2 "bytes" is an alias
-    # to "str" and doesn't exist as a standalone type.
-    bytes_descriptor = api_value_renderers.ApiRDFValueDescriptor(
-        name="bytes",
-        parents=["bytes", "object"],
-        doc="",
-        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
-    )
-    result.items.append(bytes_descriptor)
-
-    # TODO(user): remove this special case as soon as Python 3 migration
-    # is done. This is needed, since in Python 3 "unicode" is an alias to
-    # "str" and doesn't exist as a standalone type.
-    unicode_descriptor = api_value_renderers.ApiRDFValueDescriptor(
-        name="unicode",
-        parents=["unicode", "object"],
-        doc="",
-        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
-    )
-    result.items.append(unicode_descriptor)
-
-    # TODO(user): remove this special case as soon as Python 3 migration
-    # is done. This is needed, since in Python 3 "long" is an alias to
-    # "int" and doesn't exist as a standalone type.
-    unicode_descriptor = api_value_renderers.ApiRDFValueDescriptor(
-        name="long",
-        parents=["long", "object"],
-        doc="",
-        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
-    )
-    result.items.append(unicode_descriptor)
 
     return result
 

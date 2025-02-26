@@ -6,7 +6,7 @@ import os
 import shutil
 import struct
 import subprocess
-from typing import Tuple, Dict, Any
+from typing import Any
 import uuid
 
 import olefile
@@ -84,7 +84,7 @@ class StringPool:
     if pool_offset != len(pool):
       raise Error("String pool hasn't been fully consumed.")
 
-  def Serialize(self) -> Tuple[bytes, bytes]:
+  def Serialize(self) -> tuple[bytes, bytes]:
     """Serializes the string pool.
 
     Returns:
@@ -134,7 +134,7 @@ class FeatureTable:
 
   def __init__(self, data: bytes, string_pool: StringPool):
     self._data = data
-    self._level_offset: Dict[bytes, int] = {}
+    self._level_offset: dict[bytes, int] = {}
 
     row_count = len(data) // 16
 
@@ -325,7 +325,6 @@ class WindowsClientRepacker(build.ClientRepacker):
         EnableFeature("GrrExe")
 
       EnableFeature("FleetspeakServiceRegistryEntry")
-      EnableFeature("NannyServiceRemove")
       if fleetspeak_bundled:
         EnableFeature("FleetspeakClient")
       else:
@@ -393,8 +392,6 @@ class WindowsClientRepacker(build.ClientRepacker):
 
       ReplaceString("__GenFleetspeakServiceFileCmd",
                     gen_fleespeak_service_file_cmd)
-
-      ReplaceStringConfig("__NannyServiceNameToRemove", "Nanny.service_name")
 
       if self.signer:
         _SignCabFiles(msi_file.CabFilesDirectory(), self.signer)

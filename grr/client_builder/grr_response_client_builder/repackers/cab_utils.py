@@ -8,7 +8,7 @@
 import os
 import shutil
 import struct
-from typing import BinaryIO, Optional, List
+from typing import BinaryIO, Optional
 import zlib
 
 
@@ -384,7 +384,7 @@ def PadCabFile(src_cab_path: str, dst_cab_path: str, new_size: int):
       _PadCabFile(src_cab, dst_cab, new_size)
 
 
-def _CfDataSizes(total_size: int) -> List[int]:
+def _CfDataSizes(total_size: int) -> list[int]:
   """Computes the number/sizes of CfData blocks needed to fill `total_size` bytes."""
   # The padding has to be split into CfData blocks of maximum data size
   # of 0x8000.

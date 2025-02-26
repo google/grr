@@ -64,7 +64,6 @@ class ProcessToExportedProcessConverter(base.ExportConverter):
         num_threads=process.num_threads,
         user_cpu_time=process.user_cpu_time,
         system_cpu_time=process.system_cpu_time,
-        cpu_percent=process.cpu_percent,
         rss_size=process.RSS_size,
         vms_size=process.VMS_size,
         memory_percent=process.memory_percent,

@@ -10,12 +10,14 @@ import {SubmitOnMetaEnterModule} from './submit_on_meta_enter_module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
     <form #form (submit)="onSubmit($event)" [appSubmitOnMetaEnter]="appSubmitOnMetaEnter" [appSubmitOnEnter]="appSubmitOnEnter">
       <input #input id="input">
       <button type="button" #button (click)="onButtonClick($event)"></button>
       <input type="submit" #submit>
     </form>`,
+  jit: true,
 })
 class TestHostComponent {
   readonly onSubmit = jasmine.createSpy('submit').and.callFake((event) => {

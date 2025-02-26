@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+package grr;
+
+import "grr_response_proto/jobs.proto";
+
+// A single result of the cloud VM metadata collection flow.
+message CollectCloudVMMetadataResult {
+  // Information about the cloud VM.
+  optional CloudInstance vm_metadata = 1;
+}
+
+// Store type of the cloud VM metadata collection flow.
+message CollectCloudVMMetadataStore {
+  // Intermediate information to be sent as result at the end of the flow.
+  //
+  // As more calls to the endpoint finish, this metadata will be gradually more
+  // and more complete.
+  optional CloudInstance vm_metadata = 1;
+}

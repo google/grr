@@ -8,5 +8,3 @@ located [here](https://github.com/ForensicArtifacts/artifacts).
 -   Private artifacts should go in `artifacts/local`.
 -   Public artifacts that are non GRR specific should be submitted to the
     external repo.
--   Public artifacts that call GRR functions with `LIST_FILES`,
-    `GRR_CLIENT_ACTION` etc. should live in `artifacts/flow_templates`.

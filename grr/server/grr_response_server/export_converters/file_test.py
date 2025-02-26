@@ -73,12 +73,14 @@ class StatEntryToExportedFileConverterTest(export_test_lib.ExportTestBase):
     )
 
     client_mock = action_mocks.GetFileClientMock()
-    flow_test_lib.TestFlowHelper(
-        transfer.GetFile.__name__,
+    flow_test_lib.StartAndRunFlow(
+        transfer.GetFile,
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
     )
 
     proto_path_info = data_store.REL_DB.ReadPathInfo(
@@ -125,12 +127,14 @@ class StatEntryToExportedFileConverterTest(export_test_lib.ExportTestBase):
     )
 
     client_mock = action_mocks.GetFileClientMock()
-    flow_test_lib.TestFlowHelper(
-        transfer.GetFile.__name__,
+    flow_test_lib.StartAndRunFlow(
+        transfer.GetFile,
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
     )
 
     path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
@@ -551,13 +555,15 @@ class FileFinderResultConverterTest(export_test_lib.ExportTestBase):
     )
 
     path = os.path.join(self.base_path, "winexec_img.dd")
-    flow_id = flow_test_lib.TestFlowHelper(
-        file_finder.FileFinder.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file_finder.FileFinder,
         client_mock,
         client_id=self.client_id,
-        paths=[path],
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        action=action,
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[path],
+            action=action,
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+        ),
         creator=self.test_username,
     )
 

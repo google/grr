@@ -6,7 +6,7 @@ import {initTestEnvironment} from '../../../testing';
 
 import {FileModeModule} from './file_mode_module';
 
-@Component({template: '{{ value | fileMode }}'})
+@Component({standalone: false, template: '{{ value | fileMode }}', jit: true})
 class TestHostComponent {
   value: string | undefined;
 }

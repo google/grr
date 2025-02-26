@@ -12,6 +12,7 @@ import {SelectedClientGlobalStore} from '../../store/selected_client_global_stor
  * Component displaying the details and actions for a single Client.
  */
 @Component({
+  standalone: false,
   templateUrl: './client_page.ng.html',
   styleUrls: ['./client_page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,7 +20,7 @@ import {SelectedClientGlobalStore} from '../../store/selected_client_global_stor
 export class ClientPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
+  readonly hasAccess$;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -27,6 +28,7 @@ export class ClientPage implements OnDestroy {
     private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
     private readonly title: Title,
   ) {
+    this.hasAccess$ = this.clientPageGlobalStore.hasAccess$;
     this.selectedClientGlobalStore.selectClientId(
       this.route.paramMap.pipe(
         takeUntil(this.ngOnDestroy.triggered$),

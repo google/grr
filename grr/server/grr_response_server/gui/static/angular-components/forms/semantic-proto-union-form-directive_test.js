@@ -86,7 +86,7 @@ describe('semantic proto union form directive', () => {
     $rootScope.descriptor = descriptor;
 
     const template = '<grr-form-proto-union value="value" ' +
-        'descriptor="descriptor" />';
+        'descriptor="descriptor"></grr-form-proto-union>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

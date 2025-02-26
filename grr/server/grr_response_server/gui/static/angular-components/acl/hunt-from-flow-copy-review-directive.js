@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.huntFromFlowCopyReviewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 
@@ -38,7 +37,7 @@ const HuntFromFlowCopyReviewController = class {
       this.sourceFlow = this.scope_['sourceFlow'];
 
       this.newFlow = angular.copy(this.sourceFlow);
-      var newHunt = this.scope_['newHunt'];
+      const newHunt = this.scope_['newHunt'];
       this.newFlow['value']['name'] = newHunt['value']['flow_name'];
       this.newFlow['value']['args'] = newHunt['value']['flow_args'];
     }

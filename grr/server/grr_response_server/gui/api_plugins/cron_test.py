@@ -133,7 +133,7 @@ class ApiDeleteCronJobHandlerTest(
     self.assertLen(jobs, 1)
     self.assertEqual(jobs[0], self.cron_job_id)
 
-    args = cron_plugin.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
+    args = cron_pb2.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
     self.handler.Handle(args, context=self.context)
 
     jobs = list(cronjobs.CronManager().ListJobs())

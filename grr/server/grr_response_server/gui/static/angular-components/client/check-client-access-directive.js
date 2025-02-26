@@ -1,5 +1,4 @@
 goog.module('grrUi.client.checkClientAccessDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');
@@ -66,7 +65,7 @@ const CheckClientAccessController = class {
 
     if (!this.scope_['noRedirect']) {
       this.timeout_(function() {
-        var clientId = this.scope_['clientId'];
+        const clientId = this.scope_['clientId'];
         if (angular.isDefined(clientId)) {
           this.grrRoutingService_.go('client', {clientId: clientId});
         }

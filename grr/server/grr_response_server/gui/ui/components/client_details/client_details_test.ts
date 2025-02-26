@@ -1,8 +1,12 @@
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, convertToParamMap, ParamMap} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  ParamMap,
+  RouterModule,
+} from '@angular/router';
 import {ReplaySubject} from 'rxjs';
 
 import {ApiModule} from '../../lib/api/module';
@@ -65,7 +69,7 @@ describe('Client Details Component', () => {
         ApiModule,
         NoopAnimationsModule,
         ClientDetailsModule,
-        RouterTestingModule.withRoutes([...CLIENT_ROUTES]),
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,

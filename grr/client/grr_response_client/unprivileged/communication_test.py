@@ -3,7 +3,6 @@ import collections
 import io
 import os
 import platform
-from typing import List
 import unittest
 from unittest import mock
 
@@ -15,7 +14,7 @@ from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged import sandbox
 
 
-def _MakeArgs(channel: communication.Channel) -> List[str]:
+def _MakeArgs(channel: communication.Channel) -> list[str]:
   assert channel.pipe_input is not None and channel.pipe_output is not None
   return [
       sys.executable, "-m",

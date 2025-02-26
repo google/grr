@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """A module with implementation of the in-memory keystore."""
 
+from collections.abc import Sequence
 import itertools
 import os
-from typing import Sequence
 
 from grr_response_server.keystore import abstract
 

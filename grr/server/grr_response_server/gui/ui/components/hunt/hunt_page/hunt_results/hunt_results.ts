@@ -8,8 +8,12 @@ import {
   Output,
 } from '@angular/core';
 
-import {ExportMenuItem} from '../../../../components/flow_details/plugins/plugin';
 import {
+  ButtonType,
+  ExportMenuItem,
+} from '../../../../components/flow_details/plugins/plugin';
+import {
+  getHuntExportCLICommand,
   getHuntExportedResultsCsvUrl,
   getHuntExportedResultsSqliteUrl,
   getHuntExportedResultsYamlUrl,
@@ -26,10 +30,15 @@ import {
 } from '../../../../lib/models/result';
 import {observeOnDestroy} from '../../../../lib/reactive';
 
+/** Default export command prefix. */
+export const DEFAULT_EXPORT_COMMAND_PREFIX =
+  "/usr/bin/grr_api_shell 'http://localhost:8081'";
+
 /**
  * Encapsulates the display of different kind of Hunt Results and Errors.
  */
 @Component({
+  standalone: false,
   selector: 'app-hunt-results',
   templateUrl: './hunt_results.ng.html',
   styleUrls: ['./hunt_results.scss'],
@@ -39,6 +48,7 @@ export class HuntResults implements OnDestroy {
   @Input() huntId = '';
   @Input() tabsConfig: HuntResultsTableTabConfig[] = [];
   @Input() isLoading = false;
+  @Input() exportCommandPrefix = DEFAULT_EXPORT_COMMAND_PREFIX;
 
   @Output()
   readonly selectedHuntResult = new EventEmitter<TypedHuntResultOrError>();
@@ -58,35 +68,37 @@ export class HuntResults implements OnDestroy {
         title: 'Download files (TAR GZ)',
         url: getHuntFilesArchiveTarGzUrl(this.huntId),
         downloadName: `results_hunt_${this.huntId}.tar.gz`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download files (ZIP)',
         url: getHuntFilesArchiveZipUrl(this.huntId),
         downloadName: `results_hunt_${this.huntId}.zip`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download (CSV)',
         url: getHuntExportedResultsCsvUrl(this.huntId),
         downloadName: `hunt_${this.huntId}.csv.zip`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download (YAML)',
         url: getHuntExportedResultsYamlUrl(this.huntId),
         downloadName: `hunt_${this.huntId}.yaml.zip`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download (SQLite)',
         url: getHuntExportedResultsSqliteUrl(this.huntId),
         downloadName: `hunt_${this.huntId}.sql.zip`,
+        type: ButtonType.LINK,
       },
     ];
   }
 
   exportCommand() {
-    const cmd =
-      `/usr/bin/grr_api_shell 'http://localhost:8081' --exec_code` +
-      `'grrapi.Hunt("${this.huntId}").GetFilesArchive().WriteToFile(` +
-      `"./hunt_results_${this.huntId}.zip")'`;
+    const cmd = getHuntExportCLICommand(this.exportCommandPrefix, this.huntId);
     this.copied = this.clipboard.copy(cmd);
   }
 

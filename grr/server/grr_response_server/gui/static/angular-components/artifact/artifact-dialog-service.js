@@ -30,7 +30,7 @@ exports.ArtifactDialogService = class {
    * @export
    */
   openDeleteArtifacts(names) {
-    var directive = DeleteArtifactsDialogDirective;
+    const directive = DeleteArtifactsDialogDirective;
     return this.grrDialogService_.openDirectiveDialog(
         directive.directive_name, {names: names});
   }
@@ -42,12 +42,12 @@ exports.ArtifactDialogService = class {
    * @export
    */
   openUploadArtifact() {
-    var directive = UploadArtifactDialogDirective;
+    const directive = UploadArtifactDialogDirective;
     return this.grrDialogService_.openDirectiveDialog(directive.directive_name);
   }
 };
 
-var ArtifactDialogService = exports.ArtifactDialogService;
+const ArtifactDialogService = exports.ArtifactDialogService;
 
 
 /**

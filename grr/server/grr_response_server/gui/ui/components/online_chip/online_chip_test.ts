@@ -17,7 +17,11 @@ import {OnlineChip} from './online_chip';
 // underlying status observable. Creating a standalone status-chip
 // instance doesn't trigger the ngOnChanges lifecycle hook:
 // https://stackoverflow.com/questions/37408801/testing-ngonchanges-lifecycle-hook-in-angular-2
-@Component({template: `<online-chip [lastSeen]="lastSeen"></online-chip>`})
+@Component({
+  standalone: false,
+  template: `<online-chip [lastSeen]="lastSeen"></online-chip>`,
+  jit: true,
+})
 class TestHostComponent {
   lastSeen?: Date;
 }

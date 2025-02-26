@@ -25,3 +25,4 @@ from grr_response_server.flows.cron import registry_init
 from grr_response_server.flows.general import registry_init
 from grr_response_server.flows.local import registry_init
 from grr_response_server.local import registry_init
+from grr_response_server.local import server_config

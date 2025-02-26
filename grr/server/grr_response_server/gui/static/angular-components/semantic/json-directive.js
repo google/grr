@@ -38,9 +38,9 @@ const JsonController = class {
     // e.g. page could be redirected.
     e.stopPropagation();
 
-    var jsonStr = this.scope_['value']['value'];
+    const jsonStr = this.scope_['value']['value'];
     try {
-      var parsedJson = JSON.parse(jsonStr);
+      const parsedJson = JSON.parse(jsonStr);
       this.prettyJson = JSON.stringify(parsedJson, null, 2);
     } catch (err) {
       this.prettyJson = 'jsonerror(' + err.message + '):' + jsonStr;
@@ -54,11 +54,11 @@ const JsonController = class {
    * @suppress {missingProperties} as value can be anything.
    */
   onValueChange(newValue) {
-    var jsonStr = newValue.value;
+    const jsonStr = newValue.value;
     if (angular.isString(jsonStr)) {
       if (jsonStr.length < FIRST_RENDER_LIMIT) {
         try {
-          var parsedJson = JSON.parse(jsonStr);
+          const parsedJson = JSON.parse(jsonStr);
           this.prettyJson = JSON.stringify(parsedJson, null, 2);
         } catch (err) {
           this.prettyJson = 'jsonerror(' + err.message + '):' + jsonStr;
@@ -75,7 +75,7 @@ const JsonController = class {
 /**
  * @const {number} Maximum number of bytes to render without showing a link.
  */
-var FIRST_RENDER_LIMIT = 1024;
+const FIRST_RENDER_LIMIT = 1024;
 
 
 

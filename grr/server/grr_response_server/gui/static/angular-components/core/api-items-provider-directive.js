@@ -103,7 +103,7 @@ exports.ApiItemsProviderController = class {
    *     containing total number of items in the collection on the server.
    */
   fetchItems(offset, count, opt_withTotalCount) {
-    var params = angular.extend(
+    const params = angular.extend(
         this.queryParams || {}, {'offset': offset, 'count': count});
 
     if (this.method === 'POST') {
@@ -127,7 +127,7 @@ exports.ApiItemsProviderController = class {
    *     grrUi.core.itemsProviderController.Items.
    */
   fetchFilteredItems(filter, offset, count) {
-    var params = angular.extend(
+    const params = angular.extend(
         this.queryParams || {},
         {'filter': filter, 'offset': offset, 'count': count});
 
@@ -151,7 +151,7 @@ exports.ApiItemsProviderController = class {
    */
   onFetchedItems_(response) {
     /** @type {!Items} */
-    var result = {
+    const result = {
       items: response.data['items'] || [],
       offset: response.data['offset']
     };
@@ -171,7 +171,7 @@ exports.ApiItemsProviderController = class {
         throw e;
       }
       if (angular.isUndefined(result.items)) {
-        var errorStr = 'transform-items function returned undefined';
+        const errorStr = 'transform-items function returned undefined';
         this.log_.error(errorStr);
         throw new Error(errorStr);
       }
@@ -181,7 +181,7 @@ exports.ApiItemsProviderController = class {
   }
 };
 
-var ApiItemsProviderController = exports.ApiItemsProviderController;
+const ApiItemsProviderController = exports.ApiItemsProviderController;
 
 
 

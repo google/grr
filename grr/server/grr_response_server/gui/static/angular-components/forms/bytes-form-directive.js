@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.bytesFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -13,21 +12,22 @@ goog.module.declareLegacyNamespace();
  *     below than 32 and greater than 126 get encoded
  */
 exports.bytesToHexEncodedString = function(bytes) {
-  var segmentStart = 0;
-  var str = [];
+  let segmentStart = 0;
+  const str = [];
 
-  var blen = bytes.length;
-  for (var i = 0; i < blen; i += 1) {
-    var c = bytes.charCodeAt(i);
+  const blen = bytes.length;
+  let segmentLength;
+  for (let i = 0; i < blen; i += 1) {
+    const c = bytes.charCodeAt(i);
 
     if (c < 32 || c > 126) {
-      var segmentLength = i - segmentStart;
+      segmentLength = i - segmentStart;
       if (segmentLength > 0) {
         str.push(bytes.substr(segmentStart, segmentLength));
       }
       segmentStart = i + 1;
 
-      var hc = c.toString(16);
+      let hc = c.toString(16);
       if (hc.length == 1) {
         hc = '0' + hc;
       }
@@ -42,7 +42,7 @@ exports.bytesToHexEncodedString = function(bytes) {
 
   return str.join('');
 };
-var bytesToHexEncodedString = exports.bytesToHexEncodedString;
+const bytesToHexEncodedString = exports.bytesToHexEncodedString;
 
 
 
@@ -59,7 +59,7 @@ exports.hexEncodedStringToBytes = function(str) {
     return String.fromCharCode(parseInt(arguments[1], 16));
   });
 };
-var hexEncodedStringToBytes = exports.hexEncodedStringToBytes;
+const hexEncodedStringToBytes = exports.hexEncodedStringToBytes;
 
 
 /**
@@ -70,9 +70,9 @@ var hexEncodedStringToBytes = exports.hexEncodedStringToBytes;
  * @return {boolean} True, if the string is a byte string, false otherwise.
  */
 exports.isByteString = function(str) {
-  var blen = str.length;
-  for (var i = 0; i < blen; i += 1) {
-    var c = str.charCodeAt(i);
+  const blen = str.length;
+  for (let i = 0; i < blen; i += 1) {
+    const c = str.charCodeAt(i);
     if (c >= 256) {
       return false;
     }
@@ -80,7 +80,7 @@ exports.isByteString = function(str) {
 
   return true;
 };
-var isByteString = exports.isByteString;
+const isByteString = exports.isByteString;
 
 
 /**
@@ -120,7 +120,7 @@ const BytesFormController = class {
   onValueChange_(newValue) {
     if (angular.isString(newValue)) {
       try {
-        var base64DecodedBytes = this.window_.atob(newValue);
+        const base64DecodedBytes = this.window_.atob(newValue);
         if (base64DecodedBytes != hexEncodedStringToBytes(this.valueString)) {
           this.valueString = bytesToHexEncodedString(base64DecodedBytes);
         }

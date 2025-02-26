@@ -8,18 +8,22 @@ import {
 
 /** Component to show plain-text file contents. */
 @Component({
+  standalone: false,
   templateUrl: './text_view.ng.html',
   styleUrls: ['./text_view.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TextView implements OnInit {
-  readonly textContent$ = this.fileDetailsLocalStore.textContent$.pipe(
-    map((textContent) => textContent?.split('\n')),
-  );
+  readonly textContent$;
 
-  readonly hasMore$ = this.fileDetailsLocalStore.hasMore$;
+  readonly hasMore$;
 
-  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {}
+  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {
+    this.textContent$ = this.fileDetailsLocalStore.textContent$.pipe(
+      map((textContent) => textContent?.split('\n')),
+    );
+    this.hasMore$ = this.fileDetailsLocalStore.hasMore$;
+  }
 
   ngOnInit(): void {
     this.fileDetailsLocalStore.setMode(ContentFetchMode.TEXT);

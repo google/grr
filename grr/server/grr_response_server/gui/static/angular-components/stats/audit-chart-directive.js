@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.auditChartDirective');
-goog.module.declareLegacyNamespace();
 
 const {stripTypeInfo} = goog.require('grrUi.core.apiService');
 const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
@@ -51,7 +50,7 @@ const AuditChartController = class {
    * @private
    */
   initAuditChart_(typedAuditChartData) {
-    var auditChartData = stripTypeInfo(typedAuditChartData);
+    const auditChartData = stripTypeInfo(typedAuditChartData);
 
     this.auditUsedFields = undefined;
     this.auditTitleCaseUsedFields = undefined;

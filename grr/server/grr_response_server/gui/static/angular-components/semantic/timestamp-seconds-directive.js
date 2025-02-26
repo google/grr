@@ -33,7 +33,7 @@ const TimestampSecondsController = class {
    */
   onValueChange(newValue) {
     if (angular.isDefined(newValue)) {
-      var timestamp;
+      let timestamp;
       if (angular.isObject(newValue)) {
         timestamp = newValue.value;
       } else {

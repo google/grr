@@ -22,7 +22,7 @@ exports.openReference = function(notification, $location) {
     return false;
   }
 };
-var openReference = exports.openReference;
+const openReference = exports.openReference;
 
 /**
  * Prepares the notification for displaying.
@@ -38,7 +38,7 @@ exports.annotateApiNotification = function(notification) {
         notification['value']['reference']['value']['type']['value'];
   }
 };
-var annotateApiNotification = exports.annotateApiNotification;
+const annotateApiNotification = exports.annotateApiNotification;
 
 /**
  * Creates a link for the notification.
@@ -49,26 +49,26 @@ var annotateApiNotification = exports.annotateApiNotification;
  *
  * @private
  */
-var getLink_ = function(notification) {
-  var strippedNotification = stripTypeInfo(notification);
+const getLink_ = function(notification) {
+  const strippedNotification = stripTypeInfo(notification);
   if (!strippedNotification['reference'] ||
       !strippedNotification['reference']['type']) {
     return null;
   }
 
-  var reference = strippedNotification['reference'];
-  var referenceType = reference['type'];
-  var referenceDetails = reference[referenceType.toLowerCase()];
-  var urlParameters = {};
+  const reference = strippedNotification['reference'];
+  const referenceType = reference['type'];
+  const referenceDetails = reference[referenceType.toLowerCase()];
+  const urlParameters = {};
 
   if (referenceType === 'CLIENT') {
     return ['clients', stripAff4Prefix(referenceDetails['client_id'])].join(
         '/');
   } else if (referenceType === 'HUNT') {
-    var huntId = referenceDetails['hunt_id'];
+    const huntId = referenceDetails['hunt_id'];
     return ['hunts', huntId].join('/');
   } else if (referenceType === 'CRON') {
-    var cronJobName = referenceDetails['cron_job_id'];
+    const cronJobName = referenceDetails['cron_job_id'];
     return ['crons', cronJobName].join('/');
   } else if (referenceType === 'VFS') {
     return [
@@ -76,12 +76,12 @@ var getLink_ = function(notification) {
       encodeUrlPath(stripAff4Prefix(referenceDetails['vfs_path']))
     ].join('/');
   } else if (referenceType == 'FLOW') {
-    var flowId = referenceDetails['flow_id'];
+    const flowId = referenceDetails['flow_id'];
     return [
       'clients', stripAff4Prefix(referenceDetails['client_id']), 'flows', flowId
     ].join('/');
   } else if (referenceType === 'CLIENT_APPROVAL') {
-    var clientId = stripAff4Prefix(referenceDetails['client_id']);
+    const clientId = stripAff4Prefix(referenceDetails['client_id']);
     return [
       'users', referenceDetails['username'], 'approvals', 'client', clientId,
       referenceDetails['approval_id']

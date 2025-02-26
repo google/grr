@@ -11,15 +11,15 @@ const {ApiService} = goog.require('grrUi.core.apiService');
  * @param {function(boolean)} callback The canary mode flag will be passed to
  * this callback when it'll be determined in background.
  */
-var getCanaryModeValue = function(grrApiService, callback) {
+const getCanaryModeValue = function(grrApiService, callback) {
   grrApiService.getCached('/users/me').then(function(response) {
-    var canaryMode;
+    let canaryMode;
 
     try {
-      canaryMode = /** @type {boolean} */ (
-          response['data']['value']['settings']
-                  ['value']['canary_mode']['value']);
-    } catch(err) {
+      canaryMode =
+          /** @type {boolean} */ (response['data']['value']['settings']['value']
+                                          ['canary_mode']['value']);
+    } catch (err) {
       canaryMode = false;
     }
 

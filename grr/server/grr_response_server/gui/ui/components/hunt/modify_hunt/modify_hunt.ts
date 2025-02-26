@@ -19,6 +19,7 @@ import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
  * Component displaying the details for a single hunt result.
  */
 @Component({
+  standalone: false,
   selector: 'modify-hunt',
   templateUrl: './modify_hunt.ng.html',
   styleUrls: ['./modify_hunt.scss'],
@@ -34,9 +35,11 @@ export class ModifyHunt implements OnDestroy, AfterViewInit {
     private readonly huntPageGlobalStore: HuntPageGlobalStore,
     private readonly changeDetection: ChangeDetectorRef,
     private readonly router: Router,
-  ) {}
+  ) {
+    this.hunt$ = this.huntPageGlobalStore.selectedHunt$;
+  }
 
-  protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;
+  protected readonly hunt$;
 
   ngAfterViewInit() {
     this.huntPageGlobalStore.selectedHunt$

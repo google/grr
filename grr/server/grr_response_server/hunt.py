@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""REL_DB implementation of hunts."""
+"""REL_DB implementation of models_hunts."""
 
 from typing import Optional
 
@@ -9,26 +9,27 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
 from grr_response_proto import hunts_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import mig_foreman_rules
 from grr_response_server import notification
-from grr_response_server.models import hunts
+from grr_response_server.models import hunts as models_hunts
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+
 
 MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
 
-# pyformat: disable
+# fmt: off
 
 CANCELLED_BY_USER = "Cancelled by user"
 
 # /grr/server/grr_response_server/gui/api_plugins/hunt.py)
-# pyformat: enable
+# fmt: on
 
 
 class Error(Exception):
@@ -453,11 +454,11 @@ def StopHunt(
   ):
     notification.Notify(
         hunt_obj.creator,
-        rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
+        objects_pb2.UserNotification.Type.TYPE_HUNT_STOPPED,
         reason_comment,
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.HUNT,
-            hunt=rdf_objects.HuntReference(hunt_id=hunt_obj.hunt_id),
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.HUNT,
+            hunt=objects_pb2.HuntReference(hunt_id=hunt_obj.hunt_id),
         ),
     )
 
@@ -507,7 +508,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
   # foreman scheduling a client on an (already) paused hunt. Making sure
   # we don't lose clients in such a race by accepting clients for paused
   # hunts.
-  if not hunts.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
+  if not models_hunts.IsHuntSuitableForFlowProcessing(hunt_obj.hunt_state):
     return
 
   hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)

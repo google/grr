@@ -1,7 +1,7 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {CollectBrowserHistoryDetails} from '../../../components/flow_details/plugins/collect_browser_history_details';
 import {
@@ -32,7 +32,7 @@ describe('collect-browser-history-details component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, PluginsModule, RouterModule.forRoot([])],
       providers: [],
       teardown: {destroyAfterEach: false},
     })
@@ -45,12 +45,12 @@ describe('collect-browser-history-details component', () => {
   it('shows per-browser details', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.IN_PROGRESS,
         },
       ],
@@ -63,18 +63,18 @@ describe('collect-browser-history-details component', () => {
       state: FlowState.RUNNING,
     });
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toContain('Chrome');
+    expect(fixture.nativeElement.innerText).toContain('Chromium');
   });
 
   it('shows warning on per-browser success with 0 results', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.SUCCESS,
           numCollectedFiles: 0,
         },
@@ -97,12 +97,12 @@ describe('collect-browser-history-details component', () => {
   it('shows error on per-browser error', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.ERROR,
           description: 'Something happened',
         },
@@ -125,12 +125,12 @@ describe('collect-browser-history-details component', () => {
   it('shows number of files on per-browser success', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.SUCCESS,
           numCollectedFiles: 42,
         },
@@ -153,12 +153,12 @@ describe('collect-browser-history-details component', () => {
   it('shows a spinner on per-browser in-progress state', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.IN_PROGRESS,
         },
       ],
@@ -180,12 +180,12 @@ describe('collect-browser-history-details component', () => {
   it('shows error after flow has been cancelled', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.IN_PROGRESS,
         },
       ],
@@ -208,12 +208,12 @@ describe('collect-browser-history-details component', () => {
   it('emits results query on browser title link', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.SUCCESS,
           numCollectedFiles: 42,
         },
@@ -243,12 +243,12 @@ describe('collect-browser-history-details component', () => {
   it('loads and displays file results', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     const progress: CollectBrowserHistoryProgress = {
       browsers: [
         {
-          browser: Browser.CHROME,
+          browser: Browser.CHROMIUM_BASED_BROWSERS,
           status: BrowserProgressStatus.SUCCESS,
           numCollectedFiles: 200,
         },
@@ -276,7 +276,7 @@ describe('collect-browser-history-details component', () => {
       Array.from({length: 55}, (v, i) =>
         newFlowResult({
           payload: makeBrowserHistoryResult(i),
-          tag: 'CHROME',
+          tag: 'CHROMIUM_BASED_BROWSERS',
           payloadType: 'CollectBrowserHistoryResult',
         }),
       ),
@@ -301,7 +301,7 @@ describe('collect-browser-history-details component', () => {
       [...new Array(200)].map((v, i) =>
         newFlowResult({
           payload: makeBrowserHistoryResult(i),
-          tag: 'CHROME',
+          tag: 'CHROMIUM_BASED_BROWSERS',
           payloadType: 'CollectBrowserHistoryResult',
         }),
       ),
@@ -311,7 +311,7 @@ describe('collect-browser-history-details component', () => {
   it('displays download options in menu when flow has results', async () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     };
     fixture.componentInstance.flow = newFlow({
       clientId: 'C.1',
@@ -324,6 +324,7 @@ describe('collect-browser-history-details component', () => {
 
     const menuItems = fixture.componentInstance.getExportMenuItems(
       fixture.componentInstance.flow,
+      '' /** exportCommandPrefix can be left empty for testing purposes */,
     );
     expect(menuItems[0]).toEqual(
       fixture.componentInstance.getDownloadFilesExportMenuItem(
@@ -335,7 +336,7 @@ describe('collect-browser-history-details component', () => {
 
 function makeBrowserHistoryResult(i: number): CollectBrowserHistoryResult {
   return {
-    browser: Browser.CHROME,
+    browser: Browser.CHROMIUM_BASED_BROWSERS,
     statEntry: {
       pathspec: {path: `/browser/${i}.txt`, pathtype: PathSpecPathType.OS},
     },

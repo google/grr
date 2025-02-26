@@ -4,7 +4,11 @@ import {BrowserTestingModule} from '@angular/platform-browser/testing';
 
 import {MarkdownPipeModule} from './module';
 
-@Component({template: `{{markdownSnippet|markdown}}`})
+@Component({
+  standalone: false,
+  template: `{{markdownSnippet|markdown}}`,
+  jit: true,
+})
 class TestHostComponent {
   @Input() markdownSnippet?: string;
 }

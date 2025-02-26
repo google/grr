@@ -53,7 +53,7 @@ const UrnController = class {
       return;
     }
 
-    var urlResult = aff4UrnToUrl(this.plainValue);
+    const urlResult = aff4UrnToUrl(this.plainValue);
     if (urlResult) {
       this.refState = urlResult.state;
       this.refParams = urlResult.params;

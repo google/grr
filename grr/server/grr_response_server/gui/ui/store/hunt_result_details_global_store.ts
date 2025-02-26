@@ -370,22 +370,31 @@ export class HuntResultDetailsGlobalStore {
   constructor(
     private readonly httpApiService: HttpApiService,
     private readonly configGlobalStore: ConfigGlobalStore,
-  ) {}
+  ) {
+    this.store = new HuntResultDetailsStore(
+      this.httpApiService,
+      this.configGlobalStore,
+    );
+    this.huntId$ = this.store.resultKey$.pipe(map((key) => key?.flowId));
+    this.clientId$ = this.store.resultKey$.pipe(map((key) => key?.clientId));
+    this.timestamp$ = this.store.resultKey$.pipe(
+      map((key) => createOptionalDate(key?.timestamp ?? '')),
+    );
+    this.resultOrErrorDisplay$ = this.store.resultOrErrorDisplay$;
+    this.flowWithDescriptor$ = this.store.flowWithDescriptor$;
+    this.isFlowLoading$ = this.store.isFlowLoading$;
+    this.isHuntResultLoading$ = this.store.isHuntResultLoading$;
+  }
 
-  private readonly store = new HuntResultDetailsStore(
-    this.httpApiService,
-    this.configGlobalStore,
-  );
+  private readonly store;
 
-  readonly huntId$ = this.store.resultKey$.pipe(map((key) => key?.flowId));
-  readonly clientId$ = this.store.resultKey$.pipe(map((key) => key?.clientId));
-  readonly timestamp$ = this.store.resultKey$.pipe(
-    map((key) => createOptionalDate(key?.timestamp ?? '')),
-  );
-  readonly resultOrErrorDisplay$ = this.store.resultOrErrorDisplay$;
-  readonly flowWithDescriptor$ = this.store.flowWithDescriptor$;
-  readonly isFlowLoading$ = this.store.isFlowLoading$;
-  readonly isHuntResultLoading$ = this.store.isHuntResultLoading$;
+  readonly huntId$;
+  readonly clientId$;
+  readonly timestamp$;
+  readonly resultOrErrorDisplay$;
+  readonly flowWithDescriptor$;
+  readonly isFlowLoading$;
+  readonly isHuntResultLoading$;
 
   /** Selects a hunt result with a given id. */
   selectHuntResultId(resultKeyId: string, payloadType?: PayloadType): void {

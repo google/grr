@@ -24,7 +24,7 @@ describe('client status icons', () => {
   const render = (client) => {
     $rootScope.client = client;
 
-    const template = '<grr-client-status-icons client="client" />';
+    const template = '<grr-client-status-icons client="client"></grr-client-status-icons>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

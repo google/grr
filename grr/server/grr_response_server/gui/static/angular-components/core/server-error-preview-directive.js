@@ -5,9 +5,9 @@ const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonD
 
 
 
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
-var ERROR_PREVIEW_INTERVAL = 5000;  // ms
+const ERROR_PREVIEW_INTERVAL = 5000;  // ms
 
 
 /**
@@ -89,7 +89,7 @@ exports.ServerErrorPreviewDirective = function() {
   };
 };
 
-var ServerErrorPreviewDirective = exports.ServerErrorPreviewDirective;
+const ServerErrorPreviewDirective = exports.ServerErrorPreviewDirective;
 
 /**
  * Name of the directive in Angular.

@@ -44,7 +44,6 @@ Global Install Context:
 
 Client Context:
   Client.foreman_check_frequency: 1800
-  Client.poll_max: 600
 
 Target:Darwin:
   # The build system generates a build.yaml file with information about the
@@ -87,9 +86,7 @@ Target:Darwin:
   DebugClientBuild Context:
     Logging.verbose: True
     ClientBuilder.console: True
-    Client.poll_max: 5
     Client.foreman_check_frequency: 30
-    Client.rss_max: 4000
     Client.prefix: dbg_
 
 Target:Linux:
@@ -148,9 +145,7 @@ Target:Linux:
   DebugClientBuild Context:
     Logging.verbose: True
     ClientBuilder.console: True
-    Client.poll_max: 5
     Client.foreman_check_frequency: 30
-    Client.rss_max: 4000
     Client.prefix: dbg_
 
 Target:Windows:
@@ -159,14 +154,8 @@ Target:Windows:
 
   ClientBuilder.build_root_dir: C:\\grr-build-root
 
-  PyInstaller.build_dir: |
-    %(ClientBuilder.build_root_dir)\\%(ClientBuilder.build_dest)
-
   PyInstaller.distpath: |
     C:\\grr-distpath
-
-  PyInstaller.workpath_dir: |
-    %(ClientBuilder.build_root_dir)\\workpath
 
   ClientBuilder.output_extension: .exe
 
@@ -186,9 +175,7 @@ Target:Windows:
   DebugClientBuild Context:
     Logging.verbose: True
     ClientBuilder.console: True
-    Client.poll_max: 5
     Client.foreman_check_frequency: 30
-    Client.rss_max: 4000
     Client.prefix: dbg_
 
 ConfigUpdater Context:

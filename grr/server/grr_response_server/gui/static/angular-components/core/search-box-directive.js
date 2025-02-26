@@ -1,5 +1,4 @@
 goog.module('grrUi.core.searchBoxDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');
@@ -7,7 +6,7 @@ const routingService = goog.requireType('grrUi.routing.routingService');
 
 
 /** @const */
-var SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
+const SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
 
 /**
  * Controller for SearchBoxDirective.
@@ -80,7 +79,7 @@ const SearchBoxController = class {
    * @private
    */
   isHuntId_(input) {
-    var huntRegex = /^([A-Z0-9]+:)?[A-F0-9]{6,16}$/i;
+    const huntRegex = /^([A-Z0-9]+:)?[A-F0-9]{6,16}$/i;
 
     if (!huntRegex.test(input)) {
       return false;
@@ -88,8 +87,8 @@ const SearchBoxController = class {
 
     // If the first part of the potential hunt id equals a reserved search
     // keyword, we do not consider it a hunt id.
-    var components = input.split(':');
-    var potential_keyword = components[0].toLowerCase();
+    const components = input.split(':');
+    const potential_keyword = components[0].toLowerCase();
     return SEARCH_KEYWORDS.indexOf(potential_keyword) === -1;
   }
 
@@ -105,7 +104,7 @@ const SearchBoxController = class {
     this.grrApiService_.get('hunts/' + huntId)
         .then(
             function success(response) {
-              var huntId = response.data['value']['hunt_id']['value'];
+              const huntId = response.data['value']['hunt_id']['value'];
               this.grrRoutingService_.go('hunts', {huntId: huntId});
             }.bind(this),
             function error() {

@@ -23,6 +23,7 @@ const CANCELLED_BY_USER_TOOLTIP = 'Cancelled by user';
 
 /** Chip that shows the state of a hunt. */
 @Component({
+  standalone: false,
   selector: 'app-hunt-status-chip',
   templateUrl: './hunt_status_chip.ng.html',
   styleUrls: ['./hunt_status_chip.scss'],
@@ -42,10 +43,10 @@ export class HuntStatusChip implements OnDestroy {
     this.hunt$.next(hunt ?? null);
   }
 
-  protected readonly huntApprovalRequired$ =
-    this.userGlobalStore.currentUser$.pipe();
+  protected readonly huntApprovalRequired$;
 
   constructor(private readonly userGlobalStore: UserGlobalStore) {
+    this.huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe();
     this.userGlobalStore.currentUser$
       .pipe(
         tap((user: GrrUser) => {

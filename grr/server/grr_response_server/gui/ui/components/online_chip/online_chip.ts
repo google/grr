@@ -14,6 +14,7 @@ import {isClientOnline} from '../../lib/models/client';
  * Component displaying the status of a Client in a material chip.
  */
 @Component({
+  standalone: false,
   selector: 'online-chip',
   templateUrl: './online_chip.ng.html',
   styleUrls: ['./online_chip.scss'],

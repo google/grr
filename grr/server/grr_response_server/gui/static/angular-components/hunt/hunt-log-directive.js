@@ -63,15 +63,15 @@ const HuntLogController = class {
    * @suppress {missingProperties} as we're working with JSON data.
    */
   transformItems(items) {
-    var clientId = null;
-    var highlighted = false;
-    for (var i = 0; i < items.length; ++i) {
-      var item = items[i];
+    let clientId = null;
+    let highlighted = false;
+    for (let i = 0; i < items.length; ++i) {
+      const item = items[i];
 
       // Highlight rows with a similar client id with the same
       // highlight. Also show the client id only once per group
       // of messages.
-      var itemClientId = null;
+      let itemClientId = null;
       if (item.value.client_id !== undefined) {
         itemClientId = item.value.client_id.value;
       }

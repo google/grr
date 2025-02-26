@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.startFlowFormDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 const {ReflectionService} = goog.require('grrUi.core.reflectionService');
@@ -78,8 +77,8 @@ const StartFlowFormController = class {
    * @export
    */
   startClientFlow() {
-    var clientIdComponents = this.scope_['clientId'].split('/');
-    var clientId;
+    const clientIdComponents = this.scope_['clientId'].split('/');
+    let clientId;
     if (clientIdComponents[0] == 'aff4:') {
       clientId = clientIdComponents[1];
     } else {

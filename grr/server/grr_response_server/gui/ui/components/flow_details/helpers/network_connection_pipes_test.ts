@@ -5,12 +5,20 @@ import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
-@Component({template: '{{ value | networkConnectionFamily }}'})
+@Component({
+  standalone: false,
+  template: '{{ value | networkConnectionFamily }}',
+  jit: true,
+})
 class TestFamilyComponent {
   value: string | undefined;
 }
 
-@Component({template: '{{ value | networkConnectionType }}'})
+@Component({
+  standalone: false,
+  template: '{{ value | networkConnectionType }}',
+  jit: true,
+})
 class TestTypeComponent {
   value: string | undefined;
 }

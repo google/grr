@@ -271,7 +271,7 @@ class GetFilesystemType(absltest.TestCase):
     with temp.AutoTempFilePath() as path:
       fstype = timeline.GetFilesystemType(path.encode("utf-8"))
 
-    # `/proc/filesystem` lists all filesystems supported by the kernel.
+    # `/proc/filesystems` lists all filesystems supported by the kernel.
     with open("/proc/filesystems", mode="r", encoding="utf-8") as proc_fs:
       supported_fstypes = set(proc_fs.read().split())
 

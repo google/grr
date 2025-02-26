@@ -36,6 +36,7 @@ export type FlowResultMapFunction<R> = (results?: readonly FlowResult[]) => R;
 
 /** Directive that loads flow results and has callbacks to load more. */
 @Directive({
+  standalone: false,
   selector: '[loadFlowResults]',
   providers: [FlowResultsLocalStore],
 })

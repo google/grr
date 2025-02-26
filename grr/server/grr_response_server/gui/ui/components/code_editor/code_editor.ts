@@ -44,6 +44,7 @@ export enum HighlightMode {
  * <mat-form-field></mat-form-field> tags.
  */
 @Component({
+  standalone: false,
   selector: 'app-code-editor',
   templateUrl: './code_editor.ng.html',
   styleUrls: [

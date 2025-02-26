@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.semanticPrimitiveFormDirective');
-goog.module.declareLegacyNamespace();
 
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
 
@@ -44,11 +43,12 @@ const SemanticPrimitiveFormController = class {
       return;
     }
 
-    var descriptorHandler = function(descriptor) {
-      var allowedTypes = exports.SemanticPrimitiveFormDirective.semantic_types;
-      var typeIndex = -1;
+    const descriptorHandler = function(descriptor) {
+      const allowedTypes =
+          exports.SemanticPrimitiveFormDirective.semantic_types;
+      let typeIndex = -1;
       angular.forEach(allowedTypes, function(type) {
-        var index = descriptor['mro'].indexOf(type);
+        const index = descriptor['mro'].indexOf(type);
         if (index != -1 && (typeIndex == -1 || typeIndex > index)) {
           typeIndex = index;
           this.valueType = type;

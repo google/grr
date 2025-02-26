@@ -6,13 +6,13 @@ const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDesc
 
 
 /** @const {string} */
-var SYSTEM_ARTIFACT_TYPE = 'SYSTEM';
+const SYSTEM_ARTIFACT_TYPE = 'SYSTEM';
 
 /** @const {string} */
-var USER_ARTIFACT_TYPE = 'USER';
+const USER_ARTIFACT_TYPE = 'USER';
 
 /** @const {string} */
-var UNKNOWN_ARTIFACT_TYPE = 'UNKNOWN';
+const UNKNOWN_ARTIFACT_TYPE = 'UNKNOWN';
 
 
 /**
@@ -56,7 +56,7 @@ const ArtifactNameController = class {
         .getDescriptorByName(newArtifactName['value'])
         .then(function(descriptor) {
           if (angular.isDefined(descriptor)) {
-            var isCustom = descriptor['value']['is_custom']['value'];
+            const isCustom = descriptor['value']['is_custom']['value'];
             this.artifactType =
                 isCustom ? USER_ARTIFACT_TYPE : SYSTEM_ARTIFACT_TYPE;
           } else {

@@ -29,7 +29,7 @@ import platform
 import shutil
 import struct
 import subprocess
-import typing
+from typing import Any, NamedTuple
 import xml.dom.minidom
 import zlib
 
@@ -181,14 +181,16 @@ def _XmlChildValue(node: xml.dom.minidom.Element, name: str) -> str:
   return text_nodes[0].data
 
 
-def _SetXmlChildValue(node: xml.dom.minidom.Element, name: str,
-                      value: typing.Any) -> None:
+def _SetXmlChildValue(
+    node: xml.dom.minidom.Element, name: str, value: Any
+) -> None:
   text_nodes = _XmlChild(node, name).childNodes
   text_nodes[0].data = str(value)
 
 
-def _SetXmlChildAttribute(node: xml.dom.minidom.Element, name: str,
-                          attribute: str, value: typing.Any) -> None:
+def _SetXmlChildAttribute(
+    node: xml.dom.minidom.Element, name: str, attribute: str, value: Any
+) -> None:
   _XmlChild(node, name).setAttribute(attribute, str(value))
 
 
@@ -203,9 +205,9 @@ def _HashFile(path: str) -> bytes:
   return hasher.digest()
 
 
-class _BuildTocResult(typing.NamedTuple):
+class _BuildTocResult(NamedTuple):
   toc: bytes
-  file_order: typing.List[str]
+  file_order: list[str]
 
 
 def _BuildToc(src_toc_path: str, files_dir: str) -> _BuildTocResult:
@@ -263,7 +265,7 @@ def _BuildHeader(src_header_path: str, toc_size: int,
 
 
 def JoinPkg(src_dir: str, blocks_dir: str, dst_path: str) -> None:
-  # pyformat: disable
+  # fmt: off
   """Recreates a .pkg file from a pair of directories.
 
   Args:
@@ -285,7 +287,7 @@ def JoinPkg(src_dir: str, blocks_dir: str, dst_path: str) -> None:
 
   JoinPkg is portable code.
   """
-  # pyformat: enable
+  # fmt: on
 
   def SrcDir(*components):
     return os.path.join(src_dir, *components)

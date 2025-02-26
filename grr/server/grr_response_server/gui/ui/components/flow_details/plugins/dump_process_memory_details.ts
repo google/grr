@@ -22,6 +22,7 @@ import {Plugin} from './plugin';
 
 /** Component that displays flow results. */
 @Component({
+  standalone: false,
   selector: 'app-dump-process-memory-details',
   templateUrl: './dump_process_memory_details.ng.html',
   styleUrls: ['./dump_process_memory_details.scss'],

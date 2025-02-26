@@ -2,7 +2,8 @@
 """Common code and abstractions for filesystem implementations."""
 
 import abc
-from typing import Dict, Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 
 from grr_response_client.unprivileged.proto import filesystem_pb2
 
@@ -102,7 +103,7 @@ class Files:
   """A collection of open files identified by integer ids."""
 
   def __init__(self):
-    self._table: Dict[int, File] = {}
+    self._table: dict[int, File] = {}
     self._file_id_counter = 0
 
   def Add(self, file: File) -> int:

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirective');
-goog.module.declareLegacyNamespace();
 
 const semanticRegistryService = goog.requireType('grrUi.core.semanticRegistryService');
 const {camelCaseToDashDelimited} = goog.require('grrUi.core.utils');
@@ -90,14 +89,14 @@ const SemanticProtoRepeatedFieldFormController = class {
     this.hasCustomTemplate = true;
     this.hideCustomTemplateLabel = directive['hideCustomTemplateLabel'];
 
-    var element = angular.element('<span />');
-
+    const element = angular.element('<span></span>');
+    const directiveName = camelCaseToDashDelimited(directive.directive_name);
     element.html(
-        '<' + camelCaseToDashDelimited(directive.directive_name) +
-        ' descriptor="descriptor" value="value" field="field" />');
-    var template = this.compile_(element);
+        '<' + directiveName + ' descriptor="descriptor" value="value" field="field">' +
+        '</' + directiveName + '>');
+    const template = this.compile_(element);
 
-    var customTemplateElement;
+    let customTemplateElement;
     if (this.hideCustomTemplateLabel) {
       customTemplateElement =
           this.element_.find('div[name="custom-template-without-label"]');

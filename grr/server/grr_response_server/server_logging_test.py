@@ -40,10 +40,13 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
 
   def testGetEventId(self):
     self.assertGreater(
-        len(self.l.GetNewEventId()), 20, "Invalid event ID generated")
+        len(self.l.GetNewEventId()), 20, "Invalid event ID generated"
+    )
     self.assertGreater(
-        len(self.l.GetNewEventId(int(time.time() * 1e6))), 20,
-        "Invalid event ID generated")
+        len(self.l.GetNewEventId(int(time.time() * 1e6))),
+        20,
+        "Invalid event ID generated",
+    )
 
   def testLogHttpAdminUIAccess(self):
     request = http_request.HttpRequest({
@@ -59,7 +62,10 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
         context=api_call_context.ApiCallContext(
             username=request.user,
             approval=acl_test_lib.BuildClientApprovalRequest(
-                reason="foo/test1234", requestor_username=request.user)))
+                reason="foo/test1234", requestor_username=request.user
+            ),
+        ),
+    )
 
     self.l.LogHttpAdminUIAccess(request, response)
     self.assertIn("foo/test1234", self.log)

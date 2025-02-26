@@ -57,12 +57,16 @@ class HuntResultsStore<T extends HuntResultOrError> extends ApiCollectionStore<
  */
 @Injectable()
 export class HuntResultsLocalStore<T extends HuntResultOrError> {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new HuntResultsStore<T>(this.httpApiService);
+    this.results$ = this.store.results$;
+    this.isLoading$ = this.store.isLoading$;
+  }
 
-  private readonly store = new HuntResultsStore<T>(this.httpApiService);
+  private readonly store;
 
-  readonly results$: Observable<readonly T[]> = this.store.results$;
-  readonly isLoading$ = this.store.isLoading$;
+  readonly results$: Observable<readonly T[]>;
+  readonly isLoading$;
 
   loadMore(count?: number) {
     this.store.loadMore(count);

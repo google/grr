@@ -34,7 +34,8 @@ describe('"download vfs archive" button', () => {
     $rootScope.filePath = filePath || 'fs/os/c/';
 
     const template = '<grr-vfs-files-archive-button ' +
-        'client-id="clientId" file-path="filePath" />';
+        'client-id="clientId" file-path="filePath">' +
+        '</grr-vfs-files-archive-button>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

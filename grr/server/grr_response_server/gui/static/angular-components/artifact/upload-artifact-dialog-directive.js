@@ -1,5 +1,4 @@
 goog.module('grrUi.artifact.uploadArtifactDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
@@ -65,7 +64,7 @@ const UploadArtifactDialogController = class {
    * @export
    */
   proceed() {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     this.inProgress = true;
     this.grrApiService_

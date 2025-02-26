@@ -85,7 +85,8 @@ describe('grr-output-plugin-descriptor-form directive', () => {
       value: {},
     };
 
-    const template = '<grr-output-plugin-descriptor-form value="value" />';
+    const template = '<grr-output-plugin-descriptor-form value="value">' +
+        '</grr-output-plugin-descriptor-form>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

@@ -3,6 +3,8 @@
 
 from absl import app
 
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -306,6 +308,28 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           creator=self.test_username,
       )
 
+      # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
+      # database as bytes. The `store` here contains the source flow id, and
+      # thus, the bytes change on every run.
+      # To avoid this, we update the `store` field in the flow object in the
+      # database, so it has an empty store.
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      interrogate_store = flows_pb2.InterrogateStore()
+      flow_obj.store.Unpack(interrogate_store)
+      want_store = flows_pb2.InterrogateStore(
+          client_snapshot=objects_pb2.ClientSnapshot(
+              client_id=client_id,
+              metadata=objects_pb2.ClientSnapshotMetadata(
+                  source_flow_id=flow_id
+              ),
+          )
+      )
+      self.assertEqual(want_store, interrogate_store)
+      api_regression_test_lib.UpdateFlowStore(
+          client_id, flow_id, flows_pb2.InterrogateStore()
+      )
+
+      # Start a hunt from the flow.
       ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
           flow_id, client_id
       )
@@ -614,24 +638,24 @@ def _SendNotifications(username, client_id):
   with test_lib.FakeTime(42):
     notification.Notify(
         username,
-        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        objects_pb2.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         "<some message>",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=client_id),
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+            client=objects_pb2.ClientReference(client_id=client_id),
         ),
     )
 
   with test_lib.FakeTime(44):
     notification.Notify(
         username,
-        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
+        objects_pb2.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
         "<some other message>",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-            vfs_file=rdf_objects.VfsFileReference(
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.VFS_FILE,
+            vfs_file=objects_pb2.VfsFileReference(
                 client_id=client_id,
-                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_type=objects_pb2.PathInfo.PathType.OS,
                 path_components=["foo"],
             ),
         ),

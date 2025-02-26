@@ -14,7 +14,6 @@ import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
 import {of} from 'rxjs';
 
 import {FlowChips} from '../../components/flow_picker/flow_chips';
@@ -112,7 +111,7 @@ describe('FlowPicker Component', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, FlowPickerModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, FlowPickerModule],
       providers: [
         {
           provide: FlowListItemService,

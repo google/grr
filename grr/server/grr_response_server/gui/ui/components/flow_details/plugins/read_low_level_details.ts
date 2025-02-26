@@ -6,12 +6,13 @@ import {ReadLowLevelArgs} from '../../../lib/api/api_interfaces';
 import {getTempBlobUrl} from '../../../lib/api/http_api_service';
 import {Flow, FlowState} from '../../../lib/models/flow';
 
-import {ExportMenuItem, Plugin} from './plugin';
+import {ButtonType, ExportMenuItem, Plugin} from './plugin';
 
 /**
  * Component that displays results of ReadLowLevel flow.
  */
 @Component({
+  standalone: false,
   selector: 'read-low-level-details',
   templateUrl: './read_low_level_details.ng.html',
   styleUrls: ['./read_low_level_details.scss'],
@@ -40,19 +41,23 @@ export class ReadLowLevelDetails extends Plugin {
     }),
   );
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
     // Strips punctuation.
     const args = this.flow.args as ReadLowLevelArgs | undefined;
-    //   TS1501: This regular expression flag is only available when targeting 'es6' or later.
-    // @ts-ignore
     const alphanumericOnly = args?.path?.replace(/[^\p{L}\s]/gu, '') ?? '';
     const archiveFileName = `${this.flow.clientId}_${this.flow.flowId}_${alphanumericOnly}`;
+
     return [
       {
         title: 'Download data',
         url: getTempBlobUrl(this.flow.clientId, archiveFileName),
+        downloadName: `${this.flow.clientId}_${this.flow.flowId}.zip`,
+        type: ButtonType.LINK,
       },
-      ...super.getExportMenuItems(flow),
+      ...super.getExportMenuItems(flow, exportCommandPrefix),
     ];
   }
 }

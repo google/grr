@@ -52,7 +52,7 @@ const TimestampController = class {
       if (newValue === null || newValue === 0) {
         this.formattedTimestamp = '-';
       } else {
-        var timestamp;
+        let timestamp;
         if (angular.isObject(newValue)) {
           timestamp = newValue.value / 1000;
         } else {
@@ -72,7 +72,7 @@ const TimestampController = class {
    * tooltip.
    */
   onMouseEnter() {
-    var span = $(this.element_).find('span')[0];
+    const span = $(this.element_).find('span')[0];
 
     if (angular.isDefined(this.value)) {
       span.title =

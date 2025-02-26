@@ -67,6 +67,7 @@ function toApiHuntState(state: HuntStateFilter): ApiHuntState | undefined {
 
 /** Page showing an overview of recent hunts. */
 @Component({
+  standalone: false,
   selector: 'app-hunt-overview-page',
   templateUrl: './hunt_overview_page.ng.html',
   styleUrls: ['./hunt_overview_page.scss'],
@@ -85,8 +86,13 @@ export class HuntOverviewPage implements OnDestroy {
   protected readonly huntStateDefault = HuntStateFilter.ANY;
   readonly huntStateFilterForm = new FormControl(this.huntStateDefault);
 
-  protected readonly hunts$: Observable<readonly Hunt[]> =
-    this.huntOverviewPageLocalStore.results$.pipe(
+  protected readonly hunts$: Observable<readonly Hunt[]>;
+
+  constructor(
+    protected readonly huntOverviewPageLocalStore: HuntOverviewPageLocalStore,
+    private readonly router: Router,
+  ) {
+    this.hunts$ = this.huntOverviewPageLocalStore.results$.pipe(
       map((hunts) =>
         hunts.filter((hunt) => {
           // We need this filter on top because hunt states in the backend
@@ -110,11 +116,7 @@ export class HuntOverviewPage implements OnDestroy {
         }),
       ),
     );
-
-  constructor(
-    protected readonly huntOverviewPageLocalStore: HuntOverviewPageLocalStore,
-    private readonly router: Router,
-  ) {
+    this.trackHuntById = (index, item) => item.huntId;
     huntOverviewPageLocalStore.setArgs({
       robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS,
     });
@@ -149,7 +151,7 @@ export class HuntOverviewPage implements OnDestroy {
       .subscribe();
   }
 
-  readonly trackHuntById: TrackByFunction<Hunt> = (index, item) => item.huntId;
+  readonly trackHuntById: TrackByFunction<Hunt>;
 
   getHuntProgressMax(hunt: Hunt): number {
     const allClientsCount = Number(hunt.allClientsCount);

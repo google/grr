@@ -40,14 +40,23 @@ enum Action {
   LIST_MOUNTS = 12;
   // Get a value from the Windows Registry (Windows-only).
   GET_WINREG_VALUE = 13;
+  // List values of the Windows Registry key (Windows-only).
+  LIST_WINREG_VALUES = 14;
+  // List subkeys of the Windows Registry key (Windows-only).
+  LIST_WINREG_KEYS = 15;
+  // Query WMI using WQL (Windows-only).
+  QUERY_WMI = 16;
+  /// Grep the specified file for a pattern.
+  GREP_FILE_CONTENTS = 17;
+  // Connect to a TCP address, write some data and retrieve the response.
+  GET_TCP_RESPONSE = 18;
+  /// Execute a signed command.
+  EXECUTE_SIGNED_COMMAND = 19;
 
   // TODO: Define more actions that should be supported.
 
-  // TODO(user): Uncomment
-  // once `reserved` is supported in enums.
-
   // Reserved for user-defined actions.
-  // reserved 1024 to 2048;
+  reserved 1024 to 2048;
 }
 
 // An action request issued by the GRR server.

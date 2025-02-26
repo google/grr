@@ -591,7 +591,12 @@ def _get_filesystem(path_type: str) -> fs.FileSystem:
 
   Returns:
     FileSystem of the specified path type.
+
+  Raises:
+    NoClientSelectedError: If client is not selected to perform this operation.
   """
+  if _state.client is None:
+    raise NoClientSelectedError
   if path_type == OS:
     return _state.client.os
   elif path_type == TSK:

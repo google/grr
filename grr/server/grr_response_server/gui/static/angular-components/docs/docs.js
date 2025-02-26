@@ -1,5 +1,4 @@
 goog.module('grrUi.docs.docs');
-goog.module.declareLegacyNamespace();
 
 const {ApiDescriptionDirective} = goog.require('grrUi.docs.apiDescriptionDirective');
 const {ApiDocsDirective} = goog.require('grrUi.docs.apiDocsDirective');

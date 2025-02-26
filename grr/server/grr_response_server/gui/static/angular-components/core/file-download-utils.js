@@ -3,7 +3,7 @@ goog.module.declareLegacyNamespace();
 
 
 
-var AFF4_PREFIXES = {
+const AFF4_PREFIXES = {
   'OS': 'fs/os',           // PathSpec.PathType.OS
   'TSK': 'fs/tsk',         // PathSpec.PathType.TSK
   'REGISTRY': 'registry',  // PathSpec.PathType.REGISTRY
@@ -15,10 +15,10 @@ var AFF4_PREFIXES = {
  * @param {Object} pathspec
  * @return {!Array}
  */
-var splitPathspec = function(pathspec) {
-  var result = [];
+const splitPathspec = function(pathspec) {
+  const result = [];
 
-  var cur = pathspec['value'];
+  let cur = pathspec['value'];
   while (angular.isDefined(cur['pathtype'])) {
     result.push(cur);
 
@@ -42,15 +42,16 @@ var splitPathspec = function(pathspec) {
  * @export
  */
 exports.pathSpecToAff4Path = function(pathspec, clientId) {
-  var components = splitPathspec(pathspec);
+  const components = splitPathspec(pathspec);
 
-  var firstComponent = components[0];
+  const firstComponent = components[0];
 
-  var result, start;
+  let result;
+  let start;
   if (components.length > 1 && firstComponent['pathtype']['value'] == 'OS' &&
       (components[1]['pathtype']['value'] == 'TSK' ||
        components[1]['pathtype']['value'] == 'NTFS')) {
-    var dev = firstComponent['path']['value'];
+    let dev = firstComponent['path']['value'];
 
     if (angular.isDefined(firstComponent['offset'])) {
       dev += ':' + Math.round(firstComponent['offset']['value'] / 512);
@@ -65,13 +66,14 @@ exports.pathSpecToAff4Path = function(pathspec, clientId) {
     ];
     start = 1;
   } else {
-    result = ['aff4:', clientId, AFF4_PREFIXES[firstComponent['pathtype']['value']]];
+    result =
+        ['aff4:', clientId, AFF4_PREFIXES[firstComponent['pathtype']['value']]];
     start = 0;
   }
 
-  for (var i = start; i < components.length; ++i) {
-    var p = components[i];
-    var component = p['path']['value'];
+  for (let i = start; i < components.length; ++i) {
+    const p = components[i];
+    let component = p['path']['value'];
     if (component.startsWith('/')) {
       component = component.substring(1);
     }
@@ -89,22 +91,22 @@ exports.pathSpecToAff4Path = function(pathspec, clientId) {
 
   return result.join('/');
 };
-var pathSpecToAff4Path = exports.pathSpecToAff4Path;
+const pathSpecToAff4Path = exports.pathSpecToAff4Path;
 
 
 /**
-  * List of VFS roots that are accessible through Browse VFS UI.
-  *
-  * @const {Array<string>}
-  */
+ * List of VFS roots that are accessible through Browse VFS UI.
+ *
+ * @const {Array<string>}
+ */
 exports.vfsRoots = ['fs', 'registry', 'temp'];
 
 /**
-  * List of VFS roots that contain files that can be downloaded
-  * via the API.
-  *
-  * @const {Array<string>}
-  */
+ * List of VFS roots that contain files that can be downloaded
+ * via the API.
+ *
+ * @const {Array<string>}
+ */
 exports.downloadableVfsRoots = ['fs', 'temp'];
 
 /**
@@ -129,7 +131,7 @@ exports.getPathSpecFromValue = function(value) {
       return value['value']['pathspec'];
 
     case 'FileFinderResult':
-      var st = value['value']['stat_entry'];
+      const st = value['value']['stat_entry'];
       if (angular.isDefined(st) && angular.isDefined(st['value']['pathspec'])) {
         return st['value']['pathspec'];
       }
@@ -150,8 +152,8 @@ exports.getPathSpecFromValue = function(value) {
  */
 const makeStatEntryDownloadable_ = function(
     value, downloadUrl, downloadParams) {
-  var originalValue = angular.copy(value);
-  for (var prop in value) {
+  const originalValue = angular.copy(value);
+  for (const prop in value) {
     if (value.hasOwnProperty(prop)) {
       delete value[prop];
     }

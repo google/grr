@@ -25,7 +25,7 @@ describe('urn directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-urn value="value" />';
+    const template = '<grr-urn value="value"></grr-urn>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

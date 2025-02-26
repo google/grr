@@ -32,7 +32,7 @@ describe('grr-flow-status-icon directive', () => {
       },
     };
 
-    const template = '<grr-flow-status-icon flow="flow" />';
+    const template = '<grr-flow-status-icon flow="flow"></grr-flow-status-icon>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

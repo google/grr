@@ -77,7 +77,7 @@ const NavigatorController = class {
    * Fetches new client details.
    */
   refreshClientDetails() {
-    var url = 'clients/' + this.clientId;
+    const url = 'clients/' + this.clientId;
     this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
   }
 

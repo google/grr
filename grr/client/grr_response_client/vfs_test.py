@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from typing import Optional, Tuple
+from typing import Optional
 from unittest import mock
 
 from absl.testing import absltest
@@ -62,7 +62,7 @@ class VfsImplementationTypeTest(absltest.TestCase):
       for child in f.ListFiles():
         self._CheckHasImplementationType(child.pathspec, implementation_type)
 
-  def _MockGetRawDevice(self, path: str) -> Tuple[rdf_paths.PathSpec, str]:
+  def _MockGetRawDevice(self, path: str) -> tuple[rdf_paths.PathSpec, str]:
     return (self._CreateNestedPathSpec(path, None), path)
 
   def testVfsOpen_default_nestedPath(self):

@@ -4,7 +4,6 @@ import {HexHash} from './flow';
 
 /** PayloadType maps types of result payloads. */
 export enum PayloadType {
-  ANOMALY = 'Anomaly',
   API_HUNT_RESULT = 'ApiHuntResult',
   CLIENT_SUMMARY = 'ClientSummary',
   COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
@@ -25,8 +24,6 @@ export function typeUrlToPayloadType(
 ): PayloadType | undefined {
   const typeName = typeUrl?.split('.').pop();
   switch (typeName) {
-    case 'Anomaly':
-      return PayloadType.ANOMALY;
     case 'ApiHuntResult':
       return PayloadType.API_HUNT_RESULT;
     case 'ClientSummary':

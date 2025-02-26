@@ -15,7 +15,7 @@ const {vfsRoots} = goog.require('grrUi.core.fileDownloadUtils');
  * @export
  */
 exports.aff4UrnToUrl = function(urn) {
-  var components = stripAff4Prefix(urn).split('/');
+  const components = stripAff4Prefix(urn).split('/');
   if (CLIENT_ID_RE.test(components[0])) {
     // Handle references to client object or to something within the
     // client namespace: flows or VFS files.

@@ -4,15 +4,17 @@
 import logging
 import re
 import sys
-from typing import Callable, ContextManager, Iterable, List, Optional, Pattern, Text, Type, Union
+from typing import ContextManager, Iterable, List, Optional, Pattern, Sequence, Text, Type, Union
 from unittest import mock
 
+from google.protobuf import any_pb2
 from grr_response_client import actions
-from grr_response_client.client_actions import standard
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
@@ -26,9 +28,12 @@ from grr_response_server import handler_registry
 from grr_response_server import message_handlers
 from grr_response_server import server_stubs
 from grr_response_server import worker_lib
+from grr_response_server.databases import db
+from grr_response_server.databases import mem
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import fleetspeak_test_lib
@@ -39,15 +44,27 @@ class InfiniteFlow(flow_base.FlowBase):
   """Flow that never ends."""
 
   def Start(self):
-    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
+    self.CallClient(
+        server_stubs.GetFileStat,
+        request=rdf_client_action.GetFileStatRequest(),
+        next_state="NextState",
+    )
 
   def NextState(self, responses):
     _ = responses
-    self.CallClient(server_stubs.GetFileStat, next_state="NextStateAgain")
+    self.CallClient(
+        server_stubs.GetFileStat,
+        request=rdf_client_action.GetFileStatRequest(),
+        next_state="NextStateAgain",
+    )
 
   def NextStateAgain(self, responses):
     _ = responses
-    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
+    self.CallClient(
+        server_stubs.GetFileStat,
+        request=rdf_client_action.GetFileStatRequest(),
+        next_state="NextState",
+    )
 
 
 class ClientFlowWithoutCategory(flow_base.FlowBase):
@@ -64,22 +81,25 @@ class CPULimitFlow(flow_base.FlowBase):
   def Start(self):
     self.CallClient(
         action_registry.ACTION_STUB_BY_ID["Store"],
-        string="Hey!",
-        next_state="State1")
+        request=rdf_protodict.DataBlob(string="Hey!"),
+        next_state="State1",
+    )
 
   def State1(self, responses):
     del responses
     self.CallClient(
         action_registry.ACTION_STUB_BY_ID["Store"],
-        string="Hey!",
-        next_state="State2")
+        request=rdf_protodict.DataBlob(string="Hey!"),
+        next_state="State2",
+    )
 
   def State2(self, responses):
     del responses
     self.CallClient(
         action_registry.ACTION_STUB_BY_ID["Store"],
-        string="Hey!",
-        next_state="Done")
+        request=rdf_protodict.DataBlob(string="Hey!"),
+        next_state="Done",
+    )
 
   def Done(self, responses):
     pass
@@ -89,7 +109,11 @@ class FlowWithOneClientRequest(flow_base.FlowBase):
   """Test flow that does one client request in Start() state."""
 
   def Start(self):
-    self.CallClient(client_test_lib.Test, data=b"test", next_state="End")
+    self.CallClient(
+        client_test_lib.Test,
+        request=rdf_protodict.DataBlob(data=b"test"),
+        next_state="End",
+    )
 
 
 class SendingFlowArgs(rdf_structs.RDFProtoStruct):
@@ -109,7 +133,10 @@ class SendingFlow(flow_base.FlowBase):
     """Just send a few messages."""
     for unused_i in range(0, self.args.message_count):
       self.CallClient(
-          standard.ReadBuffer, offset=0, length=100, next_state="Process")
+          server_stubs.ReadBuffer,
+          request=rdf_client.BufferReference(offset=0, length=100),
+          next_state="Process",
+      )
 
 
 class RaiseOnStart(flow_base.FlowBase):
@@ -124,7 +151,7 @@ class BrokenFlow(flow_base.FlowBase):
 
   def Start(self):
     """Send a message to an incorrect state."""
-    self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
+    self.CallClient(server_stubs.ReadBuffer, next_state="WrongProcess")
 
 
 class DummyFlow(flow_base.FlowBase):
@@ -153,6 +180,16 @@ class FlowWithOneNestedFlow(flow_base.FlowBase):
     del responses
 
 
+class FlowWithTwoLevelsOfNestedFlows(flow_base.FlowBase):
+  """Flow that calls a nested flow."""
+
+  def Start(self):
+    self.CallFlow("FlowWithOneNestedFlow", next_state="Done")
+
+  def Done(self, responses=None):
+    del responses
+
+
 class DummyFlowWithSingleReply(flow_base.FlowBase):
   """Just emits 1 reply."""
 
@@ -174,7 +211,11 @@ class DummyLogFlow(flow_base.FlowBase):
     # all flow states immediately in place (doing this may cause a deadlock
     # when a flow runs inside a hunt, since the flow will try to update
     # an already locked hunt).
-    self.CallClient(server_stubs.GetFileStat, next_state="NextState")
+    self.CallClient(
+        server_stubs.GetFileStat,
+        request=rdf_client_action.GetFileStatRequest(),
+        next_state="NextState",
+    )
 
   def NextState(self, responses=None):
     del responses
@@ -367,73 +408,77 @@ class MockClient(object):
     return True
 
 
-def TestFlowHelper(flow_urn_or_cls_name,
-                   client_mock=None,
-                   client_id=None,
-                   check_flow_errors=True,
-                   creator=None,
-                   **kwargs):
-  """Build a full test harness: client - worker + start flow.
-
-  Args:
-    flow_urn_or_cls_name: RDFURN pointing to existing flow (in this case the
-      given flow will be run) or flow class name (in this case flow of the given
-      class will be created and run).
-    client_mock: Client mock object.
-    client_id: Client id of an emulated client.
-    check_flow_errors: If True, TestFlowHelper will raise on errors during flow
-      execution.
-    creator: Username of the flow creator.
-    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
-
-  Returns:
-    The session id of the flow that was run.
-  """
-  flow_cls = registry.FlowRegistry.FlowClassByName(flow_urn_or_cls_name)
-
-  return StartAndRunFlow(
-      flow_cls,
-      creator=creator,
-      client_mock=client_mock,
-      client_id=client_id,
-      check_flow_errors=check_flow_errors,
-      flow_args=kwargs.pop("args", None),
-      **kwargs)
-
-
-def StartFlow(flow_cls, client_id=None, flow_args=None, creator=None, **kwargs):
+def StartFlow(
+    flow_cls: type[flow_base.FlowBase],
+    client_id: str,
+    flow_args: Optional[rdf_structs.RDFStruct] = None,
+    creator: Optional[str] = None,
+    parent: Optional[flow.FlowParent] = None,
+    output_plugins: Optional[
+        Sequence[rdf_output_plugin.OutputPluginDescriptor]
+    ] = None,
+    network_bytes_limit: Optional[int] = None,
+    cpu_limit: Optional[int] = None,
+) -> str:
   """Starts (but not runs) a flow."""
   return flow.StartFlow(
       flow_cls=flow_cls,
       client_id=client_id,
       flow_args=flow_args,
       creator=creator,
-      **kwargs)
+      parent=parent,
+      output_plugins=output_plugins,
+      network_bytes_limit=network_bytes_limit,
+      cpu_limit=cpu_limit,
+  )
 
 
-def StartAndRunFlow(flow_cls,
-                    client_mock=None,
-                    client_id=None,
-                    check_flow_errors=True,
-                    **kwargs):
+def StartAndRunFlow(
+    flow_cls: type[flow_base.FlowBase],
+    client_mock: Optional[action_mocks.ActionMock] = None,
+    client_id: Optional[str] = None,
+    creator: Optional[str] = None,
+    check_flow_errors: bool = True,
+    flow_args: Optional[rdf_structs.RDFStruct] = None,
+    output_plugins: Optional[
+        Sequence[rdf_output_plugin.OutputPluginDescriptor]
+    ] = None,
+    network_bytes_limit: Optional[int] = None,
+    cpu_limit: Optional[int] = None,
+    runtime_limit: Optional[rdfvalue.Duration] = None,
+) -> str:
   """Builds a test harness (client and worker), starts the flow and runs it.
 
   Args:
     flow_cls: Flow class that will be created and run.
     client_mock: Client mock object.
     client_id: Client id of an emulated client.
+    creator: Username that requested this flow.
     check_flow_errors: If True, raise on errors during flow execution.
-    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
+    flow_args: Flow args that will be passed to flow.StartFlow().
+    output_plugins: List of output plugins that should be used for this flow.
+    network_bytes_limit: Limit on the network traffic this flow can generated.
+    cpu_limit: CPU limit in seconds for this flow.
+    runtime_limit: Runtime limit as Duration for all ClientActions.
 
   Raises:
     RuntimeError: check_flow_errors was true and the flow raised an error in
     Start().
 
   Returns:
-    The session id of the flow that was run.
+    The flow id of the flow that was run.
   """
   with TestWorker() as worker:
-    flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
+    flow_id = flow.StartFlow(
+        flow_cls=flow_cls,
+        client_id=client_id,
+        creator=creator,
+        flow_args=flow_args,
+        output_plugins=output_plugins,
+        network_bytes_limit=network_bytes_limit,
+        cpu_limit=cpu_limit,
+        runtime_limit=runtime_limit,
+    )
 
     if check_flow_errors:
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -467,9 +512,7 @@ class TestWorker(worker_lib.GRRWorker):
 
   def ProcessFlow(
       self,
-      flow_processing_request: Callable[
-          [flows_pb2.FlowProcessingRequest], None
-      ],
+      flow_processing_request: flows_pb2.FlowProcessingRequest,
   ) -> None:
     key = (flow_processing_request.client_id, flow_processing_request.flow_id)
     self.processed_flows.append(key)
@@ -485,7 +528,9 @@ class TestWorker(worker_lib.GRRWorker):
     return self
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    data_store.REL_DB.UnregisterFlowProcessingHandler(timeout=60)
+    data_store.REL_DB.UnregisterFlowProcessingHandler(
+        timeout=rdfvalue.DurationSeconds(60)
+    )
     self.Shutdown()
 
 
@@ -496,6 +541,7 @@ def RunFlow(client_id,
             check_flow_errors=True):
   """Runs the flow given until no further progress can be made."""
   all_processed_flows = set()
+  test_worker = None
 
   client_mock = MockClient(client_id, client_mock)
 
@@ -509,7 +555,12 @@ def RunFlow(client_id,
     # Run the client and worker until nothing changes any more.
     while True:
       client_processed = client_mock.Next()
-      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
+
+      assert isinstance(data_store.REL_DB, db.DatabaseValidationWrapper)
+      assert isinstance(data_store.REL_DB.delegate, mem.InMemoryDB)
+      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(
+          timeout=rdfvalue.DurationSeconds(10)
+      )
       worker_processed = test_worker.ResetProcessedFlows()
       all_processed_flows.update(worker_processed)
 
@@ -540,7 +591,11 @@ def RunFlow(client_id,
     return flow_id
   finally:
     if worker is None:
-      data_store.REL_DB.UnregisterFlowProcessingHandler(timeout=60)
+      data_store.REL_DB.UnregisterFlowProcessingHandler(
+          timeout=rdfvalue.DurationSeconds(60)
+      )
+      # Test worker was created if no `worker` was provided.
+      assert isinstance(test_worker, TestWorker)
       test_worker.Shutdown()
 
 
@@ -608,6 +663,11 @@ def GetFlowState(client_id, flow_id):
   return rdf_flow.persistent_data
 
 
+def GetFlowStore(client_id: str, flow_id: str) -> any_pb2.Any:
+  proto_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  return proto_flow.store
+
+
 def GetFlowObj(client_id, flow_id):
   proto_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
   rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
@@ -637,21 +697,20 @@ def AddResultsToFlow(client_id: str,
   )
 
 
+def OverrideFlowResultMetadataInFlow(
+    client_id: str, flow_id: str, metadata: flows_pb2.FlowResultMetadata
+) -> None:
+  """Adds flow result metadata to a given flow."""
+  flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  flow_obj.result_metadata.CopyFrom(metadata)
+  data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj)
+
+
 def FlowProgressOverride(
     flow_cls: Type[flow_base.FlowBase],
     value: rdf_structs.RDFProtoStruct) -> ContextManager[None]:
   """Returns a context manager overriding flow class's progress reporting."""
   return mock.patch.object(flow_cls, "GetProgress", return_value=value)
-
-
-def FlowResultMetadataOverride(
-    flow_cls: Type[flow_base.FlowBase],
-    value: rdf_flow_objects.FlowResultMetadata) -> ContextManager[None]:
-  """Returns a context manager overriding flow class's result metadata."""
-  return mock.patch.object(
-      flow_cls,
-      flow_base.FlowBase.GetResultMetadata.__name__,
-      return_value=value)
 
 
 def MarkFlowAsFinished(client_id: str, flow_id: str) -> None:
@@ -676,6 +735,6 @@ def MarkFlowAsFailed(client_id: str,
   )
 
 
-def ListAllFlows(client_id: str) -> List[rdf_flow_objects.Flow]:
+def ListAllFlows(client_id: str) -> List[flows_pb2.Flow]:
   """Returns all flows in the given client."""
   return data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)

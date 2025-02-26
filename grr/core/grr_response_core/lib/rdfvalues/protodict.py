@@ -16,9 +16,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   """An object that contains a serialized RDFValue."""
 
   protobuf = jobs_pb2.EmbeddedRDFValue
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
+  rdf_deps = []
 
   def __init__(self, initializer=None, payload=None, *args, **kwargs):
     if (

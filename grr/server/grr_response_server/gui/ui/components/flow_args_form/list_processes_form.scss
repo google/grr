@@ -1,6 +1,1 @@
-.form-group {
-  display: flex;
-  flex-direction: column;
-  row-gap: 1rem;
-  padding-bottom: 1rem;
-}
+@use 'flow_args_form_styles';

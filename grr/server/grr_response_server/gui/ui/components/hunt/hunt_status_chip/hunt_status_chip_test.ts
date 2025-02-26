@@ -18,7 +18,9 @@ import {HuntStatusChip} from './hunt_status_chip';
 import {HuntStatusChipModule} from './module';
 
 @Component({
+  standalone: false,
   template: `<app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>`,
+  jit: true,
 })
 class TestHostComponent {
   @Input() hunt: HuntStatusChip['hunt'] = null;

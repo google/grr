@@ -1,3 +1,4 @@
+@use 'sass:map';
 @use '@angular/material' as mat;
 
 /* IMPORTANT
@@ -66,21 +67,21 @@ $_theme: mat.define-light-theme(
     density: 0,
   )
 );
-$theme: map-merge(
+$theme: map.merge(
   $_theme,
   (
     color:
-      map-merge(
+      map.merge(
         mat.get-color-config($_theme),
         (
           foreground:
-            map-merge(
-              map-get(mat.get-color-config($_theme), foreground),
+            map.merge(
+              map.get(mat.get-color-config($_theme), foreground),
               $_grr-foreground
             ),
           background:
-            map-merge(
-              map-get(mat.get-color-config($_theme), background),
+            map.merge(
+              map.get(mat.get-color-config($_theme), background),
               $_grr-background
             ),
         )
@@ -88,8 +89,8 @@ $theme: map-merge(
   )
 );
 
-$foreground: map-get(mat.get-color-config($theme), foreground);
-$background: map-get(mat.get-color-config($theme), background);
+$foreground: map.get(mat.get-color-config($theme), foreground);
+$background: map.get(mat.get-color-config($theme), background);
 
 $google-sans-display-family:
   Google Sans Display,

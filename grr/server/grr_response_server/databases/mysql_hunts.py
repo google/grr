@@ -25,8 +25,7 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import hunts
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.models import hunts as models_hunts
 
 _HUNT_COLUMNS_SELECT = ", ".join((
     "UNIX_TIMESTAMP(create_timestamp)",
@@ -55,11 +54,16 @@ _HUNT_OUTPUT_PLUGINS_STATES_COLUMNS = (
 class MySQLDBHuntMixin(object):
   """MySQLDB mixin for flow handling."""
 
+  FLOW_DB_FIELDS: str
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteHuntObject(
       self, hunt_obj: hunts_pb2.Hunt, cursor: Optional[cursors.Cursor] = None
   ):
     """Writes a hunt object to the database."""
+    assert cursor is not None
     query = """
     INSERT INTO hunts (hunt_id, creator, description, duration_micros,
                        hunt_state,
@@ -87,6 +91,8 @@ class MySQLDBHuntMixin(object):
     except MySQLdb.IntegrityError as error:
       raise db.DuplicatedHuntError(hunt_id=hunt_obj.hunt_id, cause=error)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateHuntObject(
       self,
@@ -104,6 +110,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ):
     """Updates the hunt object by applying the update function."""
+    assert cursor is not None
     vals = []
     args = {}
 
@@ -157,6 +164,8 @@ class MySQLDBHuntMixin(object):
     if rows_modified == 0:
       raise db.UnknownHuntError(hunt_id)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteHuntObject(
       self,
@@ -164,6 +173,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> None:
     """Deletes a given hunt object."""
+    assert cursor is not None
     query = "DELETE FROM hunts WHERE hunt_id = %s"
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
@@ -253,11 +263,14 @@ class MySQLDBHuntMixin(object):
 
     return hunt_obj
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntObject(
       self, hunt_id: str, cursor: Optional[cursors.Cursor] = None
   ) -> hunts_pb2.Hunt:
     """Reads a hunt object from the database."""
+    assert cursor is not None
     query = "SELECT {columns} FROM hunts WHERE hunt_id = %s".format(
         columns=_HUNT_COLUMNS_SELECT
     )
@@ -269,6 +282,8 @@ class MySQLDBHuntMixin(object):
     hunt = self._HuntObjectFromRow(cursor.fetchone())
     return hunt
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntObjects(
       self,
@@ -285,6 +300,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> List[hunts_pb2.Hunt]:
     """Reads multiple hunt objects from the database."""
+    assert cursor is not None
     query = "SELECT {columns} FROM hunts ".format(columns=_HUNT_COLUMNS_SELECT)
     args = []
 
@@ -333,6 +349,8 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, args)
     return [self._HuntObjectFromRow(row) for row in cursor.fetchall()]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ListHuntObjects(
       self,
@@ -349,6 +367,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> List[hunts_pb2.HuntMetadata]:
     """Reads metadata for hunt objects from the database."""
+    assert cursor is not None
     query = """
     SELECT
       hunt_id,
@@ -461,7 +480,7 @@ class MySQLDBHuntMixin(object):
     return result
 
   def _HuntOutputPluginStateFromRow(
-      self, row: Tuple[str, bytes, bytes]
+      self, row: Tuple[str, bytes, bytes, bytes]
   ) -> output_plugin_pb2.OutputPluginState:
     """Builds OutputPluginState object from a DB row."""
     (
@@ -505,6 +524,8 @@ class MySQLDBHuntMixin(object):
         plugin_state=plugin_state,
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntOutputPluginsStates(
       self,
@@ -512,6 +533,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> List[output_plugin_pb2.OutputPluginState]:
     """Reads all hunt output plugins states of a given hunt."""
+    assert cursor is not None
 
     columns = ", ".join(_HUNT_OUTPUT_PLUGINS_STATES_COLUMNS)
 
@@ -533,6 +555,8 @@ class MySQLDBHuntMixin(object):
 
     return []
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteHuntOutputPluginsStates(
       self,
@@ -541,6 +565,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ):
     """Writes hunt output plugin states for a given hunt."""
+    assert cursor is not None
 
     columns = ", ".join(_HUNT_OUTPUT_PLUGINS_STATES_COLUMNS)
     placeholders = mysql_utils.Placeholders(
@@ -572,6 +597,8 @@ class MySQLDBHuntMixin(object):
       except MySQLdb.IntegrityError as e:
         raise db.UnknownHuntError(hunt_id=hunt_id, cause=e)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateHuntOutputPluginState(
       self,
@@ -584,6 +611,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> jobs_pb2.AttributedDict:
     """Updates hunt output plugin state for a given output plugin."""
+    assert cursor is not None
 
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
@@ -611,8 +639,10 @@ class MySQLDBHuntMixin(object):
     )
     args = [modified_plugin_state.SerializeToString(), hunt_id_int, state_index]
     cursor.execute(query, args)
-    return state
+    return state.plugin_state
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntLogEntries(
       self,
@@ -623,6 +653,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Sequence[flows_pb2.FlowLogEntry]:
     """Reads hunt log entries of a given hunt using given query options."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = (
@@ -661,11 +692,14 @@ class MySQLDBHuntMixin(object):
 
     return flow_log_entries
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountHuntLogEntries(
       self, hunt_id: str, cursor: Optional[cursors.Cursor] = None
   ) -> int:
     """Returns number of hunt log entries of a given hunt."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = (
@@ -676,6 +710,8 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, [hunt_id_int])
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntResults(
       self,
@@ -689,6 +725,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Iterable[flows_pb2.FlowResult]:
     """Reads hunt results of a given hunt using given query options."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = """
@@ -759,6 +796,8 @@ class MySQLDBHuntMixin(object):
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountHuntResults(
       self,
@@ -768,6 +807,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> int:
     """Counts hunt results of a given hunt using given query options."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = "SELECT COUNT(*) FROM flow_results WHERE hunt_id = %s "
@@ -785,6 +825,8 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountHuntResultsByType(
       self,
@@ -792,6 +834,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Mapping[str, int]:
     """Counts number of hunts results per type."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = (
@@ -809,34 +852,36 @@ class MySQLDBHuntMixin(object):
     elif condition == db.HuntFlowsCondition.FAILED_FLOWS_ONLY:
       return (
           "AND flow_state = %s ",
-          [int(rdf_flow_objects.Flow.FlowState.ERROR)],
+          [int(flows_pb2.Flow.FlowState.ERROR)],
       )
     elif condition == db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY:
       return (
           "AND flow_state = %s ",
-          [int(rdf_flow_objects.Flow.FlowState.FINISHED)],
+          [int(flows_pb2.Flow.FlowState.FINISHED)],
       )
     elif condition == db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY:
       return (
           "AND (flow_state = %s OR flow_state = %s) ",
           [
-              int(rdf_flow_objects.Flow.FlowState.FINISHED),
-              int(rdf_flow_objects.Flow.FlowState.ERROR),
+              int(flows_pb2.Flow.FlowState.FINISHED),
+              int(flows_pb2.Flow.FlowState.ERROR),
           ],
       )
     elif condition == db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY:
       return (
           "AND flow_state = %s ",
-          [int(rdf_flow_objects.Flow.FlowState.RUNNING)],
+          [int(flows_pb2.Flow.FlowState.RUNNING)],
       )
     elif condition == db.HuntFlowsCondition.CRASHED_FLOWS_ONLY:
       return (
           "AND flow_state = %s ",
-          [int(rdf_flow_objects.Flow.FlowState.CRASHED)],
+          [int(flows_pb2.Flow.FlowState.CRASHED)],
       )
     else:
       raise ValueError("Invalid condition value: %r" % condition)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntFlows(
       self,
@@ -847,6 +892,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Sequence[flows_pb2.Flow]:
     """Reads hunt flows matching given conditins."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = (
@@ -865,9 +911,12 @@ class MySQLDBHuntMixin(object):
     args = [hunt_id_int] + extra_args + [count, offset]
 
     cursor.execute(query, args)
-    flows = [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
+    # _FlowObjectFromRow is defined in mysql_flows.py.
+    flows = [self._FlowObjectFromRow(row) for row in cursor.fetchall()]  # pytype: disable=attribute-error
     return flows
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountHuntFlows(
       self,
@@ -875,9 +924,10 @@ class MySQLDBHuntMixin(object):
       filter_condition: Optional[
           db.HuntFlowsCondition
       ] = db.HuntFlowsCondition.UNSET,
-      cursor=None,
+      cursor: Optional[cursors.Cursor] = None,
   ) -> int:
     """Counts hunt flows matching given conditions."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = (
@@ -893,6 +943,8 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntsCounters(
       self,
@@ -900,6 +952,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Mapping[str, db.HuntCounters]:
     """Reads hunt counters for several hunt ids."""
+    assert cursor is not None
     if not hunt_ids:
       return {}
 
@@ -958,16 +1011,16 @@ class MySQLDBHuntMixin(object):
     ) in cursor.fetchall():
       counts_by_state = counts_by_state_per_hunt[hunt_id]
       num_successful_clients = counts_by_state.get(
-          int(rdf_flow_objects.Flow.FlowState.FINISHED), 0
+          int(flows_pb2.Flow.FlowState.FINISHED), 0
       )
       num_failed_clients = counts_by_state.get(
-          int(rdf_flow_objects.Flow.FlowState.ERROR), 0
+          int(flows_pb2.Flow.FlowState.ERROR), 0
       )
       num_crashed_clients = counts_by_state.get(
-          int(rdf_flow_objects.Flow.FlowState.CRASHED), 0
+          int(flows_pb2.Flow.FlowState.CRASHED), 0
       )
       num_running_clients = counts_by_state.get(
-          int(rdf_flow_objects.Flow.FlowState.RUNNING), 0
+          int(flows_pb2.Flow.FlowState.RUNNING), 0
       )
       num_clients = sum(counts_by_state_per_hunt[hunt_id].values())
 
@@ -986,7 +1039,7 @@ class MySQLDBHuntMixin(object):
       )
     return hunt_counters
 
-  def _BinsToQuery(self, bins: Sequence[int], column_name: str) -> str:
+  def _BinsToQuery(self, bins: list[int], column_name: str) -> str:
     """Builds an SQL query part to fetch counts corresponding to given bins."""
     result = []
     # With the current StatsHistogram implementation the last bin simply
@@ -1004,11 +1057,14 @@ class MySQLDBHuntMixin(object):
 
     return ", ".join(result)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntClientResourcesStats(
       self, hunt_id: str, cursor: Optional[cursors.Cursor] = None
   ) -> jobs_pb2.ClientResourcesStats:
     """Read/calculate hunt client resources stats."""
+    assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
     query = """
@@ -1022,13 +1078,13 @@ class MySQLDBHuntMixin(object):
         STDDEV_POP(network_bytes_sent),
     """
 
-    scaled_bins = [int(1000000 * b) for b in hunts.CPU_STATS_BINS]
+    scaled_bins = [int(1000000 * b) for b in models_hunts.CPU_STATS_BINS]
 
     query += ", ".join([
         self._BinsToQuery(scaled_bins, "(user_cpu_time_used_micros)"),
         self._BinsToQuery(scaled_bins, "(system_cpu_time_used_micros)"),
         self._BinsToQuery(
-            hunts.NETWORK_STATS_BINS,
+            models_hunts.NETWORK_STATS_BINS,
             "network_bytes_sent",
         ),
     ])
@@ -1072,23 +1128,29 @@ class MySQLDBHuntMixin(object):
 
     offset = 7
     user_cpu_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(response[offset:], hunts.CPU_STATS_BINS):
+    for b_num, b_max_value in zip(
+        response[offset:], models_hunts.CPU_STATS_BINS
+    ):
       user_cpu_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
     stats.user_cpu_stats.histogram.CopyFrom(user_cpu_histogram)
 
-    offset += len(hunts.CPU_STATS_BINS)
+    offset += len(models_hunts.CPU_STATS_BINS)
     system_cpu_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(response[offset:], hunts.CPU_STATS_BINS):
+    for b_num, b_max_value in zip(
+        response[offset:], models_hunts.CPU_STATS_BINS
+    ):
       system_cpu_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
     stats.system_cpu_stats.histogram.CopyFrom(system_cpu_histogram)
 
-    offset += len(hunts.CPU_STATS_BINS)
+    offset += len(models_hunts.CPU_STATS_BINS)
     network_bytes_histogram = jobs_pb2.StatsHistogram()
-    for b_num, b_max_value in zip(response[offset:], hunts.NETWORK_STATS_BINS):
+    for b_num, b_max_value in zip(
+        response[offset:], models_hunts.NETWORK_STATS_BINS
+    ):
       network_bytes_histogram.bins.append(
           jobs_pb2.StatsHistogramBin(range_max_value=b_max_value, num=b_num)
       )
@@ -1127,6 +1189,8 @@ class MySQLDBHuntMixin(object):
 
     return stats
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntFlowsStatesAndTimestamps(
       self,
@@ -1134,6 +1198,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Sequence[db.FlowStateAndTimestamps]:
     """Reads hunt flows states and timestamps."""
+    assert cursor is not None
 
     query = """
       SELECT
@@ -1157,6 +1222,8 @@ class MySQLDBHuntMixin(object):
 
     return result
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHuntOutputPluginLogEntries(
       self,
@@ -1170,6 +1237,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
     """Reads hunt output plugin log entries."""
+    assert cursor is not None
     query = (
         "SELECT client_id, flow_id, log_entry_type, message, "
         "UNIX_TIMESTAMP(timestamp) "
@@ -1216,6 +1284,8 @@ class MySQLDBHuntMixin(object):
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountHuntOutputPluginLogEntries(
       self,
@@ -1227,6 +1297,7 @@ class MySQLDBHuntMixin(object):
       cursor: Optional[cursors.Cursor] = None,
   ):
     """Counts hunt output plugin log entries."""
+    assert cursor is not None
     query = (
         "SELECT COUNT(*) "
         "FROM flow_output_plugin_log_entries "

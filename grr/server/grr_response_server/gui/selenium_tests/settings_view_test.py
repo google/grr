@@ -42,37 +42,39 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
       # Check that configuration values are displayed.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('ACL.group_access_manager_class'):contains('Foo"
+          "css=tr:contains('ACL.group_access_manager_class') :contains('Foo"
           " bar.')",
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('AdminUI.bind'):contains('127.0.0.1')",
+          "css=tr:contains('AdminUI.bind') :contains('127.0.0.1')",
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('PrivateKeys.executable_signing_private_key'):contains('(redacted)')",
+          "css=tr:contains('PrivateKeys.executable_signing_private_key')"
+          " :contains('(redacted)')",
       )
       # AdminUI.hunt_config is an RDFProtoStruct.
       self.WaitUntil(
           self.IsElementPresent,
           "css=tr:contains('AdminUI.hunt_config') tr:contains('Default exclude"
-          " labels'):contains('oh-oh')",
+          " labels') :contains('oh-oh')",
       )
       # Source.version_major is an int field.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Source.version_major'):contains('42')",
+          "css=tr:contains('Source.version_major') :contains('42')",
       )
       # Hunt.default_client_rate is a float field, displayed as an int.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Hunt.default_client_rate'):contains('42')",
+          "css=tr:contains('Hunt.default_client_rate') :contains('42')",
       )
-      # Email.enable_custom_email_address is a boolean field, displayed as int.
+      # Email.enable_custom_email_address is a boolean field.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Email.enable_custom_email_address'):contains('1')",
+          "css=tr:contains('Email.enable_custom_email_address')"
+          " :contains('true')",
       )
       # Cron.disabled_cron_jobs is a list (unsupported).
       self.WaitUntil(
@@ -83,17 +85,19 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
       # Server.fleetspeak_last_ping_threshold is an RDF Duration.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Server.fleetspeak_last_ping_threshold'):contains('3600000000')",
+          "css=tr:contains('Server.fleetspeak_last_ping_threshold')"
+          " :contains('3600000000')",
       )
       # Server.raw_filesystem_access_pathtype is an enum.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Server.raw_filesystem_access_pathtype'):contains('TSK')",
+          "css=tr:contains('Server.raw_filesystem_access_pathtype')"
+          " :contains('TSK')",
       )
       # ClientBuilder.build_type is a "choice".
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('ClientBuilder.build_type'):contains('Debug')",
+          "css=tr:contains('ClientBuilder.build_type') :contains('Debug')",
       )
       # ClientBuilder.target_platforms is a "multi-choice" (unsupported).
       self.WaitUntil(
@@ -104,12 +108,14 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
       # ClientRepacker.output_filename is an "option".
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('ClientRepacker.output_filename'):contains('GRR_0.0.0.0_')",
+          "css=tr:contains('ClientRepacker.output_filename')"
+          " :contains('GRR_0.0.0.0_')",
       )
       # Mysql.password should be redacted.
       self.WaitUntil(
           self.IsElementPresent,
-          "css=tr:contains('Mysql.password'):not(:contains('top-secret')):contains(redacted)",
+          "css=tr:contains('Mysql.password'):not(:contains('top-secret'))"
+          " :contains(redacted)",
       )
 
 

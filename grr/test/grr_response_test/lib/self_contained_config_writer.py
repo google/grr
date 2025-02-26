@@ -90,7 +90,6 @@ def main(argv):
   fleetspeak_frontend_port = portpicker.pick_unused_port()
   fleetspeak_admin_port = portpicker.pick_unused_port()
 
-  config.CONFIG.Set("Client.fleetspeak_enabled", True)
   config.CONFIG.Set(
       "Server.fleetspeak_message_listen_address",
       "localhost:%d" % fleetspeak_frontend_port,

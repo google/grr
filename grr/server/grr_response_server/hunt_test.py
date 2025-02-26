@@ -105,9 +105,9 @@ class HuntTest(
             foreman_rules.ForemanClientRule(
                 rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
                 integer=foreman_rules.ForemanIntegerClientRule(
-                    field="CLIENT_CLOCK",
+                    field="CLIENT_VERSION",
                     operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
-                    value=1336650631137737,
+                    value=1337,
                 ),
             ),
         ]
@@ -155,9 +155,9 @@ class HuntTest(
             foreman_rules.ForemanClientRule(
                 rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
                 integer=foreman_rules.ForemanIntegerClientRule(
-                    field="CLIENT_CLOCK",
+                    field="CLIENT_VERSION",
                     operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
-                    value=1336650631137737,
+                    value=1337,
                 ),
             ),
         ]

@@ -46,7 +46,7 @@ const FlowResultsController = class {
         this.downloadFilesUrl = null;
 
     if (newValues.every(angular.isDefined)) {
-      var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
+      const flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
       this.flowResultsUrl = flowUrl + '/results';
       this.flowExportedResultsUrl = flowUrl + '/exported-results';
       this.outputPluginsUrl = flowUrl + '/output-plugins';

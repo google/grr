@@ -8,8 +8,9 @@ import MySQLdb.cursors
 from grr_response_core.lib.util import precondition
 from grr_response_proto import objects_pb2
 from grr_response_server import blob_store
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Maximum size of one blob chunk, affected by MySQL configuration, especially
@@ -27,6 +28,7 @@ def _Insert(cursor, table, values):
     table: The table name, where rows should be inserted.
     values: A list of dicts, associating column names to values.
   """
+  assert cursor is not None
   precondition.AssertIterableType(values, dict)
 
   if not values:  # Nothing can be INSERTed with empty `values` list.
@@ -91,6 +93,8 @@ def _PartitionChunks(chunks):
 class MySQLDBBlobsMixin(blob_store.BlobStore):
   """MySQLDB mixin for blobs related functions."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _WriteBlobsBatch(self, values, cursor=None):
     _Insert(cursor, "blobs", values)
@@ -103,9 +107,16 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     for values in _PartitionChunks(chunks):
       self._WriteBlobsBatch(values)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadBlobs(self, blob_ids, cursor=None):
+  def ReadBlobs(
+      self,
+      blob_ids: list[models_blobs.BlobID],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> dict[models_blobs.BlobID, Optional[bytes]]:
     """Reads given blobs."""
+    assert cursor is not None
     if not blob_ids:
       return {}
 
@@ -119,16 +130,23 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
     results = {blob_id: None for blob_id in blob_ids}
     for blob_id_bytes, blob in cursor.fetchall():
-      blob_id = blobs.BlobID(blob_id_bytes)
+      blob_id = models_blobs.BlobID(blob_id_bytes)
       if results[blob_id] is None:
         results[blob_id] = blob
       else:
         results[blob_id] += blob
     return results
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
-  def CheckBlobsExist(self, blob_ids, cursor=None):
+  def CheckBlobsExist(
+      self,
+      blob_ids: list[models_blobs.BlobID],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> dict[models_blobs.BlobID, bool]:
     """Checks if given blobs exist."""
+    assert cursor is not None
     if not blob_ids:
       return {}
 
@@ -141,9 +159,11 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     )
     cursor.execute(query, [bytes(blob_id) for blob_id in blob_ids])
     for (blob_id_bytes,) in cursor.fetchall():
-      exists[blobs.BlobID(blob_id_bytes)] = True
+      exists[models_blobs.BlobID(blob_id_bytes)] = True
     return exists
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteHashBlobReferences(
       self,
@@ -164,6 +184,8 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
       })
     _Insert(cursor, "hash_blob_references", values)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHashBlobReferences(
       self,
@@ -173,6 +195,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
       rdf_objects.SHA256HashID, Optional[Collection[objects_pb2.BlobReference]]
   ]:
     """Reads blob references of a given set of hashes."""
+    assert cursor is not None
     if not hashes:
       return {}
 

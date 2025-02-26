@@ -7,6 +7,7 @@ export const WINDOW = new InjectionToken<Window>('Window');
 
 /** Snackbar that shows and allows copying an error message. */
 @Component({
+  standalone: false,
   selector: 'app-error-snackbar',
   templateUrl: './error_snackbar.ng.html',
   styleUrls: ['./error_snackbar.scss'],

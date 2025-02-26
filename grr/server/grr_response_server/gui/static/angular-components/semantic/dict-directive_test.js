@@ -24,7 +24,7 @@ describe('dict semantic directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-dict value="value" />';
+    const template = '<grr-dict value="value"></grr-dict>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

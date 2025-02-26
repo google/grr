@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.email_alerts."""
-
 from unittest import mock
 
 from absl import app
@@ -20,7 +18,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
 
   def testSplitEmailsAndAppendEmailDomain(self):
     self.assertEqual(
-        email_alerts.EMAIL_ALERTER.SplitEmailsAndAppendEmailDomain(""), [])
+        email_alerts.EMAIL_ALERTER.SplitEmailsAndAppendEmailDomain(""), []
+    )
 
   def testSendEmail(self):
     # This is already patched out in tests but in this specific test we
@@ -35,8 +34,9 @@ class SendEmailTests(test_lib.GRRBaseTest):
         from_address = "me@example.com"
         subject = "test"
         message = ""
-        email_alerts.EMAIL_ALERTER.SendEmail(to_address, from_address, subject,
-                                             message)
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            to_address, from_address, subject, message
+        )
         c_from, c_to, msg = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual([to_address], c_to)
@@ -47,8 +47,9 @@ class SendEmailTests(test_lib.GRRBaseTest):
         from_address = "me@example.com"
         subject = "test"
         message = ""
-        email_alerts.EMAIL_ALERTER.SendEmail(to_address, from_address, subject,
-                                             message)
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            to_address, from_address, subject, message
+        )
         c_from, c_to, msg = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual([to_address], c_to)
@@ -61,7 +62,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
         ]
         cc_address = "testcc"
         email_alerts.EMAIL_ALERTER.SendEmail(
-            to_address, from_address, subject, message, cc_addresses=cc_address)
+            to_address, from_address, subject, message, cc_addresses=cc_address
+        )
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
@@ -71,14 +73,15 @@ class SendEmailTests(test_lib.GRRBaseTest):
         to_address = [
             rdf_standard.DomainEmailAddress("testto@%s" % testdomain),
             rdf_standard.DomainEmailAddress("abc@%s" % testdomain),
-            rdf_standard.DomainEmailAddress("def@%s" % testdomain)
+            rdf_standard.DomainEmailAddress("def@%s" % testdomain),
         ]
         to_address_expected = [
             x + testdomain for x in ["testto@", "abc@", "def@", "testcc@"]
         ]
         cc_address = "testcc"
         email_alerts.EMAIL_ALERTER.SendEmail(
-            to_address, from_address, subject, message, cc_addresses=cc_address)
+            to_address, from_address, subject, message, cc_addresses=cc_address
+        )
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
@@ -98,32 +101,40 @@ class SendEmailTests(test_lib.GRRBaseTest):
             subject,
             message,
             cc_addresses=cc_address,
-            message_id=email_msg_id)
+            message_id=email_msg_id,
+        )
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertIn("CC: testcc@%s,testcc2@%s" % (testdomain, testdomain),
-                      message)
+        self.assertIn(
+            "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain), message
+        )
         self.assertTrue("Message-ID: %s" % email_msg_id)
 
       # Multiple address types, two cc
       with test_lib.ConfigOverrider({"Logging.domain": "localhost"}):
         to_address = [
-            "testto@localhost", "hij",
-            rdf_standard.DomainEmailAddress("klm@localhost")
+            "testto@localhost",
+            "hij",
+            rdf_standard.DomainEmailAddress("klm@localhost"),
         ]
         cc_address = "testcc,testcc2@localhost"
         to_address_expected = [
-            "testto@localhost", "hij@localhost", "klm@localhost",
-            "testcc@localhost", "testcc2@localhost"
+            "testto@localhost",
+            "hij@localhost",
+            "klm@localhost",
+            "testcc@localhost",
+            "testcc2@localhost",
         ]
         email_alerts.EMAIL_ALERTER.SendEmail(
-            to_address, from_address, subject, message, cc_addresses=cc_address)
+            to_address, from_address, subject, message, cc_addresses=cc_address
+        )
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertIn("CC: testcc@%s,testcc2@%s" % (testdomain, testdomain),
-                      message)
+        self.assertIn(
+            "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain), message
+        )
 
 
 def main(argv):

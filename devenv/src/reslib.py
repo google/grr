@@ -2,6 +2,7 @@
 """Dev environment resource lib."""
 
 import abc
+from collections.abc import Iterable, Iterator
 import contextlib
 import os
 import pathlib
@@ -13,7 +14,7 @@ import subprocess
 import sys
 import time
 import traceback
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any, Optional, Union
 
 from . import config
 from . import util
@@ -30,9 +31,9 @@ class Resource(abc.ABC):
   destruction, and check member functions.
   """
 
-  def __init__(self, name: str, deps: Optional[List["Resource"]] = None):
+  def __init__(self, name: str, deps: Optional[list["Resource"]] = None):
     self.name: str = name
-    self.deps: List["Resource"] = deps or []
+    self.deps: list["Resource"] = deps or []
 
   @abc.abstractmethod
   def create(self) -> None:
@@ -81,7 +82,7 @@ class Volume(Resource):
   """Container volume."""
 
   def __init__(
-      self, name: str, mountpoint: str, deps: Optional[List[Resource]] = None
+      self, name: str, mountpoint: str, deps: Optional[list[Resource]] = None
   ) -> None:
     super().__init__(name, deps)
     self.mountpoint = mountpoint
@@ -183,8 +184,8 @@ class LocalImage(Image):
       name: str,
       context_dir: pathlib.Path,
       build_args: Optional[dict[str, str]] = None,
-      volumes: Optional[List[Volume]] = None,
-      deps: Optional[List[Resource]] = None,
+      volumes: Optional[list[Volume]] = None,
+      deps: Optional[list[Resource]] = None,
   ) -> None:
     volumes = volumes or []
     build_args = build_args or {}
@@ -194,7 +195,7 @@ class LocalImage(Image):
 
     self.context_dir: pathlib.Path = context_dir
     self.build_args: dict[str, str] = build_args
-    self.volumes: List[Volume] = volumes
+    self.volumes: list[Volume] = volumes
 
   def create(self) -> None:
     cmdln = ["podman", "image", "build", "--no-cache", "-t", self.name]
@@ -220,11 +221,11 @@ class Pod(Resource):
   def __init__(
       self,
       name: str,
-      ports: Optional[Dict[int, int]] = None,
-      deps: Optional[List[Resource]] = None,
+      ports: Optional[dict[int, int]] = None,
+      deps: Optional[list[Resource]] = None,
   ):
     super().__init__(name, deps)
-    self.ports: Dict[int, int] = ports or {}
+    self.ports: dict[int, int] = ports or {}
 
   def is_up(self) -> bool:
     proc = subprocess.run(
@@ -261,12 +262,12 @@ class Container(Resource):
       self,
       name: str,
       image: Image,
-      volumes: Optional[List[Volume]] = None,
+      volumes: Optional[list[Volume]] = None,
       command: Optional[str] = None,
       env: Optional[dict[str, str]] = None,
       pod: Optional[Pod] = None,
       daemonize: bool = True,
-      deps: Optional[List[Resource]] = None,
+      deps: Optional[list[Resource]] = None,
   ):
     volumes = volumes or []
     deps = deps or []
@@ -277,7 +278,7 @@ class Container(Resource):
     super().__init__(name, deps)
 
     self.image: Image = image
-    self.volumes: List[Volume] = volumes
+    self.volumes: list[Volume] = volumes
     self.env = env or {}
     self.pod: Optional[Pod] = pod
     self.command: Optional[str] = command
@@ -426,8 +427,8 @@ class BackgroundProcess(Resource):
   def __init__(
       self,
       name: str,
-      command: List[str],
-      deps: Optional[List[Resource]] = None,
+      command: list[str],
+      deps: Optional[list[Resource]] = None,
   ):
     super().__init__(name, deps)
     if command[0].startswith("/"):
@@ -438,7 +439,7 @@ class BackgroundProcess(Resource):
         raise ResourceError(f"Bad BackgroundProcess command: {command}")
       path = maybe_path
     self._target_path: str = path
-    self._target_args: List[str] = command[1:]
+    self._target_args: list[str] = command[1:]
     self._ctl_sock_path = config.get("path.state_dir").joinpath(
         f"{self.name}.sock"
     )
@@ -592,7 +593,7 @@ class BackgroundProcess(Resource):
 
     # Main control loop
     while True:
-      rlist: List[Union[socket.socket, int]] = (
+      rlist: list[Union[socket.socket, int]] = (
           [client_sock] if client_sock else [ctl_sock]
       )
       rlist.append(pty_fd)
@@ -646,3 +647,43 @@ class BackgroundProcess(Resource):
     ctl_sock.close()
     self._ctl_sock_path.unlink()
     self._ctl_pid_path.unlink()
+
+
+class ForegroundProcess(Resource):
+  """Foreground process can be used to run short-lived commands in the devenv environment."""
+
+  def __init__(
+      self,
+      name: str,
+      command: list[str],
+      deps: Optional[list[Resource]] = None,
+  ):
+    super().__init__(name, deps)
+    if command[0].startswith("/"):
+      path = command[0]
+    else:
+      path = shutil.which(command[0])
+      if path is None:
+        raise ResourceError(f"Bad ForegroundProcess command: {command}")
+
+    self._target_path: str = path
+    self._target_args: list[str] = command[1:]
+    self._ctl_log_path = config.get("path.state_dir").joinpath(
+        f"{self.name}.log"
+    )
+
+  def is_up(self) -> bool:
+    return False
+
+  def create(self) -> None:
+    """Create the foreground process, managed by a daemonized control loop."""
+    os.system(" ".join([self._target_path] + self._target_args))
+
+  def destroy(self) -> None:
+    pass
+
+  def restart(self) -> None:
+    pass
+
+  def attach(self) -> None:
+    pass

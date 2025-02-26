@@ -69,20 +69,6 @@
                   Stop="both"
                   Wait="no" />
             </Component>
-            <Component Id="CompNannyServiceRemove">
-              <!-- Having only a ServiceControl in a Component (without any artifact such as a File) doesn't seem to work. -->
-              <File Id="RemoveDummyFile" Source="$(var.InputDir)\remove-dummy.txt" Name="remove.txt" />
-              <ServiceControl
-                  Id="ServiceControlNannyStop"
-                  Name="__NannyServiceNameToRemove"
-                  Stop="both"
-                  Wait="no" />
-              <ServiceControl
-                  Id="ServiceControlNannyRemove"
-                  Name="__NannyServiceNameToRemove"
-                  Remove="both"
-                  Wait="no" />
-            </Component>
             <Component Id="CompFleetspeakServiceReg" Guid="*">
               <RegistryKey Root="HKLM" Key="__FleetspeakServiceRegistryKey">
                 <RegistryValue Type="string" Name="__FleetspeakServiceRegistryName" KeyPath="yes" Value="__FleetspeakServiceRegistryValue" />
@@ -127,10 +113,6 @@
       <ComponentRef Id="CompFleetspeakServiceConfig"/>
     </Feature>
 
-    <Feature Id="NannyServiceRemove" Level="0">
-      <ComponentRef Id="CompNannyServiceRemove"/>
-    </Feature>
-
     <Feature Id="FleetspeakServiceRestart" Level="0">
       <ComponentRef Id="CompFleetspeakServiceRestart"/>
     </Feature>
@@ -143,7 +125,13 @@
       <Custom Action="GenFleetspeakServiceFile" After="InstallFiles">
         NOT Installed AND NOT REMOVE
       </Custom>
+      <Custom Action="WixCloseApplications" Before="RemoveFiles" />
     </InstallExecuteSequence>
+
+    <!-- Explicitly close executables before removing files. This should avoid the retry close application loop. Fleetspeak should be closed first to avoid it restarting GRR. -->
+    <util:CloseApplication Id="CloseFleetspeakClient" Target="fleetspeak-client.exe" PromptToContinue="no" RebootPrompt="no" />
+    <util:CloseApplication Id="CloseGRR" Target="__grr-client.exe" PromptToContinue="no" RebootPrompt="no" />
+    <util:CloseApplication Id="CloseDbgGrr" Target="__dbg_grr-client.exe" PromptToContinue="no" RebootPrompt="no" />
 
   </Product>
 </Wix>

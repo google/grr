@@ -1,5 +1,4 @@
 goog.module('grrUi.user.userSettingsButtonDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -77,7 +76,7 @@ const UserSettingsButtonController = class {
    * @export
    */
   saveSettings() {
-    var newUser = {type: 'GRRUser', value: {settings: this.userSettings}};
+    const newUser = {type: 'GRRUser', value: {settings: this.userSettings}};
     this.grrApiService_.post('users/me', newUser, true)
         .then(
             function success() {

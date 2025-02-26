@@ -62,7 +62,7 @@ exports.UserLabelDirective = function() {
   };
 };
 
-var UserLabelDirective = exports.UserLabelDirective;
+const UserLabelDirective = exports.UserLabelDirective;
 
 
 /**

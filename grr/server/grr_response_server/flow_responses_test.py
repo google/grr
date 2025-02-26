@@ -82,6 +82,26 @@ class ResponsesTest(absltest.TestCase):
     self.assertEqual(list(responses)[0].value, b"foo")
     self.assertEqual(list(responses)[1].value, b"bar")
 
+  def testFromResponsesProto2AnyAddsRequest(self):
+    request = rdf_flow_objects.FlowRequest()
+    request.client_id = "C.123456"
+    request.flow_id = "F123456"
+    request.request_id = 1
+    request.request_data = {"foo": "bar"}
+
+    # This is required, otherwise the method raises.
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+    responses = [
+        status_response,
+    ]
+
+    responses = flow_responses.Responses.FromResponsesProto2Any(
+        responses, request
+    )
+    self.assertEqual(responses.request, request)
+    self.assertEqual(responses.request_data, request.request_data)
+
 
 if __name__ == "__main__":
   absltest.main()

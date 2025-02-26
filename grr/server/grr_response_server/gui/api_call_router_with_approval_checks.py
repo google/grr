@@ -3,11 +3,7 @@
 
 from typing import Optional
 
-from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import precondition
-from grr_response_core.stats import metrics
 from grr_response_proto import api_call_router_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
@@ -15,19 +11,18 @@ from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import groups
 from grr_response_server.databases import db
-from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
+from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
-from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import osquery as api_osquery
+from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
@@ -35,141 +30,53 @@ from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_hunt_objects
-from grr_response_server.rdfvalues import mig_objects
 
 
-APPROVAL_SEARCHES = metrics.Counter(
-    "approval_searches", fields=[("reason_presence", str), ("source", str)]
-)
+class ApprovalCheckParamsAdminAccessChecker(
+    access_controller.AdminAccessChecker
+):
+  """Checks if a user has admin access based on the router params."""
 
-RESTRICTED_FLOWS = [
-    administrative.ExecuteCommand,
-    administrative.ExecutePythonHack,
-    administrative.LaunchBinary,
-    administrative.UpdateClient,
-    administrative.UpdateConfiguration,
-]
+  _AUTH_SUBJECT = "admin-access"
 
-
-class ApiCallRouterWithApprovalCheckParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
-
-
-class AccessChecker(object):
-  """Relational DB-based access checker implementation."""
-
-  APPROVAL_CACHE_TIME = 60
-
-  _AUTH_SUBJECT = "restricted-flow"
-
-  def __init__(self, params: ApiCallRouterWithApprovalCheckParams):
+  def __init__(
+      self,
+      params: api_call_router_pb2.ApiCallRouterWithApprovalCheckParams,
+  ) -> None:
     self._params = params
 
-    self._restricted_flow_group_manager = groups.CreateGroupAccessManager()
-    for g in params.restricted_flow_groups:
-      self._restricted_flow_group_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
+    self._admin_groups_manager = groups.CreateGroupAccessManager()
+    for g in params.admin_groups:
+      self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
-    self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=self.APPROVAL_CACHE_TIME
-    )
+  # TODO: Add the `@override` annotation [1] once we can use
+  # Python 3.12 features.
+  #
+  # [1]: https://peps.python.org/pep-0698/
+  def CheckIfHasAdminAccess(self, username: str) -> None:
+    """Checks whether a given user has admin access."""
 
-  def _CheckAccess(self, username, subject_id, approval_type):
-    """Checks access to a given subject by a given user."""
-    precondition.AssertType(subject_id, str)
-
-    cache_key = (username, subject_id, approval_type)
-    try:
-      approval = self.acl_cache.Get(cache_key)
-      APPROVAL_SEARCHES.Increment(fields=["-", "cache"])
-      return approval
-    except KeyError:
-      APPROVAL_SEARCHES.Increment(fields=["-", "reldb"])
-
-    approvals = data_store.REL_DB.ReadApprovalRequests(
-        username, approval_type, subject_id=subject_id, include_expired=False
-    )
-
-    errors = []
-    for approval in approvals:
-      try:
-        approval_checks.CheckApprovalRequest(approval)
-        approval = mig_objects.ToRDFApprovalRequest(approval)
-        self.acl_cache.Put(cache_key, approval)
-        return approval
-      except access_control.UnauthorizedAccess as e:
-        errors.append(e)
-
-    subject = approval_checks.BuildLegacySubject(subject_id, approval_type)
-    if not errors:
-      raise access_control.UnauthorizedAccess(
-          "No approval found.", subject=subject
-      )
-    else:
-      raise access_control.UnauthorizedAccess(
-          " ".join(str(e) for e in errors), subject=subject
-      )
-
-  def CheckClientAccess(self, context, client_id):
-    """Checks whether a given user can access given client."""
-    assert context is not None
-    context.approval = self._CheckAccess(
-        context.username,
-        str(client_id),
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
-    )
-
-  def CheckHuntAccess(self, context, hunt_id):
-    """Checks whether a given user can access given hunt."""
-    context.approval = self._CheckAccess(
-        context.username,
-        str(hunt_id),
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
-    )
-
-  def CheckCronJobAccess(self, context, cron_job_id):
-    """Checks whether a given user can access given cron job."""
-    context.approval = self._CheckAccess(
-        context.username,
-        str(cron_job_id),
-        objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
-    )
-
-  def CheckIfCanStartClientFlow(self, username, flow_name):
-    """Checks whether a given user can start a given flow."""
-    flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
-
-    if flow_cls is None or not flow_cls.CanUseViaAPI():
-      raise access_control.UnauthorizedAccess(
-          "Flow %s can't be started via the API." % flow_name
-      )
-
-    if flow_cls in RESTRICTED_FLOWS:
-      try:
-        self.CheckIfHasAccessToRestrictedFlows(username)
-      except access_control.UnauthorizedAccess as e:
-        raise access_control.UnauthorizedAccess(
-            f"Not enough permissions to access restricted flow {flow_name}"
-        ) from e
-
-  def CheckIfHasAccessToRestrictedFlows(self, username):
-    """Checks whether a given user can access restricted (sensitive) flows."""
-    if not self._params.ignore_admin_user_attribute:
-      proto_user = data_store.REL_DB.ReadGRRUser(username)
-      user_obj = mig_objects.ToRDFGRRUser(proto_user)
-      if user_obj.user_type == user_obj.UserType.USER_TYPE_ADMIN:
+    use_db_admin_attribute = not bool(self._params.ignore_admin_user_attribute)
+    if use_db_admin_attribute:
+      user = data_store.REL_DB.ReadGRRUser(username)
+      if user.user_type == objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN:
         return
 
-    if username in self._params.restricted_flow_users:
+    if username in self._params.admin_users:
       return
 
-    if self._restricted_flow_group_manager.MemberOfAuthorizedGroup(
+    if self._admin_groups_manager.MemberOfAuthorizedGroup(
         username, self._AUTH_SUBJECT
     ):
       return
 
     raise access_control.UnauthorizedAccess(
-        "Not enough permissions to access restricted flows."
+        "No Admin user access for %s." % username
     )
+
+
+class ApiCallRouterWithApprovalCheckParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
@@ -177,20 +84,27 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   params_type = ApiCallRouterWithApprovalCheckParams
 
-  cached_access_checker = None
+  cached_admin_access_checker = None
+  cached_approval_checker = None
 
   @staticmethod
   def ClearCache():
     cls = ApiCallRouterWithApprovalChecks
-    cls.cached_access_checker = None
+    cls.cached_approval_checker = None
+    cls.cached_admin_access_checker = None
 
-  def _GetAccessChecker(self, params: ApiCallRouterWithApprovalCheckParams):
+  def _GetApprovalChecker(
+      self,
+      admin_access_checker: ApprovalCheckParamsAdminAccessChecker,
+  ):
     cls = ApiCallRouterWithApprovalChecks
 
-    if cls.cached_access_checker is None:
-      cls.cached_access_checker = AccessChecker(params)
+    if cls.cached_approval_checker is None:
+      cls.cached_approval_checker = access_controller.ApprovalChecker(
+          admin_access_checker
+      )
 
-    return cls.cached_access_checker
+    return cls.cached_approval_checker
 
   def _CheckFlowOrClientAccess(self, args, context=None):
     try:
@@ -207,19 +121,28 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Only top-level hunt flows are allowed, which is what any user can see
     # as "hunt results" (child flows results are not available for anyone).
     if flow.parent_hunt_id != flow.flow_id:
-      self.access_checker.CheckClientAccess(context, args.client_id)
+      self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
   def __init__(
       self,
       params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
-      access_checker: Optional[AccessChecker] = None,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+      admin_access_checker: Optional[
+          ApprovalCheckParamsAdminAccessChecker
+      ] = None,
       delegate: Optional[api_call_router.ApiCallRouter] = None,
   ):
     super().__init__(params=params)
 
-    if not access_checker:
-      access_checker = self._GetAccessChecker(params)
-    self.access_checker = access_checker
+    params = ToProtoApiCallRouterWithApprovalCheckParams(params)
+
+    if not admin_access_checker:
+      admin_access_checker = ApprovalCheckParamsAdminAccessChecker(params)
+    self.admin_access_checker = admin_access_checker
+
+    if not approval_checker:
+      approval_checker = self._GetApprovalChecker(self.admin_access_checker)
+    self.approval_checker = approval_checker
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -253,7 +176,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.SearchClients(args, context=context)
 
   def VerifyAccess(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.VerifyAccess(args, context=context)
 
@@ -273,7 +196,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetClientVersionTimes(args, context=context)
 
   def InterrogateClient(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.InterrogateClient(args, context=context)
 
@@ -289,7 +212,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetLastClientIPAddress(args, context=context)
 
   def ListClientCrashes(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListClientCrashes(args, context=context)
 
@@ -298,7 +221,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client.ApiKillFleetspeakArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
     return self.delegate.KillFleetspeak(args, context=context)
 
   def RestartFleetspeakGrrService(
@@ -306,7 +229,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client.ApiRestartFleetspeakGrrServiceArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
     return self.delegate.RestartFleetspeakGrrService(args, context=context)
 
   def DeleteFleetspeakPendingMessages(
@@ -314,7 +237,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
     return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
 
   def GetFleetspeakPendingMessages(
@@ -322,7 +245,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client.ApiGetFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
     return self.delegate.GetFleetspeakPendingMessages(args, context=context)
 
   def GetFleetspeakPendingMessageCount(
@@ -330,14 +253,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
     return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)
 
   # Virtual file system methods.
   # ============================
   #
   def ListFiles(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFiles(args, context=context)
 
@@ -346,42 +269,42 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_vfs.ApiBrowseFilesystemArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_vfs.ApiBrowseFilesystemHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.BrowseFilesystem(args, context=context)
 
   def GetVfsFilesArchive(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetVfsFilesArchive(args, context=context)
 
   def GetFileDetails(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetFileDetails(args, context=context)
 
   def GetFileText(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetFileText(args, context=context)
 
   def GetFileBlob(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetFileBlob(args, context=context)
 
   def GetFileVersionTimes(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetFileVersionTimes(args, context=context)
 
   def GetFileDownloadCommand(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetFileDownloadCommand(args, context=context)
 
   def CreateVfsRefreshOperation(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.CreateVfsRefreshOperation(args, context=context)
 
@@ -392,17 +315,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetVfsRefreshOperationState(args, context=context)
 
   def GetVfsTimeline(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetVfsTimeline(args, context=context)
 
   def GetVfsTimelineAsCsv(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetVfsTimelineAsCsv(args, context=context)
 
   def UpdateVfsFileContent(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.UpdateVfsFileContent(args, context=context)
 
@@ -436,7 +359,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # =====================
   #
   def ListFlows(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlows(args, context=context)
 
@@ -446,20 +369,20 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetFlow(args, context=context)
 
   def CreateFlow(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
-    self.access_checker.CheckIfCanStartClientFlow(
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.admin_access_checker.CheckIfCanStartFlow(
         context.username, args.flow.name or args.flow.runner_args.flow_name
     )
 
     return self.delegate.CreateFlow(args, context=context)
 
   def CancelFlow(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.CancelFlow(args, context=context)
 
   def ListFlowRequests(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlowRequests(args, context=context)
 
@@ -484,22 +407,22 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetFlowFilesArchive(args, context=context)
 
   def ListFlowOutputPlugins(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlowOutputPlugins(args, context=context)
 
   def ListFlowOutputPluginLogs(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlowOutputPluginLogs(args, context=context)
 
   def ListFlowOutputPluginErrors(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlowOutputPluginErrors(args, context=context)
 
   def ListFlowLogs(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.ListFlowLogs(args, context=context)
 
@@ -519,7 +442,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.access_checker.CheckClientAccess(context, args.client_id)
+      self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetCollectedTimeline(args, context=context)
 
@@ -580,9 +503,21 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.access_checker.CheckClientAccess(context, args.client_id)
+      self.approval_checker.CheckClientAccess(context, str(args.client_id))
 
     return self.delegate.GetOsqueryResults(args, context=context)
+
+  # Signed commands methods.
+  # ========================
+  #
+  def ListSignedCommands(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_signed_commands.ApiListSignedCommandsHandler:
+    # Everybody can retrieve signed commands.
+
+    return self.delegate.ListSignedCommands(args, context=context)
 
   # Cron jobs methods.
   # =================
@@ -603,12 +538,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetCronJob(args, context=context)
 
   def ForceRunCronJob(self, args, context=None):
-    self.access_checker.CheckCronJobAccess(context, args.cron_job_id)
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.ForceRunCronJob(args, context=context)
 
   def ModifyCronJob(self, args, context=None):
-    self.access_checker.CheckCronJobAccess(context, args.cron_job_id)
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.ModifyCronJob(args, context=context)
 
@@ -623,7 +558,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetCronJobRun(args, context=context)
 
   def DeleteCronJob(self, args, context=None):
-    self.access_checker.CheckCronJobAccess(context, args.cron_job_id)
+    self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.DeleteCronJob(args, context=context)
 
@@ -636,7 +571,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ListHunts(args, context=context)
 
   def VerifyHuntAccess(self, args, context=None):
-    self.access_checker.CheckHuntAccess(context, args.hunt_id)
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.VerifyHuntAccess(args, context=context)
 
@@ -724,7 +659,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Note: after the hunt is created, even if it involved restricted flows,
     # normal approval ACL checks apply. Namely: another user can start
     # such a hunt, if such user gets a valid hunt approval.
-    self.access_checker.CheckIfCanStartClientFlow(
+    self.admin_access_checker.CheckIfCanStartFlow(
         context.username, args.flow_name
     )
 
@@ -732,7 +667,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def ModifyHunt(self, args, context=None):
     # Starting/stopping hunt or modifying its attributes requires an approval.
-    self.access_checker.CheckHuntAccess(context, args.hunt_id)
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.ModifyHunt(args, context=context)
 
@@ -751,17 +686,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Hunt's creator is allowed to delete the hunt.
     if context.username != hunt_obj.creator:
-      self.access_checker.CheckHuntAccess(context, args.hunt_id)
+      self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.DeleteHunt(args, context=context)
 
   def GetHuntFilesArchive(self, args, context=None):
-    self.access_checker.CheckHuntAccess(context, args.hunt_id)
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.GetHuntFilesArchive(args, context=context)
 
   def GetHuntFile(self, args, context=None):
-    self.access_checker.CheckHuntAccess(context, args.hunt_id)
+    self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.GetHuntFile(args, context=context)
 
@@ -772,17 +707,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     # Everybody can export collected hunt timelines.
     return self.delegate.GetCollectedHuntTimelines(args, context=context)
-
-  def CreatePerClientFileCollectionHunt(
-      self,
-      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext,
-  ) -> api_call_handler_base.ApiCallHandler:
-    """Create a new per-client file collection hunt."""
-    # Everybody can create a per-client file collection hunt.
-    return self.delegate.CreatePerClientFileCollectionHunt(
-        args, context=context
-    )
 
   # Stats metrics methods.
   # =====================
@@ -811,14 +735,13 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   #
   def CreateClientApproval(self, args, context=None):
     # Everybody can create a user client approval.
-
-    return self.delegate.CreateClientApproval(args, context=context)
+    return api_user.ApiCreateClientApprovalHandler(self.approval_checker)
 
   def GetClientApproval(self, args, context=None):
     # Everybody can have access to everybody's client approvals, provided
     # they know: a client id, a username of the requester and an approval id.
 
-    return self.delegate.GetClientApproval(args, context=context)
+    return api_user.ApiGetClientApprovalHandler(self.approval_checker)
 
   def GrantClientApproval(self, args, context=None):
     # Everybody can grant everybody's client approvals, provided
@@ -831,23 +754,23 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
-    return self.delegate.GrantClientApproval(args, context=context)
+    return api_user.ApiGrantClientApprovalHandler(self.approval_checker)
 
   def ListClientApprovals(self, args, context=None):
     # Everybody can list their own user client approvals.
 
-    return self.delegate.ListClientApprovals(args, context=context)
+    return api_user.ApiListClientApprovalsHandler(self.approval_checker)
 
   def CreateHuntApproval(self, args, context=None):
     # Everybody can request a hunt approval.
 
-    return self.delegate.CreateHuntApproval(args, context=context)
+    return api_user.ApiCreateHuntApprovalHandler(self.approval_checker)
 
   def GetHuntApproval(self, args, context=None):
     # Everybody can have access to everybody's hunts approvals, provided
     # they know: a hunt id, a username of the requester and an approval id.
 
-    return self.delegate.GetHuntApproval(args, context=context)
+    return api_user.ApiGetHuntApprovalHandler(self.approval_checker)
 
   def GrantHuntApproval(self, args, context=None):
     # Everybody can grant everybody's hunts approvals, provided
@@ -860,23 +783,23 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
-    return self.delegate.GrantHuntApproval(args, context=context)
+    return api_user.ApiGrantHuntApprovalHandler(self.approval_checker)
 
   def ListHuntApprovals(self, args, context=None):
     # Everybody can list their own user hunt approvals.
 
-    return self.delegate.ListHuntApprovals(args, context=context)
+    return api_user.ApiListHuntApprovalsHandler(self.approval_checker)
 
   def CreateCronJobApproval(self, args, context=None):
     # Everybody can request a cron job approval.
 
-    return self.delegate.CreateCronJobApproval(args, context=context)
+    return api_user.ApiCreateCronJobApprovalHandler(self.approval_checker)
 
   def GetCronJobApproval(self, args, context=None):
     # Everybody can have access to everybody's crons approvals, provided
     # they know: a cron job id, a username of the requester and an approval id.
 
-    return self.delegate.GetCronJobApproval(args, context=context)
+    return api_user.ApiGetCronJobApprovalHandler(self.approval_checker)
 
   def GrantCronJobApproval(self, args, context=None):
     # Everybody can have access to everybody's crons approvals, provided
@@ -889,12 +812,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
-    return self.delegate.GrantCronJobApproval(args, context=context)
+    return api_user.ApiGrantCronJobApprovalHandler(self.approval_checker)
 
   def ListCronJobApprovals(self, args, context=None):
     # Everybody can list their own user cron approvals.
 
-    return self.delegate.ListCronJobApprovals(args, context=context)
+    return api_user.ApiListCronJobApprovalsHandler(self.approval_checker)
 
   def ListApproverSuggestions(self, args, context=None):
     # Everybody can list suggestions for approver usernames.
@@ -949,7 +872,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     try:
       # Without access to restricted flows, one can not launch Python hacks and
       # binaries. Hence, we don't display the "Manage binaries" page.
-      self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
+      self.admin_access_checker.CheckIfHasAdminAccess(context.username)
     except access_control.UnauthorizedAccess:
       interface_traits.manage_binaries_nav_item_enabled = False
 
@@ -974,17 +897,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetConfigOption(args, context=context)
 
   def ListGrrBinaries(self, args, context=None):
-    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.ListGrrBinaries(args, context=context)
 
   def GetGrrBinary(self, args, context=None):
-    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.GetGrrBinary(args, context=context)
 
   def GetGrrBinaryBlob(self, args, context=None):
-    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
+    self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.GetGrrBinaryBlob(args, context=context)
 
@@ -1004,7 +927,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can list flow descritors.
 
     return api_flow.ApiListFlowDescriptorsHandler(
-        self.access_checker.CheckIfCanStartClientFlow
+        self.admin_access_checker.CheckIfCanStartFlow
     )
 
   def GetRDFValueDescriptor(self, args, context=None):
@@ -1050,3 +973,10 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetOpenApiDescription(args, context=context)
 
   # pytype: enable=attribute-error
+
+
+# TODO: Copy of migration function to avoid circular dependency.
+def ToProtoApiCallRouterWithApprovalCheckParams(
+    rdf: ApiCallRouterWithApprovalCheckParams,
+) -> api_call_router_pb2.ApiCallRouterWithApprovalCheckParams:
+  return rdf.AsPrimitiveProto()

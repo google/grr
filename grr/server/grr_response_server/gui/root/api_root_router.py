@@ -10,9 +10,9 @@ from typing import Optional
 
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
-
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
 from grr_response_server.gui.root.api_plugins import user_management as api_user_management
@@ -73,6 +73,29 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("DELETE", "/api/root/grr-binaries/<type>/<path:path>")
   def DeleteGrrBinary(self, args, context=None):
     return api_binary_management.ApiDeleteGrrBinaryHandler()
+
+  # Signed commands methods.
+  # ========================
+  #
+  @api_call_router.Category("SignedCommands")
+  @api_call_router.ArgsType(api_signed_commands.ApiCreateSignedCommandsArgs)
+  @api_call_router.Http("POST", "/api/signed-commands")
+  def CreateSignedCommands(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_signed_commands.ApiCreateSignedCommandsHandler:
+    return api_signed_commands.ApiCreateSignedCommandsHandler()
+
+  @api_call_router.Category("SignedCommands")
+  @api_call_router.ArgsType(api_signed_commands.ApiCreateSignedCommandsArgs)
+  @api_call_router.Http("DELETE", "/api/signed-commands")
+  def DeleteSignedCommands(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_signed_commands.ApiDeleteAllSignedCommandsHandler:
+    return api_signed_commands.ApiDeleteAllSignedCommandsHandler()
 
   # Reflection methods (needed for client libraries to work).
   # ===========================================================

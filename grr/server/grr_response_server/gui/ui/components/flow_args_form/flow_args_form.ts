@@ -21,6 +21,7 @@ import {FlowArgumentForm} from './form_interface';
 
 /** Component that allows configuring Flow arguments. */
 @Component({
+  standalone: false,
   selector: 'flow-args-form',
   template: '<template #formContainer></template>',
   changeDetection: ChangeDetectionStrategy.OnPush,

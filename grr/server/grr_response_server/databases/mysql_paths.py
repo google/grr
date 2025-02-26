@@ -14,13 +14,15 @@ from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import paths
+from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class MySQLDBPathMixin(object):
   """MySQLDB mixin for path related functions."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfo(
       self,
@@ -113,11 +115,11 @@ class MySQLDBPathMixin(object):
           client_id=client_id, path_type=path_type, components=components
       )
 
-    # pyformat: disable
+    # fmt: off
     (directory, timestamp,
      stat_entry_bytes, last_stat_entry_timestamp,
      hash_entry_bytes, last_hash_entry_timestamp) = row
-    # pyformat: enable
+    # fmt: on
 
     path_info = objects_pb2.PathInfo(
         path_type=objects_pb2.PathInfo.PathType.Name(path_type),
@@ -140,6 +142,8 @@ class MySQLDBPathMixin(object):
 
     return path_info
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfos(
       self,
@@ -192,11 +196,11 @@ class MySQLDBPathMixin(object):
 
     cursor.execute(query, values)
     for row in cursor.fetchall():
-      # pyformat: disable
+      # fmt: off
       (path, directory, timestamp,
        stat_entry_bytes, last_stat_entry_timestamp,
        hash_entry_bytes, last_hash_entry_timestamp) = row
-      # pyformat: enable
+      # fmt: on
 
       components = mysql_utils.PathToComponents(path)
       path_info = objects_pb2.PathInfo(
@@ -226,6 +230,8 @@ class MySQLDBPathMixin(object):
 
     return path_infos
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WritePathInfos(
       self,
@@ -288,7 +294,7 @@ class MySQLDBPathMixin(object):
 
       # TODO(hanuszczak): Implement a trie in order to avoid inserting
       # duplicated records.
-      for parent_path_info in paths.GetAncestorPathInfos(path_info):
+      for parent_path_info in models_paths.GetAncestorPathInfos(path_info):
         path = mysql_utils.ComponentsToPath(parent_path_info.components)
         parent_key = (
             int_client_id,
@@ -348,6 +354,8 @@ class MySQLDBPathMixin(object):
       """
       cursor.executemany(query, hash_entry_values)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ListDescendantPathInfos(
       self,
@@ -454,11 +462,11 @@ class MySQLDBPathMixin(object):
 
     cursor.execute(query, values)
     for row in cursor.fetchall():
-      # pyformat: disable
+      # fmt: off
       (path, directory, timestamp,
        stat_entry_bytes, last_stat_entry_timestamp,
        hash_entry_bytes, last_hash_entry_timestamp) = row
-      # pyformat: enable
+      # fmt: on
 
       path_components = mysql_utils.PathToComponents(path)
 
@@ -525,6 +533,8 @@ class MySQLDBPathMixin(object):
     # again to conform to the interface.
     return list(reversed(explicit_path_infos))
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfosHistories(
       self,
@@ -607,10 +617,10 @@ class MySQLDBPathMixin(object):
 
     cursor.execute(query, params)
     for row in cursor.fetchall():
-      # pyformat: disable
+      # fmt: off
       (stat_entry_path_id_bytes, stat_entry_bytes, stat_entry_timestamp,
        hash_entry_path_id_bytes, hash_entry_bytes, hash_entry_timestamp) = row
-      # pyformat: enable
+      # fmt: on
 
       path_id_bytes = stat_entry_path_id_bytes or hash_entry_path_id_bytes
       path_id = rdf_objects.PathID.FromSerializedBytes(path_id_bytes)
@@ -640,6 +650,8 @@ class MySQLDBPathMixin(object):
 
     return path_infos
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadLatestPathInfosWithHashBlobReferences(
       self,
@@ -695,10 +707,10 @@ class MySQLDBPathMixin(object):
 
     cursor.execute(query.format(conditions=conditions), params)
     for row in cursor.fetchall():
-      # pyformat: disable
+      # fmt: off
       (client_id, path_type, path_id_bytes, timestamp,
        stat_entry_bytes, hash_entry_bytes) = row
-      # pyformat: enable
+      # fmt: on
 
       path_id = rdf_objects.PathID.FromSerializedBytes(path_id_bytes)
       components = path_id_components[path_id]

@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.events');
-goog.module.declareLegacyNamespace();
 
 
 

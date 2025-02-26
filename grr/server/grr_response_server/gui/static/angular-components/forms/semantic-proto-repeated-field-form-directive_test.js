@@ -32,7 +32,7 @@ describe('semantic proto repeated field form directive', () => {
 
     const template = '<grr-form-proto-repeated-field value="value" ' +
         'descriptor="descriptor" field="field" ' +
-        'no-custom-template="noCustomTemplate" />';
+        'no-custom-template="noCustomTemplate"></grr-form-proto-repeated-field>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

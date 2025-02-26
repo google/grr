@@ -41,7 +41,7 @@ describe('semantic value form directive', () => {
     $rootScope.value = value;
     $rootScope.metadata = metadata;
 
-    const template = '<grr-form-value value="value" metadata="metadata" />';
+    const template = '<grr-form-value value="value" metadata="metadata"></grr-form-value>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

@@ -2,8 +2,7 @@ import {Location} from '@angular/common';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router, RouterLink} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {Router, RouterLink, RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
@@ -42,7 +41,7 @@ describe('ClientSearch Component', () => {
         NoopAnimationsModule,
         ApiModule,
         ClientSearchModule,
-        RouterTestingModule.withRoutes(CLIENT_ROUTES),
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,

@@ -39,6 +39,7 @@ const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[] | undefined> = (
  * Component that shows FileFinder and ClientFileFinder results.
  */
 @Component({
+  standalone: false,
   selector: 'file-finder-details',
   templateUrl: './file_table_details.ng.html',
   styleUrls: ['./file_table_details.scss'],
@@ -73,8 +74,11 @@ export class FileFinderDetails extends Plugin {
     }),
   );
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
-    const items = super.getExportMenuItems(flow);
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
+    const items = super.getExportMenuItems(flow, exportCommandPrefix);
 
     const args = flow.args as FileFinderArgs;
 

@@ -508,7 +508,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-configure-rules-page div.well:nth(0) select", "Integer"
     )
     rule = foreman_rules.ForemanIntegerClientRule
-    label = rule.ForemanIntegerField.CLIENT_CLOCK.description
+    label = rule.ForemanIntegerField.CLIENT_VERSION.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
         "label:contains('Field') ~ * select",
@@ -545,7 +545,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(
         rule.rule_type, foreman_rules.ForemanClientRule.Type.INTEGER
     )
-    self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
+    self.assertEqual(rule.integer.field, "CLIENT_VERSION")
 
     # Assert that the deselected union field is cleared
     self.assertFalse(rule.os.os_windows)

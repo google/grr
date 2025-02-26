@@ -7,6 +7,7 @@ import MySQLdb
 
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 
 
@@ -22,6 +23,8 @@ def _AuditEntryFromRow(
 class MySQLDBEventMixin(object):
   """MySQLDB mixin for event handling."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAPIAuditEntries(
       self,
@@ -74,6 +77,8 @@ class MySQLDBEventMixin(object):
         for details, timestamp in cursor.fetchall()
     ]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def CountAPIAuditEntriesByUserAndDay(
       self,
@@ -120,6 +125,8 @@ class MySQLDBEventMixin(object):
         for (username, day, count) in cursor.fetchall()
     }
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteAPIAuditEntry(
       self,

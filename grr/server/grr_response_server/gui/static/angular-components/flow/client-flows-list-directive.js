@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.clientFlowsListDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');
@@ -57,8 +56,8 @@ const ClientFlowsListController = class {
    */
   onClientIdChange_(newValue) {
     if (angular.isString(newValue)) {
-      var components = newValue.split('/');
-      var basename = components[components.length - 1];
+      const components = newValue.split('/');
+      const basename = components[components.length - 1];
       this.flowsUrl = '/clients/' + basename + '/flows';
     } else {
       this.flowsUrl = null;
@@ -71,7 +70,7 @@ const ClientFlowsListController = class {
    * @export
    */
   cancelButtonClicked() {
-    var cancelUrl = [
+    const cancelUrl = [
       this.flowsUrl, this.scope_['selectedFlowId'], 'actions/cancel'
     ].join('/');
 
@@ -80,7 +79,7 @@ const ClientFlowsListController = class {
 
       // This will force all the directives that depend on selectedFlowId
       // binding to refresh.
-      var flowId = this.scope_['selectedFlowId'];
+      const flowId = this.scope_['selectedFlowId'];
       this.scope_['selectedFlowId'] = undefined;
       this.timeout_(function() {
         this.scope_['selectedFlowId'] = flowId;
@@ -95,9 +94,9 @@ const ClientFlowsListController = class {
    * @export
    */
   createHuntFromFlow() {
-    var huntId;
+    let huntId;
 
-    var modalScope = this.scope_.$new();
+    const modalScope = this.scope_.$new();
     modalScope['clientId'] = this.scope_['clientId'];
     modalScope['flowId'] = this.scope_['selectedFlowId'];
     modalScope['resolve'] = function(newHuntId) {
@@ -112,10 +111,11 @@ const ClientFlowsListController = class {
       modalScope.$destroy();
     });
 
-    var modalInstance = this.uibModal_.open({
+    const modalInstance = this.uibModal_.open({
       template:
           '<grr-new-hunt-wizard-create-from-flow-form on-resolve="resolve(huntId)" ' +
-          'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
+          'on-reject="reject()" flow-id="flowId" client-id="clientId">' +
+          '</grr-new-hunt-wizard-create-from-flow-form>',
       scope: modalScope,
       windowClass: 'wide-modal high-modal',
       size: 'lg'
@@ -132,9 +132,9 @@ const ClientFlowsListController = class {
    * @export
    */
   copyFlow() {
-    var newFlowId;
+    let newFlowId;
 
-    var modalScope = this.scope_.$new();
+    const modalScope = this.scope_.$new();
     modalScope['clientId'] = this.scope_['clientId'];
     modalScope['flowId'] = this.scope_['selectedFlowId'];
     modalScope['resolve'] = function(newFlowObj) {
@@ -146,9 +146,10 @@ const ClientFlowsListController = class {
       modalScope.$destroy();
     });
 
-    var modalInstance = this.uibModal_.open({
+    const modalInstance = this.uibModal_.open({
       template: '<grr-copy-flow-form on-resolve="resolve(flow)" ' +
-          'flow-id="flowId" client-id="clientId" />',
+          'flow-id="flowId" client-id="clientId">' +
+          '</grr-copy-flow-form>',
       scope: modalScope,
       windowClass: 'wide-modal high-modal',
       size: 'lg'

@@ -2,7 +2,8 @@
 """Unprivileged memory RPC client code."""
 
 import abc
-from typing import Generic, Iterable, TypeVar
+from collections.abc import Iterable
+from typing import Generic, TypeVar
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.proto import memory_pb2

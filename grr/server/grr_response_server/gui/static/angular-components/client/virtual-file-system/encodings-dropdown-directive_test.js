@@ -40,7 +40,8 @@ describe('encodings dropdown directive', () => {
       encoding: encoding,
     };
 
-    const template = '<grr-encodings-dropdown encoding="obj.encoding" />';
+    const template = '<grr-encodings-dropdown encoding="obj.encoding">' +
+        '</grr-encodings-dropdown>';
     const element = $compile(template)($scope);
     $scope.$apply();
 

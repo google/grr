@@ -62,6 +62,8 @@ message Process {
     description: "Process information."
   };
 
+  reserved 21;
+
   optional uint32 pid = 1;
   optional uint32 ppid = 2;
   optional string name = 3;
@@ -84,7 +86,6 @@ message Process {
   optional uint32 num_threads = 18;
   optional float user_cpu_time = 19;
   optional float system_cpu_time = 20;
-  optional float cpu_percent = 21;
   optional uint64 RSS_size = 22;
   optional uint64 VMS_size = 23;
   optional float memory_percent = 24;
@@ -298,6 +299,14 @@ message SoftwarePackage {
   //
   // https://access.redhat.com/documentation/fr-fr/red_hat_enterprise_linux/9/html/packaging_and_distributing_software/rebuilding-a-binary-from-a-source-rpm_packaging-software
   optional string source_rpm = 10;
+
+  // Name of the `.deb` source package from which the binary package was built.
+  //
+  // This field is generally set only for packages on Debian-based systems. See
+  // the official documentation for more details:
+  //
+  // https://wiki.debian.org/Packaging/SourcePackage
+  optional string source_deb = 11;
 }
 
 message SoftwarePackages {

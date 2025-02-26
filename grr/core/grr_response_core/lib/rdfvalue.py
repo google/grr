@@ -551,6 +551,15 @@ class RDFDatetime(RDFPrimitive):
     """Returns the datetime as a Python `datetime` with UTC timezone."""
     return self.AsDatetime().replace(tzinfo=datetime.timezone.utc)
 
+  def AsProtoTimestamp(self) -> timestamp_pb2.Timestamp:
+    """Returns the datetime as standard Protocol Buffers timestamp message."""
+    micros = self.AsMicrosecondsSinceEpoch()
+
+    timestamp = timestamp_pb2.Timestamp()
+    timestamp.seconds = micros // 1_000_000
+    timestamp.nanos = (micros % 1_000_000) * 1_000
+    return timestamp
+
   def AsSecondsSinceEpoch(self):
     return self._value // self.converter
 

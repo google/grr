@@ -6,7 +6,7 @@ goog.module.declareLegacyNamespace();
 /**
  * @const {number} Size of each hash in the list, in bytes.
  */
-var HASH_SIZE = 32;
+const HASH_SIZE = 32;
 
 
 /**
@@ -43,9 +43,9 @@ const HashListController = class {
     this.chunks = [];
 
     if (angular.isString(newValue.value)) {
-      var bytes = this.window_.atob(newValue.value);
+      let bytes = this.window_.atob(newValue.value);
       while (bytes) {
-        var chunkStr = bytes.substr(0, HASH_SIZE);
+        const chunkStr = bytes.substr(0, HASH_SIZE);
         bytes = bytes.substr(HASH_SIZE);
 
         this.chunks.push(
@@ -68,7 +68,7 @@ exports.HashListDirective = function() {
   return {
     scope: {value: '='},
     restrict: 'E',
-    template: '<grr-semantic-value value="::controller.chunks" />',
+    template: '<grr-semantic-value value="::controller.chunks"></grr-semantic-value>',
     controller: HashListController,
     controllerAs: 'controller'
   };

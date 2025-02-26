@@ -1,0 +1,48 @@
+// Copyright 2024 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+
+syntax = "proto3";
+
+package rrg.action.query_wmi;
+
+message Args {
+    // WQL query [1] to run.
+    //
+    // [1]: https://learn.microsoft.com/en-us/windows/win32/wmisdk/wql-sql-for-wmi
+    string query = 1;
+}
+
+message Result {
+    // Single row of the query result mapping column names to their values.
+    map<string, Value> row = 1;
+}
+
+message Value {
+    oneof value {
+        // Boolean value.
+        bool bool = 1;
+
+        // Unsigned integer.
+        //
+        // 8-bit, 16-bit, 32-bit and 64-bit unsigned integers are mapped to this
+        // field.
+        uint64 uint = 2;
+
+        // Signed integer.
+        //
+        // 8-bit, 16-bit, 32-bit and 64-bit signed integers are mapped to this
+        // field.
+        int64 int = 3;
+
+        // Single-precision floating point number.
+        float float = 4;
+
+        // Double-precision floating point number.
+        double double = 5;
+
+        // String value.
+        string string = 6;
+    }
+}

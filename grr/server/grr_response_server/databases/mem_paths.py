@@ -16,7 +16,7 @@ from grr_response_core.lib.util import collection
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
-from grr_response_server.models import paths
+from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -324,7 +324,7 @@ class InMemoryDBPathMixin(object):
 
     for path_info in path_infos:
       self._WritePathInfo(client_id, path_info)
-      for ancestor_path_info in paths.GetAncestorPathInfos(path_info):
+      for ancestor_path_info in models_paths.GetAncestorPathInfos(path_info):
         self._WritePathInfo(client_id, ancestor_path_info)
 
   @utils.Synchronized

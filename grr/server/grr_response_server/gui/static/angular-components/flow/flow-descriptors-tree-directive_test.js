@@ -42,7 +42,8 @@ describe('flow descriptors tree directive', () => {
 
   const renderTestTemplate = () => {
     const template = '<grr-flow-descriptors-tree ' +
-        'selected-descriptor="selectedDescriptor.value" />';
+        'selected-descriptor="selectedDescriptor.value">' +
+        '</grr-flow-descriptors-tree>';
     const element = $compile(template)($rootScope);
     $rootScope.selectedDescriptor = {
       value: undefined,

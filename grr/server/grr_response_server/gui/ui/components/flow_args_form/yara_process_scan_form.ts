@@ -50,6 +50,7 @@ const DEFAULT_RULE = `rule Example
 
 /** Form that configures a DumpProcessMemory flow. */
 @Component({
+  standalone: false,
   selector: 'app-yara-process-scan-form',
   templateUrl: './yara_process_scan_form.ng.html',
   styleUrls: ['./yara_process_scan_form.scss'],

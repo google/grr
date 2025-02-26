@@ -1,9 +1,8 @@
 goog.module('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');
-goog.module.declareLegacyNamespace();
 
 
 
-var phrases = [
+const phrases = [
   'It is certain',
   'You were eaten by a Grue!',
   '中国 got you!!',
@@ -57,7 +56,7 @@ const RWeOwnedButtonController = class {
    * @export
    */
   onClick() {
-    var randomIndex = Math.floor(Math.random() * phrases.length);
+    const randomIndex = Math.floor(Math.random() * phrases.length);
     this.scope_.phrase = phrases[randomIndex];
 
     this.uibModal_.open({

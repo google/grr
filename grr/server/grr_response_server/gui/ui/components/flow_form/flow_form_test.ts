@@ -1,6 +1,6 @@
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {FlowFormModule} from '../../components/flow_form/module';
 import {Browser} from '../../lib/api/api_interfaces';
@@ -35,7 +35,7 @@ describe('FlowForm Component', () => {
     clientPageGlobalStore = mockClientPageGlobalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, RouterTestingModule, FlowFormModule],
+      imports: [NoopAnimationsModule, FlowFormModule, RouterModule.forRoot([])],
       providers: [
         {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
         {
@@ -78,7 +78,7 @@ describe('FlowForm Component', () => {
       newFlowDescriptor({
         name: 'CollectBrowserHistory',
         defaultArgs: {
-          browsers: [Browser.CHROME],
+          browsers: [Browser.CHROMIUM_BASED_BROWSERS],
         },
       }),
     );
@@ -87,7 +87,7 @@ describe('FlowForm Component', () => {
 
     getSubmit(fixture).click();
     expect(clientPageGlobalStore.scheduleOrStartFlow).toHaveBeenCalledWith({
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     });
   });
 

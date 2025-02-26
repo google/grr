@@ -1,5 +1,5 @@
-<div>
-  <mat-form-field appearance="outline">
+<div class="column">
+  <mat-form-field appearance="outline" class="w100">
     <mat-label>Absolute path</mat-label>
     <input matInput placeholder="/some/path" [formControl]="controls.path" name="path" class="monospace" autocomplete="off" />
     <mat-error *ngIf="controls.path.hasError('required')" name="reqPath">
@@ -7,7 +7,7 @@
     </mat-error>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" class="w100">
     <mat-label>Length</mat-label>
     <input
       matInput
@@ -36,7 +36,7 @@
     </mat-error>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" class="w100">
     <mat-label>Offset</mat-label>
     <input
       matInput

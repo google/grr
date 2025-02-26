@@ -33,7 +33,7 @@ const HuntClientsController = class {
    * @private
    */
   onHuntIdOrClientTypeChange_() {
-    var huntId = this.scope_['huntId'];
+    const huntId = this.scope_['huntId'];
 
     if (!angular.isString(huntId) || !angular.isString(this.clientType)) {
       return;

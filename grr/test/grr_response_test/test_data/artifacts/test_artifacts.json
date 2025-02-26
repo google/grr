@@ -3,13 +3,11 @@
    "name": "TestAggregationArtifact",
     "sources": [
       { "type": "ARTIFACT_GROUP",
-        "attributes": { "names": ["TestOSAgnostic"] },
-        "returned_types": ["Process"]
+        "attributes": { "names": ["TestOSAgnostic"] }
       },
       { "type": "ARTIFACT_GROUP",
         "attributes": { "names": [ "TestCmdArtifact" ]
-        },
-        "returned_types": [ "SoftwarePackage" ]
+        }
       }
     ],
     "doc": "Test artifact aggregation.",
@@ -21,8 +19,7 @@
     "sources": [
       { "type": "ARTIFACT_GROUP",
         "attributes": { "names": [ "TestAggregationArtifact" ]
-        },
-        "returned_types": [ "Process" ]
+        }
       }
     ],
     "doc": "Test artifact aggregation dependencies.",
@@ -35,8 +32,7 @@
       { "type": "COMMAND",
         "attributes": { "cmd": "/usr/bin/dpkg",
                   "args": ["--list"]
-        },
-        "returned_types": [ "SoftwarePackages" ]
+        }
       }
     ],
     "doc": "Test command artifact for dpkg.",
@@ -46,8 +42,8 @@
 
   { "name": "TestOSAgnostic",
     "sources": [
-      { "type": "GRR_CLIENT_ACTION",
-        "attributes": { "client_action": "GetHostname"}
+      { "type": "PATH",
+        "attributes": { "paths": ["/foo"]}
       }
     ],
     "doc": "Test no OS means all OSes.",
@@ -80,21 +76,6 @@
     "doc": "My second artifact.",
     "labels": [ "System"],
     "supported_os": [ "Linux" ]
-  },
-
-
-  { "name": "BadPathspecArtifact",
-    "sources": [
-      { "type": "ARTIFACT_FILES",
-        "attributes": { "artifact_list": [ "WindowsPersistenceMechanisms" ],
-          "pathspec_attribute": "broken"
-        },
-        "returned_types": ["StatEntry"]
-      }
-    ],
-    "doc": "Broken pathspec_attribute.",
-    "labels": [ "Software" ],
-    "supported_os": [ "Windows" ]
   },
 
   { "name": "DepsParent",
@@ -220,8 +201,7 @@
       { "type": "COMMAND",
         "attributes": { "cmd": "/bin/echo",
           "args": ["1"]
-        },
-        "returned_types": [ "SoftwarePackages" ]
+        }
       }
     ],
     "doc": "Test echo command artifact.",
@@ -234,8 +214,7 @@
       { "type": "COMMAND",
         "attributes": { "cmd": "/bin/echo",
           "args": ["1"]
-        },
-        "returned_types": [ "SoftwarePackages" ]
+        }
       }
     ],
     "doc": "Test echo command artifact.",
@@ -265,8 +244,7 @@
     "sources": [
       { "type": "FILE",
         "attributes": { "paths": [ "/notafile", "/grr_response_test/test_data/numbers.txt" ]
-        },
-        "returned_types": [ "AttributedDict" ]
+        }
       }
     ],
     "doc": "Test file artifact.",
@@ -277,8 +255,7 @@
     "sources": [
       { "type": "FILE",
         "attributes": { "paths": [ "/notafile", "/grr_response_test/test_data/numbers.txt" ]
-        },
-        "returned_types": [ "AttributedDict" ]
+        }
       }
     ],
     "doc": "Test file artifact.",
@@ -301,29 +278,6 @@
     ],
     "doc": "Test artifact group.",
     "supported_os": [ "Linux", "Darwin" ]
-  },
-
-  {
-    "name": "TestArtifactFilesArtifact",
-    "sources": [
-      { "type": "ARTIFACT_FILES",
-        "attributes": {
-          "artifact_list": ["TestFileArtifact"]
-        }
-      }
-    ],
-    "doc": "Download binaries of all the running processes.",
-    "supported_os": [ "Windows", "Linux", "Darwin" ]
-  },
-
-  {
-    "name": "ListProcessesArtifact",
-    "sources": [
-      { "type": "GRR_CLIENT_ACTION",
-        "attributes": { "client_action": "ListProcesses" }
-      }
-    ],
-    "doc": "List system processes using the GRR List Processes client action."
   },
 
   { "name": "TestRegistryKey",

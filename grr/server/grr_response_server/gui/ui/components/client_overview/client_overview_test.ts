@@ -10,7 +10,7 @@ import {
 import {MatChipSet} from '@angular/material/chips';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {
@@ -36,7 +36,9 @@ import {ClientOverview} from './client_overview';
 import {ClientOverviewModule} from './module';
 
 @Component({
+  standalone: false,
   template: `<client-overview [collapsed]="collapsed"></client-overview>`,
+  jit: true,
 })
 class TestHostComponent {
   @Input() collapsed = false;
@@ -54,8 +56,8 @@ describe('Client Overview', () => {
       imports: [
         ApiModule,
         NoopAnimationsModule,
-        RouterTestingModule,
         ClientOverviewModule,
+        RouterModule.forRoot([]),
       ],
       declarations: [TestHostComponent],
       providers: [

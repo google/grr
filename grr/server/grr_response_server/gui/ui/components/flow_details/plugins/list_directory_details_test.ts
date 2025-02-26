@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {ListDirectoryDetails} from '../../../components/flow_details/plugins/list_directory_details';
 import {PathSpecPathType, StatEntry} from '../../../lib/api/api_interfaces';
@@ -27,7 +27,7 @@ describe('list-directory-details component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, RouterTestingModule, PluginsModule],
+      imports: [NoopAnimationsModule, PluginsModule, RouterModule.forRoot([])],
       providers: [],
       teardown: {destroyAfterEach: false},
     })

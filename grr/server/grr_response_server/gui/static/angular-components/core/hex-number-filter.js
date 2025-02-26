@@ -7,14 +7,15 @@ goog.module.declareLegacyNamespace();
  * Converts the input number to a hex string representation.
  *
  * @param {number} input Number to show as hex string.
- * @return {string} Hex string representation of the input number. The return value is always
-      a multiple of eight (with leading zeros if necessary) starting with 0x, e.g. 0x001234ff.
+ * @return {string} Hex string representation of the input number. The return
+ value is always a multiple of eight (with leading zeros if necessary) starting
+ with 0x, e.g. 0x001234ff.
  */
 const filterImplementation = function(input) {
-  var hex = input.toString(16);
+  const hex = input.toString(16);
 
-  var targetLength = Math.ceil(hex.length / 8) * 8;
-  var leadingZeros = Array(targetLength - hex.length + 1).join(0);
+  const targetLength = Math.ceil(hex.length / 8) * 8;
+  const leadingZeros = Array(targetLength - hex.length + 1).join(0);
 
   return '0x' + leadingZeros + hex;
 };

@@ -9,7 +9,7 @@ The spec for HTTP Event Collector is taken from https://docs.splunk.com
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 from urllib import parse as urlparse
 
 import requests
@@ -31,7 +31,7 @@ from grr_response_server.rdfvalues import mig_objects
 
 HTTP_EVENT_COLLECTOR_PATH = "services/collector/event"
 
-JsonDict = Dict[str, Any]
+JsonDict = dict[str, Any]
 
 
 class SplunkConfigurationError(Exception):
@@ -88,7 +88,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
   def ProcessResponses(
       self,
       state: rdf_protodict.AttributedDict,
-      responses: List[rdf_flow_objects.FlowResult],
+      responses: list[rdf_flow_objects.FlowResult],
   ) -> None:
     """See base class."""
     client_id = self._GetClientId(responses)
@@ -100,7 +100,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
+  def _GetClientId(self, responses: list[rdf_flow_objects.FlowResult]) -> str:
     client_ids = {msg.client_id for msg in responses}
     if len(client_ids) > 1:
       raise AssertionError(
@@ -111,7 +111,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
       )
     return client_ids.pop()
 
-  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
+  def _GetFlowId(self, responses: list[rdf_flow_objects.FlowResult]) -> str:
     flow_ids = {msg.flow_id for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
@@ -168,7 +168,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
 
     return event
 
-  def _SendEvents(self, events: List[JsonDict]) -> None:
+  def _SendEvents(self, events: list[JsonDict]) -> None:
     headers = {"Authorization": "Splunk {}".format(self._token)}
 
     # Batch multiple events in one request, separated by two newlines.

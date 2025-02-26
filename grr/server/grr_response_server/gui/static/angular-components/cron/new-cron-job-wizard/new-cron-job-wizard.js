@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.newCronJobWizard.newCronJobWizard');
-goog.module.declareLegacyNamespace();
 
 const {ConfigureSchedulePageDirective} = goog.require('grrUi.cron.newCronJobWizard.configureSchedulePageDirective');
 const {FormDirective} = goog.require('grrUi.cron.newCronJobWizard.formDirective');

@@ -2,8 +2,7 @@ import {Component, Input} from '@angular/core';
 import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, provideRouter} from '@angular/router';
 
 import {initTestEnvironment} from '../../../testing';
 
@@ -12,7 +11,11 @@ import {DrawerLinkModule} from './drawer_link_module';
 
 initTestEnvironment();
 
-@Component({template: '<a [drawerLink]="drawerLink"></a>'})
+@Component({
+  standalone: false,
+  template: '<a [drawerLink]="drawerLink"></a>',
+  jit: true,
+})
 class TestHostComponent {
   @Input() drawerLink?: string[];
 }
@@ -20,10 +23,9 @@ class TestHostComponent {
 describe('DrawerLink', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        NoopAnimationsModule,
-        DrawerLinkModule,
-        RouterTestingModule.withRoutes([
+      imports: [NoopAnimationsModule, DrawerLinkModule],
+      providers: [
+        provideRouter([
           {path: 'main', component: TestHostComponent},
           {outlet: 'drawer', path: 'foo', component: TestHostComponent},
         ]),

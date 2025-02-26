@@ -6,6 +6,7 @@ import {Component, ElementRef, Input, ViewChild} from '@angular/core';
  * appearance.
  */
 @Component({
+  standalone: false,
   selector: 'app-copy-button',
   templateUrl: './copy_button.ng.html',
   styleUrls: ['./copy_button.scss'],

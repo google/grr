@@ -30,7 +30,7 @@ describe('breadcrums directive', () => {
 
     const template =
         '<grr-breadcrumbs strip-ending-slash="obj.stripEndingSlash" ' +
-        'path="obj.path" />';
+        'path="obj.path"></grr-breadcrumbs>';
     const element = $compile(template)($scope);
     $scope.$apply();
 

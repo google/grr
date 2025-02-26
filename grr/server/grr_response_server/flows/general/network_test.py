@@ -20,16 +20,20 @@ class ClientMock(action_mocks.ActionMock):
         local_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=22),
         remote_address=rdf_client_network.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
-        ctime=0)
+        ctime=0,
+    )
     conn2 = rdf_client_network.NetworkConnection(
         state=rdf_client_network.NetworkConnection.State.LISTEN,
         type=rdf_client_network.NetworkConnection.Type.SOCK_STREAM,
         local_address=rdf_client_network.NetworkEndpoint(
-            ip="192.168.1.1", port=31337),
+            ip="192.168.1.1", port=31337
+        ),
         remote_address=rdf_client_network.NetworkEndpoint(
-            ip="1.2.3.4", port=6667),
+            ip="1.2.3.4", port=6667
+        ),
         pid=1,
-        ctime=0)
+        ctime=0,
+    )
 
     return [conn1, conn2]
 
@@ -40,11 +44,12 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testNetstat(self):
     """Test that the Netstat flow works."""
     client_id = self.SetupClient(0)
-    session_id = flow_test_lib.TestFlowHelper(
-        network.Netstat.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        network.Netstat,
         ClientMock(),
         client_id=client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     # Check the results are correct.
     conns = flow_test_lib.GetFlowResults(client_id, session_id)
@@ -57,12 +62,15 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testNetstatFilter(self):
     client_id = self.SetupClient(0)
-    session_id = flow_test_lib.TestFlowHelper(
-        network.Netstat.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        network.Netstat,
         ClientMock(),
         client_id=client_id,
-        listening_only=True,
-        creator=self.test_username)
+        creator=self.test_username,
+        flow_args=network.NetstatArgs(
+            listening_only=True,
+        ),
+    )
 
     # Check the results are correct.
     conns = flow_test_lib.GetFlowResults(client_id, session_id)

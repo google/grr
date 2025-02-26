@@ -36,7 +36,6 @@ registry_handler: <
 """
 
 GRR_SECONDARY_CONFIG = """
-Client.server_urls: ["http://localhost:8000/"]
 Client.executable_signing_public_key: |
   -----BEGIN PUBLIC KEY-----
   MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMQpeVjrxmf6nPmsjHjULWhLmquSgTDK
@@ -113,9 +112,6 @@ class WindowsMsiTest(absltest.TestCase):
     self._fake_fleetspeak_service_log_file = os.path.join(
         tempfile.gettempdir(), "fake_fleetspeak_service_log_file.txt")
     stack.callback(os.unlink, self._fake_fleetspeak_service_log_file)
-    self._fake_nanny_service_log_file = os.path.join(
-        tempfile.gettempdir(), "fake_nanny_service_log_file.txt")
-    stack.callback(os.unlink, self._fake_nanny_service_log_file)
 
   def _TmpPath(self, *args) -> str:
     return os.path.join(self._tmp_dir, *args)
@@ -169,27 +165,13 @@ class WindowsMsiTest(absltest.TestCase):
         f"--logfile={self._fake_fleetspeak_service_log_file}",
     ])
 
-  def _RunFakeNannyServiceCommand(self, command: str) -> None:
-    service_name = "bar Monitor"
-    subprocess.check_call([
-        sys.executable,
-        "-m",
-        "grr_response_client_builder.fake_fleetspeak_windows_service",
-        "--command",
-        command,
-        "--service_name",
-        service_name,
-        "--logfile",
-        self._fake_nanny_service_log_file,
-    ])
-
   def testInstaller(self):
     self._BuildTemplate()
 
     with self.subTest("fleetspeak enabled"):
       self._RunFakeFleestpeakServiceCommand("install")
       self._RunFakeFleestpeakServiceCommand("start")
-      installer_path = self._RepackTemplate("fs_enabled", True, False)
+      installer_path = self._RepackTemplate("fs_enabled", False)
       self._Install(installer_path)
       time.sleep(5)
       self._AssertProcessNotRunning("foo.exe")
@@ -207,22 +189,8 @@ class WindowsMsiTest(absltest.TestCase):
         self.assertEqual(lines.count("start"), 4)
         self.assertEqual(lines.count("stop"), 4)
 
-    with self.subTest("fleetspeak enabled / removes nanny"):
-      self._RunFakeNannyServiceCommand("install")
-      self._RunFakeNannyServiceCommand("start")
-      self._AssertServiceExists("bar Monitor")
-      installer_path = self._RepackTemplate("fs_enabled_remove_nanny", True,
-                                            False)
-      self._Install(installer_path)
-      time.sleep(5)
-      self._AssertServiceDoesNotExist("bar Monitor")
-      self._Uninstall(installer_path)
-
     with self.subTest("fleetspeak bundled"):
-      self._RunFakeNannyServiceCommand("install")
-      self._RunFakeNannyServiceCommand("start")
-      self._AssertServiceExists("bar Monitor")
-      installer_path = self._RepackTemplate("fs_bundled", True, True)
+      installer_path = self._RepackTemplate("fs_bundled", True)
       self._Install(installer_path)
       self._WaitForProcess("fleetspeak-client.exe")
       self._WaitForProcess("bar.exe")
@@ -235,7 +203,6 @@ class WindowsMsiTest(absltest.TestCase):
       self._AssertProcessNotRunning("bar.exe")
       self._AssertServiceDoesNotExist(
           config.CONFIG["Client.fleetspeak_service_name"])
-      self._AssertServiceDoesNotExist("bar Monitor")
 
   def _BuildTemplate(self) -> None:
     wix_tools_path = self._WixToolsPath()
@@ -250,13 +217,10 @@ class WindowsMsiTest(absltest.TestCase):
         "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
         "-p",
         "ClientBuilder.build_msi=true",
-        "-p",
-        "ClientBuilder.use_prebuilt_nanny=true",
     ]
     subprocess.check_call(args)
 
-  def _RepackTemplate(self, directory: str, fleetspeak_enabled: bool,
-                      fleetspeak_bundled: bool) -> str:
+  def _RepackTemplate(self, directory: str, fleetspeak_bundled: bool) -> str:
     fs_config = self._TmpPath("fs_config.txt")
     with open(fs_config, "w") as f:
       f.write(FLEETSPEAK_CONFIG)
@@ -283,8 +247,6 @@ class WindowsMsiTest(absltest.TestCase):
         glob.glob(self._TmpPath("*.zip"))[0],
         "--sign",
         "-p",
-        f"Client.fleetspeak_enabled={fleetspeak_enabled}",
-        "-p",
         f"ClientBuilder.fleetspeak_bundled={fleetspeak_bundled}",
         "-p",
         f"ClientBuilder.fleetspeak_client_config={fs_config}",
@@ -292,8 +254,6 @@ class WindowsMsiTest(absltest.TestCase):
         "ClientBuilder.output_extension=.msi",
         "-p",
         "ClientBuilder.console=true",
-        "-p",
-        "Nanny.service_binary_name=foo.exe",
         "-p",
         "Client.name=bar",
         "-p",

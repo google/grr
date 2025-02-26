@@ -60,8 +60,8 @@ const HuntGraphController = class {
       this.huntId = this.scope_['huntId'];
       this.inProgress = true;
 
-      var url = 'hunts/' + this.huntId + '/client-completion-stats';
-      var params = {'strip_type_info': 1, 'size': this.maxSampleSize};
+      const url = 'hunts/' + this.huntId + '/client-completion-stats';
+      const params = {'strip_type_info': 1, 'size': this.maxSampleSize};
       this.grrApiService_.get(url, params)
           .then(this.onHuntGraphFetched_.bind(this));
     }
@@ -93,7 +93,7 @@ const HuntGraphController = class {
    * @private
    */
   parseDataPoints_(points) {
-    var result = [];
+    const result = [];
     angular.forEach(points, function(point) {
       result.push([
         // Convert floating-point seconds to milliseconds.
@@ -108,7 +108,7 @@ const HuntGraphController = class {
    * @private
    */
   drawGraph_() {
-    var graphElement = $(this.element_).find('.client-completion-graph');
+    const graphElement = $(this.element_).find('.client-completion-graph');
 
     if (graphElement && this.informationAvailable) {
       graphElement.resize(() => {

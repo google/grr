@@ -243,8 +243,9 @@ class ProcessList(_RepresenterList):
       return
 
     header = (
-        '{pid:>6s} {user:9s} {ni:>3s} {virt:>5s} {res:>5s} {s:1s} {cpu:4s} '
-        '{mem:4s} {cmd}')
+        '{pid:>6s} {user:9s} {ni:>3s} {virt:>5s} {res:>5s} {s:1s} '
+        '{mem:4s} {cmd}'
+    )
     header = header.format(
         pid='PID',
         user='USER',
@@ -252,7 +253,6 @@ class ProcessList(_RepresenterList):
         virt='VIRT',
         res='RES',
         s='S',
-        cpu='CPU%',
         mem='MEM%',
         cmd='Command')
 
@@ -360,13 +360,13 @@ class _ProcessData(object):
     self.virt = humanize.naturalsize(process.VMS_size, gnu=True, format='%.0f')
     self.res = humanize.naturalsize(process.RSS_size, gnu=True, format='%.0f')
     self.status = process.status[:1].upper()
-    self.cpu = '{:.1f}'.format(process.cpu_percent)
     self.mem = '{:.1f}'.format(process.memory_percent)
     self.command = process.exe
 
   def __str__(self) -> Text:
-    data = ('{pid:6d} {user:9s} {ni:3d} {virt:>5s} {res:>5s} {s:1s} {cpu:>4s} '
-            '{mem:>4s} {cmd}')
+    data = (
+        '{pid:6d} {user:9s} {ni:3d} {virt:>5s} {res:>5s} {s:1s} {mem:>4s} {cmd}'
+    )
 
     return data.format(
         pid=self.pid,
@@ -375,6 +375,5 @@ class _ProcessData(object):
         virt=str(self.virt),
         res=str(self.res),
         s=self.status,
-        cpu=self.cpu,
         mem=self.mem,
         cmd=self.command)

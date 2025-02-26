@@ -29,8 +29,8 @@ class ApiInstantExportTest(api_integration_test_lib.ApiIntegrationTest):
     )
 
     client_id = self.SetupClient(0)
-    flow_id = flow_test_lib.TestFlowHelper(
-        processes.ListProcesses.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        processes.ListProcesses,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
         creator=self.test_username,

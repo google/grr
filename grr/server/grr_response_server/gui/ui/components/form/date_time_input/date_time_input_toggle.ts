@@ -4,6 +4,7 @@ import {DateTimeInput} from '../../../components/form/date_time_input/date_time_
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
+  standalone: false,
   selector: 'date-time-input-toggle',
   templateUrl: './date_time_input_toggle.ng.html',
   styleUrls: ['./date_time_input_toggle.scss'],

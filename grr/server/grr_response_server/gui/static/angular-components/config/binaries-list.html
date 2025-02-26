@@ -5,7 +5,7 @@
         ng-click="controller.onBinaryClicked(binary)">
       <td>
         <span ng-if="::binary.dirName.length > 0" class="path">
-          <strong>{$ ::binary.dirName $}</strong> / {$ ::binary.baseName $}
+          <strong>{$ ::binary.dirName $}</strong>/{$ ::binary.baseName $}
         </span>
         <span ng-if="::binary.dirName.length === 0" class="path">
           {$ ::binary.baseName $}

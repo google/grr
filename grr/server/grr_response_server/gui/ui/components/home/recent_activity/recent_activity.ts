@@ -23,18 +23,21 @@ function uniqueClientsApprovals(
  * Displays the recently accessed clients and their flows created by the user.
  */
 @Component({
+  standalone: false,
   selector: 'app-recent-activity',
   templateUrl: './recent_activity.ng.html',
   styleUrls: ['./recent_activity.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecentActivity {
-  constructor(private readonly homePageGlobalStore: HomePageGlobalStore) {}
+  constructor(private readonly homePageGlobalStore: HomePageGlobalStore) {
+    this.recentClientApprovals$ =
+      this.homePageGlobalStore.recentClientApprovals$.pipe(
+        map(uniqueClientsApprovals),
+      );
+  }
 
-  readonly recentClientApprovals$ =
-    this.homePageGlobalStore.recentClientApprovals$.pipe(
-      map(uniqueClientsApprovals),
-    );
+  readonly recentClientApprovals$;
 
   trackClient(index: number, approval: ClientApproval) {
     return approval.subject.clientId;

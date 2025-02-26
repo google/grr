@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Module containing code for user notifications reading/writing."""
+
 from typing import Optional
 
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def _HostPrefix(client_id):
@@ -24,12 +24,32 @@ def _HostPrefix(client_id):
     return ""
 
 
-# TODO: Use protos in this signature instead.
+def ClientIdFromObjectReference(
+    object_reference: objects_pb2.ObjectReference,
+) -> Optional[str]:
+  """Returns the client ID from the given object reference, or None."""
+  if object_reference.reference_type == objects_pb2.ObjectReference.CLIENT:
+    return object_reference.client.client_id
+  elif object_reference.reference_type == objects_pb2.ObjectReference.FLOW:
+    return object_reference.flow.client_id
+  elif object_reference.reference_type == objects_pb2.ObjectReference.VFS_FILE:
+    return object_reference.vfs_file.client_id
+  elif (
+      object_reference.reference_type
+      == objects_pb2.ObjectReference.APPROVAL_REQUEST
+      and object_reference.approval_request.approval_type
+      == objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
+  ):
+    return object_reference.approval_request.subject_id
+  else:
+    return None
+
+
 def Notify(
     username: str,
-    notification_type: rdf_objects.UserNotification.Type,
+    notification_type: "objects_pb2.UserNotification.Type",
     message: str,
-    object_reference: Optional[rdf_objects.ObjectReference],
+    object_reference: Optional[objects_pb2.ObjectReference],
 ) -> None:
   """Schedules a new-style REL_DB user notification."""
 
@@ -38,15 +58,15 @@ def Notify(
     return
 
   if object_reference:
-    uc = object_reference.UnionCast()
-    if hasattr(uc, "client_id"):
-      message = _HostPrefix(uc.client_id) + message
+    client_id = ClientIdFromObjectReference(object_reference)
+    if client_id:
+      message = _HostPrefix(client_id) + message
 
-  n = rdf_objects.UserNotification(
+  n = objects_pb2.UserNotification(
       username=username,
       notification_type=notification_type,
-      state=rdf_objects.UserNotification.State.STATE_PENDING,
+      state=objects_pb2.UserNotification.State.STATE_PENDING,
       message=message,
-      reference=object_reference)
-  proto_n = mig_objects.ToProtoUserNotification(n)
-  data_store.REL_DB.WriteUserNotification(proto_n)
+      reference=object_reference,
+  )
+  data_store.REL_DB.WriteUserNotification(n)

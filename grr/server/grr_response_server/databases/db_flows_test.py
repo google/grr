@@ -9,6 +9,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 from unittest import mock
 
 from google.protobuf import any_pb2
+from google.protobuf import timestamp_pb2
 from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -23,6 +24,7 @@ from grr_response_server.flows import file
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import test_lib
+from grr_response_proto import rrg_pb2
 
 
 class DatabaseTestFlowMixin(object):
@@ -888,10 +890,9 @@ class DatabaseTestFlowMixin(object):
     response_thread.join()
     status_thread.join()
 
-    ready_requests = self.db.ReadFlowRequestsReadyForProcessing(
+    ready_requests = self.db.ReadFlowRequests(
         client_id=client_id,
         flow_id=flow_id,
-        next_needed_request=1,
     )
     self.assertIn(request.request_id, ready_requests)
 
@@ -1828,160 +1829,119 @@ class DatabaseTestFlowMixin(object):
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id1, flow_id2)
     self.assertEqual(all_requests, [])
 
-  def testReadFlowRequestsReadyForProcessing(self):
-    client_id = "C.1234567890000000"
-    flow_id = "12344321"
-
-    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
-        client_id, flow_id, next_needed_request=1
-    )
-    self.assertEqual(requests_for_processing, {})
-
+  def testReadFlowRequests_ReadsAllRequestsAndResponses(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(
         self.db, client_id, next_request_to_process=2
     )
 
-    for request_id in [1, 3, 4, 5, 7]:
-      request = flows_pb2.FlowRequest(
-          client_id=client_id,
-          flow_id=flow_id,
-          request_id=request_id,
-          needs_processing=True,
+    flow_requests = self.db.ReadFlowRequests(client_id, flow_id)
+    self.assertEmpty(flow_requests)
+
+    # Write some requests and responses.
+
+    request_ids = [10, 1]  # Requests might not arrive in order.
+    response_ids = [4, 1, 2]  # Responses might not arrive in order.
+
+    requests = []
+    for request_id in request_ids:
+      requests.append(
+          flows_pb2.FlowRequest(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=request_id,
+              needs_processing=True,
+              next_response_id=1,
+          )
       )
-      self.db.WriteFlowRequests([request])
+    self.db.WriteFlowRequests(requests)
 
-    # Request 4 has some responses.
-    responses = [
-        flows_pb2.FlowResponse(
-            client_id=client_id, flow_id=flow_id, request_id=4, response_id=i
-        )
-        for i in range(3)
-    ]
-    before_write_ts = self.db.Now()
-    self.db.WriteFlowResponses(responses)
-    after_write_ts = self.db.Now()
-
-    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
-        client_id, flow_id, next_needed_request=3
-    )
-
-    # We expect three requests here. Req #1 is old and should not be there, req
-    # #7 can't be processed since we are missing #6 in between. That leaves
-    # requests #3, #4 and #5.
-    self.assertLen(requests_for_processing, 3)
-    self.assertEqual(list(requests_for_processing), [3, 4, 5])
-
-    for request_id in requests_for_processing:
-      request, _ = requests_for_processing[request_id]
-      self.assertEqual(request_id, request.request_id)
-
-    for res, exp in zip(requests_for_processing[4][1], responses):
-      self.assertEqual(res.client_id, exp.client_id)
-      self.assertEqual(res.flow_id, exp.flow_id)
-      self.assertEqual(res.request_id, exp.request_id)
-      self.assertEqual(res.response_id, exp.response_id)
-      self.assertBetween(res.timestamp, before_write_ts, after_write_ts)
-
-  def testReadFlowRequestsReadyForProcessingHandlesIncrementalResponses(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    for request_id in [1, 3, 4, 5, 7]:
-      request = flows_pb2.FlowRequest(
-          client_id=client_id,
-          flow_id=flow_id,
-          request_id=request_id,
-          callback_state="Callback" if request_id != 5 else None,
-          next_state="Next",
-      )
-      self.db.WriteFlowRequests([request])
-
-    # Request 4 has some responses.
     responses = []
-    for i in range(3):
+    # Responses for request with id 10.
+    for response_id in response_ids:
       responses.append(
           flows_pb2.FlowResponse(
               client_id=client_id,
               flow_id=flow_id,
-              request_id=4,
-              response_id=i + 1,
+              request_id=10,
+              response_id=response_id,
           )
       )
-
     before_write_ts = self.db.Now()
     self.db.WriteFlowResponses(responses)
     after_write_ts = self.db.Now()
 
-    # An incremental request is always returned as ready for processing.
-    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
-        client_id, flow_id, next_needed_request=3
-    )
+    flow_requests = self.db.ReadFlowRequests(client_id, flow_id)
+    self.assertLen(flow_requests, 2)
 
-    # We expect three requests here. Req #1 is old and should not be there, req
-    # #5 can't be processed since it's not incremental and is not done. That
-    # leaves requests #3, #4 and #7.
-    self.assertLen(requests_for_processing, 3)
-    self.assertEqual(list(requests_for_processing), [3, 4, 7])
+    self.assertEqual(set(flow_requests.keys()), set(request_ids))
 
-    # Requests for processing contains pairs of (request, responses) as values.
-    self.assertEqual(requests_for_processing[3][1], [])
-    self.assertEqual(requests_for_processing[7][1], [])
+    request_1, responses_1 = flow_requests[1]
+    self.assertEqual(request_1.request_id, 1)
+    self.assertEqual(request_1.flow_id, flow_id)
+    self.assertEqual(request_1.client_id, client_id)
+    self.assertEqual(request_1.needs_processing, True)
+    self.assertEmpty(responses_1)
 
-    for req, exp in zip(requests_for_processing[4][1], responses):
-      self.assertEqual(req.client_id, exp.client_id)
-      self.assertEqual(req.flow_id, exp.flow_id)
-      self.assertEqual(req.request_id, exp.request_id)
-      self.assertEqual(req.response_id, exp.response_id)
+    request_10, responses_10 = flow_requests[10]
+    self.assertEqual(request_10.request_id, 10)
+    self.assertEqual(request_10.flow_id, flow_id)
+    self.assertEqual(request_10.client_id, client_id)
+    self.assertEqual(request_10.needs_processing, True)
+    self.assertEqual(request_10.next_response_id, 1)
+    self.assertLen(responses_10, 3)
 
-      self.assertBetween(req.timestamp, before_write_ts, after_write_ts)
+    expected_responses = sorted(responses, key=lambda r: r.response_id)
+    for response, expected in zip(responses_10, expected_responses):
+      self.assertEqual(response.client_id, expected.client_id)
+      self.assertEqual(response.flow_id, expected.flow_id)
+      self.assertEqual(response.request_id, expected.request_id)
+      self.assertEqual(response.response_id, expected.response_id)
+      self.assertBetween(response.timestamp, before_write_ts, after_write_ts)
 
-  def testReadFlowRequestsReadyForProcessingWithUnorderedIncrementalResponses(
-      self,
-  ):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+  def testReadFlowRequests_ReturnsOnlyResultsForGivenFlowAndClient(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    flow_id_1 = db_test_utils.InitializeFlow(self.db, client_id_1)
 
-    request = flows_pb2.FlowRequest(
-        client_id=client_id,
-        flow_id=flow_id,
-        request_id=3,
-        next_response_id=4,
-        callback_state="Callback",
-        next_state="Next",
-    )
-    self.db.WriteFlowRequests([request])
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+    flow_id_2 = db_test_utils.InitializeFlow(self.db, client_id_2)
 
-    # Request 4 has some responses.
-    responses = [
-        flows_pb2.FlowResponse(
-            client_id=client_id, flow_id=flow_id, request_id=3, response_id=i
-        )
-        for i in [1, 2, 5, 7]
-    ]
-    before_write_ts = self.db.Now()
+    requests = []
+    responses = []
+    for client_id, flow_id in (
+        (client_id_1, flow_id_1),
+        (client_id_2, flow_id_2),
+    ):
+      requests.append(
+          flows_pb2.FlowRequest(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=1,
+          )
+      )
+      responses.append(
+          flows_pb2.FlowResponse(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=1,
+              response_id=2,
+          )
+      )
+    self.db.WriteFlowRequests(requests)
     self.db.WriteFlowResponses(responses)
-    after_write_ts = self.db.Now()
 
-    # An incremental request is always returned as ready for processing.
-    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
-        client_id, flow_id, next_needed_request=3
-    )
+    flow_requests = self.db.ReadFlowRequests(client_id_1, flow_id_1)
 
-    # requests_for_processing is a dict that's expected to have a single element
-    # with key 3.
-    self.assertLen(requests_for_processing, 1)
+    self.assertEqual(list(flow_requests), [1])
+    request, responses = flow_requests[1]
 
-    # Requests for processing contains pairs of (request, responses) as values.
-    _, fetched_responses = requests_for_processing[3]
-    # Only responses with response_id >= than request.next_response_id should
-    # be returned.
-    for res, exp in zip(fetched_responses, [responses[2], responses[3]]):
-      self.assertEqual(res.client_id, exp.client_id)
-      self.assertEqual(res.flow_id, exp.flow_id)
-      self.assertEqual(res.request_id, exp.request_id)
-      self.assertEqual(res.response_id, exp.response_id)
-      self.assertBetween(res.timestamp, before_write_ts, after_write_ts)
+    self.assertEqual(request.client_id, client_id_1)
+    self.assertEqual(request.flow_id, flow_id_1)
+
+    self.assertLen(responses, 1)
+    self.assertEqual(responses[0].client_id, client_id_1)
+    self.assertEqual(responses[0].flow_id, flow_id_1)
+    self.assertEqual(responses[0].response_id, 2)
 
   def testUpdateIncrementalFlowRequests(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3228,6 +3188,242 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(context.exception.client_id, client_id)
     self.assertEqual(context.exception.flow_id, flow_id)
 
+  def testWriteFlowRRGLogsUnknownClient(self):
+    client_id = "C.0123456789ABCDEF"
+    flow_id = "ABCDEF00"
+    request_id = random.randint(0, 1024)
+
+    with self.assertRaises(db.UnknownFlowError) as context:
+      self.db.WriteFlowRRGLogs(
+          client_id=client_id,
+          flow_id=flow_id,
+          request_id=request_id,
+          logs={
+              1: rrg_pb2.Log(message="lorem ipsum"),
+          },
+      )
+
+    self.assertEqual(context.exception.client_id, client_id)
+    self.assertEqual(context.exception.flow_id, flow_id)
+
+  def testWriteFlowRRGLogsUnknownFlow(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = "ABCDEF00"
+    request_id = random.randint(0, 1024)
+
+    with self.assertRaises(db.UnknownFlowError) as context:
+      self.db.WriteFlowRRGLogs(
+          client_id=client_id,
+          flow_id=flow_id,
+          request_id=request_id,
+          logs={
+              1: rrg_pb2.Log(message="lorem ipsum"),
+          },
+      )
+
+    self.assertEqual(context.exception.client_id, client_id)
+    self.assertEqual(context.exception.flow_id, flow_id)
+
+  def testWriteFlowRRGLogsEmpty(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={},
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=0, count=128)
+    self.assertEmpty(logs)
+
+  def testWriteFlowRRGLogsSingle(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            1: rrg_pb2.Log(
+                level=rrg_pb2.Log.INFO,
+                timestamp=timestamp_pb2.Timestamp(seconds=1337),
+                message="lorem ipsum",
+            ),
+        },
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=0, count=128)
+    self.assertLen(logs, 1)
+    self.assertEqual(logs[0].level, rrg_pb2.Log.INFO)
+    self.assertEqual(logs[0].timestamp.seconds, 1337)
+    self.assertEqual(logs[0].message, "lorem ipsum")
+
+  def testWriteFlowRRGLogsMultipleSameFlow(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            1: rrg_pb2.Log(message="lorem ipsum"),
+            2: rrg_pb2.Log(message="sit dolor amet"),
+        },
+    )
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            3: rrg_pb2.Log(message="consectetur adipiscing elit"),
+            4: rrg_pb2.Log(message="sed do eiusmod"),
+        },
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=0, count=1024)
+    self.assertLen(logs, 4)
+    self.assertEqual(logs[0].message, "lorem ipsum")
+    self.assertEqual(logs[1].message, "sit dolor amet")
+    self.assertEqual(logs[2].message, "consectetur adipiscing elit")
+    self.assertEqual(logs[3].message, "sed do eiusmod")
+
+  def testWriteFlowRRGLogsMultipleDifferentFlows(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    flow_id_1_1 = db_test_utils.InitializeFlow(self.db, client_id_1)
+    flow_id_1_2 = db_test_utils.InitializeFlow(self.db, client_id_1)
+    flow_id_2_1 = db_test_utils.InitializeFlow(self.db, client_id_2)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id_1,
+        flow_id=flow_id_1_1,
+        request_id=random.randint(0, 1024),
+        logs={
+            1: rrg_pb2.Log(message="lorem ipsum"),
+            2: rrg_pb2.Log(message="sit dolor amet"),
+        },
+    )
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id_1,
+        flow_id=flow_id_1_2,
+        request_id=random.randint(0, 1024),
+        logs={
+            1: rrg_pb2.Log(message="consectetur adipiscing elit"),
+        },
+    )
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id_2,
+        flow_id=flow_id_2_1,
+        request_id=random.randint(0, 1024),
+        logs={
+            1: rrg_pb2.Log(message="sed do eiusmod"),
+        },
+    )
+
+    logs_1_1 = self.db.ReadFlowRRGLogs(
+        client_id=client_id_1,
+        flow_id=flow_id_1_1,
+        offset=0,
+        count=1024,
+    )
+    self.assertLen(logs_1_1, 2)
+    self.assertEqual(logs_1_1[0].message, "lorem ipsum")
+    self.assertEqual(logs_1_1[1].message, "sit dolor amet")
+
+    logs_1_2 = self.db.ReadFlowRRGLogs(
+        client_id=client_id_1,
+        flow_id=flow_id_1_2,
+        offset=0,
+        count=1024,
+    )
+    self.assertLen(logs_1_2, 1)
+    self.assertEqual(logs_1_2[0].message, "consectetur adipiscing elit")
+
+    logs_2_1 = self.db.ReadFlowRRGLogs(
+        client_id=client_id_2,
+        flow_id=flow_id_2_1,
+        offset=0,
+        count=1024,
+    )
+    self.assertLen(logs_2_1, 1)
+    self.assertEqual(logs_2_1[0].message, "sed do eiusmod")
+
+  def testReadFlowRRGLogsOffset(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            1: rrg_pb2.Log(message="lorem ipsum"),
+            2: rrg_pb2.Log(message="sit dolor amet"),
+            3: rrg_pb2.Log(message="consectetur adipiscing elit"),
+            4: rrg_pb2.Log(message="sed do eiusmod"),
+        },
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=2, count=1024)
+    self.assertLen(logs, 2)
+    self.assertEqual(logs[0].message, "consectetur adipiscing elit")
+    self.assertEqual(logs[1].message, "sed do eiusmod")
+
+  def testReadFlowRRGLogsCount(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            1: rrg_pb2.Log(message="lorem ipsum"),
+            2: rrg_pb2.Log(message="sit dolor amet"),
+            3: rrg_pb2.Log(message="consectetur adipiscing elit"),
+            4: rrg_pb2.Log(message="sed do eiusmod"),
+        },
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=0, count=2)
+    self.assertLen(logs, 2)
+    self.assertEqual(logs[0].message, "lorem ipsum")
+    self.assertEqual(logs[1].message, "sit dolor amet")
+
+  def testReadFlowRRGLogsOffsetAndCount(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    request_id = random.randint(0, 1024)
+
+    self.db.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs={
+            1: rrg_pb2.Log(message="lorem ipsum"),
+            2: rrg_pb2.Log(message="sit dolor amet"),
+            3: rrg_pb2.Log(message="consectetur adipiscing elit"),
+            4: rrg_pb2.Log(message="sed do eiusmod"),
+            5: rrg_pb2.Log(message="tempor incididunt ut"),
+        },
+    )
+
+    logs = self.db.ReadFlowRRGLogs(client_id, flow_id, offset=1, count=3)
+    self.assertLen(logs, 3)
+    self.assertEqual(logs[0].message, "sit dolor amet")
+    self.assertEqual(logs[1].message, "consectetur adipiscing elit")
+    self.assertEqual(logs[2].message, "sed do eiusmod")
+
   def _WriteFlowOutputPluginLogEntries(
       self, client_id, flow_id, output_plugin_id
   ):
@@ -3775,10 +3971,9 @@ class DatabaseLargeTestFlowMixin(object):
         nr_responses_expected=40002,
     )
 
-    rrp = self.db.ReadFlowRequestsReadyForProcessing(
+    rrp = self.db.ReadFlowRequests(
         request.client_id,
         request.flow_id,
-        next_needed_request=request.request_id,
     )
     self.assertLen(rrp, 1)
     fetched_request, fetched_responses = rrp[request.request_id]

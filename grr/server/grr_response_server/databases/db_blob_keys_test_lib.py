@@ -4,7 +4,7 @@
 import os
 
 from grr_response_server.databases import db as abstract_db
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class DatabaseTestBlobKeysMixin:
@@ -27,13 +27,13 @@ class DatabaseTestBlobKeysMixin:
     self.assertEmpty(results)
 
   def testReadBlobEncryptionKeysNonExistent(self):
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
     self.assertEqual(results, {blob_id: None})
 
   def testReadBlobEncryptionKeysSingle(self):
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 
@@ -41,9 +41,9 @@ class DatabaseTestBlobKeysMixin:
     self.assertEqual(results, {blob_id: "foo"})
 
   def testReadBlobEncryptionKeysMultiple(self):
-    blob_id_1 = blobs.BlobID(os.urandom(32))
-    blob_id_2 = blobs.BlobID(os.urandom(32))
-    blob_id_3 = blobs.BlobID(os.urandom(32))
+    blob_id_1 = models_blobs.BlobID(os.urandom(32))
+    blob_id_2 = models_blobs.BlobID(os.urandom(32))
+    blob_id_3 = models_blobs.BlobID(os.urandom(32))
 
     self.db.WriteBlobEncryptionKeys({
         blob_id_1: "foo",
@@ -62,7 +62,7 @@ class DatabaseTestBlobKeysMixin:
     )
 
   def testReadBlobEncryptionKeysOverridden(self):
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 

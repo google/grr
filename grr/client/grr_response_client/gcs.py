@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Utilities for working with Google Cloud Storage."""
 
+from collections.abc import Callable
 import datetime
-from typing import Callable
-from typing import IO
-from typing import Optional
+from typing import IO, Optional
 
 import requests
 from requests import exceptions

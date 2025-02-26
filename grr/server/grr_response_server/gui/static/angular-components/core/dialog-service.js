@@ -74,7 +74,8 @@ exports.DialogService = class {
       });
     }
 
-    const template = '<' + tagName + ' ' + paramString + ' close="$close()" />';
+    const template = '<' + tagName + ' ' + paramString + ' close="$close()">' +
+        '</' + tagName + '>';
     const modalParams = angular.extend(
         {template: template, scope: modalScope}, opt_modalParams || {});
     const modalInstance = this.uibModal_.open(modalParams);

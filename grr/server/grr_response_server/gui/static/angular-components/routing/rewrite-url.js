@@ -18,11 +18,11 @@ const parseHash = function(hash) {
     hash = hash.substr(1);
   }
 
-  var result = {};
-  var parts = hash.split('&');
+  const result = {};
+  const parts = hash.split('&');
 
-  for (var i = 0; i < parts.length; i++) {
-    var kv = parts[i].split('=');
+  for (let i = 0; i < parts.length; i++) {
+    const kv = parts[i].split('=');
     if (kv[0] && kv[1]) {
       result[kv[0]] = decodeURIComponent(kv[1].replace(/\+/g, ' ') || '');
     }
@@ -39,27 +39,28 @@ const parseHash = function(hash) {
  * @export
  */
 exports.rewriteUrl = function(url) {
-  var hashState = parseHash(url);
+  const hashState = parseHash(url);
 
-  var clientId = hashState['c'];
+  let clientId = hashState['c'];
   if (clientId && clientId.indexOf('aff4:/') === 0) {
     clientId = clientId.split('/')[1];
   }
 
-  var main = hashState['main'];
+  const main = hashState['main'];
+  let path;
   switch(main) {
       //
       // Management redirects.
       //
 
     case 'ManageCron':
-      var cronJobUrn = hashState['cron_job_urn'];
-      var cronJobId = cronJobUrn ? cronJobUrn.split('/')[2] : '';
+      const cronJobUrn = hashState['cron_job_urn'];
+      const cronJobId = cronJobUrn ? cronJobUrn.split('/')[2] : '';
       return '/crons/' + cronJobId;
 
     case 'ManageHunts':
-      var huntUrn = hashState['hunt_id'];
-      var huntId = huntUrn ? huntUrn.split('/')[2] : '';
+      const huntUrn = hashState['hunt_id'];
+      const huntId = huntUrn ? huntUrn.split('/')[2] : '';
       return '/hunts/' + huntId;
 
     case 'GlobalLaunchFlows':
@@ -91,8 +92,8 @@ exports.rewriteUrl = function(url) {
     // TODO(user): get rid of GrantAccess rewrite as soon as links in
     // previously send approval notifications are not important.
     case 'GrantAccess':
-      var acl = hashState['acl'] || '';
-      var routingState = aff4UrnToUrl(acl);
+      const acl = hashState['acl'] || '';
+      const routingState = aff4UrnToUrl(acl);
       switch (routingState['state']) {
         case 'clientApproval':
           return ['/users',
@@ -130,14 +131,13 @@ exports.rewriteUrl = function(url) {
       //
 
     case 'HostTable':
-      var q = hashState['q'] || '';
+      const q = hashState['q'] || '';
       return '/search?q=' + q;
 
     case 'HostInformation':
       return '/clients/' + clientId;
 
     case 'VirtualFileSystemView':
-      var path;
       if (hashState['aff4_path']) {
         path = hashState['aff4_path'].slice(
             hashState['c'].length + 1);
@@ -148,8 +148,8 @@ exports.rewriteUrl = function(url) {
 
     case 'TimelineMain':
     case 'ContainerViewer':
-      var path = hashState['container'] || '';
-      var query = hashState['query'] || '';
+      path = hashState['container'] || '';
+      const query = hashState['query'] || '';
       return '/clients/' + clientId + '/vfs-container' +
         '?path=' + path + '&query=' + query;
 
@@ -157,8 +157,8 @@ exports.rewriteUrl = function(url) {
       return '/clients/' + clientId + '/launch-flow';
 
     case 'ManageFlows':
-      var flowUrn = hashState['flow'];
-      var flowId = flowUrn ? flowUrn.split('/')[3] : '';
+      const flowUrn = hashState['flow'];
+      const flowId = flowUrn ? flowUrn.split('/')[3] : '';
       return '/clients/' + clientId + '/flows/' + flowId;
 
     case 'DebugClientRequestsView':

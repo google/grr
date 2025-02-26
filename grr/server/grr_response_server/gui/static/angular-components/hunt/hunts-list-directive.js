@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.huntsListDirective');
-goog.module.declareLegacyNamespace();
 
 const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
 const {ApiService} = goog.require('grrUi.core.apiService');
@@ -153,7 +152,7 @@ HuntsListController.prototype.newHunt = function() {
 
   const modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-form on-resolve="resolve()" ' +
-        'on-reject="reject()" />',
+        'on-reject="reject()"></grr-new-hunt-wizard-form>',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
@@ -264,7 +263,7 @@ HuntsListController.prototype.copyHunt = function() {
 
   const modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-copy-form on-resolve="resolve()" ' +
-        'on-reject="reject()" hunt-id="huntId" />',
+        'on-reject="reject()" hunt-id="huntId"></grr-new-hunt-wizard-copy-form>',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'

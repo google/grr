@@ -39,6 +39,7 @@ const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[] | undefined> = (
  * Component that displays results of CollectMultipleFiles flow.
  */
 @Component({
+  standalone: false,
   selector: 'collect-multiple-files-details',
   templateUrl: './collect_multiple_files_details.ng.html',
   styleUrls: ['./collect_multiple_files_details.scss'],
@@ -75,9 +76,12 @@ export class CollectMultipleFilesDetails extends Plugin {
     }),
   );
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
+    const items = super.getExportMenuItems(flow, exportCommandPrefix);
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
-    const items = super.getExportMenuItems(flow);
 
     if (items.find((item) => item.url === downloadItem.url)) {
       return items;

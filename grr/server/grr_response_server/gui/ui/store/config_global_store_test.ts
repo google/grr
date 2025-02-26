@@ -1,4 +1,4 @@
-import {TestBed} from '@angular/core/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {firstValueFrom} from 'rxjs';
 
 import * as api from '../lib/api/api_interfaces';
@@ -17,7 +17,7 @@ describe('ConfigGlobalStore', () => {
   let httpApiService: HttpApiServiceMock;
   let configGlobalStore: ConfigGlobalStore;
 
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     httpApiService = mockHttpApiService();
 
     TestBed.configureTestingModule({
@@ -30,14 +30,14 @@ describe('ConfigGlobalStore', () => {
     });
 
     configGlobalStore = TestBed.inject(ConfigGlobalStore);
-  });
+  }));
 
   it('calls the API on subscription to flowDescriptors$', () => {
     configGlobalStore.flowDescriptors$.subscribe();
     expect(httpApiService.listFlowDescriptors).toHaveBeenCalled();
   });
 
-  it('correctly emits the API results in flowDescriptors$', (done) => {
+  it('correctly emits the API results in flowDescriptors$', waitForAsync(() => {
     const expected = new Map([
       [
         'ClientSideFileFinder',
@@ -63,7 +63,6 @@ describe('ConfigGlobalStore', () => {
 
     configGlobalStore.flowDescriptors$.subscribe((results) => {
       expect(results).toEqual(expected);
-      done();
     });
 
     httpApiService.mockedObservables.listFlowDescriptors.next([
@@ -82,21 +81,20 @@ describe('ConfigGlobalStore', () => {
         defaultArgs: {'@type': 'test-type'},
       },
     ]);
-  });
+  }));
 
   it('calls the API on subscription to artifactDescriptors$', () => {
     configGlobalStore.artifactDescriptors$.subscribe();
     expect(httpApiService.listArtifactDescriptors).toHaveBeenCalled();
   });
 
-  it('correctly emits the API results in artifactDescriptors$', (done) => {
+  it('correctly emits the API results in artifactDescriptors$', waitForAsync(() => {
     configGlobalStore.artifactDescriptors$.subscribe((results) => {
       expect(results.get('TestArtifact')).toEqual(
         jasmine.objectContaining({
           name: 'TestArtifact',
         }),
       );
-      done();
     });
 
     httpApiService.mockedObservables.listArtifactDescriptors.next([
@@ -106,21 +104,20 @@ describe('ConfigGlobalStore', () => {
         },
       },
     ]);
-  });
+  }));
 
   it('calls the API on subscription to outputPluginDescriptors$', () => {
     configGlobalStore.outputPluginDescriptors$.subscribe();
     expect(httpApiService.listOutputPluginDescriptors).toHaveBeenCalled();
   });
 
-  it('correctly emits the API results in outputPluginDescriptors$', (done) => {
+  it('correctly emits the API results in outputPluginDescriptors$', waitForAsync(() => {
     configGlobalStore.outputPluginDescriptors$.subscribe((results) => {
       expect(results.get('TestOutputPlugin')).toEqual(
         jasmine.objectContaining({
           name: 'TestOutputPlugin',
         }),
       );
-      done();
     });
 
     httpApiService.mockedObservables.listOutputPluginDescriptors.next([
@@ -128,7 +125,7 @@ describe('ConfigGlobalStore', () => {
         name: 'TestOutputPlugin',
       },
     ]);
-  });
+  }));
 
   it('calls the API on subscription to uiConfig$', () => {
     expect(httpApiService.fetchUiConfig).not.toHaveBeenCalled();
@@ -136,32 +133,30 @@ describe('ConfigGlobalStore', () => {
     expect(httpApiService.fetchUiConfig).toHaveBeenCalled();
   });
 
-  it('correctly emits the API results in uiConfig$', (done) => {
+  it('correctly emits the API results in uiConfig$', waitForAsync(() => {
     const expected: api.ApiUiConfig = {
       profileImageUrl: 'https://foo',
     };
 
     configGlobalStore.uiConfig$.subscribe((results) => {
       expect(results).toEqual(expected);
-      done();
     });
 
     httpApiService.mockedObservables.fetchUiConfig.next({
       profileImageUrl: 'https://foo',
     });
-  });
+  }));
 
   it('calls the API on subscription to clientsLabels$', () => {
     configGlobalStore.clientsLabels$.subscribe();
     expect(httpApiService.fetchAllClientsLabels).toHaveBeenCalled();
   });
 
-  it('correctly emits the translated API results in clientLabels$', (done) => {
+  it('correctly emits the translated API results in clientLabels$', waitForAsync(() => {
     const expected = ['first_label', 'second_label'];
 
     configGlobalStore.clientsLabels$.subscribe((results) => {
       expect(results).toEqual(expected);
-      done();
     });
 
     httpApiService.mockedObservables.fetchAllClientsLabels.next([
@@ -174,7 +169,7 @@ describe('ConfigGlobalStore', () => {
         name: 'second_label',
       },
     ]);
-  });
+  }));
 
   it('calls the API on subscription to binaries$', () => {
     expect(httpApiService.listBinaries).not.toHaveBeenCalled();
@@ -203,4 +198,44 @@ describe('ConfigGlobalStore', () => {
       }),
     ]);
   });
+
+  it('calls the API on subscription to webAuthType$', () => {
+    expect(httpApiService.fetchWebAuthType).not.toHaveBeenCalled();
+
+    configGlobalStore.webAuthType$.subscribe();
+
+    expect(httpApiService.fetchWebAuthType).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in webAuthType$', waitForAsync(() => {
+    const expected = 'test-web-auth-type';
+
+    configGlobalStore.webAuthType$.subscribe((results) => {
+      expect(results).toEqual(expected);
+    });
+
+    httpApiService.mockedObservables.fetchWebAuthType.next(
+      'test-web-auth-type',
+    );
+  }));
+
+  it('calls the API on subscription to exportCommandPrefix$', () => {
+    expect(httpApiService.fetchExportCommandPrefix).not.toHaveBeenCalled();
+
+    configGlobalStore.exportCommandPrefix$.subscribe();
+
+    expect(httpApiService.fetchExportCommandPrefix).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in exportCommandPrefix$', waitForAsync(() => {
+    const expected = 'test-web-auth-type';
+
+    configGlobalStore.exportCommandPrefix$.subscribe((results) => {
+      expect(results).toEqual(expected);
+    });
+
+    httpApiService.mockedObservables.fetchExportCommandPrefix.next(
+      'test-web-auth-type',
+    );
+  }));
 });

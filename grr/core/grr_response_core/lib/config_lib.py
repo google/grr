@@ -796,7 +796,6 @@ class GrrConfigManager(object):
           "Config was already initialized when defining %s" % descriptor.name
       )
 
-    descriptor.section = descriptor.name.split(".")[0]
     if descriptor.name in self.type_infos:
       logging.warning("Config Option %s multiply defined!", descriptor.name)
 

@@ -6,12 +6,12 @@ import functools
 import hashlib
 from typing import Iterable
 from typing import Optional
+from typing import overload
 from typing import Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server.databases import db as db_module
-from grr_response_server.databases import db_utils
 
 
 def StringToRDFProto(proto_type, value):
@@ -99,6 +99,20 @@ def Columns(iterable: Iterable[str]) -> str:
   return "({})".format(", ".join("`{}`".format(col) for col in columns))
 
 
+@overload
+def TimestampToRDFDatetime(
+    timestamp: int,
+) -> rdfvalue.RDFDatetime:
+  ...
+
+
+@overload
+def TimestampToRDFDatetime(
+    timestamp: None,
+) -> None:
+  ...
+
+
 def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
   """Converts MySQL `TIMESTAMP(6)` columns to datetime objects."""
   # TODO(hanuszczak): `timestamp` should be of MySQL type `Decimal`. However,
@@ -111,9 +125,21 @@ def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
     return rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(micros)
 
 
+@overload
 def RDFDatetimeToTimestamp(
-    datetime: Optional[rdfvalue.RDFDatetime],
-) -> Optional[str]:
+    datetime: rdfvalue.RDFDatetime,
+) -> str:
+  ...
+
+
+@overload
+def RDFDatetimeToTimestamp(
+    datetime: None,
+) -> None:
+  ...
+
+
+def RDFDatetimeToTimestamp(datetime):
   """Converts a datetime object to MySQL `TIMESTAMP(6)` column."""
   if datetime is None:
     return None
@@ -215,7 +241,7 @@ class WithTransaction(object):
 
       return self._RunInTransaction(Closure, readonly)
 
-    return db_utils.CallLogged(db_utils.CallAccounted(Decorated))
+    return Decorated
 
 
 class RetryableError(db_module.Error):

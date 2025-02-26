@@ -47,6 +47,7 @@ export type RelativeTimestampVisibility = 'visible' | 'tooltip' | 'hidden';
  * Shows a formatted timestamp, based on the date received as parameter.
  */
 @Component({
+  standalone: false,
   selector: 'app-timestamp',
   templateUrl: './timestamp.ng.html',
   styleUrls: ['./timestamp.scss'],
@@ -70,16 +71,18 @@ export class Timestamp implements OnDestroy {
 
   private readonly date$ = new BehaviorSubject<Date | undefined>(undefined);
 
-  readonly relativeTimestampString$ = combineLatest([
-    this.date$,
-    this.timer.timer$.pipe(startWith(null)),
-  ]).pipe(
-    takeUntil(this.ngOnDestroy.triggered$),
-    map(([date]) => (date ? computeRelative(date) : '')),
-    distinctUntilChanged(),
-  );
+  readonly relativeTimestampString$;
 
-  constructor(private readonly timer: TimestampRefreshTimer) {}
+  constructor(private readonly timer: TimestampRefreshTimer) {
+    this.relativeTimestampString$ = combineLatest([
+      this.date$,
+      this.timer.timer$.pipe(startWith(null)),
+    ]).pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
+      map(([date]) => (date ? computeRelative(date) : '')),
+      distinctUntilChanged(),
+    );
+  }
 }
 
 /** Timer that triggers the periodic refresh of Timestamp components. */

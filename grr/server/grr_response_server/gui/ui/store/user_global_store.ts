@@ -68,9 +68,12 @@ class UserComponentStore extends ComponentStore<UserState> {
   providedIn: 'root',
 })
 export class UserGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new UserComponentStore(this.httpApiService);
+    this.currentUser$ = this.store.currentUser$;
+  }
 
-  private readonly store = new UserComponentStore(this.httpApiService);
+  private readonly store;
 
-  readonly currentUser$ = this.store.currentUser$;
+  readonly currentUser$;
 }

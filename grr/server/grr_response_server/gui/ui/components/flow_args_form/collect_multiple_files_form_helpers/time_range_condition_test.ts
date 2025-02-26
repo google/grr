@@ -31,11 +31,13 @@ initTestEnvironment();
 // NOTE: without a TestHostComponent with a form element, Angular has issues
 // injecting ControlContainer into the date-time-input.
 @Component({
+  standalone: false,
   template: `
     <time-range-condition
       [formGroup]="form.controls.condition"
       (conditionRemoved)="conditionRemoved$.next()">
     </time-range-condition>`,
+  jit: true,
 })
 class TestHostComponent {
   readonly form = new FormGroup({

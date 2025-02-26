@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Provides path-related data models and helpers."""
 
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 from grr_response_proto import objects_pb2
 
 

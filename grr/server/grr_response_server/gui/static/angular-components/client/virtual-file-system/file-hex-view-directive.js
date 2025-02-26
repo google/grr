@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileHexViewDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -66,8 +65,8 @@ const FileHexViewController = class {
    * @private
    */
   onContextChange_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
 
     if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
       this.fetchText_();
@@ -93,12 +92,12 @@ const FileHexViewController = class {
    * @private
    */
   fetchText_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
 
-    var url = 'clients/' + clientId + '/vfs-blob/' + filePath;
-    var headParams = {};
+    const url = 'clients/' + clientId + '/vfs-blob/' + filePath;
+    const headParams = {};
     if (fileVersion) {
       headParams['timestamp'] = fileVersion;
     }
@@ -107,10 +106,10 @@ const FileHexViewController = class {
     // no length.
     this.grrApiService_.head(url, headParams)
         .then(function(response) {
-          var total_size = response.headers('Content-Length');
+          const total_size = response.headers('Content-Length');
           this.pageCount = Math.ceil(total_size / this.chunkSize_);
 
-          var params = {};
+          const params = {};
           params['offset'] = this.offset_;
           params['length'] = this.chunkSize_;
           if (fileVersion) {
@@ -140,8 +139,8 @@ const FileHexViewController = class {
       return;
     }
 
-    for (var i = 0; i < this.rows_; i++) {
-      var rowOffset = this.offset_ + (i * this.columns_);
+    for (let i = 0; i < this.rows_; i++) {
+      const rowOffset = this.offset_ + (i * this.columns_);
       this.hexDataRows.push({
         offset: rowOffset,
         data: fileContent.substr(i * this.columns_, this.columns_)

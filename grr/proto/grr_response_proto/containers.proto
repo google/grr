@@ -1,0 +1,76 @@
+syntax = "proto2";
+
+package grr;
+
+message ContainerLabel {
+  optional string label = 1;
+  optional string value = 2;
+}
+
+message ContainerDetails {
+  optional string container_id = 1;
+  optional string image_name = 2;
+  optional string command = 3
+      ;
+  optional uint64 created_at = 4;
+  optional string status = 5;
+  repeated string ports = 6
+      ;
+  repeated string names = 7;
+  repeated ContainerLabel labels = 8;
+  optional string local_volumes = 9;
+  repeated string mounts = 10;
+  repeated string networks = 11;
+  optional string running_since = 12;
+
+  enum ContainerState {
+    CONTAINER_UNKNOWN = 0;
+    CONTAINER_CREATED = 1;
+    CONTAINER_RUNNING = 2;
+    CONTAINER_PAUSED = 3;
+    CONTAINER_EXITED = 4;
+  }
+  optional ContainerState state = 13;
+
+  enum ContainerCli {
+    UNSUPPORTED = 0;
+    CRICTL = 1;
+    DOCKER = 2;
+  }
+  optional ContainerCli container_cli = 14;
+}
+
+// Arguments for ListContainers Flow.
+message ListContainersFlowArgs {
+  // inspect_hostroot can be set if GRR is running in a container itself.
+  // GRR will try to run the container list commands from the /hostroot
+  // mountpoint.
+  optional bool inspect_hostroot = 1;
+}
+
+// Results for ListContainers Flow.
+message ListContainersFlowResult {
+  repeated ContainerDetails containers = 1;
+}
+
+// Output for ListContainers ClientAction.
+message ListContainersOutput {
+  optional string binary = 1;
+  optional string stdout = 2;
+  optional string stderr = 3;
+  optional int32 exit_status = 4;
+  optional int32 seconds_taken = 5;
+}
+
+// Arguments for ListContainers ClientAction.
+message ListContainersRequest {
+  // inspect_hostroot can be set if GRR is running in a container itself.
+  // GRR will try to run the container list commands from the /hostroot
+  // mountpoint.
+  optional bool inspect_hostroot = 1;
+}
+
+// Return for ListContainers ClientAction.
+message ListContainersResult {
+  repeated ListContainersOutput cli_outputs = 1;
+}

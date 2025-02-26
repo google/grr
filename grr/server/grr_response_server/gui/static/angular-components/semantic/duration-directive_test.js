@@ -21,7 +21,7 @@ describe('duration directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-duration value="value" />';
+    const template = '<grr-duration value="value"></grr-duration>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

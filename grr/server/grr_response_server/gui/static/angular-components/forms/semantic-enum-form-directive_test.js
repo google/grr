@@ -34,7 +34,7 @@ describe('semantic enum form directive', () => {
     $rootScope.value = value;
     $rootScope.metadata = metadata;
 
-    const template = '<grr-form-enum metadata="metadata" value="value" />';
+    const template = '<grr-form-enum metadata="metadata" value="value"></grr-form-enum>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

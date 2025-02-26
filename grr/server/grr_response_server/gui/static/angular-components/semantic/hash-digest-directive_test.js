@@ -21,7 +21,7 @@ describe('hash digest directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-hash-digest value="value" />';
+    const template = '<grr-hash-digest value="value"></grr-hash-digest>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

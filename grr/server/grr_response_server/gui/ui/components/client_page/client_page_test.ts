@@ -2,8 +2,7 @@ import {ChangeDetectorRef, Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
@@ -28,7 +27,11 @@ initTestEnvironment();
 // Load ClientPage in a router-outlet to consume the first URL route
 // "/clients/C.1234". Otherwise, ClientPage's router-outlet would consume it
 // and show a nested ClientPage.
-@Component({template: `<router-outlet></router-outlet>`})
+@Component({
+  standalone: false,
+  template: `<router-outlet></router-outlet>`,
+  jit: true,
+})
 class TestHostComponent {}
 
 describe('ClientPage Component', () => {
@@ -39,7 +42,7 @@ describe('ClientPage Component', () => {
         NoopAnimationsModule,
         ClientPageModule,
         ClientDetailsModule,
-        RouterTestingModule.withRoutes(CLIENT_ROUTES),
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       declarations: [TestHostComponent],
       providers: [

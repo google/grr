@@ -23,12 +23,12 @@ class MultiRepackTest(absltest.TestCase):
     self.addCleanup(pool_patcher.stop)
 
     config_dir = temp.TempDirPath()
-    self.label1_config = os.path.join(config_dir, "label1.yaml")
-    self.label2_config = os.path.join(config_dir, "label2.yaml")
-    with io.open(self.label1_config, mode="w") as filedesc:
-      filedesc.write("Client.labels: [label1]")
-    with io.open(self.label2_config, mode="w") as filedesc:
-      filedesc.write("Client.labels: [label2]")
+    self.config_foo = os.path.join(config_dir, "foo.yaml")
+    self.config_bar = os.path.join(config_dir, "bar.yaml")
+    with io.open(self.config_foo, mode="w") as filedesc:
+      filedesc.write("Client.company_name: foo")
+    with io.open(self.config_bar, mode="w") as filedesc:
+      filedesc.write("Client.company_name: bar")
     self.template_dir = temp.TempDirPath()
     self.deb_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.deb.zip")
@@ -47,11 +47,12 @@ class MultiRepackTest(absltest.TestCase):
 
   def testMultipleRepackingNoSigning(self):
     client_build.MultiTemplateRepacker().RepackTemplates(
-        [self.label1_config, self.label2_config],
+        [self.config_foo, self.config_bar],
         [self.deb_template, self.exe_template, self.xar_template],
-        self.output_dir)
+        self.output_dir,
+    )
 
-    # (3 templates + 1 debug) x 2 labels = 8 repacks
+    # (3 templates + 1 debug) x 2 configs = 8 repacks
     self.assertEqual(self.pool_obj.apply_async.call_count, 8)
 
 

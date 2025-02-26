@@ -13,6 +13,7 @@ import {FlowListItem} from '../../lib/models/flow';
  * Component that displays available Flows.
  */
 @Component({
+  standalone: false,
   selector: 'flow-chips',
   templateUrl: './flow_chips.ng.html',
   styleUrls: ['./flow_chips.scss'],

@@ -20,32 +20,37 @@ interface Row {
 
 /** Component to show hex-encoded file contents. */
 @Component({
+  standalone: false,
   templateUrl: './hex_view.ng.html',
   styleUrls: ['./hex_view.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HexView implements OnInit {
-  readonly byteContent$ = this.fileDetailsLocalStore.blobContent$.pipe(
-    filter(isNonNull),
-    map((buffer) => new Uint8Array(buffer)),
-  );
+  readonly byteContent$;
 
-  readonly header = [...Array.from({length: LINE_LENGTH}).keys()].map(toHex);
+  readonly header;
 
-  readonly rows$ = this.byteContent$.pipe(
-    map((arr) => {
-      const rows: Row[] = [];
-      for (let rowI = 0; rowI < arr.length; rowI += LINE_LENGTH) {
-        const bytes = [...arr.slice(rowI, rowI + LINE_LENGTH)];
-        const hex = bytes.map((b) => toHex(b).padStart(2, '0'));
-        const chars = bytes.map((b) => String.fromCharCode(b));
-        rows.push({hex, chars});
-      }
-      return rows;
-    }),
-  );
+  readonly rows$;
 
-  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {}
+  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {
+    this.byteContent$ = this.fileDetailsLocalStore.blobContent$.pipe(
+      filter(isNonNull),
+      map((buffer) => new Uint8Array(buffer)),
+    );
+    this.header = [...Array.from({length: LINE_LENGTH}).keys()].map(toHex);
+    this.rows$ = this.byteContent$.pipe(
+      map((arr) => {
+        const rows: Row[] = [];
+        for (let rowI = 0; rowI < arr.length; rowI += LINE_LENGTH) {
+          const bytes = [...arr.slice(rowI, rowI + LINE_LENGTH)];
+          const hex = bytes.map((b) => toHex(b).padStart(2, '0'));
+          const chars = bytes.map((b) => String.fromCharCode(b));
+          rows.push({hex, chars});
+        }
+        return rows;
+      }),
+    );
+  }
 
   ngOnInit(): void {
     this.fileDetailsLocalStore.setMode(ContentFetchMode.BLOB);

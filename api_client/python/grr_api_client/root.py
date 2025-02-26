@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from grr_api_client import context as api_context
 from grr_api_client import utils
 from grr_response_proto.api import config_pb2
+from grr_response_proto.api import signed_commands_pb2
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api.root import binary_management_pb2
 from grr_response_proto.api.root import user_management_pb2
@@ -228,3 +229,17 @@ class RootGrrApi(object):
     return GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context
     )
+
+  def CreateSignedCommands(
+      self,
+      commands: signed_commands_pb2.ApiSignedCommands,
+  ) -> None:
+    """Creates a command signer."""
+    args = signed_commands_pb2.ApiCreateSignedCommandsArgs()
+    args.signed_commands.extend(commands.signed_commands)
+
+    self._context.SendRequest("CreateSignedCommands", args)
+
+  def DeleteAllSignedCommands(self):
+    """Deletes all signed commands."""
+    self._context.SendRequest("DeleteAllSignedCommands", args=None)

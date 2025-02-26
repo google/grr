@@ -9,6 +9,7 @@ import MySQLdb.cursors
 
 from grr_response_proto import artifact_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 
 
@@ -19,6 +20,8 @@ def _RowToArtifact(row):
 class MySQLDBArtifactsMixin(object):
   """An MySQL database mixin with artifact-related methods."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteArtifact(
       self,
@@ -39,6 +42,8 @@ class MySQLDBArtifactsMixin(object):
       else:
         raise
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReadArtifact(
       self, name: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
@@ -53,6 +58,8 @@ class MySQLDBArtifactsMixin(object):
     else:
       return _RowToArtifact(row)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReadAllArtifacts(
       self, cursor: Optional[MySQLdb.cursors.Cursor] = None
@@ -62,6 +69,8 @@ class MySQLDBArtifactsMixin(object):
     cursor.execute("SELECT definition FROM artifacts")
     return [_RowToArtifact(row) for row in cursor.fetchall()]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteArtifact(
       self, name: str, cursor: Optional[MySQLdb.cursors.Cursor] = None

@@ -183,32 +183,29 @@ function toSafeLineChartData(
 
 /** Provides progress information for the current hunt. */
 @Component({
+  standalone: false,
   selector: 'app-hunt-progress',
   templateUrl: './hunt_progress.ng.html',
   styleUrls: ['./hunt_progress.scss'],
 })
 export class HuntProgress {
   protected readonly ColorScheme = ColorScheme;
-  constructor(private readonly huntPageGlobalStore: HuntPageGlobalStore) {}
+  constructor(private readonly huntPageGlobalStore: HuntPageGlobalStore) {
+    this.hunt$ = this.huntPageGlobalStore.selectedHunt$;
+    this.huntProgress$ = this.huntPageGlobalStore.huntProgress$;
+    this.showHuntProgress$ = this.huntProgress$.pipe(
+      map((progress) => {
+        const startPoints = progress?.startPoints?.length ?? 0;
+        const completePoints = progress?.completePoints?.length ?? 0;
 
-  protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;
-  protected readonly huntProgress$ = this.huntPageGlobalStore.huntProgress$;
-  protected readonly showHuntProgress$ = this.huntProgress$.pipe(
-    map((progress) => {
-      const startPoints = progress?.startPoints?.length ?? 0;
-      const completePoints = progress?.completePoints?.length ?? 0;
-
-      return startPoints > 0 || completePoints > 0;
-    }),
-  );
-
-  protected readonly huntProgressLoading$ = this.huntProgress$.pipe(
-    map((huntProgress) => isNull(huntProgress)),
-    startWith(true),
-  );
-
-  protected overviewSummaries$: Observable<readonly Summary[]> =
-    this.hunt$.pipe(
+        return startPoints > 0 || completePoints > 0;
+      }),
+    );
+    this.huntProgressLoading$ = this.huntProgress$.pipe(
+      map((huntProgress) => isNull(huntProgress)),
+      startWith(true),
+    );
+    this.overviewSummaries$ = this.hunt$.pipe(
       map((hunt) => {
         if (!hunt) return [];
 
@@ -254,54 +251,74 @@ export class HuntProgress {
         ];
       }),
     );
+    this.errorSummaries$ = this.hunt$.pipe(
+      map((hunt) => {
+        if (!hunt) return [];
 
-  protected errorSummaries$: Observable<readonly Summary[]> = this.hunt$.pipe(
-    map((hunt) => {
-      if (!hunt) return [];
-
-      return [
-        {
-          title: 'Errors and Crashes',
-          tooltip: 'Clients that had problems in the collection.',
-          relative: getPercentage(
-            hunt.crashedClientsCount + hunt.failedClientsCount,
-            hunt.allClientsCount,
-          ),
-          raw: getPositiveOrZero(
-            hunt.crashedClientsCount + hunt.failedClientsCount,
-          ),
-        },
-      ];
-    }),
-  );
-
-  readonly huntProgressTableData$: Observable<
-    HuntCompletionProgressTableRow[]
-  > = combineLatest([this.huntProgress$, this.hunt$]).pipe(
-    filter(([tableData, hunt]) => isNonNull(hunt) && isNonNull(tableData)),
-    map(([tableData, hunt]) =>
-      this.toHuntCompletionTableData(tableData, hunt?.allClientsCount),
-    ),
-  );
-  readonly huntProgressChartData$: Observable<HuntProgressLineChartDataset> =
-    this.huntProgress$.pipe(
+        return [
+          {
+            title: 'Errors',
+            tooltip: 'Clients that had errors in the collection.',
+            relative: getPercentage(
+              hunt.failedClientsCount,
+              hunt.allClientsCount,
+            ),
+            raw: getPositiveOrZero(hunt.failedClientsCount),
+          },
+          {
+            title: 'Crashes',
+            tooltip: 'Clients that crashed during the collection.',
+            relative: getPercentage(
+              hunt.crashedClientsCount,
+              hunt.allClientsCount,
+            ),
+            raw: getPositiveOrZero(hunt.crashedClientsCount),
+          },
+        ];
+      }),
+    );
+    this.huntProgressTableData$ = combineLatest([
+      this.huntProgress$,
+      this.hunt$,
+    ]).pipe(
+      filter(([tableData, hunt]) => isNonNull(hunt) && isNonNull(tableData)),
+      map(([tableData, hunt]) =>
+        this.toHuntCompletionTableData(tableData, hunt?.allClientsCount),
+      ),
+    );
+    this.huntProgressChartData$ = this.huntProgress$.pipe(
       filter((progressData) => isNonNull(progressData)),
       map((progressData) => toHuntCompletionChartData(progressData)),
     );
-  readonly huntProgressInitiallySelectedTab$ = this.huntProgressChartData$.pipe(
-    map((chartData) => {
-      // We need at least 2 datapoints in a series in order to render a line:
-      const hasEnoughChartData =
-        chartData.completedClients.length >= 2 ||
-        chartData.inProgressClients.length >= 2;
+    this.huntProgressInitiallySelectedTab$ = this.huntProgressChartData$.pipe(
+      map((chartData) => {
+        // We need at least 2 datapoints in a series in order to render a line:
+        const hasEnoughChartData =
+          chartData.completedClients.length >= 2 ||
+          chartData.inProgressClients.length >= 2;
 
-      return hasEnoughChartData
-        ? HuntProgressTabIndex.CHART_TAB
-        : HuntProgressTabIndex.TABLE_TAB;
-    }),
-    // We are only interested in the first emission:
-    take(1),
-  );
+        return hasEnoughChartData
+          ? HuntProgressTabIndex.CHART_TAB
+          : HuntProgressTabIndex.TABLE_TAB;
+      }),
+      // We are only interested in the first emission:
+      take(1),
+    );
+  }
+
+  protected readonly hunt$;
+  protected readonly huntProgress$;
+  protected readonly showHuntProgress$;
+
+  protected readonly huntProgressLoading$;
+
+  protected overviewSummaries$: Observable<readonly Summary[]>;
+
+  protected errorSummaries$: Observable<readonly Summary[]>;
+
+  readonly huntProgressTableData$: Observable<HuntCompletionProgressTableRow[]>;
+  readonly huntProgressChartData$: Observable<HuntProgressLineChartDataset>;
+  readonly huntProgressInitiallySelectedTab$;
 
   private toHuntCompletionTableData(
     huntCompletionStatusdata: ApiGetHuntClientCompletionStatsResult,

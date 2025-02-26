@@ -278,7 +278,7 @@ describe('semantic proto directive', () => {
       });
     }
 
-    const template = '<grr-semantic-proto value="value" />';
+    const template = '<grr-semantic-proto value="value"></grr-semantic-proto>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

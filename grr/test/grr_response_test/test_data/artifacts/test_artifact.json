@@ -2,8 +2,7 @@
   "sources": [
     { "type": "WMI",
       "attributes": { "query": "SELECT * from Win32_SystemDriver"
-      },
-      "returned_types": []
+      }
     }
   ],
   "doc": "Extract the installed drivers on Windows via WMI.",

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Library for interacting with Google BigQuery service."""
+
 import json
 import logging
 
@@ -31,19 +32,22 @@ class BigQueryJobUploadError(Error):
   """Failed to create BigQuery upload job."""
 
 
-def GetBigQueryClient(service_account_json=None,
-                      project_id=None,
-                      dataset_id=None):
+def GetBigQueryClient(
+    service_account_json=None, project_id=None, dataset_id=None
+):
   """Create a BigQueryClient."""
   service_account_data = (
-      service_account_json or config.CONFIG["BigQuery.service_acct_json"])
+      service_account_json or config.CONFIG["BigQuery.service_acct_json"]
+  )
   project_id = project_id or config.CONFIG["BigQuery.project_id"]
   dataset_id = dataset_id or config.CONFIG["BigQuery.dataset_id"]
 
   if not (service_account_data and project_id and dataset_id):
-    raise RuntimeError("BigQuery.service_account_json, "
-                       "BigQuery.project_id and BigQuery.dataset_id "
-                       "must be defined.")
+    raise RuntimeError(
+        "BigQuery.service_account_json, "
+        "BigQuery.project_id and BigQuery.dataset_id "
+        "must be defined."
+    )
 
   creds = ServiceAccountCredentials.from_json_keyfile_dict(
       json.loads(service_account_data), scopes=BIGQUERY_SCOPE
@@ -52,7 +56,8 @@ def GetBigQueryClient(service_account_json=None,
   http_obj = creds.authorize(http_obj)
   service = discovery.build("bigquery", "v2", http=http_obj)
   return BigQueryClient(
-      project_id=project_id, bq_service=service, dataset_id=dataset_id)
+      project_id=project_id, bq_service=service, dataset_id=dataset_id
+  )
 
 
 class BigQueryClient(object):
@@ -67,14 +72,12 @@ class BigQueryClient(object):
 
   def GetSchema(self, table_id, project_id, schema):
     return {
-        "schema": {
-            "fields": schema
-        },
+        "schema": {"fields": schema},
         "tableReference": {
             "tableId": table_id,
             "projectId": project_id,
-            "datasetId": self.dataset_id
-        }
+            "datasetId": self.dataset_id,
+        },
     }
 
   def CreateDataset(self):
@@ -84,19 +87,26 @@ class BigQueryClient(object):
             "datasetId": self.dataset_id,
             "description": "Data exported from GRR",
             "friendlyName": "GRRExportData",
-            "projectId": self.project_id
+            "projectId": self.project_id,
         }
     }
-    result = self.service.datasets().insert(
-        projectId=self.project_id, body=body).execute()
+    result = (
+        self.service.datasets()
+        .insert(projectId=self.project_id, body=body)
+        .execute()
+    )
     self.datasets[self.dataset_id] = result
     return result
 
   def GetDataset(self, dataset_id):
+    """Get a dataset."""
     if dataset_id not in self.datasets:
       try:
-        result = self.service.datasets().get(
-            projectId=self.project_id, datasetId=dataset_id).execute()
+        result = (
+            self.service.datasets()
+            .get(projectId=self.project_id, datasetId=dataset_id)
+            .execute()
+        )
         self.datasets[dataset_id] = result
       except errors.HttpError:
         return None
@@ -111,6 +121,7 @@ class BigQueryClient(object):
 
     Args:
       e: errors.HttpError object.
+
     Returns:
       boolean
     """
@@ -133,32 +144,34 @@ class BigQueryClient(object):
     """
     configuration = {
         "schema": {
-            "fields": schema
+            "fields": schema,
         },
         "destinationTable": {
             "projectId": self.project_id,
             "tableId": table_id,
-            "datasetId": self.dataset_id
+            "datasetId": self.dataset_id,
         },
         "sourceFormat": "NEWLINE_DELIMITED_JSON",
     }
 
     body = {
         "configuration": {
-            "load": configuration
+            "load": configuration,
         },
         "jobReference": {
             "projectId": self.project_id,
-            "jobId": job_id
-        }
+            "jobId": job_id,
+        },
     }
 
     # File content can be gzipped for bandwidth efficiency. The server handles
     # it correctly without any changes to the request.
     mediafile = http.MediaFileUpload(
-        fd.name, mimetype="application/octet-stream")
+        fd.name, mimetype="application/octet-stream"
+    )
     job = self.service.jobs().insert(
-        projectId=self.project_id, body=body, media_body=mediafile)
+        projectId=self.project_id, body=body, media_body=mediafile
+    )
 
     first_try = True
 

@@ -13,15 +13,14 @@ describe('download collection files directive', () => {
 
 
   const $window = {
-    navigator: {
-      appVersion: ''
-    },
+    navigator: {appVersion: ''},
   };
   beforeEach(module(($provide) => {
     $provide.value('$window', $window);
   }));
 
-  beforeEach(module('/static/angular-components/core/' +
+  beforeEach(module(
+      '/static/angular-components/core/' +
       'download-collection-files.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
@@ -40,7 +39,8 @@ describe('download collection files directive', () => {
     }
 
     const template = '<grr-download-collection-files ' +
-        'download-url="downloadUrl" export-command-url="exportCommandUrl" />';
+        'download-url="downloadUrl" export-command-url="exportCommandUrl">' +
+        '</grr-download-collection-files>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -52,8 +52,8 @@ describe('download collection files directive', () => {
 
     const element = renderTestTemplate();
     expect(element.find('button').text()).toContain('Generate TAR.GZ');
-    expect(element.find('ul.dropdown-menu li').text()).toContain(
-        'Generate ZIP');
+    expect(element.find('ul.dropdown-menu li').text())
+        .toContain('Generate ZIP');
   });
 
   it('shows ZIP as default option on Linux', () => {
@@ -61,8 +61,8 @@ describe('download collection files directive', () => {
 
     const element = renderTestTemplate();
     expect(element.find('button').text()).toContain('Generate ZIP');
-    expect(element.find('ul.dropdown-menu li').text()).toContain(
-        'Generate TAR.GZ');
+    expect(element.find('ul.dropdown-menu li').text())
+        .toContain('Generate TAR.GZ');
   });
 
   it('sends TAR.GZ generation request when button clicked on Mac', () => {
@@ -74,8 +74,8 @@ describe('download collection files directive', () => {
     const element = renderTestTemplate();
     element.find('button').click();
 
-    expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        'some/download/url', {archive_format: 'TAR_GZ'});
+    expect(grrApiService.downloadFile)
+        .toHaveBeenCalledWith('some/download/url', {archive_format: 'TAR_GZ'});
   });
 
   it('sends ZIP generation request when dropdownclicked on Mac', () => {
@@ -87,8 +87,8 @@ describe('download collection files directive', () => {
     const element = renderTestTemplate();
     element.find('ul.dropdown-menu li a').click();
 
-    expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        'some/download/url', {archive_format: 'ZIP'});
+    expect(grrApiService.downloadFile)
+        .toHaveBeenCalledWith('some/download/url', {archive_format: 'ZIP'});
   });
 
   it('sends ZIP generation request when button is clicked on Linux', () => {
@@ -100,8 +100,8 @@ describe('download collection files directive', () => {
     const element = renderTestTemplate();
     element.find('button').click();
 
-    expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        'some/download/url', {archive_format: 'ZIP'});
+    expect(grrApiService.downloadFile)
+        .toHaveBeenCalledWith('some/download/url', {archive_format: 'ZIP'});
   });
 
   it('sends TAR.GZ generation request when dropdown clicked on Linux', () => {
@@ -113,8 +113,8 @@ describe('download collection files directive', () => {
     const element = renderTestTemplate();
     element.find('ul.dropdown-menu li a').click();
 
-    expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        'some/download/url', {archive_format: 'TAR_GZ'});
+    expect(grrApiService.downloadFile)
+        .toHaveBeenCalledWith('some/download/url', {archive_format: 'TAR_GZ'});
   });
 
   it('disables the button after request is sent', () => {
@@ -162,8 +162,8 @@ describe('download collection files directive', () => {
       $window.navigator.appVersion = 'Mac';
 
       exportCommandDeferred = $q.defer();
-      spyOn(grrApiService, 'get').and.returnValue(
-          exportCommandDeferred.promise);
+      spyOn(grrApiService, 'get')
+          .and.returnValue(exportCommandDeferred.promise);
     });
 
     it('fetches export command', () => {
@@ -178,8 +178,7 @@ describe('download collection files directive', () => {
         },
       });
       const element = renderTestTemplate(true);
-      expect($('a:contains("Show export command")', element).length)
-          .toBe(1);
+      expect($('a:contains("Show export command")', element).length).toBe(1);
     });
 
     it('renders export command', () => {

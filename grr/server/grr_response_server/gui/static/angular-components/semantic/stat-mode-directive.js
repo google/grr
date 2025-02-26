@@ -12,28 +12,28 @@ goog.module.declareLegacyNamespace();
  */
 
 
-var S_IFMT = 61440;    // 0170000 type of file
-var S_IFIFO = 4096;    // 0010000 named pipe
-var S_IFCHR = 8192;    // 0020000 character device
-var S_IFDIR = 16384;   // 0040000 directory
-var S_IFBLK = 24576;   // 0060000 block device
-var S_IFREG = 32768;   // 0100000 regular file
-var S_IFLNK = 40960;   // 0120000 symbolic link
-var S_IFSOCK = 49152;  // 0140000 socket
-var S_IFWHT = 57344;   // 0160000 whiteout
-var S_IMODE = 4095;    // 0007777 mode of file
-var S_ISUID = 2048;    // 0004000 set user id
-var S_ISGID = 1024;    // 0002000 set group id
-var S_ISVTX = 512;     // 0001000 save swapped text even after use
-var S_IRUSR = 256;     // 0000400 owner, read permission
-var S_IWUSR = 128;     // 0000200 owner, write permission
-var S_IXUSR = 64;      // 0000100 owner, execute/search permission
-var S_IRGRP = 32;      // 0000040 group, read permission
-var S_IWGRP = 16;      // 0000020 group, write permission
-var S_IXGRP = 8;       // 0000010 group, execute/search permission
-var S_IROTH = 4;       // 0000004 others, read permission
-var S_IWOTH = 2;       // 0000002 others, write permission
-var S_IXOTH = 1;       // 0000001 others, execute/search permission
+const S_IFMT = 61440;    // 0170000 type of file
+const S_IFIFO = 4096;    // 0010000 named pipe
+const S_IFCHR = 8192;    // 0020000 character device
+const S_IFDIR = 16384;   // 0040000 directory
+const S_IFBLK = 24576;   // 0060000 block device
+const S_IFREG = 32768;   // 0100000 regular file
+const S_IFLNK = 40960;   // 0120000 symbolic link
+const S_IFSOCK = 49152;  // 0140000 socket
+const S_IFWHT = 57344;   // 0160000 whiteout
+const S_IMODE = 4095;    // 0007777 mode of file
+const S_ISUID = 2048;    // 0004000 set user id
+const S_ISGID = 1024;    // 0002000 set group id
+const S_ISVTX = 512;     // 0001000 save swapped text even after use
+const S_IRUSR = 256;     // 0000400 owner, read permission
+const S_IWUSR = 128;     // 0000200 owner, write permission
+const S_IXUSR = 64;      // 0000100 owner, execute/search permission
+const S_IRGRP = 32;      // 0000040 group, read permission
+const S_IWGRP = 16;      // 0000020 group, write permission
+const S_IXGRP = 8;       // 0000010 group, execute/search permission
+const S_IROTH = 4;       // 0000004 others, read permission
+const S_IWOTH = 2;       // 0000002 others, write permission
+const S_IXOTH = 1;       // 0000001 others, execute/search permission
 
 
 /**
@@ -72,7 +72,7 @@ const StatModeController = class {
       this.octalStatMode = '-';
       this.statMode = '-';
     } else {
-      var statMode = newValue.value;
+      const statMode = newValue.value;
       this.octalStatMode = this.calculateOctalMode_(statMode);
       this.statMode = this.calculateModeString_(statMode);
     }
@@ -97,7 +97,7 @@ const StatModeController = class {
    * @private
    */
   calculateModeString_(statMode) {
-    var fileType = '-';
+    let fileType = '-';
     if (this.isRegularFile_(statMode)) {
       fileType = '-';
     } else if (this.isBlockDevice_(statMode)) {
@@ -114,7 +114,7 @@ const StatModeController = class {
       fileType = 's';
     }
 
-    var permissions = '';
+    let permissions = '';
 
     permissions += (statMode & S_IRUSR) ? 'r' : '-';
     permissions += (statMode & S_IWUSR) ? 'w' : '-';

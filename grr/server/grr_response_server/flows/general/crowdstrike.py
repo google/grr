@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Flows related to CrowdStrike security software."""
+
 import binascii
 import re
 
@@ -14,7 +15,7 @@ from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class GetCrowdstrikeAgentIdResult(rdf_structs.RDFProtoStruct):
@@ -137,7 +138,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     if not isinstance(response, rdf_client.BufferReference):
       raise flow_base.FlowError(f"Unexpected response type: {type(response)!r}")
 
-    blob_id = blobs.BlobID(response.data)
+    blob_id = models_blobs.BlobID(response.data)
     blob = data_store.BLOBS.ReadAndWaitForBlob(blob_id, _BLOB_WAIT_TIMEOUT)
     if blob is None:
       raise flow_base.FlowError(f"Blob {blob_id!r} not found")

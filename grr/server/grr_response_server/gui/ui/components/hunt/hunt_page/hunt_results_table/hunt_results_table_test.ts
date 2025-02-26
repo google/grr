@@ -7,7 +7,7 @@ import {
   waitForAsync,
 } from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {RouterTestingModule} from '@angular/router/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ApiHuntError, ApiHuntResult} from '../../../../lib/api/api_interfaces';
 import {createStatEntry} from '../../../../lib/api/api_test_util';
@@ -56,12 +56,14 @@ function generateResultListFromResult<T extends HuntResultOrError>(
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `<app-hunt-results-table
       [huntId]="huntId"
       [totalResultsCount]="totalResultsCount"
       [resultType]="resultType"
       (selectedHuntResult)="selectedHuntResult($event)">
     </app-hunt-results-table>`,
+  jit: true,
 })
 class TestHostComponent {
   huntId: string | undefined = '1984';
@@ -79,7 +81,7 @@ describe('HuntResultsTable', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [HuntResultsTable, RouterTestingModule],
+      imports: [HuntResultsTable, NoopAnimationsModule],
       declarations: [TestHostComponent],
       providers: [{provide: HttpApiService, useFactory: mockHttpApiService}],
       teardown: {destroyAfterEach: false},
@@ -625,48 +627,6 @@ describe('HuntResultsTable', () => {
       expect(rowItem.rowData['hash'] as HexHash).toEqual(
         jasmine.objectContaining({md5: '85ab21'}),
       );
-
-      discardPeriodicTasks();
-    }));
-
-    it('correctly renders "ANOMALY" type results', fakeAsync(() => {
-      const fixture = TestBed.createComponent(TestHostComponent);
-      const component = fixture.componentInstance;
-      const mockBaseHuntResult: ApiHuntResult = {
-        clientId: 'C.1234',
-        payload: {
-          '@type': 'type.googleapis.com/grr.Anomaly',
-          'type': 'UNKNOWN_ANOMALY_TYPE',
-          'severity': 'VERY_HIGH',
-          'confidence': 'VERY_LOW',
-          'generatedBy': 'something',
-        },
-      };
-
-      component.totalResultsCount = 1;
-      component.resultType = 'Anomaly';
-
-      fixture.detectChanges();
-
-      tick();
-
-      httpApiService.mockedObservables.listResultsForHunt.next([
-        mockBaseHuntResult,
-      ]);
-
-      fixture.detectChanges();
-
-      expect(fixture.debugElement.query(By.css('mat-table'))).not.toBeNull();
-
-      const rows = fixture.nativeElement.querySelectorAll('mat-row');
-
-      expect(rows.length).toBe(1);
-
-      expect(rows[0].innerText.trim()).toContain('C.1234');
-      expect(rows[0].innerText.trim()).toContain('UNKNOWN_ANOMALY_TYPE');
-      expect(rows[0].innerText.trim()).toContain('VERY_HIGH');
-      expect(rows[0].innerText.trim()).toContain('VERY_LOW');
-      expect(rows[0].innerText.trim()).toContain('something');
 
       discardPeriodicTasks();
     }));

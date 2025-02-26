@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.newHuntWizard.configureHuntPageDirective');
-goog.module.declareLegacyNamespace();
 
 
 

@@ -68,14 +68,16 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
   def testCronJobPreservesFlowNameAndArguments(self):
     pathspec = rdf_paths.PathSpec(
-        path="/foo", pathtype=rdf_paths.PathSpec.PathType.TSK)
+        path="/foo", pathtype=rdf_paths.PathSpec.PathType.TSK
+    )
 
     cron_manager = cronjobs.CronManager()
 
     flow_name = transfer.GetFile.__name__
 
     cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d", allow_overruns=False, flow_name=flow_name)
+        frequency="1d", allow_overruns=False, flow_name=flow_name
+    )
 
     cron_args.flow_args.pathspec = pathspec
 
@@ -92,8 +94,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     self.assertEqual(hunt_args.flow_args.pathspec, pathspec)
 
-    self.assertEqual(cron_job.frequency,
-                     rdfvalue.Duration.From(1, rdfvalue.DAYS))
+    self.assertEqual(
+        cron_job.frequency, rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    )
     self.assertEqual(cron_job.allow_overruns, False)
 
   def testCronJobStartsRun(self):
@@ -154,14 +157,16 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     try:
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1h", lifetime="1h", flow_name=transfer.GetFile.__name__)
+          frequency="1h", lifetime="1h", flow_name=transfer.GetFile.__name__
+      )
       with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         job_ids = []
         for i in range(cron_manager.max_threads * 2):
           # TODO: The CronJob ID space is small. Using 20 random
           #  IDs already causes flaky tests. Use hardcoded IDs instead.
           job_ids.append(
-              cron_manager.CreateJob(cron_args=create_flow_args, job_id=f"{i}"))
+              cron_manager.CreateJob(cron_args=create_flow_args, job_id=f"{i}")
+          )
 
         cron_manager.RunOnce()
 
@@ -198,7 +203,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     args = rdf_cronjobs.CronJobAction(
         action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
         system_cron_action=rdf_cronjobs.SystemCronAction(
-            job_class_name="__AbstractFakeCronJob__"))
+            job_class_name="__AbstractFakeCronJob__"
+        ),
+    )
 
     rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="cron_1",
@@ -217,7 +224,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     args = rdf_cronjobs.CronJobAction(
         action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
         system_cron_action=rdf_cronjobs.SystemCronAction(
-            job_class_name="DummyStatefulSystemCronJobRel"))
+            job_class_name="DummyStatefulSystemCronJobRel"
+        ),
+    )
 
     rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="cron_2",
@@ -249,7 +258,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__)
+              flow_name=transfer.GetFile.__name__,
+          )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
           cron_manager.RunOnce()
@@ -282,7 +292,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__)
+              flow_name=transfer.GetFile.__name__,
+          )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
           cron_manager.RunOnce()
@@ -330,7 +341,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
           allow_overruns=False,
           frequency="1h",
-          flow_name=transfer.GetFile.__name__)
+          flow_name=transfer.GetFile.__name__,
+      )
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -360,7 +372,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__)
+              flow_name=transfer.GetFile.__name__,
+          )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -396,7 +409,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=True,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__)
+              flow_name=transfer.GetFile.__name__,
+          )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -442,7 +456,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1w", lifetime="1d", flow_name=transfer.GetFile.__name__)
+          frequency="1w", lifetime="1d", flow_name=transfer.GetFile.__name__
+      )
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -478,8 +493,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
       # Check that latency stat got updated.
       current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
-      self.assertEqual(current_latency_value.count - prev_latency_value.count,
-                       1)
+      self.assertEqual(
+          current_latency_value.count - prev_latency_value.count, 1
+      )
 
   def testTimeoutOfCrashedCronJobIsHandledCorrectly(self):
     wait_event = threading.Event()
@@ -552,10 +568,12 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           # Check that latency stat got updated.
           current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
           self.assertEqual(
-              current_latency_value.count - prev_latency_value.count, 1)
+              current_latency_value.count - prev_latency_value.count, 1
+          )
           self.assertEqual(
               current_latency_value.sum - prev_latency_value.sum,
-              rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS))
+              rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS),
+          )
 
         finally:
           # Make sure that the cron job thread actually finishes.
@@ -616,17 +634,20 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
         # Check that latency stat got updated.
         current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
-        self.assertEqual(current_latency_value.count - prev_latency_value.count,
-                         1)
+        self.assertEqual(
+            current_latency_value.count - prev_latency_value.count, 1
+        )
         self.assertEqual(
             current_latency_value.sum - prev_latency_value.sum,
-            rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS))
+            rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS),
+        )
 
   def testError(self):
     with mock.patch.object(
         cronjobs.RunHunt,
         "Run",
-        side_effect=ValueError("Random cron job error.")):
+        side_effect=ValueError("Random cron job error."),
+    ):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs()
       create_flow_args.flow_name = transfer.GetFile.__name__
@@ -654,8 +675,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
       self.assertEqual(current_failure_value, prev_failure_value + 1)
-      self.assertEqual(current_latency_value.count,
-                       prev_latency_value.count + 1)
+      self.assertEqual(
+          current_latency_value.count, prev_latency_value.count + 1
+      )
 
   def testSchedulingJobWithFixedNamePreservesTheName(self):
     cron_manager = cronjobs.CronManager()
@@ -677,7 +699,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
   def testSystemCronJobsWithDisabledAttributeDoNotGetScheduled(self):
     cronjobs.ScheduleSystemCronJobs(
-        names=[DummyDisabledSystemCronJobRel.__name__])
+        names=[DummyDisabledSystemCronJobRel.__name__]
+    )
 
     jobs = cronjobs.CronManager().ListJobs()
     self.assertIn("DummyDisabledSystemCronJobRel", jobs)
@@ -688,7 +711,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
   def testSystemCronJobsMayBeDisabledViaConfig(self):
     with test_lib.ConfigOverrider(
-        {"Cron.disabled_cron_jobs": ["DummySystemCronJobRel"]}):
+        {"Cron.disabled_cron_jobs": ["DummySystemCronJobRel"]}
+    ):
       cronjobs.ScheduleSystemCronJobs()
 
       cron_manager = cronjobs.CronManager()
@@ -732,7 +756,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     args = rdf_cronjobs.CronJobAction(
         action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
         system_cron_action=rdf_cronjobs.SystemCronAction(
-            job_class_name="DummyStatefulSystemCronJobRel"))
+            job_class_name="DummyStatefulSystemCronJobRel"
+        ),
+    )
 
     # TODO: Refactor to proto-only.
     rdf_job = rdf_cronjobs.CronJob(
@@ -749,8 +775,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     fake_time = rdfvalue.RDFDatetime.Now()
     for i in range(3):
-      with test_lib.FakeTime(fake_time +
-                             rdfvalue.Duration.From(3 * i, rdfvalue.HOURS)):
+      with test_lib.FakeTime(
+          fake_time + rdfvalue.Duration.From(3 * i, rdfvalue.HOURS)
+      ):
         cron_manager.RunOnce()
         cron_manager._GetThreadPool().Join()
       runs = cron_manager.ReadJobRuns("test_cron")
@@ -773,12 +800,14 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_started_event.set()
         heartbeat_event.wait()
         fake_time = self.run_state.started_at + rdfvalue.Duration.From(
-            3, rdfvalue.HOURS)
+            3, rdfvalue.HOURS
+        )
         with test_lib.FakeTime(fake_time):
           self.HeartBeat()
 
-    self._TestHeartBeat(HeartbeatingCronJob, cron_started_event,
-                        heartbeat_event)
+    self._TestHeartBeat(
+        HeartbeatingCronJob, cron_started_event, heartbeat_event
+    )
 
   def testHeartbeat_AllowOverruns(self):
     cron_started_event = threading.Event()
@@ -793,12 +822,14 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_started_event.set()
         heartbeat_event.wait()
         fake_time = self.run_state.started_at + rdfvalue.Duration.From(
-            3, rdfvalue.HOURS)
+            3, rdfvalue.HOURS
+        )
         with test_lib.FakeTime(fake_time):
           self.HeartBeat()
 
-    self._TestHeartBeat(HeartbeatingOverruningCronJob, cron_started_event,
-                        heartbeat_event)
+    self._TestHeartBeat(
+        HeartbeatingOverruningCronJob, cron_started_event, heartbeat_event
+    )
 
   def _TestHeartBeat(self, cron_class, cron_started_event, heartbeat_event):
     """Helper for heartbeat tests."""
@@ -813,8 +844,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       cron_started_event.wait()
       runs = cron_manager.ReadJobRuns(cron_name)
       self.assertLen(runs, 1)
-      self.assertEqual(runs[0].status,
-                       rdf_cronjobs.CronJobRun.CronJobRunStatus.RUNNING)
+      self.assertEqual(
+          runs[0].status, rdf_cronjobs.CronJobRun.CronJobRunStatus.RUNNING
+      )
     finally:
       heartbeat_event.set()
       cron_manager._GetThreadPool().Join()
@@ -824,7 +856,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         expected_status = rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED
       else:
         expected_status = (
-            rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED)
+            rdf_cronjobs.CronJobRun.CronJobRunStatus.LIFETIME_EXCEEDED
+        )
       self.assertEqual(runs[0].status, expected_status)
 
   @mock.patch.object(cronjobs, "_MAX_LOG_MESSAGES", 5)
@@ -848,14 +881,16 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       runs = cron_manager.ReadJobRuns(cron_name)
       self.assertLen(runs, 1)
       self.assertEmpty(runs[0].backtrace)
-      self.assertEqual(runs[0].status,
-                       rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED)
+      self.assertEqual(
+          runs[0].status, rdf_cronjobs.CronJobRun.CronJobRunStatus.FINISHED
+      )
       # The first two log messages should be discarded since
       # _MAX_LOG_MESSAGES is 5.
       self.assertMultiLineEqual(
           runs[0].log_message,
           "Log message 6.\nLog message 5.\nLog message 4.\nLog message 3.\n"
-          "Log message 2.")
+          "Log message 2.",
+      )
 
 
 def main(argv):

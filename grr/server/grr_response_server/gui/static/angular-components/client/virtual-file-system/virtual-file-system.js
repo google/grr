@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.virtualFileSystem');
-goog.module.declareLegacyNamespace();
 
 const {BreadcrumbsDirective} = goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective');
 const {EncodingsDropdownDirective} = goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective');

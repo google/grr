@@ -74,7 +74,7 @@ describe('start flow form directive', () => {
     };
 
     const template = '<grr-start-flow-form ' +
-        'client-id="clientId" descriptor="descriptor" />';
+        'client-id="clientId" descriptor="descriptor"></grr-start-flow-form>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

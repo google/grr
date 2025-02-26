@@ -9,15 +9,18 @@ from google.protobuf import any_pb2
 from google.protobuf import message
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_robot_router as rr
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -326,6 +329,58 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     )
     Check(["foo", "blah"])
 
+  def testTimelineFlowDisabledByDefault(self):
+    router = self._CreateRouter()
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.CreateFlow(
+          api_flow.ApiCreateFlowArgs(
+              flow=api_flow.ApiFlow(
+                  name=timeline.TimelineFlow.__name__,
+                  args=rdf_timeline.TimelineArgs(),
+              ),
+              client_id=self.client_id,
+          ),
+          context=self.context,
+      )
+
+  def testTimelineFlowWorksWhenEnabled(self):
+    router = self._CreateRouter(
+        timeline_flow=rr.RobotRouterTimelineFlowParams(enabled=True)
+    )
+    router.CreateFlow(
+        api_flow.ApiCreateFlowArgs(
+            flow=api_flow.ApiFlow(
+                name=timeline.TimelineFlow.__name__,
+                args=rdf_timeline.TimelineArgs(),
+            ),
+            client_id=self.client_id,
+        ),
+        context=self.context,
+    )
+
+  def testGetCollectedTimelineDisabledByDefault(self):
+    router = self._CreateRouter()
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.GetCollectedTimeline(None, context=self.context)
+
+  def testGetCollectedTimelineRaisesIfFlowWasNotCreatedBySameUser(self):
+    flow_id = flow_test_lib.StartFlow(
+        timeline.TimelineFlow, self.client_id, creator=self.another_username
+    )
+
+    router = self._CreateRouter(
+        get_collected_timeline=rr.RobotRouterGetCollectedTimelineParams(
+            enabled=True
+        )
+    )
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.GetCollectedTimeline(
+          api_timeline.ApiGetCollectedTimelineArgs(
+              client_id=self.client_id, flow_id=flow_id
+          ),
+          context=self.context,
+      )
+
   def testArtifactCollectorRaisesWhenEnabledButArgumentsNotCorrect(self):
     router = None
 
@@ -532,6 +587,11 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         context=self.context,
     )
 
+  def testGetFileBlobIsDisabledByDefault(self):
+    router = self._CreateRouter()
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.GetFileBlob(None, context=self.context)
+
   def testGetFlowFilesArchiveIsDisabledByDefault(self):
     router = self._CreateRouter()
     with self.assertRaises(access_control.UnauthorizedAccess):
@@ -636,6 +696,8 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
       # in favor of the methods above.
       "StartRobotGetFilesOperation",
       "GetRobotGetFilesOperationState",
+      "GetCollectedTimeline",
+      "GetFileBlob",
   ]
 
   def testAllOtherMethodsAreNotImplemented(self):

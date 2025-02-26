@@ -8,7 +8,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ByteComponentsModule} from '../../../components/form/byte_input/module';
@@ -29,7 +28,6 @@ import {TimeRangeCondition} from './time_range_condition';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
     ByteComponentsModule,
     CommonModule,
     DateTimeInputModule,

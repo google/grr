@@ -74,6 +74,7 @@ function makeControls(): Controls {
 
 /** Form that configures a CollectMultipleFiles flow. */
 @Component({
+  standalone: false,
   selector: 'collect-multiple-files-form',
   templateUrl: './collect_multiple_files_form.ng.html',
   styleUrls: ['./collect_multiple_files_form.scss'],
@@ -126,10 +127,11 @@ export class CollectMultipleFilesForm extends FlowArgumentForm<
     return trimmedResults;
   }
 
-  readonly client$ = this.clientPageGlobalStore.selectedClient$;
+  readonly client$;
 
   constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
+    this.client$ = this.clientPageGlobalStore.selectedClient$;
   }
 
   override resetFlowArgs(flowArgs: CollectMultipleFilesArgs): void {

@@ -47,6 +47,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures an ext flags condition. */
 @Component({
+  standalone: false,
   selector: 'ext-flags-condition',
   templateUrl: './ext_flags_condition.ng.html',
   styleUrls: ['./ext_flags_condition.scss'],
@@ -56,7 +57,15 @@ export class ExtFlagsCondition implements OnInit {
   constructor(
     private readonly controlContainer: ControlContainer,
     private readonly clientPageGlobalStore: ClientPageGlobalStore,
-  ) {}
+  ) {
+    this.os$ = this.clientPageGlobalStore.selectedClient$.pipe(
+      map((client) => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
+      startWith(null),
+      distinctUntilChanged(),
+    );
+    this.showLinux$ = this.os$.pipe(map((os) => os !== OperatingSystem.DARWIN));
+    this.showOsx$ = this.os$.pipe(map((os) => os !== OperatingSystem.LINUX));
+  }
 
   @Output() readonly conditionRemoved = new EventEmitter<void>();
 
@@ -76,20 +85,14 @@ export class ExtFlagsCondition implements OnInit {
     (flag) => ({...flag, condition: MaskCondition.IGNORE}),
   );
 
-  private readonly os$ = this.clientPageGlobalStore.selectedClient$.pipe(
-    map((client) => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
-    startWith(null),
-    distinctUntilChanged(),
-  );
+  private readonly os$;
 
   // Iff the client's OS is Linux or macOS, show only the specific form. For
   // all other clients (Windows, unknown OS), show both forms as fallback.
   // In the future, it might make sense to hide the forms for other clients
   // or always show unapplicable forms in a collapsed state.
-  readonly showLinux$ = this.os$.pipe(
-    map((os) => os !== OperatingSystem.DARWIN),
-  );
-  readonly showOsx$ = this.os$.pipe(map((os) => os !== OperatingSystem.LINUX));
+  readonly showLinux$;
+  readonly showOsx$;
 
   get formGroup(): Controls {
     return this.controlContainer.control as Controls;

@@ -20,12 +20,14 @@ import {HelpersModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
     <registry-results-table
         [results]="results"
         [totalCount]="totalCount"
         (loadMore)="loadMoreTriggered()">
     </registry-results-table>`,
+  jit: true,
 })
 class TestHostComponent {
   results?: ReadonlyArray<RegistryKey | RegistryValue>;

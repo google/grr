@@ -22,7 +22,7 @@ describe('bytes directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-bytes value="value" />';
+    const template = '<grr-bytes value="value"></grr-bytes>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

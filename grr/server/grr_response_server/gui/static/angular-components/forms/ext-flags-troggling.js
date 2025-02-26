@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.extFlagsTroggling');
-goog.module.declareLegacyNamespace();
 
 
 const {Flag} = goog.require('grrUi.client.extFlags');

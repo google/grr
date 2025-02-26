@@ -31,7 +31,7 @@ exports.TimeService = class {
    * @return {string} Formatted UTC time.
    */
   formatAsUTC(opt_timestamp) {
-    var when =
+    const when =
         angular.isUndefined(opt_timestamp) ? moment() : moment(opt_timestamp);
     return when.utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC';
   }
@@ -46,7 +46,7 @@ exports.TimeService = class {
    *     time
    */
   getFormattedDiffFromCurrentTime(timestamp) {
-    var diff = moment(timestamp).diff(moment());
+    const diff = moment(timestamp).diff(moment());
 
     if (Math.abs(diff) < 60 * 1000) {
       return 'now';
@@ -55,7 +55,7 @@ exports.TimeService = class {
     return moment.duration(diff).humanize(true);
   }
 };
-var TimeService = exports.TimeService;
+const TimeService = exports.TimeService;
 
 
 /**

@@ -58,6 +58,7 @@ type Controls = ReturnType<typeof makeControls>;
  * flow.
  */
 @Component({
+  standalone: false,
   selector: 'collect-files-by-known-path-form',
   templateUrl: './collect_files_by_known_path_form.ng.html',
   styleUrls: ['./collect_files_by_known_path_form.scss'],

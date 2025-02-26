@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
-
+import random
+import sys
 from unittest import mock
 import zlib
 
@@ -19,7 +20,7 @@ from grr_response_server import sinks
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.sinks import test_lib as sinks_test_lib
 from grr.test_lib import db_test_lib
@@ -37,8 +38,7 @@ def ReceiveMessages(client_id, messages):
 
 
 def TestServer():
-  return frontend_lib.FrontEndServer(
-      message_expiry_time=MESSAGE_EXPIRY_TIME)
+  return frontend_lib.FrontEndServer(message_expiry_time=MESSAGE_EXPIRY_TIME)
 
 
 class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
@@ -76,12 +76,15 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
             response_id=i,
             session_id=session_id,
             auth_state="AUTHENTICATED",
-            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+            payload=rdfvalue.RDFInteger(i),
+        )
+        for i in range(1, 10)
     ]
 
     ReceiveMessages(client_id, messages)
     received = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        client_id, flow_id)
+        client_id, flow_id
+    )
     self.assertLen(received, 1)
     received_request = received[0][0]
     self.assertEqual(received_request.client_id, req.client_id)
@@ -102,7 +105,8 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     data = b"foo"
     data_blob = rdf_protodict.DataBlob(
         data=zlib.compress(data),
-        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
+        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION,
+    )
     messages = [
         rdf_flows.GrrMessage(
             source=client_id,
@@ -117,7 +121,9 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(data_store.REL_DB.ReadMessageHandlerRequests())
 
     # Check that the blob was written to the blob store.
-    self.assertTrue(data_store.BLOBS.CheckBlobExists(blobs.BlobID.Of(data)))
+    self.assertTrue(
+        data_store.BLOBS.CheckBlobExists(models_blobs.BlobID.Of(data))
+    )
 
   def testCrashReport(self):
     client_id = "C.1234567890123456"
@@ -130,7 +136,8 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
 
     session_id = rdfvalue.FlowSessionID(f"{client_id}/{flow_id}")
     status = rdf_flows.GrrStatus(
-        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED)
+        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED
+    )
     messages = [
         rdf_flows.GrrMessage(
             source=client_id,
@@ -139,7 +146,8 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
             session_id=session_id,
             payload=status,
             auth_state="AUTHENTICATED",
-            type=rdf_flows.GrrMessage.Type.STATUS)
+            type=rdf_flows.GrrMessage.Type.STATUS,
+        )
     ]
 
     ReceiveMessages(client_id, messages)
@@ -192,7 +200,10 @@ class FleetspeakFrontendTests(flow_test_lib.FlowTestsBaseclass):
     # An Enrolment flow should start inline and attempt to send at least
     # message through fleetspeak as part of the resulting interrogate flow.
     with mock.patch.object(fleetspeak_connector, "CONN") as mock_conn:
-      server.EnrollFleetspeakClientIfNeeded(client_id)
+      server.EnrollFleetspeakClientIfNeeded(
+          client_id,
+          fleetspeak_validation_tags={},
+      )
       mock_conn.outgoing.InsertMessage.assert_called()
 
 
@@ -201,8 +212,7 @@ class FrontEndServerTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.server = frontend_lib.FrontEndServer(
-    )
+    self.server = frontend_lib.FrontEndServer()
 
   @db_test_lib.WithDatabase
   def testReceiveRRGResponseStatusOK(self, db: abstract_db.Database):
@@ -328,10 +338,11 @@ class FrontEndServerTest(absltest.TestCase):
 
     self.server.ReceiveRRGResponse(client_id, response)
 
-    logs = db.ReadFlowLogEntries(client_id, flow_id, offset=0, count=1024)
+    logs = db.ReadFlowRRGLogs(client_id, flow_id, offset=0, count=1024)
     self.assertLen(logs, 1)
-    self.assertEqual(logs[0].message, "[RRG:INFO] lorem ipsum dolor sit amet")
-    self.assertGreater(logs[0].timestamp, rdfvalue.RDFDatetime(0))
+    self.assertEqual(logs[0].level, rrg_pb2.Log.Level.INFO)
+    self.assertEqual(logs[0].message, "lorem ipsum dolor sit amet")
+    self.assertGreater(logs[0].timestamp.seconds, 0)
 
   @db_test_lib.WithDatabase
   def testReceiveRRGResponseUnexpected(self, db: abstract_db.Database):
@@ -351,6 +362,64 @@ class FrontEndServerTest(absltest.TestCase):
 
     with self.assertRaisesRegex(ValueError, "Unexpected response"):
       self.server.ReceiveRRGResponse(client_id, response)
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponsesMany(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+    request_id = random.randint(0, sys.maxsize)
+
+    flow_request = flows_pb2.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = request_id
+    db.WriteFlowRequests([flow_request])
+
+    response_1 = rrg_pb2.Response()
+    response_1.flow_id = int(flow_id, 16)
+    response_1.request_id = request_id
+    response_1.response_id = 1
+    response_1.result.Pack(wrappers_pb2.StringValue(value="foo"))
+
+    response_2 = rrg_pb2.Response()
+    response_2.flow_id = int(flow_id, 16)
+    response_2.request_id = request_id
+    response_2.response_id = 2
+    response_2.result.Pack(wrappers_pb2.StringValue(value="bar"))
+
+    self.server.ReceiveRRGResponses(client_id, [response_1, response_2])
+
+    flow_responses = db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(flow_responses, 1)
+
+    flow_response_1 = flow_responses[0][1][response_1.response_id]
+    self.assertIsInstance(flow_response_1, flows_pb2.FlowResponse)
+    self.assertEqual(flow_response_1.client_id, client_id)
+    self.assertEqual(flow_response_1.flow_id, flow_id)
+    self.assertEqual(flow_response_1.request_id, request_id)
+    self.assertEqual(flow_response_1.response_id, 1)
+
+    string_1 = wrappers_pb2.StringValue()
+    string_1.ParseFromString(flow_response_1.any_payload.value)
+    self.assertEqual(string_1.value, "foo")
+
+    flow_response_2 = flow_responses[0][1][response_2.response_id]
+    self.assertIsInstance(flow_response_2, flows_pb2.FlowResponse)
+    self.assertEqual(flow_response_2.client_id, client_id)
+    self.assertEqual(flow_response_2.flow_id, flow_id)
+    self.assertEqual(flow_response_2.request_id, request_id)
+    self.assertEqual(flow_response_2.response_id, 2)
+
+    string_2 = wrappers_pb2.StringValue()
+    string_2.ParseFromString(flow_response_2.any_payload.value)
+    self.assertEqual(string_2.value, "bar")
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponsesEmpty(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+
+    # Should not raise.
+    self.server.ReceiveRRGResponses(client_id, [])
 
   def testReceiveRRGParcelOK(self):
     client_id = "C.1234567890ABCDEF"
@@ -390,6 +459,46 @@ class FrontEndServerTest(absltest.TestCase):
       parcel.payload.value = b"FOO"
       # Should not raise.
       self.server.ReceiveRRGParcel("C.1234567890ABCDEF", parcel)
+
+  def testReceiveRRGParcelsMany(self):
+    client_id = "C.1234567890ABCDEF"
+
+    fake_blob_sink = sinks_test_lib.FakeSink()
+    fake_startup_sink = sinks_test_lib.FakeSink()
+
+    fake_registry = {
+        rrg_pb2.BLOB: fake_blob_sink,
+        rrg_pb2.STARTUP: fake_startup_sink,
+    }
+    with mock.patch.object(sinks, "REGISTRY", fake_registry):
+      parcel_1 = rrg_pb2.Parcel()
+      parcel_1.sink = rrg_pb2.BLOB
+      parcel_1.payload.value = b"BLOB_1"
+
+      parcel_2 = rrg_pb2.Parcel()
+      parcel_2.sink = rrg_pb2.STARTUP
+      parcel_2.payload.value = b"STARTUP_2"
+
+      parcel_3 = rrg_pb2.Parcel()
+      parcel_3.sink = rrg_pb2.BLOB
+      parcel_3.payload.value = b"BLOB_3"
+
+      self.server.ReceiveRRGParcels(client_id, [parcel_1, parcel_2, parcel_3])
+
+    blob_parcels = fake_blob_sink.Parcels(client_id)
+    self.assertLen(blob_parcels, 2)
+    self.assertEqual(blob_parcels[0].payload.value, b"BLOB_1")
+    self.assertEqual(blob_parcels[1].payload.value, b"BLOB_3")
+
+    startup_parcels = fake_startup_sink.Parcels(client_id)
+    self.assertLen(startup_parcels, 1)
+    self.assertEqual(startup_parcels[0].payload.value, b"STARTUP_2")
+
+  def testReceiveRRGParcelsEmpty(self):
+    client_id = "C.1234567890ABCDEF"
+
+    # Should not raise.
+    self.server.ReceiveRRGParcels(client_id, [])
 
 
 def main(args):

@@ -62,11 +62,14 @@ def MakeClient():
         unique_id: "us-central1-a/myproject/1771384456894610289"
       }
     }
-    """, base_pb)
+    """,
+      base_pb,
+  )
   # pylint: enable=line-too-long
 
   client = rdf_objects.ClientSnapshot.FromSerializedBytes(
-      base_pb.SerializeToString())
+      base_pb.SerializeToString()
+  )
   client.client_id = "C.0000000000000000"
   return client
 
@@ -77,7 +80,8 @@ class ObjectTest(absltest.TestCase):
     snapshot = rdf_objects.ClientSnapshot(client_id="C.1234567890123456")
     client_info = rdf_objects.ClientFullInfo(last_snapshot=snapshot)
     deserialized = rdf_objects.ClientFullInfo.FromSerializedBytes(
-        client_info.SerializeToBytes())
+        client_info.SerializeToBytes()
+    )
     self.assertEqual(deserialized.last_snapshot, snapshot)
 
   def testClientBasics(self):
@@ -88,16 +92,18 @@ class ObjectTest(absltest.TestCase):
 
   def testClientAddresses(self):
     client = MakeClient()
-    self.assertCountEqual(client.GetIPAddresses(),
-                          ["8.8.8.8", "fe80:102:300::"])
+    self.assertCountEqual(
+        client.GetIPAddresses(), ["8.8.8.8", "fe80:102:300::"]
+    )
     self.assertEqual(client.GetMacAddresses(), ["010203040102030401020304"])
 
   def testClientSummary(self):
     client = MakeClient()
     summary = client.GetSummary()
     self.assertEqual(summary.system_info.fqdn, "test123.examples.com")
-    self.assertEqual(summary.cloud_instance_id,
-                     "us-central1-a/myproject/1771384456894610289")
+    self.assertEqual(
+        summary.cloud_instance_id, "us-central1-a/myproject/1771384456894610289"
+    )
     self.assertCountEqual([u.username for u in summary.users], ["fred", "joe"])
 
   def testClientSummaryTimestamp(self):
@@ -250,8 +256,9 @@ class PathInfoTest(absltest.TestCase):
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
     path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-    self.assertEqual(path_info.path_type,
-                     rdf_objects.PathInfo.PathType.REGISTRY)
+    self.assertEqual(
+        path_info.path_type, rdf_objects.PathInfo.PathType.REGISTRY
+    )
     self.assertEqual(path_info.components, ["foo", "bar"])
     self.assertFalse(path_info.directory)
 
@@ -313,18 +320,21 @@ class PathInfoTest(absltest.TestCase):
 
   def testBasenameMultiComponent(self):
     path_info = rdf_objects.PathInfo.TSK(
-        components=["foo", "bar", "baz", "quux"])
+        components=["foo", "bar", "baz", "quux"]
+    )
     self.assertEqual(path_info.basename, "quux")
 
   def testGetParentNonRoot(self):
     path_info = rdf_objects.PathInfo.TSK(
-        components=["foo", "bar"], directory=False)
+        components=["foo", "bar"], directory=False
+    )
 
     parent_path_info = path_info.GetParent()
     self.assertIsNotNone(parent_path_info)
     self.assertEqual(parent_path_info.components, ["foo"])
-    self.assertEqual(parent_path_info.path_type,
-                     rdf_objects.PathInfo.PathType.TSK)
+    self.assertEqual(
+        parent_path_info.path_type, rdf_objects.PathInfo.PathType.TSK
+    )
     self.assertEqual(parent_path_info.directory, True)
 
   def testGetParentAlmostRoot(self):
@@ -333,8 +343,9 @@ class PathInfoTest(absltest.TestCase):
     parent_path_info = path_info.GetParent()
     self.assertIsNotNone(parent_path_info)
     self.assertEqual(parent_path_info.components, [])
-    self.assertEqual(parent_path_info.path_type,
-                     rdf_objects.PathInfo.PathType.OS)
+    self.assertEqual(
+        parent_path_info.path_type, rdf_objects.PathInfo.PathType.OS
+    )
     self.assertTrue(parent_path_info.root)
     self.assertTrue(parent_path_info.directory)
 
@@ -367,17 +378,20 @@ class PathInfoTest(absltest.TestCase):
   def testUpdateFromValidatesType(self):
     with self.assertRaises(TypeError):
       rdf_objects.PathInfo(
-          components=["usr", "local", "bin"],).UpdateFrom("/usr/local/bin")
+          components=["usr", "local", "bin"],
+      ).UpdateFrom("/usr/local/bin")
 
   def testUpdateFromValidatesPathType(self):
     with self.assertRaises(ValueError):
       rdf_objects.PathInfo.OS(components=["usr", "local", "bin"]).UpdateFrom(
-          rdf_objects.PathInfo.TSK(components=["usr", "local", "bin"]))
+          rdf_objects.PathInfo.TSK(components=["usr", "local", "bin"])
+      )
 
   def testUpdateFromValidatesComponents(self):
     with self.assertRaises(ValueError):
       rdf_objects.PathInfo(components=["usr", "local", "bin"]).UpdateFrom(
-          rdf_objects.PathInfo(components=["usr", "local", "bin", "protoc"]))
+          rdf_objects.PathInfo(components=["usr", "local", "bin", "protoc"])
+      )
 
   def testUpdateFromStatEntryUpdate(self):
     dst = rdf_objects.PathInfo(components=["foo", "bar"])
@@ -411,8 +425,8 @@ class PathInfoTest(absltest.TestCase):
     dest = rdf_objects.PathInfo(components=["usr", "local", "bin"])
     self.assertFalse(dest.directory)
     dest.UpdateFrom(
-        rdf_objects.PathInfo(
-            components=["usr", "local", "bin"], directory=True))
+        rdf_objects.PathInfo(components=["usr", "local", "bin"], directory=True)
+    )
     self.assertTrue(dest.directory)
 
   def testMergePathInfoLastUpdate(self):
@@ -424,15 +438,22 @@ class PathInfoTest(absltest.TestCase):
         rdf_objects.PathInfo(
             components=components,
             last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2017-01-01")))
-    self.assertEqual(dest.last_stat_entry_timestamp,
-                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+                "2017-01-01"
+            ),
+        )
+    )
+    self.assertEqual(
+        dest.last_stat_entry_timestamp,
+        rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"),
+    )
 
     # Merging in a record without last_stat_entry_timestamp shouldn't change
     # it.
     dest.UpdateFrom(rdf_objects.PathInfo(components=components))
-    self.assertEqual(dest.last_stat_entry_timestamp,
-                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+    self.assertEqual(
+        dest.last_stat_entry_timestamp,
+        rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"),
+    )
 
     # Merging in a record with an earlier last_stat_entry_timestamp shouldn't
     # change it.
@@ -440,9 +461,14 @@ class PathInfoTest(absltest.TestCase):
         rdf_objects.PathInfo(
             components=components,
             last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2016-01-01")))
-    self.assertEqual(dest.last_stat_entry_timestamp,
-                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+                "2016-01-01"
+            ),
+        )
+    )
+    self.assertEqual(
+        dest.last_stat_entry_timestamp,
+        rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"),
+    )
 
     # Merging in a record with a later last_stat_entry_timestamp should change
     # it.
@@ -450,9 +476,14 @@ class PathInfoTest(absltest.TestCase):
         rdf_objects.PathInfo(
             components=components,
             last_stat_entry_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2018-01-01")))
-    self.assertEqual(dest.last_stat_entry_timestamp,
-                     rdfvalue.RDFDatetime.FromHumanReadable("2018-01-01"))
+                "2018-01-01"
+            ),
+        )
+    )
+    self.assertEqual(
+        dest.last_stat_entry_timestamp,
+        rdfvalue.RDFDatetime.FromHumanReadable("2018-01-01"),
+    )
 
 
 class CategorizedPathTest(absltest.TestCase):
@@ -469,13 +500,15 @@ class CategorizedPathTest(absltest.TestCase):
 
   def testParseNtfs(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
-        "fs/ntfs/quux/norf")
+        "fs/ntfs/quux/norf"
+    )
     self.assertEqual(path_type, objects_pb2.PathInfo.PathType.NTFS)
     self.assertEqual(components, ("quux", "norf"))
 
   def testParseRegistry(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
-        "registry/thud/blargh")
+        "registry/thud/blargh"
+    )
     self.assertEqual(path_type, objects_pb2.PathInfo.PathType.REGISTRY)
     self.assertEqual(components, ("thud", "blargh"))
 
@@ -491,7 +524,8 @@ class CategorizedPathTest(absltest.TestCase):
 
   def testParseTskExtraSlashes(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
-        "/fs///tsk/foo///bar")
+        "/fs///tsk/foo///bar"
+    )
     self.assertEqual(path_type, objects_pb2.PathInfo.PathType.TSK)
     self.assertEqual(components, ("foo", "bar"))
 
@@ -547,35 +581,40 @@ class VfsFileReferenceTest(absltest.TestCase):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,
         path_type="OS",
-        path_components=["a", "b", "c"])
+        path_components=["a", "b", "c"],
+    )
     self.assertEqual(v.ToPath(), "fs/os/a/b/c")
 
   def testTskPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,
         path_type="TSK",
-        path_components=["a", "b", "c"])
+        path_components=["a", "b", "c"],
+    )
     self.assertEqual(v.ToPath(), "fs/tsk/a/b/c")
 
   def testNtfsPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,
         path_type="NTFS",
-        path_components=["a", "b", "c"])
+        path_components=["a", "b", "c"],
+    )
     self.assertEqual(v.ToPath(), "fs/ntfs/a/b/c")
 
   def testRegistryPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,
         path_type="REGISTRY",
-        path_components=["a", "b", "c"])
+        path_components=["a", "b", "c"],
+    )
     self.assertEqual(v.ToPath(), "registry/a/b/c")
 
   def testTempPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,
         path_type="TEMP",
-        path_components=["a", "b", "c"])
+        path_components=["a", "b", "c"],
+    )
     self.assertEqual(v.ToPath(), "temp/a/b/c")
 
   def testConvertingPathVfsPathStringWithUnknownTypeRaises(self):

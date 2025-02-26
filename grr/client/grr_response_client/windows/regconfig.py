@@ -10,7 +10,7 @@
 
 import collections
 import logging
-from typing import Any, Dict, Text
+from typing import Any
 from urllib import parse as urlparse
 import winreg
 
@@ -68,7 +68,7 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
       self.parsed = self._key_spec.path
     return self._root_key
 
-  def ReadData(self) -> Dict[str, Any]:
+  def ReadData(self) -> dict[str, Any]:
     """Yields the valus in each section."""
     result = dict()
 
@@ -78,7 +78,7 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
         name, value, value_type = winreg.EnumValue(self._AccessRootKey(), i)
         # Only support strings here.
         if value_type == winreg.REG_SZ:
-          precondition.AssertType(value, Text)
+          precondition.AssertType(value, str)
           result[name] = value
       except OSError:
         break
@@ -87,7 +87,7 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
 
     return result
 
-  def SaveData(self, raw_data: Dict[str, Any]) -> None:
+  def SaveData(self, raw_data: dict[str, Any]) -> None:
     logging.info("Writing back configuration to key %s.", self._key_spec)
 
     # Ensure intermediate directories exist.

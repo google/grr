@@ -18,6 +18,7 @@ const isEnterPressed = (event: KeyboardEvent) => event.key === 'Enter';
  * when only pressing ENTER.
  */
 @Directive({
+  standalone: false,
   selector: 'form[appSubmitOnMetaEnter]',
   host: {
     '(keypress)': 'onKeyPress($event)',

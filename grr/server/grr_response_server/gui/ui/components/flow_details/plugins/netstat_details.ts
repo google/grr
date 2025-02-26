@@ -3,6 +3,7 @@ import {
   Component,
   OnDestroy,
   ViewChild,
+  inject,
 } from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
@@ -51,12 +52,15 @@ function asConnectionRow(connection: NetworkConnection): ConnectionRow {
  * particular Netstat Flow.
  */
 @Component({
+  standalone: false,
   selector: 'netstat-details',
   templateUrl: './netstat_details.ng.html',
   styleUrls: ['./netstat_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NetstatDetails extends Plugin implements OnDestroy {
+  private readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
   readonly displayedColumns = COLUMNS;
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -75,7 +79,7 @@ export class NetstatDetails extends Plugin implements OnDestroy {
 
   override readonly ngOnDestroy = observeOnDestroy(this);
 
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  constructor() {
     super();
     this.flowResultsLocalStore.query(
       this.flow$.pipe(map((flow) => ({flow, withType: 'NetworkConnection'}))),

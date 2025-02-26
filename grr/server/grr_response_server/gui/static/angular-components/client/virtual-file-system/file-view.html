@@ -6,18 +6,18 @@
 
     <div grr-splitter orientation="vertical">
       <div grr-splitter-pane size="25" id="main_leftPane" class="leftPane">
-        <grr-file-tree />
+        <grr-file-tree></grr-file-tree>
       </div>
 
       <div grr-splitter-pane size="75" id="main_rightPane" class="rightPane">
         <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
 
           <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
-            <grr-file-table view-mode="controller.viewMode" />
+            <grr-file-table view-mode="controller.viewMode"></grr-file-table>
           </div>
 
           <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
-            <grr-file-details current-tab="controller.tab" />
+            <grr-file-details current-tab="controller.tab"></grr-file-details>
           </div>
 
         </div>

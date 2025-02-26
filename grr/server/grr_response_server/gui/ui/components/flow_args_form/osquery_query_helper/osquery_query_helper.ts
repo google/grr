@@ -30,6 +30,7 @@ import {constructSelectAllFromTable} from './query_composer';
 
 /** A helper component for the OsqueryForm to aid in writing the query */
 @Component({
+  standalone: false,
   selector: 'osquery-query-helper',
   templateUrl: './osquery_query_helper.ng.html',
   styleUrls: ['./osquery_query_helper.scss'],

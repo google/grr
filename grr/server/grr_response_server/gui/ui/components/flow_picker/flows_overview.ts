@@ -21,6 +21,7 @@ interface FlowOverviewCategory {
  * Component that displays available Flows.
  */
 @Component({
+  standalone: false,
   selector: 'flows-overview',
   templateUrl: './flows_overview.ng.html',
   styleUrls: ['./flows_overview.scss'],

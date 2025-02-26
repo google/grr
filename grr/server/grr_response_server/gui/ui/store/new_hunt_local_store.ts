@@ -51,6 +51,113 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
     private readonly configGlobalStore: ConfigGlobalStore,
   ) {
     super({});
+    this.flowWithDescriptor$ = combineLatest([
+      this.originalFlowRef$,
+      this.hasClientAccess$,
+      this.configGlobalStore.flowDescriptors$,
+    ]).pipe(
+      switchMap(([flowRef, hasAccess, fds]) => {
+        return flowRef && hasAccess
+          ? this.httpApiService
+              .fetchFlow(flowRef.clientId, flowRef.flowId)
+              .pipe(
+                map((apiFlow) => {
+                  if (apiFlow) {
+                    const type = apiFlow.args?.['@type'];
+                    return {
+                      flow: translateFlow(apiFlow),
+                      descriptor: fds.get(apiFlow.name ?? ''),
+                      flowArgType: typeof type === 'string' ? type : undefined,
+                    };
+                  }
+                  return null;
+                }),
+              )
+          : of(null);
+      }),
+      startWith(null),
+    );
+    this.defaultSafetyLimits$ = this.configGlobalStore.uiConfig$.pipe(
+      map((config) => config.defaultHuntRunnerArgs),
+      filter(isNonNull),
+      map(translateSafetyLimits),
+    );
+    this.defaultClientRuleSet$ = this.configGlobalStore.uiConfig$.pipe(
+      map((config) => config.defaultHuntRunnerArgs),
+      filter(isNonNull),
+      map((hra) => {
+        if (!hra.clientRuleSet) {
+          return {
+            rules: [
+              // Add an extra OS rule at the beginning of the rules list.
+              {ruleType: ForemanClientRuleType.OS},
+            ],
+          };
+        }
+
+        return {
+          ...hra.clientRuleSet,
+          rules: [
+            // Add an extra OS rule at the beginning of the rules list.
+            {ruleType: ForemanClientRuleType.OS},
+            ...(hra.clientRuleSet.rules ?? []),
+          ],
+        };
+      }),
+    );
+    this.presubmitOptions$ = combineLatest([
+      this.currentDescription$,
+      this.configGlobalStore.uiConfig$.pipe(map((config) => config.huntConfig)),
+    ]).pipe(
+      map(([description, huntConfig]) => {
+        if (!huntConfig?.presubmitCheckWithSkipTag) {
+          return undefined;
+        }
+
+        const skipTag = huntConfig.presubmitCheckWithSkipTag ?? '';
+        if ((description ?? '').includes(skipTag)) return undefined;
+
+        return this.buildHuntPresubmitClientRuleSet(huntConfig, skipTag);
+      }),
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+    this.runHunt = this.effect<{
+      description: string;
+      safetyLimits: SafetyLimits;
+      rules: ForemanClientRuleSet;
+      outputPlugins: readonly OutputPluginDescriptor[];
+    }>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(
+          this.flowWithDescriptor$,
+          this.originalHunt$,
+          this.state$,
+        ),
+        switchMap(([opts, flowWithDescriptors, originalHunt, state]) => {
+          return trackRequest(
+            this.httpApiService.createHunt(
+              opts.description,
+              flowWithDescriptors,
+              originalHunt,
+              opts.safetyLimits,
+              opts.rules,
+              opts.outputPlugins,
+              state.originalHuntId,
+            ),
+          );
+        }),
+        tap((status) => {
+          if (status.status === RequestStatusType.SUCCESS) {
+            this.updateHuntId(status.data?.huntId);
+          }
+        }),
+      ),
+    );
+    this.updateHuntId = this.updater<string | undefined>((state, huntId) => ({
+      ...state,
+      huntId,
+    }));
+    this.huntId$ = this.select((state) => state.huntId);
   }
 
   /** Reducer updating the store and setting the clientId and flowId. */
@@ -107,81 +214,28 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
       shareReplay({bufferSize: 1, refCount: true}),
     );
 
-  readonly flowWithDescriptor$: Observable<FlowWithDescriptor | null> =
-    combineLatest([
-      this.originalFlowRef$,
-      this.hasClientAccess$,
-      this.configGlobalStore.flowDescriptors$,
-    ]).pipe(
-      switchMap(([flowRef, hasAccess, fds]) => {
-        return flowRef && hasAccess
-          ? this.httpApiService
-              .fetchFlow(flowRef.clientId, flowRef.flowId)
-              .pipe(
-                map((apiFlow) => {
-                  if (apiFlow) {
-                    const type = apiFlow.args?.['@type'];
-                    return {
-                      flow: translateFlow(apiFlow),
-                      descriptor: fds.get(apiFlow.name ?? ''),
-                      flowArgType: typeof type === 'string' ? type : undefined,
-                    };
-                  }
-                  return null;
-                }),
-              )
-          : of(null);
-      }),
-      startWith(null),
-    );
+  readonly flowWithDescriptor$: Observable<FlowWithDescriptor | null>;
 
-  readonly defaultSafetyLimits$: Observable<SafetyLimits> =
-    this.configGlobalStore.uiConfig$.pipe(
-      map((config) => config.defaultHuntRunnerArgs),
-      filter(isNonNull),
-      map(translateSafetyLimits),
-    );
+  readonly defaultSafetyLimits$: Observable<SafetyLimits>;
 
-  readonly defaultClientRuleSet$: Observable<ForemanClientRuleSet> =
-    this.configGlobalStore.uiConfig$.pipe(
-      map((config) => config.defaultHuntRunnerArgs),
-      filter(isNonNull),
-      map((hra) => {
-        if (!hra.clientRuleSet) {
-          return {
-            rules: [
-              // Add an extra OS rule at the beginning of the rules list.
-              {ruleType: ForemanClientRuleType.OS},
-            ],
-          };
-        }
-
-        return {
-          ...hra.clientRuleSet,
-          rules: [
-            // Add an extra OS rule at the beginning of the rules list.
-            {ruleType: ForemanClientRuleType.OS},
-            ...(hra.clientRuleSet.rules ?? []),
-          ],
-        };
-      }),
-    );
+  readonly defaultClientRuleSet$: Observable<ForemanClientRuleSet>;
 
   buildHuntPresubmitClientRuleSet(
     huntConfig: AdminUIHuntConfig,
-    forceHuntTag: string,
+    skipTag: string,
   ): HuntPresubmit {
     if (
-      !huntConfig.makeDefaultExcludeLabelsAPresubmitCheck ||
+      !huntConfig.presubmitCheckWithSkipTag ||
       !huntConfig.defaultExcludeLabels
     ) {
       return {} as HuntPresubmit;
     }
 
-    const message = `${huntConfig.presubmitWarningMessage}\nPlease
-          **exclude** the following labels
+    const message = `${huntConfig.presubmitWarningMessage}\nYou
+          **MUST match all** the conditions and
+          **MUST exclude** the following labels from your fleet collection:
           **[${huntConfig.defaultExcludeLabels.join(', ')}]**
-          or add a _'${forceHuntTag}=<reason>'_ tag to the hunt description.`;
+          or add a _'${skipTag}=<reason>'_ tag to the description.`;
 
     return {
       markdownText: message,
@@ -189,61 +243,14 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
     };
   }
 
-  readonly presubmitOptions$: Observable<HuntPresubmit | undefined> =
-    combineLatest([
-      this.currentDescription$,
-      this.configGlobalStore.uiConfig$.pipe(map((config) => config.huntConfig)),
-    ]).pipe(
-      map(([description, huntConfig]) => {
-        if (!huntConfig?.makeDefaultExcludeLabelsAPresubmitCheck) {
-          return undefined;
-        }
-
-        const FORCE_HUNT_TAG = 'FORCE';
-        if ((description ?? '').includes(FORCE_HUNT_TAG)) return undefined;
-
-        return this.buildHuntPresubmitClientRuleSet(huntConfig, FORCE_HUNT_TAG);
-      }),
-      shareReplay({bufferSize: 1, refCount: true}),
-    );
+  readonly presubmitOptions$: Observable<HuntPresubmit | undefined>;
 
   /** An effect to run a hunt */
-  readonly runHunt = this.effect<{
-    description: string;
-    safetyLimits: SafetyLimits;
-    rules: ForemanClientRuleSet;
-    outputPlugins: readonly OutputPluginDescriptor[];
-  }>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.flowWithDescriptor$, this.originalHunt$, this.state$),
-      switchMap(([opts, flowWithDescriptors, originalHunt, state]) => {
-        return trackRequest(
-          this.httpApiService.createHunt(
-            opts.description,
-            flowWithDescriptors,
-            originalHunt,
-            opts.safetyLimits,
-            opts.rules,
-            opts.outputPlugins,
-            state.originalHuntId,
-          ),
-        );
-      }),
-      tap((status) => {
-        if (status.status === RequestStatusType.SUCCESS) {
-          this.updateHuntId(status.data?.huntId);
-        }
-      }),
-    ),
-  );
+  readonly runHunt;
 
-  private readonly updateHuntId = this.updater<string | undefined>(
-    (state, huntId) => ({...state, huntId}),
-  );
+  private readonly updateHuntId;
 
-  readonly huntId$: Observable<string | undefined> = this.select(
-    (state) => state.huntId,
-  );
+  readonly huntId$: Observable<string | undefined>;
 }
 
 /** LocalStore for new hunt related API calls. */
@@ -252,12 +259,20 @@ export class NewHuntLocalStore {
   constructor(
     private readonly httpApiService: HttpApiService,
     private readonly configGlobalStore: ConfigGlobalStore,
-  ) {}
+  ) {
+    this.store = new NewHuntComponentStore(
+      this.httpApiService,
+      this.configGlobalStore,
+    );
+    this.defaultSafetyLimits$ = this.store.defaultSafetyLimits$;
+    this.defaultClientRuleSet$ = this.store.defaultClientRuleSet$;
+    this.presubmitOptions$ = this.store.presubmitOptions$;
+    this.huntId$ = this.store.huntId$;
+    this.flowWithDescriptor$ = this.store.flowWithDescriptor$;
+    this.originalHunt$ = this.store.originalHunt$;
+  }
 
-  private readonly store = new NewHuntComponentStore(
-    this.httpApiService,
-    this.configGlobalStore,
-  );
+  private readonly store;
   /** Selects a flow with a given parameters. */
   selectOriginalFlow(clientId: string, flowId: string): void {
     this.store.selectOriginalFlow({clientId, flowId});
@@ -278,10 +293,10 @@ export class NewHuntLocalStore {
     this.store.runHunt({description, safetyLimits, rules, outputPlugins});
   }
 
-  readonly defaultSafetyLimits$ = this.store.defaultSafetyLimits$;
-  readonly defaultClientRuleSet$ = this.store.defaultClientRuleSet$;
-  readonly presubmitOptions$ = this.store.presubmitOptions$;
-  readonly huntId$ = this.store.huntId$;
-  readonly flowWithDescriptor$ = this.store.flowWithDescriptor$;
-  readonly originalHunt$ = this.store.originalHunt$;
+  readonly defaultSafetyLimits$;
+  readonly defaultClientRuleSet$;
+  readonly presubmitOptions$;
+  readonly huntId$;
+  readonly flowWithDescriptor$;
+  readonly originalHunt$;
 }

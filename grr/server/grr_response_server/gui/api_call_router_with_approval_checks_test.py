@@ -5,11 +5,13 @@ from unittest import mock
 
 from absl import app
 
+from grr_response_proto import api_call_router_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server.authorization import groups
 from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
@@ -38,6 +40,25 @@ class ApiCallRouterWithApprovalChecksTest(
   # to group tests.
   ACCESS_CHECKED_METHODS = []
 
+  # APPROVAL_HANDLER_METHODS use approval checks to return the approval status
+  # in the response. Simple tests for access rights are not working in these
+  # cases as they do not distinguish between access rights to the API and
+  # approval status computation.
+  APPROVAL_HANDLER_METHODS = [
+      "CreateClientApproval",
+      "GrantClientApproval",
+      "GetClientApproval",
+      "ListClientApprovals",
+      "CreateHuntApproval",
+      "GrantHuntApproval",
+      "GetHuntApproval",
+      "ListHuntApprovals",
+      "CreateCronJobApproval",
+      "GrantCronJobApproval",
+      "GetCronJobApproval",
+      "ListCronJobApprovals",
+  ]
+
   def setUp(self):
     super().setUp()
 
@@ -45,63 +66,75 @@ class ApiCallRouterWithApprovalChecksTest(
     self.context = api_call_context.ApiCallContext("test")
 
     self.delegate_mock = mock.MagicMock()
-    self.access_checker_mock = mock.MagicMock()
+    self.admin_checker_mock = mock.MagicMock()
+    self.approval_checker_mock = mock.MagicMock()
 
     self.router = api_router.ApiCallRouterWithApprovalChecks(
-        delegate=self.delegate_mock, access_checker=self.access_checker_mock
+        params=api_router.ApiCallRouterWithApprovalCheckParams(),
+        delegate=self.delegate_mock,
+        admin_access_checker=self.admin_checker_mock,
+        approval_checker=self.approval_checker_mock,
     )
 
   def CheckMethodIsAccessChecked(
-      self, method, access_type, args=None, context=None
+      self,
+      method,
+      access_type,
+      access_checker_mock=None,
+      args=None,
+      context=None,
   ):
     context = context or self.context
+
+    if not access_checker_mock:
+      access_checker_mock = self.approval_checker_mock
 
     # Check that legacy access control manager is called and that the method
     # is then delegated.
     method(args, context=context)
-    self.assertTrue(getattr(self.access_checker_mock, access_type).called)
+    self.assertTrue(getattr(access_checker_mock, access_type).called)
     getattr(self.delegate_mock, method.__name__).assert_called_with(
         args, context=context
     )
 
     self.delegate_mock.reset_mock()
-    self.access_checker_mock.reset_mock()
+    access_checker_mock.reset_mock()
 
     try:
       # Check that when exception is raised by legacy manager, the delegate
       # method is not called.
-      getattr(self.access_checker_mock, access_type).side_effect = (
+      getattr(access_checker_mock, access_type).side_effect = (
           access_control.UnauthorizedAccess("")
       )
 
       with self.assertRaises(access_control.UnauthorizedAccess):
         method(args, context=context)
 
-      self.assertTrue(getattr(self.access_checker_mock, access_type).called)
+      self.assertTrue(getattr(access_checker_mock, access_type).called)
       self.assertFalse(getattr(self.delegate_mock, method.__name__).called)
 
     finally:
-      getattr(self.access_checker_mock, access_type).side_effect = None
+      getattr(access_checker_mock, access_type).side_effect = None
       self.delegate_mock.reset_mock()
-      self.access_checker_mock.reset_mock()
+      access_checker_mock.reset_mock()
 
   def CheckMethodIsNotAccessChecked(self, method, args=None, context=None):
     context = context or self.context
 
     method(args, context=context)
 
-    self.assertFalse(self.access_checker_mock.CheckClientAccess.called)
-    self.assertFalse(self.access_checker_mock.CheckHuntAccess.called)
-    self.assertFalse(self.access_checker_mock.CheckCronJob.called)
-    self.assertFalse(self.access_checker_mock.CheckIfCanStartClientFlow.called)
-    self.assertFalse(self.access_checker_mock.CheckDataStoreAccess.called)
+    self.assertFalse(self.approval_checker_mock.CheckClientAccess.called)
+    self.assertFalse(self.approval_checker_mock.CheckHuntAccess.called)
+    self.assertFalse(self.approval_checker_mock.CheckCronJob.called)
+    self.assertFalse(self.admin_checker_mock.CheckIfCanStartFlow.called)
+    self.assertFalse(self.approval_checker_mock.CheckDataStoreAccess.called)
 
     getattr(self.delegate_mock, method.__name__).assert_called_with(
         args, context=context
     )
 
     self.delegate_mock.reset_mock()
-    self.access_checker_mock.reset_mock()
+    self.approval_checker_mock.reset_mock()
 
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
@@ -354,7 +387,10 @@ class ApiCallRouterWithApprovalChecksTest(
         self.router.CreateFlow, "CheckClientAccess", args=args
     )
     self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckIfCanStartClientFlow", args=args
+        self.router.CreateFlow,
+        "CheckIfCanStartFlow",
+        access_checker_mock=self.admin_checker_mock,
+        args=args,
     )
 
     args = api_flow.ApiCancelFlowArgs(client_id=self.client_id)
@@ -542,7 +578,10 @@ class ApiCallRouterWithApprovalChecksTest(
   def testCreatingHuntIsAccessChecked(self):
     args = api_hunt.ApiCreateHuntArgs(flow_name=osquery.OsqueryFlow.__name__)
     self.CheckMethodIsAccessChecked(
-        self.router.CreateHunt, "CheckIfCanStartClientFlow", args=args
+        self.router.CreateHunt,
+        "CheckIfCanStartFlow",
+        access_checker_mock=self.admin_checker_mock,
+        args=args,
     )
 
   def testModifyHuntIsAccessChecked(self):
@@ -594,17 +633,23 @@ class ApiCallRouterWithApprovalChecksTest(
 
   def testListGrrBinariesIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(
-        self.router.ListGrrBinaries, "CheckIfHasAccessToRestrictedFlows"
+        self.router.ListGrrBinaries,
+        "CheckIfHasAdminAccess",
+        access_checker_mock=self.admin_checker_mock,
     )
 
   def testGetGrrBinaryIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(
-        self.router.GetGrrBinary, "CheckIfHasAccessToRestrictedFlows"
+        self.router.GetGrrBinary,
+        "CheckIfHasAdminAccess",
+        access_checker_mock=self.admin_checker_mock,
     )
 
   def testGetGrrBinaryBlobIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(
-        self.router.GetGrrBinary, "CheckIfHasAccessToRestrictedFlows"
+        self.router.GetGrrBinary,
+        "CheckIfHasAdminAccess",
+        access_checker_mock=self.admin_checker_mock,
     )
 
   ACCESS_CHECKED_METHODS.extend([
@@ -616,7 +661,7 @@ class ApiCallRouterWithApprovalChecksTest(
     # Check that router's access_checker's method got passed into the handler.
     self.assertEqual(
         handler.access_check_fn,
-        self.router.access_checker.CheckIfCanStartClientFlow,
+        self.router.admin_access_checker.CheckIfCanStartFlow,
     )
 
   ACCESS_CHECKED_METHODS.extend([
@@ -653,9 +698,7 @@ class ApiCallRouterWithApprovalChecksTest(
       self,
   ):
     error = access_control.UnauthorizedAccess("some error")
-    self.access_checker_mock.CheckIfHasAccessToRestrictedFlows.side_effect = (
-        error
-    )
+    self.admin_checker_mock.CheckIfHasAdminAccess.side_effect = error
     handler = self.router.GetGrrUser(None, context=self.context)
 
     self.assertNotEqual(
@@ -682,53 +725,84 @@ class ApiCallRouterWithApprovalChecksTest(
     )
 
   def testAllOtherMethodsAreNotAccessChecked(self):
-    unchecked_methods = set(
-        self.router.__class__.GetAnnotatedMethods().keys()
-    ) - set(self.ACCESS_CHECKED_METHODS)
+    unchecked_methods = (
+        set(self.router.__class__.GetAnnotatedMethods().keys())
+        - set(self.ACCESS_CHECKED_METHODS)
+        - set(self.APPROVAL_HANDLER_METHODS)
+    )
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:
       self.CheckMethodIsNotAccessChecked(getattr(self.router, method_name))
 
 
-class AccessCheckerTest(test_lib.GRRBaseTest):
-  """Tests for AccessChecker."""
+class ApprovalCheckParamsAdminAccessCheckerTest(test_lib.GRRBaseTest):
+  """Tests for the ApprovalCheckParamsAdminAccessChecker."""
 
-  def setUp(self):
-    super().setUp()
-    self.context = api_call_context.ApiCallContext("test")
-    self.checker = api_router.AccessChecker(
-        params=api_router.ApiCallRouterWithApprovalCheckParams()
-    )
-
-  def testCheckIfCanStartClientFlowNotRegistered(self):
-    with self.assertRaisesRegex(
-        access_control.UnauthorizedAccess,
-        "Flow NotThere can't be started via the API.",
-    ):
-      self.checker.CheckIfCanStartClientFlow(self.context.username, "NotThere")
-
-  def testCheckIfCanStartClientFlow_RestrictedFlow_NormalUser(self):
-    data_store.REL_DB.WriteGRRUser("restricted")
-
-    with self.assertRaisesRegex(
-        access_control.UnauthorizedAccess,
-        "Not enough permissions to access restricted flow LaunchBinary",
-    ):
-      self.checker.CheckIfCanStartClientFlow("restricted", "LaunchBinary")
-
-  def testCheckIfCanStartClientFlow_RestrictedFlow_AdminUser(self):
+  def testCheckHasAdminAccess_AdminUser(self):
+    username = "admin"
     data_store.REL_DB.WriteGRRUser(
-        "admin", user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
+        username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     )
-    # Shouldn't raise if it is allowed.
-    self.checker.CheckIfCanStartClientFlow("admin", "LaunchBinary")
+    checker = api_router.ApprovalCheckParamsAdminAccessChecker(
+        params=api_call_router_pb2.ApiCallRouterWithApprovalCheckParams()
+    )
+    checker.CheckIfHasAdminAccess(username)
 
-  def testCheckIfCanStartMultiGetFile(self):
-    # Shouldn't raise if it is allowed.
-    self.checker.CheckIfCanStartClientFlow(
-        self.context.username, "MultiGetFile"
+  @mock.patch(groups.__name__ + ".CreateGroupAccessManager")
+  def testCheckHasAdminAccess_RouterParamsAdminUser(self, _):
+    username = "admin"
+    data_store.REL_DB.WriteGRRUser(
+        username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_STANDARD
     )
+
+    params = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams(
+        ignore_admin_user_attribute=True, admin_users=[username]
+    )
+    checker = api_router.ApprovalCheckParamsAdminAccessChecker(params=params)
+    checker.CheckIfHasAdminAccess(username)
+
+  @mock.patch(groups.__name__ + ".CreateGroupAccessManager")
+  def testCheckHasAdminAccess_RouterParamsAdminGroup(self, mock_access_mngr):
+    group = "admin-group"
+    username = "admin-group-member"
+    data_store.REL_DB.WriteGRRUser(
+        username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_STANDARD
+    )
+
+    params = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams(
+        ignore_admin_user_attribute=True, admin_groups=[group]
+    )
+    checker = api_router.ApprovalCheckParamsAdminAccessChecker(params=params)
+    # We are not testing the access manager implementation here, so only ensure
+    # it is called with the right arguments.
+    mock_access_mngr.return_value.AuthorizeGroup.assert_called_with(
+        group, "admin-access"
+    )
+    mock_access_mngr.return_value.MemberOfAuthorizedGroup.return_value = True
+
+    checker.CheckIfHasAdminAccess(username)
+    mock_access_mngr.return_value.MemberOfAuthorizedGroup.assert_called_with(
+        username, "admin-access"
+    )
+
+  @mock.patch(groups.__name__ + ".CreateGroupAccessManager")
+  def testCheckHasAdminAccess_NotAdminUserRaises(self, mock_access_mngr):
+    username = "not_admin"
+    data_store.REL_DB.WriteGRRUser(
+        username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_STANDARD
+    )
+    checker = api_router.ApprovalCheckParamsAdminAccessChecker(
+        params=api_call_router_pb2.ApiCallRouterWithApprovalCheckParams(
+            ignore_admin_user_attribute=False, admin_users=[]
+        )
+    )
+    mock_access_mngr.return_value.MemberOfAuthorizedGroup.return_value = False
+    with self.assertRaisesRegex(
+        access_control.UnauthorizedAccess,
+        "No Admin user access for not_admin.",
+    ):
+      checker.CheckIfHasAdminAccess(username)
 
 
 def main(argv):

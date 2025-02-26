@@ -7,7 +7,6 @@ const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('loading indicator directive', () => {
-
   const LOADING_STARTED_EVENT_NAME =
       LoadingIndicatorDirective.loading_started_event_name;
 
@@ -29,7 +28,7 @@ describe('loading indicator directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-loading-indicator />';
+    const template = '<grr-loading-indicator></grr-loading-indicator>';
     const element = $compile(template)($scope);
     $scope.$apply();
     return element;
@@ -78,8 +77,8 @@ describe('loading indicator directive', () => {
     broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
     expect(isVisible(element)).toBe(true);
 
-    // TODO(user): once all requests go through angular, we can throw error on
-    // unrelated events. This code can be used to test this behavior:
+    // TODO(user): once all requests go through angular, we can throw error
+    // on unrelated events. This code can be used to test this behavior:
     //    expect(function(){
     //      broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
     //    }).toThrowError("Key not found: some other key");
@@ -103,7 +102,7 @@ describe('loading indicator directive', () => {
     expect(isVisible(element)).toBe(true);
 
     broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
-    expect(isVisible(element)).toBe(false); // all finished events occurred
+    expect(isVisible(element)).toBe(false);  // all finished events occurred
   });
 });
 

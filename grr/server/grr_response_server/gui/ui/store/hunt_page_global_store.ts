@@ -58,7 +58,7 @@ export function generateResultTabConfigList(
 ): HuntResultsTableTabConfig[] {
   const tabs: HuntResultsTableTabConfig[] = [];
 
-  const clientErrorCount = hunt.failedClientsCount + hunt.crashedClientsCount;
+  const clientErrorCount = hunt.failedClientsCount;
 
   // We add the 'Errors' tab if necessary:
   if (clientErrorCount > BigInt(0)) {
@@ -84,7 +84,7 @@ export function generateResultTabConfigList(
 }
 
 /** Maximum number of progress data-points to fetch per Hunt */
-const MAX_HUNT_COMPLETION_PROGRESS_DATAPOINTS = 1_000;
+const MAX_HUNT_COMPLETION_PROGRESS_DATAPOINTS = 100;
 
 /** ComponentStore implementation used by the GlobalStore. */
 class HuntPageComponentStore extends ComponentStore<HuntPageState> {
@@ -198,22 +198,29 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
   providedIn: 'root',
 })
 export class HuntPageGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new HuntPageComponentStore(this.httpApiService);
+    this.selectedHuntId$ = this.store.selectedHuntId$;
+    this.selectedHunt$ = this.store.selectedHunt$;
+    this.huntProgress$ = this.store.huntProgress$;
+    this.huntResultTabs$ = this.store.huntResultTabs$;
+    this.huntResultsByTypeCountLoading$ =
+      this.store.huntResultsByTypeCountLoading$;
+  }
 
-  private readonly store = new HuntPageComponentStore(this.httpApiService);
+  private readonly store;
 
   /** Selects a hunt with a given id. */
   selectHunt(huntId: string): void {
     this.store.selectHunt(huntId);
   }
 
-  readonly selectedHuntId$ = this.store.selectedHuntId$;
-  readonly selectedHunt$ = this.store.selectedHunt$;
+  readonly selectedHuntId$;
+  readonly selectedHunt$;
 
-  readonly huntProgress$ = this.store.huntProgress$;
-  readonly huntResultTabs$ = this.store.huntResultTabs$;
-  readonly huntResultsByTypeCountLoading$ =
-    this.store.huntResultsByTypeCountLoading$;
+  readonly huntProgress$;
+  readonly huntResultTabs$;
+  readonly huntResultsByTypeCountLoading$;
 
   cancelHunt() {
     this.store.patchHunt({state: HuntState.CANCELLED});

@@ -2,13 +2,15 @@
 """Implementation of path expansion mechanism for client-side file-finder."""
 
 import abc
+from collections.abc import Callable, Iterable, Iterator
 import fnmatch
 import itertools
+import logging
 import os
 import platform
 import re
 import stat
-from typing import Callable, Iterable, Iterator, Optional, Text
+from typing import Optional
 
 import psutil
 
@@ -109,8 +111,9 @@ class RecursiveComponent(PathComponent):
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
       try:
         stat_entry = os.stat(path)
-      except OSError:
+      except OSError as e:
         # Can happen for links pointing to non existent files/directories.
+        logging.info("Failed to stat '%s': %s", path, e)
         return
 
       if (
@@ -172,7 +175,7 @@ class GlobComponent(PathComponent):
   that contain no wildcards and match only themselves.
   """
 
-  def __init__(self, glob: Text, opts: Optional[PathOpts] = None):
+  def __init__(self, glob: str, opts: Optional[PathOpts] = None):
     """Instantiates a new GlobComponent from a given path glob.
 
     Args:
@@ -185,7 +188,7 @@ class GlobComponent(PathComponent):
     self.regex = re.compile(fnmatch.translate(glob), re.I)
     self.opts = opts or PathOpts()
 
-  def _GenerateLiteralMatchOS(self, dirpath: Text) -> Optional[Text]:
+  def _GenerateLiteralMatchOS(self, dirpath: str) -> Optional[str]:
     """Generates an OS-specific literal match."""
     if not os.path.exists(os.path.join(dirpath, self._glob)):
       return None
@@ -206,7 +209,7 @@ class GlobComponent(PathComponent):
         return fname
     return None
 
-  def _GenerateLiteralMatch(self, dirpath: Text) -> Optional[Text]:
+  def _GenerateLiteralMatch(self, dirpath: str) -> Optional[str]:
     """Generates a literal match."""
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
       return self._GenerateLiteralMatchOS(dirpath)
@@ -325,7 +328,7 @@ def ParsePathItem(item, opts=None):
 
 
 def ParsePath(
-    path: Text, opts: Optional[PathOpts] = None
+    path: str, opts: Optional[PathOpts] = None
 ) -> Iterator[PathComponent]:
   """Parses given path into a stream of `PathComponent` instances.
 
@@ -339,7 +342,7 @@ def ParsePath(
   Raises:
     ValueError: If path contains more than one recursive component.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
 
   rcount = 0
 
@@ -358,7 +361,7 @@ def ParsePath(
 
 
 def ExpandPath(
-    path: Text,
+    path: str,
     opts: Optional[PathOpts] = None,
     heartbeat_cb: Callable[[], None] = _NoOp,
 ):
@@ -372,7 +375,7 @@ def ExpandPath(
   Yields:
     All paths possible to obtain from a given path by performing expansions.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
 
   for grouped_path in ExpandGroups(path):
     for globbed_path in ExpandGlobs(grouped_path, opts, heartbeat_cb):
@@ -391,7 +394,7 @@ def ExpandGroups(path):
   Yields:
     Paths that can be obtained from given path by expanding groups.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
 
   chunks = []
   offset = 0
@@ -408,7 +411,7 @@ def ExpandGroups(path):
 
 
 def ExpandGlobs(
-    path: Text,
+    path: str,
     opts: Optional[PathOpts] = None,
     heartbeat_cb: Callable[[], None] = _NoOp,
 ):
@@ -429,7 +432,7 @@ def ExpandGlobs(
   Raises:
     ValueError: If given path is empty or relative.
   """
-  precondition.AssertType(path, Text)
+  precondition.AssertType(path, str)
   if not path:
     raise ValueError("Path is empty")
 
@@ -448,7 +451,7 @@ def ExpandGlobs(
   return _ExpandComponents(root_dir, components, heartbeat_cb=heartbeat_cb)
 
 
-def _IsAbsolutePath(path: Text, opts: Optional[PathOpts] = None) -> bool:
+def _IsAbsolutePath(path: str, opts: Optional[PathOpts] = None) -> bool:
   if opts and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
     return path.startswith("/HKEY_") or path.startswith("HKEY_")
 
@@ -494,7 +497,8 @@ def _ListDir(
   if pathtype == rdf_paths.PathSpec.PathType.OS:
     try:
       return os.listdir(dirpath)
-    except OSError:
+    except OSError as e:
+      logging.info("Failed to list '%s': %s", dirpath, e)
       return []
 
   pathspec = rdf_paths.PathSpec(

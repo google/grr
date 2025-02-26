@@ -12,6 +12,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 
 
@@ -65,6 +66,8 @@ def _ResponseToApprovalsWithGrants(response):
 class MySQLDBUsersMixin(object):
   """MySQLDB mixin for GRR users and approval related functions."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteGRRUser(
       self,
@@ -118,6 +121,8 @@ class MySQLDBUsersMixin(object):
 
     return result
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadGRRUser(
       self,
@@ -137,6 +142,8 @@ class MySQLDBUsersMixin(object):
 
     return self._RowToGRRUser(row)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadGRRUsers(
       self,
@@ -156,6 +163,8 @@ class MySQLDBUsersMixin(object):
     )
     return [self._RowToGRRUser(row) for row in cursor.fetchall()]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountGRRUsers(
       self, cursor: Optional[MySQLdb.cursors.Cursor] = None
@@ -164,6 +173,8 @@ class MySQLDBUsersMixin(object):
     cursor.execute("SELECT COUNT(*) FROM grr_users")
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteGRRUser(
       self, username: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
@@ -177,6 +188,8 @@ class MySQLDBUsersMixin(object):
     if cursor.rowcount == 0:
       raise db.UnknownGRRUserError(username)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteApprovalRequest(
       self,
@@ -244,6 +257,8 @@ class MySQLDBUsersMixin(object):
     )
     cursor.execute(grant_query, grant_args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def GrantApproval(
       self,
@@ -260,6 +275,8 @@ class MySQLDBUsersMixin(object):
         cursor,
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadApprovalRequest(
       self,
@@ -315,6 +332,8 @@ class MySQLDBUsersMixin(object):
 
     return approval_request
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadApprovalRequests(
       self,
@@ -355,6 +374,8 @@ class MySQLDBUsersMixin(object):
         ret.append(approval_request)
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteUserNotification(
       self,
@@ -377,6 +398,8 @@ class MySQLDBUsersMixin(object):
     except MySQLdb.IntegrityError:
       raise db.UnknownGRRUserError(notification.username)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadUserNotifications(
       self,
@@ -426,6 +449,8 @@ class MySQLDBUsersMixin(object):
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateUserNotifications(
       self,

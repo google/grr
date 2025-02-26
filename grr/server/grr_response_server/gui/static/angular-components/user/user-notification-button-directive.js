@@ -6,12 +6,12 @@ const apiService = goog.requireType('grrUi.core.apiService');
 
 
 /** @const */
-var SECOND = 1000;
+const SECOND = 1000;
 
 // This interval will be used by the notification button and the desktop
 // notifications directive to refetch the notifications.
 /** @const */
-var FETCH_INTERVAL = 10 * SECOND;
+const FETCH_INTERVAL = 10 * SECOND;
 
 
 /**
@@ -67,10 +67,11 @@ const UserNotificationButtonController = class {
    * @export
    */
   showNotifications() {
-    var modalScope = this.scope_.$new();
+    const modalScope = this.scope_.$new();
 
-    var modalInstance = this.uibModal_.open({
-      template: '<grr-user-notification-dialog close="$close()" />',
+    const modalInstance = this.uibModal_.open({
+      template:
+          '<grr-user-notification-dialog close="$close()"></grr-user-notification-dialog>',
       scope: modalScope,
       size: 'lg'
     });
@@ -101,7 +102,7 @@ exports.UserNotificationButtonDirective = function() {
   };
 };
 
-var UserNotificationButtonDirective = exports.UserNotificationButtonDirective;
+const UserNotificationButtonDirective = exports.UserNotificationButtonDirective;
 
 
 /**

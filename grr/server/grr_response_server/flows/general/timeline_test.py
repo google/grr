@@ -94,15 +94,18 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       self.assertLen(entries, 7)
 
       paths = [_.path.decode("utf-8") for _ in entries]
-      self.assertCountEqual(paths, [
-          os.path.join(dirpath),
-          os.path.join(dirpath, "foo"),
-          os.path.join(dirpath, "foo", "bar"),
-          os.path.join(dirpath, "foo", "bar", "baz"),
-          os.path.join(dirpath, "foo", "bar", "baz", "quux"),
-          os.path.join(dirpath, "foo", "bar", "baz", "quux", "thud"),
-          os.path.join(dirpath, "foo", "bar", "blargh"),
-      ])
+      self.assertCountEqual(
+          paths,
+          [
+              os.path.join(dirpath),
+              os.path.join(dirpath, "foo"),
+              os.path.join(dirpath, "foo", "bar"),
+              os.path.join(dirpath, "foo", "bar", "baz"),
+              os.path.join(dirpath, "foo", "bar", "baz", "quux"),
+              os.path.join(dirpath, "foo", "bar", "baz", "quux", "thud"),
+              os.path.join(dirpath, "foo", "bar", "blargh"),
+          ],
+      )
 
       entries_by_path = {entry.path.decode("utf-8"): entry for entry in entries}
       self.assertEqual(entries_by_path[thud_filepath].size, 4)
@@ -120,19 +123,23 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       args.root = tempdir.encode("utf-8")
 
       flow_id = flow_test_lib.StartFlow(
-          timeline_flow.TimelineFlow, client_id=client_id, flow_args=args)
+          timeline_flow.TimelineFlow, client_id=client_id, flow_args=args
+      )
 
       progress = flow_test_lib.GetFlowProgress(
-          client_id=client_id, flow_id=flow_id)
+          client_id=client_id, flow_id=flow_id
+      )
       self.assertEqual(progress.total_entry_count, 0)
 
       flow_test_lib.RunFlow(
           client_id=client_id,
           flow_id=flow_id,
-          client_mock=action_mocks.ActionMock(timeline_action.Timeline))
+          client_mock=action_mocks.ActionMock(timeline_action.Timeline),
+      )
 
       progress = flow_test_lib.GetFlowProgress(
-          client_id=client_id, flow_id=flow_id)
+          client_id=client_id, flow_id=flow_id
+      )
       self.assertEqual(progress.total_entry_count, 4)
 
   @db_test_lib.WithDatabase
@@ -149,12 +156,13 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     with temp.AutoTempDirPath() as tempdir:
       args = rdf_timeline.TimelineArgs(root=tempdir.encode("utf-8"))
 
-      flow_id = flow_test_lib.TestFlowHelper(
-          timeline_flow.TimelineFlow.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          timeline_flow.TimelineFlow,
           action_mocks.ActionMock(timeline_action.Timeline),
           client_id=client_id,
           creator=self.test_username,
-          args=args)
+          flow_args=args,
+      )
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -176,12 +184,13 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     with temp.AutoTempDirPath() as tempdir:
       args = rdf_timeline.TimelineArgs(root=tempdir.encode("utf-8"))
 
-      flow_id = flow_test_lib.TestFlowHelper(
-          timeline_flow.TimelineFlow.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          timeline_flow.TimelineFlow,
           action_mocks.ActionMock(timeline_action.Timeline),
           client_id=client_id,
           creator=self.test_username,
-          args=args)
+          flow_args=args,
+      )
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -194,12 +203,13 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
   def _Collect(self, root: bytes) -> Iterator[timeline_pb2.TimelineEntry]:
     args = rdf_timeline.TimelineArgs(root=root)
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        timeline_flow.TimelineFlow.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        timeline_flow.TimelineFlow,
         action_mocks.ActionMock(timeline_action.Timeline),
         client_id=self.client_id,
         creator=self.test_username,
-        args=args)
+        flow_args=args,
+    )
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 

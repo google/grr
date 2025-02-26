@@ -44,7 +44,7 @@ describe('remove clients labels dialog', () => {
     $rootScope.$dismiss = dismissSpy;
 
     const template = '<grr-remove-clients-labels-dialog ' +
-        'clients="clients" />';
+        'clients="clients"></grr-remove-clients-labels-dialog>';
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

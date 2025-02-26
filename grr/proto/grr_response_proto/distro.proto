@@ -16,3 +16,12 @@ message CollectDistroInfoResult {
   // Minor version number of the release (e.g. 4 for Ubuntu 22.04).
   optional uint32 version_minor = 4;
 }
+
+// Store type of the Linux distro information collection flow.
+message CollectDistroInfoStore {
+  // Intermediate result to be sent at the end of the flow.
+  //
+  // As more calls to the endpoint finish, this result will be gradually more
+  // and more complete.
+  optional CollectDistroInfoResult result = 1;
+}

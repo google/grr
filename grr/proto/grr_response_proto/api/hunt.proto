@@ -583,22 +583,3 @@ message ApiGetExportedHuntResultsArgs {
   optional string plugin_name = 2
       [(sem_type) = { description: "Instant output plugin name." }];
 }
-
-message PerClientFileCollectionArgs {
-  optional string client_id = 1
-      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
-  optional PathSpec.PathType path_type = 2 [
-    (sem_type) = { description: "Path type used to collect given file paths." }
-  ];
-  repeated string paths = 3
-      [(sem_type) = { description: "File paths to collect." }];
-}
-
-message ApiCreatePerClientFileCollectionHuntArgs {
-  optional string description = 1;
-  optional uint64 duration_secs = 2 [(sem_type) = {
-    type: "DurationSeconds",
-    description: "Maximum amount of time the hunt is allowed to run."
-  }];
-  repeated PerClientFileCollectionArgs per_client_args = 3;
-}

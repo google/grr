@@ -20,6 +20,7 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
   Instant output plugins do on-the-fly data conversion and are used in
   GetExportedFlowResults/GetExportedHuntResults methods.
   """
+
   __abstract = True  # pylint: disable=g-bad-name
 
   plugin_name = None
@@ -160,8 +161,9 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     """
     raise NotImplementedError()
 
-  def _GenerateSingleTypeIteration(self, next_types, processed_types,
-                                   converted_responses):
+  def _GenerateSingleTypeIteration(
+      self, next_types, processed_types, converted_responses
+  ):
     """Yields responses of a given type only.
 
     _GenerateSingleTypeIteration iterates through converted_responses and
@@ -232,7 +234,8 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
 
   def ProcessValues(self, value_type, values_generator_fn):
     converter_classes = export_converters_registry.GetConvertersByClass(
-        value_type)
+        value_type
+    )
     if not converter_classes:
       return
     converters = [cls(self.GetExportOptions()) for cls in converter_classes]
@@ -242,10 +245,12 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     while True:
       converted_responses = collection.Flatten(
           self._GenerateConvertedValues(converter, values_generator_fn())
-          for converter in converters)
+          for converter in converters
+      )
 
-      generator = self._GenerateSingleTypeIteration(next_types, processed_types,
-                                                    converted_responses)
+      generator = self._GenerateSingleTypeIteration(
+          next_types, processed_types, converted_responses
+      )
 
       for chunk in self.ProcessSingleTypeExportedValues(value_type, generator):
         yield chunk
@@ -254,9 +259,9 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         break
 
 
-def ApplyPluginToMultiTypeCollection(plugin,
-                                     output_collection,
-                                     source_urn=None):
+def ApplyPluginToMultiTypeCollection(
+    plugin, output_collection, source_urn=None
+):
   """Applies instant output plugin to a multi-type collection.
 
   Args:
@@ -315,8 +320,9 @@ def ApplyPluginToTypedCollection(plugin, type_names, fetch_fn):
   for type_name in sorted(type_names):
     stored_cls = rdfvalue.RDFValue.classes[type_name]
 
-    for chunk in plugin.ProcessValues(stored_cls,
-                                      functools.partial(GetValues, type_name)):
+    for chunk in plugin.ProcessValues(
+        stored_cls, functools.partial(GetValues, type_name)
+    ):
       yield chunk
 
   for chunk in plugin.Finish():

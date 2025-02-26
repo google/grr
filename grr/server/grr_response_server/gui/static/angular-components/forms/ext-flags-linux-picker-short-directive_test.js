@@ -31,7 +31,7 @@ describe('Extended flags picker for Linux (short)', () => {
 
     const template = `<grr-ext-flags-linux-picker-short
       bits-set="bitsSet"
-      bits-unset="bitsUnset" />`;
+      bits-unset="bitsUnset"></grr-ext-flags-linux-picker-short>`;
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

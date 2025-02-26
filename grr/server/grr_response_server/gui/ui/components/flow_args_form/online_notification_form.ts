@@ -20,6 +20,7 @@ type Controls = ReturnType<typeof makeControls>;
  * A form that makes it possible to configure the OnlineNotification flow.
  */
 @Component({
+  standalone: false,
   selector: 'online-notification-form',
   templateUrl: './online_notification_form.ng.html',
   styleUrls: ['./online_notification_form.scss'],
@@ -31,9 +32,10 @@ export class OnlineNotificationForm extends FlowArgumentForm<
 > {
   constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
+    this.client$ = this.clientPageGlobalStore.selectedClient$;
   }
 
-  readonly client$ = this.clientPageGlobalStore.selectedClient$;
+  readonly client$;
 
   override makeControls() {
     return makeControls();

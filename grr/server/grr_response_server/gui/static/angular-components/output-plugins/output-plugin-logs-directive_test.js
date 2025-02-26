@@ -32,7 +32,7 @@ describe('output plugin logs directive', () => {
     $rootScope.url = 'foo/bar';
 
     const template = '<grr-output-plugin-logs url="url" label="a foo"' +
-        'css-class="label-danger" icon="foo-icon" />';
+        'css-class="label-danger" icon="foo-icon"></grr-output-plugin-logs>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

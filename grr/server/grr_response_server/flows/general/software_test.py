@@ -20,7 +20,7 @@ from grr_response_server import data_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import software
-from grr_response_server.models import protodicts
+from grr_response_server.models import protodicts as models_protodicts
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import testing_startup
@@ -33,7 +33,7 @@ class CollectInstalledSoftwareTest(flow_test_lib.FlowTestsBaseclass):
     super().setUpClass()
     testing_startup.TestInit()
 
-  def testLinuxDebian(self) -> None:
+  def testLinuxDebianPre3478(self) -> None:
     assert data_store.REL_DB is not None
     db: abstract_db.Database = data_store.REL_DB
 
@@ -43,6 +43,7 @@ class CollectInstalledSoftwareTest(flow_test_lib.FlowTestsBaseclass):
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "Linux"
+    snapshot.startup_info.client_info.client_version = 3478
     db.WriteClientSnapshot(snapshot)
 
     flow_id = flow_test_lib.StartAndRunFlow(
@@ -102,6 +103,208 @@ ii  xorg    1:7.7+23+build1 amd64        X.Org X Window System
     self.assertEqual(packages_by_name["xorg"].version, "1:7.7+23+build1")
     self.assertEqual(packages_by_name["xorg"].architecture, "amd64")
     self.assertNotEmpty(packages_by_name["xorg"].description)
+
+  def testLinuxDebianPost3478(self) -> None:
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    creator = db_test_utils.InitializeUser(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Linux"
+    snapshot.startup_info.client_info.client_version = 3479
+    db.WriteClientSnapshot(snapshot)
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        software.CollectInstalledSoftware,
+        action_mocks.ExecuteCommandActionMock(
+            cmd="/usr/bin/dpkg-query",
+            exit_status=0,
+            stdout="""\
+7zip|23.01+dfsg-12|amd64||7-Zip file archiver with a high compression ratio
+acl|2.3.2-1|amd64||access control list - utilities
+adduser|3.137|all||add and remove users and groups
+bash|5.2.21-2.1|amd64||GNU Bourne Again SHell
+libgtk-3-0|3.24.41-1|amd64|gtk+3.0|GTK graphical user interface library
+sudo|1.9.15p5-3+gl0|amd64||Provide limited super user privileges to specific users
+telnet|0.17+2.5-3|all|inetutils (2:2.5-3)|transitional dummy package for inetutils-telnet default switch
+xorg|1:7.7+23+build1|amd64||X.Org X Window System
+xserver-xorg|1:7.7+23+build1|amd64|xorg|X.Org X server
+""".encode("utf-8"),
+        ),
+        client_id=client_id,
+        creator=creator,
+    )
+
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+
+    self.assertLen(results, 1)
+
+    packages_by_name = {
+        package.name: package for package in results[0].packages
+    }
+
+    self.assertLen(packages_by_name, 9)
+
+    zip7 = packages_by_name["7zip"]
+    self.assertEqual(zip7.version, "23.01+dfsg-12")
+    self.assertEqual(zip7.architecture, "amd64")
+    self.assertNotEmpty(zip7.description)
+
+    acl = packages_by_name["acl"]
+    self.assertEqual(acl.version, "2.3.2-1")
+    self.assertEqual(acl.architecture, "amd64")
+    self.assertNotEmpty(acl.description)
+
+    adduser = packages_by_name["adduser"]
+    self.assertEqual(adduser.version, "3.137")
+    self.assertEqual(adduser.architecture, "all")
+    self.assertNotEmpty(adduser.description)
+
+    bash = packages_by_name["bash"]
+    self.assertEqual(bash.version, "5.2.21-2.1")
+    self.assertEqual(bash.architecture, "amd64")
+    self.assertNotEmpty(bash.description)
+
+    libgtk = packages_by_name["libgtk-3-0"]
+    self.assertEqual(libgtk.version, "3.24.41-1")
+    self.assertEqual(libgtk.architecture, "amd64")
+    self.assertEqual(libgtk.source_deb, "gtk+3.0")
+    self.assertNotEmpty(libgtk.description)
+
+    telnet = packages_by_name["telnet"]
+    self.assertEqual(telnet.version, "0.17+2.5-3")
+    self.assertEqual(telnet.architecture, "all")
+    self.assertEqual(telnet.source_deb, "inetutils (2:2.5-3)")
+    self.assertNotEmpty(telnet.description)
+
+    sudo = packages_by_name["sudo"]
+    self.assertEqual(sudo.version, "1.9.15p5-3+gl0")
+    self.assertEqual(sudo.architecture, "amd64")
+    self.assertNotEmpty(sudo.description)
+
+    xorg = packages_by_name["xorg"]
+    self.assertEqual(xorg.version, "1:7.7+23+build1")
+    self.assertEqual(xorg.architecture, "amd64")
+    self.assertNotEmpty(xorg.description)
+
+    xserver_xorg = packages_by_name["xserver-xorg"]
+    self.assertEqual(xserver_xorg.version, "1:7.7+23+build1")
+    self.assertEqual(xserver_xorg.architecture, "amd64")
+    self.assertEqual(xserver_xorg.source_deb, "xorg")
+    self.assertNotEmpty(xserver_xorg.description)
+
+  def testLinuxDebianPost3478DpkgFallback(self) -> None:
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    creator = db_test_utils.InitializeUser(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Linux"
+    snapshot.startup_info.client_info.client_version = 3479
+    db.WriteClientSnapshot(snapshot)
+
+    class ActionMock(action_mocks.ActionMock):
+
+      def ExecuteCommand(
+          self,
+          args: rdf_client_action.ExecuteRequest,
+      ) -> Iterator[rdf_client_action.ExecuteResponse]:
+        args = mig_client_action.ToProtoExecuteRequest(args)
+        result = jobs_pb2.ExecuteResponse()
+
+        if args.cmd == "/usr/bin/dpkg-query":
+          result.exit_status = 1
+          result.stderr = "failed because reasons".encode("utf-8")
+        elif args.cmd == "/usr/bin/dpkg":
+          result.exit_status = 0
+          result.stdout = """\
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name             Version         Architecture Description
++++-================-===============-============-==============================================================
+ii  7zip             23.01+dfsg-12   amd64        7-Zip file archiver with a high compression ratio
+ii  acl              2.3.2-1         amd64        access control list - utilities
+ii  adduser          3.137           all          add and remove users and groups
+ii  bash             5.2.21-2.1      amd64        GNU Bourne Again SHell
+rc  libgtk-3-0:amd64 3.24.41-1       amd64        GTK graphical user interface library
+ii  sudo             1.9.15p5-3+gl0  amd64        Provide limited super user privileges to specific users
+ii  telnet           0.17+2.5-3      all          transitional dummy package for inetutils-telnet default switch
+ii  xorg             1:7.7+23+build1 amd64        X.Org X Window System
+ii  xserver-xorg     1:7.7+23+build1 amd64        X.Org X server
+""".encode("utf-8")
+        else:
+          raise RuntimeError(f"Unexpected command: {args.cmd}")
+
+        yield mig_client_action.ToRDFExecuteResponse(result)
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        software.CollectInstalledSoftware,
+        ActionMock(),
+        client_id=client_id,
+        creator=creator,
+    )
+
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+
+    self.assertLen(results, 1)
+
+    packages_by_name = {
+        package.name: package for package in results[0].packages
+    }
+
+    self.assertLen(packages_by_name, 9)
+
+    zip7 = packages_by_name["7zip"]
+    self.assertEqual(zip7.version, "23.01+dfsg-12")
+    self.assertEqual(zip7.architecture, "amd64")
+    self.assertNotEmpty(zip7.description)
+
+    acl = packages_by_name["acl"]
+    self.assertEqual(acl.version, "2.3.2-1")
+    self.assertEqual(acl.architecture, "amd64")
+    self.assertNotEmpty(acl.description)
+
+    adduser = packages_by_name["adduser"]
+    self.assertEqual(adduser.version, "3.137")
+    self.assertEqual(adduser.architecture, "all")
+    self.assertNotEmpty(adduser.description)
+
+    bash = packages_by_name["bash"]
+    self.assertEqual(bash.version, "5.2.21-2.1")
+    self.assertEqual(bash.architecture, "amd64")
+    self.assertNotEmpty(bash.description)
+
+    libgtk = packages_by_name["libgtk-3-0:amd64"]
+    self.assertEqual(libgtk.version, "3.24.41-1")
+    self.assertEqual(libgtk.architecture, "amd64")
+    self.assertNotEmpty(libgtk.description)
+
+    telnet = packages_by_name["telnet"]
+    self.assertEqual(telnet.version, "0.17+2.5-3")
+    self.assertEqual(telnet.architecture, "all")
+    self.assertNotEmpty(telnet.description)
+
+    sudo = packages_by_name["sudo"]
+    self.assertEqual(sudo.version, "1.9.15p5-3+gl0")
+    self.assertEqual(sudo.architecture, "amd64")
+    self.assertNotEmpty(sudo.description)
+
+    xorg = packages_by_name["xorg"]
+    self.assertEqual(xorg.version, "1:7.7+23+build1")
+    self.assertEqual(xorg.architecture, "amd64")
+    self.assertNotEmpty(xorg.description)
+
+    xserver_xorg = packages_by_name["xserver-xorg"]
+    self.assertEqual(xserver_xorg.version, "1:7.7+23+build1")
+    self.assertEqual(xserver_xorg.architecture, "amd64")
+    self.assertNotEmpty(xserver_xorg.description)
 
   def testLinuxFedoraPre3473(self) -> None:
     assert data_store.REL_DB is not None
@@ -362,7 +565,7 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
                   "Description": "AMD Settings",
               },
           ]:
-            yield mig_protodict.ToRDFDict(protodicts.Dict(result))
+            yield mig_protodict.ToRDFDict(models_protodicts.Dict(result))
         elif "Win32_QuickFixEngineering" in args.query:
           for result in [
               {
@@ -401,7 +604,7 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
                   "Description": "Update",
               },
           ]:
-            yield mig_protodict.ToRDFDict(protodicts.Dict(result))
+            yield mig_protodict.ToRDFDict(models_protodicts.Dict(result))
         else:
           raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
 

@@ -21,7 +21,9 @@ from grr_api_client import utils
 from grr_api_client import yara
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import config_pb2
-from grr_response_proto.api import hunt_pb2
+# TODO: Remove this import once the SignedCommands API is
+# implemented. Currently required to be able to parse responses from the server.
+from grr_response_proto.api import signed_commands_pb2  # pylint: disable=unused-import
 
 
 class GrrApi(object):
@@ -62,14 +64,6 @@ class GrrApi(object):
         context=self._context,
     )
 
-  def CreatePerClientFileCollectionHunt(
-      self,
-      hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
-  ) -> hunt.Hunt:
-    return hunt.CreatePerClientFileCollectionHunt(
-        hunt_args, context=self._context
-    )
-
   def ListHunts(self) -> utils.ItemsIterator[hunt.Hunt]:
     return hunt.ListHunts(context=self._context)
 
@@ -81,6 +75,23 @@ class GrrApi(object):
 
   def ListArtifacts(self) -> utils.ItemsIterator[artifact.Artifact]:
     return artifact.ListArtifacts(context=self._context)
+
+  def UploadArtifact(self, yaml: str) -> None:
+    # pylint: disable=line-too-long
+    # fmt: off
+    """Uploads the given [YAML artifact definition][1] to the GRR server.
+
+    [1]: https://artifacts.readthedocs.io/en/latest/sources/Format-specification.html
+
+    Args:
+      yaml: YAML with the artifact definition.
+
+    Returns:
+      Nothing.
+    """
+    # pylint: enable=line-too-long
+    # fmt: on
+    return artifact.UploadArtifact(context=self._context, yaml=yaml)
 
   def GrrBinary(
       self,

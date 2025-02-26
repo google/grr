@@ -104,12 +104,8 @@ message ClientMetadata {
     type: "RDFDatetime",
     description: "The last time the server heard from this client.",
   }];
-  optional uint64 clock = 4 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The last clock read on the client. "
-                 "(Can be used to estimate client clock skew).",
-  }];
-  optional NetworkAddress ip = 5;
+  reserved 4;
+  reserved 5;
   optional uint64 last_foreman_time = 6 [(sem_type) = {
     type: "RDFDatetime",
     description: "The last time the foreman checked us.",

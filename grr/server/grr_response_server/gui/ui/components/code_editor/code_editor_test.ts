@@ -21,10 +21,12 @@ initTestEnvironment();
  * I couldn't figure out why.
  */
 @Component({
+  standalone: false,
   template: `
     <mat-form-field>
       <app-code-editor [formControl]="query"></app-code-editor>
     </mat-form-field>`,
+  jit: true,
 })
 class TestHostComponent {
   readonly query = new UntypedFormControl();

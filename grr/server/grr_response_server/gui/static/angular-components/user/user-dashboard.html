@@ -62,7 +62,7 @@
               ng-click="controller.onClientClicked(approval.value.subject.value.client_id.value)">
             <!-- Online status -->
             <td>
-              <grr-client-status-icons client="::approval.value.subject" />
+              <grr-client-status-icons client="::approval.value.subject"></grr-client-status-icons>
             </td>
 
             <!-- Client Id -->
@@ -75,25 +75,25 @@
             <!-- Client Host -->
             <td class="host">
               <grr-semantic-value
-                 value="::approval.value.subject.value.os_info.value.fqdn" />
+                  value="::approval.value.subject.value.os_info.value.fqdn"></grr-semantic-value>
             </td>
 
             <!-- Client Labels -->
             <td>
               <grr-semantic-value
-                 value="::approval.value.subject.value.labels" />
+                  value="::approval.value.subject.value.labels"></grr-semantic-value>
             </td>
 
             <!-- Client Latest checkin -->
             <td>
               <grr-semantic-value
-                 value="::approval.value.subject.value.last_clock" />
+                  value="::approval.value.subject.value.last_clock"></grr-semantic-value>
             </td>
 
             <!-- Reason -->
             <td class="reason">
               <grr-semantic-value
-                 value="::approval.value.reason" />
+                  value="::approval.value.reason"></grr-semantic-value>
             </td>
 
           </tr>
@@ -123,13 +123,13 @@
         <table ng-if="controller.hunts.length > 0"
                class="table table-condensed table-hover table-bordered full-width">
           <colgroup>
-            <col style="width: 40px" />
-            <col />
-            <col />
-            <col style="width: 16em" />
-            <col style="width: 16em" />
-            <col />
-            <col width="100%" />
+            <col style="width: 40px"></col>
+            <col></col>
+            <col></col>
+            <col style="width: 16em"></col>
+            <col style="width: 16em"></col>
+            <col></col>
+            <col width="100%"></col>
           </colgroup>
           <thead>
             <tr>
@@ -145,11 +145,11 @@
           <tbody>
             <tr ng-repeat="hunt in ::controller.hunts"
                 ng-click="controller.onHuntClicked(hunt)">
-              <td><grr-hunt-status-icon hunt="::hunt" /></td>
+              <td><grr-hunt-status-icon hunt="::hunt"></grr-hunt-status-icon></td>
               <td>{$ ::hunt.value.hunt_id.value $}</td>
               <td>{$ ::hunt.value.name.value $}</td>
-              <td><grr-timestamp value="::hunt.value.created" /></td>
-              <td><grr-timestamp value="::hunt.value.expires" /></td>
+              <td><grr-timestamp value="::hunt.value.created"></grr-timestamp></td>
+              <td><grr-timestamp value="::hunt.value.expires"></grr-timestamp></td>
               <td>{$ ::hunt.value.client_limit.value $}</td>
               <td>{$ ::hunt.value.description.value $}</td>
             </tr>

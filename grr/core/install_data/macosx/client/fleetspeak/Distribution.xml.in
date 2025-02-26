@@ -3,7 +3,7 @@
     <title>%(Client.name)</title>
     <organization>%(ClientBuilder.package_maker_organization)</organization>
     <pkg-ref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"/>
-    <options customize="never" require-scripts="false" rootVolumeOnly="true"/>
+    <options hostArchitectures="x86_64,arm64" customize="never" require-scripts="false" rootVolumeOnly="true"/>
     <choices-outline>
         <line choice="default">
             <line choice="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"/>

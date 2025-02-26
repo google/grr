@@ -8,13 +8,15 @@
     <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
       <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
         <grr-client-flows-list client-id="controller.clientId"
-                               selected-flow-id="controller.selectedFlowId"/>
+                               selected-flow-id="controller.selectedFlowId">
+        </grr-client-flows-list>
       </div>
 
       <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
         <grr-flow-inspector flow-id="controller.selectedFlowId"
                             api-base-path="controller.flowApiBasePath"
-                            active-tab="controller.tab" />
+                            active-tab="controller.tab">
+        </grr-flow-inspector>
       </div>
     </div>
 

@@ -13,8 +13,10 @@ describe('paged filtered table', () => {
   let $rootScope;
 
 
-  beforeEach(module('/static/angular-components/core/paged-filtered-table-top.html'));
-  beforeEach(module('/static/angular-components/core/paged-filtered-table-bottom.html'));
+  beforeEach(
+      module('/static/angular-components/core/paged-filtered-table-top.html'));
+  beforeEach(module(
+      '/static/angular-components/core/paged-filtered-table-bottom.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
 
@@ -82,14 +84,10 @@ describe('paged filtered table', () => {
     expect($('table tr', element).length).toBe(2);
     expect(element.text()).toContain('2 entries');
 
-    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
-    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
-        toBe(1);
+    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
+    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).toBe(1);
   });
 
 
@@ -110,8 +108,7 @@ describe('paged filtered table', () => {
   it('switches between pages correctly when there are 2 pages', () => {
     const items = [];
     for (let i = 0; i < 10; ++i) {
-      items.push({timestamp: i,
-        message: 'message_' + i.toString()});
+      items.push({timestamp: i, message: 'message_' + i.toString()});
     }
 
     const element = render(items);
@@ -131,8 +128,7 @@ describe('paged filtered table', () => {
   it('switches between pages correctly when there are 15 pages', () => {
     const items = [];
     for (let i = 0; i < 5 * 15; ++i) {
-      items.push({timestamp: i,
-        message: 'message_' + i.toString()});
+      items.push({timestamp: i, message: 'message_' + i.toString()});
     }
 
     const element = render(items);
@@ -265,13 +261,13 @@ describe('paged filtered table', () => {
       ];
 
       const element = render(someItems, true);
-      expect(element.text().indexOf('2 entries') != -1 ).toBe(true);
+      expect(element.text().indexOf('2 entries') != -1).toBe(true);
 
       for (let i = 0; i < 5; ++i) {
         someItems.push({message: 'somethingelse'});
       }
       $interval.flush(1000);
-      expect(element.text().indexOf('7 entries') != -1 ).toBe(true);
+      expect(element.text().indexOf('7 entries') != -1).toBe(true);
     });
 
     it('updates paging', () => {

@@ -11,7 +11,6 @@ import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 import {RouterModule} from '@angular/router';
 
@@ -32,7 +31,6 @@ import {PluginsModule} from './plugins/module';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
     ClipboardModule,
     CommonModule,
     CopyButtonModule,

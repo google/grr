@@ -12,7 +12,6 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
-from grr_response_core.lib.local import plugins  # pylint: disable=unused-import
 # pylint: disable=unused-import
 # TODO: Remove once old clients are fully deprecated.
 from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
@@ -49,13 +48,16 @@ def DropPrivileges():
     try:
       os.setuid(pwd.getpwnam(config.CONFIG["Server.username"]).pw_uid)
     except (KeyError, OSError):
-      logging.exception("Unable to switch to user %s",
-                        config.CONFIG["Server.username"])
+      logging.exception(
+          "Unable to switch to user %s", config.CONFIG["Server.username"]
+      )
       raise
 
 
+# TODO: Temporarily added option to prevent worker from picking up
+# work.
 @utils.RunOnce  # Make sure we do not reinitialize multiple times.
-def Init():
+def Init(disabled: bool = False):
   """Run all required startup routines and initialization hooks."""
   # Set up a temporary syslog handler so we have somewhere to log problems
   # with ConfigInit() which needs to happen before we can start our create our
@@ -79,7 +81,8 @@ def Init():
     raise
 
   stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
-      registry=prometheus_client.REGISTRY)
+      registry=prometheus_client.REGISTRY
+  )
   stats_collector_instance.Set(stats_collector)
 
   server_logging.ServerLoggingStartupInit()
@@ -95,7 +98,8 @@ def Init():
 
   artifact.LoadArtifactsOnce()  # Requires aff4.AFF4Init.
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
-  cronjobs.InitializeCronWorkerOnce()
+  if not disabled:
+    cronjobs.InitializeCronWorkerOnce()
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()
   ip_resolver.IPResolverInitOnce()
@@ -106,6 +110,8 @@ def Init():
   # setting the variable.
   if not config.CONFIG.ContextApplied("ConfigUpdater Context"):
     if not config.CONFIG.Get("Server.initialized"):
-      raise RuntimeError("Config not initialized, run \"grr_config_updater"
-                         " initialize\". If the server is already configured,"
-                         " add \"Server.initialized: True\" to your config.")
+      raise RuntimeError(
+          'Config not initialized, run "grr_config_updater'
+          ' initialize". If the server is already configured,'
+          ' add "Server.initialized: True" to your config.'
+      )

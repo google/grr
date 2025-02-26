@@ -4,7 +4,7 @@
 import logging
 import threading
 import time
-from typing import AbstractSet, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import AbstractSet, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Type, Union
 
 import MySQLdb
 from MySQLdb import cursors
@@ -18,15 +18,25 @@ from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_server import threadpool
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import hunts
+from grr_response_server.models import hunts as models_hunts
+from grr_response_proto import rrg_pb2
 
 
 class MySQLDBFlowMixin:
   """MySQLDB mixin for flow handling."""
 
+  flow_processing_request_handler_pool: threadpool.ThreadPool
+  flow_processing_request_handler_thread: threading.Thread
+  handler_thread: threading.Thread
+  _WRITE_ROWS_BATCH_SIZE: int
+  _DELETE_ROWS_BATCH_SIZE: int
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteMessageHandlerRequests(
       self,
@@ -50,6 +60,8 @@ class MySQLDBFlowMixin:
     query += ",".join(value_templates)
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadMessageHandlerRequests(
       self,
@@ -81,6 +93,8 @@ class MySQLDBFlowMixin:
       res.append(req)
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteMessageHandlerRequests(
       self,
@@ -144,6 +158,7 @@ class MySQLDBFlowMixin:
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("_LeaseMessageHandlerRequests raised %s.", e)
 
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _LeaseMessageHandlerRequests(
       self,
@@ -190,6 +205,8 @@ class MySQLDBFlowMixin:
       res.append(req)
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteFlowObject(
       self,
@@ -265,7 +282,7 @@ class MySQLDBFlowMixin:
     datetime = mysql_utils.TimestampToRDFDatetime
     cpu_time = db_utils.MicrosToSeconds
 
-    # pyformat: disable
+    # fmt: off
     (client_id, flow_id, long_flow_id, parent_flow_id, parent_hunt_id,
      name, creator,
      flow, flow_state,
@@ -274,7 +291,7 @@ class MySQLDBFlowMixin:
      processing_deadline, processing_on, processing_since,
      user_cpu_time, system_cpu_time, network_bytes_sent, num_replies_sent,
      timestamp, last_update_timestamp) = row
-    # pyformat: enable
+    # fmt: on
 
     flow_obj = flows_pb2.Flow()
     flow_obj.ParseFromString(flow)
@@ -302,10 +319,8 @@ class MySQLDBFlowMixin:
     # be the case), we fallback to the timestamp information stored in the
     # column.
     if not flow_obj.HasField("create_time"):
-      flow_obj.create_time = datetime(timestamp).AsMicrosecondsSinceEpoch()
-    flow_obj.last_update_time = datetime(
-        last_update_timestamp
-    ).AsMicrosecondsSinceEpoch()
+      flow_obj.create_time = int(datetime(timestamp))
+    flow_obj.last_update_time = int(datetime(last_update_timestamp))
 
     if client_crash_info is not None:
       flow_obj.client_crash_info.ParseFromString(client_crash_info)
@@ -316,15 +331,11 @@ class MySQLDBFlowMixin:
 
     flow_obj.ClearField("processing_since")
     if processing_since is not None:
-      flow_obj.processing_since = datetime(
-          processing_since
-      ).AsMicrosecondsSinceEpoch()
+      flow_obj.processing_since = int(datetime(processing_since))
 
     flow_obj.ClearField("processing_deadline")
     if processing_deadline is not None:
-      flow_obj.processing_deadline = datetime(
-          processing_deadline
-      ).AsMicrosecondsSinceEpoch()
+      flow_obj.processing_deadline = int(datetime(processing_deadline))
 
     flow_obj.cpu_time_used.user_cpu_time = cpu_time(user_cpu_time)
     flow_obj.cpu_time_used.system_cpu_time = cpu_time(system_cpu_time)
@@ -358,6 +369,8 @@ class MySQLDBFlowMixin:
       "UNIX_TIMESTAMP(last_update)",
   ))
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowObject(
       self,
@@ -382,6 +395,8 @@ class MySQLDBFlowMixin:
     (row,) = result
     return self._FlowObjectFromRow(row)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowObjects(
       self,
@@ -432,6 +447,8 @@ class MySQLDBFlowMixin:
     cursor.execute(query, args)
     return [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def LeaseFlowForProcessing(
       self,
@@ -474,7 +491,7 @@ class MySQLDBFlowMixin:
         (hunt_state,) = cursor.fetchone()
         if (
             hunt_state is not None
-            and not hunts.IsHuntSuitableForFlowProcessing(hunt_state)
+            and not models_hunts.IsHuntSuitableForFlowProcessing(hunt_state)
         ):
           raise db.ParentHuntIsNotRunningError(
               client_id, flow_id, flow.parent_hunt_id, hunt_state
@@ -505,6 +522,8 @@ class MySQLDBFlowMixin:
     flow.processing_deadline = int(processing_deadline)
     return flow
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateFlow(
       self,
@@ -620,6 +639,8 @@ class MySQLDBFlowMixin:
     query += ", ".join(templates)
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteFlowRequests(
       self,
@@ -762,6 +783,8 @@ class MySQLDBFlowMixin:
       else:
         logging.warning("Response for unknown request: %s", responses[0])
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _WriteFlowResponsesAndExpectedUpdates(
       self,
@@ -802,7 +825,7 @@ class MySQLDBFlowMixin:
 
   def _ReadFlowResponseCounts(
       self,
-      request_keys: AbstractSet[Tuple[str, str, str]],
+      request_keys: Set[Tuple[str, str, int]],
       cursor: Optional[cursors.Cursor] = None,
   ) -> Mapping[Tuple[str, str, str], int]:
     """Reads counts of responses for the given requests."""
@@ -887,7 +910,7 @@ class MySQLDBFlowMixin:
 
   def _ReadLockAndUpdateAffectedRequests(
       self,
-      request_keys: AbstractSet[Tuple[str, str, str]],
+      request_keys: Set[Tuple[str, str, int]],
       response_counts: Mapping[Tuple[str, str, str], int],
       cursor: Optional[cursors.Cursor] = None,
   ) -> Mapping[Tuple[str, str, str], flows_pb2.FlowRequest]:
@@ -955,6 +978,8 @@ class MySQLDBFlowMixin:
 
     return affected_requests
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _UpdateRequestsAndScheduleFPRs(
       self,
@@ -966,7 +991,7 @@ class MySQLDBFlowMixin:
           ],
       ],
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+  ) -> None:
     """Updates requests and writes FlowProcessingRequests if needed."""
     assert cursor is not None
 
@@ -984,7 +1009,7 @@ class MySQLDBFlowMixin:
     )
 
     if not affected_requests:
-      return []
+      return
 
     fprs_to_write = []
     for request_key, request in affected_requests.items():
@@ -1001,8 +1026,6 @@ class MySQLDBFlowMixin:
 
     if fprs_to_write:
       self._WriteFlowProcessingRequests(fprs_to_write, cursor)
-
-    return affected_requests
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -1025,6 +1048,8 @@ class MySQLDBFlowMixin:
       self._WriteFlowResponsesAndExpectedUpdates(batch)
       self._UpdateRequestsAndScheduleFPRs(batch)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateIncrementalFlowRequests(
       self,
@@ -1052,6 +1077,8 @@ class MySQLDBFlowMixin:
       ]
       cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteFlowRequests(
       self,
@@ -1090,6 +1117,8 @@ class MySQLDBFlowMixin:
       cursor.execute(response_query, args)
       cursor.execute(request_query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowRequestsAndResponses(
       self,
@@ -1167,6 +1196,8 @@ class MySQLDBFlowMixin:
       ret.append((req, responses.get(req.request_id, {})))
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteAllFlowRequestsAndResponses(
       self,
@@ -1183,12 +1214,13 @@ class MySQLDBFlowMixin:
     req_query = "DELETE FROM flow_requests WHERE client_id=%s AND flow_id=%s"
     cursor.execute(req_query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadFlowRequestsReadyForProcessing(
+  def ReadFlowRequests(
       self,
       client_id: str,
       flow_id: str,
-      next_needed_request: Optional[int] = None,
       cursor: Optional[cursors.Cursor] = None,
   ) -> Dict[
       int,
@@ -1206,34 +1238,7 @@ class MySQLDBFlowMixin:
     """Reads all requests for a flow that can be processed by the worker."""
     assert cursor is not None
 
-    query = (
-        "SELECT request, needs_processing, responses_expected, "
-        "callback_state, next_response_id, "
-        "UNIX_TIMESTAMP(timestamp) "
-        "FROM flow_requests "
-        "WHERE client_id=%s AND flow_id=%s"
-    )
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
-    cursor.execute(query, args)
-
-    requests = {}
-    for (
-        req,
-        needs_processing,
-        responses_expected,
-        callback_state,
-        next_response_id,
-        ts,
-    ) in cursor.fetchall():
-      request = flows_pb2.FlowRequest()
-      request.ParseFromString(req)
-      request.needs_processing = needs_processing
-      if responses_expected is not None:
-        request.nr_responses_expected = responses_expected
-      request.callback_state = callback_state
-      request.next_response_id = next_response_id
-      request.timestamp = int(mysql_utils.TimestampToRDFDatetime(ts))
-      requests[request.request_id] = request
 
     query = (
         "SELECT response, status, iterator, UNIX_TIMESTAMP(timestamp) "
@@ -1256,38 +1261,43 @@ class MySQLDBFlowMixin:
       response.timestamp = int(mysql_utils.TimestampToRDFDatetime(ts))
       responses.setdefault(response.request_id, []).append(response)
 
-    res = {}
+    query = (
+        "SELECT request, needs_processing, responses_expected, "
+        "callback_state, next_response_id, "
+        "UNIX_TIMESTAMP(timestamp) "
+        "FROM flow_requests "
+        "WHERE client_id=%s AND flow_id=%s"
+    )
+    cursor.execute(query, args)
 
-    # Do a pass for completed requests.
-    while next_needed_request in requests:
-      req = requests[next_needed_request]
-
-      if not req.needs_processing:
-        break
-
-      sorted_responses = sorted(
-          responses.get(next_needed_request, []), key=lambda r: r.response_id
+    requests = {}
+    for (
+        req,
+        needs_processing,
+        responses_expected,
+        callback_state,
+        next_response_id,
+        ts,
+    ) in cursor.fetchall():
+      request = flows_pb2.FlowRequest()
+      request.ParseFromString(req)
+      request.needs_processing = needs_processing
+      if responses_expected is not None:
+        request.nr_responses_expected = responses_expected
+      request.callback_state = callback_state
+      request.next_response_id = next_response_id
+      request.timestamp = int(mysql_utils.TimestampToRDFDatetime(ts))
+      requests[request.request_id] = (
+          request,
+          sorted(
+              responses.get(request.request_id, []), key=lambda r: r.response_id
+          ),
       )
-      res[req.request_id] = (req, sorted_responses)
-      next_needed_request += 1
 
-    # Do a pass for incremental requests.
-    for request_id in requests:
-      if request_id < next_needed_request:
-        continue
+    return requests
 
-      request = requests[request_id]
-      if not request.callback_state:
-        continue
-
-      rs = responses.get(request_id, [])
-      rs = [r for r in rs if r.response_id >= request.next_response_id]
-      rs = sorted(rs, key=lambda r: r.response_id)
-
-      res[request_id] = (request, rs)
-
-    return res
-
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReleaseProcessedFlow(
       self,
@@ -1354,6 +1364,8 @@ class MySQLDBFlowMixin:
     rows_updated = cursor.execute(update_query, args)
     return rows_updated == 1
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteFlowProcessingRequests(
       self,
@@ -1363,6 +1375,8 @@ class MySQLDBFlowMixin:
     """Writes a list of flow processing requests to the database."""
     self._WriteFlowProcessingRequests(requests, cursor)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowProcessingRequests(
       self,
@@ -1385,6 +1399,8 @@ class MySQLDBFlowMixin:
       res.append(req)
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def AckFlowProcessingRequests(
       self,
@@ -1414,6 +1430,8 @@ class MySQLDBFlowMixin:
     query += " OR ".join(conditions)
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteAllFlowProcessingRequests(
       self, cursor: Optional[cursors.Cursor] = None
@@ -1424,6 +1442,7 @@ class MySQLDBFlowMixin:
     query = "DELETE FROM flow_processing_requests WHERE true"
     cursor.execute(query)
 
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _LeaseFlowProcessingRequests(
       self, limit: int, cursor=None
@@ -1543,6 +1562,8 @@ class MySQLDBFlowMixin:
         raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_processing_request_handler_thread = None
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def _WriteFlowResultsOrErrors(
       self,
@@ -1592,6 +1613,8 @@ class MySQLDBFlowMixin:
     """Writes flow results for a given flow."""
     self._WriteFlowResultsOrErrors("flow_results", results)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def _ReadFlowResultsOrErrors(
       self,
@@ -1701,6 +1724,8 @@ class MySQLDBFlowMixin:
         with_substring=with_substring,
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def _CountFlowResultsOrErrors(
       self,
@@ -1749,6 +1774,8 @@ class MySQLDBFlowMixin:
         with_type=with_type,
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def _CountFlowResultsOrErrorsByType(
       self,
@@ -1847,6 +1874,8 @@ class MySQLDBFlowMixin:
         "flow_errors", client_id, flow_id
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteFlowLogEntry(
       self,
@@ -1877,6 +1906,8 @@ class MySQLDBFlowMixin:
     except MySQLdb.IntegrityError as error:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowLogEntries(
       self,
@@ -1921,6 +1952,8 @@ class MySQLDBFlowMixin:
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountFlowLogEntries(
       self,
@@ -1942,6 +1975,104 @@ class MySQLDBFlowMixin:
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction()
+  def WriteFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      request_id: int,
+      logs: Mapping[int, rrg_pb2.Log],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Writes new log entries for a particular action request."""
+    assert cursor is not None
+
+    query = """
+    INSERT
+    INTO flow_rrg_logs (
+      client_id, flow_id, request_id, response_id,
+      log_level, log_time, log_message
+    )
+    VALUES (
+      %(client_id)s, %(flow_id)s, %(request_id)s, %(response_id)s,
+      %(log_level)s, FROM_UNIXTIME(%(log_time)s), %(log_message)s
+    )
+    """
+
+    args = []
+
+    for response_id, log in logs.items():
+      args.append({
+          "client_id": db_utils.ClientIDToInt(client_id),
+          "flow_id": db_utils.FlowIDToInt(flow_id),
+          "request_id": request_id,
+          "response_id": response_id,
+          "log_level": log.level,
+          "log_time": mysql_utils.RDFDatetimeToTimestamp(
+              rdfvalue.RDFDatetime.FromProtoTimestamp(log.timestamp),
+          ),
+          "log_message": log.message,
+      })
+
+    try:
+      cursor.executemany(query, args)
+    except MySQLdb.IntegrityError as error:
+      raise db.UnknownFlowError(client_id, flow_id, cause=error) from error
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
+  def ReadFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Sequence[rrg_pb2.Log]:
+    """Reads log entries logged by actions issued by a particular flow."""
+    assert cursor is not None
+
+    query = """
+    SELECT
+      log_level, UNIX_TIMESTAMP(log_time), log_message
+    FROM
+      flow_rrg_logs
+    WHERE
+      client_id = %(client_id)s AND flow_id = %(flow_id)s
+    ORDER BY
+      request_id, response_id
+    LIMIT
+      %(count)s
+    OFFSET
+      %(offset)s
+    """
+    args = {
+        "client_id": db_utils.ClientIDToInt(client_id),
+        "flow_id": db_utils.FlowIDToInt(flow_id),
+        "offset": offset,
+        "count": count,
+    }
+    cursor.execute(query, args)
+
+    results: list[rrg_pb2.Log] = []
+
+    for level, timestamp, message in cursor.fetchall():
+      log = rrg_pb2.Log()
+      log.level = level
+      log.timestamp.CopyFrom(
+          mysql_utils.TimestampToRDFDatetime(timestamp).AsProtoTimestamp()
+      )
+      log.message = message
+
+      results.append(log)
+
+    return results
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteFlowOutputPluginLogEntry(
       self,
@@ -1978,6 +2109,8 @@ class MySQLDBFlowMixin:
     except MySQLdb.IntegrityError as error:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowOutputPluginLogEntries(
       self,
@@ -2033,6 +2166,8 @@ class MySQLDBFlowMixin:
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def CountFlowOutputPluginLogEntries(
       self,
@@ -2066,6 +2201,8 @@ class MySQLDBFlowMixin:
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteScheduledFlow(
       self,
@@ -2107,6 +2244,8 @@ class MySQLDBFlowMixin:
         raise db.UnknownClientError(sf.client_id, cause=error)
       raise
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteScheduledFlow(
       self,
@@ -2141,6 +2280,8 @@ class MySQLDBFlowMixin:
           scheduled_flow_id=scheduled_flow_id,
       )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ListScheduledFlows(
       self,

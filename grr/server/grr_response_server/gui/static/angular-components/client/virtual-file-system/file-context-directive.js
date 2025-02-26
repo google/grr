@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileContextDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -76,7 +75,7 @@ exports.FileContextController = class {
   }
 };
 
-var FileContextController = exports.FileContextController;
+const FileContextController = exports.FileContextController;
 
 
 
@@ -89,7 +88,7 @@ exports.FileContextDirective = function() {
     restrict: 'E',
     scope: {clientId: '=', selectedFilePath: '=', selectedFileVersion: '='},
     transclude: true,
-    template: '<ng-transclude />',
+    template: '<ng-transclude></ng-transclude>',
     controller: FileContextController,
     controllerAs: 'controller'
   };

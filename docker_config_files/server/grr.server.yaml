@@ -1,5 +1,4 @@
 Server.initialized: true
-Server.fleetspeak_enabled: true
 Server.fleetspeak_server: fleetspeak-admin:4444
 Server.fleetspeak_message_listen_address: grr-fleetspeak-frontend:11111
 
@@ -26,7 +25,6 @@ Client.executable_signing_public_key: "%(/configs/public-key.pem|file)"
 PrivateKeys.executable_signing_private_key: "%(/configs/private-key.pem|file)"
 
 # Configuration for repacking client templates:
-Client.fleetspeak_enabled: true
 ClientBuilder.fleetspeak_bundled: true
 ClientBuilder.template_dir: /client_templates
 ClientBuilder.executables_dir: /client_installers

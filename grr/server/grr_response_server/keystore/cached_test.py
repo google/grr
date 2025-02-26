@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
 import datetime
-from typing import Sequence
 
 from absl.testing import absltest
 

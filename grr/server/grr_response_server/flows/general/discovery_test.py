@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Tests for Interrogate."""
 import binascii
 import datetime
+import ipaddress
 import os
 import platform
 import socket
@@ -10,13 +10,12 @@ from unittest import mock
 
 from absl import app
 
+from google.protobuf import any_pb2
 from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import mig_client_fs
@@ -25,6 +24,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_server import action_registry
@@ -37,6 +37,7 @@ from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
+from grr_response_server.flows.general import cloud
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_objects
@@ -51,6 +52,8 @@ from grr.test_lib import vfs_test_lib
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
+from grr_response_proto.rrg.action import list_interfaces_pb2 as rrg_list_interfaces_pb2
+from grr_response_proto.rrg.action import list_mounts_pb2 as rrg_list_mounts_pb2
 
 
 class DiscoveryTestEventListener(events.EventListener):
@@ -65,10 +68,12 @@ class DiscoveryTestEventListener(events.EventListener):
     DiscoveryTestEventListener.event = msgs[0]
 
 
-class TestClientInterrogate(acl_test_lib.AclTestMixin,
-                            notification_test_lib.NotificationTestMixin,
-                            flow_test_lib.FlowTestsBaseclass,
-                            stats_test_lib.StatsTestMixin):
+class TestClientInterrogate(
+    acl_test_lib.AclTestMixin,
+    notification_test_lib.NotificationTestMixin,
+    flow_test_lib.FlowTestsBaseclass,
+    stats_test_lib.StatsTestMixin,
+):
   """Test the interrogate flow."""
 
   def _OpenClient(self, client_id):
@@ -78,7 +83,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
   def _CheckUsers(self, client, expected_users):
     self.assertCountEqual(
-        [user.username for user in client.knowledge_base.users], expected_users)
+        [user.username for user in client.knowledge_base.users], expected_users
+    )
 
   def _CheckBasicInfo(self, client, fqdn, system, install_date):
     self.assertEqual(client.knowledge_base.fqdn, fqdn)
@@ -88,17 +94,16 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def _CheckClientInfo(self, client):
     info = client.startup_info.client_info
     self.assertEqual(info.client_name, config.CONFIG["Client.name"])
-    self.assertEqual(info.client_version,
-                     int(config.CONFIG["Source.version_numeric"]))
+    self.assertEqual(
+        info.client_version, int(config.CONFIG["Source.version_numeric"])
+    )
     self.assertEqual(info.build_time, config.CONFIG["Client.build_time"])
 
   def _CheckGRRConfig(self, client):
     config_dict = {item.key: item.value for item in client.grr_configuration}
 
     # Config is stored in a string map so everything gets converted.
-    self.assertEqual(config_dict["Client.server_urls"],
-                     str(["http://localhost:8001/"]))
-    self.assertEqual(config_dict["Client.poll_min"], str(1.0))
+    self.assertEqual(config_dict["Client.foreman_check_frequency"], str(3600))
 
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
@@ -113,19 +118,25 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     notification = notifications[0]
     self.assertEqual(notification.reference.client.client_id, client_id)
 
-  def _CheckClientSummary(self,
-                          client_id,
-                          summary,
-                          osname,
-                          version,
-                          kernel="3.13.0-39-generic",
-                          release="5"):
-    self.assertEqual(summary.client_info.client_name,
-                     config.CONFIG["Client.name"])
-    self.assertEqual(summary.client_info.client_version,
-                     int(config.CONFIG["Source.version_numeric"]))
-    self.assertEqual(summary.client_info.build_time,
-                     config.CONFIG["Client.build_time"])
+  def _CheckClientSummary(
+      self,
+      client_id,
+      summary,
+      osname,
+      version,
+      kernel="3.13.0-39-generic",
+      release="5",
+  ):
+    self.assertEqual(
+        summary.client_info.client_name, config.CONFIG["Client.name"]
+    )
+    self.assertEqual(
+        summary.client_info.client_version,
+        int(config.CONFIG["Source.version_numeric"]),
+    )
+    self.assertEqual(
+        summary.client_info.build_time, config.CONFIG["Client.build_time"]
+    )
 
     self.assertEqual(summary.system_info.system, osname)
     self.assertEqual(summary.system_info.fqdn, "test_node.test")
@@ -139,19 +150,24 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     # Check that the client summary was published to the event listener.
     self.assertEqual(DiscoveryTestEventListener.event.client_id, client_id)
-    self.assertEqual(DiscoveryTestEventListener.event.interfaces[0].mac_address,
-                     b"123456")
+    self.assertEqual(
+        DiscoveryTestEventListener.event.interfaces[0].mac_address, b"123456"
+    )
     self.assertTrue(DiscoveryTestEventListener.event.timestamp)
     self.assertTrue(DiscoveryTestEventListener.event.last_ping)
 
   def _CheckNetworkInfo(self, client):
     self.assertEqual(client.interfaces[0].mac_address, b"123456")
-    self.assertEqual(client.interfaces[0].addresses[0].human_readable_address,
-                     "100.100.100.1")
     self.assertEqual(
-        socket.inet_ntop(socket.AF_INET,
-                         client.interfaces[0].addresses[0].packed_bytes),
-        "100.100.100.1")
+        client.interfaces[0].addresses[0].human_readable_address,
+        "100.100.100.1",
+    )
+    self.assertEqual(
+        socket.inet_ntop(
+            socket.AF_INET, client.interfaces[0].addresses[0].packed_bytes
+        ),
+        "100.100.100.1",
+    )
 
   def _CheckLabels(self, client_id):
     expected_labels = ["GRRLabel1", "Label2"]
@@ -162,7 +178,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def _CheckLabelIndex(self, client_id):
     """Check that label indexes are updated."""
     self.assertCountEqual(
-        client_index.ClientIndex().LookupClients(["label:Label2"]), [client_id])
+        client_index.ClientIndex().LookupClients(["label:Label2"]), [client_id]
+    )
 
   def _CheckRelease(self, client, desired_release, desired_version):
     release = client.knowledge_base.os_release
@@ -179,7 +196,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     error_str = admin.GetLibraryVersions.error_str
     # Strip off the exception itself.
-    error_str = error_str[:error_str.find("%s")]
+    error_str = error_str[: error_str.find("%s")]
 
     values = [item.value for item in versions]
     for v in values:
@@ -193,8 +210,10 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(client.cloud_instance.google.instance_id, "instance_id")
     self.assertEqual(client.cloud_instance.google.project_id, "project_id")
     self.assertEqual(client.cloud_instance.google.zone, "zone")
-    self.assertEqual(client.cloud_instance.google.unique_id,
-                     "zone/project_id/instance_id")
+    self.assertEqual(
+        client.cloud_instance.google.unique_id, "zone/project_id/instance_id"
+    )
+    self.assertEqual(client.cloud_instance.google.hostname, "hostname")
 
   def setUp(self):
     super().setUp()
@@ -214,13 +233,14 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
     client_id = self._SetupMinimalClient()
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeTestDataVFSHandler
+    ):
       client_mock = action_mocks.InterrogatedClient()
       client_mock.InitializeClient()
 
-      flow_test_lib.TestFlowHelper(
-          discovery.Interrogate.__name__,
+      flow_test_lib.StartAndRunFlow(
+          discovery.Interrogate,
           client_mock,
           creator=self.test_username,
           client_id=client_id,
@@ -232,19 +252,24 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
     client_id = self._SetupMinimalClient()
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(
-            system="Windows", version="6.1.7600", kernel="6.1.7601")
+            system="Windows", version="6.1.7600", kernel="6.1.7601"
+        )
         with mock.patch.object(platform, "system", return_value="Windows"):
-          flow_test_lib.TestFlowHelper(
-              discovery.Interrogate.__name__,
+          flow_test_lib.StartAndRunFlow(
+              discovery.Interrogate,
               client_mock,
               creator=self.test_username,
-              client_id=client_id)
+              client_id=client_id,
+          )
 
     client = self._OpenClient(client_id)
     self._CheckCloudMetadata(client)
@@ -257,8 +282,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       client_mock.InitializeClient(version="14.4", release="Ubuntu")
 
       with test_lib.SuppressLogs():
-        flow_test_lib.TestFlowHelper(
-            discovery.Interrogate.__name__,
+        flow_test_lib.StartAndRunFlow(
+            discovery.Interrogate,
             client_mock,
             creator=self.test_username,
             client_id=client_id,
@@ -275,7 +300,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         "Linux",
         "14.4",
         release="Ubuntu",
-        kernel="3.13.0-39-generic")
+        kernel="3.13.0-39-generic",
+    )
     self._CheckRelease(client, "Ubuntu", "14.4")
 
     # users 1,2,3 from wtmp, users yagharek, isaac from netgroup
@@ -292,18 +318,22 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
 
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(
-            system="Windows", version="6.1.7600", kernel="6.1.7601")
+            system="Windows", version="6.1.7600", kernel="6.1.7601"
+        )
 
         # Run the flow in the simulated way
-        flow_test_lib.TestFlowHelper(
-            discovery.Interrogate.__name__,
+        flow_test_lib.StartAndRunFlow(
+            discovery.Interrogate,
             client_mock,
             creator=self.test_username,
             client_id=client_id,
@@ -315,11 +345,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckGRRConfig(client)
     self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckClientSummary(
-        client_id,
-        client.GetSummary(),
-        "Windows",
-        "6.1.7600",
-        kernel="6.1.7601")
+        client_id, client.GetSummary(), "Windows", "6.1.7600", kernel="6.1.7601"
+    )
     # jim parsed from registry profile keys
     self._CheckUsers(client, ["jim", "kovacs"])
     self._CheckNetworkInfo(client)
@@ -455,21 +482,23 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     mock_labels_fn.return_value = ["foo", "bar"]
     client_id = "C.0000000000000001"
     data_store.REL_DB.WriteClientMetadata(
-        client_id,
-        fleetspeak_validation_info={"IP": "12.34.56.78"})
+        client_id, fleetspeak_validation_info={"IP": "12.34.56.78"}
+    )
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
         fqdn="fleetspeak.test.com",
         system="Linux",
         release="Ubuntu",
-        version="14.4")
+        version="14.4",
+    )
 
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      flow_test_lib.TestFlowHelper(
-          discovery.Interrogate.__name__,
+      flow_test_lib.StartAndRunFlow(
+          discovery.Interrogate,
           client_mock,
           creator=self.test_username,
-          client_id=client_id)
+          client_id=client_id,
+      )
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
     self.assertEqual(snapshot.knowledge_base.fqdn, "fleetspeak.test.com")
@@ -497,18 +526,22 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         fqdn="fleetspeak.test.com",
         system="Linux",
         release="Ubuntu",
-        version="14.4")
+        version="14.4",
+    )
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
-      with self.assertStatsCounterDelta(1,
-                                        discovery.FLEETSPEAK_UNLABELED_CLIENTS):
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeTestDataVFSHandler
+    ):
+      with self.assertStatsCounterDelta(
+          1, discovery.FLEETSPEAK_UNLABELED_CLIENTS
+      ):
 
-        flow_test_lib.TestFlowHelper(
-            discovery.Interrogate.__name__,
+        flow_test_lib.StartAndRunFlow(
+            discovery.Interrogate,
             client_mock,
             creator=self.test_username,
-            client_id=client_id)
+            client_id=client_id,
+        )
 
     labels = data_store.REL_DB.ReadClientLabels(client_id)
     expected_labels = [
@@ -552,8 +585,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       with test_lib.ConfigOverrider({
           "Interrogate.collect_crowdstrike_agent_id": True,
       }):
-        flow_test_lib.TestFlowHelper(
-            discovery.Interrogate.__name__,
+        flow_test_lib.StartAndRunFlow(
+            discovery.Interrogate,
             client_mock=ClientMock(),
             client_id=client_id,
         )
@@ -569,15 +602,20 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient()
     with test_lib.SuppressLogs():
-      flow_id = flow_test_lib.TestFlowHelper(
-          discovery.Interrogate.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          discovery.Interrogate,
           client_mock,
           creator=self.test_username,
-          client_id=client_id)
+          client_id=client_id,
+      )
 
     client = self._OpenClient(client_id)
     self.assertNotEmpty(client.metadata.source_flow_id)
     self.assertEqual(client.metadata.source_flow_id, flow_id)
+
+  # TODO: Create a test with full RRG interrogation once there is
+  # a single branch point and the flow is using either RRG actions or the Python
+  # agent actions.
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetSystemMetadata(self, db: abstract_db.Database):
@@ -615,16 +653,61 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
-    self.assertEqual(flow.state.client.knowledge_base.os, "Linux")
-    self.assertEqual(flow.state.client.arch, "x86_64")
-    self.assertEqual(flow.state.client.knowledge_base.fqdn, "foo.example.com")
-    self.assertEqual(flow.state.client.os_version, "1.2.3-alpha")
+    self.assertEqual(flow.store.client_snapshot.knowledge_base.os, "Linux")
+    self.assertEqual(flow.store.client_snapshot.arch, "x86_64")
+    self.assertEqual(
+        flow.store.client_snapshot.knowledge_base.fqdn, "foo.example.com"
+    )
+    self.assertEqual(flow.store.client_snapshot.os_version, "1.2.3-alpha")
 
     snapshot = db.ReadClientSnapshot(client_id)
     self.assertEqual(snapshot.knowledge_base.os, "Linux")
     self.assertEqual(snapshot.arch, "x86_64")
     self.assertEqual(snapshot.knowledge_base.fqdn, "foo.example.com")
     self.assertEqual(snapshot.os_version, "1.2.3-alpha")
+
+  # TODO: https://github.com/google/rrg/issues/58 - Remove once FQDN collection
+  # is working on all platforms.
+  @db_test_lib.WithDatabase
+  def testHandleRRGGetSystemMetadataHostname(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    result = rrg_get_system_metadata_pb2.Result()
+    result.type = rrg_os_pb2.Type.MACOS
+    result.hostname = "foobar"
+    result.install_time.FromDatetime(datetime.datetime.now())
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetSystemMetadata(responses)
+
+    self.assertEqual(flow.store.client_snapshot.knowledge_base.os, "Darwin")
+    self.assertEqual(flow.store.client_snapshot.knowledge_base.fqdn, "foobar")
+
+    snapshot = db.ReadClientSnapshot(client_id)
+    self.assertEqual(snapshot.knowledge_base.os, "Darwin")
+    self.assertEqual(snapshot.knowledge_base.fqdn, "foobar")
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetSystemMetadataCloudVMMetadataLinux(
@@ -659,10 +742,12 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
-    # We should collect VM metadata for Linux.
-    self.assertTrue(
-        _HasClientActionRequest(flow, server_stubs.GetCloudVMMetadata)
-    )
+    cloud_vm_metadata_requested = False
+    for child in db.ReadAllFlowObjects(client_id, parent_flow_id=flow_id):
+      if child.flow_class_name == cloud.CollectCloudVMMetadata.__name__:
+        cloud_vm_metadata_requested = True
+
+    self.assertTrue(cloud_vm_metadata_requested)
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetSystemMetadataCloudVMMetadataMacOS(
@@ -701,6 +786,140 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertFalse(
         _HasClientActionRequest(flow, server_stubs.GetCloudVMMetadata)
     )
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGListInterfaces(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    result = rrg_list_interfaces_pb2.Result()
+    result.interface.name = "lo"
+    result.interface.ip_addresses.add(
+        octets=ipaddress.ip_address("127.0.0.1").packed,
+    )
+    result.interface.ip_addresses.add(
+        octets=ipaddress.ip_address("::1").packed,
+    )
+    result.interface.mac_address.octets = b"\xa1\xb2\xc3\xd4\xe5\xf6"
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGListInterfaces(responses)
+
+    snapshot = flow.store.client_snapshot
+    self.assertLen(snapshot.interfaces, 1)
+    self.assertEqual(snapshot.interfaces[0].ifname, "lo")
+    self.assertLen(snapshot.interfaces[0].addresses, 2)
+    self.assertEqual(
+        snapshot.interfaces[0].addresses[0].address_type,
+        jobs_pb2.NetworkAddress.Family.INET,
+    )
+    self.assertEqual(
+        snapshot.interfaces[0].addresses[0].packed_bytes,
+        ipaddress.ip_address("127.0.0.1").packed,
+    )
+    self.assertEqual(
+        snapshot.interfaces[0].addresses[1].address_type,
+        jobs_pb2.NetworkAddress.Family.INET6,
+    )
+    self.assertEqual(
+        snapshot.interfaces[0].addresses[1].packed_bytes,
+        ipaddress.ip_address("::1").packed,
+    )
+    self.assertEqual(
+        snapshot.interfaces[0].mac_address,
+        b"\xa1\xb2\xc3\xd4\xe5\xf6",
+    )
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGListMounts(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    result_0 = rrg_list_mounts_pb2.Result()
+    result_0.mount.name = "sysfs"
+    result_0.mount.path.raw_bytes = "/sys".encode("ascii")
+    result_0.mount.fs_type = "sysfs"
+
+    result_1 = rrg_list_mounts_pb2.Result()
+    result_1.mount.name = "udev"
+    result_1.mount.path.raw_bytes = "/dev".encode("ascii")
+    result_1.mount.fs_type = "devtmpfs"
+
+    result_2 = rrg_list_mounts_pb2.Result()
+    result_2.mount.name = "/dev/nvme0n1p1"
+    result_2.mount.path.raw_bytes = "/boot/efi".encode("ascii")
+    result_2.mount.fs_type = "vfat"
+
+    result_response_0 = rdf_flow_objects.FlowResponse()
+    result_response_0.any_payload = rdf_structs.AnyValue.PackProto2(result_0)
+
+    result_response_1 = rdf_flow_objects.FlowResponse()
+    result_response_1.any_payload = rdf_structs.AnyValue.PackProto2(result_1)
+
+    result_response_2 = rdf_flow_objects.FlowResponse()
+    result_response_2.any_payload = rdf_structs.AnyValue.PackProto2(result_2)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response_0,
+        result_response_1,
+        result_response_2,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGListMounts(responses)
+
+    snapshot = flow.store.client_snapshot
+    self.assertLen(snapshot.filesystems, 3)
+    self.assertEqual(snapshot.filesystems[0].device, "sysfs")
+    self.assertEqual(snapshot.filesystems[0].mount_point, "/sys")
+    self.assertEqual(snapshot.filesystems[0].type, "sysfs")
+    self.assertEqual(snapshot.filesystems[1].device, "udev")
+    self.assertEqual(snapshot.filesystems[1].mount_point, "/dev")
+    self.assertEqual(snapshot.filesystems[1].type, "devtmpfs")
+    self.assertEqual(snapshot.filesystems[2].device, "/dev/nvme0n1p1")
+    self.assertEqual(snapshot.filesystems[2].mount_point, "/boot/efi")
+    self.assertEqual(snapshot.filesystems[2].type, "vfat")
 
   @db_test_lib.WithDatabase
   def testStartRRGOnly(self, db: abstract_db.Database):
@@ -782,10 +1001,12 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     flow = discovery.Interrogate(rdf_flow)
     flow.Start()
 
-    result = rdf_client.KnowledgeBase()
+    result = knowledge_base_pb2.KnowledgeBase()
     result.os = "Linux"
+    packed_result = any_pb2.Any()
+    packed_result.Pack(result)
 
-    responses = flow_responses.FakeResponses([result], request_data=None)
+    responses = flow_responses.FakeResponses([packed_result], request_data=None)
 
     with test_lib.ConfigOverrider({
         "Interrogate.collect_passwd_cache_users": True,
@@ -809,26 +1030,29 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     flow = discovery.Interrogate(rdf_flow)
     flow.Start()
-    flow.state.client.knowledge_base.users = [
-        rdf_client.User(username="foo", full_name="Fó Fózyńczak"),
-        rdf_client.User(username="bar"),  # No full name available.
-    ]
+    flow.store.client_snapshot.knowledge_base.users.extend([
+        knowledge_base_pb2.User(username="foo", full_name="Fó Fózyńczak"),
+        knowledge_base_pb2.User(username="bar"),  # No full name available.
+    ])
 
-    result = rdf_file_finder.FileFinderResult()
+    result = flows_pb2.FileFinderResult()
 
-    match = rdf_client.BufferReference()
+    match = jobs_pb2.BufferReference()
     match.data = "foo:x:123:1337::/home/foo:/bin/bash\n".encode("utf-8")
     result.matches.append(match)
 
-    match = rdf_client.BufferReference()
+    match = jobs_pb2.BufferReference()
     match.data = "bar:x:456:1337:Bar Barowski:/home/bar:\n".encode("utf-8")
     result.matches.append(match)
 
-    responses = flow_responses.FakeResponses([result], request_data=None)
+    packed_result = any_pb2.Any()
+    packed_result.Pack(result)
+
+    responses = flow_responses.FakeResponses([packed_result], request_data=None)
 
     flow.ProcessPasswdCacheUsers(responses)
 
-    users = list(flow.state.client.knowledge_base.users)
+    users = list(flow.store.client_snapshot.knowledge_base.users)
     self.assertLen(users, 2)
     users.sort(key=lambda user: user.username)
 
@@ -852,8 +1076,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient()
     with test_lib.SuppressLogs():
-      flow_test_lib.TestFlowHelper(
-          discovery.Interrogate.__name__,
+      flow_test_lib.StartAndRunFlow(
+          discovery.Interrogate,
           client_mock,
           creator=self.test_username,
           client_id=client_id,
@@ -877,7 +1101,12 @@ def _HasClientActionRequest(
   def IsAction(request: rdf_flows.GrrMessage) -> bool:
     return request.name == action_id
 
-  return any(map(IsAction, flow.client_action_requests))
+  def IsProtoAction(request: jobs_pb2.GrrMessage) -> bool:
+    return request.name == action_id
+
+  return any(map(IsAction, flow.client_action_requests)) or any(
+      map(IsProtoAction, flow.proto_client_action_requests)
+  )
 
 
 def _HasRRGRequest(

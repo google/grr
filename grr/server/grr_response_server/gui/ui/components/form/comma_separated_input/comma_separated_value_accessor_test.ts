@@ -15,7 +15,9 @@ import {CommaSeparatedInputModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: '<input commaSeparatedInput [formControl]="formControl">',
+  jit: true,
 })
 class TestHostComponent {
   readonly formControl = new UntypedFormControl();
@@ -118,7 +120,9 @@ describe('commaSeparatedInput', () => {
 });
 
 @Component({
+  standalone: false,
   template: '<input commaSeparatedNumberInput [formControl]="formControl">',
+  jit: true,
 })
 class TestHostNumberComponent {
   readonly formControl = new UntypedFormControl();

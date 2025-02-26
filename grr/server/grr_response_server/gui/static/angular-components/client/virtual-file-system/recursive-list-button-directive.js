@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
@@ -9,7 +8,7 @@ const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtu
 
 
 /** @const */
-var OPERATION_POLL_INTERVAL_MS = 1000;
+const OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 
@@ -93,11 +92,11 @@ const RecursiveListButtonController = class {
           this.refreshOperation = angular.copy(
               descriptors['ApiCreateVfsRefreshOperationArgs']['default']);
 
-          var filePath = angular.copy(descriptors['RDFString']['default']);
+          const filePath = angular.copy(descriptors['RDFString']['default']);
           filePath['value'] = getFolderFromPath(this.scope_['filePath']);
           this.refreshOperation['value']['file_path'] = filePath;
 
-          var maxDepth = angular.copy(descriptors['RDFInteger']['default']);
+          const maxDepth = angular.copy(descriptors['RDFInteger']['default']);
           maxDepth['value'] = RecursiveListButtonController.MAX_DEPTH;
           this.refreshOperation['value']['max_depth'] = maxDepth;
 
@@ -120,18 +119,18 @@ const RecursiveListButtonController = class {
    * @export
    */
   createRefreshOperation() {
-    var aff4Prefix = 'aff4:/';
-    var clientId = this.scope_['clientId'];
+    const aff4Prefix = 'aff4:/';
+    let clientId = this.scope_['clientId'];
     if (clientId.toLowerCase().indexOf(aff4Prefix) == 0) {
       clientId = clientId.substr(aff4Prefix.length);
     }
 
-    var url = 'clients/' + clientId + '/vfs-refresh-operations';
-    var refreshOperation = angular.copy(this.refreshOperation);
+    const url = 'clients/' + clientId + '/vfs-refresh-operations';
+    const refreshOperation = angular.copy(this.refreshOperation);
 
     // Setting this.lastOperationId means that the update button will get
     // disabled immediately.
-    var operationId = this.lastOperationId = 'unknown';
+    let operationId = this.lastOperationId = 'unknown';
     this.grrApiService_.post(url, refreshOperation, true)
         .then(
             function success(response) {
@@ -144,7 +143,7 @@ const RecursiveListButtonController = class {
               operationId = this.lastOperationId =
                   response['data']['operation_id'];
 
-              var pollPromise = this.grrApiService_.poll(
+              const pollPromise = this.grrApiService_.poll(
                   url + '/' + operationId, OPERATION_POLL_INTERVAL_MS);
               this.scope_.$on('$destroy', function() {
                 this.grrApiService_.cancelPoll(pollPromise);
@@ -157,7 +156,7 @@ const RecursiveListButtonController = class {
               this.error = response['data']['message'] || 'Unknown error.';
             }.bind(this))
         .then(function success() {
-          var path = refreshOperation['value']['file_path']['value'];
+          const path = refreshOperation['value']['file_path']['value'];
           this.rootScope_.$broadcast(
               REFRESH_FOLDER_EVENT, ensurePathIsFolder(path));
         }.bind(this))

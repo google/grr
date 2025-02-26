@@ -24,8 +24,9 @@ class OutputPluginTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    registry.OutputPluginRegistry.PLUGIN_REGISTRY[
-        TestOutputPlugin.__name__] = TestOutputPlugin
+    registry.OutputPluginRegistry.PLUGIN_REGISTRY[TestOutputPlugin.__name__] = (
+        TestOutputPlugin
+    )
 
   def tearDown(self):
     super().tearDown()
@@ -34,7 +35,8 @@ class OutputPluginTest(absltest.TestCase):
   def testGetArgsField(self):
     new_args = TestOutputPluginArgs(test_message="new")
     desc = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=TestOutputPlugin.__name__, args=new_args)
+        plugin_name=TestOutputPlugin.__name__, args=new_args
+    )
     self.assertEqual(desc.args, TestOutputPluginArgs(test_message="new"))
 
 

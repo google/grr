@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """RDFValues used with Yara."""
 
-import yara
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -11,9 +9,7 @@ from grr_response_proto import flows_pb2
 
 
 class YaraSignature(rdfvalue.RDFString):
-
-  def GetRules(self):
-    return yara.compile(source=str(self))
+  pass
 
 
 class YaraSignatureShard(rdf_structs.RDFProtoStruct):
@@ -159,7 +155,7 @@ class ProcessMemoryRegion(rdf_structs.RDFProtoStruct):
 
 class YaraProcessDumpInformation(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessDumpInformation
-  rdf_deps = [rdf_client.Process, rdf_paths.PathSpec, ProcessMemoryRegion]
+  rdf_deps = [rdf_client.Process, ProcessMemoryRegion]
 
 
 class YaraProcessDumpResponse(rdf_structs.RDFProtoStruct):

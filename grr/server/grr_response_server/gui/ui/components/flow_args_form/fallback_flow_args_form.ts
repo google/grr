@@ -4,6 +4,7 @@ import {FlowArgumentForm} from './form_interface';
 
 /** Fallback to display when no form is configured for a Flow. */
 @Component({
+  standalone: false,
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -2,7 +2,6 @@
 # repack code without having to do a full initialize.
 #
 
-Client.server_urls: ["http://localhost:8000/"]
 Client.executable_signing_public_key: |
   -----BEGIN PUBLIC KEY-----
   MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzbuwYnKTTleU2F4zu1gI

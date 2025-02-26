@@ -225,7 +225,7 @@ export function translateClient(client: apiInterfaces.ApiClient): Client {
     labels: (client.labels ?? []).map(createClientLabel),
     knowledgeBase: client.knowledgeBase ?? {},
     osInfo: createOsInfo(client.osInfo ?? {}),
-    users: (client.users ?? []).map(createUser),
+    users: (client.knowledgeBase?.users ?? []).map(createUser),
     networkInterfaces: (client.interfaces ?? []).map(createNetworkInterface),
     volumes: (client.volumes ?? []).map(createStorageVolume),
     memorySize,

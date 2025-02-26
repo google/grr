@@ -19,7 +19,7 @@ from grr_response_server import client_fixture
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -543,7 +543,7 @@ def CreateFile(client_path, content=b""):
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertType(content, bytes)
 
-  blob_id = blobs.BlobID.Of(content)
+  blob_id = models_blobs.BlobID.Of(content)
 
   stat_entry = rdf_client_fs.StatEntry(
       pathspec=rdf_paths.PathSpec(
@@ -620,7 +620,7 @@ def GenerateBlobRefs(
   blob_refs = []
   offset = 0
   for data in blob_data:
-    blob_id = blobs.BlobID.Of(data)
+    blob_id = models_blobs.BlobID.Of(data)
     blob_refs.append(
         rdf_objects.BlobReference(
             offset=offset, size=len(data), blob_id=bytes(blob_id)
@@ -646,7 +646,7 @@ def CreateFileWithBlobRefsAndData(
   path_info = rdf_objects.PathInfo.OS(components=client_path.components)
 
   data_store.BLOBS.WriteBlobs(
-      {blobs.BlobID.Of(bdata): bdata for bdata in blob_data}
+      {models_blobs.BlobID.Of(bdata): bdata for bdata in blob_data}
   )
 
   hash_id = rdf_objects.SHA256HashID.FromData(b"".join(blob_data))

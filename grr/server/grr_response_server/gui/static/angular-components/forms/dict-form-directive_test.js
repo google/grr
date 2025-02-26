@@ -43,7 +43,7 @@ describe('dict form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-dict value="value" />';
+    const template = '<grr-form-dict value="value"></grr-form-dict>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

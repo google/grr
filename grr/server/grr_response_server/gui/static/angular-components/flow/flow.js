@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.flow');
-goog.module.declareLegacyNamespace();
 
 const {ClientFlowsListDirective} = goog.require('grrUi.flow.clientFlowsListDirective');
 const {ClientFlowsViewDirective} = goog.require('grrUi.flow.clientFlowsViewDirective');

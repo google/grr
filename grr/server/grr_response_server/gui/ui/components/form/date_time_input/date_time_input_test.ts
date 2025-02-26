@@ -23,12 +23,14 @@ import {DateTimeInputModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
   <mat-form-field appearance="outline">
     <date-time-input #dateTimeInput [formControl]="formControl"></date-time-input>
     <date-time-input-toggle [for]="dateTimeInput" matSuffix></date-time-input-toggle>
   </mat-form-field>
 `,
+  jit: true,
 })
 class TestHostComponent {
   readonly formControl = new UntypedFormControl();

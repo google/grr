@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.cron');
-goog.module.declareLegacyNamespace();
 
 const {CronJobInspectorDirective} = goog.require('grrUi.cron.cronJobInspectorDirective');
 const {CronJobOverviewDirective} = goog.require('grrUi.cron.cronJobOverviewDirective');

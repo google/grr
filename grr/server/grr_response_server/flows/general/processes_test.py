@@ -27,14 +27,16 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe="c:\\windows\\cmd.exe",
-            ctime=1333718907167083)
+            ctime=1333718907167083,
+        )
     ])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
 
@@ -52,25 +54,32 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe="c:\\windows\\cmd.exe",
-            ctime=1333718907167083),
+            ctime=1333718907167083,
+        ),
         rdf_client.Process(
             pid=3,
             ppid=1,
             cmdline=["cmd2.exe"],
             exe="c:\\windows\\cmd2.exe",
-            ctime=1333718907167083),
+            ctime=1333718907167083,
+        ),
         rdf_client.Process(
-            pid=4, ppid=1, cmdline=["missing_exe.exe"], ctime=1333718907167083),
+            pid=4, ppid=1, cmdline=["missing_exe.exe"], ctime=1333718907167083
+        ),
         rdf_client.Process(
-            pid=5, ppid=1, cmdline=["missing2_exe.exe"], ctime=1333718907167083)
+            pid=5, ppid=1, cmdline=["missing2_exe.exe"], ctime=1333718907167083
+        ),
     ])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
         creator=self.test_username,
-        filename_regex=r".*cmd2.exe")
+        flow_args=flow_processes.ListProcessesArgs(
+            filename_regex=r".*cmd2.exe",
+        ),
+    )
 
     # Expect one result that matches regex
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
@@ -96,7 +105,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ctime=1333718907167083,
         connections=[
             rdf_client_network.NetworkConnection(family="INET", state="CLOSED")
-        ])
+        ],
+    )
     p2 = rdf_client.Process(
         pid=3,
         ppid=1,
@@ -105,7 +115,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ctime=1333718907167083,
         connections=[
             rdf_client_network.NetworkConnection(family="INET", state="LISTEN")
-        ])
+        ],
+    )
     p3 = rdf_client.Process(
         pid=4,
         ppid=1,
@@ -113,16 +124,21 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ctime=1333718907167083,
         connections=[
             rdf_client_network.NetworkConnection(
-                family="INET", state="ESTABLISHED")
-        ])
+                family="INET", state="ESTABLISHED"
+            )
+        ],
+    )
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
         creator=self.test_username,
-        connection_states=["ESTABLISHED", "LISTEN"])
+        flow_args=flow_processes.ListProcessesArgs(
+            connection_states=["ESTABLISHED", "LISTEN"],
+        ),
+    )
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(processes, 2)
@@ -134,7 +150,8 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
   def testWhenFetchingFiltersOutProcessesWithoutExeAndConnectionState(self):
     client_id = self.SetupClient(0)
     p1 = rdf_client.Process(
-        pid=2, ppid=1, cmdline=["test_img.dd"], ctime=1333718907167083)
+        pid=2, ppid=1, cmdline=["test_img.dd"], ctime=1333718907167083
+    )
 
     p2 = rdf_client.Process(
         pid=2,
@@ -144,18 +161,23 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ctime=1333718907167083,
         connections=[
             rdf_client_network.NetworkConnection(
-                family="INET", state="ESTABLISHED")
-        ])
+                family="INET", state="ESTABLISHED"
+            )
+        ],
+    )
 
     client_mock = action_mocks.ListProcessesMock([p1, p2])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
-        fetch_binaries=True,
         client_id=client_id,
-        connection_states=["LISTEN"],
-        creator=self.test_username)
+        creator=self.test_username,
+        flow_args=flow_processes.ListProcessesArgs(
+            fetch_binaries=True,
+            connection_states=["LISTEN"],
+        ),
+    )
 
     # No output matched.
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
@@ -169,16 +191,20 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     client_mock = action_mocks.ListProcessesMock([process])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
-        fetch_binaries=True,
-        creator=self.test_username)
+        creator=self.test_username,
+        flow_args=flow_processes.ListProcessesArgs(
+            fetch_binaries=True,
+        ),
+    )
 
     binaries = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(binaries, 1)
@@ -192,23 +218,28 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     process2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["test_img.dd", "--arg"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
-        fetch_binaries=True,
-        creator=self.test_username)
+        creator=self.test_username,
+        flow_args=flow_processes.ListProcessesArgs(
+            fetch_binaries=True,
+        ),
+    )
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(processes, 1)
@@ -220,24 +251,29 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     process2 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["file_that_does_not_exist"],
         exe=os.path.join(self.base_path, "file_that_does_not_exist"),
-        ctime=1333718907167083)
+        ctime=1333718907167083,
+    )
 
     client_mock = action_mocks.ListProcessesMock([process1, process2])
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_processes.ListProcesses.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
         client_mock,
         client_id=client_id,
-        fetch_binaries=True,
         creator=self.test_username,
-        check_flow_errors=False)
+        check_flow_errors=False,
+        flow_args=flow_processes.ListProcessesArgs(
+            fetch_binaries=True,
+        ),
+    )
 
     binaries = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(binaries, 1)

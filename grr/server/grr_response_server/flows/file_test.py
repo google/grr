@@ -5,7 +5,6 @@ import collections
 import contextlib
 import hashlib
 import os
-from typing import List
 from unittest import mock
 
 from absl import app
@@ -89,11 +88,13 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     file_bar_path = temp_bar_file.full_path
     file_bar_hash = hashlib.sha1(b"bar").hexdigest()
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectFilesByKnownPath.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectFilesByKnownPath,
         self.client_mock,
         client_id=self.client_id,
-        paths=[file_bar_path],
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=[file_bar_path],
+        ),
         creator=self.test_username,
     )
 
@@ -140,11 +141,13 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     file_foo_path = temp_foo_file.full_path
     file_foo_hash = hashlib.sha1(b"foo").hexdigest()
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectFilesByKnownPath.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectFilesByKnownPath,
         self.client_mock,
         client_id=self.client_id,
-        paths=[file_bar_path, file_foo_path],
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=[file_bar_path, file_foo_path],
+        ),
         creator=self.test_username,
     )
 
@@ -208,12 +211,14 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     temp_foo_file.write_bytes(b"foo")
     file_foo_path = temp_foo_file.full_path
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectFilesByKnownPath.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectFilesByKnownPath,
         self.client_mock,
         client_id=self.client_id,
-        paths=[file_bar_path, file_foo_path],
-        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.STAT,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=[file_bar_path, file_foo_path],
+            collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.STAT,
+        ),
         creator=self.test_username,
     )
 
@@ -260,12 +265,14 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     file_foo_path = temp_foo_file.full_path
     file_foo_hash = hashlib.sha1(b"foo").hexdigest()
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectFilesByKnownPath.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectFilesByKnownPath,
         self.client_mock,
         client_id=self.client_id,
-        paths=[file_bar_path, file_foo_path],
-        collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.HASH,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=[file_bar_path, file_foo_path],
+            collection_level=rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.HASH,
+        ),
         creator=self.test_username,
     )
 
@@ -318,11 +325,13 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
     temp_dir = self.create_tempdir()
     non_existent_file_path = os.path.join(temp_dir.full_path, "/non_existent")
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectFilesByKnownPath.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectFilesByKnownPath,
         self.client_mock,
         client_id=self.client_id,
-        paths=[non_existent_file_path],
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=[non_existent_file_path],
+        ),
         creator=self.test_username,
     )
 
@@ -356,11 +365,13 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with _PatchVfs():
-        flow_id = flow_test_lib.TestFlowHelper(
-            file.CollectFilesByKnownPath.__name__,
+        flow_id = flow_test_lib.StartAndRunFlow(
+            file.CollectFilesByKnownPath,
             self.client_mock,
             client_id=self.client_id,
-            paths=[file_bar_path],
+            flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                paths=[file_bar_path],
+            ),
             creator=self.test_username,
         )
 
@@ -411,11 +422,13 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
-        flow_id = flow_test_lib.TestFlowHelper(
-            file.CollectFilesByKnownPath.__name__,
+        flow_id = flow_test_lib.StartAndRunFlow(
+            file.CollectFilesByKnownPath,
             self.client_mock,
             client_id=self.client_id,
-            paths=[file_bar_path],
+            flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                paths=[file_bar_path],
+            ),
             creator=self.test_username,
         )
 
@@ -445,7 +458,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
   def _getResultsPaths(
       self, results: rdf_file_finder.CollectFilesByKnownPathResult
-  ) -> List[str]:
+  ) -> list[str]:
     paths: str = []
     for result in results:
       paths.append(result.stat.pathspec.path)
@@ -453,7 +466,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
   def _getResultsPathType(
       self, results: rdf_file_finder.CollectFilesByKnownPathResult
-  ) -> List["rdf_paths.PathSpec.PathType"]:
+  ) -> list["rdf_paths.PathSpec.PathType"]:
     pathtypes: rdf_paths.PathSpec.PathType = []
     for result in results:
       pathtypes.append(result.stat.pathspec.pathtype)
@@ -461,7 +474,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
   def _getResultsStatus(
       self, results: rdf_file_finder.CollectFilesByKnownPathResult
-  ) -> List["rdf_file_finder.CollectFilesByKnownPathResult.Status"]:
+  ) -> list["rdf_file_finder.CollectFilesByKnownPathResult.Status"]:
     statuses: rdf_file_finder.CollectFilesByKnownPathResult.Status = []
     for result in results:
       statuses.append(result.status)
@@ -469,7 +482,7 @@ class TestCollectFilesByKnownPath(flow_test_lib.FlowTestsBaseclass):
 
   def _getResultsHashes(
       self, results: rdf_file_finder.CollectFilesByKnownPathResult
-  ) -> List[str]:
+  ) -> list[str]:
     hashes: str = []
     for result in results:
       hashes.append(str(result.hash.sha1))
@@ -491,11 +504,13 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
   def testCollectMultipleFilesReturnsFiles(self):
     path = os.path.join(self.fixture_path, "b*")
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[path],
+        flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+            path_expressions=[path],
+        ),
         creator=self.test_username,
     )
 
@@ -524,11 +539,13 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
-        flow_id = flow_test_lib.TestFlowHelper(
-            file.CollectMultipleFiles.__name__,
+        flow_id = flow_test_lib.StartAndRunFlow(
+            file.CollectMultipleFiles,
             self.client_mock,
             client_id=self.client_id,
-            path_expressions=[file_bar_path],
+            flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+                path_expressions=[file_bar_path],
+            ),
             creator=self.test_username,
         )
 
@@ -560,11 +577,13 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
   def testCorrectlyReportProgressForSuccessfullyCollectedFiles(self):
     path = os.path.join(self.fixture_path, "b*")
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.CollectMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[path],
+        flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+            path_expressions=[path],
+        ),
         creator=self.test_username,
     )
 
@@ -584,7 +603,9 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.CollectMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
+        flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+            path_expressions=["/some/path"],
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
@@ -633,14 +654,16 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.CollectMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
-        modification_time=modification_time,
-        access_time=access_time,
-        inode_change_time=inode_change_time,
-        size=size,
-        ext_flags=ext_flags,
-        contents_regex_match=contents_regex_match,
-        contents_literal_match=contents_literal_match,
+        flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+            path_expressions=["/some/path"],
+            modification_time=modification_time,
+            access_time=access_time,
+            inode_change_time=inode_change_time,
+            size=size,
+            ext_flags=ext_flags,
+            contents_regex_match=contents_regex_match,
+            contents_literal_match=contents_literal_match,
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
@@ -719,11 +742,13 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     temp_bar_file.write_bytes(temp_bar_file_content)
     file_bar_path = temp_bar_file.full_path
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.StatMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.StatMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[file_bar_path],
+        flow_args=rdf_file_finder.StatMultipleFilesArgs(
+            path_expressions=[file_bar_path],
+        ),
         creator=self.test_username,
     )
 
@@ -769,11 +794,13 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     temp_foo_file.write_bytes(temp_foo_file_content)
     file_foo_path = temp_foo_file.full_path
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.StatMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.StatMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[file_bar_path, file_foo_path],
+        flow_args=rdf_file_finder.StatMultipleFilesArgs(
+            path_expressions=[file_bar_path, file_foo_path],
+        ),
         creator=self.test_username,
     )
 
@@ -836,11 +863,13 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     temp_dir = self.create_tempdir()
     non_existent_file_path = os.path.join(temp_dir.full_path, "/non_existent")
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.StatMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.StatMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[non_existent_file_path],
+        flow_args=rdf_file_finder.StatMultipleFilesArgs(
+            path_expressions=[non_existent_file_path],
+        ),
         creator=self.test_username,
     )
 
@@ -851,7 +880,9 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.StatMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
+        flow_args=rdf_file_finder.StatMultipleFilesArgs(
+            path_expressions=["/some/path"],
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
@@ -900,14 +931,16 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.StatMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
-        modification_time=modification_time,
-        access_time=access_time,
-        inode_change_time=inode_change_time,
-        size=size,
-        ext_flags=ext_flags,
-        contents_regex_match=contents_regex_match,
-        contents_literal_match=contents_literal_match,
+        flow_args=rdf_file_finder.StatMultipleFilesArgs(
+            path_expressions=["/some/path"],
+            modification_time=modification_time,
+            access_time=access_time,
+            inode_change_time=inode_change_time,
+            size=size,
+            ext_flags=ext_flags,
+            contents_regex_match=contents_regex_match,
+            contents_literal_match=contents_literal_match,
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
@@ -985,11 +1018,13 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     file_bar_path = temp_bar_file.full_path
     file_bar_hash = hashlib.sha1(b"bar").hexdigest()
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.HashMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.HashMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[file_bar_path],
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=[file_bar_path],
+        ),
         creator=self.test_username,
     )
 
@@ -1030,11 +1065,13 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     file_foo_path = temp_foo_file.full_path
     file_foo_hash = hashlib.sha1(b"foo").hexdigest()
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.HashMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.HashMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[file_bar_path, file_foo_path],
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=[file_bar_path, file_foo_path],
+        ),
         creator=self.test_username,
     )
 
@@ -1077,11 +1114,13 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     temp_dir = self.create_tempdir()
     non_existent_file_path = os.path.join(temp_dir.full_path, "/non_existent")
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.HashMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.HashMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[non_existent_file_path],
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=[non_existent_file_path],
+        ),
         creator=self.test_username,
     )
 
@@ -1107,11 +1146,13 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
-        flow_id = flow_test_lib.TestFlowHelper(
-            file.HashMultipleFiles.__name__,
+        flow_id = flow_test_lib.StartAndRunFlow(
+            file.HashMultipleFiles,
             self.client_mock,
             client_id=self.client_id,
-            path_expressions=[file_bar_path],
+            flow_args=rdf_file_finder.HashMultipleFilesArgs(
+                path_expressions=[file_bar_path],
+            ),
             creator=self.test_username,
         )
 
@@ -1150,11 +1191,13 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     temp_foo_file.write_bytes(b"foo")
     file_foo_path = temp_foo_file.full_path
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        file.HashMultipleFiles.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.HashMultipleFiles,
         self.client_mock,
         client_id=self.client_id,
-        path_expressions=[file_bar_path, file_foo_path],
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=[file_bar_path, file_foo_path],
+        ),
         creator=self.test_username,
     )
 
@@ -1174,7 +1217,9 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.HashMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=["/some/path"],
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)
@@ -1223,14 +1268,16 @@ class TestHashMultipleFiles(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.StartFlow(
         file.HashMultipleFiles,
         client_id=self.client_id,
-        path_expressions=["/some/path"],
-        modification_time=modification_time,
-        access_time=access_time,
-        inode_change_time=inode_change_time,
-        size=size,
-        ext_flags=ext_flags,
-        contents_regex_match=contents_regex_match,
-        contents_literal_match=contents_literal_match,
+        flow_args=rdf_file_finder.HashMultipleFilesArgs(
+            path_expressions=["/some/path"],
+            modification_time=modification_time,
+            access_time=access_time,
+            inode_change_time=inode_change_time,
+            size=size,
+            ext_flags=ext_flags,
+            contents_regex_match=contents_regex_match,
+            contents_literal_match=contents_literal_match,
+        ),
     )
 
     children = data_store.REL_DB.ReadChildFlowObjects(self.client_id, flow_id)

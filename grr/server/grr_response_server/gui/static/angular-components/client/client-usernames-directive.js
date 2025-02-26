@@ -29,8 +29,8 @@ const ClientUsernamesController = class {
    */
   onValueChange_() {
     if (angular.isDefined(this.scope_.value)) {
-      var users = this.scope_.value.value.split(' ');
-      var array = [];
+      const users = this.scope_.value.value.split(' ');
+      const array = [];
       angular.forEach(users, function(value) {
         array.push({'type': 'RDFString', 'value': value});
       });
@@ -54,7 +54,7 @@ exports.ClientUsernamesDirective = function() {
   return {
     scope: {value: '='},
     restrict: 'E',
-    template: '<grr-semantic-value value="::usernames" />',
+    template: '<grr-semantic-value value="::usernames"></grr-semantic-value>',
     controller: ClientUsernamesController,
     controllerAs: 'controller'
   };

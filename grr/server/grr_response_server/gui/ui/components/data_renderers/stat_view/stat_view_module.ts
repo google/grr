@@ -1,6 +1,6 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
@@ -13,7 +13,7 @@ import {StatView} from './stat_view';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
+    CommonModule,
     CopyButtonModule,
     HumanReadableSizeModule,
     MatTooltipModule,

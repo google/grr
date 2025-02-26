@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """E2E tests for the timeline flow."""
+from collections.abc import Sequence
 import csv
 import io
-from typing import Sequence
 
 from absl.testing import absltest
 

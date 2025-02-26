@@ -30,7 +30,7 @@ from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
-from grr_response_server.models import clients as model_clients
+from grr_response_server.models import clients as models_clients
 from grr_response_server.rdfvalues import objects as rdf_objects
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
@@ -107,15 +107,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       rdf_client.KnowledgeBase,
       rdfvalue.RDFDatetime,
       rdf_client.Uname,
-      rdf_client.User,
       rdf_client_fs.Volume,
   ]
-
-  def ObjectReference(self):
-    return rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-        client=rdf_objects.ClientReference(client_id=str(self.client_id)),
-    )
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
@@ -156,7 +149,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
     for client_id, client_info in client_infos.items():
       api_clients.append(
-          model_clients.ApiClientFromClientFullInfo(client_id, client_info)
+          models_clients.ApiClientFromClientFullInfo(client_id, client_info)
       )
 
     UpdateClientsFromFleetspeak(api_clients)
@@ -220,7 +213,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
           continue
         if index >= args.offset and index < end:
           api_clients.append(
-              model_clients.ApiClientFromClientFullInfo(client_id, client_info)
+              models_clients.ApiClientFromClientFullInfo(client_id, client_info)
           )
         index += 1
         if index >= end:
@@ -294,7 +287,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
         info.last_snapshot.CopyFrom(snapshots[0])
         info.last_startup_info.CopyFrom(info.last_snapshot.startup_info)
 
-    api_client = model_clients.ApiClientFromClientFullInfo(client_id, info)
+    api_client = models_clients.ApiClientFromClientFullInfo(client_id, info)
     UpdateClientsFromFleetspeak([api_client])
     return api_client
 
@@ -346,7 +339,7 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     labels = data_store.REL_DB.ReadClientLabels(args.client_id)
 
     for snapshot in history[::-1]:
-      c = model_clients.ApiClientFromClientSnapshot(snapshot)
+      c = models_clients.ApiClientFromClientSnapshot(snapshot)
       # ClientSnapshot does not contain label information, so
       # c.labels should be empty at this point.
       c.labels.extend(labels)
@@ -883,7 +876,7 @@ class ApiGetFleetspeakPendingMessagesHandler(
   ) -> client_pb2.ApiGetFleetspeakPendingMessagesResult:
     _CheckFleetspeakConnection()
     return (
-        model_clients.ApiGetFleetspeakPendingMessagesResultFromFleetspeakProto(
+        models_clients.ApiGetFleetspeakPendingMessagesResultFromFleetspeakProto(
             fleetspeak_utils.GetFleetspeakPendingMessages(
                 str(args.client_id),
                 offset=args.offset,

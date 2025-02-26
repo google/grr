@@ -24,7 +24,7 @@ describe('data object semantic directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-data-object value="value" />';
+    const template = '<grr-data-object value="value"></grr-data-object>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
