@@ -56,6 +56,29 @@ message ApiConfigSection {
   repeated ApiConfigOption options = 2;
 }
 
+// TODO: Remove definitions below once migration is complete.
+// Following messages deliberately copy the standard library well-known types.
+//
+// I've spent way too long trying to use the standard `wrappers_pb2` here.
+// Unfortunately, with the way things are implemented today, reconciling the
+// Stubby/HTTP, open-source/internal differences, and the way we build and rely
+// on type metadata it's not worth trying to use the standard types.
+message StringValue {
+  optional string value = 1;
+}
+
+message Int64Value {
+  optional int64 value = 1;
+}
+
+message BoolValue {
+  optional bool value = 1;
+}
+
+message BytesValue {
+  optional bytes value = 1;
+}
+
 //
 // Method arguments and results.
 //

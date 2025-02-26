@@ -1,13 +1,4 @@
-.main-container,
-.settings-container,
-collection-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.hide-content {
-  display: none;
-}
+@use 'flow_args_form_styles';
 
 .query-section {
   height: auto;

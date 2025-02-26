@@ -1,10 +1,10 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {HexViewModule} from '../data_renderers/hex_view/hex_view_module';
@@ -19,7 +19,7 @@ import {FileDetailsPage} from './file_details_page';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
+    CommonModule,
     HexViewModule,
     HumanReadableSizeModule,
     MatButtonModule,

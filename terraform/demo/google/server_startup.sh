@@ -75,8 +75,6 @@ Mysql.database: grr
 Mysql.username: grr
 Mysql.password: grrpassword
 
-Client.server_urls: http://${server_host}:8080/
-Frontend.bind_port: 8080
 AdminUI.url: https://${server_host}:8000
 AdminUI.port: 8000
 Logging.domain: localhost
@@ -85,7 +83,6 @@ Monitoring.emergency_access_email: grr-emergency@localhost
 Server.initialized: 'True'
 
 Client.foreman_check_frequency: 30
-Client.poll_max: 5
 EOF
 
 grr_config_updater generate_keys

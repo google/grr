@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.newHuntWizard.copyFormDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
@@ -64,7 +63,7 @@ const CopyFormController = class {
    * @private
    */
   onHuntFetched_(response) {
-    var hunt = response['data'];
+    const hunt = response['data'];
 
     this.createHuntArgs =
         angular.copy(this.createHuntArgsDescriptor['default']);
@@ -73,7 +72,7 @@ const CopyFormController = class {
     this.createHuntArgs['value']['flow_args'] =
         angular.copy(hunt['value']['flow_args']);
 
-    var huntRunnerArgs = this.createHuntArgs['value']['hunt_runner_args'] =
+    const huntRunnerArgs = this.createHuntArgs['value']['hunt_runner_args'] =
         angular.copy(hunt['value']['hunt_runner_args']);
     if (angular.isDefined(huntRunnerArgs['value']['description'])) {
       huntRunnerArgs['value']['description']['value'] += ' (copy)';

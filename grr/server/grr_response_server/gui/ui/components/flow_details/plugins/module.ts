@@ -18,7 +18,6 @@ import {MatSortModule} from '@angular/material/sort';
 import {MatTableModule} from '@angular/material/table';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTreeModule} from '@angular/material/tree';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../../lib/api/module';
@@ -28,6 +27,7 @@ import {FilterPaginate} from '../../helpers/filter_paginate/filter_paginate';
 import {TimestampModule} from '../../timestamp/module';
 import {HelpersModule} from '../helpers/module';
 
+import {ProcessView} from '../../data_renderers/process/process_view';
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
@@ -42,12 +42,14 @@ import {HashMultipleFilesDetails} from './hash_multiple_files_details';
 import {InterrogateDetails} from './interrogate_details';
 import {LaunchBinaryDetails} from './launch_binary_details';
 import {ListDirectoryDetails} from './list_directory_details';
+import {ListProcessesDetails} from './list_processes_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
 import {NetstatDetails} from './netstat_details';
 import {OnlineNotificationDetails} from './online_notification_details';
 import {OsqueryDetails} from './osquery_details';
 import {ReadLowLevelDetails} from './read_low_level_details';
 import {StatMultipleFilesDetails} from './stat_multiple_files_details';
+import {TimelineDetails} from './timeline_details';
 import {YaraProcessScanDetails} from './yara_process_scan_details';
 
 const COMPONENTS = [
@@ -67,12 +69,14 @@ const COMPONENTS = [
   InterrogateDetails,
   LaunchBinaryDetails,
   ListDirectoryDetails,
+  ListProcessesDetails,
   MultiGetFileDetails,
   NetstatDetails,
   OnlineNotificationDetails,
   OsqueryDetails,
   ReadLowLevelDetails,
   StatMultipleFilesDetails,
+  TimelineDetails,
   YaraProcessScanDetails,
   // keep-sorted end
 ];
@@ -86,7 +90,6 @@ const COMPONENTS = [
     // prettier-ignore
     // keep-sorted start block=yes
     ApiModule,
-    BrowserAnimationsModule,
     CdkTreeModule,
     ClipboardModule,
     CommonModule,
@@ -111,6 +114,7 @@ const COMPONENTS = [
     MatTableModule,
     MatTabsModule,
     MatTreeModule,
+    ProcessView,
     ReactiveFormsModule,
     RouterModule,
     TimestampModule,

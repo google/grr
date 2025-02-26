@@ -58,21 +58,22 @@ const OutputPluginNoteBodyController = class {
    */
   onOutputPluginChange_() {
     if (angular.isDefined(this.scope_['outputPlugin'])) {
-      var descriptor =
+      const descriptor =
           this.scope_['outputPlugin']['value']['plugin_descriptor'];
-      var pluginName = descriptor['value']['plugin_name']['value'];
+      const pluginName = descriptor['value']['plugin_name']['value'];
 
-      var directive =
+      const directive =
           this.grrOutputPluginsDirectivesRegistryService_.findDirectiveForMro(
               [pluginName]);
 
       if (angular.isDefined(directive)) {
-        var element = angular.element('<span />');
+        const element = angular.element('<span></span>');
+        const directiveName = this.camelCaseToDashDelimited(directive.directive_name);
         element.html(
-            '<' + this.camelCaseToDashDelimited(directive.directive_name) +
-            ' output-plugin="outputPlugin" />');
+            '<' + directiveName + ' output-plugin="outputPlugin">' +
+            '</' + directiveName + '>');
 
-        var template = this.compile_(element);
+        const template = this.compile_(element);
         template(this.scope_, function(cloned, opt_scope) {
           this.element_.html('');
           this.element_.append(cloned);

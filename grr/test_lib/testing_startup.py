@@ -23,6 +23,7 @@ from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import http_api
 from grr_response_server.gui import registry_init as gui_api_registry_init
 from grr_response_server.gui import webauth
+from grr_response_server.local import server_config  # pylint: disable=unused-import
 from grr.test_lib import blob_store_test_lib
 
 # Make sure we do not reinitialize multiple times.

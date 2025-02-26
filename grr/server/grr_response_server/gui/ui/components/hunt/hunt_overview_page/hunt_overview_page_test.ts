@@ -3,7 +3,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {provideRouter} from '@angular/router';
 
 import {
   ApiHuntState,
@@ -31,12 +31,8 @@ initTestEnvironment();
 describe('app-hunt-overview-page', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        NoopAnimationsModule,
-        RouterTestingModule,
-        HuntOverviewPageModule,
-      ],
-      providers: [...STORE_PROVIDERS],
+      imports: [NoopAnimationsModule, HuntOverviewPageModule],
+      providers: [...STORE_PROVIDERS, provideRouter([])],
       teardown: {destroyAfterEach: false},
     })
       .overrideProvider(HuntOverviewPageLocalStore, {

@@ -18,6 +18,7 @@ import {UserGlobalStore} from '../../store/user_global_store';
 
 /** Component that displays flows scheduled to run on a client. */
 @Component({
+  standalone: false,
   selector: 'scheduled-flow-list',
   templateUrl: './scheduled_flow_list.ng.html',
   styleUrls: ['./scheduled_flow_list.scss'],
@@ -27,24 +28,28 @@ export class ScheduledFlowList implements OnInit, OnChanges, OnDestroy {
   @Input() creator?: string;
   @Input() clientId?: string;
 
-  readonly scheduledFlows$ = this.store.scheduledFlows$;
+  readonly scheduledFlows$;
 
-  readonly currentUsername$ = this.userGlobalStore.currentUser$.pipe(
-    map((user) => user.name),
-  );
+  readonly currentUsername$;
 
   // Use Angular's [hidden] directive to hide this view until scheduled flows
   // have been loaded. This prevents spaces around the empty view during
   // loading.
   @HostBinding('hidden') isHidden = true;
 
-  readonly ngOnDestroy = observeOnDestroy(this);
+  readonly ngOnDestroy;
 
   constructor(
     private readonly store: ScheduledFlowGlobalStore,
     private readonly userGlobalStore: UserGlobalStore,
     private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ) {
+    this.scheduledFlows$ = this.store.scheduledFlows$;
+    this.currentUsername$ = this.userGlobalStore.currentUser$.pipe(
+      map((user) => user.name),
+    );
+    this.ngOnDestroy = observeOnDestroy(this);
+  }
 
   ngOnInit() {
     this.scheduledFlows$

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Base classes for artifacts."""
+
 import logging
 import ntpath
 import os
@@ -7,6 +8,7 @@ import pathlib
 import re
 import stat
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -30,6 +32,11 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import distro
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
+from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
+from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
@@ -37,15 +44,18 @@ def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
   if not allow_uninitialized:
     if rdf_client_obj is None:
       raise artifact_utils.KnowledgeBaseUninitializedError(
-          "No client snapshot given.")
+          "No client snapshot given."
+      )
     if rdf_client_obj.knowledge_base is None:
       raise artifact_utils.KnowledgeBaseUninitializedError(
-          "KnowledgeBase empty for %s." % rdf_client_obj.client_id)
+          "KnowledgeBase empty for %s." % rdf_client_obj.client_id
+      )
     kb = rdf_client_obj.knowledge_base
     if not kb.os:
       raise artifact_utils.KnowledgeBaseAttributesMissingError(
-          "KnowledgeBase missing OS for %s. Knowledgebase content: %s" %
-          (rdf_client_obj.client_id, kb))
+          "KnowledgeBase missing OS for %s. Knowledgebase content: %s"
+          % (rdf_client_obj.client_id, kb)
+      )
   if rdf_client_obj is None or rdf_client_obj.knowledge_base is None:
     return rdf_client.KnowledgeBase()
 
@@ -66,9 +76,9 @@ class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
 
 
 class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
-  """Flow that atttempts to initialize the knowledge base.
+  """Flow that attempts to initialize the knowledge base.
 
-  We collect required knowledgebase attributes are required and return a filled
+  We collect required knowledgebase attributes and return a filled
   knowledgebase.
   """
 
@@ -84,14 +94,10 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     self.InitializeKnowledgeBase()
 
     if self.client_os == "Linux":
-      if artifact_registry.REGISTRY.Exists("LinuxReleaseInfo"):
-        self.CallFlow(
-            distro.CollectDistroInfo.__name__,
-            next_state=self._ProcessLinuxDistroInfo.__name__,
-        )
-      else:
-        self.Log("`LinuxReleaseInfo` artifact not found, skipping...")
-
+      self.CallFlow(
+          distro.CollectDistroInfo.__name__,
+          next_state=self._ProcessLinuxDistroInfo.__name__,
+      )
       self.CallClient(
           server_stubs.EnumerateUsers,
           next_state=self._ProcessLinuxEnumerateUsers.__name__,
@@ -108,148 +114,326 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       )
     elif self.client_os == "Windows":
       # pylint: disable=line-too-long
-      # pyformat: disable
-      #
-      # TODO: There is no dedicated action for obtaining registry
-      # values. The existing artifact collector uses `GetFileStat` action for
-      # this which is horrible.
-      args = rdf_client_action.GetFileStatRequest()
-      args.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
+      # fmt: off
+      if self.rrg_support:
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                name="SystemRoot",
+            ),
+            next_state=self._ProcessRRGWindowsEnvSystemRoot.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows\CurrentVersion",
+                name="ProgramFilesDir",
+            ),
+            next_state=self._ProcessRRGWindowsEnvProgramFilesDir.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows\CurrentVersion",
+                name="ProgramFilesDir (x86)",
+            ),
+            next_state=self._ProcessRRGWindowsEnvProgramFilesDirX86.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows\CurrentVersion",
+                name="CommonFilesDir",
+            ),
+            next_state=self._ProcessRRGWindowsEnvCommonFilesDir.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows\CurrentVersion",
+                name="CommonFilesDir (x86)",
+            ),
+            next_state=self._ProcessRRGWindowsEnvCommonFilesDirX86.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList",
+                name="ProgramData",
+            ),
+            next_state=self._ProcessRRGWindowsEnvProgramData.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                name="DriverData",
+            ),
+            next_state=self._ProcessRRGWindowsEnvDriverData.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\Select",
+                name="Current",
+            ),
+            next_state=self._ProcessRRGWindowsCurrentControlSet.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Nls\CodePage",
+                name="ACP",
+            ),
+            next_state=self._ProcessRRGWindowsCodePage.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
+                name="Domain",
+            ),
+            next_state=self._ProcessRRGWindowsDomain.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\TimeZoneInformation",
+                name="TimeZoneKeyName",
+            ),
+            next_state=self._ProcessRRGWindowsTimeZoneKeyName.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                name="TEMP",
+            ),
+            next_state=self._ProcessRRGWindowsEnvTemp.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                name="Path",
+            ),
+            next_state=self._ProcessRRGWindowsEnvPath.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                name="ComSpec",
+            ),
+            next_state=self._ProcessRRGWindowsEnvComSpec.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                name="windir",
+            ),
+            next_state=self._ProcessRRGWindowsEnvWindir.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList",
+                name="ProfilesDirectory",
+            ),
+            next_state=self._ProcessRRGWindowsProfilesDirectory.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.GET_WINREG_VALUE,
+            args=rrg_get_winreg_value_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList",
+                name="AllUsersProfile",
+            ),
+            next_state=self._ProcessRRGWindowsEnvAllUsersProfile.__name__,
+        )
+        self.CallRRG(
+            action=rrg_pb2.LIST_WINREG_KEYS,
+            args=rrg_list_winreg_keys_pb2.Args(
+                root=rrg_winreg_pb2.LOCAL_MACHINE,
+                key=r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList",
+            ),
+            next_state=self._ProcessRRGWindowsProfileList.__name__,
+        )
+        # WMI queries are slow, so we consider them "heavyweight".
+        if not self.args.lightweight:
+          users = self.state.knowledge_base.users
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvSystemRoot.__name__,
-      )
+          self.CallRRG(
+              action=rrg_pb2.QUERY_WMI,
+              args=rrg_query_wmi_pb2.Args(
+                  query=f"""
+                  SELECT SID, Name, Domain
+                    FROM Win32_UserAccount
+                   WHERE LocalAccount = TRUE
+                     AND ({" OR ".join(f"SID = '{user.sid}'" for user in users)})
+                  """,
+              ),
+              next_state=self._ProcessRRGWindowsWMIUserAccount.__name__,
+          )
+      else:
+        # TODO: There is no dedicated action for obtaining registry
+        # values. The existing artifact collector uses `GetFileStat` action for
+        # this which is horrible.
+        args = rdf_client_action.GetFileStatRequest()
+        args.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\ProgramFilesDir"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvProgramFilesDir.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvSystemRoot.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\ProgramFilesDir (x86)"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvProgramFilesDirX86.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\ProgramFilesDir"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvProgramFilesDir.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\CommonFilesDir"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvCommonFilesDir.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\ProgramFilesDir (x86)"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvProgramFilesDirX86.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\CommonFilesDir (x86)"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvCommonFilesDirX86.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\CommonFilesDir"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvCommonFilesDir.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvProgramData.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\CommonFilesDir (x86)"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvCommonFilesDirX86.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\DriverData"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvDriverData.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvProgramData.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\Select\Current"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsCurrentControlSet.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\DriverData"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvDriverData.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Nls\CodePage\ACP"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsCodePage.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\Select\Current"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsCurrentControlSet.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Domain"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsDomain.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Nls\CodePage\ACP"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsCodePage.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\TimeZoneInformation\TimeZoneKeyName"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsTimeZoneKeyName.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Tcpip\Parameters\Domain"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsDomain.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\TEMP"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvTemp.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\TimeZoneInformation\TimeZoneKeyName"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsTimeZoneKeyName.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\Path"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvPath.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\TEMP"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvTemp.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\ComSpec"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvComSpec.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\Path"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvPath.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\windir"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvWindir.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\ComSpec"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvComSpec.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsProfilesDirectory.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment\windir"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvWindir.__name__,
+        )
 
-      args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"
-      self.CallClient(
-          server_stubs.GetFileStat,
-          args,
-          next_state=self._ProcessWindowsEnvAllUsersProfile.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsProfilesDirectory.__name__,
+        )
 
-      args = rdf_file_finder.FileFinderArgs()
-      # TODO: There is no dedicated action for obtaining registry
-      # values but `STAT` action of the file-finder will get it. This should be
-      # refactored once registry-specific actions are available.
-      args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
-      args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-      args.paths = [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"]
-      # TODO: remove this when the registry+sandboxing bug
-      # is fixed.
-      args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
-      self.CallClient(
-          server_stubs.VfsFileFinder,
-          args,
-          next_state=self._ProcessWindowsProfiles.__name__,
-      )
+        args.pathspec.path = r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile"
+        self.CallClient(
+            server_stubs.GetFileStat,
+            args,
+            next_state=self._ProcessWindowsEnvAllUsersProfile.__name__,
+        )
+
+        args = rdf_file_finder.FileFinderArgs()
+        # TODO: There is no dedicated action for obtaining registry
+        # values but `STAT` action of the file-finder will get it. This should be
+        # refactored once registry-specific actions are available.
+        args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
+        args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
+        args.paths = [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"]
+        # TODO: remove this when the registry+sandboxing bug
+        # is fixed.
+        args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
+        self.CallClient(
+            server_stubs.VfsFileFinder,
+            args,
+            next_state=self._ProcessWindowsProfiles.__name__,
+        )
 
   def _ProcessLinuxDistroInfo(
       self,
@@ -343,6 +527,32 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
         next_state=self._ProcessWindowsListUsersDir.__name__,
     )
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvSystemRoot(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%SystemRoot%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    system_root = result.value.string
+    system_drive = pathlib.PureWindowsPath(system_root).drive
+
+    self.state.knowledge_base.environ_systemroot = system_root
+    self.state.knowledge_base.environ_systemdrive = system_drive
+
+    # TODO: Add support for listing profiles through the
+    # `%SystemDrive%\Users` folder.
+    self.Log("`%SystemDrive%\\Users` fallback not available on RRG yet")
+
   def _ProcessWindowsEnvProgramFilesDir(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -364,6 +574,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_programfiles = program_files
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvProgramFilesDir(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%ProgramFiles%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_programfiles = result.value.string
+
   def _ProcessWindowsEnvProgramFilesDirX86(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -384,6 +612,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     program_files_x86 = response.registry_data.string
 
     self.state.knowledge_base.environ_programfilesx86 = program_files_x86
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvProgramFilesDirX86(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%ProgramFiles(x86)%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_programfilesx86 = result.value.string
 
   def _ProcessWindowsEnvCommonFilesDir(
       self,
@@ -407,6 +653,25 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_commonprogramfiles = common_files
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvCommonFilesDir(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      status = responses.status
+      self.Log("Failed to obtain `%%CommonProgramFiles%%`: %s", status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_commonprogramfiles = result.value.string
+
   def _ProcessWindowsEnvCommonFilesDirX86(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -429,6 +694,27 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_commonprogramfilesx86 = common_files_x86
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvCommonFilesDirX86(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      status = responses.status
+      self.Log("Failed to obtain `%%CommonProgramFiles(x86)%%`: %s", status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_commonprogramfilesx86 = (
+        result.value.string
+    )
+
   def _ProcessWindowsEnvProgramData(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -450,6 +736,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
         response.registry_data.string
     )
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvProgramData(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%ProgramData%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_programdata = result.value.expand_string
+
   def _ProcessWindowsEnvDriverData(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -470,6 +774,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     driver_data = response.registry_data.string
 
     self.state.knowledge_base.environ_driverdata = driver_data
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvDriverData(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%DriverData%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_driverdata = result.value.string
 
   def _ProcessWindowsCurrentControlSet(
       self,
@@ -496,6 +818,31 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.current_control_set = current_control_set
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsCurrentControlSet(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain current control set: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    csi = result.value.uint32
+
+    if not (0 < csi < 1000):
+      raise flow_base.FlowError(f"Unexpected control set index: {csi}")
+
+    self.state.knowledge_base.current_control_set = (
+        rf"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet{csi:03}"
+    )
+
   def _ProcessWindowsCodePage(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -517,6 +864,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.code_page = code_page
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsCodePage(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain code page: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.code_page = f"cp_{result.value.string}"
+
   def _ProcessWindowsDomain(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -536,6 +901,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.domain = response.registry_data.string
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsDomain(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain domain: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.domain = result.value.string
+
   def _ProcessWindowsTimeZoneKeyName(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -546,7 +929,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       # this which is horrible.
       #
       # pylint: disable=line-too-long
-      # pyformat: disable
+      # fmt: off
       args = rdf_client_action.GetFileStatRequest()
       args.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
       args.pathspec.path = r"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\TimeZoneInformation\StandardName"
@@ -556,7 +939,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           next_state=self._ProcessWindowsTimeZoneStandardName.__name__,
       )
       # pylint: enable=line-too-long
-      # pyformat: enable
+      # fmt: on
 
     if not responses.success:
       self.Log("Failed to obtain time zone key name: %s", responses.status)
@@ -584,6 +967,45 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       return
 
     self.state.knowledge_base.time_zone = time_zone
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsTimeZoneKeyName(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    def CollectWindowsTimeZoneStandardName():
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.LOCAL_MACHINE,
+              key=r"SYSTEM\CurrentControlSet\Control\TimeZoneInformation",
+              name="StandardName",
+          ),
+          next_state=self._ProcessRRGWindowsTimeZoneStandardName.__name__,
+      )
+
+    if not responses.success:
+      self.Log("Failed to obtain time zone key name: %s", responses.status)
+      CollectWindowsTimeZoneStandardName()
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    try:
+      self.state.knowledge_base.time_zone = _WINDOWS_TIME_ZONE_MAP[
+          result.value.string
+      ]
+    except KeyError:
+      self.Log("Failed to parse timezone key name: %r", result.value.string)
+      # We set the time zone as "unknown" with the raw value in case the call
+      # to get the standard name time zone also fails.
+      self.state.knowledge_base.time_zone = f"Unknown ({result.value.string!r})"
+      CollectWindowsTimeZoneStandardName()
 
   def _ProcessWindowsTimeZoneStandardName(
       self,
@@ -623,6 +1045,39 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.time_zone = time_zone
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsTimeZoneStandardName(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain time zone standard name: %s", responses.status)
+      # At this point it is possible that we have set the timezone to unknown
+      # with the raw value if we managed to at least get the time zone key name
+      # in the `_ProcessRRGWindowsTimeZoneKeyName` method.
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    try:
+      self.state.knowledge_base.time_zone = _WINDOWS_TIME_ZONE_MAP[
+          result.value.string
+      ]
+    except KeyError:
+      self.Log(
+          "Failed to parse timezone standard name: %r",
+          result.value.string,
+      )
+      # We always override this value—even in case we set some "unknown" time
+      # zone with a raw key name before, the "standard" one is going to be more
+      # readable.
+      self.state.knowledge_base.time_zone = f"Unknown ({result.value.string!r})"
+
   def _ProcessWindowsEnvTemp(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -641,6 +1096,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       raise flow_base.FlowError(message)
 
     self.state.knowledge_base.environ_temp = response.registry_data.string
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvTemp(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%TEMP%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_temp = result.value.expand_string
 
   def _ProcessWindowsEnvPath(
       self,
@@ -661,6 +1134,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_path = response.registry_data.string
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvPath(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%Path%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_path = result.value.string
+
   def _ProcessWindowsEnvComSpec(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -679,6 +1170,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       raise flow_base.FlowError(message)
 
     self.state.knowledge_base.environ_comspec = response.registry_data.string
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvComSpec(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%ComSpec%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_comspec = result.value.expand_string
 
   def _ProcessWindowsEnvWindir(
       self,
@@ -699,6 +1208,24 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_windir = response.registry_data.string
 
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvWindir(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%windir%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_windir = result.value.expand_string
+
   def _ProcessWindowsProfilesDirectory(
       self,
       responses: flow_responses.Responses[rdfvalue.RDFValue],
@@ -718,6 +1245,26 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_profilesdirectory = (
         response.registry_data.string
+    )
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfilesDirectory(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain profiles directory: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_profilesdirectory = (
+        result.value.expand_string
     )
 
   def _ProcessWindowsEnvAllUsersProfile(
@@ -743,6 +1290,34 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     self.state.knowledge_base.environ_allusersprofile = (
         response.registry_data.string
+    )
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsEnvAllUsersProfile(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      # Since Windows Vista `%PROGRAMDATA%` superseded `%ALLUSERSPROFILE%` [1],
+      # so we actually expect this call to fail most of the time. Thus, we don't
+      # log anything or raise any errors.
+      #
+      # [1]: https://en.wikipedia.org/wiki/Environment_variable#ALLUSERSPROFILE
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    self.state.knowledge_base.environ_allusersprofile = (
+        # Because this registry key does not exist on moder Windows systems, we
+        # cannot verify whether this should ba an expandable string or a plain
+        # string, so we pick whichever is there.
+        result.value.expand_string
+        or result.value.string
     )
 
   def _ProcessWindowsProfiles(
@@ -784,7 +1359,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
     for user in self.state.knowledge_base.users:
       # pylint: disable=line-too-long
-      # pyformat: disable
+      # fmt: off
       args.paths.extend([
           rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\{{A520A1A4-1780-4FF6-BD18-167343C5AF16}}",
           rf"HKEY_USERS\{user.sid}\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Desktop",
@@ -799,7 +1374,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           rf"HKEY_USERS\{user.sid}\Volatile Environment\USERDOMAIN",
       ])
       # pylint: enable=line-too-long
-      # pyformat: enable
+      # fmt: on
 
     self.CallClient(
         server_stubs.VfsFileFinder,
@@ -816,12 +1391,201 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       SELECT *
         FROM Win32_UserAccount
        WHERE {" OR ".join(f"name = '{user.username}'" for user in users)}
-      """
+      """.strip()
       self.CallClient(
           server_stubs.WmiQuery,
           args,
           next_state=self._ProcessWindowsWMIUserAccounts.__name__,
       )
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfileList(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain Windows profiles: %s", responses.status)
+      return
+
+    for response in responses:
+      result = rrg_list_winreg_keys_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if not _WINDOWS_SID_REGEX.match(result.subkey):
+        # There are some system profiles that do not match, so we don't log any
+        # errors and just silently continue.
+        continue
+
+      user = rdf_client.User()
+      user.sid = result.subkey
+
+      self.state.knowledge_base.users.append(user)
+
+      # pylint: disable=line-too-long
+      # fmt: off
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.LOCAL_MACHINE,
+              key=rf"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{user.sid}",
+              name="ProfileImagePath",
+          ),
+          next_state=self._ProcessRRGWindowsProfileImagePath.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="{A520A1A4-1780-4FF6-BD18-167343C5AF16}",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Desktop",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="AppData",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Local AppData",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Cookies",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Cache",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Recent",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Startup",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+              name="Personal",
+          ),
+          next_state=self._ProcessRRGWindowsProfileShellFolders.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\Environment",
+              name="TEMP",
+          ),
+          next_state=self._ProcessRRGWindowsProfileEnvironmentTemp.__name__,
+      )
+      self.CallRRG(
+          action=rrg_pb2.GET_WINREG_VALUE,
+          args=rrg_get_winreg_value_pb2.Args(
+              root=rrg_winreg_pb2.USERS,
+              key=rf"{user.sid}\Volatile Environment",
+              name="USERDOMAIN",
+          ),
+          next_state=self._ProcessRRGWindowsProfileEnvironmentUserdomain.__name__,
+      )
+      # pylint: enable=line-too-long
+      # fmt: on
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsWMIUserAccount(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to query `Win32_UserAccount`: %s", responses.status)
+      return
+
+    for response in responses:
+      result = rrg_query_wmi_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if "SID" not in result.row:
+        raise flow_base.FlowError(f"Row {result!r} missing 'SID' column")
+      if "Name" not in result.row:
+        raise flow_base.FlowError(f"Row {result!r} missing 'Name' column")
+      if "FullName" not in result.row:
+        raise flow_base.FlowError(f"Row {result!r} missing 'FullName' column")
+      if "Domain" not in result.row:
+        raise flow_base.FlowError(f"Row {result!r} missing 'Domain' column")
+
+      user = rdf_client.User()
+      user.sid = result.row["SID"].string
+      user.username = result.row["Name"].string
+      user.full_name = result.row["FullName"].string
+      user.userdomain = result.row["Domain"].string
+      self.state.knowledge_base.MergeOrAddUser(user)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfileImagePath(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain Windows profile path: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    user = rdf_client.User()
+    user.sid = ntpath.basename(result.key)
+    user.userprofile = result.value.expand_string or result.value.string
+    user.homedir = user.userprofile
+    user.username = ntpath.basename(user.userprofile)
+
+    self.state.knowledge_base.MergeOrAddUser(user)
 
   def _ProcessWindowsProfileExtras(
       self,
@@ -893,6 +1657,111 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       else:
         self.Log("Invalid registry value for %r", path)
         continue
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfileShellFolders(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain Windows shell folder: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    try:
+      sid = result.key.split("\\")[0]
+    except ValueError:
+      message = f"Unexpected shell folder registry key: {result.key}"
+      raise flow_base.FlowError(message) from None
+
+    user = rdf_client.User()
+    user.sid = sid
+
+    if result.value.name == "{A520A1A4-1780-4FF6-BD18-167343C5AF16}":
+      user.localappdata_low = result.value.string
+    elif result.value.name == "Desktop":
+      user.desktop = result.value.string
+    elif result.value.name == "AppData":
+      user.appdata = result.value.string
+    elif result.value.name == "Local AppData":
+      user.localappdata = result.value.string
+    elif result.value.name == "Cookies":
+      user.cookies = result.value.string
+    elif result.value.name == "Cache":
+      user.internet_cache = result.value.string
+    elif result.value.name == "Recent":
+      user.recent = result.value.string
+    elif result.value.name == "Startup":
+      user.startup = result.value.string
+    elif result.value.name == "Personal":
+      user.personal = result.value.string
+    else:
+      message = f"Unexpected shell folder registry value: {result.value.name}"
+      raise flow_base.FlowError(message)
+
+    self.state.knowledge_base.MergeOrAddUser(user)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfileEnvironmentTemp(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain Windows user `%%TEMP%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    try:
+      sid = result.key.split("\\")[0]
+    except ValueError:
+      message = f"Unexpected user `%TEMP%` registry key: {result.key}"
+      raise flow_base.FlowError(message) from None
+
+    user = rdf_client.User()
+    user.sid = sid
+    user.temp = result.value.expand_string
+
+    self.state.knowledge_base.MergeOrAddUser(user)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRGWindowsProfileEnvironmentUserdomain(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to obtain `%%USERDOMAIN%%`: %s", responses.status)
+      return
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    try:
+      sid = result.key.split("\\")[0]
+    except ValueError:
+      message = f"Unexpected `%USERDOMAIN%` registry key: {result.key}"
+      raise flow_base.FlowError(message) from None
+
+    user = rdf_client.User()
+    user.sid = sid
+    user.userdomain = result.value.string
+
+    self.state.knowledge_base.MergeOrAddUser(user)
 
   def _ProcessWindowsWMIUserAccounts(
       self,
@@ -971,10 +1840,8 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
 
       self.state.knowledge_base.MergeOrAddUser(mig_client.ToRDFUser(user))
 
-  def End(self, responses):
+  def End(self) -> None:
     """Finish up."""
-    del responses
-
     if self.client_os == "Windows":
       self.state.knowledge_base = mig_client.ToRDFKnowledgeBase(
           artifact_utils.ExpandKnowledgebaseWindowsEnvVars(
@@ -990,13 +1857,14 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     #
     # Alternatively, we could develop a more general way of handling default
     # environment variable values in case they are missing.
-    for user in self.state.knowledge_base.users:
-      if not user.localappdata:
-        self.Log(
-            "Missing `%%LOCALAPPDATA%%` for '%s', using Windows default",
-            user.username,
-        )
-        user.localappdata = rf"{user.userprofile}\AppData\Local"
+    if self.client_os == "Windows":
+      for user in self.state.knowledge_base.users:
+        if not user.localappdata:
+          self.Log(
+              "Missing `%%LOCALAPPDATA%%` for '%s', using Windows default",
+              user.username,
+          )
+          user.localappdata = rf"{user.userprofile}\AppData\Local"
 
     self.SendReply(self.state.knowledge_base)
 
@@ -1025,9 +1893,11 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
         pass
 
 
-def UploadArtifactYamlFile(file_content,
-                           overwrite=True,
-                           overwrite_system_artifacts=False):
+def UploadArtifactYamlFile(
+    file_content,
+    overwrite=True,
+    overwrite_system_artifacts=False,
+):
   """Upload a yaml or json file as an artifact to the datastore."""
   loaded_artifacts = []
   registry_obj = artifact_registry.REGISTRY
@@ -1046,7 +1916,8 @@ def UploadArtifactYamlFile(file_content,
         artifact_value,
         source="datastore",
         overwrite_if_exists=overwrite,
-        overwrite_system_artifacts=overwrite_system_artifacts)
+        overwrite_system_artifacts=overwrite_system_artifacts,
+    )
 
     data_store.REL_DB.WriteArtifact(
         mig_artifacts.ToProtoArtifact(artifact_value)

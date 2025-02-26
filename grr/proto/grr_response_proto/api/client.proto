@@ -15,6 +15,8 @@ package grr;
 
 // Next id: 24
 message ApiClient {
+  reserved 13;
+
   optional string client_id = 18
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 
@@ -49,7 +51,6 @@ message ApiClient {
 
   repeated ClientLabel labels = 11;
   repeated Interface interfaces = 12;
-  repeated User users = 13;
   repeated Volume volumes = 14;
 
   optional uint64 age = 15 [(sem_type) = {

@@ -5,10 +5,10 @@ const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDir
 
 
 
-var LOADING_STARTED_EVENT_NAME =
+const LOADING_STARTED_EVENT_NAME =
     LoadingIndicatorDirective.loading_started_event_name;
 
-var LOADING_FINISHED_EVENT_NAME =
+const LOADING_FINISHED_EVENT_NAME =
     LoadingIndicatorDirective.loading_finished_event_name;
 
 
@@ -46,7 +46,7 @@ exports.LoadingIndicatorService = class {
    * @return {number} A unique key to identify the loading event.
    */
   startLoading() {
-    var key = this.getNextKey_();
+    const key = this.getNextKey_();
     this.rootScope_.$broadcast(LOADING_STARTED_EVENT_NAME, key);
     return key;
   }
@@ -60,7 +60,7 @@ exports.LoadingIndicatorService = class {
   }
 };
 
-var LoadingIndicatorService = exports.LoadingIndicatorService;
+const LoadingIndicatorService = exports.LoadingIndicatorService;
 
 
 /**

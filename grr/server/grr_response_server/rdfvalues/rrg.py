@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with RDF wrappers for RRG Protocol Buffers messages."""
+
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import wkt as rdf_wkt
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2

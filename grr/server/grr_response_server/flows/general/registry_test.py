@@ -27,7 +27,8 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super().setUp()
     vfs_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY,
-        vfs_test_lib.FakeRegistryVFSHandler)
+        vfs_test_lib.FakeRegistryVFSHandler,
+    )
     vfs_overrider.Start()
     self.addCleanup(vfs_overrider.Stop)
 
@@ -40,20 +41,21 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
   def RunFlow(self, client_id, keys_paths=None, conditions=None):
     if keys_paths is None:
       keys_paths = [
-          "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-          "Windows/CurrentVersion/Run/*"
+          "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
       ]
     if conditions is None:
       conditions = []
 
     client_mock = action_mocks.ClientFileFinderWithVFS()
 
-    session_id = flow_test_lib.TestFlowHelper(
-        registry_finder.RegistryFinder.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        registry_finder.RegistryFinder,
         client_mock,
         client_id=client_id,
-        keys_paths=keys_paths,
-        conditions=conditions,
+        flow_args=registry_finder.RegistryFinderArgs(
+            keys_paths=keys_paths,
+            conditions=conditions,
+        ),
         creator=self.test_username,
     )
 
@@ -61,18 +63,21 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfNothingMatchesTheGlob(self):
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [
-        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/NonMatch*"
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+            "Windows/CurrentVersion/Run/NonMatch*"
+        ],
+    )
     self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeysWithSingleGlobWithoutConditions(self):
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [
-        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/*"
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 2)
@@ -83,12 +88,19 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeysWithTwoGlobsWithoutConditions(self):
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [
-        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/Side*",
-        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/Mct*"
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [
+            (
+                "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                "Windows/CurrentVersion/Run/Side*"
+            ),
+            (
+                "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                "Windows/CurrentVersion/Run/Mct*"
+            ),
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 2)
@@ -101,25 +113,30 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     user = knowledge_base_pb2.User(username="foo", sid="S-1-5-20")
     client_id = self.SetupClient(0, users=[user])
 
-    session_id = self.RunFlow(client_id, [
-        "HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
-        "CurrentVersion/*"
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [
+            "HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
+            "CurrentVersion/*"
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
 
-    key = ("/HKEY_USERS/S-1-5-20/"
-           "Software/Microsoft/Windows/CurrentVersion/Run")
+    key = "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run"
 
     self.assertEqual(results[0].stat_entry.pathspec.CollapsePath(), key)
     self.assertEqual(results[0].stat_entry.pathspec.path, key)
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.REGISTRY)
+    self.assertEqual(
+        results[0].stat_entry.pathspec.pathtype,
+        rdf_paths.PathSpec.PathType.REGISTRY,
+    )
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10, bytes_after=10, literal=b"CanNotFindMe")
+        bytes_before=10, bytes_after=10, literal=b"CanNotFindMe"
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -136,9 +153,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10,
-        bytes_after=10,
-        literal=b"Windows Sidebar\\Sidebar.exe")
+        bytes_before=10, bytes_after=10, literal=b"Windows Sidebar\\Sidebar.exe"
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -159,19 +175,25 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     # The matching fragment is at offset 15 and bytes_before is 10. Hence,
     # the offset is 5.
     self.assertEqual(results[0].matches[0].offset, 5)
-    self.assertEqual(results[0].matches[0].data,
-                     b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
+    self.assertEqual(
+        results[0].matches[0].data,
+        b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
+    )
 
     self.assertEqual(
         results[0].stat_entry.pathspec.CollapsePath(),
         "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.REGISTRY)
+        "Windows/CurrentVersion/Run/Sidebar",
+    )
+    self.assertEqual(
+        results[0].stat_entry.pathspec.pathtype,
+        rdf_paths.PathSpec.PathType.REGISTRY,
+    )
 
   def testFindsNothingIfRegexMatchesNothing(self):
     value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10, bytes_after=10, regex=b".*CanNotFindMe.*")
+        bytes_before=10, bytes_after=10, regex=b".*CanNotFindMe.*"
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -188,7 +210,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10, bytes_after=10, regex=b"Windows.+\\.exe")
+        bytes_before=10, bytes_after=10, regex=b"Windows.+\\.exe"
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -209,20 +232,26 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     # The matching fragment is at offset 15 and bytes_before is 10. Hence,
     # the offset is 5.
     self.assertEqual(results[0].matches[0].offset, 5)
-    self.assertEqual(results[0].matches[0].data,
-                     b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
+    self.assertEqual(
+        results[0].matches[0].data,
+        b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
+    )
 
     self.assertEqual(
         results[0].stat_entry.pathspec.CollapsePath(),
         "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
-        "CurrentVersion/Run/Sidebar")
-    self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.REGISTRY)
+        "CurrentVersion/Run/Sidebar",
+    )
+    self.assertEqual(
+        results[0].stat_entry.pathspec.pathtype,
+        rdf_paths.PathSpec.PathType.REGISTRY,
+    )
 
   def testFindsNothingIfModiciationTimeConditionMatchesNothing(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
-        max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+        max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1),
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -240,9 +269,12 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeysIfModificationTimeConditionMatches(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-            1247546054 - 1),
+            1247546054 - 1
+        ),
         max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-            1247546054 + 1))
+            1247546054 + 1
+        ),
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -266,14 +298,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeyWithLiteralAndModificationTimeConditions(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-            1247546054 - 1),
+            1247546054 - 1
+        ),
         max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-            1247546054 + 1))
+            1247546054 + 1
+        ),
+    )
 
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10,
-        bytes_after=10,
-        literal=b"Windows Sidebar\\Sidebar.exe")
+        bytes_before=10, bytes_after=10, literal=b"Windows Sidebar\\Sidebar.exe"
+    )
 
     client_id = self.SetupClient(0)
     session_id = self.RunFlow(
@@ -298,7 +332,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(
         results[0].stat_entry.pathspec.CollapsePath(),
         "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
-        "Windows/CurrentVersion/Run/Sidebar")
+        "Windows/CurrentVersion/Run/Sidebar",
+    )
 
   def testSizeCondition(self):
     client_id = self.SetupClient(0)
@@ -325,17 +360,19 @@ class TestRegistryFlows(RegistryFlowTest):
     """Read Run key from the client_fixtures to test parsing and storage."""
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+    ):
 
       client_mock = action_mocks.InterrogatedClient()
 
       # Get KB initialized
-      session_id = flow_test_lib.TestFlowHelper(
-          artifact.KnowledgeBaseInitializationFlow.__name__,
+      session_id = flow_test_lib.StartAndRunFlow(
+          artifact.KnowledgeBaseInitializationFlow,
           client_mock,
           client_id=client_id,
-          creator=self.test_username)
+          creator=self.test_username,
+      )
 
       kb = flow_test_lib.GetFlowResults(client_id, session_id)[0]
 
@@ -343,19 +380,21 @@ class TestRegistryFlows(RegistryFlowTest):
       client.knowledge_base.CopyFrom(mig_client.ToProtoKnowledgeBase(kb))
       data_store.REL_DB.WriteClientSnapshot(client)
 
-      with test_lib.Instrument(transfer.MultiGetFile,
-                               "Start") as getfile_instrument:
+      with test_lib.Instrument(
+          transfer.MultiGetFile, "Start"
+      ) as getfile_instrument:
         # Run the flow in the emulated way.
-        flow_test_lib.TestFlowHelper(
-            registry.CollectRunKeyBinaries.__name__,
+        flow_test_lib.StartAndRunFlow(
+            registry.CollectRunKeyBinaries,
             client_mock,
             client_id=client_id,
-            creator=self.test_username)
+            creator=self.test_username,
+        )
 
         # Check MultiGetFile got called for our runkey file
         download_requested = False
         for pathspec in getfile_instrument.args[0][0].args.pathspecs:
-          if pathspec.path == u"C:\\Windows\\TEMP\\A.exe":
+          if pathspec.path == "C:\\Windows\\TEMP\\A.exe":
             download_requested = True
         self.assertTrue(download_requested)
 

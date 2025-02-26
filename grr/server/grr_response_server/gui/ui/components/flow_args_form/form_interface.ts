@@ -51,7 +51,7 @@ export declare type ControlValues<
 };
 
 /** Form component to configure arguments for a Flow. */
-@Component({template: ''})
+@Component({standalone: false, template: ''})
 export abstract class FlowArgumentForm<
   FlowArgs extends {},
   Controls extends {[K in keyof Controls]: AbstractControl},

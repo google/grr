@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.requestApprovalDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const {stringToList} = goog.require('grrUi.core.utils');
@@ -93,7 +92,8 @@ const RequestApprovalDialogController = class {
    * @private
    */
   onCcAddressResponse_(response) {
-    this.ccAddresses = stringToList(response['data']['value']['value']);
+    this.ccAddresses =
+        stringToList(response['data']['value']['value']['value']['value']);
   }
 
   /**
@@ -105,9 +105,9 @@ const RequestApprovalDialogController = class {
    */
   onLatestApprovalsResponse_(response) {
     this.recentReasons = [];
-    var items = response['data']['items'];
-    for (var i = 0; i < items.length; ++i) {
-      var reason = items[i]['value']['reason']['value'];
+    const items = response['data']['items'];
+    for (let i = 0; i < items.length; ++i) {
+      const reason = items[i]['value']['reason']['value'];
       if (this.recentReasons.indexOf(reason) === -1) {
         this.recentReasons.push(reason);
       }
@@ -121,10 +121,10 @@ const RequestApprovalDialogController = class {
    * @export
    */
   proceed() {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
-    var url = this.scope_['createRequestUrl'];
-    var args = angular.copy(this.scope_['createRequestArgs']);
+    const url = this.scope_['createRequestUrl'];
+    const args = angular.copy(this.scope_['createRequestArgs']);
     args['approval']['reason'] = this.reason;
     args['approval']['notified_users'] = stringToList(this.approversList);
     if (this.useCcAddresses && this.ccAddresses) {

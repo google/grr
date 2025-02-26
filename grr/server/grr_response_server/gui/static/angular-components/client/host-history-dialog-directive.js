@@ -1,5 +1,4 @@
 goog.module('grrUi.client.hostHistoryDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 const {TimeService} = goog.require('grrUi.core.timeService');
@@ -45,12 +44,12 @@ const HostHistoryDialogController = class {
    * @private
    */
   onParamsChange_() {
-    var clientId = this.scope_['clientId'];
-    var fieldPath = this.scope_['fieldPath'];
+    const clientId = this.scope_['clientId'];
+    const fieldPath = this.scope_['fieldPath'];
 
     if (angular.isDefined(clientId) && angular.isDefined(fieldPath)) {
-      var endTime = this.grrTimeService_.getCurrentTimeMs() * 1000;
-      var startTime = endTime - 1000000 * 60 * 60 * 24 * 365;
+      const endTime = this.grrTimeService_.getCurrentTimeMs() * 1000;
+      const startTime = endTime - 1000000 * 60 * 60 * 24 * 365;
 
       this.startTime = {type: 'RDFDatetime', value: startTime};
 
@@ -74,10 +73,10 @@ const HostHistoryDialogController = class {
    * @private
    */
   getFieldFromVersion_(version, fieldPath) {
-    var components = fieldPath.split('.');
-    var curValue = version;
-    for (var i = 0; i < components.length; ++i) {
-      var component = components[i];
+    const components = fieldPath.split('.');
+    let curValue = version;
+    for (let i = 0; i < components.length; ++i) {
+      const component = components[i];
       curValue = curValue['value'][component];
       if (angular.isUndefined(curValue)) {
         break;
@@ -94,19 +93,19 @@ const HostHistoryDialogController = class {
    * @private
    */
   buildItems_(versions) {
-    var fieldPath = this.scope_['fieldPath'];
+    const fieldPath = this.scope_['fieldPath'];
 
-    var prevCompareValue;
+    let prevCompareValue;
     this.items = [];
     angular.forEach(versions, function(version) {
-      var versionValue = this.getFieldFromVersion_(version, fieldPath);
+      const versionValue = this.getFieldFromVersion_(version, fieldPath);
       if (angular.isUndefined(versionValue)) {
         return;
       }
 
       // stripTypeInfo strips not only types, but also "age" properties,
       // which may influence angular.equals() behavior.
-      var compareValue = stripTypeInfo(versionValue);
+      const compareValue = stripTypeInfo(versionValue);
       if (angular.equals(prevCompareValue, compareValue)) {
         return;
       }

@@ -19,6 +19,15 @@ _VERSION = flags.DEFINE_bool(
     help="Print the GRR worker version number and exit immediately.",
 )
 
+# TODO: Temporarily added flag to prevent new POD worker node from
+# picking up work.
+_DISABLE_WORKER = flags.DEFINE_bool(
+    "disable_worker",
+    default=False,
+    allow_override=True,
+    help="Disable the worker.",
+)
+
 
 def main(argv):
   """Main."""
@@ -33,11 +42,11 @@ def main(argv):
   )
 
   # Initialise flows and config_lib
-  server_startup.Init()
+  server_startup.Init(disabled=_DISABLE_WORKER.value)
 
   fleetspeak_connector.Init()
 
-  worker_obj = worker_lib.GRRWorker()
+  worker_obj = worker_lib.GRRWorker(disabled=_DISABLE_WORKER.value)
   worker_obj.Run()
 
 

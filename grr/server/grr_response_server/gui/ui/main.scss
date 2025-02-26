@@ -1,10 +1,12 @@
 @use '@angular/material' as mat;
-@use './material-theme' as c;
+@use 'material-theme' as c;
 
 @import 'material-theme';
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
+// TODO: Include the next 2 lines in the open source version when
+// AngularJS change is made public.
 @include mat.core();
 // Include all theme-styles for the components based on the current theme.
 @include mat.all-component-themes($theme);

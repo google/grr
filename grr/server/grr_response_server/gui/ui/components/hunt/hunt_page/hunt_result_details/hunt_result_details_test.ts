@@ -4,11 +4,10 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
-  ParamMap,
-  Router,
   convertToParamMap,
+  ParamMap,
+  RouterModule,
 } from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
 import {ReplaySubject} from 'rxjs';
 
 import {ApiFlowState} from '../../../../lib/api/api_interfaces';
@@ -26,7 +25,7 @@ import {HUNT_ROUTES} from '../../../app/routing';
 import {HuntResultDetails} from './hunt_result_details';
 import {HuntResultDetailsModule} from './module';
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class DummyComponent {}
 
 describe('HuntResultDetails', () => {
@@ -46,9 +45,8 @@ describe('HuntResultDetails', () => {
         ApiModule,
         NoopAnimationsModule,
         HuntResultDetailsModule,
-        RouterTestingModule.withRoutes([
+        RouterModule.forRoot([
           ...HUNT_ROUTES,
-          // Mock route for testing source flow link:
           {
             path: 'clients/:clientId/flows/:flowId',
             component: DummyComponent,
@@ -65,11 +63,14 @@ describe('HuntResultDetails', () => {
       ],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
-
-    TestBed.inject(Router);
   }));
 
   describe('Route params', () => {
+    beforeEach(waitForAsync(() => {
+      TestBed.configureTestingModule({
+        imports: [RouterModule.forRoot([])],
+      }).compileComponents();
+    }));
     it('query store based on route', () => {
       const fixture = TestBed.createComponent(HuntResultDetails);
       fixture.detectChanges();

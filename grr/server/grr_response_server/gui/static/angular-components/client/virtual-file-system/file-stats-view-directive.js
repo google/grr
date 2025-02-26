@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileStatsViewDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -46,13 +45,13 @@ const FileStatsViewController = class {
    * @private
    */
   onContextChange_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
 
     if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
-      var fileDetailsUrl = 'clients/' + clientId + '/vfs-details/' + filePath;
-      var params = {};
+      const fileDetailsUrl = 'clients/' + clientId + '/vfs-details/' + filePath;
+      const params = {};
       if (fileVersion) {
         params['timestamp'] = fileVersion;
       }

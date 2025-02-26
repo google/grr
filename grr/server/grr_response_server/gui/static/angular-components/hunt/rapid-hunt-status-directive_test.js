@@ -135,13 +135,7 @@ describe('grr-rapid-hunt-status directive', () => {
 
   const setRapidHuntsEnabled = (flag) => {
     const deferred = $q.defer();
-    deferred.resolve({
-      data: {
-        value: {
-          value: flag
-        }
-      }
-    });
+    deferred.resolve({data: {value: {value: {value: {value: flag}}}}});
     spyOn(grrApiService, 'getCached').and.returnValue(deferred.promise);
   };
 
@@ -152,7 +146,7 @@ describe('grr-rapid-hunt-status directive', () => {
 
     const template = '<grr-rapid-hunt-status flow-name="flowName" ' +
           'flow-args="flowArgs" client-rate="clientRate" ' +
-          'is-eligible="isEligible" />';
+          'is-eligible="isEligible"></grr-rapid-hunt-status>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

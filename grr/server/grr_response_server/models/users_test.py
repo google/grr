@@ -3,7 +3,7 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_proto import objects_pb2
-from grr_response_server.models import users
+from grr_response_server.models import users as models_users
 from grr.test_lib import test_lib
 
 
@@ -15,7 +15,7 @@ class UsersTest(absltest.TestCase):
         "Logging.domain": "localhost",
     }):
       u = objects_pb2.GRRUser(username="foo")
-      self.assertEqual("foo@localhost", users.GetEmail(u))
+      self.assertEqual("foo@localhost", models_users.GetEmail(u))
 
   def testGetEmail_customEmailIgnored(self):
     with test_lib.ConfigOverrider({
@@ -23,14 +23,14 @@ class UsersTest(absltest.TestCase):
         "Logging.domain": "localhost",
     }):
       u = objects_pb2.GRRUser(username="foo", email="bar@baz.org")
-      self.assertEqual("foo@localhost", users.GetEmail(u))
+      self.assertEqual("foo@localhost", models_users.GetEmail(u))
 
   def testGetEmail_customEmailEnabled(self):
     with test_lib.ConfigOverrider({
         "Email.enable_custom_email_address": True,
     }):
       u = objects_pb2.GRRUser(username="foo", email="bar@baz.org")
-      self.assertEqual("bar@baz.org", users.GetEmail(u))
+      self.assertEqual("bar@baz.org", models_users.GetEmail(u))
 
 
 def main(argv):

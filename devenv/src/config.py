@@ -2,10 +2,10 @@
 """Config vars."""
 
 import pathlib
-from typing import Any, Dict
+from typing import Any
 
 
-CONFIG: Dict[str, Any] = {}
+CONFIG: dict[str, Any] = {}
 CONFIG["path.src_dir"] = pathlib.Path(__file__).parent.parent.parent.resolve()
 CONFIG["path.containers_dir"] = (
     CONFIG["path.src_dir"]

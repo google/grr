@@ -4,7 +4,6 @@
 import io
 import time
 from typing import IO
-from typing import Tuple
 
 from absl import app
 from absl import flags
@@ -13,7 +12,7 @@ import numpy as np
 from grr_response_core.lib import rdfvalue
 from grr_response_server import blob_store
 from grr_response_server import server_startup
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 _TARGET = flags.DEFINE_list(
@@ -49,9 +48,9 @@ def _MakeBlobStore(blobstore_name):
 def _MakeRandomBlob(
     size_b: rdfvalue.ByteSize,
     random_fd: IO[bytes],
-) -> Tuple[blobs.BlobID, bytes]:
+) -> tuple[models_blobs.BlobID, bytes]:
   blob_data = random_fd.read(int(size_b))
-  blob_id = blobs.BlobID.Of(blob_data)
+  blob_id = models_blobs.BlobID.Of(blob_data)
   return blob_id, blob_data
 
 

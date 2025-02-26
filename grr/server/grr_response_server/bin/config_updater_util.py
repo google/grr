@@ -2,6 +2,7 @@
 """Utilities for modifying the GRR server configuration."""
 
 import argparse
+from collections.abc import Generator
 import datetime
 import getpass
 import os
@@ -10,7 +11,7 @@ import socket
 import subprocess
 import sys
 import time
-from typing import Generator, Optional
+from typing import Optional
 from urllib import parse as urlparse
 
 import MySQLdb
@@ -154,21 +155,6 @@ def ConfigureHostnames(config, external_hostname: Optional[str] = None):
         "^[\\.A-Za-z0-9-]+$",
         external_hostname,
     )
-
-  print("""\n\n-=Server URL=-
-The Server URL specifies the URL that the clients will connect to
-communicate with the server. For best results this should be publicly
-accessible. By default this will be port 8080 with the URL ending in /control.
-""")
-  frontend_url = RetryQuestion(
-      "Frontend URL", "^http://.*/$", "http://%s:8080/" % external_hostname
-  )
-  config.Set("Client.server_urls", [frontend_url])
-
-  frontend_port = urlparse.urlparse(frontend_url).port or grr_config.CONFIG.Get(
-      "Frontend.bind_port"
-  )
-  config.Set("Frontend.bind_port", frontend_port)
 
   print("""\n\n-=AdminUI URL=-:
 The UI URL specifies where the Administrative Web Interface can be found.
@@ -487,8 +473,6 @@ class FleetspeakConfig:
 
   def _WriteDisabled(self, config):
 
-    config.Set("Server.fleetspeak_enabled", False)
-    config.Set("Client.fleetspeak_enabled", False)
     config.Set("ClientBuilder.fleetspeak_bundled", False)
     config.Set("Server.fleetspeak_server", "")
 
@@ -587,8 +571,6 @@ class FleetspeakConfig:
     except FileNotFoundError:
       pass
 
-    config.Set("Server.fleetspeak_enabled", True)
-    config.Set("Client.fleetspeak_enabled", True)
     config.Set("ClientBuilder.fleetspeak_bundled", True)
     config.Set(
         "Target:Linux",
@@ -680,49 +662,6 @@ def ConfigureDatastore(config):
   )
 
   ConfigureMySQLDatastore(config)
-
-
-def ConfigureUrls(config, external_hostname: Optional[str] = None):
-  """Guides the user through configuration of various URLs used by GRR."""
-  print(
-      "\n\n-=GRR URLs=-\n"
-      "For GRR to work each client has to be able to communicate with the\n"
-      "server. To do this we normally need a public dns name or IP address\n"
-      "to communicate with. In the standard configuration this will be used\n"
-      "to host both the client facing server and the admin user interface.\n"
-  )
-
-  existing_ui_urn = grr_config.CONFIG.Get("AdminUI.url", default=None)
-  existing_frontend_urns = grr_config.CONFIG.Get("Client.server_urls")
-  if not existing_frontend_urns:
-    # Port from older deprecated setting Client.control_urls.
-    existing_control_urns = grr_config.CONFIG.Get(
-        "Client.control_urls", default=None
-    )
-    if existing_control_urns is not None:
-      existing_frontend_urns = []
-      for existing_control_urn in existing_control_urns:
-        if not existing_control_urn.endswith("control"):
-          raise RuntimeError(
-              "Invalid existing control URL: %s" % existing_control_urn
-          )
-
-        existing_frontend_urns.append(
-            existing_control_urn.rsplit("/", 1)[0] + "/"
-        )
-
-      config.Set("Client.server_urls", existing_frontend_urns)
-      config.Set("Client.control_urls", ["deprecated use Client.server_urls"])
-
-  if not existing_frontend_urns or not existing_ui_urn:
-    ConfigureHostnames(config, external_hostname=external_hostname)
-  else:
-    print(
-        "Found existing settings:\n  AdminUI URL: %s\n  Frontend URL(s): %s\n"
-        % (existing_ui_urn, existing_frontend_urns)
-    )
-    if not RetryBoolQuestion("Do you want to keep this configuration?", True):
-      ConfigureHostnames(config, external_hostname=external_hostname)
 
 
 def ConfigureEmails(config):
@@ -902,7 +841,7 @@ def Initialize(
   fs_config = FleetspeakConfig()
   fs_config.Prompt(config)
   ConfigureDatastore(config)
-  ConfigureUrls(config, external_hostname=external_hostname)
+  ConfigureHostnames(config, external_hostname=external_hostname)
   ConfigureEmails(config)
 
   print("\nStep 2: Key Generation")
@@ -1009,9 +948,6 @@ def InitializeNoPrompt(
   config_dict["Mysql.database_username"] = config_dict["Mysql.username"] = (
       mysql_username or config["Mysql.database_username"]
   )
-  config_dict["Client.server_urls"] = [
-      "http://%s:%s/" % (external_hostname, config["Frontend.bind_port"])
-  ]
   config_dict["AdminUI.url"] = "http://%s:%s" % (
       external_hostname,
       config["AdminUI.port"],
@@ -1129,11 +1065,13 @@ def CreateUser(username, password=None, is_admin=False):
 
 def UpdateUser(username, password=None, is_admin=False):
   """Updates the password or privilege-level for a user."""
-  user_type, password = _GetUserTypeAndPassword(
-      username, password=password, is_admin=is_admin
-  )
   grr_api = maintenance_utils.InitGRRRootAPI()
   grr_user = grr_api.GrrUser(username).Get()
+  if is_admin:
+    user_type = api_root.GrrUser.USER_TYPE_ADMIN
+  else:
+    user_type = api_root.GrrUser.USER_TYPE_STANDARD
+
   grr_user.Modify(user_type=user_type, password=password)
 
 

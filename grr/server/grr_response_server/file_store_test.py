@@ -10,7 +10,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
@@ -28,8 +28,9 @@ class BlobStreamTest(test_lib.GRRBaseTest):
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
-        self.blob_size, "abcde12345")
-    blob_ids = [blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
+        self.blob_size, "abcde12345"
+    )
+    blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
     self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
@@ -49,12 +50,14 @@ class BlobStreamTest(test_lib.GRRBaseTest):
 
   def testReadsFirstChunkPlusOneByte(self):
     self.assertEqual(
-        self.blob_stream.read(self.blob_size + 1), b"a" * self.blob_size + b"b")
+        self.blob_stream.read(self.blob_size + 1), b"a" * self.blob_size + b"b"
+    )
 
   def testReadsLastChunkPlusOneByte(self):
     self.blob_stream.seek(-self.blob_size - 1, 2)
     self.assertEqual(
-        self.blob_stream.read(self.blob_size + 1), b"4" + b"5" * self.blob_size)
+        self.blob_stream.read(self.blob_size + 1), b"4" + b"5" * self.blob_size
+    )
 
   def testReadsWholeFile(self):
     self.assertEqual(self.blob_stream.read(), b"".join(self.blob_data))
@@ -73,7 +76,8 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     self.blob_stream.seek(0)
 
     with test_lib.ConfigOverrider(
-        {"Server.max_unbound_read_size": self.blob_size * 10 - 1}):
+        {"Server.max_unbound_read_size": self.blob_size * 10 - 1}
+    ):
       # Recreate to make sure the new config option value is applied.
       self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
@@ -95,43 +99,54 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
-        self.blob_size, "abcd")
-    blob_ids = [blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
+        self.blob_size, "abcd"
+    )
+    blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
     self.client_id = "C.0000111122223333"
     self.client_path = db.ClientPath.OS(self.client_id, ["foo", "bar"])
 
   def testAddsFileWithSingleBlob(self):
-    hash_id = file_store.AddFileWithUnknownHash(self.client_path,
-                                                self.blob_refs[:1])
+    hash_id = file_store.AddFileWithUnknownHash(
+        self.client_path, self.blob_refs[:1]
+    )
     self.assertEqual(hash_id.AsBytes(), self.blob_refs[0].blob_id)
 
-  @mock.patch.object(file_store, "BLOBS_READ_TIMEOUT",
-                     rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
+  @mock.patch.object(
+      file_store,
+      "BLOBS_READ_TIMEOUT",
+      rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
+  )
   def testRaisesIfOneSingleBlobIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=0, blob_id=bytes(blobs.BlobID.Of(b""))
+        offset=0, size=0, blob_id=bytes(models_blobs.BlobID.Of(b""))
     )
     with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash(self.client_path, [blob_ref])
 
-  @mock.patch.object(file_store, "BLOBS_READ_TIMEOUT",
-                     rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
+  @mock.patch.object(
+      file_store,
+      "BLOBS_READ_TIMEOUT",
+      rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
+  )
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=0, blob_id=bytes(blobs.BlobID.Of(b""))
+        offset=0, size=0, blob_id=bytes(models_blobs.BlobID.Of(b""))
     )
     with self.assertRaises(file_store.BlobNotFoundError):
-      file_store.AddFileWithUnknownHash(self.client_path,
-                                        [self.blob_refs[0], blob_ref])
+      file_store.AddFileWithUnknownHash(
+          self.client_path, [self.blob_refs[0], blob_ref]
+      )
 
   def testAddsFileWithTwoBlobs(self):
-    hash_id = file_store.AddFileWithUnknownHash(self.client_path,
-                                                self.blob_refs)
+    hash_id = file_store.AddFileWithUnknownHash(
+        self.client_path, self.blob_refs
+    )
     self.assertEqual(
         hash_id.AsBytes(),
-        rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
+        rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)),
+    )
 
   def testFilesWithOneBlobAreStillReadToEnsureBlobExists(self):
     _, long_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "cd")
@@ -144,27 +159,30 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
     # One small file, blob is still read.
     with mock.patch.object(
-        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs) as p:
+        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs
+    ) as p:
       file_store.AddFileWithUnknownHash(path1, short_blob_refs1)
       p.assert_called_once()
 
     # Same for multiple small files.
     with mock.patch.object(
-        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs) as p:
+        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs
+    ) as p:
       file_store.AddFilesWithUnknownHashes({
           path1: short_blob_refs1,
-          path2: short_blob_refs2
+          path2: short_blob_refs2,
       })
       p.assert_called_once()
 
     # One large file and two small ones result in a single read for the
     # all three blobs.
     with mock.patch.object(
-        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs) as p:
+        data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs
+    ) as p:
       file_store.AddFilesWithUnknownHashes({
           path1: short_blob_refs1,
           path2: short_blob_refs2,
-          path3: long_blob_refs
+          path3: long_blob_refs,
       })
       p.assert_called_once()
       self.assertLen(p.call_args[POSITIONAL_ARGS], 1)
@@ -172,7 +190,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
       self.assertCountEqual(
           p.call_args[0][0],
           [
-              blobs.BlobID(r.blob_id)
+              models_blobs.BlobID(r.blob_id)
               for r in itertools.chain(
                   short_blob_refs1, short_blob_refs2, long_blob_refs
               )
@@ -181,8 +199,9 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testAddsFileToExternalFileStore(self, add_file_mock):
-    hash_id = file_store.AddFileWithUnknownHash(self.client_path,
-                                                self.blob_refs)
+    hash_id = file_store.AddFileWithUnknownHash(
+        self.client_path, self.blob_refs
+    )
 
     add_file_mock.assert_called_once()
     args = add_file_mock.call_args_list[0][0]
@@ -194,7 +213,7 @@ def _BlobRefsFromByteArray(data_array):
   offset = 0
   blob_refs = []
   for data in data_array:
-    blob_id = blobs.BlobID.Of(data)
+    blob_id = models_blobs.BlobID.Of(data)
     blob_refs.append(
         rdf_objects.BlobReference(
             offset=offset, size=len(data), blob_id=bytes(blob_id)
@@ -218,7 +237,8 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
       paths.append(db.ClientPath.OS(client_id=client_id, components=components))
 
     hash_ids = file_store.AddFilesWithUnknownHashes(
-        {path: [] for path in paths})
+        {path: [] for path in paths}
+    )
 
     empty_hash_id = rdf_objects.SHA256HashID.FromData(b"")
     for path in paths:
@@ -227,13 +247,13 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
   def testSimpleMultiplePaths(self):
     foo_blobs = [b"foo", b"norf", b"thud"]
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
+    foo_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
 
     bar_blobs = [b"bar", b"quux", b"blargh"]
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
+    bar_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
@@ -255,11 +275,11 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     bar_blobs = [b"bar", b"norf", b"blag", b"thud"]
 
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
+    foo_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
 
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
+    bar_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
 
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
@@ -288,11 +308,12 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
 
     blob_data = [b"foo", b"bar", b"baz"]
     blob_refs = _BlobRefsFromByteArray(blob_data)
-    blob_ids = [blobs.BlobID(ref.blob_id) for ref in blob_refs]
+    blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
     hash_ids = file_store.AddFilesWithUnknownHashes(
-        {path: blob_refs for path in paths})
+        {path: blob_refs for path in paths}
+    )
 
     expected_hash_id = rdf_objects.SHA256HashID.FromData(b"foobarbaz")
     for path in paths:
@@ -306,13 +327,13 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
 
     foo_blobs = list(Blobs(b"foo"))
     foo_blob_refs = _BlobRefsFromByteArray(foo_blobs)
-    foo_blob_ids = [blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
+    foo_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in foo_blob_refs]
     foo_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(foo_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
 
     bar_blobs = list(Blobs(b"bar"))
     bar_blob_refs = _BlobRefsFromByteArray(bar_blobs)
-    bar_blob_ids = [blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
+    bar_blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in bar_blob_refs]
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
@@ -340,17 +361,19 @@ class OpenFileTest(test_lib.GRRBaseTest):
 
     blob_size = 10
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abcdef")
-    blob_ids = [blobs.BlobID(ref.blob_id) for ref in blob_refs]
+    blob_ids = [models_blobs.BlobID(ref.blob_id) for ref in blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "def")
-    self.hash_id = file_store.AddFileWithUnknownHash(self.client_path,
-                                                     blob_refs)
+    self.hash_id = file_store.AddFileWithUnknownHash(
+        self.client_path, blob_refs
+    )
     self.data = b"".join(blob_data)
 
     _, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abc")
     self.other_hash_id = file_store.AddFileWithUnknownHash(
-        self.client_path, blob_refs)
+        self.client_path, blob_refs
+    )
 
     self.invalid_hash_id = rdf_objects.SHA256HashID.FromData(b"")
 
@@ -462,9 +485,11 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
   def _WriteFile(self, client_path, blobs_range=None):
     r_from, r_to = blobs_range or (0, 0)
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(
-        self.blob_size, "abcdef"[r_from:r_to])
-    vfs_test_lib.CreateFileWithBlobRefsAndData(client_path, blob_refs,
-                                               blob_data)
+        self.blob_size, "abcdef"[r_from:r_to]
+    )
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        client_path, blob_refs, blob_data
+    )
 
     return blob_data, blob_refs
 
@@ -635,14 +660,16 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     timestamp_2 = rdfvalue.RDFDatetime.Now()
 
     chunks = list(
-        file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_2))
+        file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_2)
+    )
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertNotEqual(chunks[0].data, blob_data_1[0])
     self.assertEqual(chunks[0].data, blob_data_2[0])
 
     chunks = list(
-        file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_1))
+        file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_1)
+    )
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
     self.assertEqual(chunks[0].data, blob_data_1[0])
@@ -653,7 +680,8 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     blob_data, _ = self._WriteFile(client_path, (0, 2))
 
     chunks = list(
-        file_store.StreamFilesChunks([client_path], max_size=self.blob_size))
+        file_store.StreamFilesChunks([client_path], max_size=self.blob_size)
+    )
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].data, blob_data[0])
 
@@ -662,8 +690,8 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     blob_data, _ = self._WriteFile(client_path, (0, 2))
 
     chunks = list(
-        file_store.StreamFilesChunks([client_path],
-                                     max_size=self.blob_size + 1))
+        file_store.StreamFilesChunks([client_path], max_size=self.blob_size + 1)
+    )
     self.assertLen(chunks, 2)
     self.assertEqual(chunks[0].data, blob_data[0])
     self.assertEqual(chunks[1].data, blob_data[1])

@@ -19,12 +19,12 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
-from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
@@ -50,11 +50,13 @@ class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
 
 class ClientActionRunner(flow_base.FlowBase):
   """Just call the specified client action directly."""
+
   args_type = ClientActionRunnerArgs
 
   def Start(self):
     self.CallClient(
-        action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End")
+        action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End"
+    )
 
 
 class UpdateClientErrorAction(actions.ActionPlugin):
@@ -83,8 +85,9 @@ class UpdateClientNoCrashAction(actions.ActionPlugin):
       )
 
 
-class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
-                              hunt_test_lib.StandardHuntTestMixin):
+class TestAdministrativeFlows(
+    flow_test_lib.FlowTestsBaseclass, hunt_test_lib.StandardHuntTestMixin
+):
   """Tests the administrative flows."""
 
   def setUp(self):
@@ -99,52 +102,32 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
-  def testUpdateConfig(self):
-    """Ensure we can retrieve and update the config."""
+  def testDeleteGRRTempFiles(self):
+    client_id = self.SetupClient(0)
 
-    # Write a client without a proper system so we don't need to
-    # provide the os specific artifacts in the interrogate flow below.
-    client_id = self.SetupClient(0, system="")
+    class FakeDeleteGRRTempFiles(actions.ActionPlugin):
+      in_rdfvalue = rdf_paths.PathSpec
+      out_rdfvalues = [rdf_client.LogMessage]
 
-    # Only mock the pieces we care about.
-    client_mock = action_mocks.ActionMock(admin.GetConfiguration,
-                                          admin.UpdateConfiguration)
+      def Run(self, args):
+        self.SendReply(rdf_client.LogMessage(data="Deleted 10 files"))
 
-    loc = "http://www.example.com/"
-    new_config = rdf_protodict.Dict({
-        "Client.server_urls": [loc],
-        "Client.foreman_check_frequency": 3600,
-        "Client.poll_min": 1
-    })
-
-    # Setting config options is disallowed in tests so we need to temporarily
-    # revert this.
-    self.config_set_disable.stop()
-    # Write the config.
-    try:
-      flow_test_lib.TestFlowHelper(
-          administrative.UpdateConfiguration.__name__,
-          client_mock,
-          client_id=client_id,
-          creator=self.test_username,
-          config=new_config)
-    finally:
-      self.config_set_disable.start()
-
-    # Now retrieve it again to see if it got written.
-    flow_test_lib.TestFlowHelper(
-        discovery.Interrogate.__name__,
-        client_mock,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        administrative.DeleteGRRTempFiles,
+        action_mocks.ActionMock.With({
+            "DeleteGRRTempFiles": FakeDeleteGRRTempFiles,
+        }),
+        flow_args=administrative.DeleteGRRTempFilesArgs(
+            pathspec=rdf_paths.PathSpec(path="tmp/foo/bar")
+        ),
         creator=self.test_username,
-        client_id=client_id)
-
-    client = data_store.REL_DB.ReadClientSnapshot(client_id)
-    config_dat = {item.key: item.value for item in client.grr_configuration}
-    # The grr_configuration only contains strings.
-    self.assertEqual(
-        config_dat["Client.server_urls"], "['http://www.example.com/']"
+        client_id=client_id,
     )
-    self.assertEqual(config_dat["Client.poll_min"], "1.0")
+    logs = data_store.REL_DB.ReadFlowLogEntries(
+        client_id, flow_id, offset=0, count=1024
+    )
+    self.assertLen(logs, 1)
+    self.assertEqual(logs[0].message, "Deleted 10 files")
 
   def CheckCrash(self, crash, expected_session_id, client_id):
     """Checks that ClientCrash object's fields are correctly filled in."""
@@ -163,16 +146,18 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message)
+      )
 
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = flow_test_lib.CrashClientMock(client_id)
-      flow_id = flow_test_lib.TestFlowHelper(
-          flow_test_lib.FlowWithOneClientRequest.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          flow_test_lib.FlowWithOneClientRequest,
           client,
           client_id=client_id,
           creator=self.test_username,
-          check_flow_errors=False)
+          check_flow_errors=False,
+      )
 
     self.assertLen(self.email_messages, 1)
     email_message = self.email_messages[0]
@@ -180,7 +165,8 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
     # We expect the email to be sent.
     self.assertEqual(
         email_message.get("address", ""),
-        config.CONFIG["Monitoring.alert_email"])
+        config.CONFIG["Monitoring.alert_email"],
+    )
 
     # Make sure the flow state is included in the email message.
     self.assertIn("Host-0.example.com", email_message["message"])
@@ -197,26 +183,11 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
     crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
     self.CheckCrash(crash, client.flow_id, client_id)
 
-  def _CheckNannyEmail(self, client_id, nanny_message, email_dict):
-    # We expect the email to be sent.
-    self.assertEqual(
-        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
-
-    # Make sure the message is included in the email message.
-    self.assertIn(nanny_message, email_dict["message"])
-
-    self.assertIn(client_id, email_dict["title"])
-    crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
-
-    self.assertEqual(crash.client_id, client_id)
-    self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-    self.assertEqual(crash.crash_type, "Nanny Message")
-    self.assertEqual(crash.crash_message, nanny_message)
-
   def _CheckAlertEmail(self, client_id, message, email_dict):
     # We expect the email to be sent.
     self.assertEqual(
-        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
+        email_dict.get("address"), config.CONFIG["Monitoring.alert_email"]
+    )
 
     self.assertIn(client_id, email_dict["title"])
 
@@ -225,13 +196,15 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
 
   def _RunSendStartupInfo(self, client_id):
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
-    # Undefined name since the flow class get autogenerated.
-    flow_test_lib.TestFlowHelper(
-        ClientActionRunner.__name__,  # pylint: disable=undefined-variable
+    flow_test_lib.StartAndRunFlow(
+        ClientActionRunner,
         client_mock,
         client_id=client_id,
-        action="SendStartupInfo",
-        creator=self.test_username)
+        flow_args=ClientActionRunnerArgs(
+            action="SendStartupInfo",
+        ),
+        creator=self.test_username,
+    )
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)
@@ -246,14 +219,18 @@ import sys
 sys.test_code_ran_here = True
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test")
+        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test"
+    )
 
-    flow_test_lib.TestFlowHelper(
-        administrative.ExecutePythonHack.__name__,
+    flow_test_lib.StartAndRunFlow(
+        administrative.ExecutePythonHack,
         client_mock,
         client_id=client_id,
-        hack_name="test",
-        creator=self.test_username)
+        flow_args=administrative.ExecutePythonHackArgs(
+            hack_name="test",
+        ),
+        creator=self.test_username,
+    )
 
     self.assertTrue(sys.test_code_ran_here)
 
@@ -265,15 +242,19 @@ sys.test_code_ran_here = True
     client_id = self.SetupClient(0)
 
     maintenance_utils.UploadSignedConfigBlob(
-        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test")
+        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test"
+    )
 
-    flow_test_lib.TestFlowHelper(
-        administrative.ExecutePythonHack.__name__,
+    flow_test_lib.StartAndRunFlow(
+        administrative.ExecutePythonHack,
         client_mock,
         client_id=client_id,
-        hack_name="test",
-        py_args=dict(value=5678),
-        creator=self.test_username)
+        flow_args=administrative.ExecutePythonHackArgs(
+            hack_name="test",
+            py_args=dict(value=5678),
+        ),
+        creator=self.test_username,
+    )
 
     self.assertEqual(sys.test_code_ran_here, 5678)
 
@@ -285,16 +266,19 @@ magic_return_str = str(py_args["foobar"])
     """
 
     maintenance_utils.UploadSignedConfigBlob(
-        content=code.encode("utf-8"),
-        aff4_path="aff4:/config/python_hacks/quux")
+        content=code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/quux"
+    )
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        administrative.ExecutePythonHack.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        administrative.ExecutePythonHack,
         client_mock=action_mocks.ActionMock(standard.ExecutePython),
         client_id=client_id,
-        hack_name="quux",
-        py_args={"foobar": 42},
-        creator=self.test_username)
+        flow_args=administrative.ExecutePythonHackArgs(
+            hack_name="quux",
+            py_args={"foobar": 42},
+        ),
+        creator=self.test_username,
+    )
 
     flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
 
@@ -311,15 +295,18 @@ magic_return_str = "foo(%s)"
     """
 
     maintenance_utils.UploadSignedConfigBlob(
-        content=code.encode("utf-8"),
-        aff4_path="aff4:/config/python_hacks/quux")
+        content=code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/quux"
+    )
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        administrative.ExecutePythonHack.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        administrative.ExecutePythonHack,
         client_mock=action_mocks.ActionMock(standard.ExecutePython),
         client_id=client_id,
-        hack_name="quux",
-        creator=self.test_username)
+        flow_args=administrative.ExecutePythonHackArgs(
+            hack_name="quux",
+        ),
+        creator=self.test_username,
+    )
 
     flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
 
@@ -332,14 +319,18 @@ magic_return_str = "foo(%s)"
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = b"I am a binary file"
-    upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
-        config.CONFIG["Client.platform"]).Add("test.exe")
+    upload_path = (
+        signed_binary_utils.GetAFF4ExecutablesRoot()
+        .Add(config.CONFIG["Client.platform"])
+        .Add("test.exe")
+    )
 
     maintenance_utils.UploadSignedConfigBlob(code, aff4_path=upload_path)
 
     binary_urn = rdfvalue.RDFURN(upload_path)
     blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        binary_urn)
+        binary_urn
+    )
 
     # There should be only a single part to this binary.
     self.assertLen(list(blob_iterator), 1)
@@ -348,13 +339,16 @@ magic_return_str = "foo(%s)"
     acl_test_lib.CreateAdminUser(self.test_username)
 
     with mock.patch.object(subprocess, "Popen", client_test_lib.Popen):
-      flow_test_lib.TestFlowHelper(
-          administrative.LaunchBinary.__name__,
+      flow_test_lib.StartAndRunFlow(
+          administrative.LaunchBinary,
           client_mock,
           client_id=self.SetupClient(0),
-          binary=upload_path,
-          command_line="--value 356",
-          creator=self.test_username)
+          flow_args=administrative.LaunchBinaryArgs(
+              binary=upload_path,
+              command_line="--value 356",
+          ),
+          creator=self.test_username,
+      )
 
       # Check that the executable file contains the code string.
       self.assertEqual(client_test_lib.Popen.binary, code)
@@ -368,23 +362,30 @@ magic_return_str = "foo(%s)"
       self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertStartsWith(client_test_lib.Popen.running_args[0],
-                            config.CONFIG["Client.tempdir_roots"][0])
+      self.assertStartsWith(
+          client_test_lib.Popen.running_args[0],
+          config.CONFIG["Client.tempdir_roots"][0],
+      )
 
   def testExecuteLargeBinaries(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = b"I am a large binary file" * 100
-    upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
-        config.CONFIG["Client.platform"]).Add("test.exe")
+    upload_path = (
+        signed_binary_utils.GetAFF4ExecutablesRoot()
+        .Add(config.CONFIG["Client.platform"])
+        .Add("test.exe")
+    )
 
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path=upload_path, limit=100)
+        code, aff4_path=upload_path, limit=100
+    )
 
     binary_urn = rdfvalue.RDFURN(upload_path)
     binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
     blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        binary_urn)
+        binary_urn
+    )
 
     # Total size is 2400.
     self.assertEqual(binary_size, 2400)
@@ -396,13 +397,16 @@ magic_return_str = "foo(%s)"
     acl_test_lib.CreateAdminUser(self.test_username)
 
     with mock.patch.object(subprocess, "Popen", client_test_lib.Popen):
-      flow_test_lib.TestFlowHelper(
-          administrative.LaunchBinary.__name__,
+      flow_test_lib.StartAndRunFlow(
+          administrative.LaunchBinary,
           client_mock,
           client_id=self.SetupClient(0),
-          binary=upload_path,
-          command_line="--value 356",
-          creator=self.test_username)
+          flow_args=administrative.LaunchBinaryArgs(
+              binary=upload_path,
+              command_line="--value 356",
+          ),
+          creator=self.test_username,
+      )
 
       # Check that the executable file contains the code string.
       self.assertEqual(client_test_lib.Popen.binary, code)
@@ -416,13 +420,16 @@ magic_return_str = "foo(%s)"
       self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertStartsWith(client_test_lib.Popen.running_args[0],
-                            config.CONFIG["Client.tempdir_roots"][0])
+      self.assertStartsWith(
+          client_test_lib.Popen.running_args[0],
+          config.CONFIG["Client.tempdir_roots"][0],
+      )
 
   def testExecuteBinaryWeirdOutput(self):
     binary_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add("foo.exe")
     maintenance_utils.UploadSignedConfigBlob(
-        b"foobarbaz", aff4_path=binary_path)
+        b"foobarbaz", aff4_path=binary_path
+    )
 
     client_id = self.SetupClient(0)
 
@@ -433,18 +440,21 @@ magic_return_str = "foo(%s)"
       stderr = b"\x00\xff\x00\xff\x00"
 
       response = rdf_client_action.ExecuteBinaryResponse(
-          stdout=stdout, stderr=stderr, exit_status=0, time_used=0)
+          stdout=stdout, stderr=stderr, exit_status=0, time_used=0
+      )
       self.SendReply(response)
 
     with mock.patch.object(standard.ExecuteBinaryCommand, "Run", new=Run):
       # Should not fail.
-      flow_test_lib.TestFlowHelper(
-          administrative.LaunchBinary.__name__,
+      flow_test_lib.StartAndRunFlow(
+          administrative.LaunchBinary,
           action_mocks.ActionMock(standard.ExecuteBinaryCommand),
-          binary=binary_path,
           client_id=client_id,
-          command_line="--bar --baz",
           creator=self.test_username,
+          flow_args=administrative.LaunchBinaryArgs(
+              binary=binary_path,
+              command_line="--bar --baz",
+          ),
       )
 
   def testUpdateClient(self):
@@ -469,12 +479,16 @@ magic_return_str = "foo(%s)"
     acl_test_lib.CreateAdminUser(self.test_username)
 
     client_id = self.SetupClient(0, system="")
-    flow_id = flow_test_lib.TestFlowHelper(
-        administrative.UpdateClient.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        administrative.UpdateClient,
         client_mock,
         client_id=client_id,
-        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
         creator=self.test_username,
+        flow_args=administrative.UpdateClientArgs(
+            binary_path=os.path.join(
+                config.CONFIG["Client.platform"], "test.deb"
+            ),
+        ),
     )
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertLen(results, 1)
@@ -503,12 +517,16 @@ magic_return_str = "foo(%s)"
     acl_test_lib.CreateAdminUser(self.test_username)
 
     client_id = self.SetupClient(0, system="")
-    flow_id = flow_test_lib.TestFlowHelper(
-        administrative.UpdateClient.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        administrative.UpdateClient,
         client_mock,
         client_id=client_id,
-        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
         creator=self.test_username,
+        flow_args=administrative.UpdateClientArgs(
+            binary_path=os.path.join(
+                config.CONFIG["Client.platform"], "test.deb"
+            ),
+        ),
         check_flow_errors=False,
     )
 
@@ -528,26 +546,34 @@ magic_return_str = "foo(%s)"
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message)
+      )
 
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client_mock = action_mocks.ActionMock(admin.Echo)
-      flow_test_lib.TestFlowHelper(
-          administrative.OnlineNotification.__name__,
+      flow_test_lib.StartAndRunFlow(
+          administrative.OnlineNotification,
           client_mock,
-          args=administrative.OnlineNotificationArgs(email="test@localhost"),
+          flow_args=administrative.OnlineNotificationArgs(
+              email="test@localhost"
+          ),
           creator=self.test_username,
-          client_id=client_id)
+          client_id=client_id,
+      )
 
     self.assertLen(self.email_messages, 1)
     email_message = self.email_messages[0]
 
     # We expect the email to be sent.
     self.assertEqual(email_message.get("address", ""), "test@localhost")
-    self.assertEqual(email_message["title"],
-                     "GRR Client on Host-0.example.com became available.")
-    self.assertIn("This notification was created by %s" % self.test_username,
-                  email_message.get("message", ""))
+    self.assertEqual(
+        email_message["title"],
+        "GRR Client on Host-0.example.com became available.",
+    )
+    self.assertIn(
+        "This notification was created by %s" % self.test_username,
+        email_message.get("message", ""),
+    )
 
   def testStartupHandler(self):
     client_id = self.SetupClient(0)
@@ -557,8 +583,9 @@ magic_return_str = "foo(%s)"
     si = data_store.REL_DB.ReadClientStartupInfo(client_id)
     self.assertIsNotNone(si)
     self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
-    self.assertEqual(si.client_info.client_description,
-                     config.CONFIG["Client.description"])
+    self.assertEqual(
+        si.client_info.client_description, config.CONFIG["Client.description"]
+    )
 
     # Run it again - this should not update any record.
     self._RunSendStartupInfo(client_id)
@@ -568,8 +595,9 @@ magic_return_str = "foo(%s)"
 
     # Simulate a reboot.
     current_boot_time = psutil.boot_time()
-    with mock.patch.object(psutil, "boot_time",
-                           lambda: current_boot_time + 600):
+    with mock.patch.object(
+        psutil, "boot_time", lambda: current_boot_time + 600
+    ):
 
       # Run it again - this should now update the boot time.
       self._RunSendStartupInfo(client_id)
@@ -589,35 +617,6 @@ magic_return_str = "foo(%s)"
         self.assertIsNotNone(new_si)
         self.assertNotEqual(new_si.client_info, si.client_info)
 
-  def testStartupHandlerNewLabels(self):
-    data_store.REL_DB.WriteGRRUser(self.test_username)
-
-    client_id = self.SetupClient(0, labels=[])
-    index = client_index.ClientIndex()
-
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
-    self.assertEmpty(labels)
-
-    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
-    self.assertEmpty(snapshot.startup_info.client_info.labels)
-
-    search_result = index.LookupClients(["label:test_label"])
-    self.assertEmpty(search_result)
-
-    with test_lib.ConfigOverrider({"Client.labels": ["test_label"]}):
-      self._RunSendStartupInfo(client_id)
-
-    # Just sending the startup info with an updated label should also write the
-    # new label to the client_labels table and update the search index so the
-    # client can now also be found using the new label.
-
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
-    self.assertLen(labels, 1)
-    self.assertEqual(labels[0].name, "test_label")
-
-    search_result = index.LookupClients(["label:test_label"])
-    self.assertEqual(search_result, [client_id])
-
   def testStartupTriggersInterrogateWhenVersionChanges(self):
     with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):
       client_id = self.SetupClient(0)
@@ -627,13 +626,15 @@ magic_return_str = "foo(%s)"
     self.assertEqual(si.client_info.client_version, 3000)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     orig_count = len([
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ])
 
     with mock.patch.multiple(
-        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT
+    ):
       with test_lib.ConfigOverrider({"Source.version_numeric": 3001}):
         self._RunSendStartupInfo(client_id)
 
@@ -641,7 +642,8 @@ magic_return_str = "foo(%s)"
     self.assertEqual(si.client_info.client_version, 3001)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     interrogates = [
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ]
@@ -653,7 +655,8 @@ magic_return_str = "foo(%s)"
     self._RunSendStartupInfo(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     orig_count = len([
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ])
@@ -663,13 +666,16 @@ magic_return_str = "foo(%s)"
     # that should trigger an interrogate.
     with tempfile.NamedTemporaryFile(delete=False) as temp_fd:
       with test_lib.ConfigOverrider(
-          {"Client.interrogate_trigger_path": temp_fd.name}):
+          {"Client.interrogate_trigger_path": temp_fd.name}
+      ):
         with mock.patch.multiple(
-            discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+            discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT
+        ):
           self._RunSendStartupInfo(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     interrogates = [
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ]
@@ -682,18 +688,22 @@ magic_return_str = "foo(%s)"
       self._RunSendStartupInfo(client_id)
 
       flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id, include_child_flows=False)
+          client_id, include_child_flows=False
+      )
       orig_count = len([
-          f for f in flows
+          f
+          for f in flows
           if f.flow_class_name == discovery.Interrogate.__name__
       ])
 
       self._RunSendStartupInfo(client_id)
 
       flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id, include_child_flows=False)
+          client_id, include_child_flows=False
+      )
       same_ver_count = len([
-          f for f in flows
+          f
+          for f in flows
           if f.flow_class_name == discovery.Interrogate.__name__
       ])
       self.assertEqual(same_ver_count, orig_count)
@@ -715,18 +725,22 @@ magic_return_str = "foo(%s)"
       )
 
       flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id, include_child_flows=False)
+          client_id, include_child_flows=False
+      )
       orig_count = len([
-          f for f in flows
+          f
+          for f in flows
           if f.flow_class_name == discovery.Interrogate.__name__
       ])
 
       self._RunSendStartupInfo(client_id)
 
       flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id, include_child_flows=False)
+          client_id, include_child_flows=False
+      )
       same_ver_count = len([
-          f for f in flows
+          f
+          for f in flows
           if f.flow_class_name == discovery.Interrogate.__name__
       ])
       self.assertEqual(same_ver_count, orig_count)
@@ -748,18 +762,21 @@ magic_return_str = "foo(%s)"
     )
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     orig_count = len([
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ])
 
     with mock.patch.multiple(
-        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT
+    ):
       with test_lib.ConfigOverrider({"Source.version_numeric": 3001}):
         self._RunSendStartupInfo(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id, include_child_flows=False)
+        client_id, include_child_flows=False
+    )
     interrogates = [
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ]
@@ -772,7 +789,8 @@ magic_return_str = "foo(%s)"
 
     def SendEmail(address, sender, title, message, **_):
       email_dict.update(
-          dict(address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message)
+      )
 
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
@@ -782,7 +800,9 @@ magic_return_str = "foo(%s)"
               payload=rdf_protodict.DataBlob(string=client_message),
               request_id=0,
               auth_state="AUTHENTICATED",
-              response_id=123))
+              response_id=123,
+          )
+      )
 
     self._CheckAlertEmail(client_id, client_message, email_dict)
 

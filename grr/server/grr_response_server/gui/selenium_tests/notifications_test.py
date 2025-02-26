@@ -5,12 +5,12 @@ from unittest import mock
 
 from absl import app
 
+from grr_response_proto import objects_pb2
 from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -27,24 +27,24 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
     notification.Notify(
         username,
-        rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        objects_pb2.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         "Fake discovery message",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=client_id),
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+            client=objects_pb2.ClientReference(client_id=client_id),
         ),
     )
 
     # ViewObject: VirtualFileSystem
     notification.Notify(
         username,
-        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+        objects_pb2.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
         "File fetch completed",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-            vfs_file=rdf_objects.VfsFileReference(
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.VFS_FILE,
+            vfs_file=objects_pb2.VfsFileReference(
                 client_id=client_id,
-                path_type=rdf_objects.PathInfo.PathType.OS,
+                path_type=objects_pb2.PathInfo.PathType.OS,
                 path_components=["proc", "10", "exe"],
             ),
         ),
@@ -57,11 +57,11 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     # ViewObject: Flow
     notification.Notify(
         username,
-        rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
+        objects_pb2.UserNotification.Type.TYPE_FLOW_RUN_COMPLETED,
         "Fake view flow message",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.FLOW,
-            flow=rdf_objects.FlowReference(
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.FLOW,
+            flow=objects_pb2.FlowReference(
                 client_id=client_id, flow_id=session_id
             ),
         ),

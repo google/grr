@@ -28,7 +28,7 @@ describe('flow results directive', () => {
     $rootScope.apiBasePath = 'foo/bar';
 
     const template = '<grr-flow-results flow-id="flowId" ' +
-        'api-base-path="apiBasePath" />';
+        'api-base-path="apiBasePath"></grr-flow-results>';
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

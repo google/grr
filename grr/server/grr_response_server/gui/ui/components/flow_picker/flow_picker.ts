@@ -66,6 +66,7 @@ enum InputToShow {
  * Component that displays available Flows.
  */
 @Component({
+  standalone: false,
   selector: 'app-flow-picker',
   templateUrl: './flow_picker.ng.html',
   styleUrls: ['./flow_picker.scss'],
@@ -74,69 +75,33 @@ enum InputToShow {
 export class FlowPicker implements AfterViewInit, OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly flowsByCategory$ = this.flowListItemService.flowsByCategory$;
+  readonly flowsByCategory$;
 
   private readonly flowsByType$: Observable<
     ReadonlyMap<FlowType, FlowListItem>
-  > = this.flowsByCategory$.pipe(
-    map(
-      (fbc) =>
-        new Map(
-          Array.from(fbc.values())
-            .flat()
-            .map((fli) => [fli.type, fli]),
-        ),
-    ),
-  );
+  >;
 
   // Matcher used to filter flows by title.
-  private readonly flowTitlesMatcher$: Observable<FuzzyMatcher> =
-    this.flowsByCategory$.pipe(
-      map(
-        (fbc) =>
-          new FuzzyMatcher(
-            Array.from(fbc.values())
-              .flat()
-              .map((f) => f.friendlyName),
-          ),
-      ),
-    );
+  private readonly flowTitlesMatcher$: Observable<FuzzyMatcher>;
   // Matcher used to filter flows by category.
-  private readonly flowCategoriesMatcher$: Observable<FuzzyMatcher> =
-    this.flowsByCategory$.pipe(
-      map((fbc) => new FuzzyMatcher(Array.from(fbc.keys()))),
-    );
+  private readonly flowCategoriesMatcher$: Observable<FuzzyMatcher>;
 
   // selectedFlow$ emits a value every time a flow is selected. undefined
   // is emitted whenever selection is cleared (and is also the default value).
-  readonly selectedFlow$ = new BehaviorSubject<FlowListItem | undefined>(
-    undefined,
-  );
+  readonly selectedFlow$;
 
-  readonly textInput = new UntypedFormControl('');
-  readonly textInputWidth$ = new Subject<number>();
+  readonly textInput;
+  readonly textInputWidth$;
 
-  readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
-    map((c) => c?.clientId),
-  );
+  readonly clientId$;
 
-  readonly hasFilesAccess$ = this.clientPageGlobalStore.hasAccess$;
+  readonly hasFilesAccess$;
 
-  private readonly textInputFocused$ = new Subject<boolean>();
+  private readonly textInputFocused$;
 
-  readonly commonFlows$: Observable<readonly FlowListItem[]> =
-    this.flowListItemService.commonFlowNames$.pipe(
-      withLatestFrom(this.flowsByCategory$),
-      map(([fNames, flowsByCategory]) => {
-        const result = Array.from(flowsByCategory.values())
-          .flat()
-          .filter((fli) => fNames.includes(fli.type));
-        result.sort(compareAlphabeticallyBy((f) => f.friendlyName));
-        return result;
-      }),
-    );
+  readonly commonFlows$: Observable<readonly FlowListItem[]>;
 
-  readonly commonFileFlows$ = this.flowListItemService.commonFileFlows$;
+  readonly commonFileFlows$;
 
   @ViewChild(MatAutocompleteTrigger, {static: false})
   autocompleteTrigger?: MatAutocompleteTrigger;
@@ -144,39 +109,17 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   @ViewChild('textInputElement')
   textInputElement!: ElementRef<HTMLInputElement>;
 
-  private readonly textInput$: Observable<string> =
-    this.textInput.valueChanges.pipe(
-      startWith(''),
-      filter(isNonNull),
-      map((v) => {
-        // Autocomplete sends in a string when user types text in, and
-        // a selected value whenever one is selected. Thus we have to
-        // use reflection to determine the correct type.
-        if (typeof v === 'string') {
-          return v;
-        } else {
-          return (v as FlowListItem).friendlyName;
-        }
-      }),
-    );
+  private readonly textInput$: Observable<string>;
 
-  readonly inputToShowEnum = InputToShow;
+  readonly inputToShowEnum;
 
-  readonly inputToShow$: Observable<InputToShow> = this.selectedFlow$.pipe(
-    map((selectedFlow) => {
-      if (selectedFlow !== undefined) {
-        return InputToShow.READONLY;
-      } else {
-        return InputToShow.AUTOCOMPLETE;
-      }
-    }),
-  );
+  readonly inputToShow$: Observable<InputToShow>;
 
   // Subject synced with overlay's attach/detach events.
-  readonly overviewOverlayAttached$ = new Subject<boolean>();
+  readonly overviewOverlayAttached$;
 
   // Subject used to force-hide the overview overlay.
-  readonly overviewOverlayForceHidden$ = new Subject<void>();
+  readonly overviewOverlayForceHidden$;
 
   // When the input becomes empty or the input field gets focused while being
   // empty, the overview panel has to be attached. Whenever the input field is
@@ -185,44 +128,11 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   // Whenever the overview panel becomes detached, we have to make sure
   // overviewOverlayOpened$ is in sync and reports false - otherwise it
   // won't be attached correctly next time.
-  readonly overviewOverlayOpened$: Observable<boolean> = merge(
-    // If text input changes - emit true if it's empty and focused,
-    // false otherwise.
-    this.textInput$.pipe(
-      withLatestFrom(this.textInputFocused$),
-      map(([inputValue, isFocused]) => inputValue === '' && isFocused),
-    ),
-    // If text input becomes focused - emit true if it's empty.
-    this.textInputFocused$.pipe(
-      withLatestFrom(this.textInput$),
-      filter(([isFocused, inputValue]) => inputValue === '' && isFocused),
-      mapTo(true),
-    ),
-    // If the overlay becomes detached, emit false.
-    this.overviewOverlayAttached$.pipe(filter((v) => !v)),
-    // If the overlay is being forcibly hidden, pass-through the false
-    // value.
-    this.overviewOverlayForceHidden$.pipe(mapTo(false)),
-  );
+  readonly overviewOverlayOpened$: Observable<boolean>;
 
   readonly autoCompleteCategories$: Observable<
     readonly FlowAutoCompleteCategory[]
-  > = this.textInput$.pipe(
-    startWith(''),
-    withLatestFrom(
-      this.flowsByCategory$,
-      this.flowTitlesMatcher$,
-      this.flowCategoriesMatcher$,
-    ),
-    map(([v, flowsByCategory, titlesMatcher, categoriesMatcher]) =>
-      this.buildCategories(
-        v,
-        flowsByCategory,
-        titlesMatcher,
-        categoriesMatcher,
-      ),
-    ),
-  );
+  >;
 
   private buildCategories(
     query: string,
@@ -281,6 +191,112 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
     private readonly clientPageGlobalStore: ClientPageGlobalStore,
     private readonly flowListItemService: FlowListItemService,
   ) {
+    this.flowsByCategory$ = this.flowListItemService.flowsByCategory$;
+    this.flowsByType$ = this.flowsByCategory$.pipe(
+      map(
+        (fbc) =>
+          new Map(
+            Array.from(fbc.values())
+              .flat()
+              .map((fli) => [fli.type, fli]),
+          ),
+      ),
+    );
+    this.flowTitlesMatcher$ = this.flowsByCategory$.pipe(
+      map(
+        (fbc) =>
+          new FuzzyMatcher(
+            Array.from(fbc.values())
+              .flat()
+              .map((f) => f.friendlyName),
+          ),
+      ),
+    );
+    this.flowCategoriesMatcher$ = this.flowsByCategory$.pipe(
+      map((fbc) => new FuzzyMatcher(Array.from(fbc.keys()))),
+    );
+    this.selectedFlow$ = new BehaviorSubject<FlowListItem | undefined>(
+      undefined,
+    );
+    this.textInput = new UntypedFormControl('');
+    this.textInputWidth$ = new Subject<number>();
+    this.clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
+      map((c) => c?.clientId),
+    );
+    this.hasFilesAccess$ = this.clientPageGlobalStore.hasAccess$;
+    this.textInputFocused$ = new Subject<boolean>();
+    this.commonFlows$ = this.flowListItemService.commonFlowNames$.pipe(
+      withLatestFrom(this.flowsByCategory$),
+      map(([fNames, flowsByCategory]) => {
+        const result = Array.from(flowsByCategory.values())
+          .flat()
+          .filter((fli) => fNames.includes(fli.type));
+        result.sort(compareAlphabeticallyBy((f) => f.friendlyName));
+        return result;
+      }),
+    );
+    this.commonFileFlows$ = this.flowListItemService.commonFileFlows$;
+    this.textInput$ = this.textInput.valueChanges.pipe(
+      startWith(''),
+      filter(isNonNull),
+      map((v) => {
+        // Autocomplete sends in a string when user types text in, and
+        // a selected value whenever one is selected. Thus we have to
+        // use reflection to determine the correct type.
+        if (typeof v === 'string') {
+          return v;
+        } else {
+          return (v as FlowListItem).friendlyName;
+        }
+      }),
+    );
+    this.inputToShowEnum = InputToShow;
+    this.inputToShow$ = this.selectedFlow$.pipe(
+      map((selectedFlow) => {
+        if (selectedFlow !== undefined) {
+          return InputToShow.READONLY;
+        } else {
+          return InputToShow.AUTOCOMPLETE;
+        }
+      }),
+    );
+    this.overviewOverlayAttached$ = new Subject<boolean>();
+    this.overviewOverlayForceHidden$ = new Subject<void>();
+    this.overviewOverlayOpened$ = merge(
+      // If text input changes - emit true if it's empty and focused,
+      // false otherwise.
+      this.textInput$.pipe(
+        withLatestFrom(this.textInputFocused$),
+        map(([inputValue, isFocused]) => inputValue === '' && isFocused),
+      ),
+      // If text input becomes focused - emit true if it's empty.
+      this.textInputFocused$.pipe(
+        withLatestFrom(this.textInput$),
+        filter(([isFocused, inputValue]) => inputValue === '' && isFocused),
+        mapTo(true),
+      ),
+      // If the overlay becomes detached, emit false.
+      this.overviewOverlayAttached$.pipe(filter((v) => !v)),
+      // If the overlay is being forcibly hidden, pass-through the false
+      // value.
+      this.overviewOverlayForceHidden$.pipe(mapTo(false)),
+    );
+    this.autoCompleteCategories$ = this.textInput$.pipe(
+      startWith(''),
+      withLatestFrom(
+        this.flowsByCategory$,
+        this.flowTitlesMatcher$,
+        this.flowCategoriesMatcher$,
+      ),
+      map(([v, flowsByCategory, titlesMatcher, categoriesMatcher]) =>
+        this.buildCategories(
+          v,
+          flowsByCategory,
+          titlesMatcher,
+          categoriesMatcher,
+        ),
+      ),
+    );
     this.clientPageGlobalStore.selectedFlowDescriptor$
       .pipe(
         takeUntil(this.ngOnDestroy.triggered$),

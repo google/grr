@@ -5,7 +5,6 @@ import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
 
 import {Browser} from '../../../lib/api/api_interfaces';
 import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
@@ -40,7 +39,9 @@ async function getCheckboxValue(
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: '<hunt-flow-arguments [hunt]="hunt"></hunt-flow-arguments>',
+  jit: true,
 })
 class TestHostComponent {
   hunt = newHunt({});
@@ -53,7 +54,7 @@ describe('HuntFlowArguments test', () => {
     configGlobalStore = mockConfigGlobalStore();
 
     await TestBed.configureTestingModule({
-      imports: [RouterTestingModule, NoopAnimationsModule, HuntFlowArguments],
+      imports: [NoopAnimationsModule, HuntFlowArguments],
       declarations: [TestHostComponent],
       providers: [
         {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
@@ -74,7 +75,7 @@ describe('HuntFlowArguments test', () => {
       flowArgs: {
         '@type':
           'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-        'browsers': [Browser.CHROME],
+        'browsers': [Browser.CHROMIUM_BASED_BROWSERS],
       },
     });
     fixture.detectChanges();
@@ -104,8 +105,10 @@ describe('HuntFlowArguments test', () => {
     const flowArgs = fixture.debugElement.query(By.css('app-flow-args-view'));
     expect(flowArgs.nativeElement).toBeTruthy();
 
-    expect(flowArgs.nativeElement.textContent).toContain('Chrome');
-    expect(await getCheckboxValue(fixture, '[name=collectChrome]')).toBeTrue();
+    expect(flowArgs.nativeElement.textContent).toContain('Chromium');
+    expect(
+      await getCheckboxValue(fixture, '[name=collectChromiumBasedBrowsers]'),
+    ).toBeTrue();
     expect(flowArgs.nativeElement.textContent).toContain('Opera');
     expect(await getCheckboxValue(fixture, '[name=collectOpera]')).toBeFalse();
     expect(flowArgs.nativeElement.textContent).toContain('Internet Explorer');
@@ -128,7 +131,7 @@ describe('HuntFlowArguments test', () => {
       flowArgs: {
         '@type':
           'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-        'browsers': [Browser.CHROME],
+        'browsers': [Browser.CHROMIUM_BASED_BROWSERS],
       },
     });
     fixture.detectChanges();
@@ -158,7 +161,7 @@ describe('HuntFlowArguments test', () => {
       flowArgs: {
         '@type':
           'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-        'browsers': [Browser.CHROME],
+        'browsers': [Browser.CHROMIUM_BASED_BROWSERS],
       },
     });
 

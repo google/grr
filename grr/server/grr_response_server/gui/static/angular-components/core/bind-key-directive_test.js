@@ -30,7 +30,7 @@ describe('bind key directive', () => {
   };
 
   it('calls the specified function on keydown', (done) => {
-    const element = render(done, 13);     // ENTER
+    const element = render(done, 13);  // ENTER
     browserTriggerKeyDown(element, 13);
   });
 
@@ -38,8 +38,8 @@ describe('bind key directive', () => {
     const callback = (() => {
       fail('Callback should not be called');
     });
-    const element = render(callback, 13); // ENTER
-    browserTriggerKeyDown(element, 15);   // Raise some other key.
+    const element = render(callback, 13);  // ENTER
+    browserTriggerKeyDown(element, 15);    // Raise some other key.
   });
 });
 

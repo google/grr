@@ -27,7 +27,7 @@ describe('semantic proto single field form directive', () => {
     $rootScope.field = field;
 
     const template = '<grr-form-proto-single-field value="value" ' +
-        'field="field" />';
+        'field="field"></grr-form-proto-single-field>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

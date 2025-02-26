@@ -48,6 +48,7 @@ export const DATE_TIME_FORMAT = 'yyyy-MM-dd HH:mm:ss';
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
+  standalone: false,
   selector: 'date-time-input',
   templateUrl: './date_time_input.ng.html',
   styleUrls: ['./date_time_input.scss'],

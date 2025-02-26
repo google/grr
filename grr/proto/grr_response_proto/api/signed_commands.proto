@@ -1,0 +1,65 @@
+syntax = "proto2";
+
+package grr;
+
+message ApiEnvVar {
+  optional string name = 1;
+  optional string value = 2;
+}
+
+message ApiCommand {
+  // An arbitrary, but unique per operating system, name of the command.
+  optional string id = 8;
+  // Operating system the command is running on.
+  optional ApiSignedCommand.OS operating_system = 9;
+
+  // Path to the executable file to execute.
+  optional string path = 3;
+  // The arguments passed to the command.
+  repeated string args = 4;
+  // The environment variables set for the command.
+  repeated ApiEnvVar env_vars = 5;
+
+  oneof stdin {
+    // Fixed standard input to pass to the executed command.
+    bytes signed_stdin = 6;
+
+    // Whether the command should allow execution with arbitrary
+    // standard input without it being pre-signed.
+    bool unsigned_stdin = 7;
+  }
+}
+
+message ApiCommands {
+  repeated ApiCommands commands = 1;
+}
+
+message ApiSignedCommands {
+  repeated ApiSignedCommand signed_commands = 1;
+}
+
+message ApiSignedCommand {
+  enum OS {
+    UNSET = 0;
+    LINUX = 1;
+    WINDOWS = 2;
+    MACOS = 3;
+  }
+  // An arbitrary, but unique per operating system, name of the command.
+  optional string id = 1;
+  // Operating system the command is running on.
+  optional OS operating_system = 2;
+  reserved 3;
+  // Serialized `rrg.action.execute_signed_command.SignedCommand` message.
+  optional bytes command = 5;
+  // The ed25519 signature of the serialized command.
+  optional bytes ed25519_signature = 4;
+}
+
+message ApiCreateSignedCommandsArgs {
+  repeated ApiSignedCommand signed_commands = 1;
+}
+
+message ApiListSignedCommandsResult {
+  repeated ApiSignedCommand signed_commands = 1;
+}

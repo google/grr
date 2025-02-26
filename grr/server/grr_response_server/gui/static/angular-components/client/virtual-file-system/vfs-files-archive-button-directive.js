@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
@@ -7,14 +6,14 @@ const {getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils')
 
 
 /** @const */
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 /** @const {number} */
 exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY = 30000;
 
 /** @const */
-var DOWNLOAD_EVERYTHING_REENABLE_DELAY =
+const DOWNLOAD_EVERYTHING_REENABLE_DELAY =
     exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY;
 
 
@@ -65,8 +64,8 @@ const VfsFilesArchiveButtonController = class {
    * @param {string} path
    */
   _download(path) {
-    var clientId = this.scope_['clientId'];
-    var url = 'clients/' + clientId + '/vfs-files-archive/' + path;
+    const clientId = this.scope_['clientId'];
+    const url = 'clients/' + clientId + '/vfs-files-archive/' + path;
     this.grrApiService_.downloadFile(url).then(
         function success() {}.bind(this),
         function failure(response) {
@@ -88,7 +87,7 @@ const VfsFilesArchiveButtonController = class {
     e.preventDefault();
 
     if (!this.downloadCurrentFolderDisabled) {
-      var folderPath = getFolderFromPath(this.scope_['filePath']);
+      const folderPath = getFolderFromPath(this.scope_['filePath']);
       this._download(folderPath);
       this.downloadCurrentFolderDisabled = true;
     }

@@ -37,7 +37,7 @@ describe('version dropdown directive', () => {
     };
 
     const template =
-        '<grr-version-dropdown url="url" version="version.data" />';
+        '<grr-version-dropdown url="url" version="version.data"></grr-version-dropdown>';
     const element = $compile(template)($scope);
     $scope.$apply();
 
@@ -49,7 +49,7 @@ describe('version dropdown directive', () => {
       const response = {
         times: responses[path]
       };  // Wrap return value in type structure.
-      return $q.when({ data: response });
+      return $q.when({data: response});
     });
   };
 
@@ -145,8 +145,9 @@ describe('version dropdown directive', () => {
 
     const element = render('some/url', 42);
     expect(element.find('select[disabled]').length).toBe(1);
-    expect(element.find('option[selected]').text().trim()).toBe('No versions available.');
-    expect($scope.version.data).toBe(42); // It does not change the model.
+    expect(element.find('option[selected]').text().trim())
+        .toBe('No versions available.');
+    expect($scope.version.data).toBe(42);  // It does not change the model.
   });
 
   it('should fetch versions again when a REFRESH_VERSIONS_EVENT is broadcasted',

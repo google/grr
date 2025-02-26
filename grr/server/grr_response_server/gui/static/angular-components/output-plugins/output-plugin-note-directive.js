@@ -51,11 +51,11 @@ const OutputPluginNoteController = class {
   onOutputPluginChange_() {
     if (angular.isDefined(this.scope_['outputPlugin']) &&
         angular.isDefined(this.scope_['outputPluginsUrl'])) {
-      var descriptor =
+      const descriptor =
           this.scope_['outputPlugin']['value']['plugin_descriptor'];
-      var pluginName = descriptor['value']['plugin_name']['value'];
+      const pluginName = descriptor['value']['plugin_name']['value'];
 
-      var directive =
+      const directive =
           this.grrOutputPluginsDirectivesRegistryService_.findDirectiveForMro(
               [pluginName]);
       if (angular.isDefined(directive)) {
@@ -64,7 +64,7 @@ const OutputPluginNoteController = class {
         this.pluginTitle = pluginName;
       }
 
-      var logsUrlBase = this.scope_['outputPluginsUrl'] + '/' +
+      const logsUrlBase = this.scope_['outputPluginsUrl'] + '/' +
           this.scope_['outputPlugin']['value']['id']['value'];
       this.pluginLogsUrl = logsUrlBase + '/logs';
       this.pluginErrorsUrl = logsUrlBase + '/errors';

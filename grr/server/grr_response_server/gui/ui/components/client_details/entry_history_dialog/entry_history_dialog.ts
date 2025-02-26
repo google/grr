@@ -28,6 +28,7 @@ interface EntryHistoryTableRow<T> {
  * Component displaying the entry history dialog.
  */
 @Component({
+  standalone: false,
   selector: 'entry-history-dialog',
   templateUrl: './entry_history_dialog.ng.html',
   styleUrls: ['./entry_history_dialog.scss'],

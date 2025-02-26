@@ -20,6 +20,7 @@ export enum GlobExplanationMode {
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
+  standalone: false,
   selector: 'glob-expression-explanation',
   templateUrl: './glob_expression_explanation.ng.html',
   styleUrls: ['./glob_expression_explanation.scss'],
@@ -37,11 +38,13 @@ export class GlobExpressionExplanation implements OnChanges {
   explanationMode?: GlobExplanationMode =
     GlobExplanationMode.ONE_EXAMPLE_VISIBLE;
 
-  readonly explanation$ = this.globExpressionService.explanation$;
+  readonly explanation$;
 
   constructor(
     private readonly globExpressionService: ExplainGlobExpressionService,
-  ) {}
+  ) {
+    this.explanation$ = this.globExpressionService.explanation$;
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (isNonNull(this.clientId) && isNonNull(this.globExpression)) {

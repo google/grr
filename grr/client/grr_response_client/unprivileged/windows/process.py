@@ -42,7 +42,7 @@ from ctypes.wintypes import WORD
 # pylint: enable=g-importing-member
 import os
 import subprocess
-from typing import List, Optional, NamedTuple
+from typing import Optional, NamedTuple
 
 import win32api
 import win32con
@@ -208,9 +208,9 @@ class Process:
   A pair of pipes is created and shared with the subprocess.
   """
 
-  def __init__(self,
-               args: List[str],
-               extra_handles: Optional[List[int]] = None):
+  def __init__(
+      self, args: list[str], extra_handles: Optional[list[int]] = None
+  ):
     """Constructor.
 
     Args:

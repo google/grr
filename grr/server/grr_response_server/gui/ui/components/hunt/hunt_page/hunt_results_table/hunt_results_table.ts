@@ -136,12 +136,14 @@ export class HuntResultsTable<T extends HuntResultOrError>
 
   readonly CellComponent = CellComponent;
   readonly dataSource = new MatTableDataSource<ResultTableRow<T>>();
-  readonly isLoading$ = this.huntResultsLocalStore.isLoading$;
-  readonly ngOnDestroy = observeOnDestroy(this);
+  readonly isLoading$;
+  readonly ngOnDestroy;
 
   constructor(
     private readonly huntResultsLocalStore: HuntResultsLocalStore<T>,
   ) {
+    this.isLoading$ = this.huntResultsLocalStore.isLoading$;
+    this.ngOnDestroy = observeOnDestroy(this);
     this.huntResultsLocalStore.results$
       .pipe(
         distinctUntilChanged(),

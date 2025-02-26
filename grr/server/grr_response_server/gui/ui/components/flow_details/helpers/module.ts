@@ -11,7 +11,6 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSortModule} from '@angular/material/sort';
 import {MatTableModule} from '@angular/material/table';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ExpandableHashModule} from '../../../components/expandable_hash/module';
@@ -26,7 +25,6 @@ import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
 import {FilterPaginate} from '../../helpers/filter_paginate/filter_paginate';
 
-import {DynamicResultSection} from './dynamic_result_section';
 import {FileResultsTable} from './file_results_table';
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {OsqueryResultsTable} from './osquery_results_table';
@@ -41,7 +39,6 @@ import {ResultAccordion} from './result_accordion';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
     ClipboardModule,
     CommonModule,
     CopyButtonModule,
@@ -69,7 +66,6 @@ import {ResultAccordion} from './result_accordion';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    DynamicResultSection,
     FileResultsTable,
     LoadFlowResultsDirective,
     NetworkConnectionFamilyPipe,
@@ -83,7 +79,6 @@ import {ResultAccordion} from './result_accordion';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    DynamicResultSection,
     FileResultsTable,
     FilterPaginate,
     LoadFlowResultsDirective,

@@ -1,5 +1,4 @@
 goog.module('grrUi.config.binariesListDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -19,8 +18,8 @@ const apiService = goog.requireType('grrUi.core.apiService');
 exports.sortBinaries = function(binaries) {
   return binaries
       .map(function(b) {
-        var newB = angular.copy(b);
-        var pathComponents = newB['value']['path']['value'].split('/');
+        const newB = angular.copy(b);
+        const pathComponents = newB['value']['path']['value'].split('/');
         newB['pathLen'] = pathComponents.length;
         newB['baseName'] = pathComponents.pop();
         newB['dirName'] = pathComponents.join('/');
@@ -36,7 +35,7 @@ exports.sortBinaries = function(binaries) {
             b['value']['path']['value']);
       });
 };
-var sortBinaries = exports.sortBinaries;
+const sortBinaries = exports.sortBinaries;
 
 
 /**
@@ -69,7 +68,7 @@ const BinariesListController = class {
   onBinariesChange_() {
     this.binaries = [];
     if (angular.isDefined(this.scope_['binaries'])) {
-      var filteredBinaries = this.scope_['binaries'].filter(function(b) {
+      const filteredBinaries = this.scope_['binaries'].filter(function(b) {
         return b['value']['type']['value'] === this.scope_['typeFilter'];
       }.bind(this));
       this.binaries = sortBinaries(filteredBinaries);
@@ -82,7 +81,7 @@ const BinariesListController = class {
    * @param {Object} binary
    */
   onBinaryClicked(binary) {
-    var url = '/config/binaries-blobs/' + binary['value']['type']['value'] +
+    const url = '/config/binaries-blobs/' + binary['value']['type']['value'] +
         '/' + binary['value']['path']['value'];
     this.grrApiService_.downloadFile(url);
   }

@@ -65,24 +65,24 @@ const HuntResultsController = class {
    * @export
    */
   transformItems(items) {
-    var urlPrefix = '/hunts/' + this.scope_['huntId'] + '/results/clients';
+    const urlPrefix = '/hunts/' + this.scope_['huntId'] + '/results/clients';
 
-    var newItems = items.map(function(item) {
-      var pathSpec = getPathSpecFromValue(item);
+    const newItems = items.map(function(item) {
+      const pathSpec = getPathSpecFromValue(item);
       if (!pathSpec) {
         return item;
       }
 
-      var clientId = item['value']['client_id']['value'];
-      var aff4Path = stripAff4Prefix(pathSpecToAff4Path(pathSpec, clientId));
+      const clientId = item['value']['client_id']['value'];
+      const aff4Path = stripAff4Prefix(pathSpecToAff4Path(pathSpec, clientId));
 
-      var components = aff4Path.split('/');
-      var vfsPath = components.slice(1).join('/');
+      const components = aff4Path.split('/');
+      const vfsPath = components.slice(1).join('/');
 
 
 
-      var legitimatePath = downloadableVfsRoots.some(function(vfsRoot) {
-        var prefix = vfsRoot + '/';
+      const legitimatePath = downloadableVfsRoots.some(function(vfsRoot) {
+        const prefix = vfsRoot + '/';
         return vfsPath.startsWith(prefix);
       }.bind(this));
 
@@ -90,10 +90,10 @@ const HuntResultsController = class {
         return item;
       }
 
-      var downloadUrl = urlPrefix + '/' + clientId + '/vfs-blob/' + vfsPath;
-      var downloadParams = {'timestamp': item['value']['timestamp']['value']};
+      const downloadUrl = urlPrefix + '/' + clientId + '/vfs-blob/' + vfsPath;
+      const downloadParams = {'timestamp': item['value']['timestamp']['value']};
 
-      var downloadableItem = angular.copy(item);
+      const downloadableItem = angular.copy(item);
       makeValueDownloadable(downloadableItem, downloadUrl, downloadParams);
 
       return downloadableItem;

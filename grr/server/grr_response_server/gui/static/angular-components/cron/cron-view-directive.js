@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.cronViewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 

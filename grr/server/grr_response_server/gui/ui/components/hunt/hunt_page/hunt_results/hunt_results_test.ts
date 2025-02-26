@@ -1,3 +1,4 @@
+import {Clipboard} from '@angular/cdk/clipboard';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, ViewChild} from '@angular/core';
 import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
@@ -7,7 +8,10 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ApiHuntError, ApiHuntResult} from '../../../../lib/api/api_interfaces';
-import {HttpApiService} from '../../../../lib/api/http_api_service';
+import {
+  HttpApiService,
+  getHuntExportCLICommand,
+} from '../../../../lib/api/http_api_service';
 import {mockHttpApiService} from '../../../../lib/api/http_api_service_test_util';
 import {
   HuntResultsTableTabConfig,
@@ -23,17 +27,21 @@ import {HuntResultsModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `<app-hunt-results
       [huntId]="huntId"
       [tabsConfig]="tabsConfig"
       [isLoading]="isLoading"
+      [exportCommandPrefix]="exportCommandPrefix"
       (selectedHuntResult)="selectedHuntResult($event)">
     </app-hunt-results>`,
+  jit: true,
 })
 class TestHostComponent {
   huntId: string | undefined = undefined;
   tabsConfig: HuntResultsTableTabConfig[] | undefined = undefined;
   isLoading: boolean | undefined = undefined;
+  exportCommandPrefix = '';
 
   @ViewChild(HuntResults) huntResults!: HuntResults;
 
@@ -43,13 +51,21 @@ class TestHostComponent {
 describe('HuntResults', () => {
   // We mock the HttpApiService to be able to populate the Hunt Results Table.
   const httpApiService = mockHttpApiService();
+  let clipboard: Partial<Clipboard>;
 
   beforeEach(waitForAsync(() => {
+    clipboard = {
+      copy: jasmine.createSpy('copy').and.returnValue(true),
+    };
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, HuntResultsModule],
+      imports: [HuntResultsModule, NoopAnimationsModule],
       providers: [
         ...STORE_PROVIDERS,
         {provide: HttpApiService, useFactory: () => httpApiService},
+        {
+          provide: Clipboard,
+          useFactory: () => clipboard,
+        },
       ],
       declarations: [TestHostComponent],
       teardown: {destroyAfterEach: false},
@@ -128,6 +144,38 @@ describe('HuntResults', () => {
     expect(await renderedMenuItems[1].getText()).toContain('CSV');
     expect(await renderedMenuItems[2].getText()).toContain('YAML');
     expect(await renderedMenuItems[3].getText()).toContain('SQL');
+  });
+
+  it('displays download button', async () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+
+    // tabsConfig should be irrelevant for this test.
+    // Just needs to have something.
+    fixture.componentInstance.tabsConfig = [
+      {
+        tabName: 'File finder',
+        totalResultsCount: 10,
+        payloadType: PayloadType.FILE_FINDER_RESULT,
+      },
+    ];
+    fixture.componentInstance.huntId = 'XXX';
+    fixture.componentInstance.exportCommandPrefix = 'run_cli';
+
+    fixture.detectChanges();
+
+    const exportCmdButton = fixture.debugElement.query(
+      By.css('[name=copyExportCommand]'),
+    );
+    expect(exportCmdButton).toBeTruthy();
+
+    expect(exportCmdButton.nativeElement.textContent).toContain('content_copy');
+    await exportCmdButton.nativeElement.click();
+
+    fixture.detectChanges();
+    expect(exportCmdButton.nativeElement.textContent).toContain('check');
+    expect(clipboard.copy).toHaveBeenCalledOnceWith(
+      getHuntExportCLICommand('run_cli', 'XXX'),
+    );
   });
 
   it('displays message when no data', () => {

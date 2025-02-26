@@ -19,6 +19,7 @@ type Controls = ReturnType<typeof makeControls>;
  * A form that makes it possible to configure the netstat flow.
  */
 @Component({
+  standalone: false,
   selector: 'netstat-form',
   templateUrl: './netstat_form.ng.html',
   styleUrls: ['./netstat_form.scss'],

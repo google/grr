@@ -33,7 +33,7 @@ describe('file tree view directive', () => {
         '    selected-folder-path="selectedFolderPath"' +
         '    selected-file-path="selectedFilePath"' +
         '    selected-file-version="selectedFileVersion">' +
-        '  <grr-file-tree />' +
+        '  <grr-file-tree></grr-file-tree>' +
         '</grr-file-context>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

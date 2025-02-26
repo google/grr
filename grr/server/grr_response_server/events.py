@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """The GRR event publishing classes."""
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.registry import EventRegistry
 
@@ -12,6 +11,7 @@ class EventListener(metaclass=EventRegistry):
   Event listeners can register for an event by specifying the event
   name in the EVENTS constant.
   """
+
   EVENTS = []
 
   def ProcessEvents(self, msgs=None, publisher_username=None):
@@ -60,7 +60,8 @@ class Events(object):
     for event_name, messages in events.items():
       if not isinstance(event_name, str):
         raise ValueError(
-            "Event names should be string, got: %s" % type(event_name))
+            "Event names should be string, got: %s" % type(event_name)
+        )
       for msg in messages:
         if not isinstance(msg, rdfvalue.RDFValue):
           raise ValueError("Can only publish RDFValue instances.")

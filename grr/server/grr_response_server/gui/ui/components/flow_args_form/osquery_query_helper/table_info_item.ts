@@ -10,6 +10,7 @@ import {type OsqueryTableSpec} from './osquery_table_specs';
 
 /** An item containing table info to display in the query helper menu */
 @Component({
+  standalone: false,
   selector: 'table-info-item',
   templateUrl: './table_info_item.ng.html',
   styleUrls: ['./table_info_item.scss'],

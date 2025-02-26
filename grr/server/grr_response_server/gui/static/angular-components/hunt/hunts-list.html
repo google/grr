@@ -97,12 +97,12 @@
           ng-class="{'row-selected': item.value.hunt_id.value == selectedHuntId, 'warning': item.value.is_robot.value}"
           ng-show="controller.showRobotHunts || !item.value.is_robot.value">
 
-        <td><grr-hunt-status-icon hunt="::item" /></td>
+        <td><grr-hunt-status-icon hunt="::item"></grr-hunt-status-icon></td>
         <td>{$ ::item.value.hunt_id.value $}</td>
-        <td><grr-timestamp value="::item.value.created" /></td>
-        <td><grr-timestamp value="::item.value.last_start_time" /></td>
-        <td><grr-duration value="::item.value.duration" /></td>
-        <td><grr-timestamp value="::item.value.expiration_time" /></td>
+        <td><grr-timestamp value="::item.value.created"></grr-timestamp></td>
+        <td><grr-timestamp value="::item.value.last_start_time"></grr-timestamp></td>
+        <td><grr-duration value="::item.value.duration"></grr-duration></td>
+        <td><grr-timestamp value="::item.value.expiration_time"></grr-timestamp></td>
         <td>{$ ::item.value.client_limit.value $}</td>
         <td>{$ ::item.value.creator.value $}</td>
         <td>{$ ::item.value.description.value $}</td>

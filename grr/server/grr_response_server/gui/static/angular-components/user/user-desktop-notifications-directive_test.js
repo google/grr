@@ -35,7 +35,7 @@ describe('User desktop notifications directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-user-desktop-notifications />';
+    const template = '<grr-user-desktop-notifications></grr-user-desktop-notifications>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;

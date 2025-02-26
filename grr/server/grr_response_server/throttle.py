@@ -46,12 +46,14 @@ class FlowThrottler(object):
     Args:
       client_id: Client id string.
       min_create_time: minimum creation time (inclusive)
+
     Yields: flow_objects.Flow objects
     """
     flow_list = data_store.REL_DB.ReadAllFlowObjects(
         client_id=client_id,
         min_create_time=min_create_time,
-        include_child_flows=False)
+        include_child_flows=False,
+    )
     flow_list = [mig_flow_objects.ToRDFFlow(flow) for flow in flow_list]
     for flow_obj in flow_list:
       yield flow_obj
@@ -90,12 +92,16 @@ class FlowThrottler(object):
       flow_args = rdf_flows.EmptyFlowArgs()
 
     for flow_obj in flow_objs:
-      if (flow_obj.create_time > dup_boundary and
-          flow_obj.flow_class_name == flow_name and flow_obj.args == flow_args):
+      if (
+          flow_obj.create_time > dup_boundary
+          and flow_obj.flow_class_name == flow_name
+          and flow_obj.args == flow_args
+      ):
         raise DuplicateFlowError(
-            "Identical %s already run on %s at %s" %
-            (flow_name, client_id, flow_obj.create_time),
-            flow_id=flow_obj.flow_id)
+            "Identical %s already run on %s at %s"
+            % (flow_name, client_id, flow_obj.create_time),
+            flow_id=flow_obj.flow_id,
+        )
 
       # Filter for flows started by user within the 1 day window.
       if flow_obj.creator == user and flow_obj.create_time > yesterday:
@@ -104,5 +110,6 @@ class FlowThrottler(object):
     # If limit is set, enforce it.
     if self.daily_req_limit and flow_count >= self.daily_req_limit:
       raise DailyFlowRequestLimitExceededError(
-          "%s flows run since %s, limit: %s" %
-          (flow_count, yesterday, self.daily_req_limit))
+          "%s flows run since %s, limit: %s"
+          % (flow_count, yesterday, self.daily_req_limit)
+      )

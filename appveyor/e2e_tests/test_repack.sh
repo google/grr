@@ -9,8 +9,6 @@ function fatal() {
   exit 1
 }
 
-echo 'Client.labels: [repack-test]' > repack.yaml
-
 grr_client_build --verbose \
   repack_multiple \
   --templates /usr/share/grr-server/grr-response-templates/templates/* \

@@ -13,6 +13,7 @@ import {
  * A container loading more contents through infinite scroll.
  */
 @Component({
+  standalone: false,
   selector: 'app-infinite-list',
   templateUrl: './infinite_list.ng.html',
   styleUrls: ['./infinite_list.scss'],

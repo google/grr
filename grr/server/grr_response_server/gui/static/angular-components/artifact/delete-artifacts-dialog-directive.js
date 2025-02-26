@@ -1,5 +1,4 @@
 goog.module('grrUi.artifact.deleteArtifactsDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
@@ -42,7 +41,7 @@ const DeleteArtifactsDialogController = class {
    * @export
    */
   proceed() {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     this.grrApiService_.delete('/artifacts', {names: this.scope_['names']})
         .then(

@@ -29,17 +29,18 @@ message ApiCallRouterWithApprovalCheckParams {
     description: "If set to false (default), users marked as 'admin' in "
                  "the DB will be able to launch restricted flows. In other words, each "
                  "user marked as admin in the DB will be treated as if being listed in "
-                 "'restricted_flow_users' attribute below. If set to true, only "
-                 "'restricted_flow_users|groups' router configuration attribute will "
-                 "be used when making restricted flows ACL decisions."
+                 "'admin_users' attribute below. If set to true, only "
+                 "'admin_users|groups' router configuration attribute will "
+                 "be used when making restriction ACL decisions."
   }];
 
-  repeated string restricted_flow_users = 2 [
-    (sem_type) = { description: "Names of users who can run restricted flows." }
-  ];
-  repeated string restricted_flow_groups = 3 [(sem_type) = {
-    description: "Names of groups of users that can run restricted flows."
+  reserved 2;
+  reserved 3;
+  repeated string admin_groups = 4 [(sem_type) = {
+    description: "Names of groups of users that have admin access."
   }];
+  repeated string admin_users = 5
+      [(sem_type) = { description: "Names of users that have admin access." }];
 }
 
 message ApiLabelsRestrictedCallRouterParams {
@@ -113,6 +114,31 @@ message RobotRouterArtifactCollectorFlowParams {
   }];
 }
 
+message RobotRouterTimelineFlowParams {
+  optional bool enabled = 1;
+
+  optional uint64 max_flows_per_client_daily = 2 [(sem_type) = {
+    description: "Maximum number of TimelineFlow flows that can be "
+                 "started on a single client within 24 hours. Default is 0, meaning no "
+                 "limit."
+  }];
+
+  optional uint64 min_interval_between_duplicate_flows = 3 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "Minimum time that has to pass between 2 "
+                 "TimelineFlow flows with same arguments. Default is 0, "
+                 "meaning any time."
+  }];
+}
+
+message RobotRouterGetFileBlobParams {
+  optional bool enabled = 1;
+}
+
+message RobotRouterGetCollectedTimelineParams {
+  optional bool enabled = 1;
+}
+
 message RobotRouterGetFlowParams {
   optional bool enabled = 1;
 }
@@ -144,7 +170,7 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool skip_glob_checks_for_artifact_collector = 4;
 }
 
-// Next message id: 9
+// Next message id: 12
 message ApiCallRobotRouterParams {
   optional RobotRouterSearchClientsParams search_clients = 1;
 
@@ -155,6 +181,10 @@ message ApiCallRobotRouterParams {
   optional RobotRouterListFlowResultsParams list_flow_results = 5;
   optional RobotRouterListFlowLogsParams list_flow_logs = 8;
   optional RobotRouterGetFlowFilesArchiveParams get_flow_files_archive = 6;
+  optional RobotRouterGetFileBlobParams get_file_blob = 10;
+
+  optional RobotRouterTimelineFlowParams timeline_flow = 9;
+  optional RobotRouterGetCollectedTimelineParams get_collected_timeline = 11;
 
   // DEPRECATED, don't use.
   // Note: this field wasn't renamed to DEPRECATED_robot_id, since router params

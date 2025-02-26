@@ -43,6 +43,8 @@ export interface ConfigState {
   readonly uiConfig?: ApiUiConfig;
   readonly clientsLabels?: readonly string[];
   readonly binaries?: readonly Binary[];
+  readonly webAuthType?: string;
+  readonly exportCommandPrefix?: string;
 }
 
 /** ComponentStore implementation for the config store. */
@@ -198,7 +200,7 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
     ),
   );
 
-  /** An observable emitting available flow descriptors. */
+  /** An observable emitting available UI configuration. */
   readonly uiConfig$ = of(undefined).pipe(
     // Ensure that the query is done on subscription.
     tap(() => {
@@ -220,7 +222,7 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
     ),
   );
 
-  /** An observable emitting available flow descriptors. */
+  /** An observable emitting available artifact descriptors. */
   readonly artifactDescriptors$ = of(undefined).pipe(
     // Ensure that the query is done on subscription.
     tap(() => {
@@ -251,6 +253,58 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
     filter(isNonNull),
     shareReplay(1), // Ensure that the query is done just once.
   );
+
+  private readonly updateWebAuthType = this.updater<string>(
+    (state, webAuthType) => {
+      return {...state, webAuthType};
+    },
+  );
+
+  private readonly fetchWebAuthType = this.effect<void>((obs$) =>
+    obs$.pipe(
+      switchMap(() => this.httpApiService.fetchWebAuthType()),
+      tap((webAuthType) => {
+        this.updateWebAuthType(webAuthType);
+      }),
+    ),
+  );
+
+  /** An observable emitting available webAuthType. */
+  readonly webAuthType$ = of(undefined).pipe(
+    // Ensure that the query is done on subscription.
+    tap(() => {
+      this.fetchWebAuthType();
+    }),
+    switchMap(() => this.select((state) => state.webAuthType)),
+    filter(isNonNull),
+    shareReplay(1), // Ensure that the query is done just once.
+  );
+
+  private readonly updateExportCommandPrefix = this.updater<string>(
+    (state, exportCommandPrefix) => {
+      return {...state, exportCommandPrefix};
+    },
+  );
+
+  private readonly fetchExportCommandPrefix = this.effect<void>((obs$) =>
+    obs$.pipe(
+      switchMap(() => this.httpApiService.fetchExportCommandPrefix()),
+      tap((exportCommandPrefix) => {
+        this.updateExportCommandPrefix(exportCommandPrefix);
+      }),
+    ),
+  );
+
+  /** An observable emitting available exportCommandPrefix. */
+  readonly exportCommandPrefix$ = of(undefined).pipe(
+    // Ensure that the query is done on subscription.
+    tap(() => {
+      this.fetchExportCommandPrefix();
+    }),
+    switchMap(() => this.select((state) => state.exportCommandPrefix)),
+    filter(isNonNull),
+    shareReplay(1), // Ensure that the query is done just once.
+  );
 }
 
 /** Store to retrieve general purpose configuration and backend data. */
@@ -258,29 +312,40 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
   providedIn: 'root',
 })
 export class ConfigGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ConfigComponentStore(this.httpApiService);
+    this.flowDescriptors$ = this.store.flowDescriptors$;
+    this.approvalConfig$ = this.store.approvalConfig$;
+    this.uiConfig$ = this.store.uiConfig$;
+    this.clientsLabels$ = this.store.clientsLabels$;
+    this.artifactDescriptors$ = this.store.artifactDescriptors$;
+    this.binaries$ = this.store.binaries$;
+    this.outputPluginDescriptors$ = this.store.outputPluginDescriptors$;
+    this.webAuthType$ = this.store.webAuthType$;
+    this.exportCommandPrefix$ = this.store.exportCommandPrefix$;
+  }
 
-  private readonly store = new ConfigComponentStore(this.httpApiService);
+  private readonly store;
 
   /** An observable emitting available flow descriptors. */
-  readonly flowDescriptors$: Observable<FlowDescriptorMap> =
-    this.store.flowDescriptors$;
+  readonly flowDescriptors$: Observable<FlowDescriptorMap>;
 
   /** An observable emitting the approval configuration. */
-  readonly approvalConfig$: Observable<ApprovalConfig> =
-    this.store.approvalConfig$;
+  readonly approvalConfig$: Observable<ApprovalConfig>;
 
   /** An observable emitting the UI configuration. */
-  readonly uiConfig$: Observable<ApiUiConfig> = this.store.uiConfig$;
+  readonly uiConfig$: Observable<ApiUiConfig>;
 
   /** An observable emitting a list of all clients labels. */
-  readonly clientsLabels$: Observable<string[]> = this.store.clientsLabels$;
+  readonly clientsLabels$: Observable<string[]>;
 
-  readonly artifactDescriptors$: Observable<ArtifactDescriptorMap> =
-    this.store.artifactDescriptors$;
+  readonly artifactDescriptors$: Observable<ArtifactDescriptorMap>;
 
-  readonly binaries$: Observable<readonly Binary[]> = this.store.binaries$;
+  readonly binaries$: Observable<readonly Binary[]>;
 
-  readonly outputPluginDescriptors$: Observable<OutputPluginDescriptorMap> =
-    this.store.outputPluginDescriptors$;
+  readonly outputPluginDescriptors$: Observable<OutputPluginDescriptorMap>;
+
+  readonly webAuthType$: Observable<string>;
+
+  readonly exportCommandPrefix$: Observable<string>;
 }

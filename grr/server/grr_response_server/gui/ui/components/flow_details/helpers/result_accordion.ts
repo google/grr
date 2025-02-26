@@ -48,6 +48,7 @@ const COLOR_SCHEME_CLASSES: {[key in ColorScheme]: string | null} = {
 
 /** Component that displays an expendable flow result row. */
 @Component({
+  standalone: false,
   selector: 'result-accordion',
   templateUrl: './result_accordion.ng.html',
   styleUrls: ['./result_accordion.scss'],

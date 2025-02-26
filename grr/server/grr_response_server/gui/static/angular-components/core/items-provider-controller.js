@@ -3,7 +3,8 @@ goog.module.declareLegacyNamespace();
 
 
 
-/** @typedef {!Object|{
+/**
+ * @typedef {!Object|{
  *             offset:?number,
  *             totalCount:?number,
  *             items:Array<?>
@@ -21,7 +22,7 @@ exports.Items;
  * @export
  */
 exports.ItemsProviderController = function() {};
-var ItemsProviderController = exports.ItemsProviderController;
+const ItemsProviderController = exports.ItemsProviderController;
 
 
 /**
@@ -51,4 +52,3 @@ ItemsProviderController.prototype.fetchItems = goog.abstractMethod;
  *     exports.Items.
  */
 ItemsProviderController.prototype.fetchFilteredItems = goog.abstractMethod;
-

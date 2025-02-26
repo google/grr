@@ -1,5 +1,4 @@
 goog.module('grrUi.client.clientsListDirective');
-goog.module.declareLegacyNamespace();
 
 const clientDialogService = goog.requireType('grrUi.client.clientDialogService');
 const routingService = goog.requireType('grrUi.routing.routingService');

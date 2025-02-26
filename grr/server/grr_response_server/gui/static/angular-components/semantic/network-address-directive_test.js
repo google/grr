@@ -21,7 +21,7 @@ describe('mac address directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-network-address value="value" />';
+    const template = '<grr-network-address value="value"></grr-network-address>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

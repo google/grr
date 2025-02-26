@@ -57,16 +57,20 @@ class ClientSearchStore extends ApiCollectionStore<
  */
 @Injectable({providedIn: 'any'})
 export class ClientSearchLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ClientSearchStore(this.httpApiService);
+    this.clients$ = this.store.results$;
+    this.isLoading$ = this.store.isLoading$;
+    this.hasMore$ = this.store.hasMore$;
+  }
 
-  private readonly store = new ClientSearchStore(this.httpApiService);
+  private readonly store;
 
-  readonly clients$: Observable<readonly Client[] | undefined> =
-    this.store.results$;
+  readonly clients$: Observable<readonly Client[] | undefined>;
 
-  readonly isLoading$ = this.store.isLoading$;
+  readonly isLoading$;
 
-  readonly hasMore$ = this.store.hasMore$;
+  readonly hasMore$;
 
   loadMore(count?: number) {
     this.store.loadMore(count);

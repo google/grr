@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.newHuntWizard.newHuntWizard');
-goog.module.declareLegacyNamespace();
 
 const {ConfigureFlowPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureFlowPageDirective');
 const {ConfigureHuntPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureHuntPageDirective');

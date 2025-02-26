@@ -412,44 +412,6 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     scheduled_flow.flow_args.Unpack(flow_args)
     self.assertEqual(flow_args.artifact_list, ['FakeFileArtifact'])
 
-  def testScheduleArtifactCollectorFlowWithDefaultArtifacts(self):
-    artifact_registry.REGISTRY.AddDefaultSources()
-    self.assertLen(
-        artifact_registry.REGISTRY.GetArtifacts(
-            name_list=['LinuxHardwareInfo']
-        ),
-        1,
-    )
-
-    self.Open(f'/v2/clients/{self.client_id}')
-    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
-    self.Click('css=flow-form button:contains("Collect forensic artifacts")')
-
-    self.assertLen(
-        artifact_registry.REGISTRY.GetArtifacts(
-            name_list=['LinuxHardwareInfo']
-        ),
-        1,
-    )
-    # Type whole artifact name except last letter into autocomplete.
-    self.Type('css=flow-args-form input[name=artifactName]', 'LinuxHardwareInf')
-
-    self.Click('css=[role=option]:contains("LinuxHardwareInfo")')
-    self.Click('css=flow-form button:contains("Schedule")')
-
-    def GetFirstScheduledFlow():
-      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
-      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
-
-    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
-
-    self.assertEqual(
-        scheduled_flow.flow_name, collectors.ArtifactCollectorFlow.__name__
-    )
-    flow_args = flows_pb2.ArtifactCollectorFlowArgs()
-    scheduled_flow.flow_args.Unpack(flow_args)
-    self.assertEqual(flow_args.artifact_list, ['LinuxHardwareInfo'])
-
   def _SetUpAdminUser(self):
     data_store.REL_DB.WriteGRRUser(
         self.test_username,

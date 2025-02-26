@@ -87,15 +87,7 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
   OUTPUT_UNDEFINED = "Undefined"
 
   TYPE_MAP = {
-      artifact_pb2.ArtifactSource.GRR_CLIENT_ACTION: {
-          "required_attributes": ["client_action"],
-          "output_type": OUTPUT_UNDEFINED,
-      },
       artifact_pb2.ArtifactSource.FILE: {
-          "required_attributes": ["paths"],
-          "output_type": "StatEntry",
-      },
-      artifact_pb2.ArtifactSource.LIST_FILES: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry",
       },
@@ -119,24 +111,6 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
           "required_attributes": ["cmd", "args"],
           "output_type": "ExecuteResponse",
       },
-      # Running Rekall plugins is deprecated, we keep the type alive so we are
-      # not surprised if an old artifact is encountered.
-      # TODO(amoser): Remove this.
-      artifact_pb2.ArtifactSource.REKALL_PLUGIN: {
-          "required_attributes": ["plugin"],
-          "output_type": "RekallResponse",
-      },
-      # ARTIFACT is the legacy name for ARTIFACT_GROUP
-      # per: https://github.com/ForensicArtifacts/artifacts/pull/143
-      # TODO(user): remove legacy support after migration.
-      artifact_pb2.ArtifactSource.ARTIFACT: {
-          "required_attributes": ["names"],
-          "output_type": OUTPUT_UNDEFINED,
-      },
-      artifact_pb2.ArtifactSource.ARTIFACT_FILES: {
-          "required_attributes": ["artifact_list"],
-          "output_type": "StatEntry",
-      },
       artifact_pb2.ArtifactSource.ARTIFACT_GROUP: {
           "required_attributes": ["names"],
           "output_type": OUTPUT_UNDEFINED,
@@ -152,7 +126,6 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
 
   def Validate(self):
     """Check the source is well constructed."""
-    self._ValidateReturnedTypes()
     self._ValidatePaths()
     self._ValidateType()
     self._ValidateRequiredAttributes()
@@ -170,15 +143,6 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
     if len(args) == 1 and " " in args[0]:
       detail = "single argument '%s' containing a space" % args[0]
       raise ArtifactSourceSyntaxError(self, detail)
-
-  def _ValidateReturnedTypes(self):
-    for rdf_type in self.returned_types:
-      # TODO(hanuszczak): Why do we have to do it like this? Is a simple call
-      # with `isinstance` not enough? Why do we have to use that weird metaclass
-      # machinery here?
-      if rdf_type not in rdfvalue.RDFValue.classes:
-        detail = "invalid return type '%s'" % rdf_type
-        raise ArtifactSourceSyntaxError(self, detail)
 
   def _ValidatePaths(self):
     # Catch common mistake of path vs paths.

@@ -10,7 +10,6 @@ from grr_response_server.flows.general import webhistory
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -47,7 +46,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     # Start the flow with 2 browsers scheduled for collection.
     flow_args = webhistory.CollectBrowserHistoryArgs(
         browsers=[
-            webhistory.CollectBrowserHistoryArgs.Browser.CHROME,
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS,
             webhistory.CollectBrowserHistoryArgs.Browser.OPERA,
         ]
     )
@@ -63,7 +62,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                     num_collected_files=0,
                 ),
@@ -79,7 +78,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       # Expand the flow.
       self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
-          self.IsElementPresent, "css=.row:contains('Chrome') .in-progress"
+          self.IsElementPresent, "css=.row:contains('Chromium') .in-progress"
       )
       self.WaitUntil(
           self.IsElementPresent, "css=.row:contains('Opera') .in-progress"
@@ -93,7 +92,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
   def testCorrectlyDisplaysSuccessStateForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -107,7 +108,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.SUCCESS,
                     num_collected_files=1,
                 ),
@@ -119,7 +120,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
           self.IsElementPresent,
-          "css=.row:contains('Chrome') .success:contains('1 file')",
+          "css=.row:contains('Chromium') .success:contains('1 file')",
       )
       # Check that other browsers are not shown.
       self.WaitUntilNot(self.IsElementPresent, "css=.row:contains('Opera')")
@@ -131,7 +132,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
   def testCorrectlyDisplaysWarningStateForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -145,7 +148,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.SUCCESS,
                     num_collected_files=0,
                 ),
@@ -157,7 +160,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
           self.IsElementPresent,
-          "css=.row:contains('Chrome') .warning:contains('No files collected')",
+          "css=.row:contains('Chromium') .warning:contains('No files"
+          " collected')",
       )
       # Check that other browsers are not shown.
       self.WaitUntilNot(self.IsElementPresent, "css=.row:contains('Opera')")
@@ -169,7 +173,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
   def testCorrectlyDisplaysErrorForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -183,7 +189,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.ERROR,
                     description="Something went wrong",
                     num_collected_files=0,
@@ -196,7 +202,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
           self.IsElementPresent,
-          "css=.row:contains('Chrome') .error:contains('Something went wrong')",
+          "css=.row:contains('Chromium') .error:contains('Something went"
+          " wrong')",
       )
       # Check that other browsers are not shown.
       self.WaitUntilNot(self.IsElementPresent, "css=.row:contains('Opera')")
@@ -208,7 +215,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
   def testShowsDownloadButtonOnFlowCompletion(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -222,7 +231,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                     num_collected_files=0,
                 ),
@@ -240,7 +249,18 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
           self.IsElementPresent,
           "css=a[mat-stroked-button]:contains('Download all')",
       )
-
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
+            is_metadata_set=True,
+            num_results_per_type_tag=[
+                flows_pb2.FlowResultCount(
+                    type=flows_pb2.CollectBrowserHistoryResult.__name__, count=1
+                )
+            ],
+        ),
+    )
     flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
 
     with flow_test_lib.FlowProgressOverride(
@@ -248,34 +268,24 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                     num_collected_files=1,
                 ),
             ]
         ),
     ):
-      with flow_test_lib.FlowResultMetadataOverride(
-          webhistory.CollectBrowserHistory,
-          rdf_flow_objects.FlowResultMetadata(
-              is_metadata_set=True,
-              num_results_per_type_tag=[
-                  rdf_flow_objects.FlowResultCount(
-                      type=webhistory.CollectBrowserHistoryResult.__name__,
-                      count=1,
-                  )
-              ],
-          ),
-      ):
-        # The flow details view should get updated automatically.
-        self.WaitUntil(
-            self.IsElementPresent,
-            "css=a[mat-stroked-button]:contains('Download')",
-        )
+      # The flow details view should get updated automatically.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=a[mat-stroked-button]:contains('Download')",
+      )
 
   def testDisplaysMultipleResultsForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -287,8 +297,11 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     flow_test_lib.AddResultsToFlow(
         self.client_id,
         flow_id,
-        [_GenResults(webhistory.Browser.CHROME, i) for i in range(200)],
-        tag="CHROME",
+        [
+            _GenResults(webhistory.Browser.CHROMIUM_BASED_BROWSERS, i)
+            for i in range(200)
+        ],
+        tag="CHROMIUM_BASED_BROWSERS",
     )
 
     with flow_test_lib.FlowProgressOverride(
@@ -296,7 +309,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.SUCCESS,
                     num_collected_files=200,
                 ),
@@ -307,7 +320,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       # Expand the flow.
       self.Click("css=.flow-title:contains('Collect browser history')")
       # Expand the browser.
-      self.Click("css=div.title:contains('Chrome')")
+      self.Click("css=div.title:contains('Chromium')")
       # Update pagination to display all the results.
       self.MatSelect("css=.top-paginator mat-select", "100")
       # Check that only first 100 results are visible. First row is the table
@@ -315,7 +328,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsElementPresent, "css=.results tr:nth(1)")
       self.WaitUntilNot(
           self.IsElementPresent,
-          "css=.results tr:nth(101):contains('/home/foo/chrome-99')",
+          "css=.results"
+          " tr:nth(101):contains('/home/foo/chromium_based_browsers-99')",
       )
 
       # Check that clicking Load More loads the rest. The button can be hidden
@@ -330,7 +344,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
       self.WaitUntil(
           self.IsElementPresent,
-          "css=.results tr:nth(200):contains('/home/foo/chrome-199')",
+          "css=.results"
+          " tr:nth(200):contains('/home/foo/chromium_based_browsers-199')",
       )
       self.WaitUntilNot(self.IsElementPresent, "css=.results tr:nth(201)")
 
@@ -339,66 +354,10 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
           self.IsElementPresent, "css=button:contains('Load More')"
       )
 
-  def testAllowsCopyingResultPathToClipboard(self):
-    # TODO: remove the skip instruction as soon as latest Chrome
-    # and WebDriver versions are used in the CI infrastructure.
-    self.skipTest(
-        "Temporarily disabling: running this test requires "
-        "having latest Chrome/WebDriver versions in the CI "
-        "setup."
-    )
-
-    flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
-    )
-    flow_id = flow_test_lib.StartFlow(
-        webhistory.CollectBrowserHistory,
-        creator=self.test_username,
-        client_id=self.client_id,
-        flow_args=flow_args,
-    )
-
-    flow_test_lib.AddResultsToFlow(
-        self.client_id,
-        flow_id,
-        [_GenResults(webhistory.Browser.CHROME, 0)],
-        tag="CHROME",
-    )
-
-    with flow_test_lib.FlowProgressOverride(
-        webhistory.CollectBrowserHistory,
-        webhistory.CollectBrowserHistoryProgress(
-            browsers=[
-                webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
-                    status=webhistory.BrowserProgress.Status.SUCCESS,
-                    num_collected_files=1,
-                ),
-            ]
-        ),
-    ):
-      self.Open(f"/v2/clients/{self.client_id}")
-      # Expand the flow.
-      self.Click("css=.flow-title:contains('Collect browser history')")
-      # Expand the browser.
-      self.Click("css=div.title:contains('Chrome')")
-      # Hover and click on the copy button.
-      self.MoveMouseTo(
-          "css=.results tr:nth(1):contains('/home/foo/chrome-0') td.path"
-      )
-      # Click on the now visible button.
-      self.Click(
-          "css=.results tr:nth(1):contains('/home/foo/chrome-0') td.path "
-          "button.copy-button"
-      )
-
-      clip_value = self.GetClipboard()
-      self.assertEqual(clip_value, "/home/foo/chrome-0")
-
   def testDisplaysAndHidesResultsForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
         browsers=[
-            webhistory.CollectBrowserHistoryArgs.Browser.CHROME,
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS,
             webhistory.CollectBrowserHistoryArgs.Browser.OPERA,
         ]
     )
@@ -412,8 +371,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     flow_test_lib.AddResultsToFlow(
         self.client_id,
         flow_id,
-        [_GenResults(webhistory.Browser.CHROME, 0)],
-        tag="CHROME",
+        [_GenResults(webhistory.Browser.CHROMIUM_BASED_BROWSERS, 0)],
+        tag="CHROMIUM_BASED_BROWSERS",
     )
     flow_test_lib.AddResultsToFlow(
         self.client_id,
@@ -426,7 +385,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         webhistory.CollectBrowserHistoryProgress(
             browsers=[
                 webhistory.BrowserProgress(
-                    browser=webhistory.Browser.CHROME,
+                    browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                     status=webhistory.BrowserProgress.Status.SUCCESS,
                     num_collected_files=1,
                 ),
@@ -441,21 +400,21 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Open(f"/v2/clients/{self.client_id}")
       self.Click("css=.flow-title:contains('Collect browser history')")
 
-      self.ScrollIntoView("css=div.title:contains('Chrome')")
-      self.Click("css=div.title:contains('Chrome')")
+      self.ScrollIntoView("css=div.title:contains('Chromium')")
+      self.Click("css=div.title:contains('Chromium')")
       self.WaitUntil(
           self.IsElementPresent,
-          "css=.results tr:contains('/home/foo/chrome-0')",
+          "css=.results tr:contains('/home/foo/chromium_based_browsers-0')",
       )
       # Only Chrome's results should be shown.
       self.WaitUntilNot(
           self.IsElementPresent, "css=.results tr:contains('/home/foo/opera-0')"
       )
       # Second click should toggle the browser results view.
-      self.Click("css=div.title:contains('Chrome')")
+      self.Click("css=div.title:contains('Chromium')")
       self.WaitUntilNot(
           self.IsElementPresent,
-          "css=.results tr:contains('/home/foo/chrome-0')",
+          "css=.results tr:contains('/home/foo/chromium_based_browsers-0')",
       )
 
       self.Click("css=div.title:contains('Opera')")
@@ -465,7 +424,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       # Only Opera's results should be shown.
       self.WaitUntilNot(
           self.IsElementPresent,
-          "css=.results tr:contains('/home/foo/chrome-0')",
+          "css=.results tr:contains('/home/foo/chromium_based_browsers-0')",
       )
       # Second click should toggle the browser results view.
       self.Click("css=div.title:contains('Opera')")
@@ -475,7 +434,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
   def testUpdatesResultsOfRunningFlowDynamically(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
-        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME]
+        browsers=[
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS
+        ]
     )
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
@@ -493,7 +454,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     progress_0_results = webhistory.CollectBrowserHistoryProgress(
         browsers=[
             webhistory.BrowserProgress(
-                browser=webhistory.Browser.CHROME,
+                browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                 status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                 num_collected_files=0,
             )
@@ -502,7 +463,9 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     with flow_test_lib.FlowProgressOverride(
         webhistory.CollectBrowserHistory, progress_0_results
     ):
-      self.WaitUntil(self.IsElementPresent, "css=div.title:contains('Chrome')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=div.title:contains('Chromium')"
+      )
       self.WaitUntilNot(
           self.IsElementPresent,
           (
@@ -514,13 +477,16 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     flow_test_lib.AddResultsToFlow(
         self.client_id,
         flow_id,
-        [_GenResults(webhistory.Browser.CHROME, i) for i in range(9)],
-        tag="CHROME",
+        [
+            _GenResults(webhistory.Browser.CHROMIUM_BASED_BROWSERS, i)
+            for i in range(9)
+        ],
+        tag="CHROMIUM_BASED_BROWSERS",
     )
     progress_10_results = webhistory.CollectBrowserHistoryProgress(
         browsers=[
             webhistory.BrowserProgress(
-                browser=webhistory.Browser.CHROME,
+                browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                 status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                 num_collected_files=9,
             )
@@ -536,19 +502,19 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
               + ".header:contains('keyboard_arrow_down')"
           ),
       )
-      self.Click("css=div.title:contains('Chrome')")
+      self.Click("css=div.title:contains('Chromium')")
       self.WaitUntilEqual(9, self.GetCssCount, "css=tr:contains('/home/foo')")
 
     flow_test_lib.AddResultsToFlow(
         self.client_id,
         flow_id,
-        [_GenResults(webhistory.Browser.CHROME, 10)],
-        tag="CHROME",
+        [_GenResults(webhistory.Browser.CHROMIUM_BASED_BROWSERS, 10)],
+        tag="CHROMIUM_BASED_BROWSERS",
     )
     progress_10_results = webhistory.CollectBrowserHistoryProgress(
         browsers=[
             webhistory.BrowserProgress(
-                browser=webhistory.Browser.CHROME,
+                browser=webhistory.Browser.CHROMIUM_BASED_BROWSERS,
                 status=webhistory.BrowserProgress.Status.IN_PROGRESS,
                 num_collected_files=10,
             )
@@ -588,7 +554,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     self.assertCountEqual(
         flow_args.browsers,
         [
-            webhistory.CollectBrowserHistoryArgs.Browser.CHROME,
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROMIUM_BASED_BROWSERS,
             # Only Firefox has been unchecked, so it should not appear.
             webhistory.CollectBrowserHistoryArgs.Browser.INTERNET_EXPLORER,
             webhistory.CollectBrowserHistoryArgs.Browser.SAFARI,

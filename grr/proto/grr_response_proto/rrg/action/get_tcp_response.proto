@@ -1,0 +1,35 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_tcp_response;
+
+import "google/protobuf/duration.proto";
+import "grr_response_proto/rrg/net.proto";
+
+message Args {
+    // Address of the host to connect to.
+    rrg.net.SocketAddress address = 1;
+
+    // Timeout for establishing the connection with the host.
+    google.protobuf.Duration connect_timeout = 2;
+
+    // Timeout for writing data to the TCP stream.
+    google.protobuf.Duration write_timeout = 3;
+
+    // Timeout for reading data from the TCP stream.
+    google.protobuf.Duration read_timeout = 4;
+
+    // Data to write to the TCP stream.
+    bytes data = 5;
+}
+
+message Result {
+    // Data read from the TCP stream.
+    bytes data = 1;
+
+    // TODO(user): Consider whether we should include a `data_truncated`
+    // field to indicate whether there was more data available.
+}

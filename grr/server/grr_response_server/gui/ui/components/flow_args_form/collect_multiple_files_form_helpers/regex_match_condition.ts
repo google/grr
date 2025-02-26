@@ -22,6 +22,7 @@ import {
 
 /** Form that configures a regex match condition. */
 @Component({
+  standalone: false,
   selector: 'regex-match-condition',
   styles: ['.regex-mode { width: 150px; }'],
   templateUrl: './regex_match_condition.ng.html',

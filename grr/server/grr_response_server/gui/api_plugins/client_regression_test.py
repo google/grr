@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 """This modules contains regression tests for clients API handlers."""
 
-import ipaddress
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
-from grr_response_server.models import clients
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -110,11 +107,6 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
       client_id = self.SetupClient(0)
-
-      ip = clients.NetworkAddressFromIPAddress(
-          ipaddress.IPv4Address("192.168.100.42")
-      )
-      data_store.REL_DB.WriteClientMetadata(client_id, last_ip=ip)
 
     self.Check(
         "GetLastClientIPAddress",

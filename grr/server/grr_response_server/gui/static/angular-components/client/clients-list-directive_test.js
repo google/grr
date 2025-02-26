@@ -48,7 +48,7 @@ describe('clients list', () => {
   });
 
   const render = (query) => {
-    const template = '<grr-clients-list />';
+    const template = '<grr-clients-list></grr-clients-list>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

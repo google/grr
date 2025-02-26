@@ -131,7 +131,7 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
 
   def testRendersGrrMessagePayloadAsStructuredData(self):
     sample = rdf_flows.GrrMessage(
-        task_id=42,
+        request_id=42,
         payload=ApiRDFProtoStructRendererSample(
             index=43, values=["foo", "bar"]
         ),
@@ -143,7 +143,7 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     model_data = {
         "type": "GrrMessage",
         "value": {
-            "task_id": {"type": "long", "value": 42},
+            "request_id": {"type": "long", "value": 42},
             "payload_type": {
                 "type": "unicode",
                 "value": "ApiRDFProtoStructRendererSample",

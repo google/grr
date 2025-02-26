@@ -33,7 +33,7 @@ describe('"recursive list directory" button', () => {
     $rootScope.filePath = filePath || 'fs/os/c/';
 
     const template = '<grr-recursive-list-button ' +
-        'client-id="clientId" file-path="filePath" />';
+        'client-id="clientId" file-path="filePath"></grr-recursive-list-button>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

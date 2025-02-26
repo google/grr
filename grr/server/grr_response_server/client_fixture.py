@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# pyformat: disable
+# fmt: off
 
 """This is a test fixture for client objects.."""
 

@@ -57,24 +57,25 @@ describe('API items provider directive', () => {
     const controller = getController('some/api/path', undefined, undefined);
 
     controller.fetchItems(0, 10);
-    expect(grrApiServiceMock.get).toHaveBeenCalledWith(
-        'some/api/path', {offset: 0, count: 10});
+    expect(grrApiServiceMock.get)
+        .toHaveBeenCalledWith('some/api/path', {offset: 0, count: 10});
   });
 
   it('does not fetch total count when opt_withTotalCount is true', () => {
     const controller = getController('some/api/path', undefined, undefined);
 
     controller.fetchItems(0, 10, true);
-    expect(grrApiServiceMock.get).toHaveBeenCalledWith(
-        'some/api/path', {offset: 0, count: 10});
+    expect(grrApiServiceMock.get)
+        .toHaveBeenCalledWith('some/api/path', {offset: 0, count: 10});
   });
 
   it('adds "filter" to query when fetching filtered items', () => {
     const controller = getController('some/api/path', undefined, undefined);
 
     controller.fetchFilteredItems('some', 0, 10);
-    expect(grrApiServiceMock.get).toHaveBeenCalledWith(
-        'some/api/path', {offset: 0, count: 10, filter: 'some'});
+    expect(grrApiServiceMock.get)
+        .toHaveBeenCalledWith(
+            'some/api/path', {offset: 0, count: 10, filter: 'some'});
   });
 });
 

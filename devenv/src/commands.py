@@ -9,7 +9,6 @@
 import argparse
 import shutil
 import subprocess
-from typing import List
 import uuid
 
 from . import cli
@@ -82,7 +81,7 @@ def clean_all(args: argparse.Namespace) -> None:
 def rebuild_grr(args: argparse.Namespace) -> None:
   del args  # not used
 
-  grr_components: List[str] = [
+  grr_components: list[str] = [
       "grr/proto",
       "grr/core",
       "grr/client",

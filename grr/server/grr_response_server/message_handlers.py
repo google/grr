@@ -7,16 +7,13 @@ from grr_response_core.lib import rdfvalue
 # where we define all the information needed for running message handlers.
 
 session_id_map = {
-    str(rdfvalue.SessionID(queue=rdfvalue.RDFURN("S"), flow_name="Stats")):
-        "StatsHandler",
-    str(rdfvalue.SessionID(flow_name="ClientAlert")):
-        "ClientAlertHandler",
-    str(rdfvalue.SessionID(flow_name="Foreman")):
-        "ForemanHandler",
-    str(rdfvalue.SessionID(flow_name="Startup")):
-        "ClientStartupHandler",
-    str(rdfvalue.SessionID(flow_name="TransferStore")):
-        "BlobHandler",
+    str(
+        rdfvalue.SessionID(queue=rdfvalue.RDFURN("S"), flow_name="Stats")
+    ): "StatsHandler",
+    str(rdfvalue.SessionID(flow_name="ClientAlert")): "ClientAlertHandler",
+    str(rdfvalue.SessionID(flow_name="Foreman")): "ForemanHandler",
+    str(rdfvalue.SessionID(flow_name="Startup")): "ClientStartupHandler",
+    str(rdfvalue.SessionID(flow_name="TransferStore")): "BlobHandler",
 }
 
 

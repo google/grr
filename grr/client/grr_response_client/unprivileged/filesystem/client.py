@@ -2,7 +2,8 @@
 """Unprivileged filesystem RPC client code."""
 
 import abc
-from typing import BinaryIO, Generic, Optional, Sequence, Tuple, TypeVar
+from collections.abc import Sequence
+from typing import BinaryIO, Generic, Optional, TypeVar
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.proto import filesystem_pb2
@@ -43,7 +44,7 @@ class ConnectionWrapper:
         communication.Message(request.SerializeToString(), attachment)
     )
 
-  def Recv(self) -> Tuple[filesystem_pb2.Response, bytes]:
+  def Recv(self) -> tuple[filesystem_pb2.Response, bytes]:
     raw_response, attachment = self._connection.Recv()
     response = filesystem_pb2.Response()
     response.ParseFromString(raw_response)

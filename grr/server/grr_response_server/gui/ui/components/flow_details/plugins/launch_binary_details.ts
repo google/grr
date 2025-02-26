@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 
@@ -14,12 +14,15 @@ import {Plugin} from './plugin';
 
 /** Details and results of LaunchBinary flow. */
 @Component({
+  standalone: false,
   templateUrl: './launch_binary_details.ng.html',
   styleUrls: ['./launch_binary_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LaunchBinaryDetails extends Plugin {
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  private readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
+  constructor() {
     super();
 
     this.flowResultsLocalStore.query(

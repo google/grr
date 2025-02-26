@@ -53,7 +53,7 @@ exports.WizardFormController = class {
    * @export
    */
   back() {
-    var index = this.pages.indexOf(this.currentPage);
+    const index = this.pages.indexOf(this.currentPage);
     if (index == 0) {
       throw new Error('Can\'t go back from the first page.');
     }
@@ -67,7 +67,7 @@ exports.WizardFormController = class {
    * @export
    */
   next() {
-    var index = this.pages.indexOf(this.currentPage);
+    const index = this.pages.indexOf(this.currentPage);
     if (index < this.pages.length - 1) {
       this.currentPage = this.pages[index + 1];
     } else {
@@ -99,7 +99,7 @@ exports.WizardFormController = class {
     }
   }
 };
-var WizardFormController = exports.WizardFormController;
+const WizardFormController = exports.WizardFormController;
 
 
 

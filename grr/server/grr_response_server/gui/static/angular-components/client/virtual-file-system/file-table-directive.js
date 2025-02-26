@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileTableDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -9,10 +8,10 @@ const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtu
 
 
 /** @const */
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 /** @const */
-var OPERATION_POLL_INTERVAL_MS = 1000;
+const OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 /**
@@ -101,8 +100,8 @@ const FileTableController = class {
    * @private
    */
   onFilePathChange_(newValue, oldValue) {
-    var newFolder = getFolderFromPath(newValue);
-    var oldFolder = getFolderFromPath(oldValue);
+    const newFolder = getFolderFromPath(newValue);
+    const oldFolder = getFolderFromPath(oldValue);
 
     if (newFolder !== oldFolder) {
       this.refreshFileList_();
@@ -118,9 +117,9 @@ const FileTableController = class {
    * @private
    */
   refreshFileList_() {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'] || '';
-    var selectedFolderPath = getFolderFromPath(selectedFilePath);
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'] || '';
+    const selectedFolderPath = getFolderFromPath(selectedFilePath);
 
     this.filter = '';
     this.fileListUrl =
@@ -151,8 +150,8 @@ const FileTableController = class {
    * @export
    */
   selectFolder(file) {
-    var clientId = this.fileContext['clientId'];
-    var filePath = file['value']['path']['value'];
+    const clientId = this.fileContext['clientId'];
+    let filePath = file['value']['path']['value'];
     filePath = ensurePathIsFolder(filePath);
 
     // Always reset the version if the file is selected.
@@ -166,12 +165,12 @@ const FileTableController = class {
    * @export
    */
   startVfsRefreshOperation() {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'];
-    var selectedFolderPath = getFolderFromPath(selectedFilePath);
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
+    const selectedFolderPath = getFolderFromPath(selectedFilePath);
 
-    var url = 'clients/' + clientId + '/vfs-refresh-operations';
-    var refreshOperation = {
+    const url = 'clients/' + clientId + '/vfs-refresh-operations';
+    const refreshOperation = {
       file_path: selectedFolderPath,
       max_depth: 1,
       notify_user: false
@@ -179,13 +178,13 @@ const FileTableController = class {
 
     // Setting this.lastRefreshOperationId means that the update button
     // will get disabled immediately.
-    var operationId = this.lastRefreshOperationId = 'unknown';
+    let operationId = this.lastRefreshOperationId = 'unknown';
     this.grrApiService_.post(url, refreshOperation)
         .then(function success(response) {
           operationId = this.lastRefreshOperationId =
               response['data']['operation_id'];
 
-          var pollPromise = this.grrApiService_.poll(
+          const pollPromise = this.grrApiService_.poll(
               url + '/' + operationId, OPERATION_POLL_INTERVAL_MS);
           this.scope_.$on('$destroy', function() {
             this.grrApiService_.cancelPoll(pollPromise);
@@ -220,11 +219,12 @@ const FileTableController = class {
    * @export
    */
   downloadTimeline(format) {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'] || '';
-    var selectedFolderPath = getFolderFromPath(selectedFilePath);
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'] || '';
+    const selectedFolderPath = getFolderFromPath(selectedFilePath);
 
-    var url = 'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
+    const url =
+        'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
     this.grrApiService_.downloadFile(url, {'format': format})
         .then(
             function success() {}.bind(this),

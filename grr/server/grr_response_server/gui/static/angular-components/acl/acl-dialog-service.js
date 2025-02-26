@@ -59,7 +59,7 @@ exports.AclDialogService = class {
       $(this).scope()['$parent']['$dismiss']();
     });
 
-    var directive = RequestApprovalDialogDirective;
+    const directive = RequestApprovalDialogDirective;
     return this.grrDialogService_.openDirectiveDialog(
         directive.directive_name, {
           approvalType: approvalType,
@@ -137,7 +137,7 @@ exports.AclDialogService = class {
     // TODO(user): get rid of this code as soon as we stop passing
     // information about objects by passing URNs and guessing the
     // object type.
-    var components = stripAff4Prefix(subject).split('/');
+    const components = stripAff4Prefix(subject).split('/');
     if (/^C\.[0-9a-fA-F]{16}$/.test(components[0])) {
       this.openRequestClientApprovalDialog(components[0], message);
     } else if (components[0] == 'hunts') {
@@ -150,7 +150,7 @@ exports.AclDialogService = class {
   }
 };
 
-var AclDialogService = exports.AclDialogService;
+const AclDialogService = exports.AclDialogService;
 
 
 /**

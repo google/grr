@@ -125,16 +125,16 @@ exports.SemanticValueFormController = class {
    */
   compileSingleTypedValueTemplate_(value) {
     const successHandler = function success(directive) {
-      const element = angular.element('<span />');
-
+      const element = angular.element('<span></span>');
+      const directiveName = this.camelCaseToDashDelimited(directive.directive_name);
       element.html(
-          '<' + this.camelCaseToDashDelimited(directive.directive_name) +
-          ' metadata="metadata" value="value" />');
+          '<' + directiveName +
+          ' metadata="metadata" value="value"></' + directiveName + '>');
       return this.compile_(element);
     }.bind(this);
 
     const failureHandler = function failure() {
-      const element = angular.element('<span />');
+      const element = angular.element('<span></span>');
 
       element.html(
           '<p class="form-control-static">No directive ' +

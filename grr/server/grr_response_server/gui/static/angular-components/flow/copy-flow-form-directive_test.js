@@ -54,7 +54,7 @@ describe('copy flow form directive', () => {
     $rootScope.flowId = 'F:123456';
 
     const template = '<grr-copy-flow-form ' +
-        'client-id="clientId" flow-id="flowId" />';
+        'client-id="clientId" flow-id="flowId"></grr-copy-flow-form>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

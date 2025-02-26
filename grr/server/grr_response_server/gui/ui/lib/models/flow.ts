@@ -81,7 +81,7 @@ export const FLOW_LIST_ITEMS_BY_TYPE: FlowsByTypeMap = {
   [FlowType.COLLECT_BROWSER_HISTORY]: fli(
     FlowType.COLLECT_BROWSER_HISTORY,
     'Collect browser history',
-    'Collect browsing and download history from Chrome, Firefox, Edge & Safari',
+    'Collect browsing and download history from Chromium-based browsers (like Chrome and Edge), Firefox, Internet Explorer & Safari',
   ),
   [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: fli(
     FlowType.COLLECT_FILES_BY_KNOWN_PATH,
@@ -329,14 +329,9 @@ export enum SourceType {
   REGISTRY_KEY,
   REGISTRY_VALUE,
   WMI,
-  ARTIFACT,
   PATH,
   ARTIFACT_GROUP,
-  GRR_CLIENT_ACTION,
-  LIST_FILES,
-  ARTIFACT_FILES,
   COMMAND,
-  REKALL_PLUGIN,
 }
 
 /** Operating systems. */
@@ -350,7 +345,6 @@ export enum OperatingSystem {
 interface BaseArtifactSource {
   readonly type: SourceType;
   readonly conditions: readonly string[];
-  readonly returnedTypes: readonly string[];
   readonly supportedOs: ReadonlySet<OperatingSystem>;
 }
 
@@ -359,14 +353,8 @@ export type AnyMap = ReadonlyMap<unknown, unknown>;
 
 /** Artifact source that delegates to other artifacts. */
 export interface ChildArtifactSource extends BaseArtifactSource {
-  readonly type: SourceType.ARTIFACT_GROUP | SourceType.ARTIFACT_FILES;
+  readonly type: SourceType.ARTIFACT_GROUP;
   readonly names: readonly string[];
-}
-
-/** Artifact source that delegates to a ClientAction. */
-export interface ClientActionSource extends BaseArtifactSource {
-  readonly type: SourceType.GRR_CLIENT_ACTION;
-  readonly clientAction: string;
 }
 
 /** Artifact source that delegates to a shell command. */
@@ -377,9 +365,7 @@ export interface CommandSource extends BaseArtifactSource {
 
 /** Artifact source that reads files. */
 export interface FileSource extends BaseArtifactSource {
-  readonly type:
-    | SourceType.FILE
-    | SourceType.PATH;
+  readonly type: SourceType.FILE | SourceType.PATH;
   readonly paths: readonly string[];
 }
 
@@ -409,7 +395,6 @@ export interface UnknownSource extends BaseArtifactSource {
 /** Artifact source. */
 export type ArtifactSource =
   | ChildArtifactSource
-  | ClientActionSource
   | CommandSource
   | FileSource
   | RegistryKeySource

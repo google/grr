@@ -6,6 +6,7 @@ import platform
 from grr_response_client import client_actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import cloud
+from grr_response_client.client_actions import containers
 from grr_response_client.client_actions import dummy
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
@@ -50,6 +51,7 @@ def RegisterClientActions():
   client_actions.Register("HashBuffer", standard.HashBuffer)
   client_actions.Register("HashFile", standard.HashFile)
   client_actions.Register("Kill", admin.Kill)
+  client_actions.Register("ListContainers", containers.ListContainers)
   client_actions.Register("ListDirectory", standard.ListDirectory)
   client_actions.Register(
       "ListNetworkConnections", network.ListNetworkConnections
@@ -58,12 +60,10 @@ def RegisterClientActions():
   client_actions.Register("Osquery", osquery.Osquery)
   client_actions.Register("ReadBuffer", standard.ReadBuffer)
   client_actions.Register("ReadLowLevel", read_low_level.ReadLowLevel)
-  client_actions.Register("Segfault", standard.Segfault)
   client_actions.Register("SendStartupInfo", admin.SendStartupInfo)
   client_actions.Register("StatFS", standard.StatFS)
   client_actions.Register("Timeline", timeline.Timeline)
   client_actions.Register("TransferBuffer", standard.TransferBuffer)
-  client_actions.Register("UpdateConfiguration", admin.UpdateConfiguration)
   client_actions.Register("VfsFileFinder", vfs_file_finder.VfsFileFinder)
   client_actions.Register("YaraProcessDump", memory.YaraProcessDump)
   client_actions.Register("YaraProcessScan", memory.YaraProcessScan)

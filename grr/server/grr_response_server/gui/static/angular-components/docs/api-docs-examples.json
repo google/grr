@@ -336,27 +336,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         }
@@ -439,15 +419,7 @@
             "system": "Linux",
             "version": "buster/sid"
           },
-          "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "urn": "aff4:/C.1000000000000000"
         }
       },
       "url": "/api/users/me/approvals/client/C.1000000000000000"
@@ -1337,292 +1309,6 @@
       "url": "/api/users/me/approvals/hunt/H:123456"
     }
   ],
-  "ApiCreatePerClientFileCollectionHuntHandler": [
-    {
-      "api_method": "CreatePerClientFileCollectionHunt",
-      "method": "POST",
-      "request_payload": {
-        "description": "Per-client file collection",
-        "per_client_args": [
-          {
-            "client_id": "C.1000000000000000",
-            "paths": [
-              "/etc/hosts",
-              "/foo/bar"
-            ]
-          }
-        ]
-      },
-      "response": {
-        "type": "ApiHunt",
-        "value": {
-          "all_clients_count": {
-            "type": "long",
-            "value": 0
-          },
-          "client_limit": {
-            "type": "long",
-            "value": 100
-          },
-          "client_rate": {
-            "type": "float",
-            "value": 0.0
-          },
-          "client_rule_set": {
-            "type": "ForemanClientRuleSet",
-            "value": {}
-          },
-          "clients_with_results_count": {
-            "type": "long",
-            "value": 0
-          },
-          "completed_clients_count": {
-            "type": "long",
-            "value": 0
-          },
-          "crash_limit": {
-            "type": "long",
-            "value": 100
-          },
-          "crashed_clients_count": {
-            "type": "long",
-            "value": 0
-          },
-          "creator": {
-            "type": "unicode",
-            "value": "api_test_user"
-          },
-          "description": {
-            "type": "unicode",
-            "value": "Per-client file collection"
-          },
-          "duration": {
-            "type": "DurationSeconds",
-            "value": 1209600
-          },
-          "failed_clients_count": {
-            "type": "long",
-            "value": 0
-          },
-          "flow_args": {
-            "type": "HuntArgumentsVariable",
-            "value": {
-              "flow_groups": [
-                {
-                  "type": "VariableHuntFlowGroup",
-                  "value": {
-                    "client_ids": [
-                      {
-                        "type": "unicode",
-                        "value": "C.1000000000000000"
-                      }
-                    ],
-                    "flow_args": {
-                      "type": "MultiGetFileArgs",
-                      "value": {
-                        "pathspecs": [
-                          {
-                            "type": "PathSpec",
-                            "value": {
-                              "path": {
-                                "type": "unicode",
-                                "value": "/etc/hosts"
-                              },
-                              "pathtype": {
-                                "type": "EnumNamedValue",
-                                "value": "OS"
-                              }
-                            }
-                          },
-                          {
-                            "type": "PathSpec",
-                            "value": {
-                              "path": {
-                                "type": "unicode",
-                                "value": "/foo/bar"
-                              },
-                              "pathtype": {
-                                "type": "EnumNamedValue",
-                                "value": "OS"
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    "flow_name": {
-                      "type": "unicode",
-                      "value": "MultiGetFile"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "hunt_id": {
-            "type": "ApiHuntId",
-            "value": "H:123456"
-          },
-          "hunt_runner_args": {
-            "type": "HuntRunnerArgs",
-            "value": {
-              "avg_cpu_seconds_per_client_limit": {
-                "type": "long",
-                "value": 60
-              },
-              "avg_network_bytes_per_client_limit": {
-                "type": "long",
-                "value": 10485760
-              },
-              "avg_results_per_client_limit": {
-                "type": "long",
-                "value": 1000
-              },
-              "client_limit": {
-                "type": "long",
-                "value": 100
-              },
-              "client_rate": {
-                "type": "float",
-                "value": 0.0
-              },
-              "client_rule_set": {
-                "type": "ForemanClientRuleSet",
-                "value": {}
-              },
-              "crash_limit": {
-                "type": "long",
-                "value": 100
-              },
-              "description": {
-                "type": "unicode",
-                "value": "Per-client file collection"
-              },
-              "expiry_time": {
-                "type": "DurationSeconds",
-                "value": 1209600
-              },
-              "hunt_name": {
-                "type": "unicode",
-                "value": "VariableGenericHunt"
-              },
-              "original_object": {
-                "type": "FlowLikeObjectReference",
-                "value": {}
-              }
-            }
-          },
-          "hunt_type": {
-            "type": "EnumNamedValue",
-            "value": "VARIABLE"
-          },
-          "is_robot": {
-            "type": "bool",
-            "value": false
-          },
-          "name": {
-            "type": "unicode",
-            "value": "VariableGenericHunt"
-          },
-          "remaining_clients_count": {
-            "type": "long",
-            "value": 0
-          },
-          "results_count": {
-            "type": "long",
-            "value": 0
-          },
-          "state": {
-            "type": "EnumNamedValue",
-            "value": "PAUSED"
-          },
-          "state_comment": {
-            "type": "unicode",
-            "value": ""
-          },
-          "state_reason": {
-            "type": "EnumNamedValue",
-            "value": "UNKNOWN"
-          },
-          "total_cpu_usage": {
-            "type": "float",
-            "value": 0.0
-          },
-          "total_net_usage": {
-            "type": "long",
-            "value": 0
-          },
-          "urn": {
-            "type": "SessionID",
-            "value": "aff4:/hunts/H:123456"
-          }
-        }
-      },
-      "test_class": "ApiCreatePerClientFileCollectionHuntRegressionTest_http_v1",
-      "type_stripped_response": {
-        "all_clients_count": 0,
-        "client_limit": 100,
-        "client_rate": 0.0,
-        "client_rule_set": {},
-        "clients_with_results_count": 0,
-        "completed_clients_count": 0,
-        "crash_limit": 100,
-        "crashed_clients_count": 0,
-        "creator": "api_test_user",
-        "description": "Per-client file collection",
-        "duration": 1209600,
-        "failed_clients_count": 0,
-        "flow_args": {
-          "flow_groups": [
-            {
-              "client_ids": [
-                "C.1000000000000000"
-              ],
-              "flow_args": {
-                "pathspecs": [
-                  {
-                    "path": "/etc/hosts",
-                    "pathtype": "OS"
-                  },
-                  {
-                    "path": "/foo/bar",
-                    "pathtype": "OS"
-                  }
-                ]
-              },
-              "flow_name": "MultiGetFile"
-            }
-          ]
-        },
-        "hunt_id": "H:123456",
-        "hunt_runner_args": {
-          "avg_cpu_seconds_per_client_limit": 60,
-          "avg_network_bytes_per_client_limit": 10485760,
-          "avg_results_per_client_limit": 1000,
-          "client_limit": 100,
-          "client_rate": 0.0,
-          "client_rule_set": {},
-          "crash_limit": 100,
-          "description": "Per-client file collection",
-          "expiry_time": 1209600,
-          "hunt_name": "VariableGenericHunt",
-          "original_object": {}
-        },
-        "hunt_type": "VARIABLE",
-        "is_robot": false,
-        "name": "VariableGenericHunt",
-        "remaining_clients_count": 0,
-        "results_count": 0,
-        "state": "PAUSED",
-        "state_comment": "",
-        "state_reason": "UNKNOWN",
-        "total_cpu_usage": 0.0,
-        "total_net_usage": 0,
-        "urn": "aff4:/hunts/H:123456"
-      },
-      "url": "/api/hunts/per-client-file-collection"
-    }
-  ],
   "ApiCreateVfsRefreshOperationHandler": [
     {
       "api_method": "CreateVfsRefreshOperation",
@@ -1931,27 +1617,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         }
@@ -2030,15 +1696,7 @@
             "system": "Linux",
             "version": "buster/sid"
           },
-          "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "urn": "aff4:/C.1000000000000000"
         }
       },
       "url": "/api/users/api_test_user/approvals/client/C.1000000000000000/approval:111111"
@@ -2270,27 +1928,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000001"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         }
@@ -2369,15 +2007,7 @@
             "system": "Linux",
             "version": "buster/sid"
           },
-          "urn": "aff4:/C.1000000000000001",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "urn": "aff4:/C.1000000000000001"
         }
       },
       "url": "/api/users/api_test_user/approvals/client/C.1000000000000001/approval:222222"
@@ -2572,27 +2202,7 @@
           "urn": {
             "type": "ClientURN",
             "value": "aff4:/C.1000000000000000"
-          },
-          "users": [
-            {
-              "type": "User",
-              "value": {
-                "username": {
-                  "type": "unicode",
-                  "value": "user1"
-                }
-              }
-            },
-            {
-              "type": "User",
-              "value": {
-                "username": {
-                  "type": "unicode",
-                  "value": "user2"
-                }
-              }
-            }
-          ]
+          }
         }
       },
       "test_class": "ApiGetClientHandlerRegressionTest_http_v1",
@@ -2656,15 +2266,7 @@
           "system": "Linux",
           "version": "buster/sid"
         },
-        "urn": "aff4:/C.1000000000000000",
-        "users": [
-          {
-            "username": "user1"
-          },
-          {
-            "username": "user2"
-          }
-        ]
+        "urn": "aff4:/C.1000000000000000"
       },
       "url": "/api/clients/C.1000000000000000"
     }
@@ -2856,27 +2458,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           {
@@ -3060,27 +2642,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         ]
@@ -3147,15 +2709,7 @@
               "system": "Linux",
               "version": "buster/sid"
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "urn": "aff4:/C.1000000000000000"
           },
           {
             "age": 45000000,
@@ -3216,15 +2770,7 @@
               "system": "Linux",
               "version": "buster/sid"
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "urn": "aff4:/C.1000000000000000"
           }
         ]
       },
@@ -3416,27 +2962,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         ]
@@ -3503,15 +3029,7 @@
               "system": "Linux",
               "version": "buster/sid"
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "urn": "aff4:/C.1000000000000000"
           }
         ]
       },
@@ -3703,27 +3221,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         ]
@@ -3790,15 +3288,7 @@
               "system": "Linux",
               "version": "buster/sid"
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "urn": "aff4:/C.1000000000000000"
           }
         ]
       },
@@ -3812,14 +3302,21 @@
       "response": {
         "is_invalid": false,
         "name": "Client.company_name",
-        "type": "RDFString",
+        "type": "StringValue",
         "value": {
-          "type": "RDFString",
-          "value": "Monstros S.A."
+          "type": "StringValue",
+          "value": {
+            "value": {
+              "type": "unicode",
+              "value": "Monstros S.A."
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": "Monstros S.A.",
+      "type_stripped_response": {
+        "value": "Monstros S.A."
+      },
       "url": "/api/config/Client.company_name"
     },
     {
@@ -3855,14 +3352,21 @@
       "response": {
         "is_invalid": false,
         "name": "Source.version_major",
-        "type": "RDFInteger",
+        "type": "Int64Value",
         "value": {
-          "type": "RDFInteger",
-          "value": 42
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 42
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 42,
+      "type_stripped_response": {
+        "value": 42
+      },
       "url": "/api/config/Source.version_major"
     },
     {
@@ -3871,14 +3375,21 @@
       "response": {
         "is_invalid": false,
         "name": "Source.version_major",
-        "type": "RDFInteger",
+        "type": "Int64Value",
         "value": {
-          "type": "RDFInteger",
-          "value": 42
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 42
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 42,
+      "type_stripped_response": {
+        "value": 42
+      },
       "url": "/api/config/Source.version_major"
     },
     {
@@ -3887,14 +3398,21 @@
       "response": {
         "is_invalid": false,
         "name": "Source.version_major",
-        "type": "RDFInteger",
+        "type": "Int64Value",
         "value": {
-          "type": "RDFInteger",
-          "value": 42
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 42
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 42,
+      "type_stripped_response": {
+        "value": 42
+      },
       "url": "/api/config/Source.version_major"
     },
     {
@@ -3903,14 +3421,21 @@
       "response": {
         "is_invalid": false,
         "name": "Source.version_major",
-        "type": "RDFInteger",
+        "type": "Int64Value",
         "value": {
-          "type": "RDFInteger",
-          "value": 42
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 42
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 42,
+      "type_stripped_response": {
+        "value": 42
+      },
       "url": "/api/config/Source.version_major"
     },
     {
@@ -3919,14 +3444,21 @@
       "response": {
         "is_invalid": false,
         "name": "Hunt.default_client_rate",
-        "type": "RDFInteger",
+        "type": "Int64Value",
         "value": {
-          "type": "RDFInteger",
-          "value": 42
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 42
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 42,
+      "type_stripped_response": {
+        "value": 42
+      },
       "url": "/api/config/Hunt.default_client_rate"
     },
     {
@@ -3935,14 +3467,21 @@
       "response": {
         "is_invalid": false,
         "name": "Email.enable_custom_email_address",
-        "type": "RDFInteger",
+        "type": "BoolValue",
         "value": {
-          "type": "RDFInteger",
-          "value": 1
+          "type": "BoolValue",
+          "value": {
+            "value": {
+              "type": "bool",
+              "value": true
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 1,
+      "type_stripped_response": {
+        "value": true
+      },
       "url": "/api/config/Email.enable_custom_email_address"
     },
     {
@@ -3961,14 +3500,21 @@
       "response": {
         "is_invalid": false,
         "name": "Server.fleetspeak_last_ping_threshold",
-        "type": "Duration",
+        "type": "Int64Value",
         "value": {
-          "type": "Duration",
-          "value": 3600000000
+          "type": "Int64Value",
+          "value": {
+            "value": {
+              "type": "long",
+              "value": 3600000000
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": 3600000000,
+      "type_stripped_response": {
+        "value": 3600000000
+      },
       "url": "/api/config/Server.fleetspeak_last_ping_threshold"
     },
     {
@@ -3977,14 +3523,21 @@
       "response": {
         "is_invalid": false,
         "name": "Server.raw_filesystem_access_pathtype",
-        "type": "EnumNamedValue",
+        "type": "StringValue",
         "value": {
-          "type": "EnumNamedValue",
-          "value": "TSK"
+          "type": "StringValue",
+          "value": {
+            "value": {
+              "type": "unicode",
+              "value": "TSK"
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": "TSK",
+      "type_stripped_response": {
+        "value": "TSK"
+      },
       "url": "/api/config/Server.raw_filesystem_access_pathtype"
     },
     {
@@ -3993,14 +3546,21 @@
       "response": {
         "is_invalid": false,
         "name": "ClientBuilder.build_type",
-        "type": "RDFString",
+        "type": "StringValue",
         "value": {
-          "type": "RDFString",
-          "value": "Debug"
+          "type": "StringValue",
+          "value": {
+            "value": {
+              "type": "unicode",
+              "value": "Debug"
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": "Debug",
+      "type_stripped_response": {
+        "value": "Debug"
+      },
       "url": "/api/config/ClientBuilder.build_type"
     },
     {
@@ -4019,14 +3579,21 @@
       "response": {
         "is_invalid": false,
         "name": "ClientRepacker.output_filename",
-        "type": "RDFString",
+        "type": "StringValue",
         "value": {
-          "type": "RDFString",
-          "value": "GRR_0.0.0.0_"
+          "type": "StringValue",
+          "value": {
+            "value": {
+              "type": "unicode",
+              "value": "GRR_0.0.0.0_"
+            }
+          }
         }
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest_http_v1",
-      "type_stripped_response": "GRR_0.0.0.0_",
+      "type_stripped_response": {
+        "value": "GRR_0.0.0.0_"
+      },
       "url": "/api/config/ClientRepacker.output_filename"
     },
     {
@@ -4604,88 +4171,15 @@
           },
           "state_data": {
             "type": "ApiDataObject",
+            "value": {}
+          },
+          "store": {
+            "type": "AnyValue",
             "value": {
-              "items": [
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "key": {
-                      "type": "unicode",
-                      "value": "_result_metadata"
-                    },
-                    "type": {
-                      "type": "unicode",
-                      "value": "FlowResultMetadata"
-                    },
-                    "value": {
-                      "type": "FlowResultMetadata",
-                      "value": {
-                        "is_metadata_set": {
-                          "type": "bool",
-                          "value": true
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "key": {
-                      "type": "unicode",
-                      "value": "client"
-                    },
-                    "type": {
-                      "type": "unicode",
-                      "value": "ClientSnapshot"
-                    },
-                    "value": {
-                      "type": "ClientSnapshot",
-                      "value": {
-                        "client_id": {
-                          "type": "unicode",
-                          "value": "C.1000000000000000"
-                        },
-                        "metadata": {
-                          "type": "ClientSnapshotMetadata",
-                          "value": {
-                            "source_flow_id": {
-                              "type": "unicode",
-                              "value": "F:ABCDEF12"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "invalid": {
-                      "type": "bool",
-                      "value": true
-                    },
-                    "key": {
-                      "type": "unicode",
-                      "value": "fqdn"
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "invalid": {
-                      "type": "bool",
-                      "value": true
-                    },
-                    "key": {
-                      "type": "unicode",
-                      "value": "os"
-                    }
-                  }
-                }
-              ]
+              "type_url": {
+                "type": "unicode",
+                "value": "type.googleapis.com/grr.InterrogateStore"
+              }
             }
           },
           "urn": {
@@ -4730,26 +4224,9 @@
         },
         "started_at": 42000000,
         "state": "RUNNING",
-        "state_data": {
-          "items": [
-            {
-              "is_metadata_set": true
-            },
-            {
-              "client_id": "C.1000000000000000",
-              "metadata": {
-                "source_flow_id": "F:ABCDEF12"
-              }
-            },
-            {
-              "invalid": true,
-              "key": "fqdn"
-            },
-            {
-              "invalid": true,
-              "key": "os"
-            }
-          ]
+        "state_data": {},
+        "store": {
+          "type_url": "type.googleapis.com/grr.InterrogateStore"
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
       },
@@ -4892,88 +4369,15 @@
           },
           "state_data": {
             "type": "ApiDataObject",
+            "value": {}
+          },
+          "store": {
+            "type": "AnyValue",
             "value": {
-              "items": [
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "key": {
-                      "type": "unicode",
-                      "value": "_result_metadata"
-                    },
-                    "type": {
-                      "type": "unicode",
-                      "value": "FlowResultMetadata"
-                    },
-                    "value": {
-                      "type": "FlowResultMetadata",
-                      "value": {
-                        "is_metadata_set": {
-                          "type": "bool",
-                          "value": true
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "key": {
-                      "type": "unicode",
-                      "value": "client"
-                    },
-                    "type": {
-                      "type": "unicode",
-                      "value": "ClientSnapshot"
-                    },
-                    "value": {
-                      "type": "ClientSnapshot",
-                      "value": {
-                        "client_id": {
-                          "type": "unicode",
-                          "value": "C.1000000000000000"
-                        },
-                        "metadata": {
-                          "type": "ClientSnapshotMetadata",
-                          "value": {
-                            "source_flow_id": {
-                              "type": "unicode",
-                              "value": "F:ABCDEF13"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "invalid": {
-                      "type": "bool",
-                      "value": true
-                    },
-                    "key": {
-                      "type": "unicode",
-                      "value": "fqdn"
-                    }
-                  }
-                },
-                {
-                  "type": "ApiDataObjectKeyValuePair",
-                  "value": {
-                    "invalid": {
-                      "type": "bool",
-                      "value": true
-                    },
-                    "key": {
-                      "type": "unicode",
-                      "value": "os"
-                    }
-                  }
-                }
-              ]
+              "type_url": {
+                "type": "unicode",
+                "value": "type.googleapis.com/grr.InterrogateStore"
+              }
             }
           },
           "urn": {
@@ -5020,26 +4424,9 @@
         },
         "started_at": 42000000,
         "state": "ERROR",
-        "state_data": {
-          "items": [
-            {
-              "is_metadata_set": true
-            },
-            {
-              "client_id": "C.1000000000000000",
-              "metadata": {
-                "source_flow_id": "F:ABCDEF13"
-              }
-            },
-            {
-              "invalid": true,
-              "key": "fqdn"
-            },
-            {
-              "invalid": true,
-              "key": "os"
-            }
-          ]
+        "state_data": {},
+        "store": {
+          "type_url": "type.googleapis.com/grr.InterrogateStore"
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF13"
       },
@@ -6663,6 +6050,15 @@
                 "type": "EnumNamedValue",
                 "value": "RUNNING"
               },
+              "store": {
+                "type": "AnyValue",
+                "value": {
+                  "type_url": {
+                    "type": "unicode",
+                    "value": "type.googleapis.com/grr.InterrogateStore"
+                  }
+                }
+              },
               "urn": {
                 "type": "SessionID",
                 "value": "aff4:/C.1000000000000000/flows/F:112233"
@@ -7005,6 +6401,9 @@
           },
           "started_at": 42000000,
           "state": "RUNNING",
+          "store": {
+            "type_url": "type.googleapis.com/grr.InterrogateStore"
+          },
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
         "email_message_id": "<message id stub>",
@@ -7118,39 +6517,399 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ],
@@ -7160,39 +6919,399 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ]
@@ -7210,39 +7329,399 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ],
@@ -7252,39 +7731,399 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ]
@@ -7302,39 +8141,399 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ],
@@ -7344,45 +8543,405 @@
             "y_value": 1.0
           },
           {
-            "x_value": 54.9900016784668,
+            "x_value": 45.900001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 46.79999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 47.70000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 48.599998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 49.5,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 50.400001525878906,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 51.29999923706055,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 52.20000076293945,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 53.099998474121094,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.0,
+            "y_value": 1.0
+          },
+          {
+            "x_value": 54.900001525878906,
             "y_value": 2.0
           },
           {
-            "x_value": 64.9800033569336,
+            "x_value": 55.79999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 56.70000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 57.599998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 58.5,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 59.400001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 60.29999923706055,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 61.20000076293945,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 62.099998474121094,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.0,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 63.900001525878906,
+            "y_value": 2.0
+          },
+          {
+            "x_value": 64.80000305175781,
             "y_value": 3.0
           },
           {
-            "x_value": 74.97000122070312,
+            "x_value": 65.69999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 66.5999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 67.5,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 68.4000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 69.30000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 70.19999694824219,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 71.0999984741211,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.0,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 72.9000015258789,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 73.80000305175781,
+            "y_value": 3.0
+          },
+          {
+            "x_value": 74.69999694824219,
             "y_value": 4.0
           },
           {
-            "x_value": 84.95999908447266,
+            "x_value": 75.5999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 76.5,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 77.4000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 78.30000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 79.19999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 80.0999984741211,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.0,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 81.9000015258789,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 82.80000305175781,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 83.69999694824219,
+            "y_value": 4.0
+          },
+          {
+            "x_value": 84.5999984741211,
             "y_value": 5.0
           },
           {
-            "x_value": 94.94999694824219,
+            "x_value": 85.5,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 86.4000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 87.30000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 88.19999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 89.0999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.0,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 90.9000015258789,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 91.80000305175781,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 92.69999694824219,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 93.5999984741211,
+            "y_value": 5.0
+          },
+          {
+            "x_value": 94.5,
             "y_value": 6.0
           },
           {
-            "x_value": 104.94000244140625,
+            "x_value": 95.4000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 96.30000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 97.19999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 98.0999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.0,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 99.9000015258789,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 100.80000305175781,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 101.69999694824219,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 102.5999984741211,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 103.5,
+            "y_value": 6.0
+          },
+          {
+            "x_value": 104.4000015258789,
             "y_value": 7.0
           },
           {
-            "x_value": 114.93000030517578,
+            "x_value": 105.30000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 106.19999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 107.0999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.0,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 108.9000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 109.80000305175781,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 110.69999694824219,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 111.5999984741211,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 112.5,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 113.4000015258789,
+            "y_value": 7.0
+          },
+          {
+            "x_value": 114.30000305175781,
             "y_value": 8.0
           },
           {
-            "x_value": 124.91999816894531,
+            "x_value": 115.19999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 116.0999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.0,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 117.9000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 118.80000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 119.69999694824219,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 120.5999984741211,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 121.5,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 122.4000015258789,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 123.30000305175781,
+            "y_value": 8.0
+          },
+          {
+            "x_value": 124.19999694824219,
             "y_value": 9.0
           },
           {
-            "x_value": 134.91000366210938,
+            "x_value": 125.0999984741211,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.0,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 126.9000015258789,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 127.80000305175781,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 128.6999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 129.60000610351562,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 130.5,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 131.39999389648438,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 132.3000030517578,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 133.1999969482422,
+            "y_value": 9.0
+          },
+          {
+            "x_value": 134.10000610351562,
             "y_value": 10.0
           }
         ]
       },
       "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v1",
-      "url": "/api/hunts/H:123456/client-completion-stats?size=1000"
+      "url": "/api/hunts/H:123456/client-completion-stats?size=100"
     }
   ],
   "ApiGetHuntHandler": [
@@ -9842,6 +11401,14 @@
             "type": "ApiDataObject"
           },
           {
+            "doc": "Current flow store data.",
+            "dynamic": false,
+            "friendly_name": "Store",
+            "index": 20,
+            "name": "store",
+            "repeated": false
+          },
+          {
             "doc": "Current flow context.",
             "dynamic": false,
             "friendly_name": "Context",
@@ -10065,6 +11632,14 @@
             "type": "ApiDataObject"
           },
           {
+            "doc": "Current flow store data.",
+            "dynamic": false,
+            "friendly_name": "Store",
+            "index": 20,
+            "name": "store",
+            "repeated": false
+          },
+          {
             "doc": "Current flow context.",
             "dynamic": false,
             "friendly_name": "Context",
@@ -10234,6 +11809,185 @@
         }
       },
       "url": "/api/stats/reports/BarReportPlugin?duration=345600&start_time=1355443200000000"
+    }
+  ],
+  "ApiGetUiConfigHandler": [
+    {
+      "api_method": "GetUiConfig",
+      "method": "GET",
+      "response": {
+        "default_access_duration_seconds": 2419200,
+        "default_hunt_runner_args": {
+          "type": "HuntRunnerArgs",
+          "value": {
+            "avg_cpu_seconds_per_client_limit": {
+              "type": "long",
+              "value": 60
+            },
+            "avg_network_bytes_per_client_limit": {
+              "type": "long",
+              "value": 10485760
+            },
+            "avg_results_per_client_limit": {
+              "type": "long",
+              "value": 1000
+            },
+            "client_rate": {
+              "type": "float",
+              "value": 20.0
+            },
+            "crash_limit": {
+              "type": "long",
+              "value": 100
+            }
+          }
+        },
+        "grr_version": "1.2.3.4",
+        "heading": "",
+        "help_url": "/help/index.html",
+        "max_access_duration_seconds": 31708800,
+        "profile_image_url": "",
+        "report_url": "https://github.com/google/grr/issues"
+      },
+      "test_class": "ApiGetUiConfigHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "default_access_duration_seconds": 2419200,
+        "default_hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
+          "client_rate": 20.0,
+          "crash_limit": 100
+        },
+        "grr_version": "1.2.3.4",
+        "heading": "",
+        "help_url": "/help/index.html",
+        "max_access_duration_seconds": 31708800,
+        "profile_image_url": "",
+        "report_url": "https://github.com/google/grr/issues"
+      },
+      "url": "/api/config/ui"
+    },
+    {
+      "api_method": "GetUiConfig",
+      "method": "GET",
+      "response": {
+        "default_access_duration_seconds": 2419200,
+        "default_hunt_runner_args": {
+          "type": "HuntRunnerArgs",
+          "value": {
+            "avg_cpu_seconds_per_client_limit": {
+              "type": "long",
+              "value": 60
+            },
+            "avg_network_bytes_per_client_limit": {
+              "type": "long",
+              "value": 10485760
+            },
+            "avg_results_per_client_limit": {
+              "type": "long",
+              "value": 1000
+            },
+            "client_rate": {
+              "type": "float",
+              "value": 20.0
+            },
+            "client_rule_set": {
+              "type": "ForemanClientRuleSet",
+              "value": {
+                "match_mode": {
+                  "type": "EnumNamedValue",
+                  "value": "MATCH_ALL"
+                },
+                "rules": [
+                  {
+                    "type": "ForemanClientRule",
+                    "value": {
+                      "label": {
+                        "type": "ForemanLabelClientRule",
+                        "value": {
+                          "label_names": [
+                            {
+                              "type": "unicode",
+                              "value": "oh-oh"
+                            }
+                          ],
+                          "match_mode": {
+                            "type": "EnumNamedValue",
+                            "value": "DOES_NOT_MATCH_ANY"
+                          }
+                        }
+                      },
+                      "rule_type": {
+                        "type": "EnumNamedValue",
+                        "value": "LABEL"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "crash_limit": {
+              "type": "long",
+              "value": 100
+            }
+          }
+        },
+        "grr_version": "1.2.3.4",
+        "heading": "test heading",
+        "help_url": "test help url",
+        "hunt_config": {
+          "type": "AdminUIHuntConfig",
+          "value": {
+            "default_exclude_labels": [
+              {
+                "type": "unicode",
+                "value": "oh-oh"
+              }
+            ]
+          }
+        },
+        "max_access_duration_seconds": 31708800,
+        "profile_image_url": "test profile image url",
+        "report_url": "test report url"
+      },
+      "test_class": "ApiGetUiConfigHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "default_access_duration_seconds": 2419200,
+        "default_hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
+          "client_rate": 20.0,
+          "client_rule_set": {
+            "match_mode": "MATCH_ALL",
+            "rules": [
+              {
+                "label": {
+                  "label_names": [
+                    "oh-oh"
+                  ],
+                  "match_mode": "DOES_NOT_MATCH_ANY"
+                },
+                "rule_type": "LABEL"
+              }
+            ]
+          },
+          "crash_limit": 100
+        },
+        "grr_version": "1.2.3.4",
+        "heading": "test heading",
+        "help_url": "test help url",
+        "hunt_config": {
+          "default_exclude_labels": [
+            "oh-oh"
+          ]
+        },
+        "max_access_duration_seconds": 31708800,
+        "profile_image_url": "test profile image url",
+        "report_url": "test report url"
+      },
+      "url": "/api/config/ui"
     }
   ],
   "ApiGetVfsFileContentUpdateStateHandler": [
@@ -10666,27 +12420,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         }
@@ -10765,15 +12499,7 @@
             "system": "Linux",
             "version": "buster/sid"
           },
-          "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "urn": "aff4:/C.1000000000000000"
         }
       },
       "url": "/api/users/requestor/approvals/client/C.1000000000000000/approval:111111/actions/grant"
@@ -11980,27 +13706,7 @@
                   "urn": {
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000001"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
+                  }
                 }
               }
             }
@@ -12229,27 +13935,7 @@
                   "urn": {
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000000"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
+                  }
                 }
               }
             }
@@ -12332,15 +14018,7 @@
                 "system": "Linux",
                 "version": "buster/sid"
               },
-              "urn": "aff4:/C.1000000000000001",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "urn": "aff4:/C.1000000000000001"
             }
           },
           {
@@ -12416,15 +14094,7 @@
                 "system": "Linux",
                 "version": "buster/sid"
               },
-              "urn": "aff4:/C.1000000000000000",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "urn": "aff4:/C.1000000000000000"
             }
           }
         ]
@@ -12660,27 +14330,7 @@
                   "urn": {
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000000"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
+                  }
                 }
               }
             }
@@ -12763,15 +14413,7 @@
                 "system": "Linux",
                 "version": "buster/sid"
               },
-              "urn": "aff4:/C.1000000000000000",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "urn": "aff4:/C.1000000000000000"
             }
           }
         ]
@@ -13971,9 +15613,7 @@
                   "emails_sent": {
                     "type": "long",
                     "value": 0
-                  },
-                  "errors": [],
-                  "logs": []
+                  }
                 }
               }
             }
@@ -13997,9 +15637,7 @@
                 "email_address": "test@localhost",
                 "emails_limit": 42
               },
-              "emails_sent": 0,
-              "errors": [],
-              "logs": []
+              "emails_sent": 0
             }
           }
         ]
@@ -14261,6 +15899,172 @@
               },
               "creator": {
                 "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF12"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "FlowWithTwoLevelsOfNestedFlows"
+              },
+              "nested_flows": [
+                {
+                  "type": "ApiFlow",
+                  "value": {
+                    "client_id": {
+                      "type": "ApiClientId",
+                      "value": "C.1000000000000000"
+                    },
+                    "creator": {
+                      "type": "unicode",
+                      "value": "api_test_user"
+                    },
+                    "flow_id": {
+                      "type": "ApiFlowId",
+                      "value": "F:ABCDEF13"
+                    },
+                    "is_robot": {
+                      "type": "bool",
+                      "value": false
+                    },
+                    "last_active_at": {
+                      "type": "RDFDatetime",
+                      "value": 45000000
+                    },
+                    "name": {
+                      "type": "unicode",
+                      "value": "FlowWithOneNestedFlow"
+                    },
+                    "nested_flows": [
+                      {
+                        "type": "ApiFlow",
+                        "value": {
+                          "client_id": {
+                            "type": "ApiClientId",
+                            "value": "C.1000000000000000"
+                          },
+                          "creator": {
+                            "type": "unicode",
+                            "value": "api_test_user"
+                          },
+                          "flow_id": {
+                            "type": "ApiFlowId",
+                            "value": "F:ABCDEF14"
+                          },
+                          "is_robot": {
+                            "type": "bool",
+                            "value": false
+                          },
+                          "last_active_at": {
+                            "type": "RDFDatetime",
+                            "value": 45000000
+                          },
+                          "name": {
+                            "type": "unicode",
+                            "value": "DummyFlow"
+                          },
+                          "runner_args": {
+                            "type": "FlowRunnerArgs",
+                            "value": {
+                              "client_id": {
+                                "type": "ClientURN",
+                                "value": "aff4:/C.1000000000000000"
+                              },
+                              "flow_name": {
+                                "type": "unicode",
+                                "value": "DummyFlow"
+                              }
+                            }
+                          },
+                          "started_at": {
+                            "type": "RDFDatetime",
+                            "value": 45000000
+                          },
+                          "state": {
+                            "type": "EnumNamedValue",
+                            "value": "TERMINATED"
+                          },
+                          "urn": {
+                            "type": "SessionID",
+                            "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
+                          }
+                        }
+                      }
+                    ],
+                    "runner_args": {
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "client_id": {
+                          "type": "ClientURN",
+                          "value": "aff4:/C.1000000000000000"
+                        },
+                        "flow_name": {
+                          "type": "unicode",
+                          "value": "FlowWithOneNestedFlow"
+                        }
+                      }
+                    },
+                    "started_at": {
+                      "type": "RDFDatetime",
+                      "value": 45000000
+                    },
+                    "state": {
+                      "type": "EnumNamedValue",
+                      "value": "RUNNING"
+                    },
+                    "urn": {
+                      "type": "SessionID",
+                      "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13"
+                    }
+                  }
+                }
+              ],
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "FlowWithTwoLevelsOfNestedFlows"
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+              }
+            }
+          },
+          {
+            "type": "ApiFlow",
+            "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
                 "value": "GRRWorker"
               },
               "flow_id": {
@@ -14354,6 +16158,15 @@
                 "type": "EnumNamedValue",
                 "value": "RUNNING"
               },
+              "store": {
+                "type": "AnyValue",
+                "value": {
+                  "type_url": {
+                    "type": "unicode",
+                    "value": "type.googleapis.com/grr.InterrogateStore"
+                  }
+                }
+              },
               "urn": {
                 "type": "SessionID",
                 "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
@@ -14365,6 +16178,55 @@
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
+          {
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF12",
+            "is_robot": false,
+            "last_active_at": 45000000,
+            "name": "FlowWithTwoLevelsOfNestedFlows",
+            "nested_flows": [
+              {
+                "client_id": "C.1000000000000000",
+                "creator": "api_test_user",
+                "flow_id": "F:ABCDEF13",
+                "is_robot": false,
+                "last_active_at": 45000000,
+                "name": "FlowWithOneNestedFlow",
+                "nested_flows": [
+                  {
+                    "client_id": "C.1000000000000000",
+                    "creator": "api_test_user",
+                    "flow_id": "F:ABCDEF14",
+                    "is_robot": false,
+                    "last_active_at": 45000000,
+                    "name": "DummyFlow",
+                    "runner_args": {
+                      "client_id": "aff4:/C.1000000000000000",
+                      "flow_name": "DummyFlow"
+                    },
+                    "started_at": 45000000,
+                    "state": "TERMINATED",
+                    "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
+                  }
+                ],
+                "runner_args": {
+                  "client_id": "aff4:/C.1000000000000000",
+                  "flow_name": "FlowWithOneNestedFlow"
+                },
+                "started_at": 45000000,
+                "state": "RUNNING",
+                "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13"
+              }
+            ],
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "FlowWithTwoLevelsOfNestedFlows"
+            },
+            "started_at": 45000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          },
           {
             "client_id": "C.1000000000000000",
             "creator": "GRRWorker",
@@ -14393,6 +16255,9 @@
             },
             "started_at": 43000000,
             "state": "RUNNING",
+            "store": {
+              "type_url": "type.googleapis.com/grr.InterrogateStore"
+            },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
         ]
@@ -14404,6 +16269,77 @@
       "method": "GET",
       "response": {
         "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF12"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "FlowWithTwoLevelsOfNestedFlows"
+              },
+              "progress": {
+                "type": "DefaultFlowProgress",
+                "value": {}
+              },
+              "result_metadata": {
+                "type": "FlowResultMetadata",
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "FlowWithTwoLevelsOfNestedFlows"
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+              }
+            }
+          },
           {
             "type": "ApiFlow",
             "value": {
@@ -14540,6 +16476,15 @@
                 "type": "EnumNamedValue",
                 "value": "RUNNING"
               },
+              "store": {
+                "type": "AnyValue",
+                "value": {
+                  "type_url": {
+                    "type": "unicode",
+                    "value": "type.googleapis.com/grr.InterrogateStore"
+                  }
+                }
+              },
               "urn": {
                 "type": "SessionID",
                 "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
@@ -14551,6 +16496,26 @@
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF12",
+            "is_robot": false,
+            "last_active_at": 45000000,
+            "name": "FlowWithTwoLevelsOfNestedFlows",
+            "progress": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "FlowWithTwoLevelsOfNestedFlows"
+            },
+            "started_at": 45000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          },
           {
             "args": {},
             "client_id": "C.1000000000000000",
@@ -14589,6 +16554,9 @@
             },
             "started_at": 43000000,
             "state": "RUNNING",
+            "store": {
+              "type_url": "type.googleapis.com/grr.InterrogateStore"
+            },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
         ]
@@ -14600,6 +16568,77 @@
       "method": "GET",
       "response": {
         "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF12"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "FlowWithTwoLevelsOfNestedFlows"
+              },
+              "progress": {
+                "type": "DefaultFlowProgress",
+                "value": {}
+              },
+              "result_metadata": {
+                "type": "FlowResultMetadata",
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "FlowWithTwoLevelsOfNestedFlows"
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+              }
+            }
+          },
           {
             "type": "ApiFlow",
             "value": {
@@ -14676,6 +16715,26 @@
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF12",
+            "is_robot": false,
+            "last_active_at": 45000000,
+            "name": "FlowWithTwoLevelsOfNestedFlows",
+            "progress": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "FlowWithTwoLevelsOfNestedFlows"
+            },
+            "started_at": 45000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          },
           {
             "args": {},
             "client_id": "C.1000000000000000",
@@ -14770,6 +16829,15 @@
                 "type": "EnumNamedValue",
                 "value": "RUNNING"
               },
+              "store": {
+                "type": "AnyValue",
+                "value": {
+                  "type_url": {
+                    "type": "unicode",
+                    "value": "type.googleapis.com/grr.InterrogateStore"
+                  }
+                }
+              },
               "urn": {
                 "type": "SessionID",
                 "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
@@ -14799,6 +16867,9 @@
             },
             "started_at": 43000000,
             "state": "RUNNING",
+            "store": {
+              "type_url": "type.googleapis.com/grr.InterrogateStore"
+            },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
         ]
@@ -14810,6 +16881,172 @@
       "method": "GET",
       "response": {
         "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF12"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "FlowWithTwoLevelsOfNestedFlows"
+              },
+              "nested_flows": [
+                {
+                  "type": "ApiFlow",
+                  "value": {
+                    "client_id": {
+                      "type": "ApiClientId",
+                      "value": "C.1000000000000000"
+                    },
+                    "creator": {
+                      "type": "unicode",
+                      "value": "api_test_user"
+                    },
+                    "flow_id": {
+                      "type": "ApiFlowId",
+                      "value": "F:ABCDEF13"
+                    },
+                    "is_robot": {
+                      "type": "bool",
+                      "value": false
+                    },
+                    "last_active_at": {
+                      "type": "RDFDatetime",
+                      "value": 45000000
+                    },
+                    "name": {
+                      "type": "unicode",
+                      "value": "FlowWithOneNestedFlow"
+                    },
+                    "nested_flows": [
+                      {
+                        "type": "ApiFlow",
+                        "value": {
+                          "client_id": {
+                            "type": "ApiClientId",
+                            "value": "C.1000000000000000"
+                          },
+                          "creator": {
+                            "type": "unicode",
+                            "value": "api_test_user"
+                          },
+                          "flow_id": {
+                            "type": "ApiFlowId",
+                            "value": "F:ABCDEF14"
+                          },
+                          "is_robot": {
+                            "type": "bool",
+                            "value": false
+                          },
+                          "last_active_at": {
+                            "type": "RDFDatetime",
+                            "value": 45000000
+                          },
+                          "name": {
+                            "type": "unicode",
+                            "value": "DummyFlow"
+                          },
+                          "runner_args": {
+                            "type": "FlowRunnerArgs",
+                            "value": {
+                              "client_id": {
+                                "type": "ClientURN",
+                                "value": "aff4:/C.1000000000000000"
+                              },
+                              "flow_name": {
+                                "type": "unicode",
+                                "value": "DummyFlow"
+                              }
+                            }
+                          },
+                          "started_at": {
+                            "type": "RDFDatetime",
+                            "value": 45000000
+                          },
+                          "state": {
+                            "type": "EnumNamedValue",
+                            "value": "TERMINATED"
+                          },
+                          "urn": {
+                            "type": "SessionID",
+                            "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
+                          }
+                        }
+                      }
+                    ],
+                    "runner_args": {
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "client_id": {
+                          "type": "ClientURN",
+                          "value": "aff4:/C.1000000000000000"
+                        },
+                        "flow_name": {
+                          "type": "unicode",
+                          "value": "FlowWithOneNestedFlow"
+                        }
+                      }
+                    },
+                    "started_at": {
+                      "type": "RDFDatetime",
+                      "value": 45000000
+                    },
+                    "state": {
+                      "type": "EnumNamedValue",
+                      "value": "RUNNING"
+                    },
+                    "urn": {
+                      "type": "SessionID",
+                      "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13"
+                    }
+                  }
+                }
+              ],
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "FlowWithTwoLevelsOfNestedFlows"
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+              }
+            }
+          },
           {
             "type": "ApiFlow",
             "value": {
@@ -14858,6 +17095,15 @@
                 "type": "EnumNamedValue",
                 "value": "RUNNING"
               },
+              "store": {
+                "type": "AnyValue",
+                "value": {
+                  "type_url": {
+                    "type": "unicode",
+                    "value": "type.googleapis.com/grr.InterrogateStore"
+                  }
+                }
+              },
               "urn": {
                 "type": "SessionID",
                 "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
@@ -14872,6 +17118,55 @@
           {
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
+            "flow_id": "F:ABCDEF12",
+            "is_robot": false,
+            "last_active_at": 45000000,
+            "name": "FlowWithTwoLevelsOfNestedFlows",
+            "nested_flows": [
+              {
+                "client_id": "C.1000000000000000",
+                "creator": "api_test_user",
+                "flow_id": "F:ABCDEF13",
+                "is_robot": false,
+                "last_active_at": 45000000,
+                "name": "FlowWithOneNestedFlow",
+                "nested_flows": [
+                  {
+                    "client_id": "C.1000000000000000",
+                    "creator": "api_test_user",
+                    "flow_id": "F:ABCDEF14",
+                    "is_robot": false,
+                    "last_active_at": 45000000,
+                    "name": "DummyFlow",
+                    "runner_args": {
+                      "client_id": "aff4:/C.1000000000000000",
+                      "flow_name": "DummyFlow"
+                    },
+                    "started_at": 45000000,
+                    "state": "TERMINATED",
+                    "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13/F:ABCDEF14"
+                  }
+                ],
+                "runner_args": {
+                  "client_id": "aff4:/C.1000000000000000",
+                  "flow_name": "FlowWithOneNestedFlow"
+                },
+                "started_at": 45000000,
+                "state": "RUNNING",
+                "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12/F:ABCDEF13"
+              }
+            ],
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "FlowWithTwoLevelsOfNestedFlows"
+            },
+            "started_at": 45000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          },
+          {
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
             "is_robot": false,
             "last_active_at": 43000000,
@@ -14882,6 +17177,9 @@
             },
             "started_at": 43000000,
             "state": "RUNNING",
+            "store": {
+              "type_url": "type.googleapis.com/grr.InterrogateStore"
+            },
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
         ]
@@ -17733,16 +20031,16 @@
       "response": {
         "items": [
           {
-            "args_type": "EmailOutputPluginArgs",
-            "description": "Send an email for each result.",
-            "name": "EmailOutputPlugin",
-            "plugin_type": "LEGACY"
-          },
-          {
             "description": "Output ZIP archive with CSV files.",
             "friendly_name": "CSV (zipped)",
             "name": "CSVInstantOutputPlugin",
             "plugin_type": "INSTANT"
+          },
+          {
+            "args_type": "EmailOutputPluginArgs",
+            "description": "Send an email for each result.",
+            "name": "EmailOutputPlugin",
+            "plugin_type": "LEGACY"
           }
         ]
       },
@@ -19105,27 +21403,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
+              }
             }
           }
         ]
@@ -19192,15 +21470,7 @@
               "system": "Linux",
               "version": "buster/sid"
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "urn": "aff4:/C.1000000000000000"
           }
         ]
       },

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Flows for collection information about installed software."""
+
 import datetime
 import plistlib
 import re
 
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_client
@@ -17,7 +19,7 @@ from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class CollectInstalledSoftware(flow_base.FlowBase):
@@ -25,21 +27,41 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
+  return_types = (rdf_client.SoftwarePackages,)
 
   # TODO: Add `result_types` declaration once we migrate away from
   # the artifact collector in this flow and the types are known.
 
   def Start(self) -> None:
     if self.client_os == "Linux":
-      dpkg_args = rdf_client_action.ExecuteRequest()
-      dpkg_args.cmd = "/usr/bin/dpkg"
-      dpkg_args.args.append("--list")
+      # TODO: Remove branching once updated agent is rolled out to
+      # a reasonable portion of the fleet.
+      if self.client_version <= 3478:
+        dpkg_args = rdf_client_action.ExecuteRequest()
+        dpkg_args.cmd = "/usr/bin/dpkg"
+        dpkg_args.args.append("--list")
 
-      self.CallClient(
-          server_stubs.ExecuteCommand,
-          dpkg_args,
-          next_state=self._ProcessDpkgResults.__name__,
-      )
+        self.CallClient(
+            server_stubs.ExecuteCommand,
+            dpkg_args,
+            next_state=self._ProcessDpkgResults.__name__,
+        )
+      else:
+        dpkg_query_args = rdf_client_action.ExecuteRequest()
+        dpkg_query_args.cmd = "/usr/bin/dpkg-query"
+        dpkg_query_args.args.append("--show")
+        dpkg_query_args.args.append("--showformat")
+        # pylint: disable=line-too-long
+        # fmt: off
+        dpkg_query_args.args.append("${Package}|${Version}|${Architecture}|${Source}|${binary:Synopsis}\n")
+        # pylint: enable=line-too-long
+        # fmt: on
+
+        self.CallClient(
+            server_stubs.ExecuteCommand,
+            dpkg_query_args,
+            next_state=self._ProcessDpkgQueryResults.__name__,
+        )
 
       rpm_args = rdf_client_action.ExecuteRequest()
       rpm_args.cmd = "/bin/rpm"
@@ -53,10 +75,10 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         rpm_args.args.append("--all")
         rpm_args.args.append("--queryformat")
         # pylint: disable=line-too-long
-        # pyformat: disable
+        # fmt: off
         rpm_args.args.append("%{NAME}|%{EPOCH}|%{VERSION}|%{RELEASE}|%{ARCH}|%{INSTALLTIME}|%{VENDOR}|%{SOURCERPM}\n")
         # pylint: enable=line-too-long
-        # pyformat: enable
+        # fmt: on
 
       self.CallClient(
           server_stubs.ExecuteCommand,
@@ -166,6 +188,74 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       # second char and error in the third (or empty if installed correctly).
       if status[1:2] == "i":
         package.install_state = sysinfo_pb2.SoftwarePackage.INSTALLED
+
+    if result.packages:
+      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+
+  def _ProcessDpkgQueryResults(
+      self,
+      responses: flow_responses.Responses[rdf_client_action.ExecuteResponse],
+  ) -> None:
+
+    def CallDpkgList():
+      # Maybe `dpkg-query` is not available or is too old to use the format
+      # we specified. We try using `dpkg --list` which is less complete but
+      # is more likely to work.
+      dpkg_args = rdf_client_action.ExecuteRequest()
+      dpkg_args.cmd = "/usr/bin/dpkg"
+      dpkg_args.args.append("--list")
+
+      self.CallClient(
+          server_stubs.ExecuteCommand,
+          dpkg_args,
+          next_state=self._ProcessDpkgResults.__name__,
+      )
+
+    if not responses.success:
+      self.Log("Failed to invoke `dpkg-query`: %s", responses.status)
+      CallDpkgList()
+      return
+
+    if len(responses) != 1:
+      raise flow_base.FlowError(
+          f"Unexpected number of responses: {len(responses)}",
+      )
+
+    response = list(responses)[0]
+
+    if response.exit_status != 0:
+      self.Log(
+          "`dpkg-query` quit abnormally (status: %s, stdout: %s, stderr: %s)",
+          response.exit_status,
+          response.stdout,
+          response.stderr,
+      )
+      CallDpkgList()
+      return
+
+    result = sysinfo_pb2.SoftwarePackages()
+
+    stdout = response.stdout.decode("utf-8", "backslashreplace")
+
+    for line in stdout.splitlines():
+      # Just in case the output contains any trailing newlines or blanks, we
+      # strip each line and skip those that are empty.
+      line = line.strip()
+      if not line:
+        continue
+
+      try:
+        [name, version, arch, source_deb, description] = line.split("|", 4)
+      except ValueError:
+        self.Log("Invalid `dpkg-query` output format: %r", line)
+        continue
+
+      package = result.packages.add()
+      package.name = name
+      package.version = version
+      package.architecture = arch
+      package.source_deb = source_deb
+      package.description = description
 
     if result.packages:
       self.SendReply(mig_client.ToRDFSoftwarePackages(result))
@@ -355,7 +445,8 @@ class CollectInstalledSoftware(flow_base.FlowBase):
     response = mig_file_finder.ToProtoFileFinderResult(list(responses)[0])
 
     blob_ids = [
-        blobs.BlobID(chunk.digest) for chunk in response.transferred_file.chunks
+        models_blobs.BlobID(chunk.digest)
+        for chunk in response.transferred_file.chunks
     ]
     blobs_by_id = data_store.BLOBS.ReadAndWaitForBlobs(
         blob_ids,

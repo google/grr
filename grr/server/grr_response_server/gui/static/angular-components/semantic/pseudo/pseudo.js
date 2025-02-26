@@ -1,5 +1,4 @@
 goog.module('grrUi.semantic.pseudo.pseudo');
-goog.module.declareLegacyNamespace();
 
 const {FetchMoreLinkDirective} = goog.require('grrUi.semantic.pseudo.fetchMoreLinkDirective');
 const {coreModule} = goog.require('grrUi.core.core');
@@ -22,7 +21,7 @@ exports.pseudoModule.directive(
 
 
 exports.pseudoModule.run(function(grrSemanticValueDirectivesRegistryService) {
-  var registry = grrSemanticValueDirectivesRegistryService;
+  const registry = grrSemanticValueDirectivesRegistryService;
 
   registry.registerDirective(
       FetchMoreLinkDirective.semantic_type, FetchMoreLinkDirective);

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.globExpressionsListFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -31,7 +30,7 @@ const GlobExpressionsListFormController = class {
         angular.isDefined(this.scope_['field']) &&
         angular.isDefined(this.scope_['value'])) {
       if (this.scope_['value'].length == 0) {
-        var newGlob = angular.copy(this.scope_['descriptor']['default']);
+        const newGlob = angular.copy(this.scope_['descriptor']['default']);
         this.scope_['value'].push(newGlob);
       }
     }

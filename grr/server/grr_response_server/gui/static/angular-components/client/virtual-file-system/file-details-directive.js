@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileDetailsDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -9,7 +8,7 @@ const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirec
 
 
 /** @const */
-var REFRESH_VERSIONS_EVENT = VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
+const REFRESH_VERSIONS_EVENT = VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 
 /**
  * Controller for FileDetailsDirective.
@@ -94,8 +93,8 @@ const FileDetailsController = class {
    * @private
    */
   onContextChange_() {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'];
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
 
     if (angular.isDefined(clientId) && angular.isDefined(selectedFilePath)) {
       this.fetchFileDetails_();
@@ -109,12 +108,12 @@ const FileDetailsController = class {
    * @private
    */
   fetchFileDetails_() {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
 
-    var url = 'clients/' + clientId + '/vfs-details/' + selectedFilePath;
-    var params = {};
+    const url = 'clients/' + clientId + '/vfs-details/' + selectedFilePath;
+    const params = {};
     if (fileVersion) {
       params['timestamp'] = fileVersion;
     }
@@ -130,10 +129,10 @@ const FileDetailsController = class {
    * @private
    */
   onFileDetailsFetched_(response) {
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
-    var fileDetails = response.data['file'];
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
+    const fileDetails = response.data['file'];
 
     this.fileVersionUrl =
         'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
@@ -147,7 +146,7 @@ const FileDetailsController = class {
       this.downloadQueryParams['age'] = fileVersion;
     }
 
-    var components = fileDetails['value']['path']['value'].split('/');
+    const components = fileDetails['value']['path']['value'].split('/');
     this.selectedFileName = components[components.length - 1];
   }
 
@@ -172,7 +171,7 @@ const FileDetailsController = class {
    * @private
    */
   targetsCurrentSelection_(fileDetails) {
-    var selectedFilePath = this.fileContext['selectedFilePath'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
     return fileDetails['value']['path']['value'] === selectedFilePath;
   }
 };

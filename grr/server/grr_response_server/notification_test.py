@@ -3,11 +3,10 @@
 
 from absl import app
 
+from grr_response_proto import objects_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
-from grr_response_server.rdfvalues import objects as rdf_objects
-
 from grr.test_lib import test_lib
 
 
@@ -19,8 +18,11 @@ class NotificationTest(test_lib.GRRBaseTest):
     username = cronjobs.CRON_JOB_USERNAME
 
     notification.Notify(
-        username, rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
-        "Fake discovery message", rdf_objects.ObjectReference())
+        username,
+        objects_pb2.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        "Fake discovery message",
+        objects_pb2.ObjectReference(),
+    )
 
     self.assertEmpty(data_store.REL_DB.ReadUserNotifications(username))
 

@@ -51,23 +51,24 @@ const ClientSummaryController = class {
 
     // Check for the last crash.
     if (this.scope_['client']['value']['last_crash_at']) {
-      var currentTimeMs = this.grrTimeService_.getCurrentTimeMs();
-      var crashTime = this.scope_['client']['value']['last_crash_at']['value'];
+      const currentTimeMs = this.grrTimeService_.getCurrentTimeMs();
+      const crashTime =
+          this.scope_['client']['value']['last_crash_at']['value'];
       if (angular.isDefined(crashTime) &&
           (currentTimeMs / 1000 - crashTime / 1000000) < 60 * 60 * 24) {
         this.crashTime = crashTime;
       }
     }
 
-    var clientId = this.scope_['client']['value']['client_id']['value'];
-    var lastIPUrl = 'clients/' + clientId + '/last-ip';
+    const clientId = this.scope_['client']['value']['client_id']['value'];
+    const lastIPUrl = 'clients/' + clientId + '/last-ip';
     this.grrApiService_.get(lastIPUrl).then(function(response) {
       this.lastIP = response.data;
     }.bind(this));
 
-    var approvalUrl = 'users/me/approvals/client/' + clientId;
+    const approvalUrl = 'users/me/approvals/client/' + clientId;
     this.grrApiService_.get(approvalUrl).then(function(response) {
-      var approvals = response.data['items'];
+      const approvals = response.data['items'];
       if (approvals && approvals.length) {
         // Approvals are returned from newest to oldest, so the first item
         // holds the most recent approval reason.

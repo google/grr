@@ -86,6 +86,34 @@ exports.ReflectionService = class {
   }
 
   /**
+   * Fills in descriptors for primitive types.
+   * This used to be done in the API handler, but we moved it here in
+   * preparation for the rdf migration of such handler. Primitive values are not
+   * returned by the API handler anymore.
+   * @private
+   */
+  fillPrimitiveDescriptors_() {
+    const primitive_types =
+        ['bool', 'int', 'float', 'str', 'bytes', 'unicode', 'long'];
+    angular.forEach(primitive_types, function(type_name) {
+      this.descriptorsCache_[type_name] = {
+        'name': type_name,
+        'mro': [type_name, 'object'],
+        'kind': 'primitive',
+      };
+      if (type_name === 'bool') {
+        this.descriptorsCache_[type_name]['mro'].push('int');
+      }
+      if (type_name === 'float') {
+        this.descriptorsCache_[type_name]['default'] = {
+          type: 'float',
+          value: 0
+        };
+      }
+    }.bind(this));
+  }
+
+  /**
    * Returns descriptor of a given RDFValue (optionally with descriptors of all
    * nested fields).
    *
@@ -115,6 +143,7 @@ exports.ReflectionService = class {
           angular.forEach(response['data']['items'], function(item) {
             this.descriptorsCache_[item['name']] = item;
           }.bind(this));
+          this.fillPrimitiveDescriptors_();
 
           return this.processRequestsQueue_();
         }.bind(this));

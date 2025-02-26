@@ -188,6 +188,34 @@ class ApiGetConfigOptionHandlerRegressionTest(
       )
 
 
+class ApiGetUiConfigHandlerRegressionTest(
+    api_regression_test_lib.ApiRegressionTest,
+):
+  api_method = "GetUiConfig"
+  handler = config_plugin.ApiGetUiConfigHandler
+
+  def Run(self):
+    self.Check(
+        "GetUiConfig",
+        args=None,
+    )
+
+    with test_lib.ConfigOverrider({
+        "AdminUI.hunt_config": rdf_config.AdminUIHuntConfig(
+            default_exclude_labels=["oh-oh"],
+        ),
+        "AdminUI.heading": "test heading",
+        "AdminUI.report_url": "test report url",
+        "AdminUI.help_url": "test help url",
+        "AdminUI.profile_image_url": "test profile image url",
+        "Source.version_string": "1.2.3.4",
+    }):
+      self.Check(
+          "GetUiConfig",
+          args=None,
+      )
+
+
 def main(argv):
   api_regression_test_lib.main(argv)
 

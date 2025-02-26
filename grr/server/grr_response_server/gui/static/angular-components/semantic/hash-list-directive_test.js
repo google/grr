@@ -23,7 +23,7 @@ describe('hash list directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-hash-list value="value" />';
+    const template = '<grr-hash-list value="value"></grr-hash-list>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

@@ -33,7 +33,8 @@ class IPResolver(IPResolverBase):
 
   def RetrieveIPInfo(self, ip):
     precondition.AssertOptionalType(
-        ip, (ipaddress.IPv4Address, ipaddress.IPv6Address))
+        ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+    )
 
     if ip is None:
       return (IPInfo.UNKNOWN, "No ip information.")

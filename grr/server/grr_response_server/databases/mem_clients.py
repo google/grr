@@ -6,10 +6,11 @@ from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple, Typ
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
-from grr_response_server.models import clients
+from grr_response_server.models import clients as models_clients
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -22,21 +23,33 @@ class _MetadataDict(TypedDict, total=False):
   last_foreman_time: rdfvalue.RDFDatetime
   last_crash_timestamp: rdfvalue.RDFDatetime
   startup_info_timestamp: rdfvalue.RDFDatetime
-  last_fleetspeak_validation_info: (
+  last_fleetspeak_validation_info: Optional[
       bytes  # Serialized `jobs_pb2.FleetspeakValidationInfo`.
-  )
+  ]
 
 
 class InMemoryDBClientMixin(object):
   """InMemoryDB mixin for client related functions."""
 
-  clients: dict[str, bytes]  # Serialized `objects_pb2.ClientSnapshot`.
-  metadatas: dict[str, dict[str, _MetadataDict]]
-  startup_history: dict[str, bytes]  # Serialized `jobs_pb2.StartupInfo`.
-  crash_history: dict[str, bytes]  # Serialized `jobs_pb2.ClientCrash`.
+  clients: dict[
+      str, dict[rdfvalue.RDFDatetime, bytes]
+  ]  # Serialized `objects_pb2.ClientSnapshot`.
+  metadatas: dict[str, _MetadataDict]
+  startup_history: dict[
+      str, dict[rdfvalue.RDFDatetime, bytes]
+  ]  # Serialized `jobs_pb2.StartupInfo`.
+  crash_history: dict[
+      str, dict[rdfvalue.RDFDatetime, bytes]
+  ]  # Serialized `jobs_pb2.ClientCrash`.
   rrg_startups: dict[str, list[rrg_startup_pb2.Startup]]
   labels: dict[str, dict[str, set[str]]]
   keywords: dict[str, dict[str, rdfvalue.RDFDatetime]]
+  flows: dict[tuple[str, str], flows_pb2.Flow]
+  flow_requests: dict[tuple[str, str], dict[str, flows_pb2.FlowRequest]]
+  flow_processing_requests: dict[
+      tuple[str, str, str], flows_pb2.FlowProcessingRequest
+  ]
+  users: dict[str, objects_pb2.GRRUser]
 
   @utils.Synchronized
   def MultiWriteClientMetadata(
@@ -44,8 +57,6 @@ class InMemoryDBClientMixin(object):
       client_ids: Collection[str],
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
@@ -57,19 +68,12 @@ class InMemoryDBClientMixin(object):
     if last_ping is not None:
       md["ping"] = last_ping
 
-    if last_clock is not None:
-      md["clock"] = last_clock
-
-    if last_ip is not None:
-      md["ip"] = jobs_pb2.NetworkAddress()
-      md["ip"].MergeFrom(last_ip)
-
     if last_foreman is not None:
       md["last_foreman_time"] = last_foreman
 
     if fleetspeak_validation_info is not None:
       if fleetspeak_validation_info:
-        pb = clients.FleetspeakValidationInfoFromDict(
+        pb = models_clients.FleetspeakValidationInfoFromDict(
             fleetspeak_validation_info
         )
         md["last_fleetspeak_validation_info"] = pb.SerializeToString()
@@ -99,10 +103,6 @@ class InMemoryDBClientMixin(object):
         metadata.first_seen = int(first_seen)
       if ping := md.get("ping"):
         metadata.ping = int(ping)
-      if (clock := md.get("clock")) is not None:
-        metadata.clock = int(clock)
-      if (ip := md.get("ip")) is not None:
-        metadata.ip.CopyFrom(ip)
       if (last_foreman_time := md.get("last_foreman_time")) is not None:
         metadata.last_foreman_time = int(last_foreman_time)
       if (last_crash_timestamp := md.get("last_crash_timestamp")) is not None:
@@ -145,7 +145,7 @@ class InMemoryDBClientMixin(object):
   def MultiReadClientSnapshot(
       self,
       client_ids: Collection[str],
-  ) -> Mapping[str, objects_pb2.ClientSnapshot]:
+  ) -> Mapping[str, Optional[objects_pb2.ClientSnapshot]]:
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -176,17 +176,20 @@ class InMemoryDBClientMixin(object):
     res = {}
     for client_id in client_ids:
       try:
-        md = self.ReadClientMetadata(client_id)
+        # ReadClientMetadata is implemented in the db.Database class.
+        md = self.ReadClientMetadata(client_id)  # pytype: disable=attribute-error
       except db.UnknownClientError:
         continue
 
       if md and min_last_ping and rdfvalue.RDFDatetime(md.ping) < min_last_ping:
         continue
-      last_snapshot = self.ReadClientSnapshot(client_id)
+      # ReadClientSnapshot is implemented in the db.Database class.
+      last_snapshot = self.ReadClientSnapshot(client_id)  # pytype: disable=attribute-error
 
       full_info = objects_pb2.ClientFullInfo()
       full_info.metadata.CopyFrom(md)
-      full_info.labels.extend(self.ReadClientLabels(client_id))
+      # ReadClientLabels is implemented in the db.Database class.
+      full_info.labels.extend(self.ReadClientLabels(client_id))  # pytype: disable=attribute-error
 
       if last_snapshot is None:
         full_info.last_snapshot.client_id = client_id
@@ -240,7 +243,8 @@ class InMemoryDBClientMixin(object):
       ] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
-    from_time, to_time = self._ParseTimeRange(timerange)
+    # _ParseTimeRange is implemented in InMemoryDB class that uses this mixin.
+    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
 
     history = self.clients.get(client_id)
     if not history:

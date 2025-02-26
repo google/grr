@@ -37,7 +37,7 @@ exports.FirebaseService = class {
       return;
     }
 
-    var firebaseError;
+    let firebaseError;
     firebase.auth()
         .getRedirectResult()
         .then(function(result) {
@@ -61,14 +61,14 @@ exports.FirebaseService = class {
           this.grrApiService_.markAuthDone();
         }.bind(this));
       } else if (!firebaseError) {
-        var providerName = firebase.apps[0].options['authProvider'];
-        var provider = new firebase.auth[providerName]();
+        const providerName = firebase.apps[0].options['authProvider'];
+        const provider = new firebase.auth[providerName]();
         firebase.auth().signInWithRedirect(provider);
       }
     }.bind(this));
   }
 };
-var FirebaseService = exports.FirebaseService;
+const FirebaseService = exports.FirebaseService;
 
 
 /**

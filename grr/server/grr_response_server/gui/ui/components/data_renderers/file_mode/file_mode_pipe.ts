@@ -35,7 +35,7 @@ const FILE_TYPE_CHARS_MAP: ReadonlyMap<number, string> = new Map([
  * Converts a given file mode (represented as a stringified integer) to a
  * human readable format.
  */
-@Pipe({name: 'fileMode'})
+@Pipe({standalone: false, name: 'fileMode'})
 export class FileModePipe implements PipeTransform {
   transform(statModeStr: string | undefined): string {
     if (statModeStr === undefined || statModeStr === '') {

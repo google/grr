@@ -54,6 +54,7 @@ class TypeInfoObject(metaclass=MetaclassRegistry):
       hidden: Should the argument be hidden from the UI.
     """
     self.name = name
+    self.section = name.split(".")[0]
     self.default = default
     self.description = description
     self.hidden = hidden

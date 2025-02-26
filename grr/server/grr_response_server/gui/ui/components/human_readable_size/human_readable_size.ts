@@ -4,6 +4,7 @@ import {Component, Input} from '@angular/core';
  * Shows a size in a human readable format.
  */
 @Component({
+  standalone: false,
   selector: 'human-readable-size',
   templateUrl: './human_readable_size.ng.html',
 })

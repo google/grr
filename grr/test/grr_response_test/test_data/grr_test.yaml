@@ -16,7 +16,6 @@ Client.executable_signing_public_key: |
   -----END PUBLIC KEY-----
 
 Frontend.bind_address: 127.0.0.1
-Frontend.bind_port: 8080
 
 HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
@@ -50,24 +49,17 @@ PrivateKeys.executable_signing_private_key: |
   AqJIPMXO96oTVY6eorI9BU0cG6n0UvzWZAxNT2UDK07UTB4v7Z8y
   -----END RSA PRIVATE KEY-----
 
-Client.server_urls: ["http://localhost:8080/"]
-
 Test Context:
   AdminUI.webauth_manager: NullWebAuthManager
 
-  Client.poll_max: 5
   Logging.path: /tmp/grr_logs/
 
   # When debugging it helps to be able to see all output on the console.
   ClientBuilder.console: True
 
   # Increase the client memory limit to 4GB.
-  Client.rss_max: 4000
   Client.foreman_check_frequency: 5
-  Client.poll_max: 5
   Frontend.bind_address: 127.0.0.1
-  Frontend.bind_port: 8080
-  AdminUI.bind: 127.0.0.1
   AdminUI.port: 8000
   Database.implementation: InMemoryDB
 

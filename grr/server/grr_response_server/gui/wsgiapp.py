@@ -435,10 +435,17 @@ def MakeServer(host=None, port=None, max_port=None, multi_threaded=False):
       raise ValueError("Need a valid cert file to enable SSL.")
 
     key_file = config.CONFIG["AdminUI.ssl_key_file"]
-    server.socket = ssl.wrap_socket(
+
+    # See https://docs.python.org/3/library/ssl.html#ssl.Purpose.CLIENT_AUTH for
+    # details about why Purpose.CLIENT_AUTH is used here:
+    # CLIENT_AUTH: option for create_default_context() and
+    # SSLContext.load_default_certs(). This value indicates that the context
+    # may be used to authenticate web clients (therefore, it will be used to
+    # create server-side sockets).
+    context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+    context.load_cert_chain(cert_file, key_file)
+    server.socket = context.wrap_socket(
         server.socket,
-        certfile=cert_file,
-        keyfile=key_file,
         server_side=True,
     )
     proto = "HTTPS"

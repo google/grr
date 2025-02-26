@@ -5,7 +5,7 @@ import {MatPaginatorHarness} from '@angular/material/paginator/testing';
 import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {
   FlowFileResult,
@@ -26,12 +26,14 @@ initTestEnvironment();
 // hook:
 // https://stackoverflow.com/questions/37408801/testing-ngonchanges-lifecycle-hook-in-angular-2
 @Component({
+  standalone: false,
   template: `
 <file-results-table
     [results]="results"
     [totalCount]="totalCount"
     (loadMore)="loadMoreTriggered()">
 </file-results-table>`,
+  jit: true,
 })
 class TestHostComponent {
   results?: FlowFileResult[];
@@ -46,8 +48,8 @@ describe('FileResultsTable Component', () => {
       imports: [
         NoopAnimationsModule,
         HelpersModule,
-        RouterTestingModule,
         TimestampTestingModule,
+        RouterModule.forRoot([]),
       ],
       declarations: [TestHostComponent],
       teardown: {destroyAfterEach: false},

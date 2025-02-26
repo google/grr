@@ -3,6 +3,7 @@
 
 import abc
 import threading
+from typing import Optional, Type
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -14,6 +15,7 @@ from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
   """Describes processing status of a single batch by a hunt output plugin."""
+
   protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
   rdf_deps = [
       rdf_output_plugin.OutputPluginDescriptor,
@@ -43,13 +45,12 @@ class OutputPlugin(metaclass=OutputPluginRegistry):
 
   name = ""
   description = ""
-  args_type = None
+  args_type: Optional[Type[rdf_structs.RDFProtoStruct]] = None
 
   @classmethod
   def CreatePluginAndDefaultState(cls, source_urn=None, args=None):
     """Creates a plugin and returns its initial state."""
     state = rdf_protodict.AttributedDict()
-    state["source_urn"] = source_urn
     if args is not None:
       args.Validate()
     state["args"] = args

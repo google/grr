@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 """RDFValue implementations related to flow scheduling."""
 
-import threading
-import time
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 
@@ -20,64 +16,17 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
   protobuf = jobs_pb2.GrrMessage
   rdf_deps = [
-      rdf_protodict.EmbeddedRDFValue,
       rdfvalue.FlowSessionID,
       rdfvalue.RDFDatetime,
       rdfvalue.Duration,
       rdfvalue.RDFURN,
   ]
 
-  lock = threading.Lock()
-  next_id_base = 0
-  max_ttl = 5
-
-  def __init__(
-      self, initializer=None, payload=None, generate_task_id=False, **kwarg
-  ):
+  def __init__(self, initializer=None, payload=None, **kwarg):
     super().__init__(initializer=initializer, **kwarg)
 
     if payload is not None:
       self.payload = payload
-
-    if generate_task_id:
-      self.GenerateTaskID()
-
-  def GenerateTaskID(self):
-    """Generates a new, unique task_id."""
-    # Random number can not be zero since next_id_base must increment.
-    random_number = random.PositiveUInt16()
-
-    # 16 bit random numbers
-    with GrrMessage.lock:
-      next_id_base = GrrMessage.next_id_base
-
-      id_base = (next_id_base + random_number) & 0xFFFFFFFF
-      if id_base < next_id_base:
-        time.sleep(0.001)
-
-      GrrMessage.next_id_base = id_base
-
-    # 32 bit timestamp (in 1/1000 second resolution)
-    time_base = (int(time.time() * 1000) & 0x1FFFFFFF) << 32
-
-    task_id = time_base | id_base
-
-    self.Set("task_id", task_id)
-    return task_id
-
-  @property
-  def task_id(self):
-    res = self.Get("task_id")
-    if res:
-      return res
-    raise ValueError("No task id set.")
-
-  @task_id.setter
-  def task_id(self, value):
-    self.Set("task_id", value)
-
-  def HasTaskID(self):
-    return bool(self.Get("task_id"))
 
   @property
   def args(self):
@@ -100,6 +49,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
       return result_cls.FromSerializedBytes(self.Get("args"))
 
+
   @payload.setter
   def payload(self, value):
     """Automatically encode RDFValues into the message."""
@@ -108,6 +58,8 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
     self.Set("args", value.SerializeToBytes())
     self.args_rdf_name = value.__class__.__name__
+
+  #   /grr/server/grr_response_server/models/clients.py)
 
   def ClearPayload(self):
     self.args_rdf_name = None
@@ -254,6 +206,6 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
 
 
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
-  """Some flows do not take argumentnts."""
+  """Some flows do not take arguments."""
 
   protobuf = flows_pb2.EmptyFlowArgs

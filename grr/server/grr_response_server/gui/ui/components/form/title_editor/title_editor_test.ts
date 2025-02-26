@@ -9,7 +9,7 @@ import {
 import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {initTestEnvironment} from '../../../testing';
 
@@ -19,9 +19,11 @@ import {TitleEditor, TitleEditorContent} from './title_editor';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `<title-editor [disabled]="disabled" (changed)="changed.emit($event)" #titleEditor>
                <h1 titleEditable>hello world</h1>
              </title-editor>`,
+  jit: true,
 })
 class TestHostComponent {
   @Input() disabled = false;
@@ -31,16 +33,22 @@ class TestHostComponent {
 }
 
 @Component({
+  standalone: false,
   template: `<title-editor route="['foo']">
                     <h1 titleEditable>hello world with link</h1>
                   </title-editor>`,
+  jit: true,
 })
 class TestHostComponentWithLink {}
 
 describe('title-editor test', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, TitleEditorModule, RouterTestingModule],
+      imports: [
+        NoopAnimationsModule,
+        TitleEditorModule,
+        RouterModule.forRoot([]),
+      ],
       declarations: [TestHostComponent, TestHostComponentWithLink],
       teardown: {destroyAfterEach: false},
     }).compileComponents();

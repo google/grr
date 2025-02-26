@@ -1,8 +1,7 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {PathSpecPathType} from '../../lib/api/api_interfaces';
 import {getFileBlobUrl} from '../../lib/api/http_api_service';
@@ -39,7 +38,7 @@ describe('FileDetails Component', () => {
       imports: [
         NoopAnimationsModule,
         FileDetailsModule,
-        RouterTestingModule.withRoutes(CLIENT_ROUTES),
+        RouterModule.forRoot(CLIENT_ROUTES),
       ],
       providers: [
         {provide: ActivatedRoute, useFactory: getActivatedChildRoute},

@@ -23,6 +23,8 @@
     [flowDescriptor]="entry.descriptor"
     (menuActionTriggered)="triggerFlowAction(entry, $event)"
     [class.highlight]="scrollTarget === entry.flow.flowId"
+    [webAuthType]="(webAuthType$ | async)"
+    [exportCommandPrefix]="(exportCommandPrefix$ | async)"
   >
   </flow-details>
 </app-infinite-list>

@@ -17,12 +17,11 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.models import hunts as model_hunts
+from grr_response_server.models import hunts as models_hunts
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -560,17 +559,13 @@ class DatabaseTestHuntMixin(object):
 
   def testListHuntObjectsWithoutFiltersReadsAllHunts(self):
     hunts = self._CreateMultipleHunts()
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    expected = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    expected = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in expected]
+    expected = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
     got = self.db.ListHuntObjects(0, db.MAX_COUNT)
     self.assertListEqual(got, list(reversed(expected)))
 
   def testListHuntObjectsWithCreatorFilterIsAppliedCorrectly(self):
     all_hunts = self._CreateMultipleHunts()
-    all_hunts = [mig_hunt_objects.ToRDFHunt(h) for h in all_hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in all_hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in all_hunts]
 
     got = self.db.ListHuntObjects(0, db.MAX_COUNT, with_creator="user-a")
     self.assertListEqual(got, list(reversed(all_hunts[:5])))
@@ -583,9 +578,7 @@ class DatabaseTestHuntMixin(object):
     hunts = self._CreateMultipleHuntsForUser(
         "user-a", 5
     ) + self._CreateMultipleHuntsForUser("user-b", 5)
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(0, db.MAX_COUNT, created_by=frozenset([]))
     self.assertListEqual(got, [])
@@ -612,9 +605,7 @@ class DatabaseTestHuntMixin(object):
     hunts = self._CreateMultipleHuntsForUser(
         "user-a", 5
     ) + self._CreateMultipleHuntsForUser("user-b", 5)
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(
         0,
@@ -653,9 +644,7 @@ class DatabaseTestHuntMixin(object):
     hunts = self._CreateMultipleHuntsForUser(
         "user-a", 5
     ) + self._CreateMultipleHuntsForUser("user-b", 5)
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(0, db.MAX_COUNT, not_created_by=frozenset([]))
     self.assertListEqual(got, list(reversed(all_hunts)))
@@ -682,10 +671,8 @@ class DatabaseTestHuntMixin(object):
     hunts = self._CreateMultipleHuntsForUser(
         "user-a", 5
     ) + self._CreateMultipleHuntsForUser("user-b", 5)
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
 
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(
         0,
@@ -729,9 +716,7 @@ class DatabaseTestHuntMixin(object):
 
   def testListHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
     hunts = self._CreateMultipleHunts()
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(
         0,
@@ -763,9 +748,7 @@ class DatabaseTestHuntMixin(object):
 
   def testListHuntObjectsWithDescriptionMatchFilterIsAppliedCorrectly(self):
     hunts = self._CreateMultipleHunts()
-    hunts = [mig_hunt_objects.ToRDFHunt(h) for h in hunts]
-    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
-    all_hunts = [mig_hunt_objects.ToProtoHuntMetadata(h) for h in all_hunts]
+    all_hunts = [models_hunts.InitHuntMetadataFromHunt(h) for h in hunts]
 
     got = self.db.ListHuntObjects(
         0, db.MAX_COUNT, with_description_match="foo_"
@@ -788,20 +771,12 @@ class DatabaseTestHuntMixin(object):
     paused_hunt = self._CreateHuntWithState(
         creator, hunts_pb2.Hunt.HuntState.PAUSED
     )
-    paused_hunt = mig_hunt_objects.ToRDFHunt(paused_hunt)
-    paused_hunt_metadata = rdf_hunt_objects.HuntMetadata.FromHunt(paused_hunt)
-    paused_hunt_metadata = mig_hunt_objects.ToProtoHuntMetadata(
-        paused_hunt_metadata
-    )
+    paused_hunt_metadata = models_hunts.InitHuntMetadataFromHunt(paused_hunt)
     self._CreateHuntWithState(creator, rdf_hunt_objects.Hunt.HuntState.STARTED)
     stopped_hunt = self._CreateHuntWithState(
         creator, hunts_pb2.Hunt.HuntState.STOPPED
     )
-    stopped_hunt = mig_hunt_objects.ToRDFHunt(stopped_hunt)
-    stopped_hunt_metadata = rdf_hunt_objects.HuntMetadata.FromHunt(stopped_hunt)
-    stopped_hunt_metadata = mig_hunt_objects.ToProtoHuntMetadata(
-        stopped_hunt_metadata
-    )
+    stopped_hunt_metadata = models_hunts.InitHuntMetadataFromHunt(stopped_hunt)
     self._CreateHuntWithState(creator, hunts_pb2.Hunt.HuntState.COMPLETED)
 
     got = self.db.ListHuntObjects(
@@ -2218,8 +2193,8 @@ class DatabaseTestHuntMixin(object):
 
     usage_stats = self.db.ReadHuntClientResourcesStats(hunt_id)
 
-    expected_cpu_bins = model_hunts.CPU_STATS_BINS
-    expected_network_bins = model_hunts.NETWORK_STATS_BINS
+    expected_cpu_bins = models_hunts.CPU_STATS_BINS
+    expected_network_bins = models_hunts.NETWORK_STATS_BINS
     expected_user_cpu_histogram = jobs_pb2.StatsHistogram(
         bins=[
             jobs_pb2.StatsHistogramBin(num=num, range_max_value=max_range)

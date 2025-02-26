@@ -123,17 +123,21 @@ class FlowResultsComponentStore extends ComponentStore<FlowResultStoreState> {
 /** Per-component Store for querying Flow results. */
 @Injectable()
 export class FlowResultsLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new FlowResultsComponentStore(this.httpApiService);
+    this.query$ = this.store.query$;
+    this.results$ = this.store.results$;
+  }
 
   // "LocalStore" defines the public interface and proxies to "ComponentStore"
   // to hide away NgRx implementation details.
-  private readonly store = new FlowResultsComponentStore(this.httpApiService);
+  private readonly store;
 
   /** Observable, emitting the current query. */
-  readonly query$ = this.store.query$;
+  readonly query$;
 
   /** Observable, emitting the latest results. */
-  readonly results$ = this.store.results$;
+  readonly results$;
 
   /** Queries results for the given client, flow, and result filters. */
   query(query: FlowResultsQuery | Observable<FlowResultsQuery>) {

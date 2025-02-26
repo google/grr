@@ -11,9 +11,9 @@ goog.module.declareLegacyNamespace();
  * @return {string} Human-readable IPv4 address.
  */
 const convertIpv4AddressToString = function(address) {
-  var result = [];
-  for (var i = 0; i < address.length; ++i) {
-    var part = address.charCodeAt(i).toString(10);
+  const result = [];
+  for (let i = 0; i < address.length; ++i) {
+    let part = address.charCodeAt(i).toString(10);
     if (part.length === 1) {
       part = '0' + part;
     }
@@ -31,10 +31,10 @@ const convertIpv4AddressToString = function(address) {
  * @return {string} Human-readable IPv6 address.
  */
 const convertIpv6AddressToString = function(address) {
-  var result = [];
-  var colonCounter = 0;
-  for (var i = 0; i < address.length; ++i) {
-    var part = address.charCodeAt(i).toString(16);
+  const result = [];
+  let colonCounter = 0;
+  for (let i = 0; i < address.length; ++i) {
+    let part = address.charCodeAt(i).toString(16);
     if (part.length === 1) {
       part = '0' + part;
     }

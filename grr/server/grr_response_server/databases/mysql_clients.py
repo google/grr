@@ -9,33 +9,32 @@ from MySQLdb.constants import ER as mysql_error_constants
 import MySQLdb.cursors
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import clients
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import clients as models_clients
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class MySQLDBClientMixin(object):
   """MySQLDataStore mixin for client related functions."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def MultiWriteClientMetadata(
       self,
       client_ids: Collection[str],
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes metadata about the clients."""
+    assert cursor is not None
     # Early return to avoid generating empty query.
     if not client_ids:
       return
@@ -55,14 +54,6 @@ class MySQLDBClientMixin(object):
       column_names.append("last_ping")
       common_placeholders.append("FROM_UNIXTIME(%(last_ping)s)")
       values["last_ping"] = mysql_utils.RDFDatetimeToTimestamp(last_ping)
-    if last_clock is not None:
-      column_names.append("last_clock")
-      common_placeholders.append("FROM_UNIXTIME(%(last_clock)s)")
-      values["last_clock"] = mysql_utils.RDFDatetimeToTimestamp(last_clock)
-    if last_ip is not None:
-      column_names.append("last_ip")
-      common_placeholders.append("%(last_ip)s")
-      values["last_ip"] = last_ip.SerializeToString()
     if last_foreman is not None:
       column_names.append("last_foreman")
       common_placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
@@ -72,7 +63,7 @@ class MySQLDBClientMixin(object):
       column_names.append("last_fleetspeak_validation_info")
       common_placeholders.append("%(last_fleetspeak_validation_info)s")
       if fleetspeak_validation_info:
-        pb = clients.FleetspeakValidationInfoFromDict(
+        pb = models_clients.FleetspeakValidationInfoFromDict(
             fleetspeak_validation_info
         )
         values["last_fleetspeak_validation_info"] = pb.SerializeToString()
@@ -84,9 +75,9 @@ class MySQLDBClientMixin(object):
     # placeholder followed by common placeholder values for the columns being
     # updated. Example query string:
     # INSERT INTO clients
-    # VALUES (%(client_id0)s, %(last_ip)s), (%(client_id1)s, %(last_ip)s)
+    # VALUES (%(client_id0)s, %(last_ping)s), (%(client_id1)s, %(last_ping)s)
     # ON DUPLICATE KEY UPDATE
-    # client_id = VALUES(client_id), last_ip = VALUES(last_ip)
+    # client_id = VALUES(client_id)
     row_tuples = []
     for i, client_id in enumerate(client_ids):
       row_placeholders = ", ".join([f"%(client_id{i})s"] + common_placeholders)
@@ -103,6 +94,8 @@ class MySQLDBClientMixin(object):
         values,
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientMetadata(
       self,
@@ -110,14 +103,13 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Mapping[str, objects_pb2.ClientMetadata]:
     """Reads ClientMetadata records for a list of clients."""
+    assert cursor is not None
     ids = [db_utils.ClientIDToInt(client_id) for client_id in client_ids]
     query = """
       SELECT
         client_id,
         certificate,
         UNIX_TIMESTAMP(last_ping),
-        UNIX_TIMESTAMP(last_clock),
-        last_ip,
         UNIX_TIMESTAMP(last_foreman),
         UNIX_TIMESTAMP(first_seen),
         UNIX_TIMESTAMP(last_crash_timestamp),
@@ -133,7 +125,7 @@ class MySQLDBClientMixin(object):
       row = cursor.fetchone()
       if not row:
         break
-      cid, crt, ping, clk, ip, foreman, first, lct, lst, fsvi = row
+      cid, crt, ping, foreman, first, lct, lst, fsvi = row
 
       metadata = objects_pb2.ClientMetadata()
       if crt is not None:
@@ -142,8 +134,6 @@ class MySQLDBClientMixin(object):
         metadata.first_seen = int(mysql_utils.TimestampToRDFDatetime(first))
       if ping is not None:
         metadata.ping = int(mysql_utils.TimestampToRDFDatetime(ping))
-      if clk is not None:
-        metadata.clock = int(mysql_utils.TimestampToRDFDatetime(clk))
       if foreman is not None:
         metadata.last_foreman_time = int(
             mysql_utils.TimestampToRDFDatetime(foreman)
@@ -156,8 +146,6 @@ class MySQLDBClientMixin(object):
         metadata.last_crash_timestamp = int(
             mysql_utils.TimestampToRDFDatetime(lct)
         )
-      if ip is not None:
-        metadata.ip.ParseFromString(ip)
       if fsvi is not None:
         metadata.last_fleetspeak_validation_info.ParseFromString(fsvi)
 
@@ -165,13 +153,16 @@ class MySQLDBClientMixin(object):
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteClientSnapshot(
       self,
-      snapshot: rdf_objects.ClientSnapshot,
+      snapshot: objects_pb2.ClientSnapshot,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Write new client snapshot."""
+    assert cursor is not None
     cursor.execute("SET @now = NOW(6)")
 
     insert_history_query = (
@@ -224,13 +215,16 @@ class MySQLDBClientMixin(object):
       else:
         raise
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientSnapshot(
       self,
       client_ids: Collection[str],
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> None:
+  ) -> Mapping[str, Optional[objects_pb2.ClientSnapshot]]:
     """Reads the latest client snapshots for a list of clients."""
+    assert cursor is not None
     if not client_ids:
       return {}
 
@@ -274,6 +268,8 @@ class MySQLDBClientMixin(object):
       ret[client_id] = snapshot
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientSnapshotHistory(
       self,
@@ -284,6 +280,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
+    assert cursor is not None
 
     client_id_int = db_utils.ClientIDToInt(client_id)
 
@@ -324,6 +321,8 @@ class MySQLDBClientMixin(object):
       ret.append(snapshot)
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteClientStartupInfo(
       self,
@@ -332,6 +331,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a new client startup record."""
+    assert cursor is not None
     cursor.execute("SET @now = NOW(6)")
 
     params = {
@@ -361,6 +361,8 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteClientRRGStartup(
       self,
@@ -369,6 +371,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a new RRG startup entry to the database."""
+    assert cursor is not None
     query = """
     INSERT
       INTO client_rrg_startup_history (client_id, timestamp, startup)
@@ -384,6 +387,8 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as error:
       raise db.UnknownClientError(client_id) from error
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReadClientRRGStartup(
       self,
@@ -391,6 +396,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Optional[rrg_startup_pb2.Startup]:
     """Reads the latest RRG startup entry for the given client."""
+    assert cursor is not None
     query = """
     SELECT su.startup
       FROM clients
@@ -418,6 +424,8 @@ class MySQLDBClientMixin(object):
 
     return rrg_startup_pb2.Startup.FromString(startup_bytes)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientStartupInfo(
       self,
@@ -425,6 +433,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Optional[jobs_pb2.StartupInfo]:
     """Reads the latest client startup record for a single client."""
+    assert cursor is not None
     query = """
     SELECT startup_info, UNIX_TIMESTAMP(timestamp)
       FROM clients, client_startup_history
@@ -455,9 +464,7 @@ class MySQLDBClientMixin(object):
       (
           cid,
           crt,
-          ip,
           ping,
-          clk,
           foreman,
           first,
           last_client_ts,
@@ -487,10 +494,6 @@ class MySQLDBClientMixin(object):
           c_full_info.metadata.ping = int(
               mysql_utils.TimestampToRDFDatetime(ping)
           )
-        if clk is not None:
-          c_full_info.metadata.clock = int(
-              mysql_utils.TimestampToRDFDatetime(clk)
-          )
         if foreman is not None:
           c_full_info.metadata.last_foreman_time = int(
               mysql_utils.TimestampToRDFDatetime(foreman)
@@ -503,8 +506,6 @@ class MySQLDBClientMixin(object):
           c_full_info.metadata.last_crash_timestamp = int(
               mysql_utils.TimestampToRDFDatetime(last_crash_ts)
           )
-        if ip is not None:
-          c_full_info.metadata.ip.ParseFromString(ip)
 
         if client_obj is not None:
           c_full_info.last_snapshot.ParseFromString(client_obj)
@@ -531,12 +532,14 @@ class MySQLDBClientMixin(object):
 
         prev_cid = cid
 
-      if label_owner and label_name:
-        c_full_info.labels.add(name=label_name, owner=label_owner)
+        if label_owner and label_name:
+          c_full_info.labels.add(name=label_name, owner=label_owner)
 
     if c_full_info:
       yield db_utils.IntToClientID(prev_cid), c_full_info
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientFullInfo(
       self,
@@ -545,13 +548,13 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Mapping[str, objects_pb2.ClientFullInfo]:
     """Reads full client information for a list of clients."""
+    assert cursor is not None
     if not client_ids:
       return {}
 
     query = """
-    SELECT c.client_id, c.certificate, c.last_ip,
+    SELECT c.client_id, c.certificate,
            UNIX_TIMESTAMP(c.last_ping),
-           UNIX_TIMESTAMP(c.last_clock),
            UNIX_TIMESTAMP(c.last_foreman),
            UNIX_TIMESTAMP(c.first_seen),
            UNIX_TIMESTAMP(c.last_snapshot_timestamp),
@@ -611,16 +614,19 @@ class MySQLDBClientMixin(object):
       if len(last_pings) < batch_size:
         break
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def _ReadClientLastPings(
       self,
       last_client_id: str,
       count: int,
-      min_last_ping: rdfvalue.RDFDatetime = None,
-      max_last_ping: rdfvalue.RDFDatetime = None,
+      min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      max_last_ping: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Tuple[str, Mapping[str, Optional[rdfvalue.RDFDatetime]]]:
     """Yields dicts of last-ping timestamps for clients in the DB."""
+    assert cursor is not None
     where_filters = ["client_id > %s"]
     query_values = [db_utils.ClientIDToInt(last_client_id)]
     if min_last_ping is not None:
@@ -647,6 +653,8 @@ class MySQLDBClientMixin(object):
       last_pings[last_client_id] = mysql_utils.TimestampToRDFDatetime(last_ping)
     return last_client_id, last_pings
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def MultiAddClientKeywords(
       self,
@@ -655,6 +663,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Associates the provided keywords with the specified clients."""
+    assert cursor is not None
     # Early return to avoid generating invalid SQL code.
     if not client_ids or not keywords:
       return
@@ -677,6 +686,8 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as error:
       raise db.AtLeastOneUnknownClientError(client_ids) from error
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def RemoveClientKeyword(
       self,
@@ -685,12 +696,15 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Removes the association of a particular client to a keyword."""
+    assert cursor is not None
     cursor.execute(
         "DELETE FROM client_keywords "
         "WHERE client_id = %s AND keyword_hash = %s",
         [db_utils.ClientIDToInt(client_id), mysql_utils.Hash(keyword)],
     )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ListClientsForKeywords(
       self,
@@ -699,6 +713,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Mapping[str, Collection[str]]:
     """Lists the clients associated with keywords."""
+    assert cursor is not None
     keywords = set(keywords)
     hash_to_kw = {mysql_utils.Hash(kw): kw for kw in keywords}
     result = {kw: [] for kw in keywords}
@@ -719,6 +734,8 @@ class MySQLDBClientMixin(object):
       result[hash_to_kw[kw_hash]].append(db_utils.IntToClientID(cid))
     return result
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def MultiAddClientLabels(
       self,
@@ -728,6 +745,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Attaches user labels to the specified clients."""
+    assert cursor is not None
     # Early return to avoid generating invalid SQL code.
     if not client_ids or not labels:
       return
@@ -754,6 +772,8 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as error:
       raise db.AtLeastOneUnknownClientError(client_ids) from error
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientLabels(
       self,
@@ -761,6 +781,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Mapping[str, Sequence[objects_pb2.ClientLabel]]:
     """Reads the user labels for a list of clients."""
+    assert cursor is not None
 
     int_ids = [db_utils.ClientIDToInt(cid) for cid in client_ids]
     query = (
@@ -781,6 +802,8 @@ class MySQLDBClientMixin(object):
 
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def RemoveClientLabels(
       self,
@@ -790,6 +813,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Removes a list of user labels from a given client."""
+    assert cursor is not None
 
     query = (
         "DELETE FROM client_labels "
@@ -805,9 +829,12 @@ class MySQLDBClientMixin(object):
     )
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllClientLabels(self, cursor=None):
     """Reads the user labels for a list of clients."""
+    assert cursor is not None
 
     cursor.execute("SELECT DISTINCT label FROM client_labels")
 
@@ -817,6 +844,8 @@ class MySQLDBClientMixin(object):
 
     return result
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteClientCrashInfo(
       self,
@@ -825,6 +854,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a new client crash record."""
+    assert cursor is not None
     cursor.execute("SET @now = NOW(6)")
 
     params = {
@@ -853,6 +883,8 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientCrashInfo(
       self,
@@ -860,6 +892,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Optional[jobs_pb2.ClientCrash]:
     """Reads the latest client crash record for a single client."""
+    assert cursor is not None
     cursor.execute(
         "SELECT UNIX_TIMESTAMP(timestamp), crash_info "
         "FROM clients, client_crash_history WHERE "
@@ -878,13 +911,16 @@ class MySQLDBClientMixin(object):
     res.timestamp = int(mysql_utils.TimestampToRDFDatetime(timestamp))
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientCrashInfoHistory(
       self,
       client_id: str,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Sequence[rdf_client.ClientCrash]:
+  ) -> Sequence[jobs_pb2.ClientCrash]:
     """Reads the full crash history for a particular client."""
+    assert cursor is not None
     cursor.execute(
         "SELECT UNIX_TIMESTAMP(timestamp), crash_info "
         "FROM client_crash_history WHERE "
@@ -900,6 +936,8 @@ class MySQLDBClientMixin(object):
       ret.append(ci)
     return ret
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteClient(
       self,
@@ -907,6 +945,7 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Deletes a client with all associated metadata."""
+    assert cursor is not None
     cursor.execute(
         "SELECT COUNT(*) FROM clients WHERE client_id = %s",
         [db_utils.ClientIDToInt(client_id)],

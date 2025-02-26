@@ -8,7 +8,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
@@ -25,7 +24,6 @@ import {FlowForm} from './flow_form';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
     CommonModule,
     FlowArgsFormModule,
     FlowPickerModule,

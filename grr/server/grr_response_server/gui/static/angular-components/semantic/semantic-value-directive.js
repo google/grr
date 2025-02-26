@@ -175,16 +175,15 @@ const SemanticValueController = class {
    */
   compileSingleTypedValueTemplate_(value) {
     const successHandler = function(directive) {
-      const element = angular.element('<span />');
-
+      const element = angular.element('<span></span>');
+      const htmlTag = this.camelCaseToDashDelimited(directive.directive_name);
       element.html(
-          '<' + this.camelCaseToDashDelimited(directive.directive_name) +
-          ' value="::value" />');
+          '<' + htmlTag +' value="::value"></' + htmlTag + '>');
       return this.compile_(element);
     }.bind(this);
 
     const failureHandler = function(directive) {
-      const element = angular.element('<span />');
+      const element = angular.element('<span></span>');
       element.html('{$ ::value.value $}');
       return this.compile_(element);
     }.bind(this);
@@ -209,7 +208,7 @@ const SemanticValueController = class {
   compileRepeatedValueTemplate_() {
     const element = angular.element(
         '<div ng-repeat="item in ::repeatedValue || []">' +
-        '<grr-semantic-value value="::item" /></div>');
+        '<grr-semantic-value value="::item"></grr-semantic-value></div>');
     return this.compile_(element);
   }
 

@@ -1,5 +1,4 @@
 goog.module('grrUi.client.hostInfoDirective');
-goog.module.declareLegacyNamespace();
 
 const aclDialogService = goog.requireType('grrUi.acl.aclDialogService');
 const apiService = goog.requireType('grrUi.core.apiService');
@@ -9,7 +8,7 @@ const routingService = goog.requireType('grrUi.routing.routingService');
 
 
 /** @const */
-var OPERATION_POLL_INTERVAL_MS = 1000;
+const OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 /**
@@ -135,14 +134,14 @@ const HostInfoController = class {
    * @private
    */
   fetchClientDetails_() {
-    var url = '/clients/' + this.clientId;
-    var params = {};
+    const url = '/clients/' + this.clientId;
+    const params = {};
     if (this.clientVersion) {
       params['timestamp'] = this.clientVersion;
     }
 
     this.fetchDetailsRequestId += 1;
-    var requestId = this.fetchDetailsRequestId;
+    const requestId = this.fetchDetailsRequestId;
     this.grrApiService_.get(url, params).then(function success(response) {
       // Make sure that the request that we got corresponds to the
       // arguments we used while sending it. This is needed for cases
@@ -173,7 +172,7 @@ const HostInfoController = class {
    * @export
    */
   interrogate() {
-    var url = '/clients/' + this.clientId + '/actions/interrogate';
+    const url = '/clients/' + this.clientId + '/actions/interrogate';
 
     this.grrApiService_.post(url).then(
         function success(response) {
@@ -202,7 +201,7 @@ const HostInfoController = class {
    * @private
    */
   pollInterrogateOperationState_() {
-    var url = 'clients/' + this.clientId + '/actions/interrogate/' +
+    const url = 'clients/' + this.clientId + '/actions/interrogate/' +
         this.interrogateOperationId;
 
     this.grrApiService_.get(url).then(

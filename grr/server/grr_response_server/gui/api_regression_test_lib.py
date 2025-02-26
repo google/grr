@@ -12,6 +12,7 @@ import sys
 from absl import flags
 import psutil
 
+from google.protobuf import message as pb_message
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_server import data_store
@@ -331,6 +332,15 @@ def GetFlowTestReplaceDict(
     replace[flow_id] = replacement_flow_id
 
   return replace
+
+
+def UpdateFlowStore(
+    client_id: str, flow_id: str, unpacked_replacement_store: pb_message.Message
+) -> None:
+  """Updates the store field of a flow in the database with the new value."""
+  flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  flow.store.Pack(unpacked_replacement_store)
+  data_store.REL_DB.UpdateFlow(client_id, flow_id, flow)
 
 
 def main(argv=None):

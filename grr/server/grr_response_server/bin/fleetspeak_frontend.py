@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
-
+import contextlib
 import logging
 import time
 
@@ -43,23 +43,22 @@ def main(argv):
 
   fsd = fleetspeak_frontend_server.GRRFSServer()
 
-  cleanup_fn = lambda: None
-  if config.CONFIG["Server.fleetspeak_cps_enabled"]:
-    cps = fleetspeak_cps.Subscriber()
-    cps.Start(fsd.ProcessFromCPS)
-    cleanup_fn = cps.Stop
-    logging.info("Waiting for messages via Fleetspeak Cloud Pub/Sub ...")
-  else:
-    fleetspeak_connector.CONN.Listen(fsd.ProcessFromGRPC)
-    logging.info("Waiting for messages via Fleetspeak GRPC ...")
+  with contextlib.ExitStack() as exit_stack:
 
-  try:
-    while True:
-      time.sleep(600)
-  except KeyboardInterrupt:
-    print("Caught keyboard interrupt, stopping")
+    if config.CONFIG["Server.fleetspeak_cps_enabled"]:
+      cps = fleetspeak_cps.Subscriber()
+      cps.Start(fsd.ProcessFromCPS)
+      exit_stack.callback(cps.Stop)
+      logging.info("Waiting for messages via Fleetspeak Cloud Pub/Sub ...")
+    else:
+      fleetspeak_connector.CONN.Listen(fsd.ProcessFromGRPC)
+      logging.info("Waiting for messages via Fleetspeak GRPC ...")
 
-  cleanup_fn()
+    try:
+      while True:
+        time.sleep(600)
+    except KeyboardInterrupt:
+      print("Caught keyboard interrupt, stopping")
 
 
 if __name__ == "__main__":

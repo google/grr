@@ -29,6 +29,7 @@ function hasRegistryValue(rows: readonly RegistryRow[]) {
  * Component that displays a table with Windows Registry keys and values.
  */
 @Component({
+  standalone: false,
   selector: 'registry-results-table',
   templateUrl: './registry_results_table.ng.html',
   styleUrls: ['./registry_results_table.scss'],

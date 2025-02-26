@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.graphUtils');
-goog.module.declareLegacyNamespace();
 
 
 /**

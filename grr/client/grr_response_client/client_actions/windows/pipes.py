@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """A module with an action for collecting named pipes."""
 
+from collections.abc import Iterator
 import contextlib
 import logging
 import os
 import platform
-from typing import Iterator
 
 from grr_response_client import actions
 from grr_response_core.lib.rdfvalues import client as rdf_client

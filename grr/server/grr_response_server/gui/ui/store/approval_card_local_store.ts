@@ -48,13 +48,16 @@ class ApprovalCardComponentStore extends ComponentStore<ApprovalCardState> {
 /** Store for approval-related API calls. */
 @Injectable()
 export class ApprovalCardLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ApprovalCardComponentStore(this.httpApiService);
+    this.approverSuggestions$ = this.store.approverSuggestions$;
+  }
 
-  private readonly store = new ApprovalCardComponentStore(this.httpApiService);
+  private readonly store;
 
   suggestApprovers(usernameQuery: string) {
     this.store.suggestApprovers(usernameQuery);
   }
 
-  readonly approverSuggestions$ = this.store.approverSuggestions$;
+  readonly approverSuggestions$;
 }

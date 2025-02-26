@@ -507,7 +507,7 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     self.Check(
         "GetHuntClientCompletionStats",
         args=hunt_plugin.ApiGetHuntClientCompletionStatsArgs(
-            hunt_id=hunt_id, size=1000
+            hunt_id=hunt_id, size=100
         ),
         replace=replace,
     )
@@ -788,38 +788,6 @@ class ApiDeleteHuntHandlerRegressionTest(
         args=hunt_plugin.ApiDeleteHuntArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
-
-
-class ApiCreatePerClientFileCollectionHuntRegressionTest(
-    api_regression_test_lib.ApiRegressionTest,
-    hunt_test_lib.StandardHuntTestMixin,
-):
-
-  api_method = "CreatePerClientFileCollectionHunt"
-  handler = hunt_plugin.ApiCreatePerClientFileCollectionHuntHandler
-
-  def Run(self):
-    client_id = self.SetupClient(0)
-
-    with test_lib.FakeTime(42):
-
-      def ReplaceHuntId():
-        hunts = data_store.REL_DB.ListHuntObjects(0, 1)
-        return {hunts[0].hunt_id: "H:123456"}
-
-      self.Check(
-          "CreatePerClientFileCollectionHunt",
-          args=hunt_plugin.ApiCreatePerClientFileCollectionHuntArgs(
-              description="Per-client file collection",
-              per_client_args=[
-                  hunt_plugin.PerClientFileCollectionArgs(
-                      client_id=client_id,
-                      paths=["/etc/hosts", "/foo/bar"],
-                  ),
-              ],
-          ),
-          replace=ReplaceHuntId,
-      )
 
 
 def main(argv):

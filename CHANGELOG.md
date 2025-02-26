@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed the `ListParsedFlowResults` API method.
 * Removed support for the `GREP` artifact source (these were internal to GRR and
   not part of the [official specification](https://artifacts.readthedocs.io/en/latest/sources/Format-specification.html).
+* Removed `ApiClient.users` field which contained duplicate information present in `ApiClient.knowledge_base.users` field.
+* Removed no longer used or relevant configuration options:
+  * `Server.fleetspeak_enabled`
+  * `Client.fleetspeak_enabled`
+  * `Client.server_urls`
+  * `Client.control_urls`
+  * `Client.server_serial_number`
+  * `Client.poll_min`
+  * `Client.poll_max`
+  * `Client.error_poll_min`
+  * `Client.labels`
+  * `Client.rss_max`
+  * `Client.rss_max_hard`
+  * `Frontend.bind_port`
+  * `Frontend.port_max`
+  * `Nanny.child_binary`
+  * `Nanny.child_command_line`
+  * `Nanny.service_name`
+  * `Nanny.service_description`
+  * `Nanny.statusfile`
+  * `Nanny.binary`
+  * `Nanny.service_binary_name`
+
+### Changed
+
+* Renamed `restricted_flow_users` and `restricted_flow_groups` to `admin_users`
+  and `admin_groups`. The new entries can be used to grant access for
+  Client/Hunt/CronJob approvals as well as restricted flows.
 
 ## [3.4.7.4] - 2024-05-28
 

@@ -5,29 +5,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_test.end_to_end_tests import test_base
 
 
-class TestRootDiskVolumeUsage(test_base.EndToEndTest):
-  """Test RootDiskVolumeUsage."""
-
-  platforms = [
-      test_base.EndToEndTest.Platform.LINUX,
-      test_base.EndToEndTest.Platform.DARWIN
-  ]
-
-  args = {"artifact_list": ["RootDiskVolumeUsage"]}
-
-  def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
-    args.artifact_list.append("RootDiskVolumeUsage")
-    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
-
-    results = list(f.ListResults())
-    self.assertTrue(results)
-
-    self.assertEqual(results[0].payload.unixvolume.mount_point, "/")
-    self.assertGreater(results[0].payload.actual_available_allocation_units, 0)
-    self.assertGreater(results[0].payload.total_allocation_units, 0)
-
-
 class TestRawFilesystemAccessUsesNtfsOnWindows(test_base.EndToEndTest):
   """Tests that use_raw_filesystem_access maps to NTFS on Windows OSes."""
 
@@ -65,7 +42,7 @@ class TestRawFilesystemAccessUsesTskOnNonWindows(test_base.EndToEndTest):
 
     args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
     args.use_raw_filesystem_access = True
-    args.artifact_list.append("UserHomeDirs")
+    args.artifact_list.append("LinuxWtmp")
     f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
 
     results = list(f.ListResults())
@@ -110,7 +87,7 @@ class TestWindowsRegistryCollector(test_base.EndToEndTest):
     f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
 
     for statentry in [r.payload for r in f.ListResults()]:
-      self.assertTrue(hasattr(statentry, "pathspec"))
+      self.assertTrue(statentry.HasField("pathspec"))
       self.assertIn("namespace", statentry.pathspec.path.lower())
 
 

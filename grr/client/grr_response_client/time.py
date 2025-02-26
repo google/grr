@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """A module with agent-specific time utilities."""
 
+from collections.abc import Callable
 import math
 import time
-from typing import Callable
 
 
 def Sleep(

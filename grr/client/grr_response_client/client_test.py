@@ -66,7 +66,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         payload=args,
         request_id=1,
-        generate_task_id=True,
     )
 
     with mock.patch.object(
@@ -92,7 +91,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         request_id=1,
-        generate_task_id=True,
     )
 
     with mock.patch.object(
@@ -120,7 +118,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
         request_id=1,
-        generate_task_id=True,
     )
 
     with mock.patch.object(

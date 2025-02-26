@@ -24,7 +24,7 @@
     <tbody>
       <tr grr-infinite-table grr-api-items-provider
           url="::controller.huntClientsUrl">
-        <td><grr-semantic-value value="::item.value.client_id" /></td>
+        <td><grr-semantic-value value="::item.value.client_id"></grr-semantic-value></td>
         <td>
           <a ui-sref="client.flows(::{clientId: item.value.client_id.value,
                       flowId: item.value.flow_id.value})">

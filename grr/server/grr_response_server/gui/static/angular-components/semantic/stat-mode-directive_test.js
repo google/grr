@@ -21,7 +21,7 @@ describe('stat mode directive', () => {
   const render = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-stat-mode value="value" />';
+    const template = '<grr-stat-mode value="value"></grr-stat-mode>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

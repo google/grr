@@ -19,7 +19,7 @@ from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
@@ -43,7 +43,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         components=components,
     )
 
-    blob_id = blobs.BlobID.Of(digest)
+    blob_id = models_blobs.BlobID.Of(digest)
     data_store.BLOBS.WriteBlobs({blob_id: content})
     blob_ref = rdf_objects.BlobReference(
         offset=0, size=len(content), blob_id=bytes(blob_id)

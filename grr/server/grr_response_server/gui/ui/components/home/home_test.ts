@@ -2,7 +2,7 @@ import {Location} from '@angular/common';
 import {Component} from '@angular/core';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {provideRouter} from '@angular/router';
 
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {initTestEnvironment} from '../../testing';
@@ -12,21 +12,18 @@ import {HomeModule} from './module';
 
 initTestEnvironment();
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class TestComponent {}
 
 describe('Home Component', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule.withRoutes([
-          {path: 'clients', component: TestComponent},
-        ]),
-        HomeModule,
-        NoopAnimationsModule,
-      ],
+      imports: [HomeModule, NoopAnimationsModule],
       declarations: [TestComponent],
-      providers: [...STORE_PROVIDERS],
+      providers: [
+        ...STORE_PROVIDERS,
+        provideRouter([{path: 'clients', component: TestComponent}]),
+      ],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
   }));

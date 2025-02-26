@@ -10,7 +10,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
-from grr_response_server.models import blobs as blob_models
+from grr_response_server.models import blobs as models_blob
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -193,7 +193,7 @@ def FetchBlobsForSignedBinaryByID(
     )
   except db.UnknownSignedBinaryError:
     raise SignedBinaryNotFoundError(_SignedBinaryURNFromID(binary_id))
-  blob_ids = [blob_models.BlobID(r.blob_id) for r in references.items]
+  blob_ids = [models_blob.BlobID(r.blob_id) for r in references.items]
   raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
   blobs = (
       rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
@@ -232,7 +232,7 @@ def FetchBlobForSignedBinaryByID(
   except IndexError:
     raise BlobIndexOutOfBoundsError(f"{blob_index} >= {len(references.items)}")
 
-  blob_id = blob_models.BlobID(blob_id_bytes)
+  blob_id = models_blob.BlobID(blob_id_bytes)
   raw_blob = data_store.BLOBS.ReadBlob(blob_id)
   return rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
 
@@ -254,29 +254,6 @@ def FetchBlobsForSignedBinaryByURN(
     SignedBinaryNotFoundError: If no signed binary with the given URN exists.
   """
   return FetchBlobsForSignedBinaryByID(SignedBinaryIDFromURN(binary_urn))
-
-
-def FetchBlobForSignedBinaryByURN(
-    binary_urn: rdfvalue.RDFURN,
-    blob_index: int,
-) -> rdf_crypto.SignedBlob:
-  """Retrieves blobs for the given binary from the datastore.
-
-  Args:
-    binary_urn: RDFURN that uniquely identifies the binary.
-    blob_index: Index of the blob to read.
-
-  Returns:
-    Signed blob.
-
-  Raises:
-    SignedBinaryNotFoundError: If no signed binary with the given URN exists.
-    BlobIndexOutOfBoundsError: If requested blob index is too big.
-  """
-  return FetchBlobForSignedBinaryByID(
-      SignedBinaryIDFromURN(binary_urn),
-      blob_index,
-  )
 
 
 def FetchSizeOfSignedBinary(

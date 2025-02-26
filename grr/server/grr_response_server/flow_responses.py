@@ -53,6 +53,7 @@ class Responses(Iterable[T]):
               rdf_flow_objects.FlowIterator,
           ],
       ],
+      request: Optional[rdf_flow_objects.FlowRequest] = None,
   ) -> "Responses[any_pb2.Any]":
     # pytype: enable=name-error
     """Creates a `Response` object from raw flow responses.
@@ -64,11 +65,16 @@ class Responses(Iterable[T]):
 
     Args:
       responses: Flow responses from which to construct this object.
+      request: Flow request to which these responses belong.
 
     Returns:
       Wrapped flow responses.
     """
     result = Responses()
+
+    if request is not None:
+      result.request = request
+      result.request_data = request.request_data
 
     for response in responses:
       if isinstance(response, rdf_flow_objects.FlowStatus):

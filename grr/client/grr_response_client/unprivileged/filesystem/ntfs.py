@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """pyfsntfs implementation of a filesystem."""
 
+from collections.abc import Iterable
 import os
-from typing import Iterable, Optional
+from typing import Optional
 import pyfsntfs
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.proto import filesystem_pb2

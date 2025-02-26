@@ -20,6 +20,7 @@ interface Row {
  * Component that displays an OsqueryTable object as a HTML table.
  */
 @Component({
+  standalone: false,
   selector: 'osquery-results-table',
   templateUrl: './osquery_results_table.ng.html',
   styleUrls: ['./osquery_results_table.scss'],

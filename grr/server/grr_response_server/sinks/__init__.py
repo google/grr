@@ -20,7 +20,7 @@ do that. This is where the startup sink comes into play and allows the agent to
 send information about its startup.
 """
 
-from typing import Mapping
+from collections.abc import Mapping, Sequence
 
 from grr_response_server.sinks import abstract
 from grr_response_server.sinks import blob
@@ -63,3 +63,27 @@ def Accept(client_id: str, parcel: rrg_pb2.Parcel) -> None:
     raise UnknownSinkError(parcel.sink) from error
 
   sink.Accept(client_id, parcel)
+
+
+def AcceptMany(client_id: str, parcels: Sequence[rrg_pb2.Parcel]) -> None:
+  """Processes given parcels on appropriate sinks.
+
+  Args:
+    client_id: An identifier of the client from which the message came.
+    parcels: Parcels to process.
+
+  Raises:
+    UnknownSinkError: If the sink for which the parcel is addressed isn't known.
+  """
+  parcels_by_sink: dict[Sink, list[rrg_pb2.Parcel]] = {}
+
+  for parcel in parcels:
+    try:
+      sink = REGISTRY[parcel.sink]
+    except KeyError as error:
+      raise UnknownSinkError(parcel.sink) from error
+
+    parcels_by_sink.setdefault(sink, []).append(parcel)
+
+  for sink, sink_parcels in parcels_by_sink.items():
+    sink.AcceptMany(client_id, sink_parcels)

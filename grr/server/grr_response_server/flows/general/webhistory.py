@@ -7,6 +7,7 @@ import collections
 import os
 from typing import Iterator, cast
 
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -19,6 +20,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 class CollectBrowserHistoryArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectBrowserHistory."""
+
   protobuf = flows_pb2.CollectBrowserHistoryArgs
 
 
@@ -30,6 +32,7 @@ Browser = CollectBrowserHistoryArgs.Browser
 
 class CollectBrowserHistoryResult(rdf_structs.RDFProtoStruct):
   """Result item to be returned by CollectBrowserHistory."""
+
   protobuf = flows_pb2.CollectBrowserHistoryResult
   rdf_deps = [
       rdf_client_fs.StatEntry,
@@ -38,11 +41,13 @@ class CollectBrowserHistoryResult(rdf_structs.RDFProtoStruct):
 
 class BrowserProgress(rdf_structs.RDFProtoStruct):
   """Single browser progress for CollectBrowserHistoryProgress."""
+
   protobuf = flows_pb2.BrowserProgress
 
 
 class CollectBrowserHistoryProgress(rdf_structs.RDFProtoStruct):
   """Progress for CollectBrowserHistory."""
+
   protobuf = flows_pb2.CollectBrowserHistoryProgress
   rdf_deps = [BrowserProgress]
 
@@ -71,7 +76,7 @@ class CollectBrowserHistory(flow_base.FlowBase):
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   BROWSER_TO_ARTIFACTS_MAP = {
-      Browser.CHROME: ["ChromiumBasedBrowsersHistory"],
+      Browser.CHROMIUM_BASED_BROWSERS: ["ChromiumBasedBrowsersHistory"],
       Browser.FIREFOX: ["FirefoxHistory"],
       Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
       Browser.OPERA: ["OperaHistoryFile"],
@@ -89,10 +94,12 @@ class CollectBrowserHistory(flow_base.FlowBase):
     path_counters = collections.Counter()
     for r in flow_results:
       p = cast(CollectBrowserHistoryResult, r.payload)
-      client_path = db.ClientPath.FromPathSpec(self.client_id,
-                                               p.stat_entry.pathspec)
-      target_path = os.path.join(p.browser.name.lower(),
-                                 _ArchiveFilename(client_path.components))
+      client_path = db.ClientPath.FromPathSpec(
+          self.client_id, p.stat_entry.pathspec
+      )
+      target_path = os.path.join(
+          p.browser.name.lower(), _ArchiveFilename(client_path.components)
+      )
       if path_counters[target_path] > 0:
         fname, ext = os.path.splitext(target_path)
         target_path = f"{fname}_{path_counters[target_path]}{ext}"
@@ -112,7 +119,8 @@ class CollectBrowserHistory(flow_base.FlowBase):
 
     if len(self.args.browsers) != len(set(self.args.browsers)):
       raise flow_base.FlowError(
-          "Duplicate browser entries are not allowed in the arguments.")
+          "Duplicate browser entries are not allowed in the arguments."
+      )
 
     self.state.progress = CollectBrowserHistoryProgress()
 
@@ -121,18 +129,24 @@ class CollectBrowserHistory(flow_base.FlowBase):
     for browser in self.args.browsers:
       flow_id = self.CallFlow(
           collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=self.BROWSER_TO_ARTIFACTS_MAP[browser],
+          flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+              artifact_list=self.BROWSER_TO_ARTIFACTS_MAP[browser],
+          ),
           request_data={"browser": browser},
-          next_state=self.ProcessArtifactResponses.__name__)
+          next_state=self.ProcessArtifactResponses.__name__,
+      )
       self.state.progress.browsers.append(
           BrowserProgress(
               browser=browser,
               status=BrowserProgress.Status.IN_PROGRESS,
-              flow_id=flow_id))
+              flow_id=flow_id,
+          )
+      )
 
   def ProcessArtifactResponses(
       self,
-      responses: flow_responses.Responses[rdf_client_fs.StatEntry]) -> None:
+      responses: flow_responses.Responses[rdf_client_fs.StatEntry],
+  ) -> None:
 
     browser = Browser.FromInt(responses.request_data["browser"])
     for bp in self.state.progress.browsers:
@@ -151,25 +165,27 @@ class CollectBrowserHistory(flow_base.FlowBase):
     for response in responses:
       self.SendReply(
           CollectBrowserHistoryResult(browser=browser, stat_entry=response),
-          tag=browser.name)
+          tag=browser.name,
+      )
 
-  def End(self, responses):
-    del responses  # Unused.
-
+  def End(self) -> None:
     p = self.GetProgress()
     if p.has_errors:
       raise flow_base.FlowError(
-          f"Errors were encountered during collection: {p.errors_summary}")
+          f"Errors were encountered during collection: {p.errors_summary}"
+      )
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
-    return CollectBrowserHistoryArgs(browsers=[
-        Browser.CHROME,
-        Browser.FIREFOX,
-        Browser.INTERNET_EXPLORER,
-        Browser.OPERA,
-        Browser.SAFARI,
-    ])
+    return CollectBrowserHistoryArgs(
+        browsers=[
+            Browser.CHROMIUM_BASED_BROWSERS,
+            Browser.FIREFOX,
+            Browser.INTERNET_EXPLORER,
+            Browser.OPERA,
+            Browser.SAFARI,
+        ]
+    )
 
 
 def _StripPunctuation(word: str) -> str:

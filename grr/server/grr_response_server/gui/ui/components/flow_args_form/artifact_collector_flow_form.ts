@@ -22,13 +22,9 @@ import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ControlValues} from './form_interface';
 
 const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
-  [SourceType.ARTIFACT_FILES]: 'Collects artifact',
   [SourceType.ARTIFACT_GROUP]: 'Collects artifact',
-  [SourceType.ARTIFACT]: 'Collects artifact',
   [SourceType.COMMAND]: 'Executes command',
   [SourceType.FILE]: 'Collects file',
-  [SourceType.GRR_CLIENT_ACTION]: 'Executes client action',
-  [SourceType.LIST_FILES]: 'Lists files in',
   [SourceType.PATH]: 'Collects path',
   [SourceType.REGISTRY_KEY]: 'Collects Windows Registry key',
   [SourceType.REGISTRY_VALUE]: 'Collects Windows Registry value',
@@ -67,11 +63,7 @@ function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
 function getReadableSources(source: ArtifactSource): readonly string[] {
   switch (source.type) {
     case SourceType.ARTIFACT_GROUP:
-    case SourceType.ARTIFACT_FILES:
       return source.names;
-
-    case SourceType.GRR_CLIENT_ACTION:
-      return [source.clientAction];
 
     case SourceType.COMMAND:
       return [source.cmdline];
@@ -157,11 +149,7 @@ function readableSourceToNodes(
   type: SourceType,
   readableSources: readonly string[],
 ): SourceNode[] {
-  if (
-    type === SourceType.ARTIFACT ||
-    type === SourceType.ARTIFACT_FILES ||
-    type === SourceType.ARTIFACT_GROUP
-  ) {
+  if (type === SourceType.ARTIFACT_GROUP) {
     return readableSources.map((source) => ({
       type,
       name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
@@ -204,6 +192,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a ArtifactCollectorFlow. */
 @Component({
+  standalone: false,
   selector: 'artifact-collector-flow-form',
   templateUrl: './artifact_collector_flow_form.ng.html',
   styleUrls: ['./artifact_collector_flow_form.scss'],
@@ -234,59 +223,65 @@ export class ArtifactCollectorFlowForm extends FlowArgumentForm<
     };
   }
 
-  private readonly clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
-    map((client) => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
-    startWith(null),
-    distinctUntilChanged(),
-  );
+  private readonly clientOs$;
 
-  readonly artifactListEntries$ = combineLatest([
-    this.configGlobalStore.artifactDescriptors$,
-    this.clientOs$,
-  ]).pipe(
-    map(([descriptors, clientOs]) => {
-      return Array.from(descriptors.values()).map((ad) =>
-        createListEntry(ad, clientOs),
-      );
-    }),
-  );
+  readonly artifactListEntries$;
 
-  readonly filteredArtifactDescriptors$ = combineLatest([
-    this.artifactListEntries$,
-    this.controls.artifactName.valueChanges.pipe(startWith('')),
-  ]).pipe(
-    map(([entries, searchString]) => {
-      const str = searchString?.toLowerCase() ?? '';
-      return entries.filter((ad) => matches(ad, str));
-    }),
-  );
+  readonly filteredArtifactDescriptors$;
 
-  readonly selectedArtifact$ = combineLatest([
-    this.artifactListEntries$,
-    this.controls.artifactName.valueChanges,
-  ]).pipe(
-    map(([entries, searchString]) =>
-      entries.find((ad) => ad.name === searchString),
-    ),
-    startWith(undefined),
-  );
+  readonly selectedArtifact$;
 
-  readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
-    map((client) => client?.clientId),
-  );
+  readonly clientId$;
 
-  readonly treeControl = new NestedTreeControl<SourceNode>((node) => [
-    ...node.children,
-  ]);
+  readonly treeControl;
 
-  readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
+  readonly dataSource;
 
   constructor(
     private readonly configGlobalStore: ConfigGlobalStore,
     private readonly clientPageGlobalStore: ClientPageGlobalStore,
   ) {
     super();
-
+    this.clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
+      map((client) => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
+      startWith(null),
+      distinctUntilChanged(),
+    );
+    this.artifactListEntries$ = combineLatest([
+      this.configGlobalStore.artifactDescriptors$,
+      this.clientOs$,
+    ]).pipe(
+      map(([descriptors, clientOs]) => {
+        return Array.from(descriptors.values()).map((ad) =>
+          createListEntry(ad, clientOs),
+        );
+      }),
+    );
+    this.filteredArtifactDescriptors$ = combineLatest([
+      this.artifactListEntries$,
+      this.controls.artifactName.valueChanges.pipe(startWith('')),
+    ]).pipe(
+      map(([entries, searchString]) => {
+        const str = searchString?.toLowerCase() ?? '';
+        return entries.filter((ad) => matches(ad, str));
+      }),
+    );
+    this.selectedArtifact$ = combineLatest([
+      this.artifactListEntries$,
+      this.controls.artifactName.valueChanges,
+    ]).pipe(
+      map(([entries, searchString]) =>
+        entries.find((ad) => ad.name === searchString),
+      ),
+      startWith(undefined),
+    );
+    this.clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
+      map((client) => client?.clientId),
+    );
+    this.treeControl = new NestedTreeControl<SourceNode>((node) => [
+      ...node.children,
+    ]);
+    this.dataSource = new MatTreeNestedDataSource<SourceNode>();
     combineLatest([
       this.selectedArtifact$,
       this.artifactListEntries$.pipe(

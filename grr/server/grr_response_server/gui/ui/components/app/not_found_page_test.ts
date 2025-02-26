@@ -1,7 +1,5 @@
 import {TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
-
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {AppModule} from './app_module';
@@ -12,7 +10,6 @@ describe('NotFoundPage Component', () => {
     TestBed.configureTestingModule({
       imports: [
         AppModule,
-        RouterTestingModule,
         NoopAnimationsModule, // This makes test faster and more stable.
       ],
       providers: [...STORE_PROVIDERS],

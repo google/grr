@@ -66,8 +66,10 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
 
   @mock.patch("logging.warning")
   def testGetAllFilesErrors(self, warning):
-    with temp.AutoTempDirPath() as foo_dirpath,\
-         temp.AutoTempDirPath() as bar_dirpath:
+    with (
+        temp.AutoTempDirPath() as foo_dirpath,
+        temp.AutoTempDirPath() as bar_dirpath,
+    ):
       self.assertTrue(self.sources.AddDir(foo_dirpath))
       self.assertTrue(self.sources.AddDir("/baz/quux/norf"))
       self.assertTrue(self.sources.AddDir(bar_dirpath))
@@ -88,7 +90,8 @@ class ArtifactTest(absltest.TestCase):
         name="Foo",
         doc="This is Foo.",
         supported_os=["Windows"],
-        urls=["https://example.com"])
+        urls=["https://example.com"],
+    )
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxWithSources(self):
@@ -99,14 +102,12 @@ class ArtifactTest(absltest.TestCase):
                 r"%%current_control_set%%\Control\Session "
                 r"Manager\Environment\Path"
             ],
-        }
+        },
     }
 
     file_source = {
         "type": rdf_artifacts.ArtifactSource.SourceType.FILE,
-        "attributes": {
-            "paths": [r"%%environ_systemdrive%%\Temp"]
-        }
+        "attributes": {"paths": [r"%%environ_systemdrive%%\Temp"]},
     }
 
     artifact = rdf_artifacts.Artifact(
@@ -114,21 +115,22 @@ class ArtifactTest(absltest.TestCase):
         doc="This is Bar.",
         supported_os=["Windows"],
         urls=["https://example.com"],
-        sources=[registry_key_source, file_source])
+        sources=[registry_key_source, file_source],
+    )
     ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxMissingDoc(self):
     artifact = rdf_artifacts.Artifact(name="Baz", supported_os=["Linux"])
 
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
-                                "missing doc"):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSyntaxError, "missing doc"
+    ):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidSupportedOs(self):
     artifact = rdf_artifacts.Artifact(
-        name="Quux",
-        doc="This is Quux.",
-        supported_os=["Solaris"])
+        name="Quux", doc="This is Quux.", supported_os=["Solaris"]
+    )
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Solaris'"):
       ar.ValidateSyntax(artifact)
@@ -136,16 +138,16 @@ class ArtifactTest(absltest.TestCase):
   def testValidateSyntaxBadSource(self):
     source = {
         "type": rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-        "attributes": {}
+        "attributes": {},
     }
 
     artifact = rdf_artifacts.Artifact(
-        name="Barf",
-        doc="This is Barf.",
-        sources=[source])
+        name="Barf", doc="This is Barf.", sources=[source]
+    )
 
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
-                                "required attributes"):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSyntaxError, "required attributes"
+    ):
       ar.ValidateSyntax(artifact)
 
 
@@ -156,7 +158,8 @@ class ArtifactSourceTest(absltest.TestCase):
         type=rdf_artifacts.ArtifactSource.SourceType.PATH,
         attributes={
             "paths": ["/home", "/usr"],
-        })
+        },
+    )
 
     source.Validate()
 
@@ -165,7 +168,8 @@ class ArtifactSourceTest(absltest.TestCase):
         type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
         attributes={
             "keys": [r"Foo\Bar\Baz"],
-        })
+        },
+    )
 
     source.Validate()
 
@@ -175,7 +179,8 @@ class ArtifactSourceTest(absltest.TestCase):
         attributes={
             "cmd": "quux",
             "args": ["-foo", "-bar"],
-        })
+        },
+    )
 
     source.Validate()
 
@@ -185,10 +190,12 @@ class ArtifactSourceTest(absltest.TestCase):
         attributes={
             "cmd": "quux",
             "args": ["-foo -bar"],
-        })
+        },
+    )
 
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
-                                "'-foo -bar'"):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSourceSyntaxError, "'-foo -bar'"
+    ):
       source.Validate()
 
   def testValidatePathsIsAList(self):
@@ -196,10 +203,12 @@ class ArtifactSourceTest(absltest.TestCase):
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
         attributes={
             "paths": "/bin",
-        })
+        },
+    )
 
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
-                                "not a list"):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSourceSyntaxError, "not a list"
+    ):
       source.Validate()
 
   def testValidatePathIsAString(self):
@@ -208,10 +217,12 @@ class ArtifactSourceTest(absltest.TestCase):
         attributes={
             "names": ["Foo", "Bar"],
             "path": ["/tmp", "/var"],
-        })
+        },
+    )
 
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
-                                "not a string"):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSourceSyntaxError, "not a string"
+    ):
       source.Validate()
 
   def testValidateMissingRequiredAttributes(self):
@@ -221,8 +232,9 @@ class ArtifactSourceTest(absltest.TestCase):
     )
 
     expected = "missing required attributes: 'paths'"
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
-                                expected):
+    with self.assertRaisesRegex(
+        rdf_artifacts.ArtifactSourceSyntaxError, expected
+    ):
       source.Validate()
 
 

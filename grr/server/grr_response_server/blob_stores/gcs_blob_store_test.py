@@ -10,7 +10,7 @@ from google.cloud import storage
 
 from grr_response_server import blob_store_test_mixin
 from grr_response_server.blob_stores import gcs_blob_store
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr.test_lib import test_lib
 
 
@@ -57,7 +57,7 @@ class GCSBlobStoreTest(
   def testEmptyBlobPrefix(self):
     with test_lib.ConfigOverrider({"Blobstore.gcs.blob_prefix": ""}):
       blob_store = gcs_blob_store.GCSBlobStore()
-      blob_id = blobs.BlobID(b"0123" * 8)
+      blob_id = models_blobs.BlobID(b"0123" * 8)
       blob_data = b"abcdefgh"
       blob_store.WriteBlobs({blob_id: blob_data})
       expected_blob_name = bytes(blob_id).hex()
@@ -68,7 +68,7 @@ class GCSBlobStoreTest(
     prefix = str(uuid.uuid4()) + "/"
     with test_lib.ConfigOverrider({"Blobstore.gcs.blob_prefix": prefix}):
       blob_store = gcs_blob_store.GCSBlobStore()
-      blob_id = blobs.BlobID(b"0123" * 8)
+      blob_id = models_blobs.BlobID(b"0123" * 8)
       blob_data = b"abcdefgh"
       blob_store.WriteBlobs({blob_id: blob_data})
       expected_blob_name = f"{prefix}{bytes(blob_id).hex()}"

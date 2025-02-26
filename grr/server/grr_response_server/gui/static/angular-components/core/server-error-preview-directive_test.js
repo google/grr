@@ -24,7 +24,7 @@ describe('server error preview directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-server-error-preview />';
+    const template = '<grr-server-error-preview></grr-server-error-preview>';
     const element = $compile(template)($scope);
     $scope.$apply();
     return element;

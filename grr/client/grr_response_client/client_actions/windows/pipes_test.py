@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+from collections.abc import Iterator
 import contextlib
 import os
 import platform
-from typing import Iterator
 from typing import Optional
 import uuid
 

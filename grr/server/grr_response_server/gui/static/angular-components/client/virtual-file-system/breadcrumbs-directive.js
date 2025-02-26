@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -42,8 +41,8 @@ const BreadcrumbsController = class {
    * @private
    */
   onDirectiveArgsChange_() {
-    var pathArg = this.scope_['path'];
-    var stripEndingSlashArg = this.scope_['stripEndingSlash'];
+    const pathArg = this.scope_['path'];
+    const stripEndingSlashArg = this.scope_['stripEndingSlash'];
 
     this.items = [];
     this.activeItem = undefined;
@@ -51,7 +50,7 @@ const BreadcrumbsController = class {
       return;
     }
 
-    var components = pathArg.split('/');
+    let components = pathArg.split('/');
     if (stripEndingSlashArg && pathArg.endsWith('/')) {
       components = components.slice(0, components.length - 1);
     }
@@ -66,7 +65,7 @@ const BreadcrumbsController = class {
     }
     components = components.slice(0, -1);
 
-    var currentPath = '';
+    let currentPath = '';
     angular.forEach(components.slice(0, -1), function(component) {
       currentPath += component + '/';
       this.items.push({name: component, path: currentPath});

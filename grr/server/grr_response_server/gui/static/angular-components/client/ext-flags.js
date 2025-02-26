@@ -1,5 +1,4 @@
 goog.module('grrUi.client.extFlags');
-goog.module.declareLegacyNamespace();
 
 
 /**

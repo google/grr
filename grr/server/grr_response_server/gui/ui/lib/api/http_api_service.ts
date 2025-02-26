@@ -173,7 +173,17 @@ export class HttpApiService {
   constructor(
     private readonly http: HttpClient,
     private readonly errorHandler: SnackBarErrorHandler,
-  ) {}
+  ) {
+    this.flowDescriptors$ = this.http
+      .get<apiInterfaces.ApiListFlowDescriptorsResult>(
+        `${URL_PREFIX}/flows/descriptors`,
+      )
+      .pipe(
+        map((res) => res.items ?? []),
+        tap(this.showErrors),
+        shareReplay(1), // Cache latest FlowDescriptors.
+      );
+  }
 
   /**
    * Searches for clients using given API arguments.
@@ -245,6 +255,35 @@ export class HttpApiService {
         map((res) => (res.value?.['value'] as string) ?? undefined),
         map((optionalCcEmail) => ({optionalCcEmail})),
         tap(this.showErrors),
+      );
+  }
+
+  /**
+   * Gets the currently configured web authentication type used by Admin UI.
+   */
+  fetchWebAuthType(): Observable<string> {
+    return this.http
+      .get<apiInterfaces.ApiConfigOption>(
+        `${URL_PREFIX}/config/AdminUI.webauth_manager`,
+      )
+      .pipe(
+        // Replace empty string (protobuf default) with undefined.
+        map((res) => (res.value?.['value'] as string) ?? undefined),
+        tap(this.showErrors),
+      );
+  }
+
+  /**
+   * Gets the currently configured export command prefix from Admin UI.
+   */
+  fetchExportCommandPrefix(): Observable<string> {
+    return this.http
+      .get<apiInterfaces.ApiConfigOption>(
+        `${URL_PREFIX}/config/AdminUI.export_command`,
+      )
+      .pipe(
+        // Replace empty string (protobuf default) with undefined.
+        map((res) => (res.value?.['value'] as string) ?? undefined),
       );
   }
 
@@ -716,15 +755,7 @@ export class HttpApiService {
     );
   }
 
-  private readonly flowDescriptors$ = this.http
-    .get<apiInterfaces.ApiListFlowDescriptorsResult>(
-      `${URL_PREFIX}/flows/descriptors`,
-    )
-    .pipe(
-      map((res) => res.items ?? []),
-      tap(this.showErrors),
-      shareReplay(1), // Cache latest FlowDescriptors.
-    );
+  private readonly flowDescriptors$;
 
   listFlowDescriptors(): Observable<
     readonly apiInterfaces.ApiFlowDescriptor[]
@@ -1450,6 +1481,21 @@ export function getExportedResultsYamlUrl(clientId: string, flowId: string) {
 /** Gets the URL to download results converted to SQLite. */
 export function getExportedResultsSqliteUrl(clientId: string, flowId: string) {
   return `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/exported-results/sqlite-zip`;
+}
+
+/** Gets the Command link to download results using the CLI. */
+export function getExportedResultsCommandLink(
+  prefix: string,
+  clientId: string,
+  filename: string,
+  flowId: string,
+) {
+  return `${prefix} --exec_code 'grrapi.Client("${clientId}").Flow("${flowId}").GetFilesArchive().WriteToFile("${filename}")'`;
+}
+
+/** Gets the command to download hunt results using the CLI. */
+export function getHuntExportCLICommand(prefix: string, huntId: string) {
+  return `${prefix} --exec_code 'grrapi.Hunt("${huntId}").GetFilesArchive().WriteToFile("./hunt_results_${huntId}.zip")'`;
 }
 
 /** Returns the URL to download the raw VFS file contents. */

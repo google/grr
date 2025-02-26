@@ -3,6 +3,8 @@
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.path_detection import windows as path_detection_windows
@@ -19,16 +21,21 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
   System. This flow guesses file paths from the strings, expands any
   windows system environment variables, and attempts to retrieve the files.
   """
+
   category = "/Registry/"
   behaviours = flow_base.BEHAVIOUR_BASIC
+  result_types = (rdf_client_fs.StatEntry,)
 
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
-        artifact_list=["WindowsRunKeys"],
-        use_raw_filesystem_access=True,
-        next_state=self.ParseRunKeys.__name__)
+        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+            artifact_list=["WindowsRunKeys"],
+            use_raw_filesystem_access=True,
+        ),
+        next_state=self.ParseRunKeys.__name__,
+    )
 
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
@@ -40,8 +47,9 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
       runkey = response.registry_data.string
 
       environ_vars = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
-      path_guesses = path_detection_windows.DetectExecutablePaths([runkey],
-                                                                  environ_vars)
+      path_guesses = path_detection_windows.DetectExecutablePaths(
+          [runkey], environ_vars
+      )
 
       if not path_guesses:
         self.Log("Couldn't guess path for %s", runkey)
@@ -50,14 +58,18 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
         filenames.append(
             rdf_paths.PathSpec(
                 path=path,
-                pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
+                pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"],
+            )
         )
 
     if filenames:
       self.CallFlow(
           transfer.MultiGetFile.__name__,
-          pathspecs=filenames,
-          next_state=self.Done.__name__)
+          flow_args=transfer.MultiGetFileArgs(
+              pathspecs=filenames,
+          ),
+          next_state=self.Done.__name__,
+      )
 
   def Done(self, responses):
     for response in responses:

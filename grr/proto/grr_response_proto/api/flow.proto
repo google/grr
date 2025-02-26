@@ -36,15 +36,18 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Block hunt creation for the flow." }];
 }
 
-// Next id: 20
+// Next id: 21
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
+
   enum State {
     RUNNING = 0;
     TERMINATED = 1;
     ERROR = 3;
     CLIENT_CRASHED = 4;
   }
+
+  //   /grr_response_proto/flows.proto)
 
   optional string urn = 1
       [(sem_type) = { type: "SessionID", description: "Flow URN." }];
@@ -90,6 +93,10 @@ message ApiFlow {
 
   optional ApiDataObject state_data = 10
       [(sem_type) = { description: "Current flow state data." }];
+  optional google.protobuf.Any store = 20 [(sem_type) = {
+    description: "Current flow store data.",
+    no_dynamic_type_lookup: true,
+  }];
   optional FlowContext context = 11
       [(sem_type) = { description: "Current flow context." }];
 

@@ -70,6 +70,7 @@ function atLeastOneOS(control: AbstractControl): ValidationErrors | null {
  * Provides the forms for new hunt configuration.
  */
 @Component({
+  standalone: false,
   selector: 'app-clients-form',
   templateUrl: './clients_form.ng.html',
   styleUrls: ['./clients_form.scss'],
@@ -112,11 +113,6 @@ export class ClientsForm implements AfterViewInit, OnDestroy {
     },
   ];
   readonly otherRules: readonly Rule[] = [
-    {
-      name: 'Client Clock',
-      type: ForemanClientRuleType.INTEGER,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
-    },
     {
       name: 'Client Description',
       type: ForemanClientRuleType.REGEX,
@@ -187,16 +183,43 @@ export class ClientsForm implements AfterViewInit, OnDestroy {
   readonly matchMode = ForemanLabelClientRuleMatchMode;
   readonly clientRuleType = ForemanClientRuleType;
   readonly operator = ForemanIntegerClientRuleOperator;
-  readonly allClientsLabels$ = this.configGlobalStore.clientsLabels$;
+  readonly allClientsLabels$;
 
   constructor(
     private readonly changeDetection: ChangeDetectorRef,
     private readonly configGlobalStore: ConfigGlobalStore,
     private readonly newHuntLocalStore: NewHuntLocalStore,
     private readonly markdownPipe: MarkdownPipe,
-  ) {}
+  ) {
+    this.allClientsLabels$ = this.configGlobalStore.clientsLabels$;
+    this.presubmitWarning$ = combineLatest([
+      this.newHuntLocalStore.presubmitOptions$,
+      this.clientForm.valueChanges, // Run on form changes.
+    ]).pipe(
+      map(([presubmitOptions, _]) => {
+        if (!presubmitOptions || !presubmitOptions.expectedExcludedLabels) {
+          return null;
+        }
+
+        const passes = this.presubmitCheck(
+          presubmitOptions.expectedExcludedLabels,
+        );
+
+        if (!passes) {
+          return {
+            htmlSnippet: this.getHtmlFromMarkdown(
+              presubmitOptions.markdownText,
+            ),
+          };
+        }
+
+        return null;
+      }),
+    );
+  }
 
   defaultClientRuleSet: ForemanClientRuleSet | null = null;
+  expectedExcludedLabels: string[] = [];
 
   ngAfterViewInit() {
     this.newHuntLocalStore.defaultClientRuleSet$.subscribe((clientRuleSet) => {
@@ -205,31 +228,11 @@ export class ClientsForm implements AfterViewInit, OnDestroy {
     });
   }
 
-  presubmitWarning$ = combineLatest([
-    this.newHuntLocalStore.presubmitOptions$,
-    this.clientForm.valueChanges, // Run on form changes.
-  ]).pipe(
-    map(([presubmitOptions, _]) => {
-      if (!presubmitOptions || !presubmitOptions.expectedExcludedLabels) {
-        return null;
-      }
-
-      const passes = this.presubmitCheck(
-        presubmitOptions.expectedExcludedLabels,
-      );
-
-      if (!passes) {
-        return {
-          htmlSnippet: this.getHtmlFromMarkdown(presubmitOptions.markdownText),
-        };
-      }
-
-      return null;
-    }),
-  );
+  presubmitWarning$;
 
   // Returns true if the check passes, false otherwise.
   presubmitCheck(expectedExcludedLabels: string[]): boolean {
+    this.expectedExcludedLabels = expectedExcludedLabels;
     const current = this.buildRules();
 
     if (current.matchMode !== ForemanClientRuleSetMatchMode.MATCH_ALL) {
@@ -264,6 +267,23 @@ export class ClientsForm implements AfterViewInit, OnDestroy {
       this.setFormState(this.defaultClientRuleSet);
     }
   }
+
+  fixPresubmit() {
+    this.rulesMatchModeControl.setValue(
+      ForemanClientRuleSetMatchMode.MATCH_ALL,
+    );
+    // We check again, so we don't re-add the label rule if it's already there.
+    if (!this.presubmitCheck(this.expectedExcludedLabels)) {
+      this.conditions().push(
+        this.newLabelForm(
+          'Label',
+          ForemanLabelClientRuleMatchMode.DOES_NOT_MATCH_ANY,
+          this.expectedExcludedLabels,
+        ),
+      );
+    }
+  }
+
   conditions(): FormArray<FormGroup> {
     return this.conditionsArray;
   }

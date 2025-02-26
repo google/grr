@@ -285,15 +285,15 @@ describe('clients form test', () => {
     expect(fixture.componentInstance.labelNames(1).controls.length).toBe(1);
   });
 
-  it('adds a integer form when clicking on Client Clock in menu', async () => {
+  it('adds a integer form when clicking on Client Version in menu', async () => {
     const fixture = TestBed.createComponent(ClientsForm);
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await selectMenuOptionAt(menu, 4); // adds Client Clock integer form
+    await selectMenuOptionAt(menu, 0); // adds Client Version integer form
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Client Clock');
+    expect(text).toContain('Client Version');
     expect(fixture.debugElement.query(By.css('.operator'))).not.toBeNull();
     expect(fixture.componentInstance.conditions().controls.length).toBe(2);
   });
@@ -304,7 +304,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await selectMenuOptionAt(menu, 5); // adds Client Description regex form
+    await selectMenuOptionAt(menu, 4); // adds Client Description regex form
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('Client Description');
     expect(
@@ -319,7 +319,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await selectMenuOptionAt(menu, 5); // adds Client Description regex form
+    await selectMenuOptionAt(menu, 4); // adds Client Description regex form
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('Client Description');
     expect(
@@ -348,11 +348,11 @@ describe('clients form test', () => {
     fixture.detectChanges();
     await setInputValue(fixture, 'input[id=condition_1_label_name_1]', 'bar');
 
-    await selectMenuOptionAt(menu, 4); // adds Client Clock integer form
+    await selectMenuOptionAt(menu, 0); // adds Client Version integer form
     await selectBoxOption(fixture, '[id=condition_2_operator]', 'Greater Than');
-    await setInputValue(fixture, 'input[id=condition_2_integer_value]', '123');
+    await setInputValue(fixture, 'input[id=condition_2_integer_value]', '1337');
 
-    await selectMenuOptionAt(menu, 5); // adds Client Description regex form
+    await selectMenuOptionAt(menu, 4); // adds Client Description regex form
     await setInputValue(
       fixture,
       'input[id=condition_3_regex_value]',
@@ -378,8 +378,8 @@ describe('clients form test', () => {
           ruleType: ForemanClientRuleType.INTEGER,
           integer: {
             operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
-            value: '123',
-            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
+            value: '1337',
+            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION,
           },
         },
         {
@@ -473,8 +473,8 @@ describe('clients form test', () => {
           ruleType: ForemanClientRuleType.INTEGER,
           integer: {
             operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
-            value: '123',
-            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
+            value: '1337',
+            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION,
           },
         },
         {
@@ -514,7 +514,7 @@ describe('clients form test', () => {
       'Greater Than',
     );
     expect(await getInputValue(fixture, '[id=condition_2_integer_value]')).toBe(
-      '123',
+      '1337',
     );
 
     // Client Description form values

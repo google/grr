@@ -82,7 +82,7 @@ class FingerprinterTest(absltest.TestCase):
             result, expected, 'Hashing results for %s do not match.' % fname
         )
 
-  # pyformat: disable
+  # fmt: off
   SAMPLE_DATA_1 = [{
       'sha256':
           b"\xf2\xa7\xccd[\x96\x94l\xc6[\xf6\x0e\x14\xe7\r\xc0\x9c\x84\x8d'\xc7\x94<\xe5\xde\xa0\xc0\x1ak\x864\x80",
@@ -146,7 +146,7 @@ class FingerprinterTest(absltest.TestCase):
       'simple': SAMPLE_DATA_2,
       'SoftwareUpdate.exe': SAMPLE_DATA_3,
   }
-  # pyformat: enable
+  # fmt: on
 
 
 if __name__ == '__main__':

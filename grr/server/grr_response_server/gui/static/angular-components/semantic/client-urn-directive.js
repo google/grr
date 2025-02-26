@@ -1,5 +1,4 @@
 goog.module('grrUi.semantic.clientUrnDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
@@ -9,7 +8,7 @@ const apiService = goog.requireType('grrUi.core.apiService');
  * Controller for the ClientUrnDirective.
  * @unrestricted
  */
-var ClientUrnController = class {
+const ClientUrnController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
@@ -44,7 +43,7 @@ var ClientUrnController = class {
    * @export
    */
   onValueChange() {
-    var clientUrn;
+    let clientUrn;
     if (angular.isObject(this.scope_.value)) {
       clientUrn = this.scope_.value.value;
     } else {

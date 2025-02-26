@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -10,19 +10,22 @@ import {
 import {Flow} from '../../../lib/models/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
-import {ExportMenuItem, Plugin} from './plugin';
+import {ButtonType, ExportMenuItem, Plugin} from './plugin';
 
 /**
  * Component that shows Download for CollectLargeFilesFlow results.
  */
 @Component({
+  standalone: false,
   selector: 'collect-large-file-flow-details',
   templateUrl: './collect_large_file_flow_details.ng.html',
   styleUrls: ['./collect_large_file_flow_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectLargeFileFlowDetails extends Plugin {
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  private readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
+  constructor() {
     super();
     this.flowResultsLocalStore.query(
       this.flow$.pipe(
@@ -72,12 +75,14 @@ export class CollectLargeFileFlowDetails extends Plugin {
 
   override getExportMenuItems(
     flow: Flow<CollectLargeFileFlowArgs>,
+    exportCommandPrefix: string,
   ): readonly ExportMenuItem[] {
     if (flow.args?.signedUrl) {
       return [
         {
           title: 'Download Encrypted File',
           url: flow.args?.signedUrl,
+          type: ButtonType.LINK,
         },
       ];
     }

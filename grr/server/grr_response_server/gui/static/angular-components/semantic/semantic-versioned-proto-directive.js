@@ -10,7 +10,7 @@ const {buildNonUnionItems} = goog.require('grrUi.semantic.semanticProtoDirective
  * Controller for SemanticVersionedProtoDirective.
  * @unrestricted
  */
-var SemanticVersionedProtoController = class {
+const SemanticVersionedProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @param {!reflectionService.ReflectionService}
@@ -43,7 +43,7 @@ var SemanticVersionedProtoController = class {
    */
   processItems_(items, descriptors) {
     angular.forEach(items, function(item) {
-      var itemType = item['fieldDescriptor']['type'];
+      const itemType = item['fieldDescriptor']['type'];
       item['recursiveItem'] =
           (this.scope_['historyDepth'] > 1 &&
            descriptors[itemType]['kind'] === 'struct' &&
@@ -78,10 +78,10 @@ var SemanticVersionedProtoController = class {
     }
 
     if (angular.isObject(this.scope_['value'])) {
-      var valueType = this.scope_['value']['type'];
+      const valueType = this.scope_['value']['type'];
       this.grrReflectionService_.getRDFValueDescriptor(valueType, true)
           .then(function success(descriptors) {
-            var items = buildNonUnionItems(
+            const items = buildNonUnionItems(
                 this.scope_['value'], descriptors[valueType]);
             this.items = this.processItems_(items, descriptors);
           }.bind(this));  // TODO(user): Reflection failure scenario should

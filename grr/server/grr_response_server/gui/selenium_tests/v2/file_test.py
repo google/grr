@@ -9,13 +9,13 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server.flows import file
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -236,26 +236,26 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         flow_args=flow_args,
     )
-
-    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
-
-    with flow_test_lib.FlowResultMetadataOverride(
-        file.CollectFilesByKnownPath,
-        rdf_flow_objects.FlowResultMetadata(
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
             is_metadata_set=True,
             num_results_per_type_tag=[
-                rdf_flow_objects.FlowResultCount(
-                    type=rdf_file_finder.CollectFilesByKnownPathResult.__name__,
+                flows_pb2.FlowResultCount(
+                    type=flows_pb2.CollectFilesByKnownPathResult.__name__,
                     count=1,
                 )
             ],
         ),
-    ):
-      self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(
-          self.IsElementPresent,
-          "css=a[mat-stroked-button]:contains('Download')",
-      )
+    )
+    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=a[mat-stroked-button]:contains('Download')",
+    )
 
   def testFlowError(self):
     flow_args = rdf_file_finder.CollectFilesByKnownPathArgs(
@@ -543,36 +543,35 @@ class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         flow_args=flow_args,
     )
-
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
+            is_metadata_set=True,
+            num_results_per_type_tag=[
+                flows_pb2.FlowResultCount(
+                    type=jobs_pb2.StatEntry.__name__, count=3
+                )
+            ],
+        ),
+    )
     flow_test_lib.AddResultsToFlow(
         self.client_id, flow_id, [self._GenCollectedResult(i) for i in range(3)]
     )
 
-    with flow_test_lib.FlowResultMetadataOverride(
-        file.StatMultipleFiles,
-        rdf_flow_objects.FlowResultMetadata(
-            is_metadata_set=True,
-            num_results_per_type_tag=[
-                rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__,
-                    count=3,
-                )
-            ],
-        ),
-    ):
-      self.Open(f"/v2/clients/{self.client_id}")
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=result-accordion:contains('/file0 + 2 more')",
+    )
+
+    self.Click("css=result-accordion:contains('/file0 + 2 more')")
+
+    for i in range(3):
       self.WaitUntil(
           self.IsElementPresent,
-          "css=result-accordion:contains('/file0 + 2 more')",
+          f"css=file-results-table:contains('{i} B')",
       )
-
-      self.Click("css=result-accordion:contains('/file0 + 2 more')")
-
-      for i in range(3):
-        self.WaitUntil(
-            self.IsElementPresent,
-            f"css=file-results-table:contains('{i} B')",
-        )
 
   def testDownloadButtonFlowFinished(self):
     flow_args = rdf_file_finder.StatMultipleFilesArgs(
@@ -584,26 +583,25 @@ class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         flow_args=flow_args,
     )
-
-    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
-
-    with flow_test_lib.FlowResultMetadataOverride(
-        file.StatMultipleFiles,
-        rdf_flow_objects.FlowResultMetadata(
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
             is_metadata_set=True,
             num_results_per_type_tag=[
-                rdf_flow_objects.FlowResultCount(
-                    type=rdf_client_fs.StatEntry.__name__,
-                    count=1,
+                flows_pb2.FlowResultCount(
+                    type=jobs_pb2.StatEntry.__name__, count=1
                 )
             ],
         ),
-    ):
-      self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(
-          self.IsElementPresent,
-          "css=a[mat-stroked-button]:contains('Download')",
-      )
+    )
+    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=a[mat-stroked-button]:contains('Download')",
+    )
 
   def testFlowError(self):
     flow_args = rdf_file_finder.StatMultipleFilesArgs(
@@ -804,26 +802,25 @@ class HashMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         flow_args=flow_args,
     )
-
-    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
-
-    with flow_test_lib.FlowResultMetadataOverride(
-        file.HashMultipleFiles,
-        rdf_flow_objects.FlowResultMetadata(
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
             is_metadata_set=True,
             num_results_per_type_tag=[
-                rdf_flow_objects.FlowResultCount(
-                    type=rdf_file_finder.CollectMultipleFilesResult.__name__,
-                    count=1,
+                flows_pb2.FlowResultCount(
+                    type=flows_pb2.CollectMultipleFilesResult.__name__, count=1
                 )
             ],
         ),
-    ):
-      self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(
-          self.IsElementPresent,
-          "css=a[mat-stroked-button]:contains('Download')",
-      )
+    )
+    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=a[mat-stroked-button]:contains('Download')",
+    )
 
   def testFlowError(self):
     flow_args = rdf_file_finder.HashMultipleFilesArgs(

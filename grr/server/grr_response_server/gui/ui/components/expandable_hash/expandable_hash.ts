@@ -12,6 +12,7 @@ interface HashEntry {
  * with all available hashes, together with copy-to-clipboard buttons.
  */
 @Component({
+  standalone: false,
   selector: 'expandable-hash',
   templateUrl: './expandable_hash.ng.html',
   styleUrls: ['./expandable_hash.scss'],

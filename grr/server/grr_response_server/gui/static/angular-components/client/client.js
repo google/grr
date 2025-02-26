@@ -1,5 +1,4 @@
 goog.module('grrUi.client.client');
-goog.module.declareLegacyNamespace();
 
 const {AddClientsLabelsDialogDirective} = goog.require('grrUi.client.addClientsLabelsDialogDirective');
 const {CheckClientAccessDirective} = goog.require('grrUi.client.checkClientAccessDirective');

@@ -117,7 +117,7 @@ describe('grr-binaries-list directive', () => {
     $rootScope.typeFilter = typeFilter;
 
     const template = '<grr-binaries-list binaries="binaries" ' +
-        'type-filter="{$ typeFilter $}" />';
+        'type-filter="{$ typeFilter $}"></grr-binaries-list>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

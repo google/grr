@@ -34,7 +34,7 @@ describe('encryption key directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-encryption-key value="value" />';
+    const template = '<grr-encryption-key value="value"></grr-encryption-key>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

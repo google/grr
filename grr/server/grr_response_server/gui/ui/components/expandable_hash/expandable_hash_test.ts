@@ -23,13 +23,11 @@ describe('ExpandableHash component', () => {
   }));
 
   class ExpandableHashDOM {
-    harnessLoader = TestbedHarnessEnvironment.loader(this.rootFixture);
+    harnessLoader;
 
-    expandButton = this.rootFixture.debugElement.query(
-      By.css('.button-expand-expandable-hash-class'),
-    );
-    expandButtonText = this.expandButton?.nativeElement.innerText;
-    text = this.rootFixture.nativeElement.textContent;
+    expandButton;
+    expandButtonText;
+    text;
 
     // Load harnesses lazily to prevent errors due to not-yet existing elements.
     get menuHarness() {
@@ -40,7 +38,14 @@ describe('ExpandableHash component', () => {
       return this.harnessLoader.getHarness<MatButtonHarness>(MatButtonHarness);
     }
 
-    constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {}
+    constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {
+      this.harnessLoader = TestbedHarnessEnvironment.loader(this.rootFixture);
+      this.expandButton = this.rootFixture.debugElement.query(
+        By.css('.button-expand-expandable-hash-class'),
+      );
+      this.expandButtonText = this.expandButton?.nativeElement.innerText;
+      this.text = this.rootFixture.nativeElement.textContent;
+    }
   }
 
   function initComponentWithHashes(hashes: HexHash): ExpandableHashDOM {

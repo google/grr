@@ -16,6 +16,7 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
@@ -254,6 +255,16 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
     del args, context  # Unused.
     return api_osquery.ApiGetOsqueryResultsHandler()
 
+  # Signed commands methods.
+  # ========================
+  #
+  def ListSignedCommands(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_signed_commands.ApiListSignedCommandsHandler:
+    return api_signed_commands.ApiListSignedCommandsHandler()
+
   # Cron jobs methods.
   # =================
   #
@@ -356,13 +367,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     return api_timeline.ApiGetCollectedHuntTimelinesHandler()
-
-  def CreatePerClientFileCollectionHunt(
-      self,
-      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext,
-  ) -> api_hunt.ApiCreatePerClientFileCollectionHuntHandler:
-    return api_hunt.ApiCreatePerClientFileCollectionHuntHandler()
 
   # Stats metrics methods.
   # =====================

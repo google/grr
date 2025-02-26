@@ -39,6 +39,7 @@ describe('file-finder-details component', () => {
 
     const menuItems = fixture.componentInstance.getExportMenuItems(
       fixture.componentInstance.flow,
+      '' /** exportCommandPrefix can be left empty for testing purposes */,
     );
     expect(menuItems[0]).toEqual(
       fixture.componentInstance.getDownloadFilesExportMenuItem(

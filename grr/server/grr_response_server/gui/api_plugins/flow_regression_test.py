@@ -10,6 +10,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -51,6 +52,31 @@ class ApiGetFlowHandlerRegressionTest(
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF12"
+      )
+
+      # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
+      # database as bytes. The `store` here contains the source flow id, and
+      # thus, the bytes change on every run.
+      # To avoid this, we update the `store` field in the flow object in the
+      # database, so it has an empty store.
+      # Before that, though, we want to make sure that the `store` field is
+      # actually set with what we want, so we test it here.
+      # This is not an issue in ApiV2 (protos) so all this can be removed once
+      # we remove ApiV1.
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      interrogate_store = flows_pb2.InterrogateStore()
+      flow_obj.store.Unpack(interrogate_store)
+      want_store = flows_pb2.InterrogateStore(
+          client_snapshot=objects_pb2.ClientSnapshot(
+              client_id=client_id,
+              metadata=objects_pb2.ClientSnapshotMetadata(
+                  source_flow_id=flow_id
+              ),
+          )
+      )
+      self.assertEqual(want_store, interrogate_store)
+      api_regression_test_lib.UpdateFlowStore(
+          client_id, flow_id, flows_pb2.InterrogateStore()
       )
 
       self.Check(
@@ -101,12 +127,74 @@ class ApiListFlowsHandlerRegressionTest(
           creator=access_control._SYSTEM_USERS_LIST[0],
       )
 
+    with test_lib.FakeTime(45):
+      flow_id_3 = flow_test_lib.StartFlow(
+          flow_test_lib.FlowWithTwoLevelsOfNestedFlows,
+          client_id,
+          creator=self.test_username,
+      )
+
+    # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
+    # database as bytes. The `store` here contains the source flow id, and thus,
+    # the bytes change on every run.
+    # To avoid this, we update the `store` field in the flow object in the
+    # database, so it has an empty store.
+    # Before that, though, we want to make sure that the `store` field is
+    # actually set with what we want, so we test it here.
+    # This is not an issue in ApiV2 (protos) so all this can be removed once
+    # we remove ApiV1.
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id_1)
+    interrogate_store = flows_pb2.InterrogateStore()
+    flow_obj.store.Unpack(interrogate_store)
+    want_store = flows_pb2.InterrogateStore(
+        client_snapshot=objects_pb2.ClientSnapshot(
+            client_id=client_id,
+            metadata=objects_pb2.ClientSnapshotMetadata(
+                source_flow_id=flow_id_1
+            ),
+        )
+    )
+    self.assertEqual(want_store, interrogate_store)
+    with test_lib.FakeTime(43):
+      api_regression_test_lib.UpdateFlowStore(
+          client_id, flow_id_1, flows_pb2.InterrogateStore()
+      )
+
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
         client_id, flow_id_1, "F:ABCDEF10"
     )
     replace.update(
         api_regression_test_lib.GetFlowTestReplaceDict(
             client_id, flow_id_2, "F:ABCDEF11"
+        )
+    )
+
+    # Flow 3 has two nested flows. We need to find the nested flow ids to
+    # replace them in the response.
+    nested_flow_id, double_nested_flow_id = None, None
+    flow_objects = data_store.REL_DB.ReadAllFlowObjects(client_id)
+    for f in flow_objects:
+      if f.parent_flow_id == flow_id_3:
+        nested_flow_id = f.flow_id
+        break
+    for f in flow_objects:
+      if f.parent_flow_id == nested_flow_id:
+        double_nested_flow_id = f.flow_id
+        break
+
+    replace.update(
+        api_regression_test_lib.GetFlowTestReplaceDict(
+            client_id, flow_id_3, "F:ABCDEF12"
+        )
+    )
+    replace.update(
+        api_regression_test_lib.GetFlowTestReplaceDict(
+            client_id, nested_flow_id, "F:ABCDEF13"
+        )
+    )
+    replace.update(
+        api_regression_test_lib.GetFlowTestReplaceDict(
+            client_id, double_nested_flow_id, "F:ABCDEF14"
         )
     )
 

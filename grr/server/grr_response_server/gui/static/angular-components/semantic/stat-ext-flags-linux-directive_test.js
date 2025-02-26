@@ -24,7 +24,7 @@ describe('stat ext-flags for Linux directive', () => {
   const render = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-stat-ext-flags-linux value="value" />';
+    const template = '<grr-stat-ext-flags-linux value="value"></grr-stat-ext-flags-linux>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

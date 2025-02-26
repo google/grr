@@ -26,7 +26,6 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   name = "email"
   description = "Send an email for each result."
   args_type = EmailOutputPluginArgs
-  produces_output_streams = False
 
   subject_template = jinja2.Template(
       "GRR got a new result in {{ source_urn }}.", autoescape=True

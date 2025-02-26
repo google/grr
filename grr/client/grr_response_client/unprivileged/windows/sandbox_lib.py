@@ -8,6 +8,7 @@ for details about AppContainers.
 This module works only on Windows >= 8.
 """
 
+from collections.abc import Iterable
 import contextlib
 import ctypes
 # pylint:disable=g-importing-member
@@ -19,7 +20,7 @@ from ctypes.wintypes import LPCWSTR
 from ctypes.wintypes import LPVOID
 from ctypes.wintypes import LPWSTR
 # pylint:enable=g-importing-member
-from typing import Iterable, Optional
+from typing import Optional
 
 import ntsecuritycon
 import pywintypes

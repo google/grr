@@ -31,9 +31,9 @@ exports.ApiHelperCurlService = class {
    * @export
    */
   buildStartFlow(clientId, createFlowJson) {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
-    var result = 'CSRFTOKEN=`curl ' + this.window_.location.origin +
+    let result = 'CSRFTOKEN=`curl ' + this.window_.location.origin +
         ' -o /dev/null -s -c - | grep csrftoken  | cut -f 7`; \\\n\t' +
         'curl -X POST -H "Content-Type: application/json" ' +
         '-H "X-CSRFToken: $CSRFTOKEN" \\\n\t' + this.window_.location.origin +
@@ -46,7 +46,7 @@ exports.ApiHelperCurlService = class {
     return deferred.promise;
   }
 };
-var ApiHelperCurlService = exports.ApiHelperCurlService;
+const ApiHelperCurlService = exports.ApiHelperCurlService;
 
 
 ApiHelperCurlService.service_name = 'grrApiHelperCurlService';

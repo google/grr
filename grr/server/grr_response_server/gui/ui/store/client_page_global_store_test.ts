@@ -4,6 +4,7 @@ import {
   fakeAsync,
   TestBed,
   tick,
+  waitForAsync,
 } from '@angular/core/testing';
 import {BehaviorSubject, firstValueFrom} from 'rxjs';
 import {filter} from 'rxjs/operators';
@@ -62,7 +63,7 @@ describe('ClientPageGlobalStore', () => {
   let configGlobalStore: ConfigGlobalStoreMock;
   let userGlobalStore: UserGlobalStoreMock;
 
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     httpApiService = mockHttpApiService();
     configGlobalStore = mockConfigGlobalStore();
     userGlobalStore = mockUserGlobalStore();
@@ -91,7 +92,7 @@ describe('ClientPageGlobalStore', () => {
       canaryMode: false,
       huntApprovalRequired: false,
     });
-  });
+  }));
 
   it('queries the API on latestApproval$ subscription ', fakeAsync(() => {
     expect(
@@ -474,7 +475,7 @@ describe('ClientPageGlobalStore', () => {
     ).toEqual({status: RequestStatusType.SENT});
   });
 
-  it('stops flow configuration after successful started flow', (done) => {
+  it('stops flow configuration after successful started flow', waitForAsync(() => {
     clientPageGlobalStore.startFlowConfiguration('ListProcesses');
     clientPageGlobalStore.startFlow({});
 
@@ -491,11 +492,10 @@ describe('ClientPageGlobalStore', () => {
 
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe((fd) => {
       expect(fd).toBeNull();
-      done();
     });
-  });
+  }));
 
-  it('stops flow configuration after successfully scheduling a flow', (done) => {
+  it('stops flow configuration after successfully scheduling a flow', waitForAsync(() => {
     clientPageGlobalStore.startFlowConfiguration('ListProcesses');
     clientPageGlobalStore.scheduleFlow({});
 
@@ -510,23 +510,21 @@ describe('ClientPageGlobalStore', () => {
 
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe((fd) => {
       expect(fd).toBeNull();
-      done();
     });
-  });
+  }));
 
   it('calls the API on cancelFlow', () => {
     clientPageGlobalStore.cancelFlow('5678');
     expect(httpApiService.cancelFlow).toHaveBeenCalledWith('C.1234', '5678');
   });
 
-  it('emits null as selectedFlowDescriptor$ initially', (done) => {
+  it('emits null as selectedFlowDescriptor$ initially', waitForAsync(() => {
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe((flow) => {
       expect(flow).toBeNull();
-      done();
     });
-  });
+  }));
 
-  it('emits the selected flow in selectedFlowDescriptor$', (done) => {
+  it('emits the selected flow in selectedFlowDescriptor$', waitForAsync(() => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
       newFlowDescriptorMap(
         {name: 'ClientSideFileFinder'},
@@ -542,11 +540,10 @@ describe('ClientPageGlobalStore', () => {
 
       expect(flow.name).toEqual('ListDirectory');
       expect(flow.defaultArgs).toEqual({foo: 1});
-      done();
     });
-  });
+  }));
 
-  it('emits the supplied args in selectedFlowDescriptor$', (done) => {
+  it('emits the supplied args in selectedFlowDescriptor$', waitForAsync(() => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
       newFlowDescriptorMap({name: 'ListDirectory', defaultArgs: {foo: 1}}),
     );
@@ -559,11 +556,10 @@ describe('ClientPageGlobalStore', () => {
 
       expect(flow.name).toEqual('ListDirectory');
       expect(flow.defaultArgs).toEqual({foo: 42});
-      done();
     });
-  });
+  }));
 
-  it('fails when selecting unknown flow', (done) => {
+  it('fails when selecting unknown flow', waitForAsync(() => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
       newFlowDescriptorMap({name: 'ListDirectory'}),
     );
@@ -573,12 +569,11 @@ describe('ClientPageGlobalStore', () => {
       () => {},
       (err) => {
         expect(err).toBeTruthy();
-        done();
       },
     );
-  });
+  }));
 
-  it('emits null in selectedFlowDescriptor$ after unselectFlow()', (done) => {
+  it('emits null in selectedFlowDescriptor$ after unselectFlow()', waitForAsync(() => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
       newFlowDescriptorMap(
         {name: 'ClientSideFileFinder'},
@@ -590,9 +585,8 @@ describe('ClientPageGlobalStore', () => {
     clientPageGlobalStore.stopFlowConfiguration();
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe((flow) => {
       expect(flow).toBeNull();
-      done();
     });
-  });
+  }));
 
   it('fetches client data only after selectedClient$ is subscribed to', fakeAsync(() => {
     expect(httpApiService.subscribeToClient).not.toHaveBeenCalled();

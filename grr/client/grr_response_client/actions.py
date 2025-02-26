@@ -325,7 +325,6 @@ class ActionPlugin(object):
         response_id=response_id,
         request_id=request_id,
         message_type=message_type,
-        task_id=self.message.Get("task_id") or None,
     )
 
     # If client actions sends replies, it's not dead, thus we should send
@@ -342,7 +341,7 @@ class ActionPlugin(object):
     """Indicate progress of the client action.
 
     This function should be called periodically during client actions that do
-    not finish instantly. It will notify the nanny that the action is not stuck
+    not finish instantly. It will notify Fleetspeak that the action is not stuck
     and avoid the timeout and it will also check if the action has reached its
     cpu limit.
 

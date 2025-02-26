@@ -461,19 +461,6 @@ def CreateHunt(
   return Hunt(data=data, context=context)
 
 
-def CreatePerClientFileCollectionHunt(
-    hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
-    context: context_lib.GrrApiContext,
-) -> Hunt:
-  """Createt a per-client file collection hunt."""
-
-  data = context.SendRequest("CreatePerClientFileCollectionHunt", hunt_args)
-  if not isinstance(data, hunt_pb2.ApiHunt):
-    raise TypeError(f"Unexpected response type: '{type(data)}'")
-
-  return Hunt(data=data, context=context)
-
-
 def ListHunts(context: context_lib.GrrApiContext) -> utils.ItemsIterator[Hunt]:
   """List all GRR hunts."""
 

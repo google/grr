@@ -4,7 +4,7 @@ from absl.testing import absltest
 from grr_response_proto import objects_pb2
 from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
-from grr_response_server.models import events
+from grr_response_server.models import events as models_events
 
 
 class APIAuditEntryFromHttpRequestResponseTest(absltest.TestCase):
@@ -27,7 +27,9 @@ class APIAuditEntryFromHttpRequestResponseTest(absltest.TestCase):
         response_code=objects_pb2.APIAuditEntry.Code.ERROR,
     )
 
-    result = events.APIAuditEntryFromHttpRequestResponse(request, response)
+    result = models_events.APIAuditEntryFromHttpRequestResponse(
+        request, response
+    )
     self.assertEqual(expected, result)
 
   def testStatus(self):
@@ -35,16 +37,20 @@ class APIAuditEntryFromHttpRequestResponseTest(absltest.TestCase):
     request.user = "needs_to_be_set"
 
     # Make sure we always test everything in the dict
-    for status, want_code in events._HTTP_STATUS_TO_CODE.items():
+    for status, want_code in models_events._HTTP_STATUS_TO_CODE.items():
       response = http_response.HttpResponse(status=status)
-      result = events.APIAuditEntryFromHttpRequestResponse(request, response)
+      result = models_events.APIAuditEntryFromHttpRequestResponse(
+          request, response
+      )
       self.assertEqual(want_code, result.response_code)
 
   def testStatusDefault(self):
     request = http_request.HttpRequest({})
     request.user = "needs_to_be_set"
     response = http_response.HttpResponse(status=42)
-    result = events.APIAuditEntryFromHttpRequestResponse(request, response)
+    result = models_events.APIAuditEntryFromHttpRequestResponse(
+        request, response
+    )
     self.assertEqual(objects_pb2.APIAuditEntry.Code.ERROR, result.response_code)
 
 

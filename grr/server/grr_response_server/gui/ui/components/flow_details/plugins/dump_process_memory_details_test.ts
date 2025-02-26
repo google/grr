@@ -1,7 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
 
 import {YaraProcessDumpResponse} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
@@ -26,7 +25,7 @@ describe('app-dump-process-memory-details component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, PluginsModule],
       providers: [],
       teardown: {destroyAfterEach: false},
     })

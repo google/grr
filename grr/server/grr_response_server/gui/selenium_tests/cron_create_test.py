@@ -109,7 +109,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Integer")
     rule = foreman_rules.ForemanIntegerClientRule
-    label = rule.ForemanIntegerField.CLIENT_CLOCK.description
+    label = rule.ForemanIntegerField.CLIENT_VERSION.description
     self.Select(
         "css=grr-new-cron-job-wizard-form div.well "
         "label:contains('Field') ~ * select",
@@ -123,7 +123,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Type(
         "css=grr-new-cron-job-wizard-form div.well "
         "label:contains('Value') ~ * input",
-        "1336650631137737",
+        "1337",
     )
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")

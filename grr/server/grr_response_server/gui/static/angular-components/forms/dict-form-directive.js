@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.dictFormDirective');
-goog.module.declareLegacyNamespace();
 
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
 

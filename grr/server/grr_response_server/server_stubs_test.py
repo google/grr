@@ -9,8 +9,9 @@ from grr.test_lib import client_action_test_lib
 from grr.test_lib import test_lib
 
 
-class ClientActionStubTest(client_action_test_lib.WithAllClientActionsMixin,
-                           test_lib.GRRBaseTest):
+class ClientActionStubTest(
+    client_action_test_lib.WithAllClientActionsMixin, test_lib.GRRBaseTest
+):
 
   def testThereIsStubForEveryClientAction(self):
     # Check that some real ActionPlugin classes got imported.
@@ -24,13 +25,24 @@ class ClientActionStubTest(client_action_test_lib.WithAllClientActionsMixin,
 
       stub_cls = action_registry.ACTION_STUB_BY_ID[name]
       self.assertEqual(
-          cls.in_rdfvalue, stub_cls.in_rdfvalue,
-          "%s in_rdfvalue differs from the stub: %s vs %s" %
-          (name, cls.in_rdfvalue, stub_cls.in_rdfvalue))
+          cls.in_rdfvalue,
+          stub_cls.in_rdfvalue,
+          "%s in_rdfvalue differs from the stub: %s vs %s"
+          % (name, cls.in_rdfvalue, stub_cls.in_rdfvalue),
+      )
+      if stub_cls.in_rdfvalue is not None:
+        self.assertEqual(
+            stub_cls.in_proto,
+            stub_cls.in_rdfvalue.protobuf,
+            "stub %s in_proto type does not match in_rdfvalue.protobuf type: %s"
+            " vs %s" % (name, stub_cls.in_proto, stub_cls.in_rdfvalue.protobuf),
+        )
       self.assertEqual(
-          cls.out_rdfvalues, stub_cls.out_rdfvalues,
-          "%s out_rdfvalues differ from the stub: %s vs %s" %
-          (name, cls.out_rdfvalues, stub_cls.out_rdfvalues))
+          cls.out_rdfvalues,
+          stub_cls.out_rdfvalues,
+          "%s out_rdfvalues differ from the stub: %s vs %s"
+          % (name, cls.out_rdfvalues, stub_cls.out_rdfvalues),
+      )
 
 
 def main(argv):

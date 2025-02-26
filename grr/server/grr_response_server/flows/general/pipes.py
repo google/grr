@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with the implementation of the flow listing named pipes."""
+
 import logging
 import re
 from typing import Dict
@@ -49,7 +50,8 @@ class ListNamedPipesFlow(flow_base.FlowBase):
 
     self.CallClient(
         action_cls=server_stubs.ListNamedPipes,
-        next_state=self.OnListNamedPipesResult.__name__)
+        next_state=self.OnListNamedPipesResult.__name__,
+    )
 
   def OnListNamedPipesResult(
       self,
@@ -97,8 +99,10 @@ class ListNamedPipesFlow(flow_base.FlowBase):
     self.CallFlow(
         flow_name=processes.ListProcesses.__name__,
         next_state=self.OnListProcessesResult.__name__,
-        filename_regex=self.args.proc_exe_regex,
-        pids=pids,
+        flow_args=processes.ListProcessesArgs(
+            filename_regex=self.args.proc_exe_regex,
+            pids=pids,
+        ),
     )
 
   def OnListProcessesResult(

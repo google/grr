@@ -2,8 +2,8 @@
 """Utility classes for streaming files and memory."""
 
 import abc
+from collections.abc import Iterator
 import os
-from typing import Iterator  # pylint: disable=unused-import
 from typing import Optional
 
 

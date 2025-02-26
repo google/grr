@@ -9,6 +9,7 @@ from grr_api_client import utils
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.rdfvalues import osquery as rdf_osquery
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -22,12 +23,14 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     client_id = self.SetupClient(0)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
-      flow_id = flow_test_lib.TestFlowHelper(
-          osquery_flow.OsqueryFlow.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          osquery_flow.OsqueryFlow,
           action_mocks.OsqueryClientMock(),
           client_id=client_id,
           creator=self.test_username,
-          query="doesn't matter",
+          flow_args=rdf_osquery.OsqueryFlowArgs(
+              query="doesn't matter",
+          ),
       )
       result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
       result_flow.WaitUntilDone()

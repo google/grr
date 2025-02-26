@@ -1,5 +1,4 @@
 goog.module('grrUi.semantic.exactDurationDirective');
-goog.module.declareLegacyNamespace();
 
 
 /**

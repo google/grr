@@ -1,4 +1,3 @@
-Client.fleetspeak_enabled: true
 Client.foreman_check_frequency: 30
 Logging.verbose: true
 Logging.engines: file,stderr

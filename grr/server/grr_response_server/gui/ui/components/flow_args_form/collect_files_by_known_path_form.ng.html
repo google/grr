@@ -12,12 +12,12 @@
       <app-literal-glob-expression-warning [path]="controls.paths.value"></app-literal-glob-expression-warning>
     </mat-hint>
   </mat-form-field>
-  <div class="validation" [hidden]="!controls.paths.hasError('atLeastOnePathExpected')">
-    <mat-error *ngIf="controls.paths.hasError('atLeastOnePathExpected')">At least one non-empty path expected.</mat-error>
-  </div>
+  <mat-error *ngIf="controls.paths.hasError('atLeastOnePathExpected')">
+    At least one non-empty path expected.
+  </mat-error>
 
   <mat-radio-group aria-label="Collection level" [formControl]="controls.collectionLevel" [hidden]="hideAdvancedParams">
-    <mat-radio-button *ngFor="let cl of collectionLevels" [value]="cl.value" class="radio-option w100">
+    <mat-radio-button *ngFor="let cl of collectionLevels" [value]="cl.value" class="w100">
       {{cl.label}}
     </mat-radio-button>
   </mat-radio-group>

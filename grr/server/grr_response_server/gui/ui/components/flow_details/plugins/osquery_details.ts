@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {Observable, combineLatest, concat} from 'rxjs';
 import {filter, map, startWith, takeUntil} from 'rxjs/operators';
 
@@ -18,12 +18,15 @@ import {ExportMenuItem, Plugin} from './plugin';
  * particular Osquery Flow.
  */
 @Component({
+  standalone: false,
   selector: 'osquery-details',
   templateUrl: './osquery_details.ng.html',
   styleUrls: ['./osquery_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OsqueryDetails extends Plugin {
+  private readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
   readonly flowError$ = this.flagByState(FlowState.ERROR);
   readonly flowRunning$ = this.flagByState(FlowState.RUNNING);
   readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
@@ -95,7 +98,7 @@ export class OsqueryDetails extends Plugin {
     return this.flow$.pipe(map((flow) => flow.state === targetState));
   }
 
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  constructor() {
     super();
     this.flowResultsLocalStore.query(
       this.flow$.pipe(map((flow) => ({flow, withType: 'OsqueryResult'}))),
@@ -107,7 +110,10 @@ export class OsqueryDetails extends Plugin {
     this.flowResultsLocalStore.queryMore(1);
   }
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
     const results: ExportMenuItem[] = [];
 
     if (
@@ -116,8 +122,7 @@ export class OsqueryDetails extends Plugin {
     ) {
       results.push(this.getDownloadFilesExportMenuItem(flow));
     }
-
-    results.push(...super.getExportMenuItems(flow));
+    results.push(...super.getExportMenuItems(flow, exportCommandPrefix));
     return results;
   }
 }

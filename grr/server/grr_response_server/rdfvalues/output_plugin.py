@@ -21,11 +21,13 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   def GetPluginClass(self):
     if self.plugin_name:
       plugin_cls = registry.OutputPluginRegistry.PluginClassByName(
-          self.plugin_name)
+          self.plugin_name
+      )
       if plugin_cls is None:
         logging.warning("Unknown output plugin %s", self.plugin_name)
         return registry.OutputPluginRegistry.PluginClassByName(
-            "UnknownOutputPlugin")
+            "UnknownOutputPlugin"
+        )
 
       return plugin_cls
 

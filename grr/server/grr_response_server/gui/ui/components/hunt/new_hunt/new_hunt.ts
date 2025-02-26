@@ -32,6 +32,7 @@ import {ParamsForm} from './params_form/params_form';
  * Provides the new hunt creation page.
  */
 @Component({
+  standalone: false,
   templateUrl: './new_hunt.ng.html',
   styleUrls: ['./new_hunt.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,48 +45,28 @@ export class NewHunt {
   outputPluginsForm!: OutputPluginsForm;
   @ViewChild('approvalCard', {static: false}) approvalCard?: ApprovalCard;
 
-  readonly flowWithDescriptor$: Observable<FlowWithDescriptor | null> =
-    this.newHuntLocalStore.flowWithDescriptor$;
-  readonly originalHunt$: Observable<Hunt | null> =
-    this.newHuntLocalStore.originalHunt$;
+  readonly flowWithDescriptor$: Observable<FlowWithDescriptor | null>;
+  readonly originalHunt$: Observable<Hunt | null>;
   protected originalHuntRef: ApiHuntReference | undefined = undefined;
   protected originalFlowRef: ApiFlowReference | undefined = undefined;
 
-  readonly huntId$ = this.newHuntLocalStore.huntId$;
-  readonly huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe(
-    map((user) => user.huntApprovalRequired),
-  );
-  protected readonly latestApproval$ =
-    this.huntApprovalLocalStore.latestApproval$;
-  protected readonly huntApprovalRoute$ =
-    this.huntApprovalLocalStore.huntApprovalRoute$;
-  private readonly approvalParams$ = new BehaviorSubject<ApprovalParams | null>(
-    null,
-  );
-  protected readonly requestApprovalStatus$ =
-    this.huntApprovalLocalStore.requestApprovalStatus$;
+  readonly huntId$;
+  readonly huntApprovalRequired$;
+  protected readonly latestApproval$;
+  protected readonly huntApprovalRoute$;
+  private readonly approvalParams$;
+  protected readonly requestApprovalStatus$;
   protected hasOriginInput: boolean | undefined = undefined;
 
-  titleControl = new FormControl('', {updateOn: 'change'});
+  titleControl;
 
-  readonly ngOnDestroy = observeOnDestroy(this);
+  readonly ngOnDestroy;
 
-  protected readonly huntsOverviewRoute = ['/hunts'];
+  protected readonly huntsOverviewRoute;
 
-  readonly hasOrigin$ = combineLatest([
-    this.flowWithDescriptor$,
-    this.originalHunt$,
-  ]).pipe(
-    map(([flowDesc, hunt]) => {
-      if (!flowDesc && !hunt) {
-        return false;
-      }
-      return true;
-    }),
-    startWith(false),
-  );
+  readonly hasOrigin$;
 
-  readonly canCreateHunt$ = this.hasOrigin$;
+  readonly canCreateHunt$;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -94,6 +75,33 @@ export class NewHunt {
     private readonly router: Router,
     private readonly userGlobalStore: UserGlobalStore,
   ) {
+    this.flowWithDescriptor$ = this.newHuntLocalStore.flowWithDescriptor$;
+    this.originalHunt$ = this.newHuntLocalStore.originalHunt$;
+    this.huntId$ = this.newHuntLocalStore.huntId$;
+    this.huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe(
+      map((user) => user.huntApprovalRequired),
+    );
+    this.latestApproval$ = this.huntApprovalLocalStore.latestApproval$;
+    this.huntApprovalRoute$ = this.huntApprovalLocalStore.huntApprovalRoute$;
+    this.approvalParams$ = new BehaviorSubject<ApprovalParams | null>(null);
+    this.requestApprovalStatus$ =
+      this.huntApprovalLocalStore.requestApprovalStatus$;
+    this.titleControl = new FormControl('', {updateOn: 'change'});
+    this.ngOnDestroy = observeOnDestroy(this);
+    this.huntsOverviewRoute = ['/hunts'];
+    this.hasOrigin$ = combineLatest([
+      this.flowWithDescriptor$,
+      this.originalHunt$,
+    ]).pipe(
+      map(([flowDesc, hunt]) => {
+        if (!flowDesc && !hunt) {
+          return false;
+        }
+        return true;
+      }),
+      startWith(false),
+    );
+    this.canCreateHunt$ = this.hasOrigin$;
     this.route.queryParams
       .pipe(takeUntil(this.ngOnDestroy.triggered$))
       .subscribe((params) => {

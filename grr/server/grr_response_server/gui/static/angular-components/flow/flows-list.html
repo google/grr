@@ -25,7 +25,7 @@
         ng-click="controller.selectItem(item)"
         ng-class="{'row-selected': item.value.flow_id.value == controller.selectedFlowId}"
         ng-if="item.shown">
-      <td><grr-flow-status-icon flow="::item" /></td>
+      <td><grr-flow-status-icon flow="::item"></grr-flow-status-icon></td>
       <td>
         <span ng-if="::item.expanded === undefined"
               style="float: left; margin-left: {$ ::item.depth $}em"
@@ -40,16 +40,16 @@
         {$ ::item.shortId $}
       </td>
       <td>
-        <grr-semantic-value value="::item.value.name" />
+        <grr-semantic-value value="::item.value.name"></grr-semantic-value>
       </td>
       <td>
-        <grr-semantic-value value="::item.value.started_at" />
+        <grr-semantic-value value="::item.value.started_at"></grr-semantic-value>
       </td>
       <td>
-        <grr-semantic-value value="::item.value.last_active_at" />
+        <grr-semantic-value value="::item.value.last_active_at"></grr-semantic-value>
       </td>
       <td>
-        <grr-semantic-value value="::item.value.creator" />
+        <grr-semantic-value value="::item.value.creator"></grr-semantic-value>
       </td>
     </tr>
 

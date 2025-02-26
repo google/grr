@@ -39,6 +39,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures an Osquery flow. */
 @Component({
+  standalone: false,
   selector: 'osquery-form',
   templateUrl: './osquery_form.ng.html',
   styleUrls: ['./osquery_form.scss'],

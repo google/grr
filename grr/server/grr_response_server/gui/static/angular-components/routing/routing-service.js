@@ -50,7 +50,7 @@ exports.RoutingService = class {
    * @export
    */
   go(targetState, opt_params) {
-    var currentState = this.state_.current.name;
+    const currentState = this.state_.current.name;
     return this.state_.go(
         targetState, opt_params, {notify: currentState !== targetState});
   }
@@ -82,12 +82,12 @@ exports.RoutingService = class {
    * @export
    */
   uiOnParamsChanged(scope, paramNames, callback, opt_stateAgnostic) {
-    var currentStateName = this.state_.current.name;
+    const currentStateName = this.state_.current.name;
 
     if (!angular.isArray(paramNames)) {
       // We were passed a string rather than an array. Wrap the single string in
       // an array and proceed as normal.
-      var paramName = paramNames;
+      const paramName = paramNames;
       paramNames = /** @type {!Array} */ ([paramName]);
     }
 
@@ -138,7 +138,7 @@ exports.RoutingService = class {
     }
   }
 };
-var RoutingService = exports.RoutingService;
+const RoutingService = exports.RoutingService;
 
 
 /**

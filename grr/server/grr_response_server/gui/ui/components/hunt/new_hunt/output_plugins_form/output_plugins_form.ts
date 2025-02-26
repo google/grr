@@ -30,6 +30,7 @@ interface OutputPluginWithExportOptions {
  * Provides the forms for new hunt configuration.
  */
 @Component({
+  standalone: false,
   selector: 'app-output-plugins-form',
   templateUrl: './output_plugins_form.ng.html',
   styleUrls: ['./output_plugins_form.scss'],

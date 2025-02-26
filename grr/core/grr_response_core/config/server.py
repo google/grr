@@ -88,14 +88,6 @@ config_lib.DEFINE_semantic_value(
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 
-config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
-
-config_lib.DEFINE_integer(
-    "Frontend.port_max", None,
-    "If set and Frontend.bind_port is in use, attempt to "
-    "use ports between Frontend.bind_port and "
-    "Frontend.port_max.")
-
 config_lib.DEFINE_integer(
     "Frontend.max_queue_size", 500,
     "Maximum number of messages to queue for the client.")
@@ -275,9 +267,6 @@ config_lib.DEFINE_string(
     "The Fleetspeak server message listen address, formatted like "
     "localhost:6061.")
 
-config_lib.DEFINE_bool("Server.fleetspeak_enabled", False,
-                       "Whether to enable fleetspeak on the server side.")
-
 config_lib.DEFINE_string(
     "Server.fleetspeak_server", "",
     "The Fleetspeak server address, formatted like localhost:6062.")
@@ -357,15 +346,6 @@ config_lib.DEFINE_boolean(
     "When set to True, uploaded GRR binaries can't be deleted or overwritten.")
 
 config_lib.DEFINE_boolean(
-    "Server.internal_artifactcollector_use_legacy_filefinder",
-    False,
-    "Force ArtifactCollectorFlow to use the legacy FileFinder flow. "
-    "Unless this is set to True, the more efficient ClientFileFinder flow "
-    "will be used instead. "
-    "NB: internal option, subject to change without notice.",
-)
-
-config_lib.DEFINE_boolean(
     name="Interrogate.collect_crowdstrike_agent_id",
     default=False,
     help=(
@@ -387,7 +367,8 @@ config_lib.DEFINE_string(
     "Server.signed_url_service_account_email",
     default=None,
     help=(
-        "The email of the Service Account to use for signing the URL (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+        "The email of the Service Account to use for signing the URL"
+        " (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
     ),
 )
 
@@ -395,7 +376,8 @@ config_lib.DEFINE_string(
     "Server.signed_url_gcs_bucket_name",
     default=None,
     help=(
-        "The GCS bucket name to include in the signed URL (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+        "The GCS bucket name to include in the signed URL"
+        " (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
     ),
 )
 
@@ -403,6 +385,13 @@ config_lib.DEFINE_integer(
     "Server.signed_url_expire_hours",
     default=12,
     help=(
-        "The TTL until the signed URL expires (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
+        "The TTL until the signed URL expires"
+        " (https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable)."
     ),
+)
+
+config_lib.DEFINE_string(
+    name="CommandSigning.ed25519_private_key_file",
+    default=None,
+    help="An UTF-8 encoded Ed25519 encryption key to sign commands.",
 )

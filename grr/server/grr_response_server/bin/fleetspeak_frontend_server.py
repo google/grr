@@ -1,18 +1,24 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
 
+from collections.abc import Sequence
 import logging
-from typing import FrozenSet, Optional, Sequence, Tuple
+import sys
+from typing import Optional
 
 import grpc
 
+from google.protobuf import message as proto2_message
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import mig_flows
 from grr_response_core.lib.util import cache
 from grr_response_core.stats import metrics
+from grr_response_proto import jobs_pb2
 from grr_response_server import communicator
 from grr_response_server import data_store
+from grr_response_server import fleetspeak
 from grr_response_server import fleetspeak_utils
 from grr_response_server import frontend_lib
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
@@ -31,10 +37,10 @@ FRONTEND_REQUEST_LATENCY = metrics.Event(
     "frontend_request_latency", fields=[("source", str)]
 )
 
-
-# TODO: remove after the issue is fixed.
-CLIENT_ID_SKIP_LIST = frozenset([
-])
+FLEETSPEAK_MESSAGE_BATCH_ERRORS = metrics.Counter(
+    "fleetspeak_message_batch_errors",
+    fields=[("type", str)],
+)
 
 
 MIN_DELAY_BETWEEN_METADATA_UPDATES = rdfvalue.Duration.From(
@@ -51,7 +57,7 @@ def RateLimitedWriteClientMetadata(
     client_id: str,
     # fleetspeak_validation_info has to be hashable in order for the decorator
     # function to work. Hence using frozenset instead of a dict.
-    fleetspeak_validation_info: FrozenSet[Tuple[str, str]],
+    fleetspeak_validation_info: frozenset[tuple[str, str]],
 ) -> None:
   """Rate-limiter to prevent overload of a single DB row on heavy QPS load."""
   data_store.REL_DB.WriteClientMetadata(
@@ -87,6 +93,123 @@ class GRRFSServer:
     """Fleetspeak message processing entrypoint for Cloud Pub/Sub delivery."""
     self.Process(fs_msg, None)
 
+  @FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak-batch"])
+  @FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak-batch"])
+  def ProcessBatch(
+      self,
+      batch: fleetspeak.MessageBatch,
+  ) -> None:
+    """Processes a message batch from Fleetspeak."""
+    client_id = batch.client_id
+
+    try:
+      metadata = self.frontend.EnrollFleetspeakClientIfNeeded(
+          client_id=client_id,
+          fleetspeak_validation_tags=batch.validation_info_tags,
+      )
+      if metadata is not None:
+        if metadata.ping is not None:
+          elapsed_since_ping = rdfvalue.RDFDatetime.Now() - metadata.ping
+        else:
+          elapsed_since_ping = rdfvalue.Duration(sys.maxsize)
+
+        if elapsed_since_ping >= MIN_DELAY_BETWEEN_METADATA_UPDATES:
+          logging.info("updating metadata for existing client: %r", client_id)
+          RateLimitedWriteClientMetadata(
+              client_id,
+              frozenset(batch.validation_info_tags.items()),
+          )
+
+      if batch.message_type == "GrrMessage":
+        INCOMING_FLEETSPEAK_MESSAGES.Increment(
+            fields=["PROCESS_GRR"],
+            delta=len(batch.messages),
+        )
+
+        grr_message_protos: list[jobs_pb2.GrrMessage] = []
+        for message in batch.messages:
+          grr_message_proto = jobs_pb2.GrrMessage()
+          if not message.Unpack(grr_message_proto):
+            logging.error("invalid GRR message object: %r", message)
+            continue
+
+          grr_message_protos.append(grr_message_proto)
+
+        grr_messages = list(map(mig_flows.ToRDFGrrMessage, grr_message_protos))
+        self._ProcessGRRMessages(client_id, grr_messages)
+
+      elif batch.message_type == "MessageList":
+        INCOMING_FLEETSPEAK_MESSAGES.Increment(
+            fields=["PROCESS_GRR_MESSAGE_LIST"],
+            delta=len(batch.messages),
+        )
+
+        grr_message_protos: list[jobs_pb2.GrrMessage] = []
+        for message in batch.messages:
+          packed_message_list_proto = jobs_pb2.PackedMessageList()
+          if not message.Unpack(packed_message_list_proto):
+            logging.error("invalid GRR message list object: %r", message)
+            continue
+
+          message_list_proto = mig_flows.ToProtoMessageList(
+              communicator.Communicator.DecompressMessageList(
+                  mig_flows.ToRDFPackedMessageList(packed_message_list_proto),
+              )
+          )
+
+          grr_message_protos.extend(message_list_proto.job)
+
+        grr_messages = list(map(mig_flows.ToRDFGrrMessage, grr_message_protos))
+        self._ProcessGRRMessages(client_id, grr_messages)
+
+      elif batch.message_type == "rrg.Response":
+        INCOMING_FLEETSPEAK_MESSAGES.Increment(
+            fields=["PROCESS_RRG_RESPONSE"],
+            delta=len(batch.messages),
+        )
+
+        rrg_responses: list[rrg_pb2.Response] = []
+        for message in batch.messages:
+          rrg_response = rrg_pb2.Response()
+          try:
+            rrg_response.ParseFromString(message.value)
+          except proto2_message.DecodeError:
+            logging.exception("Invalid RRG response: %s", message)
+            continue
+
+          rrg_responses.append(rrg_response)
+
+        self.frontend.ReceiveRRGResponses(client_id, rrg_responses)
+
+      elif batch.message_type == "rrg.Parcel":
+        INCOMING_FLEETSPEAK_MESSAGES.Increment(
+            fields=["PROCESS_RRG_PARCEL"],
+            delta=len(batch.messages),
+        )
+
+        rrg_parcels: list[rrg_pb2.Parcel] = []
+        for message in batch.messages:
+          rrg_parcel = rrg_pb2.Parcel()
+          try:
+            rrg_parcel.ParseFromString(message.value)
+          except proto2_message.DecodeError:
+            logging.exception("Invalid RRG parcel: %s", message)
+            continue
+
+          rrg_parcels.append(rrg_parcel)
+
+        self.frontend.ReceiveRRGParcels(client_id, rrg_parcels)
+      else:
+        INCOMING_FLEETSPEAK_MESSAGES.Increment(
+            fields=["INVALID"],
+            delta=len(batch.messages),
+        )
+        logging.error("Message batch of unknown type: %r", batch.message_type)
+    except Exception:
+      logging.exception("Failed to process message batch: %s", batch)
+      FLEETSPEAK_MESSAGE_BATCH_ERRORS.Increment(fields=[batch.message_type])
+      raise
+
   @FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
   @FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
   def Process(
@@ -107,17 +230,13 @@ class GRRFSServer:
       INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["SKIPPED_BLOCKLISTED"])
       return
 
-    # TODO: remove after the issue is fixed.
-    if grr_client_id in CLIENT_ID_SKIP_LIST:
-      INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["SKIPPED_SKIP_LIST"])
-      return
-
     validation_info = dict(fs_msg.validation_info.tags)
 
     try:
       _LogDelayed("Enrolling Fleetspeak client")
       existing_client_mdata = self.frontend.EnrollFleetspeakClientIfNeeded(
-          grr_client_id
+          grr_client_id,
+          validation_info,
       )
       _LogDelayed(f"Enrolled fleetspeak client: {existing_client_mdata}")
       # Only update the client metadata if the client exists and the last

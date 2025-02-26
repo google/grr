@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """TSK implementation of a filesystem."""
 
+from collections.abc import Iterator
 import logging
 import stat
-from typing import Iterator, Optional
+from typing import Optional
 import pytsk3
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.proto import filesystem_pb2

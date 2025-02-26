@@ -7,7 +7,6 @@ import datetime
 import os
 import stat
 import time
-from typing import Optional
 from absl.testing import absltest
 import dateutil
 from google.protobuf import timestamp_pb2
@@ -75,11 +74,12 @@ def _ParseTimestamp(s: str) -> timestamp_pb2.Timestamp:
 
 class NtfsImageTest(absltest.TestCase, abc.ABC):
 
-  _IMPLEMENTATION_TYPE: Optional[int] = None
+  # Set by subclasses.
+  _IMPLEMENTATION_TYPE: filesystem_pb2.ImplementationType = None
 
-  _server: Optional[communication.Server] = None
-  _client: Optional[client.Client] = None
-  _exit_stack: Optional[contextlib.ExitStack] = None
+  _server: communication.Server = None
+  _client: client.Client = None
+  _exit_stack: contextlib.ExitStack = None
 
   @abc.abstractmethod
   def _ExpectedStatEntry(

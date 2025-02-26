@@ -49,7 +49,6 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
 
   const base = {
     conditions: [...(source.conditions ?? [])],
-    returnedTypes: [...(source.returnedTypes ?? [])],
     supportedOs: new Set(
       [...(source.supportedOs ?? [])]
         .map(safeTranslateOperatingSystem)
@@ -63,20 +62,6 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
         ...base,
         type: SourceType.ARTIFACT_GROUP,
         names: (attributes.get('names') as string[]) ?? [],
-      };
-
-    case api.ArtifactSourceSourceType.ARTIFACT_FILES:
-      return {
-        ...base,
-        type: SourceType.ARTIFACT_FILES,
-        names: (attributes.get('artifact_list') as string[]) ?? [],
-      };
-
-    case api.ArtifactSourceSourceType.GRR_CLIENT_ACTION:
-      return {
-        ...base,
-        type: SourceType.GRR_CLIENT_ACTION,
-        clientAction: attributes.get('client_action') as string,
       };
 
     case api.ArtifactSourceSourceType.COMMAND:

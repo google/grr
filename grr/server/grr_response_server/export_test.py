@@ -86,12 +86,15 @@ class ConvertValuesTest(export_test_lib.ExportTestBase):
     # export_test_lib.DataAgnosticConverterTestValue,
     # so we expect DataAgnosticExportConverter to be used.
     converted_values = list(
-        export.ConvertValues(self.metadata, [original_value]))
+        export.ConvertValues(self.metadata, [original_value])
+    )
     self.assertLen(converted_values, 1)
     converted_value = converted_values[0]
 
-    self.assertEqual(converted_value.__class__.__name__,
-                     "AutoExportedDataAgnosticConverterTestValue")
+    self.assertEqual(
+        converted_value.__class__.__name__,
+        "AutoExportedDataAgnosticConverterTestValue",
+    )
 
   @export_test_lib.WithExportConverter(DummyRDFValue3ConverterA)
   @export_test_lib.WithExportConverter(DummyRDFValue3ConverterB)
@@ -99,14 +102,26 @@ class ConvertValuesTest(export_test_lib.ExportTestBase):
     dummy_value = DummyRDFValue3("some")
     result = list(export.ConvertValues(self.metadata, [dummy_value]))
     self.assertLen(result, 2)
-    self.assertTrue((isinstance(result[0], DummyRDFValue) and
-                     isinstance(result[1], DummyRDFValue2)) or
-                    (isinstance(result[0], DummyRDFValue2) and
-                     isinstance(result[1], DummyRDFValue)))
-    self.assertTrue((result[0] == DummyRDFValue("someA") and
-                     result[1] == DummyRDFValue2("someB")) or
-                    (result[0] == DummyRDFValue2("someB") and
-                     result[1] == DummyRDFValue("someA")))
+    self.assertTrue(
+        (
+            isinstance(result[0], DummyRDFValue)
+            and isinstance(result[1], DummyRDFValue2)
+        )
+        or (
+            isinstance(result[0], DummyRDFValue2)
+            and isinstance(result[1], DummyRDFValue)
+        )
+    )
+    self.assertTrue(
+        (
+            result[0] == DummyRDFValue("someA")
+            and result[1] == DummyRDFValue2("someB")
+        )
+        or (
+            result[0] == DummyRDFValue2("someB")
+            and result[1] == DummyRDFValue("someA")
+        )
+    )
 
 
 class GetMetadataTest(test_lib.GRRBaseTest):
@@ -171,7 +186,8 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     # uninitialized client.
     client_id = "C.4815162342108108"
     data_store.REL_DB.WriteClientMetadata(
-        client_id, first_seen=rdfvalue.RDFDatetime(42))
+        client_id, first_seen=rdfvalue.RDFDatetime(42)
+    )
 
     # Expect empty usernames field due to no knowledge base.
     metadata = export.GetMetadata(
@@ -207,8 +223,9 @@ class GetMetadataTest(test_lib.GRRBaseTest):
             data_store.REL_DB.ReadClientFullInfo(self.client_id)
         ),
     )
-    self.assertEqual(metadata.cloud_instance_type,
-                     metadata.CloudInstanceType.GOOGLE)
+    self.assertEqual(
+        metadata.cloud_instance_type, metadata.CloudInstanceType.GOOGLE
+    )
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
 
   def testGetMetadataWithAmazonCloudInstanceID(self):
@@ -224,8 +241,9 @@ class GetMetadataTest(test_lib.GRRBaseTest):
             data_store.REL_DB.ReadClientFullInfo(self.client_id)
         ),
     )
-    self.assertEqual(metadata.cloud_instance_type,
-                     metadata.CloudInstanceType.AMAZON)
+    self.assertEqual(
+        metadata.cloud_instance_type, metadata.CloudInstanceType.AMAZON
+    )
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
 
 

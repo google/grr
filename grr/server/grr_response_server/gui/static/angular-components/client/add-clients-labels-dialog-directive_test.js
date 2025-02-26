@@ -73,7 +73,7 @@ describe('add clients labels dialog', () => {
     $rootScope.$dismiss = dismissSpy;
 
     const template = '<grr-add-clients-labels-dialog ' +
-        'clients="clients" />';
+        'clients="clients"></grr-add-clients-labels-dialog>';
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

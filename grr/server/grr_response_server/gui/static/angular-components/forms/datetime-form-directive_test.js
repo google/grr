@@ -22,7 +22,7 @@ describe('datetime form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-datetime value="value" />';
+    const template = '<grr-form-datetime value="value"></grr-form-datetime>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

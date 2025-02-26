@@ -1,28 +1,30 @@
 #!/usr/bin/env python
 from absl.testing import absltest
 
-from grr_response_server.models import protodicts
+from grr_response_server.models import protodicts as models_protodicts
 
 
 class DataBlobTest(absltest.TestCase):
 
   def testBool(self):
-    self.assertEqual(protodicts.DataBlob(True).boolean, True)
+    self.assertEqual(models_protodicts.DataBlob(True).boolean, True)
 
   def testInt(self):
-    self.assertEqual(protodicts.DataBlob(1337).integer, 1337)
+    self.assertEqual(models_protodicts.DataBlob(1337).integer, 1337)
 
   def testFloat(self):
-    self.assertEqual(protodicts.DataBlob(0.5).float, 0.5)
+    self.assertEqual(models_protodicts.DataBlob(0.5).float, 0.5)
 
   def testBytes(self):
-    self.assertEqual(protodicts.DataBlob(b"\x00\xff\x00").data, b"\x00\xff\x00")
+    self.assertEqual(
+        models_protodicts.DataBlob(b"\x00\xff\x00").data, b"\x00\xff\x00"
+    )
 
   def testStr(self):
-    self.assertEqual(protodicts.DataBlob("foobar").string, "foobar")
+    self.assertEqual(models_protodicts.DataBlob("foobar").string, "foobar")
 
   def testList(self):
-    proto = protodicts.DataBlob([1, 3, 3, 7])
+    proto = models_protodicts.DataBlob([1, 3, 3, 7])
 
     self.assertLen(proto.list.content, 4)
     self.assertEqual(proto.list.content[0].integer, 1)
@@ -31,7 +33,7 @@ class DataBlobTest(absltest.TestCase):
     self.assertEqual(proto.list.content[3].integer, 7)
 
   def testDict(self):
-    proto = protodicts.DataBlob({
+    proto = models_protodicts.DataBlob({
         "foo": 42,
         "bar": 1337,
     })
@@ -46,18 +48,18 @@ class DataBlobTest(absltest.TestCase):
 class BlobArrayTest(absltest.TestCase):
 
   def testEmpty(self):
-    proto = protodicts.BlobArray([])
+    proto = models_protodicts.BlobArray([])
 
     self.assertEmpty(proto.content)
 
   def testSingleton(self):
-    proto = protodicts.BlobArray(["foo"])
+    proto = models_protodicts.BlobArray(["foo"])
 
     self.assertLen(proto.content, 1)
     self.assertEqual(proto.content[0].string, "foo")
 
   def testHomogeneous(self):
-    proto = protodicts.BlobArray(["foo", "bar", "baz"])
+    proto = models_protodicts.BlobArray(["foo", "bar", "baz"])
 
     self.assertLen(proto.content, 3)
     self.assertEqual(proto.content[0].string, "foo")
@@ -65,7 +67,7 @@ class BlobArrayTest(absltest.TestCase):
     self.assertEqual(proto.content[2].string, "baz")
 
   def testHeterogeneous(self):
-    proto = protodicts.BlobArray([42, "foo", 0.5])
+    proto = models_protodicts.BlobArray([42, "foo", 0.5])
 
     self.assertLen(proto.content, 3)
     self.assertEqual(proto.content[0].integer, 42)
@@ -73,7 +75,7 @@ class BlobArrayTest(absltest.TestCase):
     self.assertEqual(proto.content[2].float, 0.5)
 
   def testRepeated(self):
-    proto = protodicts.BlobArray([1, 3, 3, 7])
+    proto = models_protodicts.BlobArray([1, 3, 3, 7])
 
     self.assertLen(proto.content, 4)
     self.assertEqual(proto.content[0].integer, 1)
@@ -82,7 +84,7 @@ class BlobArrayTest(absltest.TestCase):
     self.assertEqual(proto.content[3].integer, 7)
 
   def testNested(self):
-    proto = protodicts.BlobArray([["foo", "bar"], ["quux"]])
+    proto = models_protodicts.BlobArray([["foo", "bar"], ["quux"]])
 
     self.assertLen(proto.content, 2)
     self.assertLen(proto.content[0].list.content, 2)
@@ -95,19 +97,19 @@ class BlobArrayTest(absltest.TestCase):
 class DictTest(absltest.TestCase):
 
   def testEmpty(self):
-    proto = protodicts.Dict({})
+    proto = models_protodicts.Dict({})
 
     self.assertEmpty(proto.dat)
 
   def testSingleton(self):
-    proto = protodicts.Dict({"foo": 42})
+    proto = models_protodicts.Dict({"foo": 42})
 
     self.assertLen(proto.dat, 1)
     self.assertEqual(proto.dat[0].k.string, "foo")
     self.assertEqual(proto.dat[0].v.integer, 42)
 
   def testHomogeneous(self):
-    proto = protodicts.Dict({
+    proto = models_protodicts.Dict({
         "foo": 0xC0DE,
         "bar": 0xBEEF,
         "quux": 0xC0FE,
@@ -122,7 +124,7 @@ class DictTest(absltest.TestCase):
     self.assertEqual(proto.dat[2].v.integer, 0xC0FE)
 
   def testHeterogeneous(self):
-    proto = protodicts.Dict({
+    proto = models_protodicts.Dict({
         "foo": 0.5,
         1337: b"\x00\xFF\x00",
     })
@@ -134,7 +136,7 @@ class DictTest(absltest.TestCase):
     self.assertEqual(proto.dat[1].v.data, b"\x00\xFF\x00")
 
   def testNested(self):
-    proto = protodicts.Dict({
+    proto = models_protodicts.Dict({
         "foo": {
             "bar": "baz",
         },

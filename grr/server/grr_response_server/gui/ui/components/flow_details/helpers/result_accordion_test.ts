@@ -11,6 +11,7 @@ import {Status} from './result_accordion';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
 <result-accordion
     [title]="title"
@@ -21,6 +22,7 @@ initTestEnvironment();
     (firstOpened)="firstOpenedTriggered()">
     contenttext
 </result-accordion>`,
+  jit: true,
 })
 class TestHostComponent {
   title?: string;

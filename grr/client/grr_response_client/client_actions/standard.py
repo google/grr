@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
 
-import ctypes
 import hashlib
 import io
 import logging
@@ -11,7 +10,6 @@ import sys
 from unittest import mock
 import zlib
 
-from absl import flags
 import psutil
 
 from grr_response_client import actions
@@ -393,21 +391,6 @@ class StdOutHook(object):
   def write(self, text: str):  # pylint: disable=invalid-name
     precondition.AssertType(text, str)
     self.buf.write(text)
-
-
-class Segfault(actions.ActionPlugin):
-  """This action is just for debugging. It induces a segfault."""
-
-  in_rdfvalue = None
-  out_rdfvalues = [None]
-
-  def Run(self, unused_args):
-    """Does the segfaulting."""
-    if flags.FLAGS.pdb_post_mortem:
-      logging.warning("Segfault action requested :(")
-      print(ctypes.cast(1, ctypes.POINTER(ctypes.c_void_p)).contents)
-    else:
-      logging.warning("Segfault requested but not running in debug mode.")
 
 
 def ListProcessesFromClient(args):

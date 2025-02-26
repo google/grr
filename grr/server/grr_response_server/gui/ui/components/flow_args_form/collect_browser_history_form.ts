@@ -9,7 +9,7 @@ import {Browser, CollectBrowserHistoryArgs} from '../../lib/api/api_interfaces';
 
 function makeControls() {
   return {
-    collectChrome: new FormControl(true, {nonNullable: true}),
+    collectChromiumBasedBrowsers: new FormControl(true, {nonNullable: true}),
     collectFirefox: new FormControl(true, {nonNullable: true}),
     collectInternetExplorer: new FormControl(true, {nonNullable: true}),
     collectOpera: new FormControl(true, {nonNullable: true}),
@@ -21,6 +21,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures CollectBrowserHistory. */
 @Component({
+  standalone: false,
   selector: 'collect-browser-history-form',
   templateUrl: './collect_browser_history_form.ng.html',
   styleUrls: ['./collect_browser_history_form.scss'],
@@ -37,7 +38,9 @@ export class CollectBrowserHistoryForm extends FlowArgumentForm<
   override convertFlowArgsToFormState(flowArgs: CollectBrowserHistoryArgs) {
     const browsers = flowArgs.browsers ?? [];
     return {
-      collectChrome: browsers.includes(Browser.CHROME),
+      collectChromiumBasedBrowsers: browsers.includes(
+        Browser.CHROMIUM_BASED_BROWSERS,
+      ),
       collectFirefox: browsers.includes(Browser.FIREFOX),
       collectInternetExplorer: browsers.includes(Browser.INTERNET_EXPLORER),
       collectOpera: browsers.includes(Browser.OPERA),
@@ -47,8 +50,8 @@ export class CollectBrowserHistoryForm extends FlowArgumentForm<
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     const browsers = [];
-    if (formState.collectChrome) {
-      browsers.push(Browser.CHROME);
+    if (formState.collectChromiumBasedBrowsers) {
+      browsers.push(Browser.CHROMIUM_BASED_BROWSERS);
     }
     if (formState.collectFirefox) {
       browsers.push(Browser.FIREFOX);

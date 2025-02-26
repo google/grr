@@ -9,6 +9,7 @@ import shlex
 import subprocess
 import threading
 import time
+from typing import Optional
 
 from grr_response_client.local import binary_whitelist
 from grr_response_core import config
@@ -28,14 +29,12 @@ def HandleAlarm(process):
 
 
 def Execute(
-    cmd,
-    args,
-    time_limit=-1,
-    bypass_allowlist=False,
-    daemon=False,
-    use_client_context=False,
-    cwd=None,
-):
+    cmd: str,
+    args: list[str],
+    time_limit: int = -1,
+    bypass_allowlist: bool = False,
+    cwd: Optional[str] = None,
+) -> tuple[bytes, bytes, int, float]:
   """Executes commands on the client.
 
   This function is the only place where commands will be executed
@@ -49,9 +48,6 @@ def Execute(
     bypass_allowlist: Allow execution of things that are not in the allowlist.
       Note that this should only ever be called on a binary that passes the
       VerifySignedBlob check.
-    daemon: Start the new process in the background.
-    use_client_context: Run this script in the client's context. Defaults to
-      system context.
     cwd: Current working directory for the command.
 
   Returns:
@@ -62,42 +58,38 @@ def Execute(
     logging.info(
         "Execution disallowed by allowlist: %s %s.", cmd, " ".join(args)
     )
-    return (b"", b"Execution disallowed by allowlist.", -1, -1)
+    return b"", b"Execution disallowed by allowlist.", -1, -1.0
 
-  if daemon:
-    pid = os.fork()
-    if pid == 0:
-      # This is the child, it will run the daemon process. We call os.setsid
-      # here to become the session leader of this new session and the process
-      # group leader of the new process group so we don't get killed when the
-      # main process exits.
-      try:
-        os.setsid()
-      except OSError:
-        # This only works if the process is running as root.
-        pass
-      _Execute(
-          cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd
-      )
-      os._exit(0)  # pylint: disable=protected-access
-  else:
-    return _Execute(
-        cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd
-    )
+  return _Execute(cmd, args, time_limit, cwd=cwd)
 
 
-def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
+def _Execute(
+    cmd: str,
+    args: list[str],
+    time_limit: int = -1,
+    cwd: Optional[str] = None,
+) -> tuple[bytes, bytes, int, float]:
   """Executes cmd."""
   run = [cmd]
   run.extend(args)
   env = os.environ.copy()
-  if use_client_context:
-    env.pop("LD_LIBRARY_PATH", None)
-    env.pop("PYTHON_PATH", None)
-    context = "client"
-  else:
-    context = "system"
-  logging.info("Executing %s in %s context.", " ".join(run), context)
+
+  # We clear `LD_LIBRARY_PATH` and `PYTHON_PATH` to force usage of system
+  # libraries. Otherwise, e.g. if the agent is bundled using PyInstaller, it
+  # is going to override this so that Python interpreter can work. See [1, 2]
+  # for more details.
+  #
+  # pylint: disable=line-too-long
+  # fmt: off
+  # [1]: https://pyinstaller.org/en/stable/runtime-information.html#ld-library-path-libpath-considerations
+  # [2]: https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#launching-external-programs-from-the-frozen-application
+  # pylint: enable=line-too-long
+  # fmt: on
+  env.pop("LD_LIBRARY_PATH", None)
+  env.pop("PYTHON_PATH", None)
+
+  logging.info("Executing %s.", " ".join(run))
+
   p = subprocess.Popen(
       run,
       stdin=subprocess.PIPE,
@@ -129,7 +121,10 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
   return (stdout, stderr, exit_status, time.time() - start_time)
 
 
-def IsExecutionAllowed(cmd, args):
+def IsExecutionAllowed(
+    cmd: str,
+    args: list[str],
+) -> bool:
   """Check if a binary and args are in the allowlist.
 
   Args:
@@ -195,7 +190,20 @@ def IsExecutionAllowed(cmd, args):
         ("/sbin/ifconfig", ["-a"]),
         ("/sbin/iptables", ["-L", "-n", "-v"]),
         ("/sbin/lsmod", []),
-        ("/usr/bin/dpkg", ["--list"]),
+        (
+            "/usr/bin/dpkg",
+            [
+                "--list",
+            ],
+        ),
+        (
+            "/usr/bin/dpkg-query",
+            [
+                "--show",
+                "--showformat",
+                "${Package}|${Version}|${Architecture}|${Source}|${binary:Synopsis}\n",
+            ],
+        ),
         ("/usr/bin/last", []),
         ("/usr/bin/who", []),
         ("/usr/bin/yum", ["list", "installed", "-q"]),

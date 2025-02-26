@@ -12,7 +12,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {DurationComponentsModule} from '../../components/form/duration_input/module';
@@ -32,7 +31,6 @@ import {ApprovalCard} from './approval_card';
     // prettier-ignore
     // keep-sorted start block=yes
     ApprovalChipModule,
-    BrowserAnimationsModule,
     ClipboardModule,
     CommonModule,
     DurationComponentsModule,

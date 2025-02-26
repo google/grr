@@ -60,8 +60,8 @@ const FlowOverviewController = class {
 
     if (angular.isDefined(this.scope_['apiBasePath']) &&
         angular.isDefined(this.scope_['flowId'])) {
-      var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
-      var interval = AUTO_REFRESH_INTERVAL_MS;
+      const flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
+      const interval = AUTO_REFRESH_INTERVAL_MS;
 
       // It's important to assign the result of the poll() call, not the
       // result of the poll().then() call, since we need the original

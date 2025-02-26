@@ -18,7 +18,7 @@ const reflectionService = goog.requireType('grrUi.core.reflectionService');
  * @export
  */
 exports.getUnionFieldValue = function(value, descriptor) {
-  var unionFieldName = descriptor['union_field'];
+  const unionFieldName = descriptor['union_field'];
   if (angular.isUndefined(unionFieldName)) {
     throw new Error('Not a union-type structure.');
   }
@@ -26,9 +26,9 @@ exports.getUnionFieldValue = function(value, descriptor) {
   if (angular.isDefined(value['value'][unionFieldName])) {
     return value['value'][unionFieldName]['value'].toLowerCase();
   } else {
-    var fieldsLength = descriptor['fields'].length;
-    for (var i = 0; i < fieldsLength; ++i) {
-      var field = descriptor['fields'][i];
+    const fieldsLength = descriptor['fields'].length;
+    for (let i = 0; i < fieldsLength; ++i) {
+      const field = descriptor['fields'][i];
       if (field['name'] == unionFieldName) {
         return field['default']['value'].toLowerCase();
       }
@@ -37,7 +37,7 @@ exports.getUnionFieldValue = function(value, descriptor) {
 
   throw new Error('Can\'t determine value of the union field.');
 };
-var getUnionFieldValue = exports.getUnionFieldValue;
+const getUnionFieldValue = exports.getUnionFieldValue;
 
 
 /**
@@ -55,19 +55,19 @@ var getUnionFieldValue = exports.getUnionFieldValue;
  * @export
  */
 exports.buildUnionItems = function(value, descriptor) {
-  var items = [];
+  const items = [];
 
-  var unionFieldName = descriptor['union_field'];
-  var unionFieldValue = getUnionFieldValue(value, descriptor);
+  const unionFieldName = descriptor['union_field'];
+  const unionFieldValue = getUnionFieldValue(value, descriptor);
 
-  var fieldsLength = descriptor['fields'].length;
-  for (var i = 0; i < fieldsLength; ++i) {
-    var field = descriptor['fields'][i];
-    var key = field['name'];
+  const fieldsLength = descriptor['fields'].length;
+  for (let i = 0; i < fieldsLength; ++i) {
+    const field = descriptor['fields'][i];
+    const key = field['name'];
     if (key !== unionFieldName && key !== unionFieldValue) {
       continue;
     }
-    var keyValue = value.value[key];
+    let keyValue = value.value[key];
     if (angular.isUndefined(keyValue)) {
       keyValue = field['default'];
     }
@@ -81,7 +81,7 @@ exports.buildUnionItems = function(value, descriptor) {
 
   return items;
 };
-var buildUnionItems = exports.buildUnionItems;
+const buildUnionItems = exports.buildUnionItems;
 
 
 /**
@@ -106,13 +106,13 @@ exports.buildNonUnionItems = function(
     return [];
   }
 
-  var items = [];
+  const items = [];
 
-  var fieldsLength = descriptor['fields'].length;
-  for (var i = 0; i < fieldsLength; ++i) {
-    var field = descriptor['fields'][i];
-    var key = field['name'];
-    var keyValue = value.value[key];
+  const fieldsLength = descriptor['fields'].length;
+  for (let i = 0; i < fieldsLength; ++i) {
+    const field = descriptor['fields'][i];
+    const key = field['name'];
+    let keyValue = value.value[key];
 
     if (opt_visibleFields && opt_visibleFields.indexOf(key) == -1) {
       continue;
@@ -140,7 +140,7 @@ exports.buildNonUnionItems = function(
 
   return items;
 };
-var buildNonUnionItems = exports.buildNonUnionItems;
+const buildNonUnionItems = exports.buildNonUnionItems;
 
 
 /**
@@ -168,13 +168,13 @@ exports.buildItems = function(
         value, descriptor, opt_visibleFields, opt_hiddenFields);
   }
 };
-var buildItems = exports.buildItems;
+const buildItems = exports.buildItems;
 
 /**
  * Controller for SemanticProtoDirective.
  * @unrestricted
  */
-var SemanticProtoController = class {
+const SemanticProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @param {!reflectionService.ReflectionService}
@@ -211,7 +211,7 @@ var SemanticProtoController = class {
     }
 
     if (angular.isObject(this.scope_['value'])) {
-      var valueType = this.scope_['value']['type'];
+      const valueType = this.scope_['value']['type'];
       this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
           function success(descriptor) {
             this.items = buildItems(

@@ -37,9 +37,19 @@ const ENCODING = ApiGetFileTextArgsEncoding.UTF_8;
 /** Global store for showing scheduled flows. */
 @Injectable()
 export class FileDetailsLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new FileDetailsComponentStore(this.httpApiService);
+    this.file$ = this.store.file$;
+    this.mode$ = this.store.mode$;
+    this.details$ = this.store.details$;
+    this.textContent$ = this.store.textContent$;
+    this.blobContent$ = this.store.blobContent$;
+    this.totalLength$ = this.store.totalLength$;
+    this.hasMore$ = this.store.hasMore$;
+    this.isRecollecting$ = this.store.isRecollecting$;
+  }
 
-  private readonly store = new FileDetailsComponentStore(this.httpApiService);
+  private readonly store;
 
   static readonly DEFAULT_PAGE_SIZE = BigInt(10000);
 
@@ -55,21 +65,21 @@ export class FileDetailsLocalStore {
     this.store.setMode(mode);
   }
 
-  readonly file$ = this.store.file$;
+  readonly file$;
 
-  readonly mode$ = this.store.mode$;
+  readonly mode$;
 
-  readonly details$ = this.store.details$;
+  readonly details$;
 
-  readonly textContent$ = this.store.textContent$;
+  readonly textContent$;
 
-  readonly blobContent$ = this.store.blobContent$;
+  readonly blobContent$;
 
-  readonly totalLength$ = this.store.totalLength$;
+  readonly totalLength$;
 
-  readonly hasMore$ = this.store.hasMore$;
+  readonly hasMore$;
 
-  readonly isRecollecting$ = this.store.isRecollecting$;
+  readonly isRecollecting$;
 
   fetchMoreContent(length: bigint) {
     this.store.fetchMoreContent(length);

@@ -16,11 +16,13 @@ import {GlobExpressionExplanationModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
       <glob-expression-explanation clientId="C1234"
         [explanationMode]="explanationMode"
         [globExpression]="globExpression">
       </glob-expression-explanation>`,
+  jit: true,
 })
 class TestHostComponent {
   explanationMode = GlobExplanationMode.ONE_EXAMPLE_VISIBLE;

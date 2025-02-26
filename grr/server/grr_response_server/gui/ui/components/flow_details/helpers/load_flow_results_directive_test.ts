@@ -15,14 +15,16 @@ import {initTestEnvironment} from '../../../testing';
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {HelpersModule} from './module';
 
-@Component({selector: 'test-inner', template: ''})
+@Component({standalone: false, selector: 'test-inner', template: '', jit: true})
 class InnerComponent {
   @Input() results!: readonly FlowResult[];
   @Input() queryMore!: (c: number) => void;
 }
 
 @Component({
+  standalone: false,
   template: `<test-inner *loadFlowResults="query; let results=results; let queryMore=queryMore;" [results]="results" [queryMore]="queryMore"></test-inner>`,
+  jit: true,
 })
 class TestHostComponent<R> {
   @Input() query!: LoadFlowResultsDirective<R>['loadFlowResults'];

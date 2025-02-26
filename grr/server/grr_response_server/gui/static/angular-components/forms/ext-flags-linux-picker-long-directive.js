@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.extFlagsLinuxPickerLongDirective');
-goog.module.declareLegacyNamespace();
 
 const {LINUX_FLAGS_ORDERED} = goog.require('grrUi.client.extFlags');
 const {TroggableFlags} = goog.require('grrUi.forms.extFlagsTroggling');

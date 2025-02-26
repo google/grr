@@ -7,6 +7,7 @@ from typing import Optional, Sequence, Tuple
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import text
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
@@ -17,7 +18,9 @@ class InMemoryDBUsersMixin(object):
   """InMemoryDB mixin for GRR users and approval related functions."""
 
   users: dict[str, objects_pb2.GRRUser]
-  notifications_by_username: dict[str, objects_pb2.UserNotification]
+  notifications_by_username: dict[str, list[objects_pb2.UserNotification]]
+  approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]]
+  scheduled_flows: dict[tuple[str, str, str], flows_pb2.ScheduledFlow]
 
   @utils.Synchronized
   def WriteGRRUser(
@@ -96,7 +99,8 @@ class InMemoryDBUsersMixin(object):
 
     for sf in list(self.scheduled_flows.values()):
       if sf.creator == username:
-        self.DeleteScheduledFlow(sf.client_id, username, sf.scheduled_flow_id)
+        # DeleteScheduledFlow is implemented in the db.Database class.
+        self.DeleteScheduledFlow(sf.client_id, username, sf.scheduled_flow_id)  # pytype: disable=attribute-error
 
     try:
       del self.users[username]
@@ -196,9 +200,10 @@ class InMemoryDBUsersMixin(object):
           rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
       )
 
-    self.notifications_by_username.setdefault(
+    user_notifications = self.notifications_by_username.setdefault(
         cloned_notification.username, []
-    ).append(cloned_notification)
+    )
+    user_notifications.append(cloned_notification)
 
   @utils.Synchronized
   def ReadUserNotifications(
@@ -210,7 +215,8 @@ class InMemoryDBUsersMixin(object):
       ] = None,
   ) -> Sequence[objects_pb2.UserNotification]:
     """Reads notifications scheduled for a user within a given timerange."""
-    from_time, to_time = self._ParseTimeRange(timerange)
+    # ReadUserNotifications is implemented in the db.Database class.
+    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
 
     result = []
     from_time_micros = from_time.AsMicrosecondsSinceEpoch()

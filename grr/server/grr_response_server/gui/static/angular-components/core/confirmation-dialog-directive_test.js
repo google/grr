@@ -11,7 +11,8 @@ describe('confirmation dialog directive', () => {
   let $rootScope;
 
 
-  beforeEach(module('/static/angular-components/core/confirmation-dialog.html'));
+  beforeEach(
+      module('/static/angular-components/core/confirmation-dialog.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
 
@@ -63,7 +64,8 @@ describe('confirmation dialog directive', () => {
     $rootScope.$apply();
 
     expect($rootScope.proceed).toHaveBeenCalled();
-    expect(element.find('.modal-footer .text-success').text().trim()).toBe(successMessage);
+    expect(element.find('.modal-footer .text-success').text().trim())
+        .toBe(successMessage);
     expect(element.find('button[name="Close"]').length).toBe(1);
   });
 
@@ -77,7 +79,8 @@ describe('confirmation dialog directive', () => {
     $rootScope.$apply();
 
     expect($rootScope.proceed).toHaveBeenCalled();
-    expect(element.find('.modal-footer .text-danger').text().trim()).toBe(errorMessage);
+    expect(element.find('.modal-footer .text-danger').text().trim())
+        .toBe(errorMessage);
   });
 
   it('shows a disabled proceed button when canProceed is false', () => {

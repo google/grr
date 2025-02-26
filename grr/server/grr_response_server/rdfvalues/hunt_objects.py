@@ -20,18 +20,21 @@ def RandomHuntId() -> str:
 
 class HuntArgumentsStandard(rdf_structs.RDFProtoStruct):
   """Hunt arguments for standard (non-variable) hunts."""
+
   protobuf = hunts_pb2.HuntArgumentsStandard
   rdf_deps = []
 
 
 class VariableHuntFlowGroup(rdf_structs.RDFProtoStruct):
   """Flow group for variable hunt arguments."""
+
   protobuf = hunts_pb2.VariableHuntFlowGroup
   rdf_deps = []
 
 
 class HuntArgumentsVariable(rdf_structs.RDFProtoStruct):
   """Hunt arguments for variable hunts."""
+
   protobuf = hunts_pb2.HuntArgumentsVariable
   rdf_deps = [
       VariableHuntFlowGroup,
@@ -40,6 +43,7 @@ class HuntArgumentsVariable(rdf_structs.RDFProtoStruct):
 
 class HuntArguments(rdf_structs.RDFProtoStruct):
   """Hunt arguments."""
+
   protobuf = hunts_pb2.HuntArguments
   rdf_deps = [
       HuntArgumentsStandard,
@@ -50,17 +54,20 @@ class HuntArguments(rdf_structs.RDFProtoStruct):
   def Standard(cls, *args, **kwargs):
     return cls(
         hunt_type=cls.HuntType.STANDARD,
-        standard=HuntArgumentsStandard(*args, **kwargs))
+        standard=HuntArgumentsStandard(*args, **kwargs),
+    )
 
   @classmethod
   def Variable(cls, *args, **kwargs):
     return cls(
         hunt_type=cls.HuntType.VARIABLE,
-        variable=HuntArgumentsVariable(*args, **kwargs))
+        variable=HuntArgumentsVariable(*args, **kwargs),
+    )
 
 
 class Hunt(rdf_structs.RDFProtoStruct):
   """Hunt object."""
+
   protobuf = hunts_pb2.Hunt
   rdf_deps = [
       HuntArguments,
@@ -97,20 +104,29 @@ class Hunt(rdf_structs.RDFProtoStruct):
     if not self.HasField("crash_limit") and config.CONFIG.initialized:
       self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
 
-    if (not self.HasField("avg_results_per_client_limit") and
-        config.CONFIG.initialized):
+    if (
+        not self.HasField("avg_results_per_client_limit")
+        and config.CONFIG.initialized
+    ):
       self.avg_results_per_client_limit = config.CONFIG[
-          "Hunt.default_avg_results_per_client_limit"]
+          "Hunt.default_avg_results_per_client_limit"
+      ]
 
-    if (not self.HasField("avg_cpu_seconds_per_client_limit") and
-        config.CONFIG.initialized):
+    if (
+        not self.HasField("avg_cpu_seconds_per_client_limit")
+        and config.CONFIG.initialized
+    ):
       self.avg_cpu_seconds_per_client_limit = config.CONFIG[
-          "Hunt.default_avg_cpu_seconds_per_client_limit"]
+          "Hunt.default_avg_cpu_seconds_per_client_limit"
+      ]
 
-    if (not self.HasField("avg_network_bytes_per_client_limit") and
-        config.CONFIG.initialized):
+    if (
+        not self.HasField("avg_network_bytes_per_client_limit")
+        and config.CONFIG.initialized
+    ):
       self.avg_network_bytes_per_client_limit = config.CONFIG[
-          "Hunt.default_avg_network_bytes_per_client_limit"]
+          "Hunt.default_avg_network_bytes_per_client_limit"
+      ]
 
     if not self.HasField("num_clients_at_start_time"):
       self.num_clients_at_start_time = 0
@@ -139,19 +155,3 @@ class HuntMetadata(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
       rdfvalue.DurationSeconds,
   ]
-
-  @classmethod
-  def FromHunt(cls, h):
-    return cls(
-        hunt_id=h.hunt_id,
-        description=h.description or None,
-        create_time=h.create_time,
-        creator=h.creator,
-        duration=h.duration,
-        client_rate=h.client_rate,
-        client_limit=h.client_limit,
-        hunt_state=h.hunt_state,
-        hunt_state_comment=h.hunt_state_comment or None,
-        last_update_time=h.last_update_time,
-        init_start_time=h.init_start_time,
-        last_start_time=h.last_start_time)

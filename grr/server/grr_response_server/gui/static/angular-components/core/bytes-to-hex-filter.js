@@ -10,10 +10,10 @@ goog.module.declareLegacyNamespace();
  * @return {string} Hex string representation of the input bytes.
  */
 const filterImplementation = function(bytes) {
-  var hex = '';
-  for(var i = 0; i < bytes.length; i += 1) {
-    var char = bytes.charCodeAt(i).toString(16);
-    hex += ('0' + char).substr(-2); // add leading zero if necessary
+  let hex = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    let char = bytes.charCodeAt(i).toString(16);
+    hex += ('0' + char).substr(-2);  // add leading zero if necessary
   }
   return hex;
 };

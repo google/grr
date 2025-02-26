@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Cron Job objects that get stored in the relational db."""
+
 import abc
 import collections
 import logging
@@ -29,11 +30,14 @@ _MAX_LOG_MESSAGES = 20
 
 
 CRON_JOB_FAILURE = metrics.Counter(
-    "cron_job_failure", fields=[("cron_job_id", str)])
+    "cron_job_failure", fields=[("cron_job_id", str)]
+)
 CRON_JOB_TIMEOUT = metrics.Counter(
-    "cron_job_timeout", fields=[("cron_job_id", str)])
+    "cron_job_timeout", fields=[("cron_job_id", str)]
+)
 CRON_JOB_LATENCY = metrics.Event(
-    "cron_job_latency", fields=[("cron_job_id", str)])
+    "cron_job_latency", fields=[("cron_job_id", str)]
+)
 
 CRON_JOB_USERNAME = "GRRCron"
 
@@ -46,7 +50,8 @@ class OneOrMoreCronJobsFailedError(Error):
 
   def __init__(self, failure_map):
     message = "One or more cron jobs failed unexpectedly: " + ", ".join(
-        "%s=%s" % (k, v) for k, v in failure_map.items())
+        "%s=%s" % (k, v) for k, v in failure_map.items()
+    )
     super().__init__(message)
     self.failure_map = failure_map
 
@@ -165,7 +170,8 @@ class SystemCronJobBase(CronJobBase, metaclass=SystemCronJobRegistry):
 
     if self.frequency is None or self.lifetime is None:
       raise ValueError(
-          "SystemCronJob without frequency or lifetime encountered: %s" % self)
+          "SystemCronJob without frequency or lifetime encountered: %s" % self
+      )
     self._log_messages = collections.deque(maxlen=_MAX_LOG_MESSAGES)
 
   # TODO(user): Cronjobs shouldn't have to call Heartbeat() in order to
@@ -187,7 +193,8 @@ class SystemCronJobBase(CronJobBase, metaclass=SystemCronJobRegistry):
     runtime = rdfvalue.RDFDatetime.Now() - self.run_state.started_at
     if runtime > self.lifetime:
       raise LifetimeExceededError(
-          "Cronjob run has exceeded the maximum runtime of %s." % self.lifetime)
+          "Cronjob run has exceeded the maximum runtime of %s." % self.lifetime
+      )
 
   def Log(self, message, *args):
     # Arrange messages in reverse chronological order.
@@ -256,7 +263,9 @@ class CronManager(object):
         hunt_cron_action=rdf_cronjobs.HuntCronAction(
             flow_name=cron_args.flow_name,
             flow_args=cron_args.flow_args,
-            hunt_runner_args=cron_args.hunt_runner_args))
+            hunt_runner_args=cron_args.hunt_runner_args,
+        ),
+    )
 
     # TODO: Refactor to proto-only.
     rdf_job = rdf_cronjobs.CronJob(
@@ -347,7 +356,9 @@ class CronManager(object):
         else:
           logging.info(
               "Can't schedule cron job %s on a thread pool "
-              "(all threads are busy or CPU load is high)", job.cron_job_id)
+              "(all threads are busy or CPU load is high)",
+              job.cron_job_id,
+          )
           break
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("Cron job %s has failed: %s", job.cron_job_id, e)
@@ -364,7 +375,8 @@ class CronManager(object):
 
   def _GetThreadPool(self):
     pool = threadpool.ThreadPool.Factory(
-        "CronJobPool", min_threads=1, max_threads=self.max_threads)
+        "CronJobPool", min_threads=1, max_threads=self.max_threads
+    )
     pool.Start()
     return pool
 
@@ -433,26 +445,33 @@ class CronManager(object):
       job_cls = CronJobRegistry.CronJobClassByName("RunHunt")
       name = "Hunt runner"
     else:
-      raise ValueError("CronJob %s doesn't have a valid args type set." %
-                       job.cron_job_id)
+      raise ValueError(
+          "CronJob %s doesn't have a valid args type set." % job.cron_job_id
+      )
 
     run_state = rdf_cronjobs.CronJobRun(
-        cron_job_id=job.cron_job_id, status="RUNNING")
+        cron_job_id=job.cron_job_id, status="RUNNING"
+    )
     run_state.GenerateRunId()
 
     run_obj = job_cls(run_state, job)
     wait_for_start_event, signal_event, wait_for_write_event = (
-        threading.Event(), threading.Event(), threading.Event())
+        threading.Event(),
+        threading.Event(),
+        threading.Event(),
+    )
     try:
       self._GetThreadPool().AddTask(
           target=run_obj.StartRun,
           args=(wait_for_start_event, signal_event, wait_for_write_event),
           name=name,
           blocking=False,
-          inline=False)
+          inline=False,
+      )
       if not wait_for_start_event.wait(TASK_STARTUP_WAIT):
-        logging.error("Cron job run task for %s is too slow to start.",
-                      job.cron_job_id)
+        logging.error(
+            "Cron job run task for %s is too slow to start.", job.cron_job_id
+        )
         # Most likely the thread pool is full and the task is sitting on the
         # queue. Make sure we don't put more things on the queue by returning
         # False.
@@ -492,8 +511,10 @@ class CronManager(object):
 
     now = rdfvalue.RDFDatetime.Now()
 
-    if (job.last_run_time is not None and
-        job.last_run_time + job.frequency > now):
+    if (
+        job.last_run_time is not None
+        and job.last_run_time + job.frequency > now
+    ):
       return False
 
     # No currently executing job - lets go.
@@ -514,7 +535,8 @@ class CronManager(object):
       raise ValueError("cutoff_timestamp can't be None")
 
     return data_store.REL_DB.DeleteOldCronJobRuns(
-        cutoff_timestamp=cutoff_timestamp)
+        cutoff_timestamp=cutoff_timestamp
+    )
 
 
 def ScheduleSystemCronJobs(names: Optional[Sequence[str]] = None) -> None:
@@ -539,7 +561,8 @@ def ScheduleSystemCronJobs(names: Optional[Sequence[str]] = None) -> None:
     system = rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION
     args = rdf_cronjobs.CronJobAction(
         action_type=system,
-        system_cron_action=rdf_cronjobs.SystemCronAction(job_class_name=name))
+        system_cron_action=rdf_cronjobs.SystemCronAction(job_class_name=name),
+    )
 
     # TODO: Refactor to proto-only.
     rdf_job = rdf_cronjobs.CronJob(
@@ -555,8 +578,9 @@ def ScheduleSystemCronJobs(names: Optional[Sequence[str]] = None) -> None:
     data_store.REL_DB.WriteCronJob(proto_job)
 
   if errors:
-    raise ValueError("Error(s) while parsing Cron.disabled_cron_jobs: %s" %
-                     errors)
+    raise ValueError(
+        "Error(s) while parsing Cron.disabled_cron_jobs: %s" % errors
+    )
 
 
 class CronWorker(object):
@@ -584,7 +608,8 @@ class CronWorker(object):
   def RunAsync(self):
     """Runs a working thread and returns immediately."""
     self.running_thread = threading.Thread(
-        name=self.thread_name, target=self._RunLoop)
+        name=self.thread_name, target=self._RunLoop
+    )
     self.running_thread.daemon = True
     self.running_thread.start()
     return self.running_thread

@@ -1,5 +1,4 @@
 goog.module('grrUi.core.aff4ObjectRepresentationDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -7,7 +6,7 @@ goog.module.declareLegacyNamespace();
  * Controller for the Aff4ObjectRepresentationDirective.
  * @unrestricted
  */
-var Aff4ObjectRepresentationController = class {
+const Aff4ObjectRepresentationController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @ngInject

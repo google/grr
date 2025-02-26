@@ -11,7 +11,8 @@ describe('"download collection as" panel', () => {
   let $rootScope;
   let grrApiService;
 
-  beforeEach(module('/static/angular-components/core/download-collection-as.html'));
+  beforeEach(
+      module('/static/angular-components/core/download-collection-as.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
 
@@ -26,7 +27,7 @@ describe('"download collection as" panel', () => {
     $rootScope.baseUrl = baseUrl || 'foo/bar';
 
     const template = '<grr-download-collection-as ' +
-        'base-url="baseUrl" />';
+        'base-url="baseUrl"></grr-download-collection-as>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -40,7 +41,8 @@ describe('"download collection as" panel', () => {
 
          const element = renderTestTemplate();
          element.find('#plugin-select').val(`string:${plugin}`).change();
-         browserTriggerEvent(element.find('button[name="download-as"]'), 'click');
+         browserTriggerEvent(
+             element.find('button[name="download-as"]'), 'click');
 
          expect(grrApiService.downloadFile)
              .toHaveBeenCalledWith(`foo/bar/${plugin}`);
@@ -52,7 +54,7 @@ describe('"download collection as" panel', () => {
      testDownloadAsType('flattened-yaml-zip'));
 
   it('sends correct request for sqlite download',
-      testDownloadAsType('sqlite-zip'));
+     testDownloadAsType('sqlite-zip'));
 });
 
 

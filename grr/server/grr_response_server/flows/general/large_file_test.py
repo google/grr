@@ -81,12 +81,13 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
         "CollectLargeFile": large_file_action.CollectLargeFileAction,
     })
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        large_file.CollectLargeFileFlow.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        large_file.CollectLargeFileFlow,
         action_mock,
         client_id=self.client_id,
         creator=self.test_username,
-        args=args)
+        flow_args=args,
+    )
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 

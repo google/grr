@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.extFlagsTrogglingTest');
-goog.module.declareLegacyNamespace();
 goog.setTestOnly();
 
 

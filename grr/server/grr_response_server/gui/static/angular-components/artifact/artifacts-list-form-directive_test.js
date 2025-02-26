@@ -38,7 +38,7 @@ describe('artifacts list form directive', () => {
     };
 
     const template = '<grr-artifacts-list-form descriptor="descriptor" ' +
-        'value="value" />';
+        'value="value"></grr-artifacts-list-form>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

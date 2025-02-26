@@ -272,18 +272,6 @@ class KnowledgeBaseInterpolation:
 
         user_result = pattern
 
-        # `userprofile` is a base for all default values so we precompute it
-        # ahead and provide various heuristics in case it is not available.
-        userprofile: str
-        if user.userprofile:
-          userprofile = user.userprofile
-        elif user.homedir:
-          userprofile = user.homedir
-        elif kb.environ_systemdrive:
-          userprofile = f"{kb.environ_systemdrive}\\Users\\{username}"
-        else:
-          userprofile = f"C:\\Users\\{username}"
-
         for attr in user_attrs:
           try:
             value = getattr(user, attr)
@@ -291,26 +279,45 @@ class KnowledgeBaseInterpolation:
             raise ValueError(f"`%%users.{attr}%%` does not exist") from error
 
           if not value:
-            try:
-              value = {
-                  # pylint: disable=line-too-long
-                  # pyformat: disable
-                  "userprofile": userprofile,
-                  "homedir": userprofile,
-                  "temp": f"{userprofile}\\AppData\\Local\\Temp",
-                  "desktop": f"{userprofile}\\Desktop",
-                  "appdata": f"{userprofile}\\AppData\\Roaming",
-                  "localappdata": f"{userprofile}\\AppData\\Local",
-                  "cookies": f"{userprofile}\\AppData\\Local\\Microsoft\\Windows\\INetCookies",
-                  "recent": f"{userprofile}\\AppData\\Roaming\\Microsoft\\Windows\\Recent",
-                  "personal": f"{userprofile}\\Documents",
-                  "startup": f"{userprofile}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
-                  # pylint: enable=line-too-long
-                  # pyformat: enable
-              }[attr]
-            except KeyError:
+            if kb.os == "Windows":
+              # `userprofile` is a base for all default values so we use various
+              # heuristics to derive it in case it is not available.
+              if user.userprofile:
+                userprofile = user.userprofile
+              elif user.homedir:
+                userprofile = user.homedir
+              elif kb.environ_systemdrive:
+                userprofile = f"{kb.environ_systemdrive}\\Users\\{username}"
+              else:
+                userprofile = f"C:\\Users\\{username}"
+
+              try:
+                value = {
+                    # pylint: disable=line-too-long
+                    # pyformat: disable
+                    "userprofile": userprofile,
+                    "homedir": userprofile,
+                    "temp": f"{userprofile}\\AppData\\Local\\Temp",
+                    "desktop": f"{userprofile}\\Desktop",
+                    "appdata": f"{userprofile}\\AppData\\Roaming",
+                    "localappdata": f"{userprofile}\\AppData\\Local",
+                    "cookies": f"{userprofile}\\AppData\\Local\\Microsoft\\Windows\\INetCookies",
+                    "recent": f"{userprofile}\\AppData\\Roaming\\Microsoft\\Windows\\Recent",
+                    "personal": f"{userprofile}\\Documents",
+                    "startup": f"{userprofile}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                    # pylint: enable=line-too-long
+                    # pyformat: enable
+                }[attr]
+              except KeyError:
+                self._logs.append(
+                    f"user {username!r} is missing {attr!r} (no Windows "
+                    "default available)",
+                )
+                break
+            else:
               self._logs.append(
-                  f"user {username!r} is missing {attr!r}",
+                  f"user {username!r} is missing {attr!r} (no fallback "
+                  "available)",
               )
               break
 

@@ -23,6 +23,10 @@ message DummyFlowProgress {
   optional string status = 1;
 }
 
+message DummyFlowStore {
+  optional string msg = 1;
+}
+
 message SendingFlowArgs {
   optional uint64 message_count = 1;
 }

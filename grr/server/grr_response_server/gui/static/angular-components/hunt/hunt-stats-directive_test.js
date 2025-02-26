@@ -28,7 +28,7 @@ describe('hunt stats directive', () => {
   const render = (huntId) => {
     $rootScope.huntId = huntId;
 
-    const template = '<grr-hunt-stats hunt-id="huntId" />';
+    const template = '<grr-hunt-stats hunt-id="huntId"></grr-hunt-stats>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

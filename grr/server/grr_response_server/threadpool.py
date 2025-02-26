@@ -19,7 +19,6 @@ Example usage:
 >>> for _ in range(10):
 >>>   SharedPool().AddTask(PrintMsg, ("Hello World!", ))
 >>> SharedPool().Join()
-
 """
 
 import itertools
@@ -38,17 +37,23 @@ from grr_response_core.stats import metrics
 STOP_MESSAGE = "Stop message"
 
 THREADPOOL_OUTSTANDING_TASKS = metrics.Gauge(
-    "threadpool_outstanding_tasks", int, fields=[("pool_name", str)])
+    "threadpool_outstanding_tasks", int, fields=[("pool_name", str)]
+)
 THREADPOOL_THREADS = metrics.Gauge(
-    "threadpool_threads", int, fields=[("pool_name", str)])
+    "threadpool_threads", int, fields=[("pool_name", str)]
+)
 THREADPOOL_CPU_USE = metrics.Gauge(
-    "threadpool_cpu_use", float, fields=[("pool_name", str)])
+    "threadpool_cpu_use", float, fields=[("pool_name", str)]
+)
 THREADPOOL_TASK_EXCEPTIONS = metrics.Counter(
-    "threadpool_task_exceptions", fields=[("pool_name", str)])
+    "threadpool_task_exceptions", fields=[("pool_name", str)]
+)
 THREADPOOL_WORKING_TIME = metrics.Event(
-    "threadpool_working_time", fields=[("pool_name", str)])
+    "threadpool_working_time", fields=[("pool_name", str)]
+)
 THREADPOOL_QUEUEING_TIME = metrics.Event(
-    "threadpool_queueing_time", fields=[("pool_name", str)])
+    "threadpool_queueing_time", fields=[("pool_name", str)]
+)
 
 
 class Error(Exception):
@@ -71,7 +76,7 @@ class _WorkerThread(threading.Thread):
   """The workers used in the ThreadPool class."""
 
   def __init__(self, message_queue, pool, name):
-    # pyformat: disable
+    # fmt: off
     """Initializer.
 
     This creates a new worker object for the ThreadPool class.
@@ -96,7 +101,7 @@ class _WorkerThread(threading.Thread):
       pool: The thread pool this worker belongs to.
       name: A name for this worker thread.
     """
-    # pyformat: enable
+    # fmt: on
     super().__init__(name=name)
 
     self.pool = pool
@@ -111,7 +116,8 @@ class _WorkerThread(threading.Thread):
     if self.pool.name:
       time_in_queue = time.time() - queueing_time
       THREADPOOL_QUEUEING_TIME.RecordEvent(
-          time_in_queue, fields=[self.pool.name])
+          time_in_queue, fields=[self.pool.name]
+      )
 
       start_time = time.time()
     try:
@@ -119,11 +125,10 @@ class _WorkerThread(threading.Thread):
     # We can't let a worker die because one of the tasks it has to process
     # throws an exception. Therefore, we catch every error that is
     # raised in the call to target().
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
       if self.pool.name:
         THREADPOOL_TASK_EXCEPTIONS.Increment(fields=[self.pool.name])
-      logging.exception("Caught exception in worker thread (%s): %s", name,
-                        str(e))
+      logging.exception("Caught exception in worker thread (%s)", name)
 
     if self.pool.name:
       total_time = time.time() - start_time
@@ -210,6 +215,7 @@ class ThreadPool(object):
   Note that this class should not be instantiated directly, but the Factory
   should be used.
   """
+
   # A global dictionary of pools, keyed by pool name.
   POOLS = {}
   factory_lock = threading.Lock()
@@ -237,7 +243,8 @@ class ThreadPool(object):
       result = cls.POOLS.get(name)
       if result is None:
         cls.POOLS[name] = result = cls(
-            name, min_threads, max_threads=max_threads)
+            name, min_threads, max_threads=max_threads
+        )
 
       return result
 
@@ -278,10 +285,12 @@ class ThreadPool(object):
 
     if self.name in self.POOLS:
       raise DuplicateThreadpoolError(
-          "A thread pool with the name %s already exists." % name)
+          "A thread pool with the name %s already exists." % name
+      )
 
     THREADPOOL_OUTSTANDING_TASKS.SetCallback(
-        self._queue.qsize, fields=[self.name])
+        self._queue.qsize, fields=[self.name]
+    )
     THREADPOOL_THREADS.SetCallback(lambda: len(self), fields=[self.name])
     THREADPOOL_CPU_USE.SetCallback(self.CPUUsage, fields=[self.name])
 
@@ -356,12 +365,14 @@ class ThreadPool(object):
       if worker.is_alive():
         raise RuntimeError("Threadpool worker did not finish in time.")
 
-  def AddTask(self,
-              target,
-              args=(),
-              name="Unnamed task",
-              blocking=True,
-              inline=True):
+  def AddTask(
+      self,
+      target,
+      args=(),
+      name="Unnamed task",
+      blocking=True,
+      inline=True,
+  ):
     """Adds a task to be processed later.
 
     Args:
@@ -401,10 +412,10 @@ class ThreadPool(object):
         if len(self) < self.max_threads:
           try:
             self._AddWorker()
-          except (RuntimeError, threading.ThreadError) as e:
-            logging.error(
-                "Threadpool exception: "
-                "Could not spawn worker threads: %s", e)
+          except (RuntimeError, threading.ThreadError):
+            logging.exception(
+                "Threadpool exception: Could not spawn worker threads:"
+            )
 
         try:
           # Push the task on the queue but raise if unsuccessful.
@@ -421,10 +432,10 @@ class ThreadPool(object):
               continue
 
             # If we fail to add a worker we should keep going anyway.
-            except (RuntimeError, threading.ThreadError) as e:
-              logging.error(
-                  "Threadpool exception: "
-                  "Could not spawn worker threads: %s", e)
+            except (RuntimeError, threading.ThreadError):
+              logging.exception(
+                  "Threadpool exception: Could not spawn worker threads:"
+              )
 
           # If we need to process the task inline just break out of the loop,
           # therefore releasing the lock and run the task inline.
@@ -434,9 +445,9 @@ class ThreadPool(object):
           # We should block and try again soon.
           elif blocking:
             try:
-              self._queue.put((target, args, name, time.time()),
-                              block=True,
-                              timeout=1)
+              self._queue.put(
+                  (target, args, name, time.time()), block=True, timeout=1
+              )
               return
             except queue.Full:
               continue
@@ -502,10 +513,12 @@ class BatchConverter(object):
   batches using a threadpool.
   """
 
-  def __init__(self,
-               batch_size=1000,
-               threadpool_prefix="batch_processor",
-               threadpool_size=10):
+  def __init__(
+      self,
+      batch_size=1000,
+      threadpool_prefix="batch_processor",
+      threadpool_size=10,
+  ):
     """BatchProcessor constructor.
 
     Args:
@@ -561,15 +574,18 @@ class BatchConverter(object):
     pool.Start()
     try:
       for batch_index, batch in enumerate(
-          collection.Batch(val_iterator, self.batch_size)):
-        logging.debug("Processing batch %d out of %d", batch_index,
-                      total_batch_count)
+          collection.Batch(val_iterator, self.batch_size)
+      ):
+        logging.debug(
+            "Processing batch %d out of %d", batch_index, total_batch_count
+        )
 
         pool.AddTask(
             target=self.ConvertBatch,
             args=(batch,),
             name="batch_%d" % batch_index,
-            inline=False)
+            inline=False,
+        )
 
     finally:
       pool.Stop(join_timeout=3600)

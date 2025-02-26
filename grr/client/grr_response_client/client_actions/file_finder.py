@@ -73,8 +73,9 @@ class FileFinderOS(actions.ActionPlugin):
   def _GetStat(self, filepath, follow_symlink=True):
     try:
       return self.stat_cache.Get(filepath, follow_symlink=follow_symlink)
-    except OSError:
-      raise _SkipFileException()
+    except OSError as e:
+      logging.info("Failed to stat '%s': %s", filepath, e)
+      raise _SkipFileException() from e
 
   def _Validate(
       self, args: rdf_file_finder.FileFinderArgs, filepath: Text
@@ -103,7 +104,7 @@ class FileFinderOS(actions.ActionPlugin):
       try:
         target_stat = filesystem.Stat.FromPath(link_path, follow_symlink=True)
       except FileNotFoundError:
-        logging.info("Broken link: %s", link_path)
+        logging.info("Broken link '%s'", link_path)
       else:
         if target_stat.IsRegular():
           stat = target_stat
@@ -122,7 +123,7 @@ class FileFinderOS(actions.ActionPlugin):
         try:
           target_stat = filesystem.Stat.FromPath(link_path, follow_symlink=True)
         except FileNotFoundError:
-          logging.info("Broken link: %s", link_path)
+          logging.info("Broken link '%s'", link_path)
         else:
           if not target_stat.IsRegular():
             raise _SkipFileException()
@@ -133,9 +134,9 @@ class FileFinderOS(actions.ActionPlugin):
       try:
         with io.open(filepath, "rb") as fd:
           result = list(content_condition.Search(fd))
-      except OSError:
-        logging.error("Error reading: %s", filepath)
-        raise _SkipFileException() from None
+      except OSError as e:
+        logging.error("Error reading '%s': %s", filepath, e)
+        raise _SkipFileException() from e
       if not result:
         raise _SkipFileException()
       matches.extend(result)

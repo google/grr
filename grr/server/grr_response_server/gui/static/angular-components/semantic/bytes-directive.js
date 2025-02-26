@@ -39,7 +39,7 @@ const BytesController = class {
     // e.g. page could be redirected.
     e.stopPropagation();
 
-    var bytes = this.scope_['value']['value'];
+    const bytes = this.scope_['value']['value'];
     try {
       this.stringifiedBytes = bytesToHexEncodedString(this.window_.atob(bytes));
     } catch (err) {
@@ -54,7 +54,7 @@ const BytesController = class {
    * @suppress {missingProperties} as value can be anything.
    */
   onValueChange(newValue) {
-    var bytes = newValue.value;
+    const bytes = newValue.value;
     if (angular.isString(bytes)) {
       if (bytes.length < FIRST_RENDER_LIMIT) {
         try {
@@ -76,7 +76,7 @@ const BytesController = class {
 /**
  * @const {number} Maximum number of bytes to render without showing a link.
  */
-var FIRST_RENDER_LIMIT = 1024;
+const FIRST_RENDER_LIMIT = 1024;
 
 
 

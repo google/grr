@@ -62,7 +62,7 @@ describe('grr-client-warnings directive', () => {
       return promise;
     });
 
-    const template = '<grr-client-warnings client="client" />';
+    const template = '<grr-client-warnings client="client"></grr-client-warnings>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

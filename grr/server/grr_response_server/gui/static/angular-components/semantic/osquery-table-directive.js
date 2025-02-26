@@ -1,5 +1,4 @@
 goog.module('grrUi.semantic.osqueryTableDirective');
-goog.module.declareLegacyNamespace();
 
 
 /**

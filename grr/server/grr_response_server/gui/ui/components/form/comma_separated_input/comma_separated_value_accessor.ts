@@ -20,6 +20,7 @@ type OnTouchedFn = () => void;
 
 /** ControlValueAccessor for handling comma-separated values. */
 @Directive({
+  standalone: false,
   selector: '[commaSeparatedInput]',
   host: {
     '(change)': 'onChange($event.target.value)',
@@ -64,6 +65,7 @@ export class CommaSeparatedValueAccessor implements ControlValueAccessor {
 
 /** ControlValueAccessor for handling comma-separated number values. */
 @Directive({
+  standalone: false,
   selector: '[commaSeparatedNumberInput]',
   host: {
     '(change)': 'onChange($event.target.value)',

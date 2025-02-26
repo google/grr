@@ -3,7 +3,7 @@ goog.module.declareLegacyNamespace();
 
 
 
-var ERROR_EVENT_NAME = 'ServerError';
+const ERROR_EVENT_NAME = 'ServerError';
 
 
 /**
@@ -63,7 +63,7 @@ const ServerErrorButtonController = class {
    * @export
    */
   showError() {
-    var modalScope = this.scope_.$new();
+    const modalScope = this.scope_.$new();
     modalScope.message = this.error.message;
     modalScope.traceBack = this.error.traceBack;
     modalScope.close = function() {
@@ -73,9 +73,10 @@ const ServerErrorButtonController = class {
       modalScope.$destroy();
     });
 
-    var modalInstance = this.uibModal_.open({
+    const modalInstance = this.uibModal_.open({
       template:
-          '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack" />',
+          '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack">' +
+          '</grr-server-error-dialog>',
       scope: modalScope,
       windowClass: 'wide-modal high-modal',
       size: 'lg'
@@ -108,7 +109,7 @@ exports.ServerErrorButtonDirective = function() {
   };
 };
 
-var ServerErrorButtonDirective = exports.ServerErrorButtonDirective;
+const ServerErrorButtonDirective = exports.ServerErrorButtonDirective;
 
 /**
  * Name of the directive in Angular.

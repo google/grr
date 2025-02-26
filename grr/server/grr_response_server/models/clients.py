@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 """Module with data models and helpers related to clients."""
 
+from collections.abc import Mapping
 import ipaddress
-from typing import Mapping, Optional, Union
+from typing import Optional, Union
 
+from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_server import fleetspeak_utils
-from grr_response_server.models import protobuf_utils
+from grr_response_server.models import protobuf_utils as models_utils
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
@@ -233,25 +235,20 @@ def ApiClientFromClientSnapshot(
   api_client.hardware_info.CopyFrom(snapshot.hardware_info)
 
   # src_proto, dest_proto, field_name, dest_field_name
-  protobuf_utils.CopyAttr(snapshot, api_client.os_info, "os_version", "version")
-  protobuf_utils.CopyAttr(snapshot, api_client.os_info, "os_release", "release")
-  protobuf_utils.CopyAttr(snapshot, api_client.os_info, "kernel")
-  protobuf_utils.CopyAttr(snapshot, api_client.os_info, "arch", "machine")
-  protobuf_utils.CopyAttr(
+  models_utils.CopyAttr(snapshot, api_client.os_info, "os_version", "version")
+  models_utils.CopyAttr(snapshot, api_client.os_info, "os_release", "release")
+  models_utils.CopyAttr(snapshot, api_client.os_info, "kernel")
+  models_utils.CopyAttr(snapshot, api_client.os_info, "arch", "machine")
+  models_utils.CopyAttr(
       snapshot, api_client.os_info, "install_time", "install_date"
   )
 
   if snapshot.HasField("knowledge_base"):
     api_client.knowledge_base.CopyFrom(snapshot.knowledge_base)
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(
         snapshot.knowledge_base, api_client.os_info, "os", "system"
     )
-    protobuf_utils.CopyAttr(snapshot.knowledge_base, api_client.os_info, "fqdn")
-
-    if snapshot.knowledge_base.users:
-      api_client.users.extend(
-          sorted(snapshot.knowledge_base.users, key=lambda user: user.username)
-      )
+    models_utils.CopyAttr(snapshot.knowledge_base, api_client.os_info, "fqdn")
 
   if snapshot.interfaces:
     api_client.interfaces.extend(snapshot.interfaces)
@@ -262,9 +259,9 @@ def ApiClientFromClientSnapshot(
 
   api_client.age = snapshot.timestamp
 
-  protobuf_utils.CopyAttr(snapshot, api_client, "memory_size")
+  models_utils.CopyAttr(snapshot, api_client, "memory_size")
   if snapshot.HasField("startup_info"):
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(
         snapshot.startup_info, api_client, "boot_time", "last_booted_at"
     )
 
@@ -302,7 +299,7 @@ def ApiClientFromClientFullInfo(
   # object.
 
   if client_info.HasField("last_startup_info"):
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(
         client_info.last_startup_info, api_client, "boot_time", "last_booted_at"
     )
     if client_info.last_startup_info.HasField("client_info"):
@@ -311,17 +308,42 @@ def ApiClientFromClientFullInfo(
   if client_info.HasField("last_rrg_startup"):
     version = client_info.last_rrg_startup.metadata.version
     api_client.rrg_version = f"{version.major}.{version.minor}.{version.patch}"
+    if version.pre:
+      api_client.rrg_version += f"-{version.pre}"
     api_client.rrg_args.extend(client_info.last_rrg_startup.args)
 
   md = client_info.metadata
   if md:
-    protobuf_utils.CopyAttr(md, api_client, "first_seen", "first_seen_at")
-    protobuf_utils.CopyAttr(md, api_client, "ping", "last_seen_at")
-    protobuf_utils.CopyAttr(md, api_client, "clock", "last_clock")
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(md, api_client, "first_seen", "first_seen_at")
+    models_utils.CopyAttr(md, api_client, "ping", "last_seen_at")
+    models_utils.CopyAttr(
         md, api_client, "last_crash_timestamp", "last_crash_at"
     )
 
   api_client.labels.extend(client_info.labels)
 
   return api_client
+
+
+def SetGrrMessagePayload(
+    message: jobs_pb2.GrrMessage,
+    rdf_name: str,
+    payload: pb_message.Message,
+) -> None:
+  """Sets the payload of the given GrrMessage like the RDF class would.
+
+  * Uses underlying `args` and `args_rdf_name` fields to set the payload.
+  * Properly packs the proto into the into the `payload_any` field.
+
+  Args:
+    message: The GrrMessage to set the payload of.
+    rdf_name: The name of the equivalent RDFProtoStruct class of the payload.
+    payload: The proto payload to set.
+  """
+  message.args_rdf_name = rdf_name
+  message.args = payload.SerializeToString()
+  # We also pack the proto into the payload_any field. This is
+  # unfourtunately not used by the client, but we prefer relying on it in
+  # the server when available, so for consistency we set it here too, even
+  # if it's an outbound message.
+  message.payload_any.Pack(payload)

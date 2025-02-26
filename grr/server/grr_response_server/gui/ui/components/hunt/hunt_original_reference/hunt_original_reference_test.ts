@@ -1,6 +1,6 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {provideRouter} from '@angular/router';
 
 import {initTestEnvironment} from '../../../testing';
 
@@ -11,13 +11,9 @@ initTestEnvironment();
 describe('HuntOriginalReference', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        NoopAnimationsModule,
-        HuntOriginalReference,
-        RouterTestingModule,
-      ],
+      imports: [NoopAnimationsModule, HuntOriginalReference],
       declarations: [],
-      providers: [],
+      providers: [provideRouter([])],
     }).compileComponents();
   }));
 

@@ -30,8 +30,12 @@
           <mat-card-content>
             <mat-icon>info</mat-icon>
             <div class="text-container" [innerHTML]="warning.htmlSnippet | sanitize"></div>
-            <button mat-button type="button" class="reset" (click)="resetDefault()" *ngIf="defaultClientRuleSet">
+            <button mat-button type="button" class="reset" name="presubmit-reset" (click)="resetDefault()" *ngIf="defaultClientRuleSet">
               Reset default
+            </button>
+
+            <button mat-button type="button" class="reset" name="presubmit-fix" (click)="fixPresubmit()" *ngIf="defaultClientRuleSet">
+              Fix it
             </button>
           </mat-card-content>
         </mat-card>

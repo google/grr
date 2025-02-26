@@ -183,7 +183,6 @@ class ProcessPrettyTest(absltest.TestCase):
     process.VMS_size = 42
     process.RSS_size = 43
     process.status = 'sleeping'
-    process.cpu_percent = 1.5
     process.memory_percent = 2.5
     process.exe = '/foo/bar'
 
@@ -191,7 +190,7 @@ class ProcessPrettyTest(absltest.TestCase):
     pp = pretty.PrettyPrinter(out, max_width=55)
     representer.process_pretty(process, pp, cycle=False)
 
-    expected = '     1 admin      10   42B   43B S  1.5  2.5 /foo/bar'
+    expected = '     1 admin      10   42B   43B S  2.5 /foo/bar'
 
     self.assertEqual(out.getvalue(), expected)
 
@@ -203,7 +202,6 @@ class ProcessPrettyTest(absltest.TestCase):
     process.VMS_size = 42
     process.RSS_size = 43
     process.status = 'sleeping'
-    process.cpu_percent = 1.5
     process.memory_percent = 2.5
     process.exe = '/foo/bar/baz'
 
@@ -211,7 +209,7 @@ class ProcessPrettyTest(absltest.TestCase):
     pp = pretty.PrettyPrinter(out, max_width=55)
     representer.process_pretty(process, pp, cycle=False)
 
-    expected = '     1 longusern  10   42B   43B S  1.5  2.5 /foo/bar/baz'
+    expected = '     1 longusern  10   42B   43B S  2.5 /foo/bar/baz'
 
     self.assertEqual(out.getvalue(), expected)
 
@@ -586,7 +584,6 @@ class ProcessListTest(absltest.TestCase):
     process1.VMS_size = 42
     process1.RSS_size = 43
     process1.status = 'sleeping'
-    process1.cpu_percent = 1.5
     process1.memory_percent = 2.5
     process1.exe = '/foo/bar'
 
@@ -604,9 +601,9 @@ class ProcessListTest(absltest.TestCase):
     ps._repr_pretty_(pretty.PrettyPrinter(out, max_width=55), cycle=False)
 
     expected = """
-   PID USER       NI  VIRT   RES S CPU% MEM% Command
-     1 admin      10   42B   43B S  1.5  2.5 /foo/bar
-     2 admin       0   40B   41B Z  0.0  0.0 /foo/baz/q
+   PID USER       NI  VIRT   RES S MEM% Command
+     1 admin      10   42B   43B S  2.5 /foo/bar
+     2 admin       0   40B   41B Z  0.0 /foo/baz/quux
 """
     self.assertEqual(out.getvalue(), expected)
 

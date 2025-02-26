@@ -260,8 +260,8 @@ export function newClientRuleSet(
         ruleType: ForemanClientRuleType.INTEGER,
         integer: {
           operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
-          value: '123',
-          field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
+          value: '1337',
+          field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION,
         },
       },
       {

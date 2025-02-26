@@ -2,6 +2,7 @@
 """Helper functions used by client building/repacking process."""
 
 
+from collections.abc import Sequence
 import datetime
 import io
 import logging
@@ -11,7 +12,7 @@ import struct
 import tempfile
 
 
-from typing import Optional, Sequence, Text, Tuple
+from typing import Optional
 
 import yaml
 
@@ -19,12 +20,10 @@ from grr_response_client_builder import build
 from grr_response_core import config
 from grr_response_core import version
 from grr_response_core.config import contexts
-from grr_response_core.lib import config_validator_base
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 # pylint: disable=unused-import
 # Pull in local config validators.
-from grr_response_core.lib.local import plugins
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 # pylint: enable=unused-import
@@ -43,14 +42,15 @@ except ImportError:
   pass
 # pylint: enable=g-import-not-at-top,unused-import
 
-Context = Sequence[Text]
+Context = Sequence[str]
 
 
-def GenerateDirectory(input_dir: Optional[Text] = None,
-                      output_dir: Optional[Text] = None,
-                      replacements: Optional[Sequence[Tuple[Text,
-                                                            Text]]] = None,
-                      context: Optional[Context] = None) -> None:
+def GenerateDirectory(
+    input_dir: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    replacements: Optional[Sequence[tuple[str, str]]] = None,
+    context: Optional[Context] = None,
+) -> None:
   """Copies an a directory rewriting file names according to spec."""
   if context is None:
     raise ValueError("context must be provided")
@@ -69,9 +69,11 @@ def GenerateDirectory(input_dir: Optional[Text] = None,
       GenerateFile(in_file, out_file, context=context)
 
 
-def GenerateFile(input_filename: Optional[Text] = None,
-                 output_filename: Optional[Text] = None,
-                 context: Optional[Context] = None) -> None:
+def GenerateFile(
+    input_filename: Optional[str] = None,
+    output_filename: Optional[str] = None,
+    context: Optional[Context] = None,
+) -> None:
   """Generates a file from a template, interpolating config values."""
   if context is None:
     raise ValueError("context must be provided.")
@@ -89,7 +91,7 @@ def GenerateFile(input_filename: Optional[Text] = None,
     fd.write(config.CONFIG.InterpolateValue(data, context=context))
 
 
-def CleanDirectory(directory: Text):
+def CleanDirectory(directory: str):
   logging.info("Clearing directory %s", directory)
   try:
     shutil.rmtree(directory)
@@ -233,15 +235,6 @@ def ValidateEndConfig(config_obj, errors_fatal=True, context=None):
 
   errors = []
 
-  if not config.CONFIG["Client.fleetspeak_enabled"]:
-    location = config_obj.Get("Client.server_urls", context=context)
-    if not location:
-      errors.append("Empty Client.server_urls")
-
-    for url in location:
-      if not url.startswith("http"):
-        errors.append("Bad Client.server_urls specified %s" % url)
-
   if not config_obj.Get(
       "Client.executable_signing_public_key", context=context
   ):
@@ -261,7 +254,6 @@ _CONFIG_SECTIONS = [
     "ClientRepacker",
     "Logging",
     "Config",
-    "Nanny",
     "Osquery",
     "Installer",
     "Template",
@@ -304,18 +296,6 @@ def GetClientConfig(context, validate=True, deploy_timestamp=True):
 
     if validate:
       ValidateEndConfig(new_config, context=context)
-
-    private_validator = config.CONFIG.Get(
-        "ClientBuilder.private_config_validator_class", context=context)
-    if private_validator:
-      try:
-        validator = config_validator_base.PrivateConfigValidator.classes[
-            private_validator]()
-      except KeyError:
-        logging.error("Couldn't find config validator class %s",
-                      private_validator)
-        raise
-      validator.ValidateEndConfig(new_config, context)
 
     return io.open(filename, "r").read()
 

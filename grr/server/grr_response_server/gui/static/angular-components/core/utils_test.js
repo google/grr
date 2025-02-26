@@ -6,7 +6,6 @@ const {camelCaseToDashDelimited, getLastPathComponent, stringToList} = goog.requ
 
 describe('core utils', () => {
   describe('camelCaseToDashDelimited', () => {
-
     it('returns a dash delimited string on camel case input', () => {
       const result = camelCaseToDashDelimited('someTestInput');
       expect(result).toBe('some-test-input');
@@ -38,7 +37,6 @@ describe('core utils', () => {
 
 
   describe('stringToList', () => {
-
     it('returns empty list for empty string', () => {
       const result = stringToList('');
       expect(result).toEqual([]);
@@ -56,7 +54,6 @@ describe('core utils', () => {
   });
 
   describe('getLastPathComponent', () => {
-
     it('returns empty string for an empty string', () => {
       expect(getLastPathComponent('')).toBe('');
     });

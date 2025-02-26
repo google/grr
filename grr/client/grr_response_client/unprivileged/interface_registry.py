@@ -2,7 +2,6 @@
 """Registry of unprivileged RPC interfaces."""
 
 import enum
-from typing import Dict
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import server_lib as filesystem_server_lib
@@ -19,7 +18,7 @@ class Interface(enum.Enum):
   MEMORY = "memory"
 
 
-_REGISTRY: Dict[Interface, communication.ConnectionHandler] = {
+_REGISTRY: dict[Interface, communication.ConnectionHandler] = {
     Interface.FILESYSTEM: filesystem_server_lib.Dispatch,
     Interface.MEMORY: memory_server_lib.Dispatch,
 }

@@ -6,6 +6,7 @@ import {
   fakeAsync,
   flush,
   tick,
+  waitForAsync,
 } from '@angular/core/testing';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
@@ -74,7 +75,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     category: 'Browser',
     blockHuntCreation: false,
     defaultArgs: {
-      browsers: [Browser.CHROME],
+      browsers: [Browser.CHROMIUM_BASED_BROWSERS],
     },
   },
   CollectFilesByKnownPath: {
@@ -206,8 +207,10 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
 });
 
 @Component({
+  standalone: false,
   template:
     '<flow-args-form [flowDescriptor]="flowDescriptor"></flow-args-form>',
+  jit: true,
 })
 class TestHostComponent {
   @Input() flowDescriptor?: FlowDescriptor;
@@ -224,7 +227,9 @@ function setUp() {
 }
 
 describe('FlowArgsForm Component', () => {
-  beforeEach(setUp);
+  beforeEach(waitForAsync(() => {
+    setUp();
+  }));
 
   it('is empty initially', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -240,7 +245,7 @@ describe('FlowArgsForm Component', () => {
       TEST_FLOW_DESCRIPTORS.CollectBrowserHistory;
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('Chrome');
+    expect(fixture.nativeElement.innerText).toContain('Chromium');
   });
 
   it('emits form value changes', async () => {
@@ -254,19 +259,21 @@ describe('FlowArgsForm Component', () => {
     const initialArgs = (await firstValueFrom(
       fixture.componentInstance.flowArgsForm.flowArgValues$,
     )) as CollectBrowserHistoryArgs;
-    expect(initialArgs.browsers ?? []).toContain(Browser.CHROME);
+    expect(initialArgs.browsers ?? []).toContain(
+      Browser.CHROMIUM_BASED_BROWSERS,
+    );
 
     // This test assumes that the first label in the CollectBrowserHistoryForm
-    // is Chrome, which is not ideal, but an effective workaround.
+    // is Chromium Based Browsers, which is not ideal, but an effective workaround.
     const label = fixture.debugElement.query(By.css('label')).nativeElement;
-    expect(label.innerText).toContain('Chrome');
+    expect(label.innerText).toContain('Chromium');
     label.click();
     fixture.detectChanges();
 
     const args = (await firstValueFrom(
       fixture.componentInstance.flowArgsForm.flowArgValues$,
     )) as CollectBrowserHistoryArgs;
-    expect(args.browsers ?? []).not.toContain(Browser.CHROME);
+    expect(args.browsers ?? []).not.toContain(Browser.CHROMIUM_BASED_BROWSERS);
   });
 
   it('is empty after flow unselection', () => {
@@ -304,7 +311,9 @@ describe('FlowArgsForm Component', () => {
 
 for (const fd of Object.values(TEST_FLOW_DESCRIPTORS)) {
   describe(`FlowArgForm ${fd.name}`, () => {
-    beforeEach(setUp);
+    beforeEach(waitForAsync(() => {
+      setUp();
+    }));
 
     it('renders a sub-form', () => {
       const fixture = TestBed.createComponent(TestHostComponent);
@@ -316,20 +325,19 @@ for (const fd of Object.values(TEST_FLOW_DESCRIPTORS)) {
       expect(fixture.nativeElement.innerText.trim()).toBeTruthy();
     });
 
-    it('emits initial form values', (done) => {
+    it('emits initial form values', waitForAsync(() => {
       const fixture = TestBed.createComponent(TestHostComponent);
       fixture.detectChanges();
 
       fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
         (values) => {
           expect(values).toBeTruthy();
-          done();
         },
       );
 
       fixture.componentInstance.flowDescriptor = fd;
       fixture.detectChanges();
-    });
+    }));
 
     it('focusses a child element when autofocus is set ', () => {
       const fixture = TestBed.createComponent(TestHostComponent);
@@ -363,7 +371,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
   let explainGlobExpressionService: Partial<ExplainGlobExpressionService>;
   let explanation$: Subject<readonly GlobComponentExplanation[]>;
 
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     clientPageGlobalStore = mockClientPageGlobalStore();
     explanation$ = new ReplaySubject(1);
     explainGlobExpressionService = {
@@ -388,7 +396,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
         useFactory: () => explainGlobExpressionService,
       })
       .compileComponents();
-  });
+  }));
 
   function prepareFixture() {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -436,7 +444,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     expect(text).toContain('/home/foo');
   });
 
-  it('allows adding path expressions', (done) => {
+  it('allows adding path expressions', waitForAsync(() => {
     const fixture = prepareFixture();
 
     let inputs = fixture.debugElement.queryAll(By.css('input'));
@@ -461,12 +469,11 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
       (values) => {
         expect(values).toEqual({pathExpressions: ['/0', '/1']});
-        done();
       },
     );
-  });
+  }));
 
-  it('allows removing path expressions', (done) => {
+  it('allows removing path expressions', waitForAsync(() => {
     const fixture = prepareFixture();
 
     let inputs = fixture.debugElement.queryAll(By.css('input'));
@@ -502,10 +509,9 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
       (values) => {
         expect(values).toEqual({pathExpressions: ['/0']});
-        done();
       },
     );
-  });
+  }));
 
   it('allows adding modification time expression', () => {
     const fixture = prepareFixture();
@@ -557,14 +563,14 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
 });
 
 describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, ApiModule, FlowArgsFormModule],
       declarations: [TestHostComponent],
       providers: [...STORE_PROVIDERS],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
-  });
+  }));
 
   function prepareFixture() {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -591,7 +597,6 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
               type: SourceType.FILE,
               paths: ['/sample/path'],
               conditions: [],
-              returnedTypes: [],
               supportedOs: new Set(),
             },
           ],
@@ -654,7 +659,6 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
               type: SourceType.FILE,
               paths: ['/sample/path'],
               conditions: [],
-              returnedTypes: [],
               supportedOs: new Set(),
             },
           ],
@@ -748,7 +752,6 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
               type: SourceType.ARTIFACT_GROUP,
               names: ['bar'],
               conditions: [],
-              returnedTypes: [],
               supportedOs: new Set(),
             },
           ],
@@ -760,7 +763,6 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
               type: SourceType.REGISTRY_KEY,
               keys: ['HKLM'],
               conditions: [],
-              returnedTypes: [],
               supportedOs: new Set(),
             },
           ],
@@ -783,8 +785,9 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 });
 
 describe(`FlowArgForm ListProcesses`, () => {
-  beforeEach(setUp);
-
+  beforeEach(waitForAsync(() => {
+    setUp();
+  }));
   it('emits form input values', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
@@ -1041,14 +1044,14 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 });
 
 describe(`FlowArgForm LaunchBinary`, () => {
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, ApiModule, FlowArgsFormModule],
       declarations: [TestHostComponent],
       providers: [...STORE_PROVIDERS],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
-  });
+  }));
 
   function prepareFixture() {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -1170,14 +1173,14 @@ describe(`FlowArgForm LaunchBinary`, () => {
 });
 
 describe(`FlowArgForm TimelineFlow`, () => {
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, ApiModule, FlowArgsFormModule],
       declarations: [TestHostComponent],
       providers: [...STORE_PROVIDERS],
       teardown: {destroyAfterEach: false},
     }).compileComponents();
-  });
+  }));
 
   function prepareFixture() {
     const fixture = TestBed.createComponent(TestHostComponent);

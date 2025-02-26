@@ -10,6 +10,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_server.authorization import groups
 from grr_response_server.flows.general import administrative
+from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
 from grr_response_server.gui import api_integration_test_lib
@@ -230,7 +231,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(
       with test_lib.FakeTime(
           rdfvalue.RDFDatetime.Now()
           + rdfvalue.Duration.From(
-              api_router.AccessChecker.APPROVAL_CACHE_TIME, rdfvalue.SECONDS
+              access_controller.ApprovalChecker.APPROVAL_CACHE_SECONDS,
+              rdfvalue.SECONDS,
           )
       ):
         # This must raise now.
@@ -321,7 +323,7 @@ users:
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
-  restricted_flow_users:
+  admin_users:
     - {self.test_username}
 users:
   - {self.test_username}
@@ -338,7 +340,7 @@ users:
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
-  restricted_flow_users:
+  admin_users:
     - someotheruser
 users:
   - {self.test_username}
@@ -361,7 +363,7 @@ users:
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
   ignore_admin_user_attribute: True
-  restricted_flow_users:
+  admin_users:
     - {self.test_username}
 users:
   - {self.test_username}
@@ -379,7 +381,7 @@ users:
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
   ignore_admin_user_attribute: True
-  restricted_flow_users:
+  admin_users:
     - someotheruser
 users:
   - {self.test_username}
@@ -405,7 +407,7 @@ users:
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
     ignore_admin_user_attribute: True
-    restricted_flow_groups:
+    admin_groups:
       - somegroup
   users:
     - {self.test_username}
@@ -425,7 +427,7 @@ users:
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
     ignore_admin_user_attribute: True
-    restricted_flow_users:
+    admin_groups:
       - anothergroup
   users:
     - {self.test_username}
@@ -497,7 +499,7 @@ users:
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
-  restricted_flow_users:
+  admin_users:
     - {self.test_username}
 users:
   - {self.test_username}
@@ -509,7 +511,7 @@ users:
     self.InitRouterConfig(f"""
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
-  restricted_flow_users:
+  admin_users:
     - someotheruser
 users:
   - {self.test_username}
@@ -527,7 +529,7 @@ users:
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
   ignore_admin_user_attribute: True
-  restricted_flow_users:
+  admin_users:
     - {self.test_username}
 users:
   - {self.test_username}
@@ -540,7 +542,7 @@ users:
 router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
 router_params:
   ignore_admin_user_attribute: True
-  restricted_flow_users:
+  admin_users:
     - someotheruser
 users:
   - {self.test_username}
@@ -561,7 +563,7 @@ users:
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
     ignore_admin_user_attribute: True
-    restricted_flow_groups:
+    admin_groups:
       - somegroup
   users:
     - {self.test_username}
@@ -574,7 +576,7 @@ users:
   router: {api_router.ApiCallRouterWithApprovalChecks.__name__}
   router_params:
     ignore_admin_user_attribute: True
-    restricted_flow_users:
+    admin_groups:
       - anothergroup
   users:
     - {self.test_username}

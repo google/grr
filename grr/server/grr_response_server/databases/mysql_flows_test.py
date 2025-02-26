@@ -12,7 +12,6 @@ class MysqlFlowTest(
     mysql_test.MysqlTestBase,
     absltest.TestCase,
 ):
-
   pass
 
 

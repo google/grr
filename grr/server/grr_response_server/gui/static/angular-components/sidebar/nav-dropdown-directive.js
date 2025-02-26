@@ -15,7 +15,7 @@ exports.NavDropdownController = class {
   }
 };
 
-var NavDropdownController = exports.NavDropdownController;
+const NavDropdownController = exports.NavDropdownController;
 
 
 /**

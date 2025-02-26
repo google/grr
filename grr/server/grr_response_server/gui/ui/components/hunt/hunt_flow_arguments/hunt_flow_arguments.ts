@@ -40,10 +40,11 @@ export class HuntFlowArguments {
 
   protected readonly ColorScheme = ColorScheme;
 
-  constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
-
-  protected readonly flowArgsViewData$: Observable<FlowArgsViewData | null> =
-    combineLatest([this.hunt$, this.configGlobalStore.flowDescriptors$]).pipe(
+  constructor(private readonly configGlobalStore: ConfigGlobalStore) {
+    this.flowArgsViewData$ = combineLatest([
+      this.hunt$,
+      this.configGlobalStore.flowDescriptors$,
+    ]).pipe(
       map(([hunt, flowDescriptors]): FlowArgsViewData | null => {
         const flowDescriptor = flowDescriptors.get(hunt?.flowName ?? '');
 
@@ -58,13 +59,17 @@ export class HuntFlowArguments {
       }),
       startWith(null as FlowArgsViewData | null),
     );
+    this.huntFlowName$ = combineLatest([
+      this.hunt$,
+      this.flowArgsViewData$.pipe(map((vd) => vd?.flowDescriptor)),
+    ]).pipe(
+      map(([hunt, descriptor]) =>
+        getFlowTitleFromFlowName(hunt?.flowName, descriptor),
+      ),
+    );
+  }
 
-  protected readonly huntFlowName$ = combineLatest([
-    this.hunt$,
-    this.flowArgsViewData$.pipe(map((vd) => vd?.flowDescriptor)),
-  ]).pipe(
-    map(([hunt, descriptor]) =>
-      getFlowTitleFromFlowName(hunt?.flowName, descriptor),
-    ),
-  );
+  protected readonly flowArgsViewData$: Observable<FlowArgsViewData | null>;
+
+  protected readonly huntFlowName$;
 }

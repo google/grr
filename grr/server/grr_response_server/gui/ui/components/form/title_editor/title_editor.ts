@@ -24,6 +24,7 @@ import {assertNonNull} from '../../../lib/preconditions';
  * (color and font) during editing.
  */
 @Directive({
+  standalone: false,
   selector: '[titleEditable]',
   host: {
     '[attr.contenteditable]': `contenteditable ? 'plaintext-only' : 'false'`,
@@ -92,6 +93,7 @@ export class TitleEditorContent implements AfterViewInit {
  * child tag has to be marked with [titleEditable] directive.
  */
 @Component({
+  standalone: false,
   selector: 'title-editor',
   templateUrl: 'title_editor.ng.html',
   styleUrls: ['./title_editor.scss'],

@@ -11,7 +11,11 @@ import {ByteComponentsModule} from './module';
 
 initTestEnvironment();
 
-@Component({template: '<input byteInput [formControl]="formControl">'})
+@Component({
+  standalone: false,
+  template: '<input byteInput [formControl]="formControl">',
+  jit: true,
+})
 class TestHostComponent {
   readonly formControl = new UntypedFormControl();
 }

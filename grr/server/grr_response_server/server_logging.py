@@ -12,7 +12,7 @@ from absl import flags
 from grr_response_core import config
 from grr_response_core.stats import metrics
 from grr_response_server import data_store
-from grr_response_server.models import events
+from grr_response_server.models import events as models_events
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -67,12 +67,19 @@ class GrrApplicationLogger(object):
         api_reason = approval.reason
 
     log_msg = "%s API call [%s] by %s (reason: %s): %s [%d]" % (
-        event_id, api_method, request.user, api_reason, request.full_path,
-        response.status_code)
+        event_id,
+        api_method,
+        request.user,
+        api_reason,
+        request.full_path,
+        response.status_code,
+    )
     logging.info(log_msg)
 
     if response.headers.get("X-No-Log") != "True":
-      entry = events.APIAuditEntryFromHttpRequestResponse(request, response)
+      entry = models_events.APIAuditEntryFromHttpRequestResponse(
+          request, response
+      )
       data_store.REL_DB.WriteAPIAuditEntry(entry)
 
   def LogHttpFrontendAccess(self, request, source=None, message_count=None):
@@ -88,8 +95,15 @@ class GrrApplicationLogger(object):
     event_id = self.GetNewEventId()
 
     log_msg = "%s-%s [%s]: %s %s %s %s (%d)" % (
-        event_id, request.source_ip, source or "<unknown>", request.method,
-        request.url, request.user_agent, request.user, message_count or 0)
+        event_id,
+        request.source_ip,
+        source or "<unknown>",
+        request.method,
+        request.url,
+        request.user_agent,
+        request.user,
+        message_count or 0,
+    )
     logging.info(log_msg)
 
 
@@ -105,7 +119,7 @@ class PreLoggingMemoryHandler(handlers.BufferingHandler):
     This is called when the buffer is really full, we just just drop one oldest
     message.
     """
-    self.buffer = self.buffer[-self.capacity:]
+    self.buffer = self.buffer[-self.capacity :]
 
 
 class RobustSysLogHandler(handlers.SysLogHandler):
@@ -176,9 +190,11 @@ def SetLogLevels():
     handler.setLevel(levels[handler.__class__.__name__])
 
 
-LOG_FORMAT = ("%(levelname)s:%(asctime)s %(process)d "
-              "%(processName)s %(thread)d %(threadName)s "
-              "%(module)s:%(lineno)s] %(message)s")
+LOG_FORMAT = (
+    "%(levelname)s:%(asctime)s %(process)d "
+    "%(processName)s %(thread)d %(threadName)s "
+    "%(module)s:%(lineno)s] %(message)s"
+)
 
 
 def GetLogHandlers():
@@ -236,7 +252,8 @@ def LogInit():
   # The root logger.
   logger = logging.getLogger()
   memory_handlers = [
-      m for m in logger.handlers
+      m
+      for m in logger.handlers
       if m.__class__.__name__ == "PreLoggingMemoryHandler"
   ]
 

@@ -25,12 +25,12 @@ from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.client_connector import connector as fs_client
 
 
-# pyformat: disable
+# fmt: off
 
 START_STRING = "Starting client."
 
 # /grr_response_client/comms.py)
-# pyformat: enable
+# fmt: on
 
 # Limit on the total size of GrrMessages to batch into a single
 # PackedMessageList (before sending to Fleetspeak).
@@ -186,8 +186,8 @@ class GRRFleetspeakClient(object):
 
     try:
       self._fs.Send(fs_msg)
-    except (IOError, struct.error):
-      logging.critical("Broken local Fleetspeak connection (write end).")
+    except (OSError, struct.error) as e:
+      logging.critical("Broken local Fleetspeak connection (write end): %s", e)
       raise
 
   def _SendOp(self):
@@ -215,8 +215,8 @@ class GRRFleetspeakClient(object):
     """Receives a single message through Fleetspeak."""
     try:
       fs_msg, _ = self._fs.Recv()
-    except (IOError, struct.error) as e:
-      logging.critical("Broken local Fleetspeak connection (read end).")
+    except (OSError, struct.error) as e:
+      logging.critical("Broken local Fleetspeak connection (read end): %s", e)
       raise BrokenFSConnectionError() from e
 
     received_type = fs_msg.data.TypeName()

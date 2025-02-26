@@ -6,6 +6,7 @@ import {Plugin} from './plugin';
 
 /** Results view for Interrogate flow. */
 @Component({
+  standalone: false,
   selector: 'app-interrogate-details',
   templateUrl: './interrogate_details.ng.html',
   styleUrls: ['./interrogate_details.scss'],

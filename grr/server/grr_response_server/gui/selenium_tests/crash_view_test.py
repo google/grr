@@ -17,8 +17,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
   def SetUpCrashedFlow(self):
     client = flow_test_lib.CrashClientMock(self.client_id)
-    flow_test_lib.TestFlowHelper(
-        flow_test_lib.FlowWithOneClientRequest.__name__,
+    flow_test_lib.StartAndRunFlow(
+        flow_test_lib.FlowWithOneClientRequest,
         client,
         client_id=self.client_id,
         creator=self.test_username,

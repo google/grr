@@ -90,14 +90,10 @@ describe('infinite table', () => {
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(2);
 
-    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
-    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
-        toBe(1);
+    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
+    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).toBe(1);
   });
 
   it('does nothing when "Loading..." row is not seen', () => {
@@ -118,14 +114,10 @@ describe('infinite table', () => {
 
     expect($('table tr', element).length).toBe(2);
     expect($('table tr:contains("Loading...")', element).length).toBe(0);
-    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
-    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).
-        toBe(1);
-    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
-        toBe(1);
+    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
+    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(0):contains(43)', element).length).toBe(1);
+    expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).toBe(1);
   });
 
   it('applies the filter when a filter value is set', () => {
@@ -136,10 +128,8 @@ describe('infinite table', () => {
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(1);
 
-    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
-    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
-        toBe(1);
+    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
+    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).toBe(1);
   });
 
   it('shows an empty table when the filter removes all items', () => {
@@ -154,8 +144,8 @@ describe('infinite table', () => {
   it('cancels an in-flight request when trigger-update is called', () => {
     const deferred1 = $q.defer();
     const deferred2 = $q.defer();
-    spyOn(MemoryItemsProviderController.prototype, 'fetchItems').and
-        .returnValues(deferred1.promise, deferred2.promise);
+    spyOn(MemoryItemsProviderController.prototype, 'fetchItems')
+        .and.returnValues(deferred1.promise, deferred2.promise);
 
     const element = render([]);
     // Only the 'Loading...' row should be displayed.
@@ -223,28 +213,24 @@ describe('infinite table', () => {
       expect($('table tr', element).length).toBe(3);
 
       // New element should be inserted in the beginning of the table.
-      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).
-        toBe(1);
-      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length).
-          toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).toBe(1);
+      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length)
+          .toBe(1);
 
       // Check that the behavior is stable, i.e. element is added only once.
       $interval.flush(2000);
       expect($('table tr', element).length).toBe(3);
-      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).
-        toBe(1);
-      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length).
-          toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).toBe(1);
+      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length)
+          .toBe(1);
 
-      expect($('table tr:eq(1) td:eq(0):contains(42)', element).length).
-        toBe(1);
-      expect($('table tr:eq(1) td:eq(1):contains(foo)', element).length).
-          toBe(1);
+      expect($('table tr:eq(1) td:eq(0):contains(42)', element).length).toBe(1);
+      expect($('table tr:eq(1) td:eq(1):contains(foo)', element).length)
+          .toBe(1);
 
-      expect($('table tr:eq(2) td:eq(0):contains(43)', element).length).
-        toBe(1);
-      expect($('table tr:eq(2) td:eq(1):contains(bar)', element).length).
-          toBe(1);
+      expect($('table tr:eq(2) td:eq(0):contains(43)', element).length).toBe(1);
+      expect($('table tr:eq(2) td:eq(1):contains(bar)', element).length)
+          .toBe(1);
     });
 
     it('adds multiple new elements in the right order', () => {
@@ -254,17 +240,17 @@ describe('infinite table', () => {
 
       // Update the memory items provider elements and push the clock.
       Array.prototype.push.apply(
-          $rootScope.testItems,
-          transformItems([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}]));
+          $rootScope.testItems, transformItems([
+            {timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}
+          ]));
       $interval.flush(1000);
       expect($('table tr', element).length).toBe(2);
 
       // New element should be inserted in the beginning of the table.
-      expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
-        toBe(1);
-      expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
-          toBe(1);
+      expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length)
+          .toBe(1);
+      expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length)
+          .toBe(1);
     });
 
     it('does nothing with the row if row hash has not changed', () => {
@@ -274,11 +260,10 @@ describe('infinite table', () => {
           ]),
           undefined, undefined, true);
 
-      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
 
       // Change the message, but don't touch the hash.
-      $rootScope.testItems[0]["timestamp"] = 88;
+      $rootScope.testItems[0]['timestamp'] = 88;
       $interval.flush(2000);
 
       // Result shouldn't be updated, since the hash hasn't changed.
@@ -286,8 +271,7 @@ describe('infinite table', () => {
       // (Note that one-time-bindings are used in the template, meaning
       // that each row can only be updated by grr-infinite-table and not
       // via standard Angular bindings mechanism).
-      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-          toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
     });
 
     it('updates the row if row hash has changed', () => {
@@ -297,11 +281,10 @@ describe('infinite table', () => {
           ]),
           undefined, undefined, true);
 
-      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
-        toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).toBe(1);
 
       // Change the message, but don't touch the hash.
-      $rootScope.testItems[0]["timestamp"] = 88;
+      $rootScope.testItems[0]['timestamp'] = 88;
       transformItems($rootScope.testItems);
       $interval.flush(2000);
 
@@ -310,8 +293,7 @@ describe('infinite table', () => {
       // (Note that one-time-bindings are used in the template, meaning
       // that each row can only be updated by grr-infinite-table and not
       // via standard Angular bindings mechanism).
-      expect($('table tr:eq(0) td:eq(0):contains(88)', element).length).
-          toBe(1);
+      expect($('table tr:eq(0) td:eq(0):contains(88)', element).length).toBe(1);
     });
   });
 });

@@ -117,6 +117,7 @@ const mapFlowResults: FlowResultMapFunction<ArtifactResults> = (rawResults) => {
 
 /** Component that displays flow results. */
 @Component({
+  standalone: false,
   selector: 'app-artifact-collector-flow-details',
   templateUrl: './artifact_collector_flow_details.ng.html',
   styleUrls: ['./artifact_collector_flow_details.scss'],

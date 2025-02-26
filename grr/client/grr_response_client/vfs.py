@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """This file implements a VFS abstraction on the client."""
 
+from collections.abc import Callable
 import functools
 import platform
 
-from typing import Any, Optional, Callable, Dict, Type
+from typing import Any, Optional
 
 from grr_response_client.unprivileged.filesystem import vfs as unprivileged_vfs
 from grr_response_client.vfs_handlers import base as vfs_base
@@ -28,9 +29,9 @@ UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 # A registry of all VFSHandler registered
 # TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
 # but this is currently not representable as type information in Python.
-VFS_HANDLERS: Dict[Any, Type[vfs_base.VFSHandler]] = {}
-VFS_HANDLERS_DIRECT: Dict[Any, Type[vfs_base.VFSHandler]] = {}
-VFS_HANDLERS_SANDBOX: Dict[Any, Type[vfs_base.VFSHandler]] = {}
+VFS_HANDLERS: dict[Any, type[vfs_base.VFSHandler]] = {}
+VFS_HANDLERS_DIRECT: dict[Any, type[vfs_base.VFSHandler]] = {}
+VFS_HANDLERS_SANDBOX: dict[Any, type[vfs_base.VFSHandler]] = {}
 
 # The paths we should use as virtual root for VFS operations.
 _VFS_VIRTUALROOTS = {}
@@ -108,7 +109,7 @@ def Init():
 
 def _GetVfsHandlers(
     pathspec: rdf_paths.PathSpec,
-) -> Dict[Any, Type[vfs_base.VFSHandler]]:
+) -> dict[Any, type[vfs_base.VFSHandler]]:
   """Returns the table of VFS handlers for the given pathspec."""
   for i, element in enumerate(pathspec):
     if element.HasField("implementation_type") and i != 0:

@@ -50,7 +50,7 @@ class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
   pathtype = None
 
   # VFS path to use (For example: fs/tsk)
-  vfs_path = None
+  vfs_path: str = None
 
   def _pathspecToVFSPath(self, pathspec):
     path = self.vfs_path + "/"

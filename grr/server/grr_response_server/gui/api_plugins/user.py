@@ -15,6 +15,8 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
+from grr_response_proto.api import client_pb2
+from grr_response_proto.api import cron_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
@@ -24,16 +26,16 @@ from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification as notification_lib
 from grr_response_server.databases import db
+from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr_response_server.models import clients
-from grr_response_server.models import protobuf_utils
-from grr_response_server.models import users
+from grr_response_server.models import clients as models_clients
+from grr_response_server.models import protobuf_utils as models_utils
+from grr_response_server.models import users as models_users
 from grr_response_server.rdfvalues import mig_cronjobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -226,9 +228,9 @@ def InitApiNotificationFromUserNotification(
   """Initializes an ApiNotification from a UserNotification."""
 
   api_notification = api_user_pb2.ApiNotification()
-  protobuf_utils.CopyAttr(notification, api_notification, "timestamp")
-  protobuf_utils.CopyAttr(notification, api_notification, "notification_type")
-  protobuf_utils.CopyAttr(notification, api_notification, "message")
+  models_utils.CopyAttr(notification, api_notification, "timestamp")
+  models_utils.CopyAttr(notification, api_notification, "notification_type")
+  models_utils.CopyAttr(notification, api_notification, "message")
   api_notification.is_pending = (
       notification.state == objects_pb2.UserNotification.State.STATE_PENDING
   )
@@ -289,11 +291,20 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
 
 def InitApiHuntApprovalFromApprovalRequest(
     approval_request: objects_pb2.ApprovalRequest,
+    approval_checker: access_controller.ApprovalChecker,
 ) -> api_user_pb2.ApiHuntApproval:
   """Initializes ApiHuntApproval from an ApprovalRequest."""
   api_hunt_approval = api_user_pb2.ApiHuntApproval()
-
   _FillApiApprovalFromApprovalRequest(api_hunt_approval, approval_request)
+
+  try:
+    approval_checker.CheckHuntApprovals(
+        approval_request.subject_id, [approval_request]
+    )
+    api_hunt_approval.is_valid = True
+  except access_control.UnauthorizedAccess as e:
+    api_hunt_approval.is_valid_message = str(e)
+    api_hunt_approval.is_valid = False
 
   approval_subject_obj = data_store.REL_DB.ReadHuntObject(
       approval_request.subject_id
@@ -346,6 +357,7 @@ def InitApiHuntApprovalFromApprovalRequest(
 
 def InitApiClientApprovalFromApprovalRequest(
     approval_request: objects_pb2.ApprovalRequest,
+    approval_checker: access_controller.ApprovalChecker,
 ) -> api_user_pb2.ApiClientApproval:
   """Initializes ApiClientApproval from an ApprovalRequest."""
 
@@ -355,22 +367,50 @@ def InitApiClientApprovalFromApprovalRequest(
       approval_request.subject_id
   )
   api_client_approval.subject.CopyFrom(
-      clients.ApiClientFromClientFullInfo(
+      models_clients.ApiClientFromClientFullInfo(
           approval_request.subject_id, client_full_info
       )
   )
 
   _FillApiApprovalFromApprovalRequest(api_client_approval, approval_request)
+  try:
+    approval_checker.CheckClientApprovals(
+        approval_request.subject_id, [approval_request]
+    )
+    api_client_approval.is_valid = True
+  except access_control.UnauthorizedAccess as e:
+    api_client_approval.is_valid_message = str(e)
+    api_client_approval.is_valid = False
   return api_client_approval
+
+
+def InitObjectReferenceFromApiClient(
+    client: client_pb2.ApiClient,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+      client=objects_pb2.ClientReference(client_id=client.client_id),
+  )
 
 
 def InitApiCronJobApprovalFromApprovalRequest(
     approval_request: objects_pb2.ApprovalRequest,
+    approval_checker: access_controller.ApprovalChecker,
 ) -> api_user_pb2.ApiCronJobApproval:
   """Initializes ApiCronJobApproval from an ApprovalRequest."""
 
   api_cron_job_approval = api_user_pb2.ApiCronJobApproval()
   _FillApiApprovalFromApprovalRequest(api_cron_job_approval, approval_request)
+
+  try:
+    approval_checker.CheckCronJobApprovals(
+        approval_request.subject_id, [approval_request]
+    )
+    api_cron_job_approval.is_valid = True
+  except access_control.UnauthorizedAccess as e:
+    api_cron_job_approval.is_valid_message = str(e)
+    api_cron_job_approval.is_valid = False
 
   approval_subject_obj = cronjobs.CronManager().ReadJob(
       approval_request.subject_id
@@ -393,12 +433,12 @@ def _FillApiApprovalFromApprovalRequest(
 ):
   """Fills a given Api(Client|Hunt|CronJob)Approval with data from an ApprovalRequest."""
 
-  protobuf_utils.CopyAttr(approval_request, api_approval, "approval_id", "id")
-  protobuf_utils.CopyAttr(
+  models_utils.CopyAttr(approval_request, api_approval, "approval_id", "id")
+  models_utils.CopyAttr(
       approval_request, api_approval, "requestor_username", "requestor"
   )
-  protobuf_utils.CopyAttr(approval_request, api_approval, "reason", "reason")
-  protobuf_utils.CopyAttr(approval_request, api_approval, "email_message_id")
+  models_utils.CopyAttr(approval_request, api_approval, "reason", "reason")
+  models_utils.CopyAttr(approval_request, api_approval, "email_message_id")
 
   api_approval.notified_users.extend(sorted(approval_request.notified_users))
   api_approval.email_cc_addresses.extend(
@@ -410,16 +450,9 @@ def _FillApiApprovalFromApprovalRequest(
   )
   # TODO(user): Remove this once Cron jobs are removed.
   if not isinstance(api_approval, api_user_pb2.ApiCronJobApproval):
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(
         approval_request, api_approval, "expiration_time", "expiration_time_us"
     )
-
-  try:
-    approval_checks.CheckApprovalRequest(approval_request)
-    api_approval.is_valid = True
-  except access_control.UnauthorizedAccess as e:
-    api_approval.is_valid_message = str(e)
-    api_approval.is_valid = False
 
   return api_approval
 
@@ -457,17 +490,21 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def ObjectReference(self):
-    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
-    return rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
-        approval_request=rdf_objects.ApprovalRequestReference(
-            approval_type=at,
-            approval_id=self.id,
-            subject_id=str(self.subject.client_id),
-            requestor_username=self.requestor,
-        ),
-    )
+
+def InitObjectReferenceFromApiClientApproval(
+    approval_request: api_user_pb2.ApiClientApproval,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  at = objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.APPROVAL_REQUEST,
+      approval_request=objects_pb2.ApprovalRequestReference(
+          approval_type=at,
+          approval_id=approval_request.id,
+          subject_id=approval_request.subject.client_id,
+          requestor_username=approval_request.requestor,
+      ),
+  )
 
 
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
@@ -480,17 +517,31 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def ObjectReference(self):
-    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
-    return rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
-        approval_request=rdf_objects.ApprovalRequestReference(
-            approval_type=at,
-            approval_id=self.id,
-            subject_id=str(self.subject.hunt_id),
-            requestor_username=self.requestor,
-        ),
-    )
+
+def InitObjectReferenceFromApiHuntApproval(
+    approval_request: api_user_pb2.ApiHuntApproval,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  at = objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.APPROVAL_REQUEST,
+      approval_request=objects_pb2.ApprovalRequestReference(
+          approval_type=at,
+          approval_id=approval_request.id,
+          subject_id=approval_request.subject.hunt_id,
+          requestor_username=approval_request.requestor,
+      ),
+  )
+
+
+def InitObjectReferenceFromApiHunt(
+    hunt: hunt_pb2.ApiHunt,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.HUNT,
+      hunt=objects_pb2.HuntReference(hunt_id=hunt.hunt_id),
+  )
 
 
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
@@ -501,17 +552,31 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
       api_cron.ApiCronJob,
   ]
 
-  def ObjectReference(self):
-    at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
-    return rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
-        approval_request=rdf_objects.ApprovalRequestReference(
-            approval_type=at,
-            approval_id=self.id,
-            subject_id=str(self.subject.cron_job_id),
-            requestor_username=self.requestor,
-        ),
-    )
+
+def InitObjectReferenceFromApiCronJobApproval(
+    approval_request: api_user_pb2.ApiCronJobApproval,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  at = objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.APPROVAL_REQUEST,
+      approval_request=objects_pb2.ApprovalRequestReference(
+          approval_type=at,
+          approval_id=approval_request.id,
+          subject_id=approval_request.subject.cron_job_id,
+          requestor_username=approval_request.requestor,
+      ),
+  )
+
+
+def InitObjectReferenceFromApiCronJob(
+    cron_job: cron_pb2.ApiCronJob,
+) -> objects_pb2.ObjectReference:
+  """Initializes ObjectReference from an ApprovalRequest."""
+  return objects_pb2.ObjectReference(
+      reference_type=objects_pb2.ObjectReference.Type.CRON_JOB,
+      cron_job=objects_pb2.CronJobReference(cron_job_id=cron_job.cron_job_id),
+  )
 
 
 class ApiCreateHuntApprovalArgs(rdf_structs.RDFProtoStruct):
@@ -810,13 +875,13 @@ def SendApprovalRequestEmail(
       text_signature=config.CONFIG["Email.signature"],
   )
 
-  requestor_email = users.GetEmail(
+  requestor_email = models_users.GetEmail(
       data_store.REL_DB.ReadGRRUser(approval.requestor)
   )
   notified_emails = []
   for user in approval.notified_users:
     user = data_store.REL_DB.ReadGRRUser(user)
-    notified_emails.append(users.GetEmail(user))
+    notified_emails.append(models_users.GetEmail(user))
 
   email_alerts.EMAIL_ALERTER.SendEmail(
       to_addresses=",".join(notified_emails),
@@ -883,9 +948,9 @@ def SendGrantEmail(
   }
 
   requestor = data_store.REL_DB.ReadGRRUser(approval.requestor)
-  requestor_email = users.GetEmail(requestor)
+  requestor_email = models_users.GetEmail(requestor)
   user = data_store.REL_DB.ReadGRRUser(username)
-  user_email = users.GetEmail(user)
+  user_email = models_users.GetEmail(user)
 
   email_alerts.EMAIL_ALERTER.SendEmail(
       to_addresses=requestor_email,
@@ -899,23 +964,20 @@ def SendGrantEmail(
 
 
 def CreateApprovalNotification(
-    approval: Union[
-        ApiClientApproval,
-        ApiHuntApproval,
-        ApiCronJobApproval,
-    ],
-    notification_type: rdf_objects.UserNotification.Type,
+    notified_users: Sequence[str],
+    notification_type: "objects_pb2.UserNotification.Type",
     subject_title: str,
+    object_reference: Optional[objects_pb2.ObjectReference],
 ) -> None:
-  """Creates a user notification for the given approval."""
+  """Creates a user notification for the given data."""
 
-  for user in approval.notified_users:
+  for user in notified_users:
     try:
       notification_lib.Notify(
           user.strip(),
           notification_type,
           "Please grant access to %s" % subject_title,
-          approval.ObjectReference(),
+          object_reference,
       )
     except db.UnknownGRRUserError:
       # The relational db does not allow sending notifications to users that
@@ -951,6 +1013,17 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiClientApproval
   proto_args_type = api_user_pb2.ApiCreateClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def _CalculateExpiration(
       self,
@@ -992,7 +1065,7 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         context,
     )
     api_client_approval = InitApiClientApprovalFromApprovalRequest(
-        approval_request
+        approval_request, self._approval_checker
     )
 
     subject_title = GetSubjectTitleForClientApproval(api_client_approval)
@@ -1013,11 +1086,11 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         review_url_path,
         review_url_path_legacy,
     )
-    rdf_api_client_approval = ToRDFApiClientApproval(api_client_approval)
     CreateApprovalNotification(
-        rdf_api_client_approval,
-        rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED,
+        api_client_approval.notified_users,
+        objects_pb2.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED,
         subject_title,
+        InitObjectReferenceFromApiClientApproval(api_client_approval),
     )
     return api_client_approval
 
@@ -1029,6 +1102,17 @@ class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiClientApproval
   proto_args_type = api_user_pb2.ApiGetClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1052,7 +1136,9 @@ class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
           % (approval_request.subject_id, args.client_id)
       )
 
-    return InitApiClientApprovalFromApprovalRequest(approval_request)
+    return InitApiClientApprovalFromApprovalRequest(
+        approval_request, self._approval_checker
+    )
 
 
 class ApiGrantClientApprovalArgs(rdf_structs.RDFProtoStruct):
@@ -1070,6 +1156,17 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_user_pb2.ApiGrantClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
 
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
+
   def Handle(
       self,
       args: api_user_pb2.ApiGrantClientApprovalArgs,
@@ -1081,7 +1178,7 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         args.approval_id, args.username, context.username
     )
     api_client_approval = InitApiClientApprovalFromApprovalRequest(
-        approval_request
+        approval_request, self._approval_checker
     )
     subject_title = GetSubjectTitleForClientApproval(api_client_approval)
 
@@ -1092,13 +1189,11 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         f"/v2/clients/{api_client_approval.subject.client_id}",
         f"#/clients/{api_client_approval.subject.client_id}",
     )
-
-    rdf_api_client_approval = ToRDFApiClientApproval(api_client_approval)
     notification_lib.Notify(
         api_client_approval.requestor,
-        rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
+        objects_pb2.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
         "%s has granted you access to %s." % (context.username, subject_title),
-        rdf_api_client_approval.subject.ObjectReference(),
+        InitObjectReferenceFromApiClient(api_client_approval.subject),
     )
 
     if api_client_approval.is_valid:
@@ -1125,6 +1220,17 @@ class ApiListClientApprovalsHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_user_pb2.ApiListClientApprovalsArgs
   proto_result_type = api_user_pb2.ApiListClientApprovalsResult
 
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
+
   def Handle(
       self,
       args: api_user_pb2.ApiListClientApprovalsArgs,
@@ -1147,7 +1253,8 @@ class ApiListClientApprovalsHandler(api_call_handler_base.ApiCallHandler):
         reverse=True,
     )
     api_client_approvals = [
-        InitApiClientApprovalFromApprovalRequest(ar) for ar in approvals
+        InitApiClientApprovalFromApprovalRequest(ar, self._approval_checker)
+        for ar in approvals
     ]
 
     api_client_approvals = _FilterApiClientApprovals(
@@ -1173,6 +1280,17 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_user_pb2.ApiCreateHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
 
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
+
   def Handle(
       self,
       args: api_user_pb2.ApiCreateHuntApprovalArgs,
@@ -1187,7 +1305,9 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         _GetTokenExpirationTime(),
         context,
     )
-    api_hunt_approval = InitApiHuntApprovalFromApprovalRequest(approval_request)
+    api_hunt_approval = InitApiHuntApprovalFromApprovalRequest(
+        approval_request, self._approval_checker
+    )
 
     subject_title = GetSubjectTitleForHuntApproval(api_hunt_approval)
     review_url_path = (
@@ -1206,11 +1326,11 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         review_url_path_legacy,
     )
 
-    rdf_api_hunt_approval = ToRDFApiHuntApproval(api_hunt_approval)
     CreateApprovalNotification(
-        rdf_api_hunt_approval,
-        rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED,
+        api_hunt_approval.notified_users,
+        objects_pb2.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED,
         subject_title,
+        InitObjectReferenceFromApiHuntApproval(api_hunt_approval),
     )
     return api_hunt_approval
 
@@ -1222,6 +1342,17 @@ class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiHuntApproval
   proto_args_type = api_user_pb2.ApiGetHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1245,7 +1376,9 @@ class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
           % (approval_obj.subject_id, args.hunt_id)
       )
 
-    return InitApiHuntApprovalFromApprovalRequest(approval_obj)
+    return InitApiHuntApprovalFromApprovalRequest(
+        approval_obj, self._approval_checker
+    )
 
 
 class ApiGrantHuntApprovalArgs(rdf_structs.RDFProtoStruct):
@@ -1263,6 +1396,17 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_user_pb2.ApiGrantHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
 
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
+
   def Handle(
       self,
       args: api_user_pb2.ApiGrantHuntApprovalArgs,
@@ -1273,7 +1417,9 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
     approval_request = GrantApprovalRequest(
         args.approval_id, args.username, context.username
     )
-    api_hunt_approval = InitApiHuntApprovalFromApprovalRequest(approval_request)
+    api_hunt_approval = InitApiHuntApprovalFromApprovalRequest(
+        approval_request, self._approval_checker
+    )
 
     subject_title = GetSubjectTitleForHuntApproval(api_hunt_approval)
 
@@ -1284,12 +1430,11 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         f"/v2/hunts/{api_hunt_approval.subject.hunt_id}",
         f"#/hunts/{api_hunt_approval.subject.hunt_id}",
     )
-    rdf_api_hunt_approval = ToRDFApiHuntApproval(api_hunt_approval)
     notification_lib.Notify(
         api_hunt_approval.requestor,
-        rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED,
+        objects_pb2.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED,
         "%s has granted you access to %s." % (context.username, subject_title),
-        rdf_api_hunt_approval.subject.ObjectReference(),
+        InitObjectReferenceFromApiHunt(api_hunt_approval.subject),
     )
 
     return api_hunt_approval
@@ -1316,6 +1461,17 @@ class ApiListHuntApprovalsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListHuntApprovalsResult
   proto_args_type = api_user_pb2.ApiListHuntApprovalsArgs
   proto_result_type = api_user_pb2.ApiListHuntApprovalsResult
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1346,7 +1502,7 @@ class ApiListHuntApprovalsHandler(api_call_handler_base.ApiCallHandler):
 
     return api_user_pb2.ApiListHuntApprovalsResult(
         items=[
-            InitApiHuntApprovalFromApprovalRequest(ar)
+            InitApiHuntApprovalFromApprovalRequest(ar, self._approval_checker)
             for ar in approvals[args.offset : end]
         ]
     )
@@ -1359,6 +1515,17 @@ class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJobApproval
   proto_args_type = api_user_pb2.ApiCreateCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1375,7 +1542,7 @@ class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
         context,
     )
     api_cron_job_approval = InitApiCronJobApprovalFromApprovalRequest(
-        approval_request
+        approval_request, self._approval_checker
     )
 
     subject_title = GetSubjectTitleForCronJobApproval(api_cron_job_approval)
@@ -1390,11 +1557,11 @@ class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
         review_url_path,
         review_url_path_legacy,
     )
-    rdf_api_cron_job_approval = ToRDFApiCronJobApproval(api_cron_job_approval)
     CreateApprovalNotification(
-        rdf_api_cron_job_approval,
-        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED,
+        api_cron_job_approval.notified_users,
+        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED,
         subject_title,
+        InitObjectReferenceFromApiCronJobApproval(api_cron_job_approval),
     )
 
     return api_cron_job_approval
@@ -1407,6 +1574,17 @@ class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJobApproval
   proto_args_type = api_user_pb2.ApiGetCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1430,7 +1608,9 @@ class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
           % (approval_obj.subject_id, args.cron_job_id)
       )
 
-    return InitApiCronJobApprovalFromApprovalRequest(approval_obj)
+    return InitApiCronJobApprovalFromApprovalRequest(
+        approval_obj, self._approval_checker
+    )
 
 
 class ApiGrantCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
@@ -1448,6 +1628,17 @@ class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_user_pb2.ApiGrantCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
 
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
+
   def Handle(
       self,
       args: api_user_pb2.ApiGrantCronJobApprovalArgs,
@@ -1459,7 +1650,7 @@ class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
         args.approval_id, args.username, context.username
     )
     api_cron_job_approval = InitApiCronJobApprovalFromApprovalRequest(
-        approval_request
+        approval_request, self._approval_checker
     )
     subject_title = GetSubjectTitleForCronJobApproval(api_cron_job_approval)
 
@@ -1470,12 +1661,11 @@ class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
         f"#/crons/{api_cron_job_approval.subject.cron_job_id}",
         f"#/crons/{api_cron_job_approval.subject.cron_job_id}",
     )
-    rdf_api_cron_job_approval = ToRDFApiCronJobApproval(api_cron_job_approval)
     notification_lib.Notify(
         api_cron_job_approval.requestor,
-        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
+        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
         "%s has granted you access to %s." % (context.username, subject_title),
-        rdf_api_cron_job_approval.subject.ObjectReference(),
+        InitObjectReferenceFromApiCronJob(api_cron_job_approval.subject),
     )
 
     return api_cron_job_approval
@@ -1499,6 +1689,17 @@ class ApiListCronJobApprovalsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListCronJobApprovalsResult
   proto_args_type = api_user_pb2.ApiListCronJobApprovalsArgs
   proto_result_type = api_user_pb2.ApiListCronJobApprovalsResult
+
+  def __init__(
+      self,
+      approval_checker: Optional[access_controller.ApprovalChecker] = None,
+  ):
+    super().__init__()
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          access_controller.AdminAccessChecker()
+      )
+    self._approval_checker = approval_checker
 
   def Handle(
       self,
@@ -1524,7 +1725,7 @@ class ApiListCronJobApprovalsHandler(api_call_handler_base.ApiCallHandler):
       end = args.offset + args.count
 
     api_approvals = [
-        InitApiCronJobApprovalFromApprovalRequest(ar)
+        InitApiCronJobApprovalFromApprovalRequest(ar, self._approval_checker)
         for ar in approvals[args.offset : end]
     ]
 

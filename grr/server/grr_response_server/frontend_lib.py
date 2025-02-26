@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """The GRR frontend server."""
+
 import logging
 import time
-from typing import Optional, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
-from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -52,26 +52,27 @@ class FrontEndServer(object):
   - Bundles and encrypts the messages for the client.
   """
 
-  def __init__(self,
-               max_queue_size=50,
-               message_expiry_time=120,
-               max_retransmission_time=10):
+  def __init__(
+      self,
+      max_queue_size=50,
+      message_expiry_time=120,
+      max_retransmission_time=10,
+  ):
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
 
-    # There is only a single session id that we accept unauthenticated
-    # messages for, the one to enroll new clients.
-    self.unauth_allowed_session_id = rdfvalue.SessionID(
-        queue=queues.ENROLLMENT, flow_name="Enrol")
-
+  # TODO: Inline this function and simplify code.
   def EnrollFleetspeakClientIfNeeded(
-      self, client_id: str
+      self,
+      client_id: str,
+      fleetspeak_validation_tags: Mapping[str, str],
   ) -> Optional[rdf_objects.ClientMetadata]:
     """Enrols a Fleetspeak-enabled client for use with GRR.
 
     Args:
       client_id: GRR client-id for the client.
+      fleetspeak_validation_tags: Validation tags supplied by Fleetspeak.
 
     Returns:
       None if the client is new, and actually got enrolled. This method
@@ -91,17 +92,21 @@ class FrontEndServer(object):
 
     now = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(
-        client_id, first_seen=now, last_ping=now, fleetspeak_validation_info={}
+        client_id,
+        first_seen=now,
+        last_ping=now,
+        fleetspeak_validation_info=fleetspeak_validation_tags,
     )
 
     # Publish the client enrollment message.
     events.Events.PublishEvent(
-        "ClientEnrollment", client_urn, username=FRONTEND_USERNAME)
+        "ClientEnrollment", client_urn, username=FRONTEND_USERNAME
+    )
     return None
 
   legacy_well_known_session_ids = set([
       str(rdfvalue.SessionID(flow_name="Foreman", queue=rdfvalue.RDFURN("W"))),
-      str(rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W")))
+      str(rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W"))),
   ])
 
   # Message handler requests addressed to these handlers will be processed
@@ -164,8 +169,9 @@ class FrontEndServer(object):
     for session_id, msgs in msgs_by_session_id.items():
       try:
         for msg in msgs:
-          if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and
-              msg.session_id != self.unauth_allowed_session_id):
+          if (
+              msg.auth_state != msg.AuthorizationState.AUTHENTICATED
+          ):
             dropped_count += 1
             continue
 
@@ -175,7 +181,8 @@ class FrontEndServer(object):
                 client_id=msg.source.Basename(),
                 handler_name=message_handlers.session_id_map[session_id],
                 request_id=msg.response_id or random.UInt32(),
-                request=msg.payload)
+                request=msg.payload,
+            )
             if request.handler_name in self._SHORTCUT_HANDLERS:
               frontend_message_handler_requests.append(request)
             else:
@@ -183,18 +190,22 @@ class FrontEndServer(object):
           elif session_id_str in self.legacy_well_known_session_ids:
             logging.debug(
                 "Dropping message for legacy well known session id %s",
-                session_id)
+                session_id,
+            )
           else:
             unprocessed_msgs.append(msg)
       except ValueError:
         logging.exception(
             "Unpacking error in at least one of %d messages for session id %s",
-            len(msgs), session_id)
+            len(msgs),
+            session_id,
+        )
         raise
 
     if dropped_count:
-      logging.info("Dropped %d unauthenticated messages for %s", dropped_count,
-                   client_id)
+      logging.info(
+          "Dropped %d unauthenticated messages for %s", dropped_count, client_id
+      )
 
     if unprocessed_msgs:
       flow_responses = []
@@ -226,7 +237,6 @@ class FrontEndServer(object):
                 session_id=msg.session_id,
                 backtrace=stat.backtrace,
                 crash_message=stat.error_message,
-                nanny_status=stat.nanny_status,
                 timestamp=rdfvalue.RDFDatetime.Now(),
             )
             events.Events.PublishEvent(
@@ -258,77 +268,121 @@ class FrontEndServer(object):
         time.time() - now,
     )
 
+  # TODO: Remove once no longer needed.
   def ReceiveRRGResponse(
       self,
       client_id: str,
       response: rrg_pb2.Response,
   ) -> None:
-    """Receives a processes a response from the RRG agent.
+    """Receives and processes a single response from the RRG agent.
 
     Args:
       client_id: An identifier of the client for which we process the response.
       response: A response to process.
     """
-    flow_response: Union[
-        flows_pb2.FlowResponse,
-        flows_pb2.FlowStatus,
-        flows_pb2.FlowIterator,
-    ]
+    self.ReceiveRRGResponses(client_id, [response])
 
-    if response.HasField("status"):
-      flow_response = flows_pb2.FlowStatus()
-      flow_response.network_bytes_sent = response.status.network_bytes_sent
-      # TODO: Populate `cpu_time_used` and `runtime_us`
+  def ReceiveRRGResponses(
+      self,
+      client_id: str,
+      responses: Sequence[rrg_pb2.Response],
+  ) -> None:
+    """Receives and processes multiple responses from the RRG agent.
 
-      if response.status.HasField("error"):
-        # TODO: Convert RRG error types to GRR error types.
-        flow_response.status = flows_pb2.FlowStatus.Status.ERROR
-        flow_response.error_message = response.status.error.message
+    Args:
+      client_id: An identifier of the client for which we process the response.
+      responses: Responses to process.
+    """
+    flow_responses = []
+    flow_rrg_logs: dict[tuple[int, int], dict[int, rrg_pb2.Log]] = {}
+
+    for response in responses:
+      flow_response: Union[
+          flows_pb2.FlowResponse,
+          flows_pb2.FlowStatus,
+          flows_pb2.FlowIterator,
+      ]
+
+      if response.HasField("status"):
+        flow_response = flows_pb2.FlowStatus()
+        flow_response.network_bytes_sent = response.status.network_bytes_sent
+        # TODO: Populate `cpu_time_used` and `runtime_us`
+
+        if response.status.HasField("error"):
+          # TODO: Convert RRG error types to GRR error types.
+          flow_response.status = flows_pb2.FlowStatus.Status.ERROR
+          flow_response.error_message = response.status.error.message
+        else:
+          flow_response.status = flows_pb2.FlowStatus.Status.OK
+
+      elif response.HasField("result"):
+        flow_response = flows_pb2.FlowResponse()
+        flow_response.any_payload.CopyFrom(response.result)
+      elif response.HasField("log"):
+        request_rrg_logs = flow_rrg_logs.setdefault(
+            (response.flow_id, response.request_id), {}
+        )
+        request_rrg_logs[response.response_id] = response.log
+        continue
       else:
-        flow_response.status = flows_pb2.FlowStatus.Status.OK
+        raise ValueError(f"Unexpected response: {response}")
 
-    elif response.HasField("result"):
-      flow_response = flows_pb2.FlowResponse()
-      flow_response.any_payload.CopyFrom(response.result)
-    elif response.HasField("log"):
-      log = response.log
+      flow_response.client_id = client_id
+      flow_response.flow_id = f"{response.flow_id:016X}"
+      flow_response.request_id = response.request_id
+      flow_response.response_id = response.response_id
 
-      timestamp = rdfvalue.RDFDatetime.FromProtoTimestamp(log.timestamp)
-      level = rrg_pb2.Log.Level.Name(log.level)
+      flow_responses.append(flow_response)
 
-      flow_log_entry = flows_pb2.FlowLogEntry(
+    data_store.REL_DB.WriteFlowResponses(flow_responses)
+
+    for (flow_id, request_id), logs in flow_rrg_logs.items():
+      data_store.REL_DB.WriteFlowRRGLogs(
           client_id=client_id,
-          flow_id=f"{response.flow_id:016X}",
-          timestamp=timestamp.AsMicrosecondsSinceEpoch(),
-          message=f"[RRG:{level}] {log.message}",
+          flow_id=f"{flow_id:016X}",
+          request_id=request_id,
+          logs=logs,
       )
-      data_store.REL_DB.WriteFlowLogEntry(flow_log_entry)
-      return
-    else:
-      raise ValueError(f"Unexpected response: {response}")
 
-    flow_response.client_id = client_id
-    flow_response.flow_id = f"{response.flow_id:016X}"
-    flow_response.request_id = response.request_id
-    flow_response.response_id = response.response_id
-    data_store.REL_DB.WriteFlowResponses([flow_response])
-
+  # TODO: Remove once no longer needed.
   def ReceiveRRGParcel(
       self,
       client_id: str,
       parcel: rrg_pb2.Parcel,
   ) -> None:
-    """Receives a processes a parcel from the RRG agent.
+    """Receives and processes a single parcel from the RRG agent.
 
     Args:
       client_id: An identifier of the client for which we process the response.
       parcel: A parcel to process.
     """
-    sink_name = rrg_pb2.Sink.Name(parcel.sink)
+    self.ReceiveRRGParcels(client_id, [parcel])
 
-    RRG_PARCEL_COUNT.Increment(fields=[sink_name])
+  def ReceiveRRGParcels(
+      self,
+      client_id: str,
+      parcels: Sequence[rrg_pb2.Parcel],
+  ) -> None:
+    """Receives and processes multiple parcels from the RRG agent.
+
+    Args:
+      client_id: An identifier of the client for which we process the response.
+      parcels: Parcels to process.
+    """
+    parcels_by_sink_name = {}
+    for parcel in parcels:
+      sink_name = rrg_pb2.Sink.Name(parcel.sink)
+      parcels_by_sink_name.setdefault(sink_name, []).append(parcel)
+
+    for sink_name, sink_parcels in parcels_by_sink_name.items():
+      RRG_PARCEL_COUNT.Increment(fields=[sink_name], delta=len(sink_parcels))
+
     try:
-      sinks.Accept(client_id, parcel)
+      sinks.AcceptMany(client_id, parcels)
     except Exception:  # pylint: disable=broad-exception-caught
-      RRG_PARCEL_ACCEPT_ERRORS.Increment(fields=[sink_name])
-      logging.exception("Failed to process parcel for '%s'", client_id)
+      # TODO: `AcceptMany` should raise an error that specifies
+      # which sink caused the exception. Then we don't have to increment the
+      # count for all sinks.
+      for sink_name in parcels_by_sink_name:
+        RRG_PARCEL_ACCEPT_ERRORS.Increment(fields=[sink_name])
+      logging.exception("Failed to process parcels for '%s'", client_id)

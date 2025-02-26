@@ -22,7 +22,7 @@ describe('duration form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-duration value="value" />';
+    const template = '<grr-form-duration value="value"></grr-form-duration>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

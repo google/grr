@@ -31,6 +31,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a DumpProcessMemory flow. */
 @Component({
+  standalone: false,
   selector: 'app-dump-process-memory-form',
   templateUrl: './dump_process_memory_form.ng.html',
   styleUrls: ['./dump_process_memory_form.scss'],

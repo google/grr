@@ -9,7 +9,6 @@ import re
 import shutil
 import subprocess
 import sys
-from typing import List
 import zipfile
 
 import win32process
@@ -109,7 +108,7 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
       "grr-client.exe.manifest",
   ]
 
-  def Run(args: List[str]):
+  def Run(args: list[str]):
     logging.info("Running: %s.", args)
     subprocess.check_call(args)
 
@@ -162,11 +161,6 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
     with open(os.path.join(input_dir, "restart-dummy.txt"), "w"):
       pass
 
-    # To conditionally delete the legacy nanny service,
-    # a dummy file is needed.
-    with open(os.path.join(input_dir, "remove-dummy.txt"), "w"):
-      pass
-
     object_files = []
     for source_file in (wxs_file, fleetspeak_wxs_lib,
                         os.path.join(temp_dir, "heat.wxs")):
@@ -215,7 +209,7 @@ class WindowsClientBuilder(build.ClientBuilder):
     shutil.copy(os.path.join(src_dir, "fleetspeak-client.exe"), output_dir)
 
   def _CreateOutputDir(self):
-    """Windows templates also include the nanny."""
+    """Creates the build output directory and copies necessary files."""
     build_helpers.MakeBuildDirectory(context=self.context)
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 

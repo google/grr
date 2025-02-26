@@ -15,6 +15,7 @@ import {UserGlobalStore} from '../../store/user_global_store';
 
 /** Component that displays an approval request. */
 @Component({
+  standalone: false,
   selector: 'app-approval-page',
   templateUrl: './approval_page.ng.html',
   styleUrls: ['./approval_page.scss'],
@@ -23,33 +24,15 @@ import {UserGlobalStore} from '../../store/user_global_store';
 export class ApprovalPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly approval$ = this.approvalPageGlobalStore.approval$;
+  readonly approval$;
 
   // TODO: Evaluate moving canGrant$ to ApprovalPageGlobalStore,
   // which would then depend on UserGlobalStore.
-  private readonly canGrant$ = combineLatest([
-    this.approval$,
-    this.userGlobalStore.currentUser$,
-  ]).pipe(
-    map(
-      ([approval, user]) =>
-        approval &&
-        user.name !== approval.requestor &&
-        !approval.approvers.includes(user.name),
-    ),
-  );
+  private readonly canGrant$;
 
-  readonly requestInProgress$ =
-    this.approvalPageGlobalStore.grantRequestStatus$.pipe(
-      map((status) => status?.status === RequestStatusType.SENT),
-    );
+  readonly requestInProgress$;
 
-  readonly disabled$ = combineLatest([
-    this.canGrant$,
-    this.requestInProgress$,
-  ]).pipe(
-    map(([canGrant, requestInProgress]) => !canGrant || requestInProgress),
-  );
+  readonly disabled$;
 
   longExpiration?: boolean;
   defaultAccessDurationDays?: number;
@@ -63,6 +46,28 @@ export class ApprovalPage implements OnDestroy {
     private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
     private readonly configGlobalStore: ConfigGlobalStore,
   ) {
+    this.approval$ = this.approvalPageGlobalStore.approval$;
+    this.canGrant$ = combineLatest([
+      this.approval$,
+      this.userGlobalStore.currentUser$,
+    ]).pipe(
+      map(
+        ([approval, user]) =>
+          approval &&
+          user.name !== approval.requestor &&
+          !approval.approvers.includes(user.name),
+      ),
+    );
+    this.requestInProgress$ =
+      this.approvalPageGlobalStore.grantRequestStatus$.pipe(
+        map((status) => status?.status === RequestStatusType.SENT),
+      );
+    this.disabled$ = combineLatest([
+      this.canGrant$,
+      this.requestInProgress$,
+    ]).pipe(
+      map(([canGrant, requestInProgress]) => !canGrant || requestInProgress),
+    );
     route.paramMap
       .pipe(takeUntil(this.ngOnDestroy.triggered$))
       .subscribe((params) => {

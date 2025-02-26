@@ -64,7 +64,8 @@ class StatsServer(base_stats_server.BaseStatsServer):
         raise
 
     self._server_thread = threading.Thread(
-        target=self._http_server.serve_forever)
+        target=self._http_server.serve_forever
+    )
     self._server_thread.daemon = True
     self._server_thread.start()
 
@@ -96,8 +97,9 @@ def InitializeStatsServerOnce():
   if max_port is None:
     # Use the same number of available ports as the adminui is using. If we
     # have 10 available for adminui we will need 10 for the stats server.
-    adminui_max_port = config.CONFIG.Get("AdminUI.port_max",
-                                         config.CONFIG["AdminUI.port"])
+    adminui_max_port = config.CONFIG.Get(
+        "AdminUI.port_max", config.CONFIG["AdminUI.port"]
+    )
     max_port = port + adminui_max_port - config.CONFIG["AdminUI.port"]
 
   try:
@@ -112,8 +114,9 @@ def InitializeStatsServerOnce():
 
   for port in range(port, max_port + 1):
     try:
-      logging.info("Starting monitoring server on address %s and port %d.",
-                   address, port)
+      logging.info(
+          "Starting monitoring server on address %s and port %d.", address, port
+      )
       server_obj = server_cls(address, port)
       server_obj.Start()
       return

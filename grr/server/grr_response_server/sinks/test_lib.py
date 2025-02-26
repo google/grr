@@ -2,7 +2,7 @@
 """A testing utilities to simplify test code working with sinks."""
 
 import collections
-from typing import Sequence
+from collections.abc import Sequence
 
 from grr_response_server import sinks
 from grr_response_proto import rrg_pb2

@@ -6,6 +6,8 @@ import logging
 import re
 from typing import Iterable, Union
 
+import yara
+
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
@@ -15,7 +17,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 _YARA_SIGNATURE_SHARD_SIZE = 500 << 10  # 500 KiB
 
@@ -38,28 +40,33 @@ class YaraProcessScan(flow_base.FlowBase):
 
   def _ValidateFlowArgs(self):
     if self.args.yara_signature and self.args.yara_signature_blob_id:
-      message = ("`yara_signature` can't be used together with "
-                 "`yara_signature_blob_id")
+      message = (
+          "`yara_signature` can't be used together with `yara_signature_blob_id"
+      )
       raise flow_base.FlowError(message)
     elif self.args.yara_signature:
-      rules = self.args.yara_signature.GetRules()
+      # Make sure the rules compile and are not empty before we move forward.
+      rules = yara.compile(source=str(self.args.yara_signature))
       if not list(rules):
         raise flow_base.FlowError(
-            "No rules found in the signature specification.")
+            "No rules found in the signature specification."
+        )
     elif self.args.yara_signature_blob_id:
-      blob_id = blobs.BlobID(self.args.yara_signature_blob_id)
+      blob_id = models_blobs.BlobID(self.args.yara_signature_blob_id)
       if not data_store.REL_DB.VerifyYaraSignatureReference(blob_id):
         message = "Incorrect YARA signature reference: {}".format(blob_id)
         raise flow_base.FlowError(message)
     else:
       raise flow_base.FlowError(
           "Flow args contain neither yara_signature nor yara_signature_blob_id."
-          " Provide a yara_signature for scanning.")
+          " Provide a yara_signature for scanning."
+      )
 
     if self.args.process_regex and self.args.cmdline_regex:
       raise flow_base.FlowError(
           "Use either process_regex to match process names"
-          "or cmdline_regex to match the process cmdline.")
+          "or cmdline_regex to match the process cmdline."
+      )
 
     if self.args.process_regex:
       re.compile(self.args.process_regex)
@@ -82,7 +89,7 @@ class YaraProcessScan(flow_base.FlowBase):
     if self.args.yara_signature:
       signature_bytes = str(self.args.yara_signature).encode("utf-8")
     elif self.args.yara_signature_blob_id:
-      blob_id = blobs.BlobID(self.args.yara_signature_blob_id)
+      blob_id = models_blobs.BlobID(self.args.yara_signature_blob_id)
       signature_bytes = data_store.BLOBS.ReadBlob(blob_id)
 
     offsets = range(0, len(signature_bytes), _YARA_SIGNATURE_SHARD_SIZE)
@@ -93,17 +100,20 @@ class YaraProcessScan(flow_base.FlowBase):
       client_request.yara_signature = None
       client_request.signature_shard = rdf_memory.YaraSignatureShard(
           index=i,
-          payload=signature_bytes[offset:offset + _YARA_SIGNATURE_SHARD_SIZE])
+          payload=signature_bytes[offset : offset + _YARA_SIGNATURE_SHARD_SIZE],
+      )
       client_request.num_signature_shards = len(offsets)
       self.CallClient(
           server_stubs.YaraProcessScan,
           request=client_request,
           request_data=request_data,
-          next_state=self.ProcessScanResults.__name__)
+          next_state=self.ProcessScanResults.__name__,
+      )
 
   def ProcessScanResults(
       self,
-      responses: flow_responses.Responses[rdf_memory.YaraProcessScanResponse]):
+      responses: flow_responses.Responses[rdf_memory.YaraProcessScanResponse],
+  ):
     """Processes the results of the scan."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
@@ -116,7 +126,8 @@ class YaraProcessScan(flow_base.FlowBase):
     # Restore original runtime limit in case it was overridden.
     if "runtime_limit_us" in responses.request_data:
       self.rdf_flow.runtime_limit_us = responses.request_data[
-          "runtime_limit_us"]
+          "runtime_limit_us"
+      ]
 
     regions_to_dump = collections.defaultdict(set)
 
@@ -125,8 +136,12 @@ class YaraProcessScan(flow_base.FlowBase):
         self.SendReply(match)
         rules = set([m.rule_name for m in match.match])
         rules_string = ",".join(sorted(rules))
-        logging.debug("YaraScan match in pid %d (%s) for rules %s.",
-                      match.process.pid, match.process.exe, rules_string)
+        logging.debug(
+            "YaraScan match in pid %d (%s) for rules %s.",
+            match.process.pid,
+            match.process.exe,
+            rules_string,
+        )
 
         if self.args.dump_process_on_match:
           for process_match in match.match:
@@ -146,18 +161,25 @@ class YaraProcessScan(flow_base.FlowBase):
     for pid, offsets in regions_to_dump.items():
       self.CallFlow(
           DumpProcessMemory.__name__,
-          pids=[pid],
-          prioritize_offsets=list(sorted(offsets)),
-          size_limit=self.args.process_dump_size_limit,
-          skip_special_regions=self.args.skip_special_regions,
-          skip_mapped_files=self.args.skip_mapped_files,
-          skip_shared_regions=self.args.skip_shared_regions,
-          skip_executable_regions=self.args.skip_executable_regions,
-          skip_readonly_regions=self.args.skip_readonly_regions,
-          next_state=self.CheckDumpProcessMemoryResults.__name__)
+          flow_args=rdf_memory.YaraProcessDumpArgs(
+              pids=[pid],
+              prioritize_offsets=list(sorted(offsets)),
+              size_limit=self.args.process_dump_size_limit,
+              skip_special_regions=self.args.skip_special_regions,
+              skip_mapped_files=self.args.skip_mapped_files,
+              skip_shared_regions=self.args.skip_shared_regions,
+              skip_executable_regions=self.args.skip_executable_regions,
+              skip_readonly_regions=self.args.skip_readonly_regions,
+          ),
+          next_state=self.CheckDumpProcessMemoryResults.__name__,
+      )
 
-  def CheckDumpProcessMemoryResults(self, responses: flow_responses.Responses[
-      Union[rdf_client_fs.StatEntry, rdf_memory.YaraProcessDumpResponse]]):
+  def CheckDumpProcessMemoryResults(
+      self,
+      responses: flow_responses.Responses[
+          Union[rdf_client_fs.StatEntry, rdf_memory.YaraProcessDumpResponse]
+      ],
+  ):
     # First send responses to parent Flow, then indicate potential errors, to
     # increase robustness.
     for response in responses:
@@ -174,8 +196,7 @@ class YaraProcessScan(flow_base.FlowBase):
 
     if self.args.include_errors_in_results == ErrorPolicy.CRITICAL_ERRORS:
       msg = error.error.lower()
-      return ("failed to open process" not in msg and
-              "access denied" not in msg)
+      return "failed to open process" not in msg and "access denied" not in msg
 
     # Fall back to including all errors.
     return True
@@ -191,31 +212,10 @@ def _CanonicalizeLegacyWindowsPathSpec(ps: rdf_paths.PathSpec):
   return canonicalized
 
 
-def _MigrateLegacyDumpFilesToMemoryAreas(
-    response: rdf_memory.YaraProcessDumpResponse):
-  """Migrates a YPDR from dump_files to memory_regions inplace."""
-  for info in response.dumped_processes:
-    for dump_file in info.dump_files:
-      # filename = "%s_%d_%x_%x.tmp" % (process.name, pid, start, end)
-      # process.name can contain underscores. Split exactly 3 _ from the right.
-      path_without_ext, _ = dump_file.Basename().rsplit(".", 1)
-      _, _, start, end = path_without_ext.rsplit("_", 3)
-      start = int(start, 16)
-      end = int(end, 16)
-
-      info.memory_regions.Append(
-          rdf_memory.ProcessMemoryRegion(
-              file=_CanonicalizeLegacyWindowsPathSpec(dump_file),
-              start=start,
-              size=end - start,
-          ))
-    # Remove dump_files, since new clients do not set it anymore.
-    info.dump_files = None
-
-
 def _ReplaceDumpPathspecsWithMultiGetFilePathspec(
     dump_response: rdf_memory.YaraProcessDumpResponse,
-    stat_entries: Iterable[rdf_client_fs.StatEntry]):
+    stat_entries: Iterable[rdf_client_fs.StatEntry],
+):
   """Replaces a dump's PathSpecs based on their Basename."""
   memory_regions = {}
   for dumped_process in dump_response.dumped_processes:
@@ -224,7 +224,8 @@ def _ReplaceDumpPathspecsWithMultiGetFilePathspec(
 
   for stat_entry in stat_entries:
     memory_regions[stat_entry.pathspec.Basename()].file = rdf_paths.PathSpec(
-        stat_entry.pathspec)
+        stat_entry.pathspec
+    )
 
 
 class DumpProcessMemory(flow_base.FlowBase):
@@ -242,41 +243,50 @@ class DumpProcessMemory(flow_base.FlowBase):
     if self.args.process_regex:
       re.compile(self.args.process_regex)
 
-    if not (self.args.dump_all_processes or self.args.pids or
-            self.args.process_regex):
+    if not (
+        self.args.dump_all_processes
+        or self.args.pids
+        or self.args.process_regex
+    ):
       raise ValueError("No processes to dump specified.")
 
     if self.args.prioritize_offsets and len(self.args.pids) != 1:
       raise ValueError(
           "Supplied prioritize_offsets {} for PIDs {} in YaraProcessDump. "
-          "Required exactly one PID.".format(self.args.prioritize_offsets,
-                                             self.args.pids))
+          "Required exactly one PID.".format(
+              self.args.prioritize_offsets, self.args.pids
+          )
+      )
 
     self.CallClient(
         server_stubs.YaraProcessDump,
         request=self.args,
-        next_state=self.ProcessResults.__name__)
+        next_state=self.ProcessResults.__name__,
+    )
 
   def ProcessResults(
       self,
-      responses: flow_responses.Responses[rdf_memory.YaraProcessDumpResponse]):
+      responses: flow_responses.Responses[rdf_memory.YaraProcessDumpResponse],
+  ):
     """Processes the results of the dump."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
     response = responses.First()
-    _MigrateLegacyDumpFilesToMemoryAreas(response)
 
     for error in response.errors:
       p = error.process
-      self.Log("Error dumping process %s (pid %d): %s" %
-               (p.name, p.pid, error.error))
+      self.Log(
+          "Error dumping process %s (pid %d): %s" % (p.name, p.pid, error.error)
+      )
 
     dump_files_to_get = []
     for dumped_process in response.dumped_processes:
       p = dumped_process.process
-      self.Log("Getting %d dump files for process %s (pid %d)." %
-               (len(dumped_process.memory_regions), p.name, p.pid))
+      self.Log(
+          "Getting %d dump files for process %s (pid %d)."
+          % (len(dumped_process.memory_regions), p.name, p.pid)
+      )
       for region in dumped_process.memory_regions:
         dump_files_to_get.append(region.file)
 
@@ -287,14 +297,18 @@ class DumpProcessMemory(flow_base.FlowBase):
 
     self.CallFlow(
         transfer.MultiGetFile.__name__,
-        pathspecs=dump_files_to_get,
-        file_size=1024 * 1024 * 1024,
-        use_external_stores=False,
+        flow_args=transfer.MultiGetFileArgs(
+            pathspecs=dump_files_to_get,
+            file_size=1024 * 1024 * 1024,
+            use_external_stores=False,
+        ),
         next_state=self.ProcessMemoryRegions.__name__,
-        request_data={"YaraProcessDumpResponse": response})
+        request_data={"YaraProcessDumpResponse": response},
+    )
 
   def ProcessMemoryRegions(
-      self, responses: flow_responses.Responses[rdf_client_fs.StatEntry]):
+      self, responses: flow_responses.Responses[rdf_client_fs.StatEntry]
+  ):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
@@ -317,10 +331,12 @@ class DumpProcessMemory(flow_base.FlowBase):
       self.CallClient(
           server_stubs.DeleteGRRTempFiles,
           response.pathspec,
-          next_state=self.LogDeleteFiles.__name__)
+          next_state=self.LogDeleteFiles.__name__,
+      )
 
   def LogDeleteFiles(
-      self, responses: flow_responses.Responses[rdf_client.LogMessage]):
+      self, responses: flow_responses.Responses[rdf_client.LogMessage]
+  ):
     # Check that the DeleteFiles flow worked.
     if not responses.success:
       raise flow_base.FlowError("Could not delete file: %s" % responses.status)

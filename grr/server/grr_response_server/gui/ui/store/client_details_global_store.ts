@@ -115,16 +115,20 @@ class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
   providedIn: 'root',
 })
 export class ClientDetailsGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ClientDetailsComponentStore(this.httpApiService);
+    this.selectedClientVersions$ = this.store.selectedClientVersions$;
+    this.selectedClientEntriesChanged$ =
+      this.store.selectedClientEntriesChanged$;
+  }
 
-  private readonly store = new ClientDetailsComponentStore(this.httpApiService);
+  private readonly store;
 
   /**
    * An observable emitting the client versions of the
    * selected client.
    */
-  readonly selectedClientVersions$: Observable<readonly ClientVersion[]> =
-    this.store.selectedClientVersions$;
+  readonly selectedClientVersions$: Observable<readonly ClientVersion[]>;
 
   /**
    * An observable emitting the client changed entries of
@@ -132,7 +136,7 @@ export class ClientDetailsGlobalStore {
    */
   readonly selectedClientEntriesChanged$: Observable<
     Map<string, readonly Client[]>
-  > = this.store.selectedClientEntriesChanged$;
+  >;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

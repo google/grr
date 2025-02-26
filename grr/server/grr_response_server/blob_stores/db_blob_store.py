@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """REL_DB blobstore implementation."""
-
-from typing import Dict
-from typing import Iterable
+from collections.abc import Iterable
 from typing import Optional
 
 from grr_response_server import blob_store
 from grr_response_server import data_store
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class DbBlobStore(blob_store.BlobStore):
@@ -35,18 +33,18 @@ class DbBlobStore(blob_store.BlobStore):
 
   def WriteBlobs(
       self,
-      blob_id_data_map: Dict[blobs.BlobID, bytes],
+      blob_id_data_map: dict[models_blobs.BlobID, bytes],
   ) -> None:
     return self._delegate.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(
       self,
-      blob_ids: Iterable[blobs.BlobID],
-  ) -> Dict[blobs.BlobID, Optional[bytes]]:
+      blob_ids: Iterable[models_blobs.BlobID],
+  ) -> dict[models_blobs.BlobID, Optional[bytes]]:
     return self._delegate.ReadBlobs(blob_ids)
 
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[blobs.BlobID],
-  ) -> Dict[blobs.BlobID, bool]:
+      blob_ids: Iterable[models_blobs.BlobID],
+  ) -> dict[models_blobs.BlobID, bool]:
     return self._delegate.CheckBlobsExist(blob_ids)

@@ -7,7 +7,7 @@ const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonD
 
 
 /** @const */
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 /**
@@ -49,7 +49,7 @@ const DownloadCollectionAsController = class {
    * @export
    */
   downloadAs(pluginName) {
-    var url = this.scope_['baseUrl'] + '/' + pluginName;
+    const url = this.scope_['baseUrl'] + '/' + pluginName;
     this.grrApiService_.downloadFile(url).then(
         function success() {}.bind(this),
         function failure(response) {

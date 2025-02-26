@@ -3,27 +3,17 @@
     <tr>
       <td class="section-title">
         <h4>Selected clients</h4>
-        <h4 class="match-mode" *ngIf="hunt.clientRuleSet?.matchMode">
+        <h4 class="match-mode">
+          <!-- Undefined `matchMode` should be treated as "match all" (default). -->
           {{
-            hunt.clientRuleSet?.matchMode === ClientRuleSetMatchMode.MATCH_ALL
-              ? " – match all (and)"
-              : " – match any (or):"
+            hunt.clientRuleSet?.matchMode === ClientRuleSetMatchMode.MATCH_ANY
+            ? " – match any (or):"
+            : " – match all (and)"
           }}
         </h4>
       </td>
     </tr>
     <tr *ngFor="let rule of hunt.clientRuleSet?.rules" [ngSwitch]="rule.ruleType">
-      <ng-container *ngSwitchCase="ClientRuleType.OS">
-        <td>Operating System:</td>
-        <td>
-          <ng-container *ngIf="rule.os?.osWindows"> Windows </ng-container>
-
-          <ng-container *ngIf="rule.os?.osLinux"> Linux </ng-container>
-
-          <ng-container *ngIf="rule.os?.osDarwin"> Darwin </ng-container>
-        </td>
-      </ng-container>
-
       <ng-container *ngSwitchCase="ClientRuleType.LABEL">
         <td>Label:</td>
         <td>
@@ -69,6 +59,18 @@
             >
           </ng-container>
           <ng-container *ngIf="rule.integer?.value">{{ rule.integer?.value }}</ng-container>
+        </td>
+      </ng-container>
+
+      <!-- OS is the default rule type. -->
+      <ng-container *ngSwitchDefault>
+        <td>Operating System:</td>
+        <td>
+          <ng-container *ngIf="rule.os?.osWindows"> Windows </ng-container>
+
+          <ng-container *ngIf="rule.os?.osLinux"> Linux </ng-container>
+
+          <ng-container *ngIf="rule.os?.osDarwin"> Darwin </ng-container>
         </td>
       </ng-container>
     </tr>

@@ -9,10 +9,12 @@ import {HuntProgressTable} from './hunt_progress_table';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `<app-hunt-progress-table
     [completionProgressData]="completionProgressData"
     [totalClients]="totalClients">
   </app-hunt-progress-table>`,
+  jit: true,
 })
 class TestHostComponent {
   completionProgressData: HuntCompletionProgressTableRow[] | null = null;

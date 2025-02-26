@@ -1,10 +1,10 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 import {HexView} from './hex_view';
 
 @NgModule({
-  imports: [BrowserAnimationsModule],
+  imports: [CommonModule],
   declarations: [HexView],
   exports: [HexView],
 })

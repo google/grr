@@ -10,25 +10,25 @@ from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_proto.api import client_pb2
-from grr_response_server.models import clients
+from grr_response_server.models import clients as models_clients
 
 
 class FleetspeakValidationInfoFromDictTest(absltest.TestCase):
 
   def testEmpty(self):
-    result = clients.FleetspeakValidationInfoFromDict({})
+    result = models_clients.FleetspeakValidationInfoFromDict({})
 
     self.assertEmpty(result.tags)
 
   def testSingle(self):
-    result = clients.FleetspeakValidationInfoFromDict({"foo": "bar"})
+    result = models_clients.FleetspeakValidationInfoFromDict({"foo": "bar"})
 
     self.assertLen(result.tags, 1)
     self.assertEqual(result.tags[0].key, "foo")
     self.assertEqual(result.tags[0].value, "bar")
 
   def testMultiple(self):
-    result = clients.FleetspeakValidationInfoFromDict({
+    result = models_clients.FleetspeakValidationInfoFromDict({
         "1": "foo",
         "2": "bar",
         "3": "quux",
@@ -52,14 +52,14 @@ class FleetspeakValidationInfoToDictTest(absltest.TestCase):
   def testEmpty(self):
     info = jobs_pb2.FleetspeakValidationInfo()
 
-    result = clients.FleetspeakValidationInfoToDict(info)
+    result = models_clients.FleetspeakValidationInfoToDict(info)
     self.assertEmpty(result)
 
   def testSingle(self):
     info = jobs_pb2.FleetspeakValidationInfo()
     info.tags.add(key="foo", value="bar")
 
-    result = clients.FleetspeakValidationInfoToDict(info)
+    result = models_clients.FleetspeakValidationInfoToDict(info)
     self.assertDictEqual(result, {"foo": "bar"})
 
   def testMultiple(self):
@@ -68,7 +68,7 @@ class FleetspeakValidationInfoToDictTest(absltest.TestCase):
     info.tags.add(key="2", value="bar")
     info.tags.add(key="3", value="quux")
 
-    result = clients.FleetspeakValidationInfoToDict(info)
+    result = models_clients.FleetspeakValidationInfoToDict(info)
     self.assertDictEqual(result, {"1": "foo", "2": "bar", "3": "quux"})
 
   def testEmptyKey(self):
@@ -76,7 +76,7 @@ class FleetspeakValidationInfoToDictTest(absltest.TestCase):
     info.tags.add(key="", value="foo")
 
     with self.assertRaises(ValueError) as context:
-      clients.FleetspeakValidationInfoToDict(info)
+      models_clients.FleetspeakValidationInfoToDict(info)
 
     self.assertEqual(str(context.exception), "Empty tag key")
 
@@ -85,7 +85,7 @@ class FleetspeakValidationInfoToDictTest(absltest.TestCase):
     info.tags.add(key="foo", value="")
 
     with self.assertRaises(ValueError) as context:
-      clients.FleetspeakValidationInfoToDict(info)
+      models_clients.FleetspeakValidationInfoToDict(info)
 
     self.assertEqual(str(context.exception), "Empty tag value for key 'foo'")
 
@@ -95,7 +95,7 @@ class FleetspeakValidationInfoToDictTest(absltest.TestCase):
     info.tags.add(key="foo", value="baz")
 
     with self.assertRaises(ValueError) as context:
-      clients.FleetspeakValidationInfoToDict(info)
+      models_clients.FleetspeakValidationInfoToDict(info)
 
     self.assertEqual(str(context.exception), "Duplicate tag key 'foo'")
 
@@ -104,19 +104,19 @@ class NetworkAddressFromPackedBytes(absltest.TestCase):
 
   def testInvalidLength(self):
     with self.assertRaises(ValueError):
-      clients.NetworkAddressFromPackedBytes(b"0.1.2.3")
+      models_clients.NetworkAddressFromPackedBytes(b"0.1.2.3")
 
   def testIPv4(self):
     packed_bytes = ipaddress.IPv4Address("196.128.0.1").packed
 
-    result = clients.NetworkAddressFromPackedBytes(packed_bytes)
+    result = models_clients.NetworkAddressFromPackedBytes(packed_bytes)
     self.assertEqual(result.packed_bytes, packed_bytes)
     self.assertEqual(result.address_type, jobs_pb2.NetworkAddress.INET)
 
   def testIPv6(self):
     packed_bytes = ipaddress.IPv6Address("::1").packed
 
-    result = clients.NetworkAddressFromPackedBytes(packed_bytes)
+    result = models_clients.NetworkAddressFromPackedBytes(packed_bytes)
     self.assertEqual(result.packed_bytes, packed_bytes)
     self.assertEqual(result.address_type, jobs_pb2.NetworkAddress.INET6)
 
@@ -126,14 +126,14 @@ class NetworkAddressFromIPAddress(absltest.TestCase):
   def testIPv4(self):
     ip_address = ipaddress.IPv4Address("196.128.0.1")
 
-    result = clients.NetworkAddressFromIPAddress(ip_address)
+    result = models_clients.NetworkAddressFromIPAddress(ip_address)
     self.assertEqual(result.packed_bytes, ip_address.packed)
     self.assertEqual(result.address_type, jobs_pb2.NetworkAddress.INET)
 
   def testIPv6(self):
     ip_address = ipaddress.IPv6Address("::1")
 
-    result = clients.NetworkAddressFromIPAddress(ip_address)
+    result = models_clients.NetworkAddressFromIPAddress(ip_address)
     self.assertEqual(result.packed_bytes, ip_address.packed)
     self.assertEqual(result.address_type, jobs_pb2.NetworkAddress.INET6)
 
@@ -260,9 +260,8 @@ class ApiClientFromClientSnapshot(absltest.TestCase):
         interfaces=snapshot.interfaces,
         last_booted_at=snapshot.startup_info.boot_time,
         memory_size=snapshot.memory_size,
-        users=snapshot.knowledge_base.users,
     )
-    got_api_client = clients.ApiClientFromClientSnapshot(snapshot)
+    got_api_client = models_clients.ApiClientFromClientSnapshot(snapshot)
     self.assertEqual(want_client, got_api_client)
 
 
@@ -293,10 +292,9 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
         interfaces=snapshot.interfaces,
         last_booted_at=snapshot.startup_info.boot_time,
         memory_size=snapshot.memory_size,
-        users=snapshot.knowledge_base.users,
     )
 
-    got_api_client = clients.ApiClientFromClientFullInfo(
+    got_api_client = models_clients.ApiClientFromClientFullInfo(
         "C.0000000000000000", client_info
     )
 
@@ -307,7 +305,9 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     client_info = objects_pb2.ClientFullInfo(last_snapshot=snapshot)
 
     with self.assertRaises(ValueError):
-      clients.ApiClientFromClientFullInfo("C.1111111111111111", client_info)
+      models_clients.ApiClientFromClientFullInfo(
+          "C.1111111111111111", client_info
+      )
 
   def _GenerateClientFullInfo(
       self, major=1, minor=2, patch=3, rrg_args_str="some args --were passed"
@@ -359,7 +359,7 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     for label in client_info.labels:
       want_client.labels.append(label)
 
-    got_api_client = clients.ApiClientFromClientFullInfo(
+    got_api_client = models_clients.ApiClientFromClientFullInfo(
         "C.0000000000000000", client_info
     )
 
@@ -374,7 +374,9 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     info.last_snapshot.client_id = "C.1122334455667788"
     info.last_snapshot.timestamp = int(last_snapshot_time)
 
-    api_client = clients.ApiClientFromClientFullInfo("C.1122334455667788", info)
+    api_client = models_clients.ApiClientFromClientFullInfo(
+        "C.1122334455667788", info
+    )
 
     self.assertEqual(api_client.age, int(last_snapshot_time))
 
@@ -384,7 +386,9 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     info = objects_pb2.ClientFullInfo()
     info.metadata.first_seen = int(first_seen_time)
 
-    api_client = clients.ApiClientFromClientFullInfo("C.1122334455667788", info)
+    api_client = models_clients.ApiClientFromClientFullInfo(
+        "C.1122334455667788", info
+    )
 
     self.assertEqual(api_client.age, first_seen_time)
 
@@ -394,10 +398,13 @@ class ApiClientFromClientFullInfo(absltest.TestCase):
     info.last_rrg_startup.metadata.version.major = 1
     info.last_rrg_startup.metadata.version.minor = 2
     info.last_rrg_startup.metadata.version.patch = 3
+    info.last_rrg_startup.metadata.version.pre = "quux"
 
-    api_client = clients.ApiClientFromClientFullInfo("C.0123456789ABCDEF", info)
+    api_client = models_clients.ApiClientFromClientFullInfo(
+        "C.0123456789ABCDEF", info
+    )
 
-    self.assertEqual(api_client.rrg_version, "1.2.3")
+    self.assertEqual(api_client.rrg_version, "1.2.3-quux")
     self.assertEqual(api_client.rrg_args, ["--foo", "--bar", "--baz"])
 
 

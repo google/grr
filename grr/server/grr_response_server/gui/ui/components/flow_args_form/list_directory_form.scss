@@ -1,3 +1,5 @@
+@use "flow_args_form_styles";
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -5,10 +7,4 @@
   padding-bottom: 1rem;
 }
 
-mat-radio-button {
-  padding-right: 16px;
-}
 
-.row {
-  width: 100%;
-}

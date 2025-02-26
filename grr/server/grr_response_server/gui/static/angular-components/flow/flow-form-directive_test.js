@@ -105,7 +105,7 @@ describe('flow form directive', () => {
     const template = '<grr-flow-form ' +
         'flow-args="args" flow-runner-args="runnerArgs" ' +
         'with-output-plugins="withOutputPlugins" ' +
-        'has-errors="hasErrors" />';
+        'has-errors="hasErrors"></grr-flow-form>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

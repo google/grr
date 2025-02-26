@@ -262,10 +262,11 @@ class ApiSslProxyTest(ApiSslServerTestBase):
     with self.assertRaises(requests.exceptions.ConnectionError):
       api.Client(client_id=client_id).Get()
 
+    self.assertLen(Proxy.requests, 1)
     # CONNECT request should point to GRR SSL server.
-    self.assertEqual(
-        Proxy.requests,
-        ["CONNECT localhost:%d HTTP/1.0" % self.__class__.ssl_port],
+    self.assertStartsWith(
+        Proxy.requests[0],
+        "CONNECT localhost:%d" % self.__class__.ssl_port,
     )
 
 

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.semanticProtoSingleFieldFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 

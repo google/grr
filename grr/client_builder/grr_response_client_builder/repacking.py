@@ -176,9 +176,7 @@ class TemplateRepacker(object):
           config.CONFIG.Get(
               "ClientRepacker.output_filename", context=repack_context))
 
-      print("Using context: %s and labels: %s" %
-            (repack_context,
-             config.CONFIG.Get("Client.labels", context=repack_context)))
+      print(f"Using context: {repack_context}")
       try:
         signer = None
         if sign:

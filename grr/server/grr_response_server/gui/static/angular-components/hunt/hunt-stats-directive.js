@@ -100,7 +100,7 @@ const HuntStatsController = class {
       return;
     }
 
-    var url = `/hunts/${huntId}/stats`;
+    const url = `/hunts/${huntId}/stats`;
     this.grrApiService_.get(url).then((response) => {
       this.stats = response.data['stats'];
 

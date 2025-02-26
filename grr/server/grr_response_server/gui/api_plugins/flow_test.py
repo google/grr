@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import tests_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -121,6 +122,21 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     self.assertIsNotNone(flow_api_obj.progress)
     self.assertEqual(flow_api_obj.progress.status, "Progress.")
 
+  def testInitApiFlowFromFlowObjectwithStore(self):
+    client_id = self.SetupClient(0)
+    flow_obj = flows_pb2.Flow(
+        client_id=client_id,
+        flow_id="ABCDE",
+    )
+    store = tests_pb2.DummyFlowStore(msg="ʕノ•ᴥ•ʔノ ︵ ┻━┻")
+    flow_obj.store.Pack(store)
+
+    flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
+
+    self.assertTrue(flow_api_obj.HasField("store"))
+    flow_api_obj.store.Unpack(store)
+    self.assertEqual(store.msg, "ʕノ•ᴥ•ʔノ ︵ ┻━┻")
+
   def testUnknownFlowNameReturnsBestEffortApiFlow(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
@@ -147,13 +163,15 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.client_id = self.SetupClient(0)
 
     action_mock = action_mocks.FileFinderClientMock()
-    self.flow_id = flow_test_lib.TestFlowHelper(
-        file_finder.FileFinder.__name__,
+    self.flow_id = flow_test_lib.StartAndRunFlow(
+        file_finder.FileFinder,
         action_mock,
         client_id=self.client_id,
         creator=self.test_username,
-        paths=[os.path.join(self.base_path, "test.plist")],
-        action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[os.path.join(self.base_path, "test.plist")],
+            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        ),
     )
 
     if isinstance(self.flow_id, rdfvalue.SessionID):
@@ -210,11 +228,13 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
       with open(temp_filepath, mode="w") as temp_file:
         temp_file.write("Lorem ipsum.")
 
-      flow_id = flow_test_lib.TestFlowHelper(
-          file.CollectFilesByKnownPath.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          file.CollectFilesByKnownPath,
           client_mock,
           client_id=self.client_id,
-          paths=[temp_filepath],
+          flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+              paths=[temp_filepath],
+          ),
           creator=self.test_username,
       )
 
@@ -238,11 +258,13 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
       with open(temp_filepath, mode="w") as temp_file:
         temp_file.write("Lorem ipsum.")
 
-      flow_id = flow_test_lib.TestFlowHelper(
-          file.CollectMultipleFiles.__name__,
+      flow_id = flow_test_lib.StartAndRunFlow(
+          file.CollectMultipleFiles,
           client_mock,
           client_id=self.client_id,
-          path_expressions=[temp_filepath],
+          flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+              path_expressions=[temp_filepath],
+          ),
           creator=self.test_username,
       )
 
@@ -397,8 +419,8 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
-      sid = flow_test_lib.TestFlowHelper(
-          flow_test_lib.DummyFlowWithSingleReply.__name__,
+      sid = flow_test_lib.StartAndRunFlow(
+          flow_test_lib.DummyFlowWithSingleReply,
           client_id=self.client_id,
           creator=self.test_username,
       )

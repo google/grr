@@ -29,7 +29,7 @@ describe('User notification button directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-user-notification-button />';
+    const template = '<grr-user-notification-button></grr-user-notification-button>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;

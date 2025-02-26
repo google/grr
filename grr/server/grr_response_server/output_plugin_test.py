@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.output_plugin."""
+
 from unittest import mock
 
 from absl import app
@@ -25,13 +26,16 @@ class OutputPluginTest(test_lib.GRRBaseTest):
 
   def testGetArgsHandlesMissingPluginsCorrectly(self):
     plugin_args = rdf_flow_runner.FlowRunnerArgs(
-        flow_name=transfer.GetFile.__name__)
+        flow_name=transfer.GetFile.__name__
+    )
     descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="TestOutputPluginWithArgs", args=plugin_args)
+        plugin_name="TestOutputPluginWithArgs", args=plugin_args
+    )
     serialized = descriptor.SerializeToBytes()
 
     deserialized = rdf_output_plugin.OutputPluginDescriptor.FromSerializedBytes(
-        serialized)
+        serialized
+    )
     self.assertEqual(deserialized, descriptor)
     self.assertEqual(deserialized.GetPluginClass(), TestOutputPluginWithArgs)
 
@@ -39,11 +43,15 @@ class OutputPluginTest(test_lib.GRRBaseTest):
     with mock.patch.object(opr, "PLUGIN_REGISTRY", opr.PLUGIN_REGISTRY.copy()):
       del opr.PLUGIN_REGISTRY["TestOutputPluginWithArgs"]
 
-      deserialized = rdf_output_plugin.OutputPluginDescriptor.FromSerializedBytes(
-          serialized)
+      deserialized = (
+          rdf_output_plugin.OutputPluginDescriptor.FromSerializedBytes(
+              serialized
+          )
+      )
 
-      self.assertEqual(deserialized.GetPluginClass(),
-                       output_plugin.UnknownOutputPlugin)
+      self.assertEqual(
+          deserialized.GetPluginClass(), output_plugin.UnknownOutputPlugin
+      )
       # UnknownOutputPlugin should just return serialized arguments as bytes.
       self.assertEqual(deserialized.GetPluginArgsClass(), rdfvalue.RDFBytes)
 

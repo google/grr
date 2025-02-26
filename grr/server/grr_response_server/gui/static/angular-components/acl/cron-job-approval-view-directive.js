@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.cronJobApprovalViewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.output_plugin."""
-
 import io
 
 from absl import app
@@ -42,12 +40,13 @@ class TestConverter2(base.ExportConverter):
     _ = metadata
     return [
         DummyOutValue1("exp1-" + str(value)),
-        DummyOutValue2("exp2-" + str(value))
+        DummyOutValue2("exp2-" + str(value)),
     ]
 
 
 class InstantOutputPluginWithExportConversionTest(
-    test_plugins.InstantOutputPluginTestBase):
+    test_plugins.InstantOutputPluginTestBase
+):
   """Tests for InstantOutputPluginWithExportConversion."""
 
   plugin_cls = test_plugins.TestInstantOutputPluginWithExportConverstion
@@ -88,8 +87,8 @@ class InstantOutputPluginWithExportConversionTest(
   @export_test_lib.WithExportConverter(TestConverter2)
   def testWorksCorrectlyWithTwoSourceValueAndTwoExportedValuesEach(self):
     lines = self.ProcessValuesToLines(
-        {DummySrcValue2: [DummySrcValue2("foo"),
-                          DummySrcValue2("bar")]})
+        {DummySrcValue2: [DummySrcValue2("foo"), DummySrcValue2("bar")]}
+    )
     self.assertListEqual(lines, [
         "Start",
         "Original: DummySrcValue2",

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A mapping of export converters name and implementation."""
+
 from typing import Set, Type
 
 from grr_response_server.export_converters import base
@@ -34,7 +35,8 @@ def ClearExportConverters():
 def GetConvertersByClass(value_cls):
   """Returns all converters that take given value as an input value."""
   results = [
-      cls for cls in _EXPORT_CONVERTER_REGISTRY
+      cls
+      for cls in _EXPORT_CONVERTER_REGISTRY
       if cls.input_rdf_type == value_cls
   ]
   if not results:

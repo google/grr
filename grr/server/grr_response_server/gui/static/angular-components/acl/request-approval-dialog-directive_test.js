@@ -48,7 +48,7 @@ describe('request approval dialog', () => {
             'create-request-url="createUrl" ' +
             'create-request-args="createArgs" ' +
             'access-error-description="description" ' +
-            'reason="reason" />';
+            'reason="reason"></grr-request-approval-dialog>';
 
         const element = $compile(template)($rootScope);
         $rootScope.$apply();
@@ -100,9 +100,15 @@ describe('request approval dialog', () => {
 
     configEntry = {
       data: {
+        name: 'Email.approval_optional_cc_address',
         value: {
-          type: 'RDFString',
-          value: 'foo@bar.com, xyz@example.com',
+          type: 'StringValue',
+          value: {
+            value: {
+              type: 'unicode',
+              value: 'foo@bar.com, xyz@example.com',
+            }
+          }
         },
       },
     };
@@ -126,7 +132,15 @@ describe('request approval dialog', () => {
   });
 
   it('doesn\'t show a list of CC addresses when not available', () => {
-    configEntry['data']['value']['value'] = undefined;
+    configEntry['data']['value']['value']['value'] = undefined;
+    const element = renderTestTemplate('client');
+
+    expect(element.text()).not.toContain('CC');
+    expect($('input[name=cc_approval]', element).length).toBe(0);
+  });
+
+  it('doesn\'t show a list of CC addresses when empty', () => {
+    configEntry['data']['value']['value']['value']['value'] = '';
     const element = renderTestTemplate('client');
 
     expect(element.text()).not.toContain('CC');

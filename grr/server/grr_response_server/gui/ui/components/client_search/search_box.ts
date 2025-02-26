@@ -33,6 +33,7 @@ const LABEL_IDENTIFIER = 'label';
  * Search box component.
  */
 @Component({
+  standalone: false,
   selector: 'app-search-box',
   templateUrl: './search_box.ng.html',
   styleUrls: ['./search_box.scss'],
@@ -43,7 +44,24 @@ export class SearchBox implements AfterViewInit, OnDestroy {
   constructor(
     private readonly configGlobalStore: ConfigGlobalStore,
     private readonly clientSearchLocalStore: ClientSearchLocalStore,
-  ) {}
+  ) {
+    this.clients$ = this.clientSearchLocalStore.clients$;
+    this.searchQuery$ = this.inputFormControl.valueChanges.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
+      startWith(''),
+    );
+    this.debouncedSearchQuery$ = this.searchQuery$.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+    );
+    this.formattedClientsLabels$ = this.configGlobalStore.clientsLabels$.pipe(
+      map((labels) => labels.map((label) => `${LABEL_IDENTIFIER}:${label}`)),
+    );
+    this.labels$ = combineLatest([
+      this.searchQuery$,
+      this.formattedClientsLabels$,
+    ]).pipe(map(([query, allLabels]) => this.filterLabels(query, allLabels)));
+  }
 
   protected readonly inputFormControl = new FormControl('', {
     nonNullable: true,
@@ -67,27 +85,15 @@ export class SearchBox implements AfterViewInit, OnDestroy {
     this.querySubmitted.complete();
   });
 
-  protected readonly clients$ = this.clientSearchLocalStore.clients$;
+  protected readonly clients$;
 
-  private readonly searchQuery$ = this.inputFormControl.valueChanges.pipe(
-    takeUntil(this.ngOnDestroy.triggered$),
-    startWith(''),
-  );
+  private readonly searchQuery$;
 
-  private readonly debouncedSearchQuery$ = this.searchQuery$.pipe(
-    debounceTime(300),
-    distinctUntilChanged(),
-  );
+  private readonly debouncedSearchQuery$;
 
-  private readonly formattedClientsLabels$ =
-    this.configGlobalStore.clientsLabels$.pipe(
-      map((labels) => labels.map((label) => `${LABEL_IDENTIFIER}:${label}`)),
-    );
+  private readonly formattedClientsLabels$;
 
-  protected readonly labels$ = combineLatest([
-    this.searchQuery$,
-    this.formattedClientsLabels$,
-  ]).pipe(map(([query, allLabels]) => this.filterLabels(query, allLabels)));
+  protected readonly labels$;
 
   @ViewChild(MatAutocompleteTrigger) autocomplete!: MatAutocompleteTrigger;
 

@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.cronJobsListDirective');
-goog.module.declareLegacyNamespace();
 
 const aclDialogService = goog.requireType('grrUi.acl.aclDialogService');
 const apiService = goog.requireType('grrUi.core.apiService');
@@ -182,7 +181,7 @@ const CronJobsListController = class {
 
     const modalInstance = this.uibModal_.open({
       template: '<grr-new-cron-job-wizard-form on-resolve="resolve()" ' +
-          'on-reject="reject()" cron-job="result.cronJob" />',
+          'on-reject="reject()" cron-job="result.cronJob"></grr-new-cron-job-wizard-form>',
       scope: modalScope,
       windowClass: 'wide-modal high-modal',
       size: 'lg'

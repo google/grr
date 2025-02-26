@@ -32,8 +32,8 @@
         items="controller.timelineItems"
         ng-class="{'row-selected': item === controller.selectedItem}"
         ng-click="controller.selectFile(item)">
-      <td><grr-semantic-value value="::item.value.timestamp" /></td>
-      <td><grr-semantic-value value="::item.value.file_path" /></td>
+      <td><grr-semantic-value value="::item.value.timestamp"></grr-semantic-value></td>
+      <td><grr-semantic-value value="::item.value.file_path"></grr-semantic-value></td>
       <td>
         <div ng-if="item.value.action.value === 'MODIFICATION'"><pre class='inline'>M--</pre> File modified.</div>
         <div ng-if="item.value.action.value === 'ACCESS'"><pre class='inline'>-A-</pre> File access.</div>

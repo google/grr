@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
@@ -56,12 +56,15 @@ function isError(
  * Component that displays results of CollectFilesByKnownPath flow.
  */
 @Component({
+  standalone: false,
   selector: 'collect-files-by-known-path-details',
   templateUrl: './collect_files_by_known_path_details.ng.html',
   styleUrls: ['./collect_files_by_known_path_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectFilesByKnownPathDetails extends Plugin {
+  private readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
   readonly QUERY_MORE_COUNT = 100;
 
   readonly args$: Observable<CollectFilesByKnownPathArgs> = this.flow$.pipe(
@@ -134,7 +137,7 @@ export class CollectFilesByKnownPathDetails extends Plugin {
       ),
     );
 
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  constructor() {
     super();
     this.flowResultsLocalStore.query(
       this.flow$.pipe(
@@ -190,9 +193,12 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     return super.getResultDescription(flow);
   }
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
+    const items = super.getExportMenuItems(flow, exportCommandPrefix);
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
-    const items = super.getExportMenuItems(flow);
 
     if (items.find((item) => item.url === downloadItem.url)) {
       return items;

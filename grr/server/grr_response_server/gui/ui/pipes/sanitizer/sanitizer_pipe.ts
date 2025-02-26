@@ -5,7 +5,7 @@ import {DomSanitizer, SafeValue} from '@angular/platform-browser';
  * Pipe which sanitizes stringified DOM elements. By default it assumes the
  * context is set to HTML.
  */
-@Pipe({name: 'sanitize'})
+@Pipe({standalone: false, name: 'sanitize'})
 export class SanitizerPipe implements PipeTransform {
   constructor(private readonly sanitizer: DomSanitizer) {}
 

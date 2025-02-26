@@ -5,6 +5,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
  * Considers string tokens starting with 'http://' or 'https://' only as links.
  */
 @Component({
+  standalone: false,
   selector: 'app-text-with-links',
   templateUrl: './text_with_links.ng.html',
   styleUrls: ['./text_with_links.scss'],

@@ -3,7 +3,7 @@ import {NestedTreeControl, TreeControl} from '@angular/cdk/tree';
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
 import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
-import {SplitAreaDirective, SplitComponent} from 'angular-split';
+import {SplitComponent} from 'angular-split';
 import {Observable} from 'rxjs';
 import {filter, map, takeUntil, tap, withLatestFrom} from 'rxjs/operators';
 
@@ -76,6 +76,7 @@ const toRow: (entry: File | Directory) => DirectoryTableRow = (entry) => {
 
 /** Section in ClientPage that shows the virtual filesystem view. */
 @Component({
+  standalone: false,
   selector: 'app-vfs-section',
   templateUrl: './vfs_section.ng.html',
   styleUrls: ['./vfs_section.scss'],
@@ -85,48 +86,28 @@ const toRow: (entry: File | Directory) => DirectoryTableRow = (entry) => {
 export class VfsSection {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly selectedFileId$ = this.vfsViewLocalStore.currentFile$.pipe(
-    withLatestFrom(this.selectedClientGlobalStore.clientId$),
-    map(([file, clientId]) =>
-      file && clientId
-        ? {path: file.path, pathType: file.pathtype, clientId}
-        : null,
-    ),
-  );
+  readonly selectedFileId$;
 
-  readonly selectedDirectory$ = this.vfsViewLocalStore.currentDirectory$;
+  readonly selectedDirectory$;
 
-  protected readonly isRootSelected$ = this.vfsViewLocalStore.isRootSelected$;
-  protected readonly downloadAllFromClientURL$ =
-    this.selectedClientGlobalStore.clientId$.pipe(
-      filter(isNonNull),
-      map((clientId) => getClientArchiveURL(clientId)),
-    );
-  protected readonly downloadAllFromClientFileName$ =
-    this.selectedClientGlobalStore.clientId$.pipe(
-      map((clientId) => `all_files_${clientId}.zip`),
-    );
+  protected readonly isRootSelected$;
+  protected readonly downloadAllFromClientURL$;
+  protected readonly downloadAllFromClientFileName$;
 
-  readonly isListingCurrentDirectory$ =
-    this.vfsViewLocalStore.isListingCurrentDirectory$;
+  readonly isListingCurrentDirectory$;
 
   readonly treeControl = new NestedTreeControl<DirectoryNode, string>(
     (node) => node.children as DirectoryNode[],
     {trackBy: (node) => node.path},
   );
 
-  readonly treeDataSource = new DirectoryDataSource(
-    this.vfsViewLocalStore,
-    this.treeControl,
-  );
+  readonly treeDataSource;
 
   readonly tableDataSource = new MatTableDataSource<DirectoryTableRow>();
 
   readonly displayedTableColumns = DIRECTORY_TABLE_COLUMNS;
 
   @ViewChild('split') split!: SplitComponent;
-  @ViewChild('area1') area1!: SplitAreaDirective;
-  @ViewChild('area2') area2!: SplitAreaDirective;
 
   selectedTreePath: string | null = null;
   selectedTablePath: string | null = null;
@@ -136,6 +117,31 @@ export class VfsSection {
     private readonly vfsViewLocalStore: VfsViewLocalStore,
     private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
   ) {
+    this.selectedFileId$ = this.vfsViewLocalStore.currentFile$.pipe(
+      withLatestFrom(this.selectedClientGlobalStore.clientId$),
+      map(([file, clientId]) =>
+        file && clientId
+          ? {path: file.path, pathType: file.pathtype, clientId}
+          : null,
+      ),
+    );
+    this.selectedDirectory$ = this.vfsViewLocalStore.currentDirectory$;
+    this.isRootSelected$ = this.vfsViewLocalStore.isRootSelected$;
+    this.downloadAllFromClientURL$ =
+      this.selectedClientGlobalStore.clientId$.pipe(
+        filter(isNonNull),
+        map((clientId) => getClientArchiveURL(clientId)),
+      );
+    this.downloadAllFromClientFileName$ =
+      this.selectedClientGlobalStore.clientId$.pipe(
+        map((clientId) => `all_files_${clientId}.zip`),
+      );
+    this.isListingCurrentDirectory$ =
+      this.vfsViewLocalStore.isListingCurrentDirectory$;
+    this.treeDataSource = new DirectoryDataSource(
+      this.vfsViewLocalStore,
+      this.treeControl,
+    );
     this.selectedClientGlobalStore.clientId$
       .pipe(takeUntil(this.ngOnDestroy.triggered$))
       .subscribe((clientId) => {

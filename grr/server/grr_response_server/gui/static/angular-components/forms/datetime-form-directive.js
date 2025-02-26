@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.datetimeFormDirective');
-goog.module.declareLegacyNamespace();
 
 /**
  * Controller for DatetimeFormDirective.

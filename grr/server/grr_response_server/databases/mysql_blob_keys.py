@@ -9,17 +9,20 @@ from typing import Optional
 
 import MySQLdb
 
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class MySQLDBBlobKeysMixin(object):
   """A MySQL database mixin class with blobstore encryption keys methods."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[blobs.BlobID, str],
+      key_names: Dict[models_blobs.BlobID, str],
       cursor: MySQLdb.cursors.Cursor,
   ) -> None:
     """Associates the specified blobs with the given encryption keys."""
@@ -35,12 +38,14 @@ class MySQLDBBlobKeysMixin(object):
 
     cursor.executemany(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadBlobEncryptionKeys(
       self,
-      blob_ids: Collection[blobs.BlobID],
+      blob_ids: Collection[models_blobs.BlobID],
       cursor: MySQLdb.cursors.Cursor,
-  ) -> Dict[blobs.BlobID, Optional[str]]:
+  ) -> Dict[models_blobs.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs."""
     # A special case for empty list of blob identifiers to avoid syntax errors
     # in the query below.
@@ -64,7 +69,7 @@ INNER JOIN (SELECT blob_id, MAX(timestamp) AS max_timestamp
 
     cursor.execute(query, blob_ids_bytes)
     for blob_id_bytes, key_name in cursor.fetchall():
-      blob_id = blobs.BlobID(blob_id_bytes)
+      blob_id = models_blobs.BlobID(blob_id_bytes)
       results[blob_id] = key_name
 
     return results

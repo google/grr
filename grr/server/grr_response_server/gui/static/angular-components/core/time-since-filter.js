@@ -16,17 +16,17 @@ const timeService = goog.requireType('grrUi.core.timeService');
  *     seconds/minutes/days passed since 'input' moment.
  */
 const filterImplementation = function(grrTimeService, input) {
-  var currentTimeMs = grrTimeService.getCurrentTimeMs();
-  var inputTimeMs = input / 1000;
+  const currentTimeMs = grrTimeService.getCurrentTimeMs();
+  const inputTimeMs = input / 1000;
 
   if (inputTimeMs < 1e-6) {
     return '<invalid time value>';
   }
 
-  var differenceSec = Math.abs(
-      Math.round((currentTimeMs - inputTimeMs) / 1000));
-  var measureUnit;
-  var measureValue;
+  const differenceSec =
+      Math.abs(Math.round((currentTimeMs - inputTimeMs) / 1000));
+  let measureUnit;
+  let measureValue;
   if (differenceSec < 60) {
     measureUnit = 'seconds';
     measureValue = differenceSec;

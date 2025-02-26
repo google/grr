@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.copyFlowFormDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
@@ -39,7 +38,7 @@ const CopyFlowFormController = class {
    */
   onFlowIdClientIdChange_(newValues) {
     if (newValues.every(angular.isDefined)) {
-      var flowUrl = [
+      const flowUrl = [
         'clients', this.scope_['clientId'], 'flows', this.scope_['flowId']
       ].join('/');
       this.grrApiService_.get(flowUrl).then(function(response) {
@@ -56,7 +55,7 @@ const CopyFlowFormController = class {
    * @export
    */
   proceed() {
-    var strippedFlow = stripTypeInfo(this.flow);
+    const strippedFlow = stripTypeInfo(this.flow);
 
     return this.grrApiService_
         .post('clients/' + this.scope_['clientId'] + '/flows', {
@@ -75,7 +74,7 @@ const CopyFlowFormController = class {
               return 'Flow was successfully launched!';
             }.bind(this),
             function failure(response) {
-              var e = response['data']['message'] || 'Unknown error';
+              const e = response['data']['message'] || 'Unknown error';
               throw e;
             }.bind(this));
   }

@@ -1,12 +1,11 @@
 goog.module('grrUi.core.serverErrorInterceptorFactory');
-goog.module.declareLegacyNamespace();
 
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
 
 
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
-var INTERCEPTED_STATUS_CODES = [500];
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const INTERCEPTED_STATUS_CODES = [500];
 
 
 /**
@@ -28,7 +27,7 @@ const needsInterception_ = function(response) {
  * @private
  */
 const extractError_ = function(response) {
-  var data = response.data || {};
+  const data = response.data || {};
   return {
     message: data.message || 'Unknown Server Error',
     traceBack: data.traceBack
@@ -49,7 +48,7 @@ exports.ServerErrorInterceptorFactory = function($rootScope, $q) {
   return {
     responseError: function(response) {
       if (needsInterception_(response)) {
-        var error = extractError_(response);
+        const error = extractError_(response);
         $rootScope.$broadcast(ERROR_EVENT_NAME, error);
       }
       return $q.reject(response);
@@ -57,7 +56,7 @@ exports.ServerErrorInterceptorFactory = function($rootScope, $q) {
   };
 };
 
-var ServerErrorInterceptorFactory = exports.ServerErrorInterceptorFactory;
+const ServerErrorInterceptorFactory = exports.ServerErrorInterceptorFactory;
 
 
 /**
@@ -67,5 +66,3 @@ var ServerErrorInterceptorFactory = exports.ServerErrorInterceptorFactory;
  * @export
  */
 ServerErrorInterceptorFactory.factory_name = 'grrServerErrorInterceptorFactory';
-
-

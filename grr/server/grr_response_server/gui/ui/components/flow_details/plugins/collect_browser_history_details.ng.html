@@ -24,7 +24,8 @@
       >
       </file-results-table>
       <div *ngIf="!results" class="results-in-progress">
-        <mat-progress-bar mode="buffer"></mat-progress-bar>
+        <!-- TODO(user): Replace the aria-label with a better description, e.g. "Fetching user data" -->
+        <mat-progress-bar mode="buffer" aria-label="Loading"></mat-progress-bar>
       </div>
     </result-accordion>
   </ng-container>

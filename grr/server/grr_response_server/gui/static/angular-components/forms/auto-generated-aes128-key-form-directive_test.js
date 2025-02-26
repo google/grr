@@ -52,7 +52,8 @@ describe('grr-form-auto-generated-aes128key form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-auto-generated-aes128-key value="value" />';
+    const template = '<grr-form-auto-generated-aes128-key value="value">' +
+        '</grr-form-auto-generated-aes128-key>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

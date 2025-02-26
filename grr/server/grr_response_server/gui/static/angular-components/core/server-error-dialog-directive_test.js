@@ -11,7 +11,8 @@ describe('server error dialog directive', () => {
   let $scope;
 
 
-  beforeEach(module('/static/angular-components/core/server-error-dialog.html'));
+  beforeEach(
+      module('/static/angular-components/core/server-error-dialog.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
 
@@ -27,7 +28,8 @@ describe('server error dialog directive', () => {
     $scope.traceBack = traceBack;
 
     const template =
-        '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack" />';
+        '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack">' +
+        '</grr-server-error-dialog>';
     const element = $compile(template)($scope);
     $scope.$apply();
     return element;

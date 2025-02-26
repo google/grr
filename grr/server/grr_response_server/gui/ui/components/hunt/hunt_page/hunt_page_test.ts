@@ -8,8 +8,7 @@ import {
 } from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {
   ApiHuntError,
@@ -92,7 +91,7 @@ describe('hunt page test', () => {
       imports: [
         NoopAnimationsModule,
         HuntPageModule,
-        RouterTestingModule.withRoutes([...HUNT_ROUTES]),
+        RouterModule.forRoot(HUNT_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,
@@ -300,7 +299,7 @@ describe('hunt page test', () => {
         flowArgs: {
           '@type':
             'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-          'browsers': [Browser.CHROME],
+          'browsers': [Browser.CHROMIUM_BASED_BROWSERS],
         },
       }),
     );
@@ -325,7 +324,7 @@ describe('hunt page test', () => {
     const args = fixture.debugElement.query(By.css('.collapsed-info'));
     const text = args.nativeElement.textContent;
     expect(text).toContain(getFlowTitleFromFlowName(flowName));
-    expect(text).toContain('Chrome');
+    expect(text).toContain('Chromium');
     expect(text).toContain('Firefox');
 
     expect(text).toContain('Hide flow arguments');

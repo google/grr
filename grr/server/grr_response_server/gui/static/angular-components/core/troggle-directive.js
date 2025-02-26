@@ -1,5 +1,4 @@
 goog.module('grrUi.core.troggleDirective');
-goog.module.declareLegacyNamespace();
 
 /**
  * @enum {string}
