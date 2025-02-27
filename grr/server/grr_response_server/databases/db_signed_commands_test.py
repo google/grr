@@ -13,7 +13,7 @@ def create_signed_command(
     path: str = "test_path",
     signature: bytes = None,
     args: Optional[list[str]] = None,
-    unsigned_stdin: bool = False,
+    unsigned_stdin_allowed: bool = False,
     signed_stdin: Optional[bytes] = None,
     env_vars: Optional[list[signed_commands_pb2.Command.EnvVar]] = None,
 ) -> signed_commands_pb2.SignedCommand:
@@ -22,7 +22,7 @@ def create_signed_command(
   signed_command.id = id_
   signed_command.operating_system = operating_system
 
-  command = rrg_execute_signed_command_pb2.SignedCommand()
+  command = rrg_execute_signed_command_pb2.Command()
   command.path.raw_bytes = path.encode("utf-8")
 
   if not signature:
@@ -35,7 +35,7 @@ def create_signed_command(
     for env_var in env_vars:
       command.env[env_var.name] = env_var.value
 
-  command.unsigned_stdin = unsigned_stdin
+  command.unsigned_stdin_allowed = unsigned_stdin_allowed
   if signed_stdin:
     command.signed_stdin = signed_stdin
 
@@ -52,13 +52,13 @@ class DatabaseTestSignedCommandsMixin:
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.MACOS
     signed_command.ed25519_signature = b"test_signature" + 50 * b"-"  # 64 bytes
 
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "test_path".encode("utf-8")
     command.args.extend(["args1", "args2"])
     command.env["env_var_1"] = "env_var_1_value"
     command.env["env_var_2"] = "env_var_2_value"
     command.signed_stdin = b"signed_stdin"
-    command.unsigned_stdin = False
+    command.unsigned_stdin_allowed = False
 
     signed_command.command = command.SerializeToString()
 
@@ -104,7 +104,7 @@ class DatabaseTestSignedCommandsMixin:
     read_command = self.db.ReadSignedCommand(
         "command", signed_commands_pb2.SignedCommand.OS.LINUX
     )
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.ParseFromString(read_command.command)
     self.assertEqual(command.args, ["arg1", "arg2", "arg3"])
 
@@ -122,7 +122,7 @@ class DatabaseTestSignedCommandsMixin:
     read_command = self.db.ReadSignedCommand(
         "command", signed_commands_pb2.SignedCommand.OS.LINUX
     )
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.ParseFromString(read_command.command)
     self.assertEqual(
         command.env,

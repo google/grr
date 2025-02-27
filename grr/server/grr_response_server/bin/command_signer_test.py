@@ -18,7 +18,7 @@ class CommandSignerTest(test_lib.GRRBaseTest):
 
     rrg_command = command_signer._ConvertToRrgCommand(command)
 
-    expected = execute_signed_command_pb2.SignedCommand()
+    expected = execute_signed_command_pb2.Command()
     expected.path.raw_bytes = b"foo"
     expected.args.extend(["bar", "baz"])
     expected.env["FOO"] = "bar"

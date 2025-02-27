@@ -70,12 +70,12 @@ class ApiCreateSignedCommandsHandler(api_call_handler_base.ApiCallHandler):
         # TODO: Add signature verification.
         raise ValueError("Command signature is required.")
 
-      rrg_command = rrg_execute_signed_command_pb2.SignedCommand()
+      rrg_command = rrg_execute_signed_command_pb2.Command()
       rrg_command.ParseFromString(args_signed_command.command)
       if not rrg_command.path.raw_bytes:
         raise ValueError("Command path is required.")
       if not rrg_command.HasField(
-          "unsigned_stdin"
+          "unsigned_stdin_allowed"
       ) and not rrg_command.HasField("signed_stdin"):
         raise ValueError("Command stdin is required.")
 

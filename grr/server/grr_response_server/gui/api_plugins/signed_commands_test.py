@@ -21,7 +21,7 @@ def create_signed_command(
   signed_command.id = command_id
   signed_command.operating_system = operating_system
   signed_command.ed25519_signature = os.urandom(64)
-  command = rrg_execute_signed_command_pb2.SignedCommand()
+  command = rrg_execute_signed_command_pb2.Command()
   command.path.raw_bytes = "/foo/bar".encode("utf-8")
   command.signed_stdin = b"stdin"
   signed_command.command = command.SerializeToString()
@@ -47,7 +47,7 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
         api_signed_commands_pb2.ApiSignedCommand.OS.WINDOWS
     )
     signed_command.ed25519_signature = b"test-signature" + 50 * b"-"  # 64 bytes
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/foo/bar".encode("utf-8")
     command.args.extend(["--foo", "--bar"])
     command.signed_stdin = b"stdin"
@@ -88,7 +88,7 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
 
   def testCreateSignedCommands_MissingPathRaises(self):
     missing_path = create_signed_command("missing_path")
-    rrg_command = rrg_execute_signed_command_pb2.SignedCommand()
+    rrg_command = rrg_execute_signed_command_pb2.Command()
     rrg_command.ParseFromString(missing_path.command)
     rrg_command.ClearField("path")
     missing_path.command = rrg_command.SerializeToString()
@@ -99,10 +99,10 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
 
   def testCreateSignedCommands_MissingStdinRaises(self):
     missing_stdin = create_signed_command("missing_stdin")
-    rrg_command = rrg_execute_signed_command_pb2.SignedCommand()
+    rrg_command = rrg_execute_signed_command_pb2.Command()
     rrg_command.ParseFromString(missing_stdin.command)
     rrg_command.ClearField("signed_stdin")
-    rrg_command.ClearField("unsigned_stdin")
+    rrg_command.ClearField("unsigned_stdin_allowed")
     missing_stdin.command = rrg_command.SerializeToString()
 
     args = api_signed_commands_pb2.ApiCreateSignedCommandsArgs()
@@ -143,7 +143,7 @@ class ApiListSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     self.handler = api_signed_commands.ApiListSignedCommandsHandler()
 
   def testApiListSignedCommands(self):
-    rrg_command = rrg_execute_signed_command_pb2.SignedCommand()
+    rrg_command = rrg_execute_signed_command_pb2.Command()
 
     signed_command_1 = create_signed_command("test_name_1")
     rrg_command.ParseFromString(signed_command_1.command)
@@ -162,10 +162,10 @@ class ApiListSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     self.assertLen(listed_commands.signed_commands, 2)
 
     commands_by_id = {c.id: c for c in listed_commands.signed_commands}
-    command_1 = rrg_execute_signed_command_pb2.SignedCommand()
+    command_1 = rrg_execute_signed_command_pb2.Command()
     command_1.ParseFromString(commands_by_id["test_name_1"].command)
     self.assertEqual(command_1.path.raw_bytes.decode("utf-8"), "/foo/bar")
-    command_2 = rrg_execute_signed_command_pb2.SignedCommand()
+    command_2 = rrg_execute_signed_command_pb2.Command()
     command_2.ParseFromString(commands_by_id["test_name_2"].command)
     self.assertEqual(command_2.path.raw_bytes.decode("utf-8"), "/foo/bar/baz")
 

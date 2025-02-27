@@ -36,7 +36,7 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
   def testRRGLinux(self, db: abstract_db.Database) -> None:
     # TODO: Load signed commands from the `.textproto` file to
     # ensure integrity.
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
     command.args.append("-q")
     signed_command = signed_commands_pb2.SignedCommand()
@@ -57,7 +57,7 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
       args = rrg_execute_signed_command_pb2.Args()
       assert session.args.Unpack(args)
 
-      command = rrg_execute_signed_command_pb2.SignedCommand()
+      command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(args.command)
 
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):
@@ -227,7 +227,7 @@ System Boot Information
   def testRRGMacos(self, db: abstract_db.Database) -> None:
     # TODO: Load signed commands from the `.textproto` file to
     # ensure integrity.
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/system_profiler".encode("utf-8")
     command.args.append("-xml")
     command.args.append("SPHardwareDataType")
@@ -249,7 +249,7 @@ System Boot Information
       args = rrg_execute_signed_command_pb2.Args()
       assert session.args.Unpack(args)
 
-      command = rrg_execute_signed_command_pb2.SignedCommand()
+      command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(args.command)
 
       if command.path.raw_bytes != "/usr/sbin/system_profiler".encode("utf-8"):

@@ -10,7 +10,7 @@ package rrg.action.execute_signed_command;
 import "google/protobuf/duration.proto";
 import "grr_response_proto/rrg/fs.proto";
 
-message SignedCommand {
+message Command {
   // Path to the executable file to execute.
   rrg.fs.Path path = 1;
 
@@ -29,18 +29,18 @@ message SignedCommand {
 
     // Whether the command should allow execution with arbitrary
     // standard input without it being pre-signed.
-    bool unsigned_stdin = 5;
+    bool unsigned_stdin_allowed = 5;
   }
 }
 
 message Args {
-  // Serialized `SignedCommand` message to execute.
+  // Serialized `Command` message to execute.
   bytes command = 1;
 
   // Standard input to pass to the executed command.
   //
   // For this option to work, the command that has been signed has to allow
-  // arbitrary standard input by having the `unsigned_stdin` flag set.
+  // arbitrary standard input by having the `unsigned_stdin_allowed` flag set.
   bytes unsigned_stdin = 2;
 
   // An [Ed25519][1] signature of the command.

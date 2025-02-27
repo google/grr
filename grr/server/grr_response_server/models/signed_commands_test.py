@@ -14,7 +14,7 @@ class InitApiSignedCommandFromSignedCommandTest(absltest.TestCase):
     signed_command.id = "foo-id"
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.MACOS
     signed_command.ed25519_signature = b"foo-signature"
-    rrg_command = rrg_execute_signed_command_pb2.SignedCommand()
+    rrg_command = rrg_execute_signed_command_pb2.Command()
     rrg_command.path.raw_bytes = "foo-path".encode("utf-8")
     rrg_command.signed_stdin = b"foo-signed-stdin"
     rrg_command.args.append("foo-arg-1")
