@@ -26,7 +26,7 @@ message ApiCommand {
 
     // Whether the command should allow execution with arbitrary
     // standard input without it being pre-signed.
-    bool unsigned_stdin = 7;
+    bool unsigned_stdin_allowed = 7;
   }
 }
 

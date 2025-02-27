@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Removed
+
+### Changed
+
+## [3.4.9.0] - 2025-02-27
+
+### Added
+
 * Added support for listing `%SystemDrive%\Users` as a supplementary mechanism
   for collecting user profiles on Windows (additionally to using data from the
   registry).

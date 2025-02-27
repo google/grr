@@ -4989,7 +4989,7 @@ class DatabaseValidationWrapper(Database):
       signed_commands: Sequence[signed_commands_pb2.SignedCommand],
   ) -> None:
     for signed_command in signed_commands:
-      command = rrg_execute_signed_command_pb2.SignedCommand()
+      command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(signed_command.command)
 
       _ValidateSignedCommandId(signed_command.id)

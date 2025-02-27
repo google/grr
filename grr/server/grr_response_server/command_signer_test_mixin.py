@@ -11,11 +11,11 @@ class CommandSignerTestMixin:
   signer: command_signer.AbstractCommandSigner
 
   def testVerifySignatureCanSignAndVerify(self):  # pylint: disable=invalid-name
-    command = execute_signed_command_pb2.SignedCommand()
+    command = execute_signed_command_pb2.Command()
     command.path.raw_bytes = b"/bin/ls"
     command.args.append("-l")
     command.env["PATH"] = "/usr/bin"
-    command.unsigned_stdin = True
+    command.unsigned_stdin_allowed = True
 
     signature = self.signer.Sign(command)
     self.assertLen(signature, 64)
@@ -23,7 +23,7 @@ class CommandSignerTestMixin:
     self.signer.Verify(signature, command)
 
   def testVerifySignatureRaisesWhenSignatureIsInvalid(self):  # pylint: disable=invalid-name
-    command = execute_signed_command_pb2.SignedCommand()
+    command = execute_signed_command_pb2.Command()
     command.path.raw_bytes = b"/bin/ls"
 
     signature = b"invalid signature"

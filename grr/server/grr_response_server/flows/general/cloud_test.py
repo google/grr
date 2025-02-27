@@ -41,7 +41,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
   ) -> None:
     # TODO: Load signed commands from the `.textproto` file to
     # ensure integrity.
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
     command.args.append("--string")
     command.args.append("bios-version")
@@ -63,7 +63,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       args = rrg_execute_signed_command_pb2.Args()
       assert session.args.Unpack(args)
 
-      command = rrg_execute_signed_command_pb2.SignedCommand()
+      command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(args.command)
 
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):
@@ -220,7 +220,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
   ) -> None:
     # TODO: Load signed commands from the `.textproto` file to
     # ensure integrity.
-    command = rrg_execute_signed_command_pb2.SignedCommand()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
     command.args.append("--string")
     command.args.append("bios-version")
@@ -242,7 +242,7 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       args = rrg_execute_signed_command_pb2.Args()
       assert session.args.Unpack(args)
 
-      command = rrg_execute_signed_command_pb2.SignedCommand()
+      command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(args.command)
 
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):

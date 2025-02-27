@@ -41,9 +41,9 @@ def _GetCommandSigner() -> command_signer.AbstractCommandSigner:
 
 def _ConvertToRrgCommand(
     command: api_signed_commands_pb2.ApiCommand,
-) -> execute_signed_command_pb2.SignedCommand:
+) -> execute_signed_command_pb2.Command:
   """Converts a GRR command to a RRG command."""
-  rrg_command = execute_signed_command_pb2.SignedCommand()
+  rrg_command = execute_signed_command_pb2.Command()
 
   rrg_command.path.raw_bytes = command.path.encode("utf-8")
   rrg_command.args.extend(command.args)
@@ -52,7 +52,7 @@ def _ConvertToRrgCommand(
   if command.HasField("signed_stdin"):
     rrg_command.signed_stdin = command.signed_stdin
   else:
-    rrg_command.unsigned_stdin = command.unsigned_stdin
+    rrg_command.unsigned_stdin_allowed = command.unsigned_stdin_allowed
   return rrg_command
 
 

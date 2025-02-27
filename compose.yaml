@@ -28,7 +28,7 @@ services:
       - ./docker_config_files/mysql/init.sh:/docker-entrypoint-initdb.d/init.sh
       - db_data:/var/lib/mysql:rw
     ports:
-      - "3306:3306"      
+      - "3306:3306"
     expose:
       - "3306"
     networks:

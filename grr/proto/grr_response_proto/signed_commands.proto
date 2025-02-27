@@ -16,7 +16,7 @@ message Command {
   repeated EnvVar env_vars = 3;
   oneof stdin {
     // Whether the stdin of the command is unsigned.
-    bool unsigned_stdin = 4;
+    bool unsigned_stdin_allowed = 4;
     // The stdin of the command, if it is signed.
     bytes signed_stdin = 5;
   }
