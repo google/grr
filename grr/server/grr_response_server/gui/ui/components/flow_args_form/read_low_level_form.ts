@@ -40,6 +40,7 @@ type Controls = ReturnType<typeof makeControls>;
  * A form that makes it possible to configure the read_low_level flow.
  */
 @Component({
+  standalone: false,
   selector: 'read_low_level-form',
   templateUrl: './read_low_level_form.ng.html',
   styleUrls: ['./read_low_level_form.scss'],

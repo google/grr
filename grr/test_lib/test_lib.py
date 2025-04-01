@@ -12,6 +12,7 @@ import os
 import shutil
 import threading
 import time
+import types
 from typing import List, Optional
 import unittest
 from unittest import mock
@@ -625,8 +626,13 @@ class Instrument(object):
     self.stubber.__enter__()
     return self
 
-  def __exit__(self, t, value, tb):
-    return self.stubber.__exit__(t, value, tb)
+  def __exit__(
+      self,
+      exc_type: Optional[type[BaseException]],
+      exc_value: Optional[BaseException],
+      traceback: Optional[types.TracebackType],
+  ):
+    return self.stubber.__exit__(exc_type, exc_value, traceback)
 
 
 def RequiresPackage(package_name):

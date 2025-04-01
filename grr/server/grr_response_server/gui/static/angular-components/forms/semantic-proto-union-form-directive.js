@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.semanticProtoUnionFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 /**

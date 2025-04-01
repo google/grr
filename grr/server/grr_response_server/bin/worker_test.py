@@ -67,8 +67,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000]
     )
 
-    flow_test_lib.TestFlowHelper(
-        flow_test_lib.CPULimitFlow.__name__,
+    flow_test_lib.StartAndRunFlow(
+        flow_test_lib.CPULimitFlow,
         client_mock,
         creator=self.test_username,
         client_id=client_id,

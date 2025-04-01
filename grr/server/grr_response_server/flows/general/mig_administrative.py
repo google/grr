@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
+
 from grr_response_proto import flows_pb2
 from grr_response_server.flows.general import administrative
 
@@ -14,20 +15,6 @@ def ToRDFDeleteGRRTempFilesArgs(
     proto: flows_pb2.DeleteGRRTempFilesArgs,
 ) -> administrative.DeleteGRRTempFilesArgs:
   return administrative.DeleteGRRTempFilesArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoUpdateConfigurationArgs(
-    rdf: administrative.UpdateConfigurationArgs,
-) -> flows_pb2.UpdateConfigurationArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFUpdateConfigurationArgs(
-    proto: flows_pb2.UpdateConfigurationArgs,
-) -> administrative.UpdateConfigurationArgs:
-  return administrative.UpdateConfigurationArgs.FromSerializedBytes(
       proto.SerializeToString()
   )
 
@@ -56,20 +43,6 @@ def ToRDFExecutePythonHackResult(
     proto: flows_pb2.ExecutePythonHackResult,
 ) -> administrative.ExecutePythonHackResult:
   return administrative.ExecutePythonHackResult.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoExecuteCommandArgs(
-    rdf: administrative.ExecuteCommandArgs,
-) -> flows_pb2.ExecuteCommandArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFExecuteCommandArgs(
-    proto: flows_pb2.ExecuteCommandArgs,
-) -> administrative.ExecuteCommandArgs:
-  return administrative.ExecuteCommandArgs.FromSerializedBytes(
       proto.SerializeToString()
   )
 

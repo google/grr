@@ -129,7 +129,7 @@ describe('Client Add Label Dialog', () => {
     expect(dialogCloseSpy).not.toHaveBeenCalled();
   });
 
-  it('emmits unused, possible labels in suggestedLabels$ for the given input', (done) => {
+  it('emmits unused, possible labels in suggestedLabels$ for the given input', waitForAsync(() => {
     let i = 0;
     component.suggestedLabels$.subscribe((labels) => {
       switch (i) {
@@ -138,7 +138,6 @@ describe('Client Add Label Dialog', () => {
           break;
         default:
           expect(labels).toEqual([]);
-          done();
       }
       i++;
     });
@@ -146,9 +145,9 @@ describe('Client Add Label Dialog', () => {
     fixture.detectChanges();
     component.labelInputControl.setValue('label2');
     fixture.detectChanges();
-  });
+  }));
 
-  it('clears options when input is cleared', (done) => {
+  it('clears options when input is cleared', waitForAsync(() => {
     let i = 0;
     component.suggestedLabels$.subscribe((labels) => {
       switch (i) {
@@ -157,7 +156,6 @@ describe('Client Add Label Dialog', () => {
           break;
         default:
           expect(labels).toEqual([]);
-          done();
       }
       i++;
     });
@@ -165,7 +163,7 @@ describe('Client Add Label Dialog', () => {
     fixture.detectChanges();
     component.labelInputControl.setValue('');
     fixture.detectChanges();
-  });
+  }));
 
   it("suggests making a new label if the inserted label doesn't exist", () => {
     const inputElement = fixture.debugElement.query(
@@ -199,7 +197,7 @@ describe('Client Add Label Dialog', () => {
     );
   });
 
-  it('correctly checks if the inserted label is new', (done) => {
+  it('correctly checks if the inserted label is new', waitForAsync(() => {
     let i = 0;
     component.isNewLabel$.subscribe((isNew) => {
       switch (i) {
@@ -211,7 +209,6 @@ describe('Client Add Label Dialog', () => {
           break;
         default:
           expect(isNew).toEqual(true);
-          done();
       }
       i++;
     });
@@ -221,5 +218,5 @@ describe('Client Add Label Dialog', () => {
     fixture.detectChanges();
     component.labelInputControl.setValue('label19');
     fixture.detectChanges();
-  });
+  }));
 });

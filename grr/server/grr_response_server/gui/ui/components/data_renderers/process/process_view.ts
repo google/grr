@@ -5,6 +5,7 @@ import {
   Component,
   Input,
   OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
@@ -12,8 +13,6 @@ import {MatTreeModule} from '@angular/material/tree';
 
 import {Process} from '../../../lib/api/api_interfaces';
 import {createOptionalDate} from '../../../lib/api_translation/primitive';
-import {PreloadedResultView} from '../../../lib/models/flow';
-import {assertNonNull} from '../../../lib/preconditions';
 import {TimestampModule} from '../../timestamp/module';
 
 interface ProcessNode extends Process {
@@ -67,24 +66,28 @@ function toTrees(processes: readonly Process[]): ProcessNode[] {
     TimestampModule,
   ],
 })
-export class ProcessView implements OnChanges, PreloadedResultView<Process> {
+export class ProcessView implements OnChanges {
   protected readonly treeControl = new NestedTreeControl<ProcessNode, number>(
     (node) => node.children,
     {trackBy: (node) => node.pid},
   );
 
-  @Input() data!: readonly Process[];
+  @Input() data: Process[] | null = null;
 
   protected processNodes: ProcessNode[] = [];
 
   ngOnInit() {
-    assertNonNull(this.data, 'ProcessView.data');
+    if (!this.data) {
+      return;
+    }
 
     this.processNodes = toTrees(this.data);
   }
 
-  ngOnChanges() {
-    this.ngOnInit();
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['data'].currentValue !== null) {
+      this.processNodes = toTrees(changes['data'].currentValue);
+    }
   }
 
   protected hasChild(index: number, process: ProcessNode): boolean {

@@ -19,8 +19,8 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testExportCommandIsShownForStatEntryResults(self):
-    session_id = flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneStatEntryResult.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        gui_test_lib.FlowWithOneStatEntryResult,
         client_mock=self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,
@@ -47,8 +47,8 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.RecursiveTestFlow.__name__,
+    flow_test_lib.StartAndRunFlow(
+        gui_test_lib.RecursiveTestFlow,
         self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,
@@ -63,8 +63,8 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
+    flow_test_lib.StartAndRunFlow(
+        gui_test_lib.FlowWithOneNetworkConnectionResult,
         self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,

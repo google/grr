@@ -206,11 +206,9 @@ class InitializeClientTest(absltest.TestCase):
     self.assertEmpty(md.certificate)
     self.assertFalse(md.first_seen)
     self.assertFalse(md.ping)
-    self.assertFalse(md.clock)
     self.assertFalse(md.last_foreman_time)
     self.assertFalse(md.last_crash_timestamp)
     self.assertFalse(md.startup_info_timestamp)
-    self.assertFalse(md.HasField("ip"))
     self.assertFalse(md.HasField("last_fleetspeak_validation_info"))
 
 

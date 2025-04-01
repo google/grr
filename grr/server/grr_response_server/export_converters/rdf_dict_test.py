@@ -84,7 +84,7 @@ class DictToExportedDictItemsConverterTest(export_test_lib.ExportTestBase):
   def testConvertsDictWithNestedDictAndIterables(self):
     source = rdf_protodict.Dict()
     source["foo"] = "bar"
-    # pyformat: disable
+    # fmt: off
     source["bar"] = {
         "a": {
             "c": [42, 43, 44, {"x": "y"}],
@@ -92,7 +92,7 @@ class DictToExportedDictItemsConverterTest(export_test_lib.ExportTestBase):
         },
         "b": 43
     }
-    # pyformat: enable
+    # fmt: on
 
     # Serialize/unserialize to make sure we deal with the object that is
     # similar to what we may get from the datastore.

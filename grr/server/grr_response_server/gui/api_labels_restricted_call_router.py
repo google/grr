@@ -5,11 +5,12 @@ from typing import Optional
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
-from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import metadata as api_metadata
@@ -42,7 +43,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
 
   params_type = ApiLabelsRestrictedCallRouterParams
 
-  def __init__(self, params=None, access_checker=None, delegate=None):
+  def __init__(self, params=None, approval_checker=None, delegate=None):
     super().__init__(params=params)
 
     self.params = params = params or self.__class__.params_type()
@@ -52,11 +53,13 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     # interrogate have owner="GRR".
     self.allow_labels_owners = set(params.allow_labels_owners or ["GRR"])
 
-    if not access_checker:
-      access_checker = api_call_router_with_approval_checks.AccessChecker(
-          api_call_router_with_approval_checks.ApiCallRouterWithApprovalCheckParams()
+    self.admin_access_checker = access_controller.AdminAccessChecker()
+
+    if not approval_checker:
+      approval_checker = access_controller.ApprovalChecker(
+          self.admin_access_checker
       )
-    self.access_checker = access_checker
+    self.approval_checker = approval_checker
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -81,12 +84,12 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
           "User is not allowed to work with flows."
       )
 
-  def CheckIfCanStartClientFlow(self, flow_name, context=None):
-    self.access_checker.CheckIfCanStartClientFlow(context.username, flow_name)
+  def CheckIfCanStartFlow(self, flow_name, context=None):
+    self.admin_access_checker.CheckIfCanStartFlow(context.username, flow_name)
 
   def CheckClientApproval(self, client_id, context=None):
     self.CheckClientLabels(client_id)
-    self.access_checker.CheckClientAccess(context, client_id)
+    self.approval_checker.CheckClientAccess(context, str(client_id))
 
   # Clients methods.
   # ===============
@@ -204,7 +207,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def CreateFlow(self, args, context=None):
     self.CheckFlowsAllowed()
     self.CheckClientApproval(args.client_id, context=context)
-    self.CheckIfCanStartClientFlow(
+    self.CheckIfCanStartFlow(
         args.flow.name or args.flow.runner_args.flow_name, context=context
     )
 
@@ -308,7 +311,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def GetGrrUser(self, args, context=None):
     # Everybody can get their own user object.
 
-    interface_traits = api_user.ApiGrrUserInterfaceTraits(
+    interface_traits = api_user_pb2.ApiGrrUserInterfaceTraits(
         search_clients_action_enabled=True
     )
     return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)

@@ -53,13 +53,13 @@ exports.MemoryItemsProviderController = class {
       opt_withTotalCount = false;
     }
 
-    var items = this.items_;
-    var deferred = this.q_.defer();
+    const items = this.items_;
+    const deferred = this.q_.defer();
 
-    var resultItems = items.slice(offset, offset + count);
+    const resultItems = items.slice(offset, offset + count);
 
     /** @type {Items} */
-    var result = {offset: offset, items: resultItems};
+    const result = {offset: offset, items: resultItems};
     if (opt_withTotalCount) {
       result.totalCount = items.length;
     }
@@ -81,10 +81,10 @@ exports.MemoryItemsProviderController = class {
   fetchFilteredItems(filter, offset, count) {
     filter = filter.toLowerCase();
 
-    var items = this.items_;
-    var deferred = this.q_.defer();
+    const items = this.items_;
+    const deferred = this.q_.defer();
 
-    var filteredItems = [];
+    let filteredItems = [];
     angular.forEach(items, function(item) {
       if (JSON.stringify(item).toLowerCase().indexOf(filter) != -1) {
         filteredItems.push(item);
@@ -94,7 +94,7 @@ exports.MemoryItemsProviderController = class {
     filteredItems = filteredItems.slice(offset, offset + count);
 
     /** @type {Items} */
-    var result = {offset: offset, items: filteredItems};
+    const result = {offset: offset, items: filteredItems};
 
 
     deferred.resolve(result);
@@ -102,7 +102,7 @@ exports.MemoryItemsProviderController = class {
   }
 };
 
-var MemoryItemsProviderController = exports.MemoryItemsProviderController;
+const MemoryItemsProviderController = exports.MemoryItemsProviderController;
 
 
 

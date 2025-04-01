@@ -95,6 +95,7 @@ class TestPool(absltest.TestCase):
       # pool capacity.
       for _ in range(10):
         con = pool.get()
+        assert con is not None
         cur = con.cursor()
         with self.assertRaises(MySQLdb.OperationalError):
           op(cur)
@@ -141,6 +142,7 @@ class TestPool(absltest.TestCase):
       # capacity.
       for _ in range(10):
         con = pool.get()
+        assert con is not None
         cur = con.cursor()
         self.assertEqual(m, op(cur))
         cur.close()

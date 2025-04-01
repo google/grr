@@ -30,6 +30,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** A form that customizes the behaviour of named pipe collection flow. */
 @Component({
+  standalone: false,
   selector: 'list-named-pipes-form',
   templateUrl: './list_named_pipes_form.ng.html',
   styleUrls: ['./list_named_pipes_form.scss'],

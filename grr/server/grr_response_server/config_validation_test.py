@@ -4,6 +4,7 @@
 import glob
 import logging
 import os
+
 from absl import app
 
 from grr_response_core import config
@@ -24,8 +25,9 @@ class BuildConfigTests(config_testing_lib.BuildConfigTestsBase):
       if os.access(cfg_file, os.R_OK):
         configs.append(cfg_file)
       else:
-        logging.info("Skipping checking %s, you probably need to be root",
-                     cfg_file)
+        logging.info(
+            "Skipping checking %s, you probably need to be root", cfg_file
+        )
 
     self.ValidateConfigs(configs)
 

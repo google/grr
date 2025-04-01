@@ -2,8 +2,7 @@ import {HttpErrorResponse} from '@angular/common/http';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {RequestStatusType} from '../../lib/api/track_request';
@@ -27,10 +26,10 @@ describe('ApprovalPage Component', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule.withRoutes(APPROVAL_PAGE_ROUTES),
         ApiModule,
         NoopAnimationsModule,
         ApprovalPageModule,
+        RouterModule.forRoot(APPROVAL_PAGE_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,

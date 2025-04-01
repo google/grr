@@ -573,31 +573,3 @@ def ToRDFApiGetExportedHuntResultsArgs(
   return hunt.ApiGetExportedHuntResultsArgs.FromSerializedBytes(
       proto.SerializeToString()
   )
-
-
-def ToProtoPerClientFileCollectionArgs(
-    rdf: hunt.PerClientFileCollectionArgs,
-) -> hunt_pb2.PerClientFileCollectionArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFPerClientFileCollectionArgs(
-    proto: hunt_pb2.PerClientFileCollectionArgs,
-) -> hunt.PerClientFileCollectionArgs:
-  return hunt.PerClientFileCollectionArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoApiCreatePerClientFileCollectionHuntArgs(
-    rdf: hunt.ApiCreatePerClientFileCollectionHuntArgs,
-) -> hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFApiCreatePerClientFileCollectionHuntArgs(
-    proto: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
-) -> hunt.ApiCreatePerClientFileCollectionHuntArgs:
-  return hunt.ApiCreatePerClientFileCollectionHuntArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )

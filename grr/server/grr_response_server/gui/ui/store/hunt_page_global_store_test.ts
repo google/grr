@@ -128,7 +128,7 @@ describe('HuntPageGlobalStore', () => {
     huntPageGlobalStore.selectHunt('1984');
     expect(
       httpApiService.subscribeToHuntClientCompletionStats,
-    ).toHaveBeenCalledWith({huntId: '1984', size: '1000'});
+    ).toHaveBeenCalledWith({huntId: '1984', size: '100'});
     sub.unsubscribe();
   });
 
@@ -236,7 +236,7 @@ describe('HuntPageGlobalStore', () => {
 
       expect(tabConfigList.length).toEqual(1);
       expect(tabConfigList[0].tabName).toEqual(errorResultTranslation.tabName);
-      expect(tabConfigList[0].totalResultsCount).toEqual(20);
+      expect(tabConfigList[0].totalResultsCount).toEqual(10);
       expect(tabConfigList[0].payloadType).toEqual(PayloadType.API_HUNT_ERROR);
     });
 
@@ -328,7 +328,7 @@ describe('HuntPageGlobalStore', () => {
       expect(tabConfigList.length).toEqual(3);
 
       expect(tabConfigList[0].tabName).toEqual(errorResultTranslation.tabName);
-      expect(tabConfigList[0].totalResultsCount).toEqual(15);
+      expect(tabConfigList[0].totalResultsCount).toEqual(5);
       expect(tabConfigList[0].payloadType).toEqual(PayloadType.API_HUNT_ERROR);
 
       expect(tabConfigList[1].tabName).toEqual(

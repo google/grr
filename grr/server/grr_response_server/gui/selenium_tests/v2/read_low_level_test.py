@@ -2,9 +2,10 @@
 from absl import app
 
 from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
+from grr_response_proto import flows_pb2
+from grr_response_proto import read_low_level_pb2
 from grr_response_server.flows.general import read_low_level
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -83,22 +84,24 @@ class ReadLowLevelTest(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent, "css=a[mat-stroked-button]:contains('Download')"
     )
     flow_test_lib.MarkFlowAsFinished(client_id=self.client_id, flow_id=flow_id)
-    with flow_test_lib.FlowResultMetadataOverride(
-        read_low_level.ReadLowLevel,
-        rdf_flow_objects.FlowResultMetadata(
+    flow_test_lib.OverrideFlowResultMetadataInFlow(
+        self.client_id,
+        flow_id,
+        flows_pb2.FlowResultMetadata(
             is_metadata_set=True,
             num_results_per_type_tag=[
-                rdf_flow_objects.FlowResultCount(
-                    type=rdf_read_low_level.ReadLowLevelFlowResult.__name__,
+                flows_pb2.FlowResultCount(
+                    type=read_low_level_pb2.ReadLowLevelFlowResult.__name__,
                     count=1,
                 )
             ],
         ),
-    ):
-      self.WaitUntil(
-          self.IsElementPresent,
-          "css=a[mat-stroked-button]:contains('Download')",
-      )
+    )
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=a[mat-stroked-button]:contains('Download')",
+    )
 
     self.WaitUntil(
         self.IsElementPresent,

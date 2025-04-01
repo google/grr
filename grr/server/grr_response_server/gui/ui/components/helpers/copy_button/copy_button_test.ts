@@ -8,8 +8,10 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CopyButtonModule} from './copy_button_module';
 
 @Component({
+  standalone: false,
   template:
     '<app-copy-button [overrideCopyText]="overrideCopyText">{{ text }}</app-copy-button>',
+  jit: true,
 })
 class TestComponentWithTextNode {
   @Input() text: string = '';
@@ -17,8 +19,10 @@ class TestComponentWithTextNode {
 }
 
 @Component({
+  standalone: false,
   template:
     '<app-copy-button><div class="test-el">{{ text }}</div></app-copy-button>',
+  jit: true,
 })
 class TestComponentWithElementNode {
   @Input() text: string = '';

@@ -30,23 +30,23 @@ describe('search box directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-search-box />';
+    const template = '<grr-search-box></grr-search-box>';
     const element = $compile(template)($scope);
     $scope.$apply();
     return element;
   };
 
   /**
-   * Stubs out any calls to api service. By passing a dictionary of url-result pairs,
-   * different server calls can be simulated. If no result for a given URL is found,
-   * a failed server call will be simulated.
+   * Stubs out any calls to api service. By passing a dictionary of url-result
+   * pairs, different server calls can be simulated. If no result for a given
+   * URL is found, a failed server call will be simulated.
    */
   const mockApiServiceResponse = (results) => {
     results = results || {};
     spyOn(grrApiService, 'get').and.callFake((apiPath, params) => {
       const value = results[apiPath];
       if (value) {
-        return $q.resolve({ data: value });
+        return $q.resolve({data: value});
       } else {
         return $q.reject('Invalid');
       }
@@ -77,7 +77,9 @@ describe('search box directive', () => {
     triggerSearch(element, 'test query');
 
     expect(grrApiService.get).toHaveBeenCalledWith('/clients/labels');
-    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'test query'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {
+      q: 'test query'
+    });
   });
 
   it('should invoke client search on ENTER in input', () => {
@@ -88,7 +90,9 @@ describe('search box directive', () => {
     triggerSearchByKeyboard(element, 'test query');
 
     expect(grrApiService.get).toHaveBeenCalledWith('/clients/labels');
-    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'test query'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {
+      q: 'test query'
+    });
   });
 
   it('should request hunt details if a hunt id is detected', () => {
@@ -115,18 +119,23 @@ describe('search box directive', () => {
     triggerSearch(element, 'H:12345678');
 
     expect(grrApiService.get).toHaveBeenCalledWith('hunts/H:12345678');
-    expect(grrRoutingService.go).toHaveBeenCalledWith('hunts', {huntId: 'H:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('hunts', {
+      huntId: 'H:12345678'
+    });
   });
 
   it('should fall back to regular client search if no hunt was found', () => {
-    mockApiServiceResponse(/* No param for HUNT url, so service call will be rejected. */);
+    mockApiServiceResponse(
+        /* No param for HUNT url, so service call will be rejected. */);
     spyOn(grrRoutingService, 'go');
 
     const element = render();
     triggerSearch(element, 'H:12345678');
 
     expect(grrApiService.get).toHaveBeenCalledWith('hunts/H:12345678');
-    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'H:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {
+      q: 'H:12345678'
+    });
   });
 
   it('should check that potential hunt ids cannot start with search keywords',

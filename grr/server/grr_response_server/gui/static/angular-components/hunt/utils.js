@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.utils');
-goog.module.declareLegacyNamespace();
 
 /**
  * @typedef {{

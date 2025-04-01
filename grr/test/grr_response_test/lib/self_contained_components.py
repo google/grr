@@ -3,23 +3,21 @@
 
 import atexit
 import collections
+from collections.abc import Iterable
 import os
-import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import threading
 import time
-
-from typing import Dict, Iterable, List, Optional, Union, Text
+from typing import Optional, Union
 
 import portpicker
 
 from google.protobuf import text_format
 from grr_response_core.lib import package
 from grr_response_test.lib import api_helpers
-
 from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as daemonservice_config_pb2
 from fleetspeak.src.client.generic.proto.fleetspeak_client_generic import config_pb2 as client_config_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2
@@ -28,7 +26,7 @@ from fleetspeak.src.server.grpcservice.proto.fleetspeak_grpcservice import grpcs
 from fleetspeak.src.server.proto.fleetspeak_server import server_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import services_pb2
 
-ComponentOptions = Dict[str, Union[int, str]]
+ComponentOptions = dict[str, Union[int, str]]
 
 
 class Error(Exception):
@@ -39,17 +37,7 @@ class ConfigInitializationError(Error):
   """Raised when a self-contained config can't be written."""
 
 
-def _ComponentOptionsToArgs(options: Optional[ComponentOptions]) -> List[str]:
-  if options is None:
-    return []
-
-  args = []
-  for k, v in options.items():
-    args.extend(["-p", "%s=%s" % (k, v)])
-  return args
-
-
-def _GetServerComponentArgs(config_path: str) -> List[str]:
+def _GetServerComponentArgs(config_path: str) -> list[str]:
   """Returns a set of command line arguments for server components.
 
   Args:
@@ -85,7 +73,8 @@ def _GetRunEndToEndTestsArgs(
     client_id,
     server_config_path,
     tests: Optional[Iterable[str]] = None,
-    manual_tests: Optional[Iterable[str]] = None) -> List[str]:
+    manual_tests: Optional[Iterable[str]] = None,
+) -> list[str]:
   """Returns arguments needed to configure run_end_to_end_tests process.
 
   Args:
@@ -120,7 +109,7 @@ def _GetRunEndToEndTestsArgs(
   return args
 
 
-def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen[bytes]:
+def _StartBinary(binary_path: str, args: list[str]) -> subprocess.Popen[bytes]:
   """Starts a new process with a given binary and args.
 
   Started subprocess will be killed automatically on exit.
@@ -150,7 +139,7 @@ def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen[bytes]:
 
 
 def _StartComponent(
-    main_package: str, args: List[str]
+    main_package: str, args: list[str]
 ) -> subprocess.Popen[bytes]:
   """Starts a new process with a given component.
 
@@ -366,7 +355,7 @@ def InitFleetspeakConfigs(
 def StartServerProcesses(
     grr_configs: GRRConfigs,
     fleetspeak_configs: FleetspeakConfigs,
-) -> List[subprocess.Popen]:
+) -> list[subprocess.Popen]:
   """Starts GRR server processes (optionally behind Fleetspeak frontend)."""
 
   fleetspeak_server_args = [
@@ -439,84 +428,6 @@ def RunEndToEndTests(client_id: str,
     raise RuntimeError("RunEndToEndTests execution failed.")
 
 
-def RunBuildTemplate(server_config_path: str,
-                     component_options: Optional[ComponentOptions] = None,
-                     version_ini: Optional[str] = None) -> str:
-  """Runs end to end tests on a given client."""
-  output_dir = tempfile.mkdtemp()
-
-  def CleanUpTemplate():
-    shutil.rmtree(output_dir)
-
-  atexit.register(CleanUpTemplate)
-
-  options = dict(component_options or {})
-  if version_ini:
-    fd, version_ini_path = tempfile.mkstemp(".ini")
-    try:
-      os.write(fd, version_ini.encode("ascii"))
-    finally:
-      os.close(fd)
-
-    options["ClientBuilder.version_ini_path"] = version_ini_path
-
-  p = _StartComponent(
-      "grr_response_client_builder.client_build",
-      _GetServerComponentArgs(server_config_path) +
-      _ComponentOptionsToArgs(options) + ["build", "--output", output_dir])
-  if p.wait() != 0:
-    raise RuntimeError("RunBuildTemplate execution failed.")
-
-  return os.path.join(output_dir, os.listdir(output_dir)[0])
-
-
-def RunRepackTemplate(
-    server_config_path: str,
-    template_path: str,
-    component_options: Optional[ComponentOptions] = None) -> str:
-  """Runs 'grr_client_builder repack' to repack a template."""
-  output_dir = tempfile.mkdtemp()
-
-  def CleanUpInstaller():
-    shutil.rmtree(output_dir)
-
-  atexit.register(CleanUpInstaller)
-
-  p = _StartComponent(
-      "grr_response_client_builder.client_build",
-      _GetServerComponentArgs(server_config_path) +
-      _ComponentOptionsToArgs(component_options) +
-      ["repack", "--template", template_path, "--output_dir", output_dir])
-  if p.wait() != 0:
-    raise RuntimeError("RunRepackTemplate execution failed.")
-
-  # Repacking may apparently generate more than one file. Just select the
-  # biggest one: it's guaranteed to be the template.
-  paths = [os.path.join(output_dir, fname) for fname in os.listdir(output_dir)]
-  sizes = [os.path.getsize(p) for p in paths]
-  _, biggest_path = max(zip(sizes, paths))
-
-  return biggest_path
-
-
-def RunUploadExe(server_config_path: str,
-                 exe_path: str,
-                 platform_str: str,
-                 component_options: Optional[ComponentOptions] = None) -> str:
-  """Runs 'grr_config_upater upload_exe' to upload a binary to GRR."""
-  p = _StartComponent(
-      "grr_response_server.bin.config_updater",
-      _GetServerComponentArgs(server_config_path) +
-      _ComponentOptionsToArgs(component_options) + [
-          "upload_exe", "--file", exe_path, "--platform", platform_str,
-          "--upload_subdirectory", "test"
-      ])
-  if p.wait() != 0:
-    raise RuntimeError("RunUploadExe execution failed.")
-
-  return "%s/test/%s" % (platform_str, os.path.basename(exe_path))
-
-
 _PROCESS_CHECK_INTERVAL = 0.1
 
 
@@ -574,15 +485,3 @@ def DieIfSubProcessDies(
   atexit.register(PreventDoubleDeath)
 
   return t
-
-
-def RunApiShellRawAccess(config: Text, exec_code: Text) -> None:
-  """Runs exec_code in the API shell."""
-  p = _StartComponent(
-      "grr_response_server.bin."
-      "api_shell_raw_access",
-      ["--config", config, "--exec_code", exec_code],
-  )
-  if p.wait() != 0:
-    raise Exception("api_shell_raw_access execution failed: {}".format(
-        p.returncode))

@@ -46,7 +46,7 @@ describe('approver input', () => {
   }));
 
   function renderTestTemplate(initialValue = '') {
-    const template = '<grr-approver-input ng-model="value"/>';
+    const template = '<grr-approver-input ng-model="value"></grr-approver-input>';
     $rootScope.value = initialValue;
 
     const element = $compile(template)($rootScope);

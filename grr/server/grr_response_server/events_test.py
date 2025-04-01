@@ -32,7 +32,8 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
         name="test message",
         payload=rdf_paths.PathSpec(path="foobar", pathtype="TSK"),
         source="aff4:/C.0000000000000001",
-        auth_state="AUTHENTICATED")
+        auth_state="AUTHENTICATED",
+    )
 
     events.Events.PublishEvent("TestEvent", event, username=self.test_username)
 

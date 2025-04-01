@@ -31,7 +31,6 @@ describe('API service', () => {
   });
 
   describe('encodeUrlPath() function', () => {
-
     it('does not touch slashes and normal characters', () => {
       expect(encodeUrlPath('////')).toBe('////');
       expect(encodeUrlPath('/a/b/c/d/')).toBe('/a/b/c/d/');
@@ -43,7 +42,6 @@ describe('API service', () => {
   });
 
   describe('stripTypeInfo() function', () => {
-
     it('converts richly typed primitive into a primitive value', () => {
       const richData = {
         'age': 0,
@@ -109,8 +107,7 @@ describe('API service', () => {
       ];
 
 
-      expect(stripTypeInfo(richData)).toEqual(
-        ['label2', 'label3']);
+      expect(stripTypeInfo(richData)).toEqual(['label2', 'label3']);
     });
 
     it('converts list structure field into list of primitives', () => {
@@ -170,22 +167,26 @@ describe('API service', () => {
     });
 
     it('passes user-provided headers in the request', () => {
-      $httpBackend.whenHEAD('/api/some/path?key1=value1&key2=value2').
-          respond(200);
+      $httpBackend.whenHEAD('/api/some/path?key1=value1&key2=value2')
+          .respond(200);
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
     it('passes user-provided headers in the request', () => {
-      $httpBackend.whenHEAD('/api/some/path?' +
-          'key1=value1&key2=value2').respond(200);
+      $httpBackend
+          .whenHEAD(
+              '/api/some/path?' +
+              'key1=value1&key2=value2')
+          .respond(200);
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
     it('url-escapes the path', () => {
-      $httpBackend.whenHEAD(
-          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      $httpBackend
+          .whenHEAD('/api/some/path%3Ffoo%26bar?key1=value1&key2=value2')
+          .respond(200);
       grrApiService.head('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -205,22 +206,25 @@ describe('API service', () => {
     });
 
     it('passes user-provided headers in the request', () => {
-      $httpBackend.whenGET('/api/some/path?key1=value1&key2=value2').
-          respond(200);
+      $httpBackend.whenGET('/api/some/path?key1=value1&key2=value2')
+          .respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
     it('passes user-provided headers in the request', () => {
-      $httpBackend.whenGET('/api/some/path?' +
-          'key1=value1&key2=value2').respond(200);
+      $httpBackend
+          .whenGET(
+              '/api/some/path?' +
+              'key1=value1&key2=value2')
+          .respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
     it('url-escapes the path', () => {
-      $httpBackend.whenGET(
-          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      $httpBackend.whenGET('/api/some/path%3Ffoo%26bar?key1=value1&key2=value2')
+          .respond(200);
       grrApiService.get('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -478,17 +482,16 @@ describe('API service', () => {
     });
 
     it('passes user-provided data in the request', () => {
-      $httpBackend.expect(
-          'DELETE', '/api/some/path', {key1: 'value1', key2: 'value2'})
-              .respond(200);
+      $httpBackend
+          .expect('DELETE', '/api/some/path', {key1: 'value1', key2: 'value2'})
+          .respond(200);
       grrApiService.delete('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
 
     it('url-escapes the path', () => {
-      $httpBackend.expectDELETE(
-          '/api/some/path%3Ffoo%26bar').respond(200);
+      $httpBackend.expectDELETE('/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.delete('some/path?foo&bar');
       $httpBackend.flush();
     });
@@ -517,17 +520,16 @@ describe('API service', () => {
     });
 
     it('passes user-provided data in the request', () => {
-      $httpBackend.expect(
-          'PATCH', '/api/some/path', {key1: 'value1', key2: 'value2'})
-              .respond(200);
+      $httpBackend
+          .expect('PATCH', '/api/some/path', {key1: 'value1', key2: 'value2'})
+          .respond(200);
       grrApiService.patch('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
 
     it('url-escapes the path', () => {
-      $httpBackend.expectPATCH(
-          '/api/some/path%3Ffoo%26bar').respond(200);
+      $httpBackend.expectPATCH('/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.patch('some/path?foo&bar');
       $httpBackend.flush();
     });
@@ -577,16 +579,16 @@ describe('API service', () => {
     });
 
     it('passes user-provided headers in the request', () => {
-      $httpBackend.expectPOST(
-          '/api/some/path', {key1: 'value1', key2: 'value2'}).respond(200);
+      $httpBackend
+          .expectPOST('/api/some/path', {key1: 'value1', key2: 'value2'})
+          .respond(200);
 
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
     it('url-escapes the path', () => {
-      $httpBackend.whenPOST(
-          '/api/some/path%3Ffoo%26bar').respond(200);
+      $httpBackend.whenPOST('/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.post('some/path?foo&bar', {});
       $httpBackend.flush();
     });
@@ -614,20 +616,21 @@ describe('API service', () => {
     });
 
     it('sends query parameters in the HEAD request', () => {
-      $httpBackend.expectHEAD('/api/some/path?abra=cadabra&foo=bar').respond(
-          200);
+      $httpBackend.expectHEAD('/api/some/path?abra=cadabra&foo=bar')
+          .respond(200);
 
-      grrApiService.downloadFile('some/path', {'foo': 'bar',
-                                               'abra': 'cadabra'});
+      grrApiService.downloadFile(
+          'some/path', {'foo': 'bar', 'abra': 'cadabra'});
 
       $httpBackend.flush();
     });
 
     it('url-escapes the path', () => {
-      $httpBackend.expectHEAD(
-          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
-      grrApiService.downloadFile('some/path?foo&bar',
-                                 {key1: 'value1', key2: 'value2'});
+      $httpBackend
+          .expectHEAD('/api/some/path%3Ffoo%26bar?key1=value1&key2=value2')
+          .respond(200);
+      grrApiService.downloadFile(
+          'some/path?foo&bar', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
@@ -675,11 +678,12 @@ describe('API service', () => {
     it('propagates query option to iframe "src" attribute', () => {
       $httpBackend.whenHEAD('/api/some/path?abra=cadabra&foo=bar').respond(200);
 
-      grrApiService.downloadFile('some/path',
-                                 {'foo': 'bar', 'abra': 'cadabra'});
+      grrApiService.downloadFile(
+          'some/path', {'foo': 'bar', 'abra': 'cadabra'});
       $httpBackend.flush();
 
-      expect($('iframe').attr('src')).toBe('/api/some/path?abra=cadabra&foo=bar');
+      expect($('iframe').attr('src'))
+          .toBe('/api/some/path?abra=cadabra&foo=bar');
     });
 
     it('fails if same-origin-policy error is thrown when accessing iframe',

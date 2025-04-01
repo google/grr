@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.huntApprovalViewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 

@@ -73,15 +73,17 @@ class HuntApprovalPageComponentStore extends ComponentStore<HuntApprovalPageStat
   providedIn: 'root',
 })
 export class HuntApprovalPageGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new HuntApprovalPageComponentStore(this.httpApiService);
+    this.approval$ = this.store.approval$;
+    this.grantRequestStatus$ = this.store.grantRequestStatus$;
+  }
 
-  private readonly store = new HuntApprovalPageComponentStore(
-    this.httpApiService,
-  );
+  private readonly store;
 
-  readonly approval$: Observable<HuntApproval | null> = this.store.approval$;
+  readonly approval$: Observable<HuntApproval | null>;
 
-  readonly grantRequestStatus$ = this.store.grantRequestStatus$;
+  readonly grantRequestStatus$;
 
   selectHuntApproval(huntApprovalKey: HuntApprovalKey): void {
     this.store.selectHuntApproval(huntApprovalKey);

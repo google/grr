@@ -3,6 +3,7 @@ import {ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {
+  getExportedResultsCommandLink,
   getExportedResultsCsvUrl,
   getExportedResultsSqliteUrl,
   getExportedResultsYamlUrl,
@@ -26,20 +27,32 @@ export interface ExportMenuItem {
 
   /** URL of the file to download. */
   url: string;
+
+  /** Type of button, e.g. "COPY_TO_CLIPBOARD" or "LINK". */
+  type: ButtonType;
+}
+
+/** Enum that defines the type of button, e.g. "COPY_TO_CLIPBOARD" or "LINK". */
+export enum ButtonType {
+  COPY_TO_CLIPBOARD = 0,
+  LINK = 1,
 }
 
 /**
  * Base class for all flow details plugins.
  */
-@Component({template: ''})
+@Component({standalone: false, template: ''})
 export abstract class Plugin implements OnDestroy {
   private flowValue?: Flow;
+  exportCommandPrefixValue?: string;
 
   /**
    * Subject emitting new Flow values on every "flow"
    * binding change.
    */
   readonly flow$ = new ReplaySubject<Flow>(1);
+
+  readonly exportCommandPrefix$ = new ReplaySubject<string>(1);
 
   readonly fallbackUrl$ = this.flow$.pipe(
     map((flow) => {
@@ -65,6 +78,16 @@ export abstract class Plugin implements OnDestroy {
     return this.flowValue!;
   }
 
+  @Input()
+  set exportCommandPrefix(value: string) {
+    this.exportCommandPrefixValue = value;
+    this.exportCommandPrefix$.next(value);
+  }
+
+  get exportCommandPrefix(): string {
+    return this.exportCommandPrefixValue!;
+  }
+
   /** Returns a menu item triggering downloading the flow's collected files. */
   getDownloadFilesExportMenuItem(flow: Flow): ExportMenuItem {
     const clientId = flow.clientId.replace('.', '_');
@@ -72,6 +95,7 @@ export abstract class Plugin implements OnDestroy {
       title: 'Download files',
       url: getFlowFilesArchiveUrl(flow.clientId, flow.flowId),
       downloadName: `${clientId}_${flow.flowId}.zip`,
+      type: ButtonType.LINK,
     };
   }
 
@@ -83,12 +107,16 @@ export abstract class Plugin implements OnDestroy {
    * be shown in a dropdown menu.
    *
    * Override this function in a child class to control which entries to show.
-   * You can fall back to super.getExportMenuItems(flow) and modify any items;
+   * You can fall back to super.getExportMenuItems(flow, exportCommandPrefix)
+   * and modify any items;
    *
    * If the flow is still running or reports no results in the metadata, no
    * export/download buttons will be shown.
    */
-  getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
     const clientId = flow.clientId.replace('.', '_');
     const items: ExportMenuItem[] = [];
 
@@ -98,24 +126,42 @@ export abstract class Plugin implements OnDestroy {
       items.push(this.getDownloadFilesExportMenuItem(flow));
     }
 
-    return [
-      ...items,
+    items.push(
       {
         title: 'Download (CSV)',
         url: getExportedResultsCsvUrl(flow.clientId, flow.flowId),
         downloadName: `${clientId}_${flow.flowId}.csv.zip`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download (YAML)',
         url: getExportedResultsYamlUrl(flow.clientId, flow.flowId),
         downloadName: `${clientId}_${flow.flowId}.yaml.zip`,
+        type: ButtonType.LINK,
       },
       {
         title: 'Download (SQLite)',
         url: getExportedResultsSqliteUrl(flow.clientId, flow.flowId),
         downloadName: `${clientId}_${flow.flowId}.sql.zip`,
+        type: ButtonType.LINK,
       },
-    ];
+    );
+
+    if (exportCommandPrefix && exportCommandPrefix !== '') {
+      items.push({
+        title: 'Download (Print CLI)',
+        url: getExportedResultsCommandLink(
+          exportCommandPrefix,
+          flow.clientId,
+          `${clientId}_${flow.flowId}.zip`,
+          flow.flowId,
+        ),
+        downloadName: `CLI Export Command`,
+        type: ButtonType.COPY_TO_CLIPBOARD,
+      });
+    }
+
+    return items;
   }
 
   /**

@@ -17,6 +17,7 @@ from grr.test_lib import test_lib
 
 class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
+
   NUMBER_OF_THREADS = 1
   MAXIMUM_THREADS = 20
   NUMBER_OF_TASKS = 1500
@@ -28,7 +29,8 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     prefix = "pool-%s" % self._testMethodName
     self.test_pool = threadpool.ThreadPool.Factory(
-        prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS)
+        prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS
+    )
     self.test_pool.Start()
     self.addCleanup(self.test_pool.Stop)
 
@@ -52,7 +54,8 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
   def testThreadCreation(self):
     """Ensure the thread pool started the minimum number of threads."""
     self.assertEqual(
-        self.Count("pool-testThreadCreation"), self.NUMBER_OF_THREADS)
+        self.Count("pool-testThreadCreation"), self.NUMBER_OF_THREADS
+    )
 
   def testStopping(self):
     """Tests if all worker threads terminate if the thread pool is stopped."""
@@ -106,17 +109,15 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
         wait_event.wait()
 
       self.test_pool.AddTask(
-          RunFn, (wait_event_1, signal_event_1, 0),
-          blocking=False,
-          inline=False)
+          RunFn, (wait_event_1, signal_event_1, 0), blocking=False, inline=False
+      )
       wait_event_1.wait(10)
       self.assertEqual(sample, [0])
       # Now task 1 is running, schedule task 2 and make sure it runs and
       # completes.
       self.test_pool.AddTask(
-          RunFn, (wait_event_2, signal_event_2, 1),
-          blocking=False,
-          inline=False)
+          RunFn, (wait_event_2, signal_event_2, 1), blocking=False, inline=False
+      )
       wait_event_2.wait(10)
       self.assertEqual(sample, [0, 1])
     finally:
@@ -145,7 +146,8 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
       self.exception_args = args
 
     with self.assertStatsCounterDelta(
-        2, threadpool.THREADPOOL_TASK_EXCEPTIONS, fields=[self.test_pool.name]):
+        2, threadpool.THREADPOOL_TASK_EXCEPTIONS, fields=[self.test_pool.name]
+    ):
       with mock.patch.object(logging, "exception", MockException):
         self.test_pool.AddTask(IRaise, (None,), "Raising")
         self.test_pool.AddTask(IRaise, (None,), "Raising")
@@ -172,8 +174,9 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     with mock.patch.object(threadpool._WorkerThread, "start", RaisingStart):
       # Fill all the existing threads and wait for them to become busy.
       self.test_pool.AddTask(Block, (done_event,))
-      self.WaitUntil(lambda: self.test_pool.busy_threads == self.
-                     NUMBER_OF_THREADS)
+      self.WaitUntil(
+          lambda: self.test_pool.busy_threads == self.NUMBER_OF_THREADS
+      )
 
       # Now fill the queue completely..
       for _ in range(self.MAXIMUM_THREADS):
@@ -185,9 +188,11 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
       self.assertRaises(
           threadpool.Full,
           self.test_pool.AddTask,
-          Block, (done_event,),
+          Block,
+          (done_event,),
           blocking=False,
-          inline=False)
+          inline=False,
+      )
 
       # Release the blocking tasks.
       done_event.set()
@@ -224,7 +229,8 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     # processed, since all threads are busy.
     for i in range(self.MAXIMUM_THREADS):
       self.test_pool.AddTask(
-          Insert, (res, i), "Insert", blocking=True, inline=False)
+          Insert, (res, i), "Insert", blocking=True, inline=False
+      )
 
     # There should be 20 workers created and they should consume all the
     # blocking tasks.
@@ -257,10 +263,12 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
   def testThreadsReaped(self):
     """Check that threads are reaped when too old."""
     self.now = 0
-    with utils.MultiStubber((time, "time", lambda: self.now),
-                            (threading, "_time", lambda: self.now),
-                            (queue, "_time", lambda: self.now),
-                            (self.test_pool, "CPUUsage", lambda: 0)):
+    with utils.MultiStubber(
+        (time, "time", lambda: self.now),
+        (threading, "_time", lambda: self.now),
+        (queue, "_time", lambda: self.now),
+        (self.test_pool, "CPUUsage", lambda: 0),
+    ):
       done_event = threading.Event()
 
       res = []
@@ -309,7 +317,8 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
       # Next 5 tasks should sit in the queue.
       for _ in range(5):
         with self.assertStatsCounterDelta(
-            1, threadpool.THREADPOOL_OUTSTANDING_TASKS, fields=[pool_name]):
+            1, threadpool.THREADPOOL_OUTSTANDING_TASKS, fields=[pool_name]
+        ):
           pool.AddTask(RunFn, ())
 
     finally:
@@ -320,8 +329,9 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     """Tests that creating two pools with the same name fails."""
 
     prefix = self.test_pool.name
-    self.assertRaises(threadpool.DuplicateThreadpoolError,
-                      threadpool.ThreadPool, prefix, 10)
+    self.assertRaises(
+        threadpool.DuplicateThreadpoolError, threadpool.ThreadPool, prefix, 10
+    )
 
   def testDuplicateName(self):
     """Tests that we can get the same pool again through the factory."""
@@ -373,7 +383,8 @@ class BatchConverterTest(test_lib.GRRBaseTest):
         threadpool_size=10,
         batch_size=2,
         sleep_time=0.1,
-        threadpool_prefix="multi_threaded")
+        threadpool_prefix="multi_threaded",
+    )
     test_data = [str(i) for i in range(10)]
 
     converter.Convert(test_data)
@@ -393,7 +404,8 @@ class BatchConverterTest(test_lib.GRRBaseTest):
         threadpool_size=0,
         batch_size=2,
         sleep_time=0,
-        threadpool_prefix="single_threaded")
+        threadpool_prefix="single_threaded",
+    )
     test_data = [str(i) for i in range(10)]
 
     converter.Convert(test_data)

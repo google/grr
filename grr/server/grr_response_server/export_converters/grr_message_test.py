@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from absl import app
 
-from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server.export_converters import base
@@ -85,9 +84,7 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     fixture_test_lib.ClientFixture(self.client_id)
 
     metadata = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
-        )
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/H:000000/Results")
     )
 
     converter = grr_message.GrrMessageConverter()
@@ -100,7 +97,7 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     )
     self.assertEqual(
         results[0].source_urn,
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results",
+        "aff4:/hunts/H:000000/Results",
     )
 
   @export_test_lib.WithExportConverter(DummyTestRDFValue4ToMetadataConverter)
@@ -118,14 +115,10 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     msg2.source = client_id_2
 
     metadata1 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
-        )
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/H:000000/Results")
     )
     metadata2 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"
-        )
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/H:000001/Results")
     )
 
     converter = grr_message.GrrMessageConverter()
@@ -140,7 +133,7 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     )
     self.assertEqual(
         results[0].source_urn,
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results",
+        "aff4:/hunts/H:000000/Results",
     )
 
   @export_test_lib.WithExportConverter(DummyTestRDFValue3ConverterA)
@@ -158,14 +151,10 @@ class GrrMessageConverterTest(export_test_lib.ExportTestBase):
     msg2.source = client_id
 
     metadata1 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"
-        )
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/H:000000/Results")
     )
     metadata2 = base.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN(
-            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"
-        )
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/H:000001/Results")
     )
 
     converter = grr_message.GrrMessageConverter()

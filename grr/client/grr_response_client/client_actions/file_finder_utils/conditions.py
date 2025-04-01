@@ -2,11 +2,9 @@
 """Implementation of condition mechanism for client-side file-finder."""
 
 import abc
+from collections.abc import Iterator
 import re
-from typing import Iterator
-from typing import NamedTuple
-from typing import Optional
-from typing import Pattern
+from typing import NamedTuple, Optional
 
 from grr_response_client import streaming
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -264,8 +262,8 @@ class RegexMatcher(Matcher):
     regex: An RDF regular expression that the matcher represents.
   """
 
-  def __init__(self, regex: Pattern[bytes]):
-    precondition.AssertType(regex, Pattern)
+  def __init__(self, regex: re.Pattern[bytes]):
+    precondition.AssertType(regex, re.Pattern)
 
     super().__init__()
     self._regex = regex

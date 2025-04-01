@@ -18,7 +18,7 @@ describe('Troggle', () => {
   }));
 
   const render = (state) => {
-    const template = `<grr-troggle ng-model="state" />`;
+    const template = `<grr-troggle ng-model="state"></grr-troggle>`;
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

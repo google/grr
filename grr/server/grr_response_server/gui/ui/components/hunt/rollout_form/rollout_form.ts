@@ -69,6 +69,7 @@ type ControlNames = 'rolloutSpeed' | 'clientRate' | 'runOn' | 'clientLimit';
  * Provides the forms for hunt rollout params configuration.
  */
 @Component({
+  standalone: false,
   selector: 'app-rollout-form',
   templateUrl: './rollout_form.ng.html',
   styleUrls: ['./rollout_form.scss'],

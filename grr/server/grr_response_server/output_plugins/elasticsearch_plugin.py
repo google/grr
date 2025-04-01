@@ -9,7 +9,7 @@ https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-index_.html
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 from urllib import parse as urlparse
 
 import requests
@@ -31,7 +31,7 @@ from grr_response_server.rdfvalues import mig_objects
 BULK_OPERATIONS_PATH = "_bulk"
 
 # TODO(user): Use the JSON type.
-JsonDict = Dict[str, Any]
+JsonDict = dict[str, Any]
 
 
 class ElasticsearchConfigurationError(Exception):
@@ -78,7 +78,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
   def ProcessResponses(
       self,
       state: rdf_protodict.AttributedDict,
-      responses: List[rdf_flow_objects.FlowResult],
+      responses: list[rdf_flow_objects.FlowResult],
   ) -> None:
     """See base class."""
     client_id = self._GetClientId(responses)
@@ -90,7 +90,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
+  def _GetClientId(self, responses: list[rdf_flow_objects.FlowResult]) -> str:
     client_ids = {msg.client_id for msg in responses}
     if len(client_ids) > 1:
       raise AssertionError(
@@ -101,7 +101,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
       )
     return client_ids.pop()
 
-  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> str:
+  def _GetFlowId(self, responses: list[rdf_flow_objects.FlowResult]) -> str:
     flow_ids = {msg.flow_id for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
@@ -143,7 +143,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
 
     return event
 
-  def _SendEvents(self, events: List[JsonDict]) -> None:
+  def _SendEvents(self, events: list[JsonDict]) -> None:
     """Uses the Elasticsearch bulk API to index all events in a single request."""
     # https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
 

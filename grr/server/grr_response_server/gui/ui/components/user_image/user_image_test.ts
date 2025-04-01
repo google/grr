@@ -14,7 +14,11 @@ import {UserImageModule} from './module';
 
 initTestEnvironment();
 
-@Component({template: `<user-image [username]="username"></user-image>`})
+@Component({
+  standalone: false,
+  template: `<user-image [username]="username"></user-image>`,
+  jit: true,
+})
 class TestHostComponent {
   username?: string;
 }

@@ -2,8 +2,7 @@ import {HttpErrorResponse} from '@angular/common/http';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {
   Browser,
@@ -51,10 +50,10 @@ describe('HuntApprovalPage Component', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule.withRoutes(APPROVAL_PAGE_ROUTES),
         ApiModule,
         NoopAnimationsModule,
         HuntApprovalPageModule,
+        RouterModule.forRoot(APPROVAL_PAGE_ROUTES),
       ],
       providers: [
         ...STORE_PROVIDERS,
@@ -115,7 +114,7 @@ describe('HuntApprovalPage Component', () => {
           flowArgs: {
             '@type':
               'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-            'browsers': [Browser.CHROME],
+            'browsers': [Browser.CHROMIUM_BASED_BROWSERS],
           },
           created: new Date('2/1/22'),
           safetyLimits: newSafetyLimits({
@@ -150,7 +149,7 @@ describe('HuntApprovalPage Component', () => {
     expect(text).toContain('200');
     expect(text).toContain('standard');
     expect(text).toContain(getFlowTitleFromFlowName(flowName));
-    expect(text).toContain('Chrome');
+    expect(text).toContain('Chromium');
     expect(text).toContain('20');
     expect(text).toContain('40 s');
     expect(text).toContain('80 B');

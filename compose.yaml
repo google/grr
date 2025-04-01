@@ -1,7 +1,18 @@
+# Run the GRR stack with container images fetched from the GitHub container
+# registry.
+#
+# See https://github.com/google/grr/pkgs/container/grr
+# See https://github.com/google/fleetspeak/pkgs/container/fleetspeak
+#
+# To run the stack follow
+# https://grr-doc.readthedocs.io/en/latest/installing-and-running-grr/via-docker-compose.html
+#
+# To run the stack from source code, use compose.watch.yaml instead.
+
 version: "3.8"
 services:
   db:
-    image: mysql:8.2
+    image: mysql:8.4
     env_file: docker_config_files/mysql/.env
     container_name: grr-db
     hostname: mysql-host
@@ -9,7 +20,8 @@ services:
       --max_allowed_packet=40M,
       --log_bin_trust_function_creators=1,
       --innodb_redo_log_capacity=167772160,
-      --innodb_log_file_size=2500M
+      --innodb_log_file_size=2500M,
+      --restrict-fk-on-non-standard-key=OFF
     ]
     restart: always
     volumes:
@@ -27,7 +39,6 @@ services:
       retries: 10
 
   grr-admin-ui:
-    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-admin-ui
     hostname: admin-ui
@@ -58,16 +69,8 @@ services:
       test: "/configs/healthchecks/grr-admin-ui.sh"
       timeout: 10s
       retries: 10
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./grr
-          target: /usr/src/grr/grr
-          ignore:
-            - client/
 
   grr-fleetspeak-frontend:
-    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-fleetspeak-frontend
     hostname: grr-fleetspeak-frontend
@@ -87,13 +90,6 @@ services:
       - -config
       - /configs/server/grr.server.yaml
       - --verbose
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./grr
-          target: /usr/src/grr/grr
-          ignore:
-            - client/
 
   fleetspeak-admin:
     image: ghcr.io/google/fleetspeak:latest
@@ -145,7 +141,6 @@ services:
     ]
 
   grr-worker:
-    build: .
     image: ghcr.io/google/grr:latest
     container_name: grr-worker
     volumes:
@@ -164,16 +159,8 @@ services:
       - -config
       - /configs/server/grr.server.yaml
       - --verbose
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./grr
-          target: /usr/src/grr/grr
-          ignore:
-            - client/
 
   grr-client:
-    build: .
     image: ubuntu:22.04
     container_name: grr-client
     depends_on:
@@ -203,13 +190,6 @@ services:
       test: "/configs/healthchecks/grr-client.sh"
       timeout: 10s
       retries: 10
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./grr
-          target: /usr/src/grr/grr
-          ignore:
-            - server/
 
 volumes:
   db_data:

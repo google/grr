@@ -2,8 +2,6 @@
 """Helper API-client-based functions for self-contained tests."""
 import time
 
-from typing import Tuple
-
 import requests
 
 from grr_api_client import api
@@ -27,7 +25,7 @@ class ClientVersionTimeoutError(Error):
   """Raised then a client doesn't report a specific version in time."""
 
 
-def GetFleetspeakPortsFromConfig(config_path: str) -> Tuple[int, int]:
+def GetFleetspeakPortsFromConfig(config_path: str) -> tuple[int, int]:
   """Gets Fleetspeak frontend and admin ports from GRR config."""
   conf = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(), config_path)
   frontend_port = int(

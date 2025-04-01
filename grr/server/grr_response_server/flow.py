@@ -18,6 +18,7 @@ attribute. Note that this means that any parameters assigned to the
 flow object itself are not preserved across state executions - only
 parameters specifically stored in the state are preserved.
 """
+
 import enum
 import logging
 import traceback
@@ -26,7 +27,7 @@ from typing import Optional, Sequence
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
@@ -35,6 +36,8 @@ from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
 GRR_FLOW_INVALID_FLOW_COUNT = metrics.Counter("grr_flow_invalid_flow_count")
@@ -72,14 +75,6 @@ class AttributedDict(dict):
     self.__dict__ = self
 
 
-def FilterArgsFromSemanticProtobuf(protobuf, kwargs):
-  """Assign kwargs to the protobuf, and remove them from the kwargs dict."""
-  for descriptor in protobuf.type_infos:
-    value = kwargs.pop(descriptor.name, None)
-    if value is not None:
-      setattr(protobuf, descriptor.name, value)
-
-
 def GetOutputPluginStates(output_plugins, source=None):
   """Initializes state for a list of output plugins."""
   output_plugins_states = []
@@ -90,17 +85,15 @@ def GetOutputPluginStates(output_plugins, source=None):
           source_urn=source, args=plugin_descriptor.args
       )
     except Exception as e:  # pylint: disable=broad-except
-      raise ValueError("Plugin %s failed to initialize (%s)" %
-                       (plugin_class, e))
-
-    # TODO(amoser): Those do not need to be inside the state, they
-    # could be part of the plugin descriptor.
-    plugin_state["logs"] = []
-    plugin_state["errors"] = []
+      raise ValueError(
+          "Plugin %s failed to initialize (%s)" % (plugin_class, e)
+      ) from e
 
     output_plugins_states.append(
         rdf_flow_runner.OutputPluginState(
-            plugin_state=plugin_state, plugin_descriptor=plugin_descriptor))
+            plugin_state=plugin_state, plugin_descriptor=plugin_descriptor
+        )
+    )
 
   return output_plugins_states
 
@@ -112,6 +105,7 @@ def RandomFlowId() -> str:
 
 class _ParentType(enum.Enum):
   """Enum describing what data type led to a flow's creation."""
+
   ROOT = 0
   FLOW = 1
   HUNT = 2
@@ -121,10 +115,12 @@ class _ParentType(enum.Enum):
 class FlowParent(object):
   """Class describing what data type led to a flow's creation."""
 
-  def __init__(self,
-               parent_type: _ParentType,
-               parent_id: Optional[str] = None,
-               parent_flow_obj=None):
+  def __init__(
+      self,
+      parent_type: _ParentType,
+      parent_id: Optional[str] = None,
+      parent_flow_obj=None,
+  ):
     """Instantiates a FlowParent. Use the class methods instead."""
     self.type = parent_type
     self.id = parent_id
@@ -171,18 +167,21 @@ class FlowParent(object):
     return cls(_ParentType.SCHEDULED_FLOW, scheduled_flow_id)
 
 
-def StartFlow(client_id=None,
-              cpu_limit=None,
-              creator=None,
-              flow_args=None,
-              flow_cls=None,
-              network_bytes_limit=None,
-              original_flow=None,
-              output_plugins=None,
-              start_at=None,
-              parent=None,
-              runtime_limit=None,
-              **kwargs):
+def StartFlow(
+    client_id: Optional[str] = None,
+    cpu_limit: Optional[int] = None,
+    creator: Optional[str] = None,
+    flow_args: Optional[rdf_structs.RDFStruct] = None,
+    flow_cls=None,
+    network_bytes_limit: Optional[int] = None,
+    original_flow: Optional[rdf_objects.FlowReference] = None,
+    output_plugins: Optional[
+        Sequence[rdf_output_plugin.OutputPluginDescriptor]
+    ] = None,
+    start_at: Optional[rdfvalue.RDFDatetime] = None,
+    parent: Optional[FlowParent] = None,
+    runtime_limit: Optional[rdfvalue.Duration] = None,
+) -> str:
   """The main factory function for creating and executing a new flow.
 
   Args:
@@ -201,8 +200,7 @@ def StartFlow(client_id=None,
       time.
     parent: A FlowParent referencing the parent, or None for top-level flows.
     runtime_limit: Runtime limit as Duration for all ClientActions.
-    **kwargs: If args or runner_args are not specified, we construct these
-      protobufs from these keywords.
+
   Returns:
     the flow id of the new flow.
 
@@ -223,11 +221,11 @@ def StartFlow(client_id=None,
   if flow_args is None:
     flow_args = flow_cls.args_type()
 
-  FilterArgsFromSemanticProtobuf(flow_args, kwargs)
-  # At this point we should exhaust all the keyword args. If any are left
-  # over, we do not know what to do with them so raise.
-  if kwargs:
-    raise type_info.UnknownArg("Unknown parameters to StartFlow: %s" % kwargs)
+  if not isinstance(flow_args, flow_cls.args_type):
+    raise TypeError(
+        f"Flow args must be of type {flow_cls.args_type}, got"
+        f" {type(flow_args)} with contents: {flow_args!r}."
+    )
 
   # Check that the flow args are valid.
   flow_args.Validate()
@@ -239,7 +237,8 @@ def StartFlow(client_id=None,
       creator=creator,
       output_plugins=output_plugins,
       original_flow=original_flow,
-      flow_state="RUNNING")
+      flow_state="RUNNING",
+  )
 
   if parent is None:
     parent = FlowParent.FromRoot()
@@ -262,8 +261,10 @@ def StartFlow(client_id=None,
 
   if parent.is_flow:  # A flow is a nested flow.
     parent_rdf_flow = parent.flow_obj.rdf_flow
-    rdf_flow.long_flow_id = "%s/%s" % (parent_rdf_flow.long_flow_id,
-                                       rdf_flow.flow_id)
+    rdf_flow.long_flow_id = "%s/%s" % (
+        parent_rdf_flow.long_flow_id,
+        rdf_flow.flow_id,
+    )
     rdf_flow.parent_flow_id = parent_rdf_flow.flow_id
     rdf_flow.parent_hunt_id = parent_rdf_flow.parent_hunt_id
     rdf_flow.parent_request_id = parent.flow_obj.GetCurrentOutboundId()
@@ -280,7 +281,8 @@ def StartFlow(client_id=None,
 
   if output_plugins:
     rdf_flow.output_plugins_states = GetOutputPluginStates(
-        output_plugins, rdf_flow.long_flow_id)
+        output_plugins, rdf_flow.long_flow_id
+    )
 
   if network_bytes_limit is not None:
     rdf_flow.network_bytes_limit = network_bytes_limit
@@ -289,8 +291,13 @@ def StartFlow(client_id=None,
   if runtime_limit is not None:
     rdf_flow.runtime_limit_us = runtime_limit
 
-  logging.info(u"Starting %s(%s) on %s (%s)", rdf_flow.long_flow_id,
-               rdf_flow.flow_class_name, client_id, start_at or "now")
+  logging.info(
+      "Starting %s(%s) on %s (%s)",
+      rdf_flow.long_flow_id,
+      rdf_flow.flow_class_name,
+      client_id,
+      start_at or "now",
+  )
 
   rdf_flow.current_state = "Start"
 
@@ -366,7 +373,6 @@ def ScheduleFlow(
   scheduled_flow.creator = creator
   scheduled_flow.scheduled_flow_id = RandomFlowId()
   scheduled_flow.flow_name = flow_name
-  # TODO: Stop relying on `AsPrimitiveProto`.
   scheduled_flow.flow_args.CopyFrom(flow_args)
   scheduled_flow.runner_args.CopyFrom(runner_args)
   scheduled_flow.create_time = int(rdfvalue.RDFDatetime.Now())
@@ -375,15 +381,21 @@ def ScheduleFlow(
   return scheduled_flow
 
 
-def UnscheduleFlow(client_id: str, creator: str,
-                   scheduled_flow_id: str) -> None:
+def UnscheduleFlow(
+    client_id: str,
+    creator: str,
+    scheduled_flow_id: str,
+) -> None:
   """Unschedules and deletes a previously scheduled flow."""
   data_store.REL_DB.DeleteScheduledFlow(
-      client_id=client_id, creator=creator, scheduled_flow_id=scheduled_flow_id)
+      client_id=client_id, creator=creator, scheduled_flow_id=scheduled_flow_id
+  )
 
 
 def ListScheduledFlows(
-    client_id: str, creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+    client_id: str,
+    creator: str,
+) -> Sequence[rdf_flow_objects.ScheduledFlow]:
   """Lists all scheduled flows of a user on a client."""
   return data_store.REL_DB.ListScheduledFlows(
       client_id=client_id, creator=creator
@@ -416,12 +428,20 @@ def StartScheduledFlows(client_id: str, creator: str) -> None:
     try:
       sf = mig_flow_objects.ToRDFScheduledFlow(sf)
       flow_id = _StartScheduledFlow(sf)
-      logging.info("Started Flow %s/%s from ScheduledFlow %s", client_id,
-                   flow_id, sf.scheduled_flow_id)
+      logging.info(
+          "Started Flow %s/%s from ScheduledFlow %s",
+          client_id,
+          flow_id,
+          sf.scheduled_flow_id,
+      )
     except Exception:  # pylint: disable=broad-except
-      logging.exception("Cannot start ScheduledFlow %s %s/%s from %s",
-                        sf.flow_name, sf.client_id, sf.scheduled_flow_id,
-                        sf.creator)
+      logging.exception(
+          "Cannot start ScheduledFlow %s %s/%s from %s",
+          sf.flow_name,
+          sf.client_id,
+          sf.scheduled_flow_id,
+          sf.creator,
+      )
 
 
 def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
@@ -451,6 +471,7 @@ def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
   data_store.REL_DB.DeleteScheduledFlow(
       client_id=scheduled_flow.client_id,
       creator=scheduled_flow.creator,
-      scheduled_flow_id=scheduled_flow.scheduled_flow_id)
+      scheduled_flow_id=scheduled_flow.scheduled_flow_id,
+  )
 
   return flow_id

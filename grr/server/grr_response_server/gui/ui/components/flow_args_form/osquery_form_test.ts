@@ -92,9 +92,11 @@ describe('OsqueryForm', () => {
       By.css('.collection-container'),
     );
 
-    expect(lowLevelSettingsContainer).toBeFalsy();
+    expect(
+      lowLevelSettingsContainer.nativeElement.hasAttribute('hidden'),
+    ).toBeTrue();
 
-    expect(collectionContainer).toBeFalsy();
+    expect(collectionContainer.nativeElement.hasAttribute('hidden')).toBeTrue();
   });
   it('should have collection settings expanded when default flow args contain collection columns,', () => {
     const fixture = constructFixture({

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.durationFormDirective');
-goog.module.declareLegacyNamespace();
 
 const {stringifySeconds} = goog.require('grrUi.semantic.durationDirective');
 
@@ -41,12 +40,12 @@ const DurationFormController = class {
    * @private
    */
   parseString_(stringValue) {
-    var match = stringValue.trim().match(this.regex_);
+    const match = stringValue.trim().match(this.regex_);
     if (match == null) {
       return null;
     } else {
-      var n = parseInt(match[1], 10);
-      var unit = match[2] || 's';
+      const n = parseInt(match[1], 10);
+      const unit = match[2] || 's';
 
       return moment.duration(n, unit);
     }
@@ -63,7 +62,7 @@ const DurationFormController = class {
    */
   onValueChange_(newValue) {
     if (angular.isNumber(newValue)) {
-      var currentParsedDuration = this.parseString_(this.valueString);
+      const currentParsedDuration = this.parseString_(this.valueString);
       // There's no need to update string representation as it's already
       // up-to-date. This check helps to avoid weird UI behavior when user
       // input is ambiguous. I.e. 24h is the same as 1d, and without this check
@@ -91,7 +90,7 @@ const DurationFormController = class {
       this.scope_.value.value = null;
       this.isInvalid = false;
     } else {
-      var duration = this.parseString_(newValue);
+      const duration = this.parseString_(newValue);
       this.scope_.value.value = duration !== null ? duration.asSeconds() : null;
       this.isInvalid = duration === null;
     }

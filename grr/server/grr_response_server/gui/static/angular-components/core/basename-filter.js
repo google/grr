@@ -14,7 +14,7 @@ const filterImplementation = function(input) {
   if (!angular.isString(input)) {
     return input;
   } else {
-    var components = input.split('/');
+    const components = input.split('/');
     return components[components.length - 1];
   }
 };

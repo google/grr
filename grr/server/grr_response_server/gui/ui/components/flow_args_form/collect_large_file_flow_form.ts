@@ -37,6 +37,7 @@ type Controls = ReturnType<typeof makeControls>;
  * flow.
  */
 @Component({
+  standalone: false,
   selector: 'collect-large-file-flow-form',
   templateUrl: './collect_large_file_flow_form.ng.html',
   styleUrls: ['./collect_large_file_flow_form.scss'],

@@ -1,32 +1,27 @@
 // TODO(hanuszczak): Figure out why this file cannot be named `tests.js`.
-goog.provide('grrUi.tests');
-goog.provide('grrUi.tests.browserTriggerEvent');
-goog.provide('grrUi.tests.browserTriggerKeyDown');
-goog.provide('grrUi.tests.stubDirective');
-goog.provide('grrUi.tests.stubTranscludeDirective');
-goog.provide('grrUi.tests.stubUiTrait');
-goog.provide('grrUi.tests.testsModule');
+goog.module('grrUi.tests');
 
 
 /**
  * Module required to run GRR javascript tests in Karma.
  */
-grrUi.tests.testsModule = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
+const testsModule = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
 
-var $animate;
+let $animate;
 beforeEach(module('ngAnimateMock'));
 
-grrUi.tests.testsModule.config(function($interpolateProvider, $qProvider,
-                                   $uibModalProvider) {
-  $interpolateProvider.startSymbol('{$');
-  $interpolateProvider.endSymbol('$}');
+testsModule
+    .config(function($interpolateProvider, $qProvider, $uibModalProvider) {
+      $interpolateProvider.startSymbol('{$');
+      $interpolateProvider.endSymbol('$}');
 
-  $qProvider.errorOnUnhandledRejections(false);
+      $qProvider.errorOnUnhandledRejections(false);
 
-  $uibModalProvider.options.animation = false;
-}).run(function($injector) {
-  $animate = $injector.get('$animate');
-});
+      $uibModalProvider.options.animation = false;
+    })
+    .run(function($injector) {
+      $animate = $injector.get('$animate');
+    });
 
 
 beforeEach(function() {
@@ -37,9 +32,11 @@ beforeEach(function() {
   // directives in isolation without routing. Furthermore, the grrUi.routing
   // module runs init routines during configuration. We do not want them to
   // interfere with directive tests.
-  var grrRoutingServiceMock = {
+  const grrRoutingServiceMock = {
     go: function(state, params) {},
-    href: function(state, params) { return '#test/href'; },
+    href: function(state, params) {
+      return '#test/href';
+    },
     uiOnParamsChanged: function(scope, paramNames, callback) {},
     onStateChange: function(scope, callback) {}
   };
@@ -58,7 +55,7 @@ beforeEach(function() {
  * @param {string} eventType
  * @export
  */
-grrUi.tests.browserTriggerEvent = function(element, eventType) {
+function browserTriggerEvent(element, eventType) {
   if (element.injector) {
     element = element[0];
   } else if (element.prevObject) {
@@ -75,7 +72,7 @@ grrUi.tests.browserTriggerEvent = function(element, eventType) {
     }
   } else {
     if (document.createEvent) {
-      var event = document.createEvent('MouseEvents');
+      const event = document.createEvent('MouseEvents');
       // mouseenter and mouseleave must be edited because jqLite doesn't actually
       // listen on them - it listens on mouseover and mouseout and performs its
       // own logic to ignore the event if the related target is contained by the
@@ -96,7 +93,7 @@ grrUi.tests.browserTriggerEvent = function(element, eventType) {
 
   // True is for 'hideErrors' for cases when no animations are pending.
   $animate.flush(true);
-};
+}
 
 /**
  * Triggers a key down event on the given element.
@@ -104,13 +101,13 @@ grrUi.tests.browserTriggerEvent = function(element, eventType) {
  * @param {number} keyCode
  * @export
  */
-grrUi.tests.browserTriggerKeyDown = function(element, keyCode) {
-  var event = jQuery.Event("keypress");
+function browserTriggerKeyDown(element, keyCode) {
+  const event = jQuery.Event('keypress');
   event.which = keyCode;
   element.trigger(event);
-};
+}
 
-var directiveStubCounter = 0;
+let directiveStubCounter = 0;
 
 /**
  * Stub out a directive.
@@ -125,8 +122,8 @@ var directiveStubCounter = 0;
  * @param {string} directiveName
  * @export
  */
-grrUi.tests.stubDirective = function(directiveName) {
-  var moduleName = 'test.directives.stubs.' + directiveStubCounter;
+function stubDirective(directiveName) {
+  const moduleName = 'test.directives.stubs.' + directiveStubCounter;
   directiveStubCounter += 1;
 
   angular.module(moduleName, []).directive(
@@ -139,8 +136,7 @@ grrUi.tests.stubDirective = function(directiveName) {
       });
 
   beforeEach(module(moduleName));
-};
-
+}
 
 /**
  * Stub out a transclude directive.
@@ -157,8 +153,8 @@ grrUi.tests.stubDirective = function(directiveName) {
  * @param {string} directiveName
  * @export
  */
-grrUi.tests.stubTranscludeDirective = function(directiveName) {
-  var moduleName = 'test.directives.stubs.' + directiveStubCounter;
+function stubTranscludeDirective(directiveName) {
+  const moduleName = 'test.directives.stubs.' + directiveStubCounter;
   directiveStubCounter += 1;
 
   angular.module(moduleName, []).directive(
@@ -183,8 +179,7 @@ grrUi.tests.stubTranscludeDirective = function(directiveName) {
       });
 
   beforeEach(module(moduleName));
-};
-
+}
 
 /**
  * Stub out a GRR UI trait (see grr-disable-if-no-trait directive).
@@ -195,27 +190,19 @@ grrUi.tests.stubTranscludeDirective = function(directiveName) {
  * @param {string} traitName
  * @export
  */
-grrUi.tests.stubUiTrait = function(traitName) {
+function stubUiTrait(traitName) {
   beforeEach(inject(function($injector) {
     const $q = $injector.get('$q');
     const grrApiService = $injector.get('grrApiService');
 
-    var deferred = $q.defer();
-    var response = {
-      data: {
-        value: {
-          interface_traits: {
-            value: {}
-          }
-        }
-      }
-    };
+    const deferred = $q.defer();
+    const response = {data: {value: {interface_traits: {value: {}}}}};
     response['data']['value']['interface_traits']['value'][traitName] = {
       value: true
     };
     deferred.resolve(response);
 
-    var currentImpl = grrApiService.getCached;
+    const currentImpl = grrApiService.getCached;
     spyOn(grrApiService, 'getCached').and.callFake(function(url, params) {
       if (url == 'users/me') {
         return deferred.promise;
@@ -224,4 +211,13 @@ grrUi.tests.stubUiTrait = function(traitName) {
       }
     });
   }));
+}
+
+exports = {
+  browserTriggerEvent,
+  browserTriggerKeyDown,
+  stubDirective,
+  stubTranscludeDirective,
+  stubUiTrait,
+  testsModule,
 };

@@ -48,7 +48,7 @@ describe('semantic proto form directive', () => {
     $rootScope.hiddenFields = hiddenFields;
 
     const template = '<grr-form-proto value="value" metadata="metadata" ' +
-        'hidden-fields="hiddenFields" />';
+        'hidden-fields="hiddenFields"></grr-form-proto>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

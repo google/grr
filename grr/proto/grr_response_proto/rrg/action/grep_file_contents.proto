@@ -1,0 +1,38 @@
+// Copyright 2024 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.grep_file_contents;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+    // Absolute path to the file to grep the contents of.
+    //
+    // The file content must be valid UTF-8.
+    rrg.fs.Path path = 1;
+
+    // Regular expression to search for in the file contents.
+    //
+    // The specific syntax of the regex language is left unspecified as the
+    // implementation detail but most common regex features can be expected to
+    // be supported.
+    string regex = 2;
+
+    // TODO(user): Add support for files that not necessarily conform to
+    // Unicode.
+
+    // TODO(user): Add support for different file encodings.
+}
+
+message Result {
+    // Byte offset within the file from which the content matched.
+    uint64 offset = 1;
+
+    // Content that matched the specified regular expression.
+    string content = 2;
+
+    // TODO(user): Add support for capture groups.
+}

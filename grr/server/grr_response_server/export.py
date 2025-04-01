@@ -102,14 +102,17 @@ def ConvertValuesWithMetadata(metadata_value_pairs, options=None):
   """
   no_converter_found_error = None
   metadata_value_groups = collection.Group(
-      metadata_value_pairs, lambda pair: pair[1].__class__.__name__)
+      metadata_value_pairs, lambda pair: pair[1].__class__.__name__
+  )
   for metadata_values_group in metadata_value_groups.values():
     _, first_value = metadata_values_group[0]
     converters_classes = export_converters_registry.GetConvertersByValue(
-        first_value)
+        first_value
+    )
     if not converters_classes:
       no_converter_found_error = "No converters found for value: %s" % str(
-          first_value)
+          first_value
+      )
       continue
 
     converters = [cls(options) for cls in converters_classes]

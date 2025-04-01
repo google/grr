@@ -46,8 +46,8 @@ exports.camelCaseToDashDelimited = function(input) {
  * @return {string} Converted string.
  */
 exports.upperCaseToTitleCase = function(input) {
-  return (input.charAt(0).toUpperCase() +
-          input.slice(1).toLowerCase()).replace(/_/g, ' ');
+  return (input.charAt(0).toUpperCase() + input.slice(1).toLowerCase())
+      .replace(/_/g, ' ');
 };
 
 
@@ -59,7 +59,7 @@ exports.upperCaseToTitleCase = function(input) {
  * @return {!Array<string>} List of trimmed strings.
  */
 exports.stringToList = function(input) {
-  var result = [];
+  const result = [];
 
   angular.forEach((input || '').split(','), function(item) {
     item = item.trim();
@@ -79,7 +79,7 @@ exports.stringToList = function(input) {
  * @return {string} String without 'aff4:/' prefix.
  */
 exports.stripAff4Prefix = function(input) {
-  var aff4Prefix = 'aff4:/';
+  const aff4Prefix = 'aff4:/';
   if (input.toLowerCase().indexOf(aff4Prefix) == 0) {
     return input.substr(aff4Prefix.length);
   } else {
@@ -96,6 +96,6 @@ exports.stripAff4Prefix = function(input) {
  * @return {string} The last path component of the input.
  */
 exports.getLastPathComponent = function(input) {
-  var components = input.split('/');
+  const components = input.split('/');
   return components[components.length - 1];
 };

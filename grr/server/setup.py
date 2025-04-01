@@ -162,6 +162,10 @@ setup_args = dict(
                 "grr_config_updater = "
                 "grr_response_server.distro_entry:ConfigUpdater"
             ),
+            (
+                "grr_command_signer = "
+                "grr_response_server.distro_entry:CommandSigner"
+            ),
             "grr_frontend = grr_response_server.distro_entry:GrrFrontend",
             "grr_server = grr_response_server.distro_entry:GrrServer",
             "grr_worker = grr_response_server.distro_entry:Worker",

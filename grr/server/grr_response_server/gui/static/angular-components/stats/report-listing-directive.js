@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.reportListingDirective');
-goog.module.declareLegacyNamespace();
 
 const reportDescsService = goog.requireType('grrUi.stats.reportDescsService');
 const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');

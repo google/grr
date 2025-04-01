@@ -53,6 +53,7 @@ class SoftwarePackageConverter(base.ExportConverter):
         installed_by=software_package.installed_by,
         epoch=software_package.epoch,
         source_rpm=software_package.source_rpm,
+        source_deb=software_package.source_deb,
     )
 
 

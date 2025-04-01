@@ -8,7 +8,6 @@ from absl import app
 from absl import flags
 
 from grr_response_core.config import server as config_server
-from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend
 from grr_response_server.bin import fleetspeak_server_wrapper
 from grr_response_server.bin import grrafana
@@ -47,9 +46,8 @@ def main(argv):
   if _COMPONENT.value.startswith("worker"):
     worker.main([argv])
 
-  # Start as a frontend that clients communicate with.
+  # Start as a GRR Fleetspeak frontend.
   elif _COMPONENT.value.startswith("frontend"):
-    server_startup.Init()
     fleetspeak_frontend.main([argv])
 
   # Start as an AdminUI.

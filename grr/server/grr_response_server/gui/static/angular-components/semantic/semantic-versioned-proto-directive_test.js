@@ -57,7 +57,7 @@ describe('semantic versioned proto directive', () => {
 
     const template = '<grr-semantic-versioned-proto ' +
         'value="value" history-depth="depth" ' +
-        'on-field-click="callback(fieldPath)" />';
+        'on-field-click="callback(fieldPath)"></grr-semantic-versioned-proto>';
 
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

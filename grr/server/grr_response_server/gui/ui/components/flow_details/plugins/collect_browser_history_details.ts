@@ -37,6 +37,7 @@ declare interface BrowserRow {
  * Component that allows selecting, configuring, and starting a Flow.
  */
 @Component({
+  standalone: false,
   selector: 'collect-browser-history-details',
   templateUrl: './collect_browser_history_details.ng.html',
   styleUrls: ['./collect_browser_history_details.scss'],
@@ -133,8 +134,11 @@ export class CollectBrowserHistoryDetails extends Plugin {
     };
   }
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
-    const items = super.getExportMenuItems(flow);
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
+    const items = super.getExportMenuItems(flow, exportCommandPrefix);
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
 
     if (

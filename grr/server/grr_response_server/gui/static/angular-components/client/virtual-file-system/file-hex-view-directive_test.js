@@ -30,7 +30,7 @@ describe('file hex view directive', () => {
     const template = '<grr-file-context' +
         '    client-id="clientId"' +
         '    selected-file-path="selectedFilePath">' +
-        '  <grr-file-hex-view />' +
+        '  <grr-file-hex-view></grr-file-hex-view>' +
         '</grr-file-context>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();

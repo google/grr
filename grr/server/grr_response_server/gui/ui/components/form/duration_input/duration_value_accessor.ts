@@ -15,6 +15,7 @@ type OnTouchedFn = () => void;
 
 /** DurantionTimeAccessor for handling duration input fields. */
 @Directive({
+  standalone: false,
   selector: '[durationInput]',
   host: {
     '(change)': 'onChange($event.target.value)',

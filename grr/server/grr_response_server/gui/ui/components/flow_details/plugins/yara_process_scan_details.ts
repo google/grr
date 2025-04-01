@@ -24,6 +24,7 @@ import {Plugin} from './plugin';
 
 /** Component that displays flow results. */
 @Component({
+  standalone: false,
   selector: 'app-yara-process-scan-details',
   templateUrl: './yara_process_scan_details.ng.html',
   styleUrls: ['./yara_process_scan_details.scss'],

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Virtual filesystem module based on an unprivileged filesystem client."""
 
+from collections.abc import Callable, Iterator
 import contextlib
 import stat
-from typing import Any, Callable, Dict, Iterator, NamedTuple, Optional, Text, Tuple, Type
+from typing import Any, NamedTuple, Optional
 
 from grr_response_client import client_utils
 from grr_response_client.unprivileged import communication
@@ -107,7 +108,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
   def __init__(
       self,
       base_fd: Optional[vfs_base.VFSHandler],
-      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      handlers: dict[Any, type[vfs_base.VFSHandler]],
       pathspec: Optional[rdf_paths.PathSpec] = None,
       progress_callback: Optional[Callable[[], None]] = None,
   ):
@@ -229,7 +230,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   def _OpenStreamCaseInsensitive(
       self, pathspec: rdf_paths.PathSpec
-  ) -> Tuple[client.File, str]:
+  ) -> tuple[client.File, str]:
     """Opens a stream by pathspec with a case-insensitvie stream name.
 
     Args:
@@ -305,7 +306,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
         pathspec.last.stream_name = entry.stream_name
       yield _ConvertStatEntry(entry, pathspec)
 
-  def ListNames(self) -> Iterator[Text]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+  def ListNames(self) -> Iterator[str]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     self._CheckIsDirectory()
     assert self.fd is not None
     return iter(self.fd.ListNames())
@@ -350,7 +351,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       cls,
       fd: Optional[vfs_base.VFSHandler],
       component: rdf_paths.PathSpec,
-      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      handlers: dict[Any, type[vfs_base.VFSHandler]],
       pathspec: Optional[rdf_paths.PathSpec] = None,
       progress_callback: Optional[Callable[[], None]] = None,
   ) -> Optional[vfs_base.VFSHandler]:

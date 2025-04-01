@@ -141,32 +141,37 @@ export class HuntApprovalLocalStore {
   constructor(
     private readonly httpApiService: HttpApiService,
     private readonly userGlobalStore: UserGlobalStore,
-  ) {}
+  ) {
+    this.store = new HuntApprovalComponentStore(this.httpApiService);
+    this.latestApproval$ = this.store.latestApproval$;
+    this.huntApprovalRoute$ = this.store.huntApprovalRoute$;
+    this.hasAccess$ = this.store.hasAccess$;
+    this.huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe(
+      map((user) => user.huntApprovalRequired),
+    );
+    this.requestApprovalStatus$ = this.store.requestApprovalStatus$;
+  }
 
-  private readonly store = new HuntApprovalComponentStore(this.httpApiService);
+  private readonly store;
 
   /** An observable emitting latest non-expired approval. */
-  readonly latestApproval$: Observable<HuntApproval | null> =
-    this.store.latestApproval$;
+  readonly latestApproval$: Observable<HuntApproval | null>;
 
   /** An observable emitting latest approval route. */
-  readonly huntApprovalRoute$: Observable<string[]> =
-    this.store.huntApprovalRoute$;
+  readonly huntApprovalRoute$: Observable<string[]>;
 
   /** An obserable emitting if the user has access to the hunt. */
-  readonly hasAccess$ = this.store.hasAccess$;
+  readonly hasAccess$;
 
   /**
    * An observable emitting if the hunt approval system is enabled for the user.
    */
-  readonly huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe(
-    map((user) => user.huntApprovalRequired),
-  );
+  readonly huntApprovalRequired$;
 
   readonly requestApprovalStatus$: Observable<RequestStatus<
     HuntApproval,
     string
-  > | null> = this.store.requestApprovalStatus$;
+  > | null>;
 
   /** Selects a hunt with a given id. */
   selectHunt(huntId: string): void {

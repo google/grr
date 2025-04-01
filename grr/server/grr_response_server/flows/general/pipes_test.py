@@ -55,11 +55,11 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     pipe_foo = rdf_client.NamedPipe()
     pipe_foo.name = "foo"
-    pipe_foo.server_pid = 0xf00
+    pipe_foo.server_pid = 0xF00
 
     pipe_baz = rdf_client.NamedPipe()
     pipe_baz.name = "baz"
-    pipe_baz.server_pid = 0xb45
+    pipe_baz.server_pid = 0xB45
 
     results = self._RunListNamedPipesFlow(
         args,
@@ -68,8 +68,8 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 2)
 
     results_by_name = {result.pipe.name: result for result in results}
-    self.assertEqual(results_by_name["foo"].pipe.server_pid, 0xf00)
-    self.assertEqual(results_by_name["baz"].pipe.server_pid, 0xb45)
+    self.assertEqual(results_by_name["foo"].pipe.server_pid, 0xF00)
+    self.assertEqual(results_by_name["baz"].pipe.server_pid, 0xB45)
 
   def testPipeNameRegex(self):
     args = pipes.ListNamedPipesFlowArgs()

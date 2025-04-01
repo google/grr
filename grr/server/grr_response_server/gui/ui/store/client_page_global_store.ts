@@ -99,6 +99,144 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
     super({
       listFlowsCount: 0,
     });
+    this.selectedFlowDescriptor$ = this.select(
+      (state) => state.flowInConfiguration,
+    ).pipe(
+      withLatestFrom(this.configGlobalStore.flowDescriptors$),
+      map(([selectedFlow, fds]) => {
+        if (selectedFlow === undefined) {
+          return null;
+        }
+
+        const fd = fds.get(selectedFlow.name);
+        if (fd === undefined) {
+          throw new Error(`Selected Flow ${selectedFlow.name} is not found.`);
+        }
+
+        return {
+          ...fd,
+          defaultArgs: selectedFlow.initialArgs ?? fd.defaultArgs,
+        };
+      }),
+      startWith(null),
+      shareReplay({bufferSize: 1, refCount: true}),
+    );
+    this.requestClientApproval = this.effect<ClientApprovalRequest>((obs$) =>
+      obs$.pipe(
+        switchMap((approvalRequest) =>
+          trackRequest(
+            this.httpApiService
+              .requestClientApproval(approvalRequest)
+              .pipe(map(translateClientApproval)),
+          ),
+        ),
+        map(extractErrorMessage),
+        tap((requestApprovalStatus) => {
+          this.patchState({requestApprovalStatus});
+        }),
+      ),
+    );
+    this.startFlow = this.effect<unknown>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
+        concatMap(([flowArgs, clientId, flowInConfiguration]) => {
+          assertNonNull(clientId, 'clientId');
+          return trackRequest(
+            this.httpApiService
+              .startFlow(clientId, flowInConfiguration.name, flowArgs as Any)
+              .pipe(map((flow) => ({flow: translateFlow(flow)}))),
+          );
+        }),
+        tap((requestStatus) => {
+          this.updateFlowFormRequestStatus(requestStatus);
+        }),
+      ),
+    );
+    this.scheduleFlow = this.effect<unknown>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
+        concatMap(([flowArgs, clientId, flowInConfiguration]) => {
+          assertNonNull(clientId, 'clientId');
+          return trackRequest(
+            this.httpApiService
+              .scheduleFlow(clientId, flowInConfiguration.name, flowArgs as Any)
+              .pipe(map((sf) => ({scheduledFlow: translateScheduledFlow(sf)}))),
+          );
+        }),
+        tap((requestStatus) => {
+          this.updateFlowFormRequestStatus(requestStatus);
+        }),
+      ),
+    );
+    this.scheduleOrStartFlow = this.effect<unknown>((obs$) =>
+      obs$.pipe(
+        switchMap((flowArgs) =>
+          this.hasAccess$.pipe(
+            filter(isNonNull),
+            take(1),
+            tap((hasAccess) => {
+              if (hasAccess) {
+                this.startFlow(flowArgs);
+              } else {
+                this.scheduleFlow(flowArgs);
+              }
+            }),
+          ),
+        ),
+      ),
+    );
+    this.cancelFlow = this.effect<string>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.selectedClientId$),
+        concatMap(([flowId, clientId]) => {
+          assertNonNull(clientId, 'clientId');
+          return trackRequest(this.httpApiService.cancelFlow(clientId, flowId));
+        }),
+      ),
+    );
+    this.startFlowConfigurationImpl = this.updater<[string, unknown]>(
+      (state, [name, initialArgs]) => {
+        return {
+          ...state,
+          flowInConfiguration: {name, initialArgs},
+          startFlowState: undefined,
+        };
+      },
+    );
+    this.stopFlowConfiguration = this.updater<void>((state) => {
+      return {
+        ...state,
+        flowInConfiguration: undefined,
+        startFlowState: undefined,
+      };
+    });
+    this.addClientLabel = this.effect<string>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.selectedClientId$),
+        switchMap(([label, clientId]) => {
+          assertNonNull(clientId, 'clientId');
+          return trackRequest(
+            this.httpApiService.addClientLabel(clientId, label),
+          );
+        }),
+      ),
+    );
+    this.removeClientLabel = this.effect<string>((obs$) =>
+      obs$.pipe(
+        withLatestFrom(this.selectedClientId$),
+        switchMap(([label, clientId]) => {
+          assertNonNull(clientId, 'clientId');
+          return trackRequest(
+            this.httpApiService.removeClientLabel(clientId, label),
+          );
+        }),
+        tap((status) => {
+          if (status.status === RequestStatusType.SUCCESS) {
+            this.updateLastRemovedClientLabel(status.data);
+          }
+        }),
+      ),
+    );
   }
 
   /** Reducer updating the last removed client label. */
@@ -324,119 +462,23 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
   > | null> = this.select((state) => state.requestApprovalStatus ?? null);
 
   /** An observable emitting the selected flow descriptor. */
-  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | null> =
-    this.select((state) => state.flowInConfiguration).pipe(
-      withLatestFrom(this.configGlobalStore.flowDescriptors$),
-      map(([selectedFlow, fds]) => {
-        if (selectedFlow === undefined) {
-          return null;
-        }
-
-        const fd = fds.get(selectedFlow.name);
-        if (fd === undefined) {
-          throw new Error(`Selected Flow ${selectedFlow.name} is not found.`);
-        }
-
-        return {
-          ...fd,
-          defaultArgs: selectedFlow.initialArgs ?? fd.defaultArgs,
-        };
-      }),
-      startWith(null),
-      shareReplay({bufferSize: 1, refCount: true}),
-    );
+  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | null>;
 
   /** An effect requesting a new client approval. */
-  readonly requestClientApproval = this.effect<ClientApprovalRequest>((obs$) =>
-    obs$.pipe(
-      switchMap((approvalRequest) =>
-        trackRequest(
-          this.httpApiService
-            .requestClientApproval(approvalRequest)
-            .pipe(map(translateClientApproval)),
-        ),
-      ),
-      map(extractErrorMessage),
-      tap((requestApprovalStatus) => {
-        this.patchState({requestApprovalStatus});
-      }),
-    ),
-  );
+  readonly requestClientApproval;
 
   /** Starts a flow with given arguments. */
-  readonly startFlow = this.effect<unknown>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
-      concatMap(([flowArgs, clientId, flowInConfiguration]) => {
-        assertNonNull(clientId, 'clientId');
-        return trackRequest(
-          this.httpApiService
-            .startFlow(clientId, flowInConfiguration.name, flowArgs as Any)
-            .pipe(map((flow) => ({flow: translateFlow(flow)}))),
-        );
-      }),
-      tap((requestStatus) => {
-        this.updateFlowFormRequestStatus(requestStatus);
-      }),
-    ),
-  );
+  readonly startFlow;
 
   /** Schedules a flow with given arguments. */
-  readonly scheduleFlow = this.effect<unknown>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
-      concatMap(([flowArgs, clientId, flowInConfiguration]) => {
-        assertNonNull(clientId, 'clientId');
-        return trackRequest(
-          this.httpApiService
-            .scheduleFlow(clientId, flowInConfiguration.name, flowArgs as Any)
-            .pipe(map((sf) => ({scheduledFlow: translateScheduledFlow(sf)}))),
-        );
-      }),
-      tap((requestStatus) => {
-        this.updateFlowFormRequestStatus(requestStatus);
-      }),
-    ),
-  );
+  readonly scheduleFlow;
 
-  readonly scheduleOrStartFlow = this.effect<unknown>((obs$) =>
-    obs$.pipe(
-      switchMap((flowArgs) =>
-        this.hasAccess$.pipe(
-          filter(isNonNull),
-          take(1),
-          tap((hasAccess) => {
-            if (hasAccess) {
-              this.startFlow(flowArgs);
-            } else {
-              this.scheduleFlow(flowArgs);
-            }
-          }),
-        ),
-      ),
-    ),
-  );
+  readonly scheduleOrStartFlow;
 
   /** Cancels given flow. */
-  readonly cancelFlow = this.effect<string>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.selectedClientId$),
-      concatMap(([flowId, clientId]) => {
-        assertNonNull(clientId, 'clientId');
-        return trackRequest(this.httpApiService.cancelFlow(clientId, flowId));
-      }),
-    ),
-  );
+  readonly cancelFlow;
 
-  private readonly startFlowConfigurationImpl = this.updater<[string, unknown]>(
-    (state, [name, initialArgs]) => {
-      return {
-        ...state,
-        flowInConfiguration: {name, initialArgs},
-        startFlowState: undefined,
-      };
-    },
-  );
+  private readonly startFlowConfigurationImpl;
 
   /** Starts the process of flow configuration in the UI. */
   startFlowConfiguration(name: string, initialArgs?: unknown) {
@@ -444,44 +486,13 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
   }
 
   /** Stops the process of flow configuration in the UI. */
-  readonly stopFlowConfiguration = this.updater<void>((state) => {
-    return {
-      ...state,
-      flowInConfiguration: undefined,
-      startFlowState: undefined,
-    };
-  });
+  readonly stopFlowConfiguration;
 
   /** An effect to add a label to the selected client */
-  readonly addClientLabel = this.effect<string>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.selectedClientId$),
-      switchMap(([label, clientId]) => {
-        assertNonNull(clientId, 'clientId');
-        return trackRequest(
-          this.httpApiService.addClientLabel(clientId, label),
-        );
-      }),
-    ),
-  );
+  readonly addClientLabel;
 
   /** An effect to remove a label from the selected client */
-  readonly removeClientLabel = this.effect<string>((obs$) =>
-    obs$.pipe(
-      withLatestFrom(this.selectedClientId$),
-      switchMap(([label, clientId]) => {
-        assertNonNull(clientId, 'clientId');
-        return trackRequest(
-          this.httpApiService.removeClientLabel(clientId, label),
-        );
-      }),
-      tap((status) => {
-        if (status.status === RequestStatusType.SUCCESS) {
-          this.updateLastRemovedClientLabel(status.data);
-        }
-      }),
-    ),
-  );
+  readonly removeClientLabel;
 }
 
 /** GlobalStore for client-related API calls. */
@@ -492,55 +503,61 @@ export class ClientPageGlobalStore {
   constructor(
     private readonly httpApiService: HttpApiService,
     private readonly configGlobalStore: ConfigGlobalStore,
-  ) {}
+  ) {
+    this.store = new ClientPageComponentStore(
+      this.httpApiService,
+      this.configGlobalStore,
+    );
+    this.selectedClient$ = this.store.selectedClient$;
+    this.latestApproval$ = this.store.latestApproval$;
+    this.clientApprovalRoute$ = this.store.clientApprovalRoute$;
+    this.hasAccess$ = this.store.hasAccess$;
+    this.approvalsEnabled$ = this.store.approvalsEnabled$;
+    this.flowListEntries$ = this.store.flowListEntries$;
+    this.startFlowStatus$ = this.store.startFlowStatus$;
+    this.requestApprovalStatus$ = this.store.requestApprovalStatus$;
+    this.selectedFlowDescriptor$ = this.store.selectedFlowDescriptor$;
+    this.lastRemovedClientLabel$ = this.store.lastRemovedClientLabel$;
+  }
 
-  private readonly store = new ClientPageComponentStore(
-    this.httpApiService,
-    this.configGlobalStore,
-  );
+  private readonly store;
 
   /** An observable emitting the client loaded by `selectClient`. */
-  readonly selectedClient$: Observable<Client | null> =
-    this.store.selectedClient$;
+  readonly selectedClient$: Observable<Client | null>;
 
   /** An observable emitting latest non-expired approval. */
-  readonly latestApproval$: Observable<ClientApproval | null> =
-    this.store.latestApproval$;
+  readonly latestApproval$: Observable<ClientApproval | null>;
 
   /** An observable emitting latest approval route. */
-  readonly clientApprovalRoute$: Observable<string[]> =
-    this.store.clientApprovalRoute$;
+  readonly clientApprovalRoute$: Observable<string[]>;
 
   /** An obserable emitting if the user has access to the client. */
-  readonly hasAccess$ = this.store.hasAccess$;
+  readonly hasAccess$;
 
   /**
    * An observable emitting if the approval system is enabled for the user.
    */
-  readonly approvalsEnabled$ = this.store.approvalsEnabled$;
+  readonly approvalsEnabled$;
 
   /** An observable emitting current flow entries. */
-  readonly flowListEntries$: Observable<FlowListState> =
-    this.store.flowListEntries$;
+  readonly flowListEntries$: Observable<FlowListState>;
 
   /** An observable emitting the state of a flow being started. */
   readonly startFlowStatus$: Observable<RequestStatus<
     StartFlowState,
     string
-  > | null> = this.store.startFlowStatus$;
+  > | null>;
 
   readonly requestApprovalStatus$: Observable<RequestStatus<
     ClientApproval,
     string
-  > | null> = this.store.requestApprovalStatus$;
+  > | null>;
 
   /** An observable emitting currently selected flow descriptor. */
-  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | null> =
-    this.store.selectedFlowDescriptor$;
+  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | null>;
 
   /** An observable emitting the last removed client label. */
-  readonly lastRemovedClientLabel$: Observable<string | null> =
-    this.store.lastRemovedClientLabel$;
+  readonly lastRemovedClientLabel$: Observable<string | null>;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

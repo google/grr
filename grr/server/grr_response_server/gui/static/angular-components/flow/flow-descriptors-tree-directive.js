@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.flowDescriptorsTreeDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 

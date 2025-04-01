@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileTreeDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -73,7 +72,7 @@ const FileTreeController = class {
    * @private
    */
   initTree_() {
-    var controller = this;
+    const controller = this;
     this.treeElement_.jstree({
       'core': {
         'multiple': false,
@@ -93,9 +92,9 @@ const FileTreeController = class {
       if (data['action'] !== 'select_node') {
         return;
       }
-      var selectionId = data.selected[0];
-      var node = this.treeElement_.jstree('get_node', selectionId);
-      var folderPath = node.data.path;
+      const selectionId = data.selected[0];
+      const node = this.treeElement_.jstree('get_node', selectionId);
+      const folderPath = node.data.path;
 
       if (getFolderFromPath(this.fileContext['selectedFilePath']) ===
           folderPath) {
@@ -107,7 +106,7 @@ const FileTreeController = class {
 
       // This is needed so that when user clicks on an already opened node,
       // it gets refreshed.
-      var treeInstance = data['instance'];
+      const treeInstance = data['instance'];
       treeInstance['refresh_node'](data.node);
     }.bind(this));
 
@@ -119,13 +118,13 @@ const FileTreeController = class {
       if (data.node['data']['refreshOnOpen']) {
         data.node['data']['refreshOnOpen'] = false;
 
-        var treeInstance = data['instance'];
+        const treeInstance = data['instance'];
         treeInstance['refresh_node'](data.node);
       }
     }.bind(this));
 
     this.treeElement_.on('loaded.jstree', function() {
-      var selectedFilePath = this.fileContext['selectedFilePath'];
+      const selectedFilePath = this.fileContext['selectedFilePath'];
       if (selectedFilePath) {
         this.expandToFilePath_(
             getFileId(getFolderFromPath(selectedFilePath)), true);
@@ -147,9 +146,9 @@ const FileTreeController = class {
    * @private
    */
   getChildFiles_(folderPath) {
-    var clientId_ = this.fileContext['clientId'];
-    var url = 'clients/' + clientId_ + '/vfs-index/' + folderPath;
-    var params = {directories_only: 1};
+    const clientId_ = this.fileContext['clientId'];
+    const url = 'clients/' + clientId_ + '/vfs-index/' + folderPath;
+    const params = {directories_only: 1};
 
     return this.grrApiService_.get(url, params)
         .then(this.parseFileResponse_.bind(this));
@@ -162,12 +161,12 @@ const FileTreeController = class {
    * @private
    */
   parseFileResponse_(response) {
-    var files = response.data['items'];
+    const files = response.data['items'];
 
-    var result = [];
+    const result = [];
     angular.forEach(files, function(file) {
-      var filePath = file['value']['path']['value'];
-      var fileId = getFileId(filePath);
+      const filePath = file['value']['path']['value'];
+      const fileId = getFileId(filePath);
       result.push({
         id: fileId,
         text: file['value']['name']['value'],
@@ -188,8 +187,8 @@ const FileTreeController = class {
       path = this.fileContext['selectedFilePath'];
     }
 
-    var nodeId = getFileId(getFolderFromPath(path));
-    var node = $('#' + nodeId);
+    const nodeId = getFileId(getFolderFromPath(path));
+    const node = $('#' + nodeId);
     this.treeElement_.jstree(true)['refresh_node'](node);
   }
 
@@ -198,10 +197,10 @@ const FileTreeController = class {
    * @private
    */
   onSelectedFilePathChange_() {
-    var selectedFilePath = this.fileContext['selectedFilePath'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
 
     if (selectedFilePath) {
-      var selectedFolderPath = getFolderFromPath(selectedFilePath);
+      const selectedFolderPath = getFolderFromPath(selectedFilePath);
       this.expandToFilePath_(getFileId(selectedFolderPath), true);
     }
   }
@@ -219,12 +218,12 @@ const FileTreeController = class {
     if (!filePathId) {
       return;
     }
-    var element = this.treeElement_;
-    var parts = filePathId.split('-');
+    const element = this.treeElement_;
+    const parts = filePathId.split('-');
 
-    var cb = function(i, prev_node) {
-      var id_to_open = parts.slice(0, i + 1).join('-');
-      var node = $('#' + id_to_open);
+    const cb = function(i, prev_node) {
+      const id_to_open = parts.slice(0, i + 1).join('-');
+      const node = $('#' + id_to_open);
 
       if (node.length) {
         if (parts[i + 1]) {

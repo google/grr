@@ -7,7 +7,7 @@ import platform
 import re
 import sys
 import threading
-from typing import Optional, Text
+from typing import Optional
 
 from grr_response_client import client_utils
 from grr_response_client.vfs_handlers import base as vfs_base
@@ -269,7 +269,7 @@ class File(vfs_base.VFSHandler):
 
   def _Stat(
       self,
-      path: Text,
+      path: str,
       ext_attrs: bool = False,
       follow_symlink: bool = True,
   ) -> rdf_client_fs.StatEntry:

@@ -1,5 +1,4 @@
 goog.module('grrUi.core.confirmationDialogDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -33,7 +32,7 @@ const ConfirmationDialogController = class {
    * @export
    */
   proceed() {
-    var result = this.scope_.proceed();
+    const result = this.scope_.proceed();
     if (result) {
       result.then(
           function success(successMessage) {
@@ -59,7 +58,7 @@ const ConfirmationDialogController = class {
    * @export
    */
   dismiss() {
-    var curScope = this.scope_;
+    let curScope = this.scope_;
     while (curScope && !curScope['$dismiss']) {
       curScope = curScope.$parent;
     }
@@ -76,7 +75,7 @@ const ConfirmationDialogController = class {
    * @export
    */
   close() {
-    var curScope = this.scope_;
+    let curScope = this.scope_;
     while (curScope && !curScope['$close']) {
       curScope = curScope.$parent;
     }

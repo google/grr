@@ -1,23 +1,16 @@
 #!/usr/bin/env python
 """HTTP API connector implementation."""
 
+from collections.abc import Iterable, Iterator
 import contextlib
 import json
 import logging
 import re
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import NamedTuple
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, NamedTuple, Optional, Union
 from urllib import parse as urlparse
 
 import pkg_resources
 import requests
-
 from werkzeug import routing
 
 from google.protobuf import descriptor
@@ -122,8 +115,8 @@ class HttpConnector(abstract.Connector):
   def __init__(
       self,
       api_endpoint: str,
-      auth: Optional[Tuple[str, str]] = None,
-      proxies: Optional[Dict[str, str]] = None,
+      auth: Optional[tuple[str, str]] = None,
+      proxies: Optional[dict[str, str]] = None,
       verify: Optional[bool] = None,
       cert: Optional[str] = None,
       trust_env: Optional[bool] = None,
@@ -145,7 +138,7 @@ class HttpConnector(abstract.Connector):
       validate_version = True
 
     self.api_endpoint: str = api_endpoint
-    self.proxies: Optional[Dict[str, str]] = proxies
+    self.proxies: Optional[dict[str, str]] = proxies
     self.verify: bool = verify
     self.cert: Optional[str] = cert
     self._page_size: int = page_size
@@ -157,7 +150,7 @@ class HttpConnector(abstract.Connector):
     self.session.verify = verify
 
     self.csrf_token: Optional[str] = None
-    self.api_methods: Dict[str, reflection_pb2.ApiMethod] = {}
+    self.api_methods: dict[str, reflection_pb2.ApiMethod] = {}
 
     self._server_version: Optional[VersionTuple] = None
     self._api_client_version: Optional[VersionTuple] = None
@@ -281,7 +274,7 @@ class HttpConnector(abstract.Connector):
       self,
       handler_name: str,
       args: message.Message,
-  ) -> Tuple[reflection_pb2.ApiMethod, str, Iterable[str]]:
+  ) -> tuple[reflection_pb2.ApiMethod, str, Iterable[str]]:
     path_params = {}  # Dict[str, Union[int, str]]
     if args:
       for field, value in args.ListFields():
@@ -305,7 +298,7 @@ class HttpConnector(abstract.Connector):
       self,
       args: Optional[message.Message],
       exclude_names: Iterable[str],
-  ) -> Dict[str, Union[int, str]]:
+  ) -> dict[str, Union[int, str]]:
     if args is None:
       return {}
 

@@ -2,7 +2,7 @@
 from absl.testing import absltest
 
 from grr_response_proto import objects_pb2
-from grr_response_server.models import paths
+from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import mig_objects
 
 
@@ -10,27 +10,27 @@ class IsRootPathInfoTest(absltest.TestCase):
 
   def testEmptyProto(self):
     path_info = objects_pb2.PathInfo()
-    self.assertTrue(paths.IsRootPathInfo(path_info))
+    self.assertTrue(models_paths.IsRootPathInfo(path_info))
 
     # TODO: Remove when rdf_objects.PathInfo is removed.
     rdf_path_info = mig_objects.ToRDFPathInfo(path_info)
-    self.assertEqual(paths.IsRootPathInfo(path_info), rdf_path_info.root)
+    self.assertEqual(models_paths.IsRootPathInfo(path_info), rdf_path_info.root)
 
   def testEmptyList(self):
     path_info = objects_pb2.PathInfo(components=[])
-    self.assertTrue(paths.IsRootPathInfo(path_info))
+    self.assertTrue(models_paths.IsRootPathInfo(path_info))
 
     # TODO: Remove when rdf_objects.PathInfo is removed.
     rdf_path_info = mig_objects.ToRDFPathInfo(path_info)
-    self.assertEqual(paths.IsRootPathInfo(path_info), rdf_path_info.root)
+    self.assertEqual(models_paths.IsRootPathInfo(path_info), rdf_path_info.root)
 
   def testNonEmptyList(self):
     path_info = objects_pb2.PathInfo(components=["foo"])
-    self.assertFalse(paths.IsRootPathInfo(path_info))
+    self.assertFalse(models_paths.IsRootPathInfo(path_info))
 
     # TODO: Remove when rdf_objects.PathInfo is removed.
     rdf_path_info = mig_objects.ToRDFPathInfo(path_info)
-    self.assertEqual(paths.IsRootPathInfo(path_info), rdf_path_info.root)
+    self.assertEqual(models_paths.IsRootPathInfo(path_info), rdf_path_info.root)
 
 
 class GetParentPathInfoTest(absltest.TestCase):
@@ -41,7 +41,7 @@ class GetParentPathInfoTest(absltest.TestCase):
         components=["foo", "bar"],
         directory=False,
     )
-    parent_path_info = paths.GetParentPathInfo(path_info)
+    parent_path_info = models_paths.GetParentPathInfo(path_info)
     self.assertIsNotNone(parent_path_info)
     self.assertEqual(parent_path_info.components, ["foo"])
     self.assertEqual(
@@ -61,7 +61,7 @@ class GetParentPathInfoTest(absltest.TestCase):
         components=["foo"],
         directory=False,
     )
-    parent_path_info = paths.GetParentPathInfo(path_info)
+    parent_path_info = models_paths.GetParentPathInfo(path_info)
     self.assertIsNotNone(parent_path_info)
     self.assertEqual(parent_path_info.components, [])
     self.assertEqual(
@@ -81,7 +81,7 @@ class GetParentPathInfoTest(absltest.TestCase):
         components=[],
         directory=True,
     )
-    parent_path_info = paths.GetParentPathInfo(path_info)
+    parent_path_info = models_paths.GetParentPathInfo(path_info)
     self.assertIsNone(parent_path_info)
 
     # TODO: Remove when rdf_objects.PathInfo is removed.
@@ -94,7 +94,7 @@ class GetAncestorPathInfosTest(absltest.TestCase):
   def testEmpty(self):
     path_info = objects_pb2.PathInfo(components=["foo"])
 
-    results = list(paths.GetAncestorPathInfos(path_info))
+    results = list(models_paths.GetAncestorPathInfos(path_info))
     self.assertLen(results, 1)
     self.assertEqual(results[0].components, [])
 
@@ -107,7 +107,7 @@ class GetAncestorPathInfosTest(absltest.TestCase):
   def testRoot(self):
     path_info = objects_pb2.PathInfo(components=["foo"])
 
-    results = list(paths.GetAncestorPathInfos(path_info))
+    results = list(models_paths.GetAncestorPathInfos(path_info))
     self.assertLen(results, 1)
     self.assertEqual(results[0].components, [])
 
@@ -120,7 +120,7 @@ class GetAncestorPathInfosTest(absltest.TestCase):
   def testOrder(self):
     path_info = objects_pb2.PathInfo(components=["foo", "bar", "baz", "quux"])
 
-    results = list(paths.GetAncestorPathInfos(path_info))
+    results = list(models_paths.GetAncestorPathInfos(path_info))
     self.assertLen(results, 4)
     self.assertEqual(results[0].components, ["foo", "bar", "baz"])
     self.assertEqual(results[1].components, ["foo", "bar"])

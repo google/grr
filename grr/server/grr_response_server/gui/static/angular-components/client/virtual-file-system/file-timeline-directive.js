@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileTimelineDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -70,7 +69,7 @@ const FileTimelineController = class {
       return;
     }
 
-    var newFolder = getFolderFromPath(newFilePath);
+    const newFolder = getFolderFromPath(newFilePath);
 
     // If a folder is selected (marked by the ending slash), we should always
     // refresh.
@@ -80,9 +79,9 @@ const FileTimelineController = class {
       return;
     }
 
-    var newFolderComponents = newFolder.split('/');
-    var currentFolderComponents = this.currentFolder.split('/');
-    for (var i = 0; i < currentFolderComponents.length; ++i) {
+    const newFolderComponents = newFolder.split('/');
+    const currentFolderComponents = this.currentFolder.split('/');
+    for (let i = 0; i < currentFolderComponents.length; ++i) {
       if (newFolderComponents[i] != currentFolderComponents[i]) {
         this.refreshTimeline_();
         this.currentFolder = newFolder;
@@ -96,8 +95,8 @@ const FileTimelineController = class {
    * @private
    */
   refreshTimeline_() {
-    var clientId = this.fileContext['clientId'];
-    var selectedFolderPath =
+    const clientId = this.fileContext['clientId'];
+    const selectedFolderPath =
         getFolderFromPath(this.fileContext['selectedFilePath']);
 
     if (angular.isUndefined(this.currentFolder)) {
@@ -106,7 +105,7 @@ const FileTimelineController = class {
 
     this.inProgress = true;
 
-    var url = 'clients/' + clientId + '/vfs-timeline/' + selectedFolderPath;
+    const url = 'clients/' + clientId + '/vfs-timeline/' + selectedFolderPath;
     this.grrApiService_.get(url)
         .then(this.onTimelineFetched_.bind(this))
         .finally(function() {
@@ -121,8 +120,8 @@ const FileTimelineController = class {
    * @private
    */
   onTimelineFetched_(response) {
-    var selectedFilePath = this.fileContext['selectedFilePath'];
-    var selectedFileVersion = this.fileContext['selectedFileVersion'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
+    const selectedFileVersion = this.fileContext['selectedFileVersion'];
 
     this.timelineItems = response.data['items'];
 
@@ -130,7 +129,7 @@ const FileTimelineController = class {
     // fileContext.selectedFilePath and fileContext.selectedFileVersion) is
     // selected after the list is updated.
     this.selectedItem = this.timelineItems.find(function(item) {
-      var v = item['value'];
+      const v = item['value'];
       if (v['file_path']['value'] === selectedFilePath) {
         return !selectedFileVersion ||
             v['timestamp']['value'] === selectedFileVersion;
@@ -159,16 +158,17 @@ const FileTimelineController = class {
   selectFile(timelineItem) {
     this.selectedItem = timelineItem;
 
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = timelineItem['value']['file_path']['value'];
-    var timestamp = timelineItem['value']['timestamp']['value'];
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = timelineItem['value']['file_path']['value'];
+    const timestamp = timelineItem['value']['timestamp']['value'];
 
-    var url = 'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
+    const url =
+        'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
     this.grrApiService_.get(url).then(function success(response) {
-      var versions = response.data['times'];
+      const versions = response.data['times'];
 
       // Find the closest available version in the future.
-      var fileVersion = Number.MAX_VALUE;
+      let fileVersion = Number.MAX_VALUE;
       angular.forEach(versions, function(version) {
         if (version['value'] >= timestamp) {
           fileVersion = Math.min(fileVersion, version['value']);

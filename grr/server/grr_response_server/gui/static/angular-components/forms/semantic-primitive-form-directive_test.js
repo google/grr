@@ -54,7 +54,7 @@ describe('semantic primitive form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-primitive value="value" />';
+    const template = '<grr-form-primitive value="value"></grr-form-primitive>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

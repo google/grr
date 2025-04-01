@@ -7,7 +7,7 @@ const {pathSpecToAff4Path} = goog.require('grrUi.core.fileDownloadUtils');
 
 
 /** @const */
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 

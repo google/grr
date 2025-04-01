@@ -2,7 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatTabGroupHarness} from '@angular/material/tabs/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {
   CollectFilesByKnownPathArgs,
@@ -31,7 +31,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [PluginsModule, NoopAnimationsModule, RouterModule.forRoot([])],
       providers: [],
       teardown: {destroyAfterEach: false},
     })
@@ -323,6 +323,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
 
     const menuItems = fixture.componentInstance.getExportMenuItems(
       fixture.componentInstance.flow,
+      '' /** exportCommandPrefix can be left empty for testing purposes */,
     );
     expect(menuItems[0]).toEqual(
       fixture.componentInstance.getDownloadFilesExportMenuItem(

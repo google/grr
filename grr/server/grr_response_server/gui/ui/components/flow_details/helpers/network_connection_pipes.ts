@@ -26,7 +26,7 @@ const NETWORK_CONNECTION_TYPE_MAP: ReadonlyMap<NetworkConnectionType, string> =
  * Converts a given NetworkConnectionFamily (IP Version) enum to a more
  * human readable format.
  */
-@Pipe({name: 'networkConnectionFamily'})
+@Pipe({standalone: false, name: 'networkConnectionFamily'})
 export class NetworkConnectionFamilyPipe implements PipeTransform {
   transform(family: NetworkConnectionFamily | undefined): string {
     if (family === undefined) {
@@ -40,7 +40,7 @@ export class NetworkConnectionFamilyPipe implements PipeTransform {
  * Converts a given NetworkConnectionType (IP Version) enum to a more
  * human readable format.
  */
-@Pipe({name: 'networkConnectionType'})
+@Pipe({standalone: false, name: 'networkConnectionType'})
 export class NetworkConnectionTypePipe implements PipeTransform {
   transform(type: NetworkConnectionType | undefined): string {
     if (type === undefined) {

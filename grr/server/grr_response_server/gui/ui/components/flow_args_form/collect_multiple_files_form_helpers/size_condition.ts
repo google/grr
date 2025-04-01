@@ -29,6 +29,7 @@ declare interface HintFormattingData {
 
 /** Form that configures a size condition. */
 @Component({
+  standalone: false,
   selector: 'size-condition',
   templateUrl: './size_condition.ng.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

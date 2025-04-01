@@ -19,6 +19,7 @@ class InMemoryDBCronJobMixin(object):
   cronjob_leases: dict[str, Tuple[int, str]]
   # Maps (cron_job_id, run_id) to cron_job_run
   cronjob_runs: dict[Tuple[str, str], flows_pb2.CronJobRun]
+  approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]]
 
   @utils.Synchronized
   def WriteCronJob(self, cronjob: flows_pb2.CronJob) -> None:

@@ -5,14 +5,12 @@ This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
 
+from collections.abc import Collection, Sequence
 import functools
 import hashlib
 import itertools
 import os
 import stat
-from typing import Collection
-from typing import Sequence
-from typing import Tuple
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -50,6 +48,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
       saved to the database. Should be present in every client object loaded
       from the database, but is not serialized with the rdfvalue fields.
   """
+
   protobuf = objects_pb2.ClientSnapshot
 
   rdf_deps = [
@@ -76,8 +75,9 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     """MAC addresses from all interfaces."""
     result = set()
     for interface in self.interfaces:
-      if (interface.mac_address and
-          interface.mac_address != b"\x00" * len(interface.mac_address)):
+      if interface.mac_address and interface.mac_address != b"\x00" * len(
+          interface.mac_address
+      ):
         result.add(str(interface.mac_address.human_readable_address))
     return sorted(result)
 
@@ -124,8 +124,10 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
       if not summary.system_info.release and kb.os_release:
         summary.system_info.release = kb.os_release
         if not summary.system_info.version and kb.os_major_version:
-          summary.system_info.version = "%d.%d" % (kb.os_major_version,
-                                                   kb.os_minor_version)
+          summary.system_info.version = "%d.%d" % (
+              kb.os_major_version,
+              kb.os_minor_version,
+          )
 
     summary.edr_agents = self.edr_agents
     summary.fleetspeak_validation_info = self.fleetspeak_validation_info
@@ -153,7 +155,6 @@ class ClientMetadata(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientMetadata
 
   rdf_deps = [
-      rdf_client_network.NetworkAddress,
       rdf_crypto.RDFX509Cert,
       rdfvalue.RDFDatetime,
       rdf_client.FleetspeakValidationInfo,
@@ -162,6 +163,7 @@ class ClientMetadata(rdf_structs.RDFProtoStruct):
 
 class ClientFullInfo(rdf_structs.RDFProtoStruct):
   """ClientFullInfo object."""
+
   protobuf = objects_pb2.ClientFullInfo
 
   rdf_deps = [
@@ -218,8 +220,10 @@ class HashID(rdfvalue.RDFValue):
 
   def __init__(self, initializer=None):
     if self.__class__.hash_id_length is None:
-      raise TypeError("Trying to instantiate base HashID class. "
-                      "hash_id_length has to be set.")
+      raise TypeError(
+          "Trying to instantiate base HashID class. "
+          "hash_id_length has to be set."
+      )
 
     super().__init__()
 
@@ -233,8 +237,9 @@ class HashID(rdfvalue.RDFValue):
 
     if len(initializer) != self.__class__.hash_id_length:
       raise ValueError(
-          "Expected %s bytes but got `%s` `%s` instead" %
-          (self.__class__.hash_id_length, len(initializer), initializer))
+          "Expected %s bytes but got `%s` `%s` instead"
+          % (self.__class__.hash_id_length, len(initializer), initializer)
+      )
 
     if isinstance(initializer, rdfvalue.RDFBytes):
       self._value = initializer.SerializeToBytes()
@@ -307,7 +312,8 @@ class PathID(HashID):
       # the components.
       string = "{lengths}:{path}".format(
           lengths=",".join(str(len(component)) for component in components),
-          path="/".join(components))
+          path="/".join(components),
+      )
       result = hashlib.sha256(string.encode("utf-8")).digest()
     else:
       # For an empty list of components (representing `/`, i.e. the root path),
@@ -319,6 +325,7 @@ class PathID(HashID):
 
 class PathInfo(rdf_structs.RDFProtoStruct):
   """Basic metadata about a path which has been observed on a client."""
+
   protobuf = objects_pb2.PathInfo
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -376,7 +383,8 @@ class PathInfo(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def PathTypeToPathspecPathType(
-      cls, pathtype: "PathInfo.PathType") -> "rdf_paths.PathSpec.PathType":
+      cls, pathtype: "PathInfo.PathType"
+  ) -> "rdf_paths.PathSpec.PathType":
     if pathtype == cls.PathType.OS:
       return rdf_paths.PathSpec.PathType.OS
     elif pathtype == cls.PathType.TSK:
@@ -461,7 +469,8 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     return PathInfo(
         components=self.components[:-1],
         path_type=self.path_type,
-        directory=True)
+        directory=True,
+    )
 
   def GetAncestors(self):
     """Yields all ancestors of a path.
@@ -492,20 +501,23 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       raise TypeError("expected `%s` but got `%s`" % (PathInfo, type(src)))
     if self.path_type != src.path_type:
       raise ValueError(
-          "src [%s] does not represent the same path type as self [%s]" %
-          (src.path_type, self.path_type))
+          "src [%s] does not represent the same path type as self [%s]"
+          % (src.path_type, self.path_type)
+      )
     if self.components != src.components:
       raise ValueError(
-          "src [%s] does not represent the same path as self [%s]" %
-          (src.components, self.components))
+          "src [%s] does not represent the same path as self [%s]"
+          % (src.components, self.components)
+      )
 
     if src.HasField("stat_entry"):
       self.stat_entry = src.stat_entry
 
     if src.last_stat_entry_timestamp is not None:
       if self.last_stat_entry_timestamp is not None:
-        self.last_stat_entry_timestamp = max(self.last_stat_entry_timestamp,
-                                             src.last_stat_entry_timestamp)
+        self.last_stat_entry_timestamp = max(
+            self.last_stat_entry_timestamp, src.last_stat_entry_timestamp
+        )
       else:
         self.last_stat_entry_timestamp = src.last_stat_entry_timestamp
 
@@ -542,7 +554,7 @@ def ParsePath(path: str) -> Collection[str]:
 
 def ParseCategorizedPath(
     path: str,
-) -> Tuple["objects_pb2.PathInfo.PathType", Sequence[str]]:
+) -> tuple["objects_pb2.PathInfo.PathType", Sequence[str]]:
   """Parses a categorized path string into type and list of components."""
   components = tuple(ParsePath(path))
   if components[0:2] == ("fs", "os"):
@@ -557,7 +569,8 @@ def ParseCategorizedPath(
     return objects_pb2.PathInfo.PathType.NTFS, components[2:]
   else:
     raise ValueError(
-        "Path {!r} does not start with a VFS prefix like /fs/os/".format(path))
+        "Path {!r} does not start with a VFS prefix like /fs/os/".format(path)
+    )
 
 
 def ToCategorizedPath(
@@ -694,6 +707,7 @@ class ClientPathID(rdf_structs.RDFProtoStruct):
 
 class BlobReference(rdf_structs.RDFProtoStruct):
   """A reference to a blob."""
+
   protobuf = objects_pb2.BlobReference
   rdf_deps = []
 
@@ -727,12 +741,14 @@ class SerializedValueOfUnrecognizedType(rdf_structs.RDFProtoStruct):
   they can and the user will be able to fetch the data, albeit in serialized
   form.
   """
+
   protobuf = objects_pb2.SerializedValueOfUnrecognizedType
   rdf_deps = []
 
 
 class APIAuditEntry(rdf_structs.RDFProtoStruct):
   """Audit entry for API calls, persistend in the relational database."""
+
   protobuf = objects_pb2.APIAuditEntry
   rdf_deps = [rdfvalue.RDFDatetime]
 
@@ -750,7 +766,8 @@ class APIAuditEntry(rdf_structs.RDFProtoStruct):
   @classmethod
   def FromHttpRequestResponse(cls, request, response):
     response_code = APIAuditEntry._HTTP_STATUS_TO_CODE.get(
-        response.status_code, objects_pb2.APIAuditEntry.ERROR)
+        response.status_code, objects_pb2.APIAuditEntry.ERROR
+    )
 
     return cls(
         http_request_path=request.full_path,  # include query string

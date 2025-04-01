@@ -18,6 +18,8 @@ from grr_response_server.databases import mysql_utils
 class MySQLDBCronJobMixin(object):
   """MySQLDB mixin for cronjob related functions."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteCronJob(
       self,
@@ -25,6 +27,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Writes a cronjob to the database."""
+    assert cursor is not None
     query = (
         "INSERT INTO cron_jobs "
         "(job_id, job, create_time, enabled) "
@@ -49,7 +52,7 @@ class MySQLDBCronJobMixin(object):
 
   def _CronJobFromRow(
       self,
-      row: Tuple[bytes, float, bool, bool, int, float, str, int, float, str],
+      row: Tuple[bytes, float, bool, bool, int, float, str, bytes, float, str],
   ) -> flows_pb2.CronJob:
     """Creates a cronjob object from a database result row."""
     (
@@ -95,6 +98,8 @@ class MySQLDBCronJobMixin(object):
       job.leased_by = leased_by
     return job
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadCronJobs(
       self,
@@ -102,6 +107,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[flows_pb2.CronJob]:
     """Reads all cronjobs from the database."""
+    assert cursor is not None
     query = (
         "SELECT job, UNIX_TIMESTAMP(create_time), enabled, "
         "forced_run_requested, last_run_status, "
@@ -132,6 +138,8 @@ class MySQLDBCronJobMixin(object):
       enabled: bool,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
+    """Sets the enabled bit of a cronjob."""
+    assert cursor is not None
     res = cursor.execute(
         "UPDATE cron_jobs SET enabled=%d WHERE job_id=%%s" % int(enabled),
         [cronjob_id],
@@ -139,23 +147,30 @@ class MySQLDBCronJobMixin(object):
     if res != 1:
       raise db.UnknownCronJobError("CronJob with id %s not found." % cronjob_id)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def EnableCronJob(
       self, cronjob_id: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
   ) -> None:
     self._SetCronEnabledBit(cronjob_id, True, cursor=cursor)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DisableCronJob(
       self, cronjob_id: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
   ) -> None:
     self._SetCronEnabledBit(cronjob_id, False, cursor=cursor)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteCronJob(
       self, cronjob_id: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
   ) -> None:
     """Deletes a cronjob along with all its runs."""
+    assert cursor is not None
     res = cursor.execute("DELETE FROM cron_jobs WHERE job_id=%s", [cronjob_id])
     if res != 1:
       raise db.UnknownCronJobError("CronJob with id %s not found." % cronjob_id)
@@ -174,6 +189,8 @@ class MySQLDBCronJobMixin(object):
     }
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def UpdateCronJob(
       self,
@@ -214,6 +231,8 @@ class MySQLDBCronJobMixin(object):
     if res != 1:
       raise db.UnknownCronJobError("CronJob with id %s not found." % cronjob_id)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def LeaseCronJobs(
       self,
@@ -222,6 +241,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[flows_pb2.CronJob]:
     """Leases all available cron jobs."""
+    assert cursor is not None
     now = rdfvalue.RDFDatetime.Now()
     now_str = mysql_utils.RDFDatetimeToTimestamp(now)
     expiry_str = mysql_utils.RDFDatetimeToTimestamp(now + lease_time)
@@ -254,6 +274,8 @@ class MySQLDBCronJobMixin(object):
     )
     return [self._CronJobFromRow(row) for row in cursor.fetchall()]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReturnLeasedCronJobs(
       self,
@@ -261,6 +283,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Makes leased cron jobs available for leasing again."""
+    assert cursor is not None
     if not jobs:
       return
 
@@ -296,6 +319,8 @@ class MySQLDBCronJobMixin(object):
           % ((len(jobs) - returned), jobs)
       )
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteCronJobRun(
       self,
@@ -303,6 +328,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Stores a cron job run object in the database."""
+    assert cursor is not None
     query = (
         "INSERT INTO cron_job_runs "
         "(job_id, run_id, write_time, run) "
@@ -338,11 +364,14 @@ class MySQLDBCronJobMixin(object):
     res.created_at = mysql_utils.TimestampToMicrosecondsSinceEpoch(timestamp)
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReadCronJobRuns(
       self, job_id: str, cursor: Optional[MySQLdb.cursors.Cursor] = None
   ) -> Sequence[flows_pb2.CronJobRun]:
     """Reads all cron job runs for a given job id."""
+    assert cursor is not None
     query = """
     SELECT run, UNIX_TIMESTAMP(write_time)
       FROM cron_job_runs
@@ -352,6 +381,8 @@ class MySQLDBCronJobMixin(object):
     runs = [self._CronJobRunFromRow(row) for row in cursor.fetchall()]
     return sorted(runs, key=lambda run: run.started_at or 0, reverse=True)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def ReadCronJobRun(
       self,
@@ -360,6 +391,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> flows_pb2.CronJobRun:
     """Reads a single cron job run from the db."""
+    assert cursor is not None
     query = (
         "SELECT run, UNIX_TIMESTAMP(write_time) FROM cron_job_runs "
         "WHERE job_id = %s AND run_id = %s"
@@ -374,6 +406,8 @@ class MySQLDBCronJobMixin(object):
 
     return self._CronJobRunFromRow(cursor.fetchall()[0])
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteOldCronJobRuns(
       self,
@@ -381,6 +415,7 @@ class MySQLDBCronJobMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Deletes cron job runs that are older then the given timestamp."""
+    assert cursor is not None
     query = "DELETE FROM cron_job_runs WHERE write_time < FROM_UNIXTIME(%s)"
     cursor.execute(
         query, [mysql_utils.RDFDatetimeToTimestamp(cutoff_timestamp)]

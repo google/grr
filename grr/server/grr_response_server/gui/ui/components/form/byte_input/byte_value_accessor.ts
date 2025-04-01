@@ -15,6 +15,7 @@ type OnTouchedFn = () => void;
 
 /** ControlValueAccessor for handling byte input fields. */
 @Directive({
+  standalone: false,
   selector: '[byteInput]',
   host: {
     '(change)': 'onChange($event.target.value)',

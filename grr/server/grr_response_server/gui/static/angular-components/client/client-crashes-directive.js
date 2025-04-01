@@ -1,5 +1,4 @@
 goog.module('grrUi.client.clientCrashesDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');

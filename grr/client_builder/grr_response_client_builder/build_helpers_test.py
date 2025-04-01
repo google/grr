@@ -76,23 +76,23 @@ class BuildTests(test_lib.GRRBaseTest):
       # context.
       str_override = """
         Test Context:
-          Client.labels: [label0, label1]
+          Client.company_name: foo
           ClientBuilder Context:
-            Client.labels: [build-label0, build-label1]
+            Client.company_name: bar
       """
       parser = config_parser.YamlConfigFileParser("")
       override = parser.RawDataFromBytes(str_override.encode("utf-8"))
       config.CONFIG.MergeData(override)
       # Sanity-check that the secondary config was merged into the global
       # config.
-      self.assertEqual(config.CONFIG["Client.labels"], ["label0", "label1"])
+      self.assertEqual(config.CONFIG["Client.company_name"], "foo")
 
       context = ["Test Context", "ClientBuilder Context", "Client Context"]
       str_client_config = build_helpers.GetClientConfig(context)
       client_config = parser.RawDataFromBytes(str_client_config.encode("utf-8"))
       # Settings particular to the ClientBuilder context should not carry over
       # into the generated client config.
-      self.assertEqual(client_config["Client.labels"], ["label0", "label1"])
+      self.assertEqual(client_config["Client.company_name"], "foo")
 
   def testRepackerDummyClientConfig(self):
     """Ensure our dummy client config can pass validation.

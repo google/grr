@@ -37,6 +37,7 @@ class HuntContext(rdf_structs.RDFProtoStruct):
 
 class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
   """A reference to a flow or a hunt."""
+
   protobuf = flows_pb2.FlowLikeObjectReference
   rdf_deps = [
       rdf_objects.FlowReference,
@@ -55,7 +56,8 @@ class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
     res = FlowLikeObjectReference()
     res.object_type = "FLOW_REFERENCE"
     res.flow_reference = rdf_objects.FlowReference(
-        flow_id=flow_id, client_id=client_id)
+        flow_id=flow_id, client_id=client_id
+    )
     return res
 
 
@@ -67,7 +69,6 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
       rdfvalue.DurationSeconds,
       foreman_rules.ForemanClientRuleSet,
       rdf_output_plugin.OutputPluginDescriptor,
-      rdfvalue.RDFURN,
       FlowLikeObjectReference,
   ]
 
@@ -102,6 +103,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
 
 class HuntError(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing a hunt error."""
+
   protobuf = jobs_pb2.HuntError
   rdf_deps = [
       rdf_client.ClientURN,
@@ -110,6 +112,7 @@ class HuntError(rdf_structs.RDFProtoStruct):
 
 class GenericHuntArgs(rdf_structs.RDFProtoStruct):
   """Arguments to the generic hunt."""
+
   protobuf = flows_pb2.GenericHuntArgs
   rdf_deps = [
       rdf_flow_runner.FlowRunnerArgs,

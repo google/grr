@@ -29,7 +29,7 @@
     }
 
     ::ng-deep [matformfieldlineripple] {
-      &:before, &:after {
+      &::before, &::after {
         border-bottom: none;
       }
     }

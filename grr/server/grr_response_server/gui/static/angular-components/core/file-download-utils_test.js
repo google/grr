@@ -5,7 +5,6 @@ const {getPathSpecFromValue, makeValueDownloadable, pathSpecToAff4Path} = goog.r
 
 
 describe('statEntryDirective.buildAff4Path', () => {
-
   it('converts os+tsk pathspec correctly', () => {
     const pathspec = {
       type: 'PathSpec',
@@ -69,7 +68,8 @@ describe('statEntryDirective.buildAff4Path', () => {
     };
 
     expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
-        .toBe('aff4:/C.1234567812345678/fs/tsk/\\\\.\\Volume{1234}\\/Test Directory/notes.txt:ads');
+        .toBe(
+            'aff4:/C.1234567812345678/fs/tsk/\\\\.\\Volume{1234}\\/Test Directory/notes.txt:ads');
   });
 
   it('converts os+ntfs pathspec correctly', () => {
@@ -92,7 +92,6 @@ describe('statEntryDirective.buildAff4Path', () => {
     expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
         .toBe('aff4:/C.1234567812345678/fs/ntfs/\\\\.\\Volume{1234}\\/windows');
   });
-
 });
 
 
@@ -143,7 +142,6 @@ describe('fileDownloadUtils', () => {
   });
 
   describe('getPathSpecFromValue', () => {
-
     it('returns null if argument is null or undefined', () => {
       expect(getPathSpecFromValue(null)).toBe(null);
       expect(getPathSpecFromValue(undefined)).toBe(null);
@@ -158,8 +156,8 @@ describe('fileDownloadUtils', () => {
     });
 
     it('extracts pathspec from ArtifactFilesDownloaderResult', () => {
-      expect(getPathSpecFromValue(artifactFilesDownloaderResult)).toEqual(
-          pathspec);
+      expect(getPathSpecFromValue(artifactFilesDownloaderResult))
+          .toEqual(pathspec);
     });
 
     it('extracts pathspec recursively from ApiFlowResult', () => {
@@ -270,8 +268,8 @@ describe('fileDownloadUtils', () => {
     it('replaces aff4path in FileFinderResult', () => {
       const originalFileFinderResult = angular.copy(fileFinderResult);
 
-      expect(makeValueDownloadable(
-          fileFinderResult, downloadUrl, downloadParams))
+      expect(
+          makeValueDownloadable(fileFinderResult, downloadUrl, downloadParams))
           .toBe(true);
       expect(fileFinderResult.value.stat_entry).toEqual({
         downloadUrl: downloadUrl,
@@ -285,7 +283,7 @@ describe('fileDownloadUtils', () => {
       const original = angular.copy(artifactFilesDownloaderResult);
 
       expect(makeValueDownloadable(
-          artifactFilesDownloaderResult, downloadUrl, downloadParams))
+                 artifactFilesDownloaderResult, downloadUrl, downloadParams))
           .toBe(true);
       expect(artifactFilesDownloaderResult.value.downloaded_file).toEqual({
         downloadUrl: downloadUrl,

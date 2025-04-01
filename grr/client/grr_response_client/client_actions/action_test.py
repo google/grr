@@ -107,8 +107,6 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual(result.num_threads, 1)
       self.assertEqual(result.user_cpu_time, 1.0)
       self.assertEqual(result.system_cpu_time, 1.0)
-      # This is disabled in the flow since it takes too long.
-      # self.assertEqual(result.cpu_percent, 10.0)
       self.assertEqual(result.RSS_size, 100000)
       self.assertEqual(result.VMS_size, 150000)
       self.assertEqual(result.memory_percent, 10.0)

@@ -395,13 +395,13 @@ exports.ApiService = class {
             function() {
               // If HEAD request succeeds, initiate the download via an iFrame.
               const paramsString = Object.keys(requestParams)
-                                     .sort()
-                                     .map(function(key) {
-                                       return [key, requestParams[key]]
-                                           .map(encodeURIComponent)
-                                           .join('=');
-                                     })
-                                     .join('&');
+                                       .sort()
+                                       .map(function(key) {
+                                         return [key, requestParams[key]]
+                                             .map(encodeURIComponent)
+                                             .join('=');
+                                       })
+                                       .join('&');
               if (paramsString.length > 0) {
                 url += '?' + paramsString;
               }

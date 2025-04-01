@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Multi-platform interface to Sandboxing."""
 
+from collections.abc import Iterable
 import logging
 import platform
-from typing import Iterable
 
 
 def InitSandbox(name: str, paths_read_only: Iterable[str]) -> None:

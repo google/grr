@@ -126,18 +126,23 @@ class _ConnectionProxy(object):
         self.pool.limiter.release()
 
   def commit(self):
+    assert self.con is not None
     self.con.commit()
 
   def rollback(self):
+    assert self.con is not None
     self.con.rollback()
 
   def cursor(self):
+    assert self.con is not None
     return _CursorProxy(self, self.con.cursor())
 
   def warning_count(self):
+    assert self.con is not None
     return self.con.warning_count()
 
   def show_warnings(self):
+    assert self.con is not None
     return self.con.show_warnings()
 
 

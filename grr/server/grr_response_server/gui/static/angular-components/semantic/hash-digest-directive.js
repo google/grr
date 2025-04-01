@@ -33,9 +33,9 @@ const HashDigestController = class {
    * @return {string} Hex-encoded string.
    */
   bytesToHexString(bytes) {
-    var hex = '';
-    for (var i = 0; i < bytes.length; i += 1) {
-      var char = bytes.charCodeAt(i).toString(16);
+    let hex = '';
+    for (let i = 0; i < bytes.length; i += 1) {
+      const char = bytes.charCodeAt(i).toString(16);
       hex += ('0' + char).substr(-2);  // add leading zero if necessary
     }
     return hex;
@@ -48,7 +48,7 @@ const HashDigestController = class {
    * @suppress {missingProperties} as value can be anything.
    */
   onValueChange(newValue) {
-    var bytes = newValue.value;
+    const bytes = newValue.value;
     if (angular.isString(bytes)) {
       try {
         this.stringifiedBytes = this.bytesToHexString(this.window_.atob(bytes));

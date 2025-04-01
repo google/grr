@@ -30,6 +30,7 @@ class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
 
 class ForemanOsClientRule(ForemanClientRuleBase):
   """This rule will fire if the client OS is marked as true in the proto."""
+
   protobuf = jobs_pb2.ForemanOsClientRule
 
   def Evaluate(self, client_info):
@@ -38,9 +39,11 @@ class ForemanOsClientRule(ForemanClientRuleBase):
     if not value:
       return False
 
-    return ((self.os_windows and value.startswith("Windows")) or
-            (self.os_linux and value.startswith("Linux")) or
-            (self.os_darwin and value.startswith("Darwin")))
+    return (
+        (self.os_windows and value.startswith("Windows"))
+        or (self.os_linux and value.startswith("Linux"))
+        or (self.os_darwin and value.startswith("Darwin"))
+    )
 
   def Validate(self):
     pass
@@ -48,6 +51,7 @@ class ForemanOsClientRule(ForemanClientRuleBase):
 
 class ForemanLabelClientRule(ForemanClientRuleBase):
   """This rule will fire if the client has the selected label."""
+
   protobuf = jobs_pb2.ForemanLabelClientRule
 
   def Evaluate(self, client_info):
@@ -72,6 +76,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
 
 class ForemanRegexClientRule(ForemanClientRuleBase):
   """The Foreman schedules flows based on these rules firing."""
+
   protobuf = jobs_pb2.ForemanRegexClientRule
   rdf_deps = [
       rdf_standard.RegularExpression,
@@ -85,7 +90,8 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
 
     if field == fsf.UNSET:
       raise ValueError(
-          "Received regex rule without a valid field specification.")
+          "Received regex rule without a valid field specification."
+      )
     elif field == fsf.USERNAMES:
       return " ".join(user.username for user in snapshot.knowledge_base.users)
     elif field == fsf.FQDN:
@@ -133,13 +139,15 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
 
 class ForemanIntegerClientRule(ForemanClientRuleBase):
   """This rule will fire if the expression operator(attribute, value) is true."""
+
   protobuf = jobs_pb2.ForemanIntegerClientRule
   rdf_deps = []
 
   def _ResolveField(self, field, client_info):
     if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
       raise ValueError(
-          "Received integer rule without a valid field specification.")
+          "Received integer rule without a valid field specification."
+      )
 
     def SecondsOrNone(v):
       if v is None:
@@ -147,7 +155,6 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return v.AsSecondsSinceEpoch()
 
     startup_info = client_info.last_startup_info
-    md = client_info.metadata
     client_info = client_info.last_snapshot
     if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
       return startup_info.client_info.client_version
@@ -155,8 +162,6 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return SecondsOrNone(client_info.install_time)
     elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
       return SecondsOrNone(client_info.startup_info.boot_time)
-    elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
-      return SecondsOrNone(md.clock)
     else:
       raise ValueError("Unexpected foreman integer field: %s." % field)
 
@@ -191,7 +196,8 @@ class ForemanRuleAction(rdf_structs.RDFProtoStruct):
 
 
 class ForemanClientRule(ForemanClientRuleBase):
-  """"Base class" proto for foreman client rule protos."""
+  """Base class proto for foreman client rule protos."""
+
   protobuf = jobs_pb2.ForemanClientRule
   rdf_deps = [
       ForemanIntegerClientRule,
@@ -209,6 +215,7 @@ class ForemanClientRule(ForemanClientRuleBase):
 
 class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
   """This proto holds rules and the strategy used to evaluate them."""
+
   protobuf = jobs_pb2.ForemanClientRuleSet
   rdf_deps = [
       ForemanClientRule,
@@ -242,6 +249,7 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
 
 class ForemanRule(rdf_structs.RDFProtoStruct):
   """A Foreman rule RDF value."""
+
   protobuf = jobs_pb2.ForemanRule
   rdf_deps = [
       ForemanClientRuleSet,
@@ -267,6 +275,7 @@ class ForemanRule(rdf_structs.RDFProtoStruct):
 
 class ForemanCondition(rdf_structs.RDFProtoStruct):
   """A ForemanCondition RDF value."""
+
   protobuf = jobs_pb2.ForemanCondition
   rdf_deps = [
       ForemanClientRuleSet,
@@ -287,4 +296,5 @@ class ForemanCondition(rdf_structs.RDFProtoStruct):
 
 class ForemanRules(rdf_protodict.RDFValueArray):
   """A list of rules that the foreman will apply."""
+
   rdf_type = ForemanRule

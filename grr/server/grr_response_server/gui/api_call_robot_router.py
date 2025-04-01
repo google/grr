@@ -23,6 +23,8 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import timeline as api_timeline
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 
 class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
@@ -62,6 +64,21 @@ class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
   ]
 
 
+class RobotRouterGetFileBlobParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.RobotRouterGetFileBlobParams
+
+
+class RobotRouterTimelineFlowParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.RobotRouterTimelineFlowParams
+  rdf_deps = [
+      rdfvalue.DurationSeconds,
+  ]
+
+
+class RobotRouterGetCollectedTimelineParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.RobotRouterGetCollectedTimelineParams
+
+
 class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.ApiCallRobotRouterParams
   rdf_deps = [
@@ -72,6 +89,9 @@ class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
       RobotRouterListFlowLogsParams,
       RobotRouterListFlowResultsParams,
       RobotRouterSearchClientsParams,
+      RobotRouterTimelineFlowParams,
+      RobotRouterGetCollectedTimelineParams,
+      RobotRouterGetFileBlobParams,
   ]
 
 
@@ -269,6 +289,16 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
         ),
     )
 
+  def _GetTimelineFlowThrottler(self):
+    tfparams = self.params.timeline_flow
+
+    return throttle.FlowThrottler(
+        daily_req_limit=tfparams.max_flows_per_client_daily,
+        dup_interval=rdfvalue.Duration(
+            tfparams.min_interval_between_duplicate_flows
+        ),
+    )
+
   def _CheckFlowRobotId(self, client_id, flow_id, context=None):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
     # equal to the user making the request.
@@ -326,6 +356,10 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       override_flow_name = self.effective_artifact_collector_flow_name
       override_flow_args = None
       throttler = self._GetArtifactCollectorFlowThrottler()
+    elif args.flow.name == "TimelineFlow" and self.params.timeline_flow.enabled:
+      override_flow_name = "TimelineFlow"
+      override_flow_args = None
+      throttler = self._GetTimelineFlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name
@@ -402,6 +436,26 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
           exclude_path_globs=options.exclude_path_globs,
           include_only_path_globs=options.include_only_path_globs,
       )
+
+  def GetCollectedTimeline(self, args, context=None):
+    """Exports results of a timeline flow to the specific format."""
+    if not self.params.get_collected_timeline.enabled:
+      raise access_control.UnauthorizedAccess(
+          "GetCollectedTimeline is not allowed by the configuration."
+      )
+
+    self._CheckFlowRobotId(args.client_id, args.flow_id, context=context)
+
+    return api_timeline.ApiGetCollectedTimelineHandler()
+
+  def GetFileBlob(self, args, context=None):
+    """Get byte contents of a VFS file on a given client."""
+    if not self.params.get_file_blob.enabled:
+      raise access_control.UnauthorizedAccess(
+          "GetFileBlob is not allowed by the configuration."
+      )
+
+    return api_vfs.ApiGetFileBlobHandler()
 
   # Reflection methods.
   # ==================

@@ -149,6 +149,7 @@ const BASE_COLUMNS: readonly string[] = [
  * Component that displays a file table.
  */
 @Component({
+  standalone: false,
   selector: 'file-results-table',
   templateUrl: './file_results_table.ng.html',
   styleUrls: ['./file_results_table.scss'],

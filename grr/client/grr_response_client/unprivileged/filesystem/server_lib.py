@@ -5,7 +5,7 @@ import abc
 import os
 import sys
 import traceback
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Generic, Optional, TypeVar
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.filesystem import ntfs
@@ -47,7 +47,7 @@ class ConnectionWrapper:
         communication.Message(response.SerializeToString(), attachment)
     )
 
-  def Recv(self) -> Tuple[filesystem_pb2.Request, bytes]:
+  def Recv(self) -> tuple[filesystem_pb2.Request, bytes]:
     raw_request, attachment = self._connection.Recv()
     request = filesystem_pb2.Request()
     request.ParseFromString(raw_request)

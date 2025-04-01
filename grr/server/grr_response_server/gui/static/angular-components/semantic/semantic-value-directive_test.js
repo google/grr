@@ -40,7 +40,7 @@ describe('semantic value directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-semantic-value value="value" />';
+    const template = '<grr-semantic-value value="value"></grr-semantic-value>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

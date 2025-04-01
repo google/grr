@@ -31,11 +31,13 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    session_id = flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 
@@ -60,11 +62,13 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    session_id = flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 
@@ -98,11 +102,13 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    session_id = flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 

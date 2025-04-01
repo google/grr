@@ -11,9 +11,11 @@ import {
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `<app-hunt-progress-chart
     [chartProgressData]="chartProgressData">
   </app-hunt-progress-chart>`,
+  jit: true,
 })
 class TestHostComponent {
   chartProgressData: HuntProgressLineChartDataset | null | undefined = null;

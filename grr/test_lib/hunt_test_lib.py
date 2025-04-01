@@ -3,6 +3,7 @@
 
 import sys
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -148,7 +149,9 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   try:
     # Run the clients and worker until nothing changes any more.
     while iteration_limit is None or num_iterations < iteration_limit:
-      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
+      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(
+          timeout=rdfvalue.DurationSeconds(10)
+      )
       worker_processed = rel_db_worker.ResetProcessedFlows()
 
       client_processed = 0
@@ -335,6 +338,13 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
               )
           ]
       )
+
+  def FinishHuntFlow(self, hunt_id, client_id):
+    flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj.flow_state = flows_pb2.Flow.FlowState.FINISHED
+    data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
 
   def AddLogToHunt(self, hunt_id, client_id, message):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)

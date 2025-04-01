@@ -98,9 +98,14 @@ class FlowBase(object):
     items = self._context.SendIteratorRequest("ListFlowLogs", args)
     return utils.MapItemsIterator(lambda data: FlowLog(data=data), items)
 
-  def GetFilesArchive(self) -> utils.BinaryChunkIterator:
+  def GetFilesArchive(
+      self,
+      archive_format: flow_pb2.ApiGetFlowFilesArchiveArgs.ArchiveFormat = flow_pb2.ApiGetFlowFilesArchiveArgs.ArchiveFormat.ZIP,
+  ) -> utils.BinaryChunkIterator:
     args = flow_pb2.ApiGetFlowFilesArchiveArgs(
-        client_id=self.client_id, flow_id=self.flow_id
+        client_id=self.client_id,
+        flow_id=self.flow_id,
+        archive_format=archive_format,
     )
     return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 

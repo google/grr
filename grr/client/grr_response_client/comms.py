@@ -123,7 +123,6 @@ class GRRClientWorker(threading.Thread):
       name=None,
       ttl=None,
       blocking=True,
-      task_id=None,
   ):
     """Send the protobuf to the server.
 
@@ -136,8 +135,6 @@ class GRRClientWorker(threading.Thread):
       name: The name of the client action that sends this response.
       ttl: The time to live of this message.
       blocking: If the output queue is full, block until there is space.
-      task_id: The task ID that the request was queued at. We send this back to
-        the server so it can de-queue the request.
 
     Raises:
       RuntimeError: An object other than an RDFValue was passed for sending.
@@ -147,7 +144,6 @@ class GRRClientWorker(threading.Thread):
 
     message = rdf_flows.GrrMessage(
         session_id=session_id,
-        task_id=task_id,
         name=name,
         response_id=response_id,
         request_id=request_id,
@@ -220,11 +216,6 @@ class GRRClientWorker(threading.Thread):
       self.transaction_log.Clear()
     finally:
       self._is_active = False
-
-  def MemoryExceeded(self):
-    """Returns True if our memory footprint is too large."""
-    rss_size = self.proc.memory_info().rss
-    return rss_size // 1024 // 1024 > config.CONFIG["Client.rss_max"]
 
   def IsActive(self):
     """Returns True if worker is currently handling a message."""
@@ -300,7 +291,6 @@ class GRRClientWorker(threading.Thread):
               request_id=message.request_id,
               response_id=1,
               session_id=message.session_id,
-              task_id=message.task_id,
               message_type=rdf_flows.GrrMessage.Type.STATUS,
           )
           if flags.FLAGS.pdb_post_mortem:

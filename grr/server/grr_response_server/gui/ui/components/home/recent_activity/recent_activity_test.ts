@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {provideRouter} from '@angular/router';
 
 import {newClientApproval} from '../../../lib/models/model_test_util';
 import {HomePageGlobalStore} from '../../../store/home_page_global_store';
@@ -21,7 +21,7 @@ import {RecentActivity} from './recent_activity';
 
 initTestEnvironment();
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class DummyComponent {}
 
 describe('RecentActivity Component', () => {
@@ -31,15 +31,12 @@ describe('RecentActivity Component', () => {
     recentClientFlowsLocalStore = mockRecentClientFlowsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [
-        RecentActivityModule,
-        RouterTestingModule.withRoutes([
-          {path: 'clients', component: DummyComponent},
-        ]),
-        NoopAnimationsModule,
-      ],
+      imports: [RecentActivityModule, NoopAnimationsModule],
       declarations: [DummyComponent],
-      providers: [...STORE_PROVIDERS],
+      providers: [
+        ...STORE_PROVIDERS,
+        provideRouter([{path: 'clients', component: DummyComponent}]),
+      ],
       teardown: {destroyAfterEach: false},
     })
       // The child component RecentClientFlows provides their own Store,

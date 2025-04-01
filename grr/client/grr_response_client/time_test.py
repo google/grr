@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import time as stdtime
-from typing import List
 from unittest import mock
 
 from absl.testing import absltest
@@ -13,7 +12,7 @@ class SleepTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.sleeps: List[float] = []
+    self.sleeps: list[float] = []
 
     sleep_patcher = mock.patch.object(stdtime, "sleep", self.sleeps.append)
     sleep_patcher.start()

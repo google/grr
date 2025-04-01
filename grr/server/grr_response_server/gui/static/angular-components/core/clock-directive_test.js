@@ -27,7 +27,7 @@ describe('clock directive', () => {
   }));
 
   const renderTestTemplate = () => {
-    const template = '<grr-live-clock />';
+    const template = '<grr-live-clock></grr-live-clock>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

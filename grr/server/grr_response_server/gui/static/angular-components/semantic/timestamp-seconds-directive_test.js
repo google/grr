@@ -27,7 +27,7 @@ describe('timestamp seconds directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-timestamp-seconds value="value" />';
+    const template = '<grr-timestamp-seconds value="value"></grr-timestamp-seconds>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

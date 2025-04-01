@@ -1,14 +1,8 @@
 @use '@angular/material' as mat;
 @use '../../material-theme' as c;
+@use 'flow_args_form_styles';
 
 .conditions {
-  .title {
-    margin-top: 1.5em;
-    margin-bottom: 0.75em;
-    font-family: c.$google-sans-display-family;
-    color: mat.get-color-from-palette(c.$foreground, text);
-  }
-
   .buttons {
     display: flex;
     column-gap: 1em;
@@ -19,19 +13,7 @@
   font-size: 85%;
 }
 
-mat-error {
-  margin-top: 0.5em;
-}
-
 .path-row {
   display: flex;
 }
 
-.add-path-row {
-  display: flex;
-  flex-direction: row;
-
-  .error {
-    flex-grow: 1;
-  }
-}

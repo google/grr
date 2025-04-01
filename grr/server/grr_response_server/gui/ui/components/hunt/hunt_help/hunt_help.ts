@@ -4,6 +4,7 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
  * Component displaying the details for a single hunt result.
  */
 @Component({
+  standalone: false,
   selector: 'hunt-help',
   templateUrl: './hunt_help.ng.html',
   styleUrls: ['./hunt_help.scss'],

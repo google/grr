@@ -363,7 +363,6 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
         name="TransferBuffer",
         payload=self.buffer_ref,
         network_bytes_limit=300,
-        generate_task_id=True,
     )
 
     # We just get a client alert and a status message back.
@@ -383,7 +382,6 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
         name="TransferBuffer",
         payload=self.buffer_ref,
         network_bytes_limit=900,
-        generate_task_id=True,
     )
 
     responses = self.transfer_buf.HandleMessage(message)

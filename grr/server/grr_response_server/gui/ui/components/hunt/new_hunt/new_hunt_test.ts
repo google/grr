@@ -15,8 +15,7 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
 
 import {
   ForemanClientRuleSetMatchMode,
@@ -107,7 +106,7 @@ async function isButtonToggleSelected(
 
 initTestEnvironment();
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class TestComponent {}
 
 describe('new hunt test', () => {
@@ -121,7 +120,7 @@ describe('new hunt test', () => {
       imports: [
         NoopAnimationsModule,
         NewHuntModule,
-        RouterTestingModule.withRoutes([
+        RouterModule.forRoot([
           {path: 'new-hunt', component: NewHunt},
           {path: 'hunts/:id', component: TestComponent},
         ]),
@@ -286,8 +285,9 @@ describe('new hunt test', () => {
               ruleType: ForemanClientRuleType.INTEGER,
               integer: {
                 operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
-                value: '123',
-                field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
+                value: '1337',
+                field:
+                  ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION,
               },
             },
             {
@@ -354,7 +354,7 @@ describe('new hunt test', () => {
       'Greater Than',
     );
     expect(await getInputValue(fixture, '[id=condition_2_integer_value]')).toBe(
-      '123',
+      '1337',
     );
     expect(await getInputValue(fixture, '[id=condition_3_regex_value]')).toBe(
       'I am a regex',

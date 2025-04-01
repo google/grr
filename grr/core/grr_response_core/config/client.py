@@ -16,8 +16,6 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("Client.binary_name", "%(Client.name)",
                          "The name of the client binary.")
 
-config_lib.DEFINE_list("Client.labels", [], "Labels for this client.")
-
 config_lib.DEFINE_string("Client.company_name", "GRR Project",
                          "The name of the company which made the client.")
 
@@ -49,14 +47,6 @@ config_lib.DEFINE_string(
     default=r"%(SystemRoot|env)\\System32\\%(name)\\%(Template.version_string)",
     help="Where the client binaries are installed.")
 
-config_lib.DEFINE_list(
-    name="Client.server_urls", default=[], help="Base URL for client control.")
-
-config_lib.DEFINE_list(
-    "Client.control_urls", [],
-    "DEPRECATED List of URLs of the controlling server. "
-    "Use server_urls instead.")
-
 config_lib.DEFINE_integer("Client.http_timeout", 100,
                           "Timeout for HTTP requests.")
 
@@ -75,17 +65,6 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("Client.plist_label_prefix", "com",
                          "Domain for launchd label.")
 
-config_lib.DEFINE_float("Client.poll_min", 0.2,
-                        "Minimum time between polls in seconds.")
-
-config_lib.DEFINE_float("Client.poll_max", 600,
-                        "Maximum time between polls in seconds.")
-
-config_lib.DEFINE_float(
-    "Client.error_poll_min", 60,
-    "Minimum time between polls in seconds if the server "
-    "reported an error.")
-
 config_lib.DEFINE_list(
     name="Client.proxy_servers",
     help="List of valid proxy servers the client should try.",
@@ -101,15 +80,6 @@ config_lib.DEFINE_integer(
     "Client.foreman_check_frequency", 1800,
     "The minimum number of seconds before checking with "
     "the foreman for new work.")
-
-config_lib.DEFINE_float(
-    "Client.rss_max", 1000, "Maximum memory footprint in MB (soft limit). "
-    "Exceeding this will result in an orderly shutdown.")
-
-config_lib.DEFINE_float(
-    "Client.rss_max_hard", 2000, "Maximum memory footprint in MB (hard limit). "
-    "Exceeding this will result in aborting the current "
-    "client action and restarting.")
 
 config_lib.DEFINE_string(
     name="Client.tempfile_prefix",
@@ -177,52 +147,15 @@ config_lib.DEFINE_semantic_value(
     "key is usually kept offline and is thus not present in the "
     "configuration file.")
 
-config_lib.DEFINE_integer("Client.server_serial_number", 0,
-                          "Minimal serial number we accept for server cert.")
-
 config_lib.DEFINE_integer(
     "Client.gc_frequency", 10,
     "Defines how often the client calls garbage collection (seconds).")
 
-# The following configuration options are defined here but are used in
-# the windows nanny code (grr/client/nanny/windows_nanny.h).
 config_lib.DEFINE_string(
-    "Nanny.child_binary",
-    default=r"%(Client.install_path)\\%(Client.binary_name)",
-    help="The location to the client binary.")
-
-config_lib.DEFINE_string(
-    "Nanny.child_command_line",
-    default=(r"%(child_binary) "
-             r'--config "%(Client.install_path)\\%(Client.binary_name).yaml"'),
-    help="The command line to launch the client binary.")
-
-config_lib.DEFINE_string("Client.transaction_log_file",
-                         "%(Logging.path)/transaction.log",
-                         "The file where we write the nanny transaction log.")
-
-config_lib.DEFINE_string(
-    "Nanny.service_name",
-    "%(Client.name) Monitor",
-    help="The name of the nanny.")
-
-config_lib.DEFINE_string(
-    "Nanny.service_description",
-    "%(Client.name) Monitor Service",
-    help="The description of the nanny service.")
-
-config_lib.DEFINE_string("Nanny.statusfile", "/var/run/nanny.status",
-                         "The file where we write the nanny status.")
-
-config_lib.DEFINE_string(
-    "Nanny.binary",
-    r"%(Client.install_path)\\%(service_binary_name)",
-    help="The full location to the nanny binary.")
-
-config_lib.DEFINE_string(
-    "Nanny.service_binary_name",
-    "%(Client.name)service.exe",
-    help="The executable name of the nanny binary.")
+    "Client.transaction_log_file",
+    "%(Logging.path)/transaction.log",
+    "The file where we write the agent transaction log.",
+)
 
 config_lib.DEFINE_integer(
     "Network.api", 3, "The version of the network protocol the client "

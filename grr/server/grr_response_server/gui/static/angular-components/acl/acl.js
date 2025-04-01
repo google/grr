@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.acl');
-goog.module.declareLegacyNamespace();
 
 const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
 const {ApprovalInfoDirective} = goog.require('grrUi.acl.approvalInfoDirective');

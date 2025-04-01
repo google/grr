@@ -82,20 +82,26 @@ class FileSystem(object):
     Returns:
       A sequence of stat entries to the found files.
     """
-    args = flows_pb2.GlobArgs()
+    args = flows_pb2.FileFinderArgs()
     args.paths.append(path)
     args.pathtype = self._path_type
 
     try:
-      glob = self._client.CreateFlow(name='Glob', args=args)
+      cff = self._client.CreateFlow(name='ClientFileFinder', args=args)
     except api_errors.AccessForbiddenError as e:
       raise errors.ApprovalMissingError(self.id, e)
 
-    _timeout.await_flow(glob)
-    return representer.StatEntryList([_.payload for _ in glob.ListResults()])
+    _timeout.await_flow(cff)
+    res = []
+    for result in cff.ListResults():
+      if not isinstance(result.payload, flows_pb2.FileFinderResult):
+        raise TypeError(f'Unexpected flow result type: {type(result.payload)}')
+      res.append(result.payload.stat_entry)
+    return res
 
-  def grep(self, path: Text,
-           pattern: bytes) -> Sequence[jobs_pb2.BufferReference]:
+  def grep(
+      self, path: Text, pattern: bytes
+  ) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:

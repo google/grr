@@ -17,17 +17,6 @@ config_lib.DEFINE_string(
     default="%(ClientBuilder.build_root_dir)/%(Client.name)-pkg",
     help="OSX package name.")
 
-config_lib.DEFINE_string(
-    "ClientBuilder.private_config_validator_class",
-    default=None,
-    help="Set this to a class name that sanity checks your client "
-    "config at repacking time.")
-
-config_lib.DEFINE_bool(
-    "Client.fleetspeak_enabled", False,
-    "Whether the client uses Fleetspeak to communicate "
-    "with the server.")
-
 config_lib.DEFINE_bool(
     "ClientBuilder.fleetspeak_bundled", False,
     "Whether to bundle a Fleetspeak installation into the client package.")
@@ -234,22 +223,6 @@ config_lib.DEFINE_bool(
     default=False,
     help="Should the application be built as a console program. "
     "This aids debugging in windows.")
-
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.nanny_source_dir",
-        must_exist=False,
-        default=("%(grr_response_client|"
-                 "module_path)/nanny/"),
-        description="DEPRECATED: Path to the windows nanny VS solution file."))
-
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.nanny_prebuilt_binaries",
-        must_exist=False,
-        default="%(ClientBuilder.executables_dir)/%(Client.platform)/",
-        description="DEPRECATED: Path to the pre-build GRRNanny executables (This will be "
-        "used if there are no VS compilers available)."))
 
 config_lib.DEFINE_choice(
     name="ClientBuilder.build_type",
@@ -465,11 +438,6 @@ config_lib.DEFINE_bool(
     "ClientBuilder.build_msi",
     default=False,
     help="If true, an MSI template is built on Windows.")
-
-config_lib.DEFINE_bool(
-    "ClientBuilder.use_prebuilt_nanny",
-    default=False,
-    help="DEPRECATED: If true, the prebuilt Nanny binary is used.")
 
 config_lib.DEFINE_string(
     name="ClientRepacker.output_basename",

@@ -266,6 +266,42 @@ class RDFDateTimeTest(absltest.TestCase):
     timestamp_datetime = rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
     self.assertEqual(timestamp_datetime.AsMicrosecondsSinceEpoch(), 7654)
 
+  def testAsProtoTimestamp_Invert(self):
+    timestamp = timestamp_pb2.Timestamp()
+    timestamp.GetCurrentTime()
+
+    timestamp_result = (
+        rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
+    ).AsProtoTimestamp()
+
+    # Seconds retain the precision, should be the same.
+    self.assertEqual(timestamp.seconds, timestamp_result.seconds)
+
+    # Nanos are equal only up to the microsecond precision.
+    self.assertBetween(
+        timestamp.nanos,
+        timestamp_result.nanos - 1000,
+        timestamp_result.nanos + 1000,
+    )
+
+  def testAsProtoTimestamp_Seconds(self):
+    epoch = rdfvalue.RDFDatetime(0)
+
+    timestamp = (
+        epoch + rdfvalue.Duration.From(rdfvalue.SECONDS, 1337)
+    ).AsProtoTimestamp()
+    self.assertEqual(timestamp.seconds, 1337)
+    self.assertEqual(timestamp.nanos, 0)
+
+  def testAsProtoTimestamp_Nanos(self):
+    epoch = rdfvalue.RDFDatetime(0)
+
+    timestamp = (
+        epoch + rdfvalue.Duration.From(rdfvalue.MICROSECONDS, 654321)
+    ).AsProtoTimestamp()
+    self.assertEqual(timestamp.seconds, 0)
+    self.assertEqual(timestamp.nanos, 654321000)
+
 
 class RDFDatetimeSecondsTest(absltest.TestCase):
 

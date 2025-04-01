@@ -96,29 +96,6 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     blobs_iter = [mig_crypto.ToProtoSignedBlob(blob) for blob in blobs_iter]
     self.assertCountEqual(list(blobs_iter), test_blobs)
 
-  def testReadIndividualBlobsFromSignedBinary(self):
-    test_urn = rdfvalue.RDFURN("aff4:/config/executables/foo")
-    test_blobs = [
-        rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x33\x44\x55", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
-        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key),
-    ]
-    test_blobs = [mig_crypto.ToProtoSignedBlob(blob) for blob in test_blobs]
-    signed_binary_utils.WriteSignedBinaryBlobs(test_urn, test_blobs)
-
-    with self.assertRaises(ValueError):
-      signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn, -1)
-
-    for i, test_blob in enumerate(test_blobs):
-      blob = signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn, i)
-      self.assertEqual(blob.data, test_blob.data)
-
-    with self.assertRaises(signed_binary_utils.BlobIndexOutOfBoundsError):
-      signed_binary_utils.FetchBlobForSignedBinaryByURN(
-          test_urn, len(test_blobs)
-      )
-
   def testFetchSizeOfSignedBinary(self):
     binary1_urn = rdfvalue.RDFURN("aff4:/config/executables/foo1")
     binary2_urn = rdfvalue.RDFURN("aff4:/config/executables/foo2")

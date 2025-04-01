@@ -8,6 +8,7 @@ import {isClientId} from '../../lib/models/client';
  * Provides the top-most component for the GRR UI home page.
  */
 @Component({
+  standalone: false,
   templateUrl: './home.ng.html',
   styleUrls: ['./home.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

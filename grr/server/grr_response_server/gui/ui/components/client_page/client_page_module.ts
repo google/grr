@@ -1,3 +1,4 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
@@ -7,7 +8,6 @@ import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatTableModule} from '@angular/material/table';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatTreeModule} from '@angular/material/tree';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {AngularSplitModule} from 'angular-split';
 
@@ -34,8 +34,8 @@ import {VfsSection} from './vfs_section';
     // keep-sorted start block=yes
     AngularSplitModule,
     ApprovalCardModule,
-    BrowserAnimationsModule,
     ClientOverviewModule,
+    CommonModule,
     FileDetailsModule,
     FlowFormModule,
     FlowListModule,

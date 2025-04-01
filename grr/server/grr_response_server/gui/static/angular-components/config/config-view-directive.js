@@ -1,5 +1,4 @@
 goog.module('grrUi.config.configViewDirective');
-goog.module.declareLegacyNamespace();
 
 
 

@@ -3,7 +3,6 @@
 
 import logging
 import os
-import platform
 import socket
 import traceback
 
@@ -15,7 +14,6 @@ import pytsk3
 import yara
 
 from grr_response_client import actions
-from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
 from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
@@ -158,80 +156,6 @@ class GetLibraryVersions(actions.ActionPlugin):
     self.SendReply(result)
 
 
-class UpdateConfiguration(actions.ActionPlugin):
-  """Updates configuration parameters on the client."""
-
-  in_rdfvalue = rdf_protodict.Dict
-
-  UPDATABLE_FIELDS = {"Client.foreman_check_frequency",
-                      "Client.server_urls",
-                      "Client.max_post_size",
-                      "Client.max_out_queue",
-                      "Client.poll_min",
-                      "Client.poll_max",
-                      "Client.rss_max"}  # pyformat: disable
-
-  def _UpdateConfig(self, filtered_arg, config_obj):
-    for field, value in filtered_arg.items():
-      config_obj.Set(field, value)
-
-    try:
-      config_obj.Write()
-    except (IOError, OSError):
-      pass
-
-  def Run(self, arg):
-    """Does the actual work."""
-    try:
-      if self.grr_worker.client.FleetspeakEnabled():
-        raise ValueError("Not supported on Fleetspeak enabled clients.")
-    except AttributeError:
-      pass
-
-    smart_arg = {str(field): value for field, value in arg.items()}
-
-    disallowed_fields = [
-        field
-        for field in smart_arg
-        if field not in UpdateConfiguration.UPDATABLE_FIELDS
-    ]
-
-    if disallowed_fields:
-      raise ValueError(
-          "Received an update request for restricted field(s) %s."
-          % ",".join(disallowed_fields)
-      )
-
-    if platform.system() != "Windows":
-      # Check config validity before really applying the changes. This isn't
-      # implemented for our Windows clients though, whose configs are stored in
-      # the registry, as opposed to in the filesystem.
-
-      canary_config = config.CONFIG.CopyConfig()
-
-      # Prepare a temporary file we'll write changes to.
-      with tempfiles.CreateGRRTempFile(mode="w+") as temp_fd:
-        temp_filename = temp_fd.name
-
-      # Write canary_config changes to temp_filename.
-      canary_config.SetWriteBack(temp_filename)
-      self._UpdateConfig(smart_arg, canary_config)
-
-      try:
-        # Assert temp_filename is usable by loading it.
-        canary_config.SetWriteBack(temp_filename)
-      # Wide exception handling passed here from config_lib.py...
-      except Exception:  # pylint: disable=broad-except
-        logging.warning("Updated config file %s is not usable.", temp_filename)
-        raise
-
-      # If temp_filename works, remove it (if not, it's useful for debugging).
-      os.unlink(temp_filename)
-
-    # The changes seem to work, so push them to the real config.
-    self._UpdateConfig(smart_arg, config.CONFIG)
-
-
 def GetClientInformation() -> rdf_client.ClientInformation:
   return rdf_client.ClientInformation(
       client_name=config.CONFIG["Client.name"],
@@ -239,7 +163,6 @@ def GetClientInformation() -> rdf_client.ClientInformation:
       client_description=config.CONFIG["Client.description"],
       client_version=int(config.CONFIG["Source.version_numeric"]),
       build_time=config.CONFIG["Client.build_time"],
-      labels=config.CONFIG.Get("Client.labels", default=None),
       timeline_btime_support=timeline.BTIME_SUPPORT,
       sandbox_support=sandbox.IsSandboxInitialized(),
   )

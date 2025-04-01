@@ -28,7 +28,9 @@ class YaraProcessScanMatchConverterTest(export_test_lib.ExportTestBase):
         rdf_memory.YaraMatch(
             rule_name="foo",
             string_matches=[
-                rdf_memory.YaraStringMatch(string_id="bar", offset=5)
+                rdf_memory.YaraStringMatch(
+                    string_id="bar", offset=5, context=b"blahcontextblah"
+                )
             ],
         )
     ])
@@ -49,6 +51,7 @@ class YaraProcessScanMatchConverterTest(export_test_lib.ExportTestBase):
     self.assertEqual(converted[0].process_scan_time_us, 42)
     self.assertEqual(converted[0].string_id, "bar")
     self.assertEqual(converted[0].offset, 5)
+    self.assertEqual(converted[0].context, b"blahcontextblah")
 
   def testExportsOneYaraMatchForEmptyYaraMatch(self):
     sample = self.GenerateSample([])

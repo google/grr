@@ -11,8 +11,8 @@ import {MatSelectHarness} from '@angular/material/select/testing';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {Router, RouterModule} from '@angular/router';
+
 import {firstValueFrom} from 'rxjs';
 
 import {FlowListModule} from '../../components/flow_list/module';
@@ -36,7 +36,11 @@ import {ErrorSnackBar} from '../helpers/error_snackbar/error_snackbar';
 
 import {FlowFilter, FlowList} from './flow_list';
 
-@Component({template: `<router-outlet></router-outlet>`})
+@Component({
+  standalone: false,
+  template: `<router-outlet></router-outlet>`,
+  jit: true,
+})
 class TestHostComponent {}
 
 initTestEnvironment();
@@ -88,9 +92,7 @@ describe('FlowList Component', () => {
       imports: [
         NoopAnimationsModule,
         FlowListModule,
-        RouterTestingModule.withRoutes([
-          {path: 'flows/:flowId', component: FlowList},
-        ]),
+        RouterModule.forRoot([{path: 'flows/:flowId', component: FlowList}]),
       ],
       declarations: [TestHostComponent],
       providers: [

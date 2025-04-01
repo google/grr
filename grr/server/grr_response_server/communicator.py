@@ -20,7 +20,8 @@ GRR_CLIENT_UNKNOWN = metrics.Counter("grr_client_unknown")
 GRR_AUTHENTICATED_MESSAGES = metrics.Counter("grr_authenticated_messages")
 GRR_UNAUTHENTICATED_MESSAGES = metrics.Counter("grr_unauthenticated_messages")
 GRR_ENCRYPTED_CIPHER_CACHE = metrics.Counter(
-    "grr_encrypted_cipher_cache", fields=[("type", str)])
+    "grr_encrypted_cipher_cache", fields=[("type", str)]
+)
 
 
 Error = communicator.Error
@@ -39,6 +40,7 @@ class UnknownClientCertError(DecodingError):
 
 class Communicator(metaclass=abc.ABCMeta):
   """A class responsible for encoding and decoding comms."""
+
   server_name = None
   common_name = None
 
@@ -72,7 +74,8 @@ class Communicator(metaclass=abc.ABCMeta):
     # Only compress if it buys us something.
     if len(compressed_data) < len(uncompressed_data):
       packed_message_list.compression = (
-          rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION)
+          rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION
+      )
       packed_message_list.message_list = compressed_data
 
   def _ClearServerCipherCache(self):
@@ -88,17 +91,20 @@ class Communicator(metaclass=abc.ABCMeta):
         return self.server_cipher
 
     remote_public_key = self._GetRemotePublicKey(self.server_name)
-    self.server_cipher = communicator.Cipher(self.common_name, self.private_key,
-                                             remote_public_key)
+    self.server_cipher = communicator.Cipher(
+        self.common_name, self.private_key, remote_public_key
+    )
     self.server_cipher_age = rdfvalue.RDFDatetime.Now()
     return self.server_cipher
 
-  def EncodeMessages(self,
-                     message_list,
-                     result,
-                     destination=None,
-                     timestamp=None,
-                     api_version=3):
+  def EncodeMessages(
+      self,
+      message_list,
+      result,
+      destination=None,
+      timestamp=None,
+      api_version=3,
+  ):
     """Accepts a list of messages and encodes for transmission.
 
     This function signs and then encrypts the payload.
@@ -121,11 +127,13 @@ class Communicator(metaclass=abc.ABCMeta):
     """
     if api_version not in [3]:
       raise RuntimeError(
-          "Unsupported api version: %s, expected 3." % api_version)
+          "Unsupported api version: %s, expected 3." % api_version
+      )
 
     remote_public_key = self._GetRemotePublicKey(destination)
-    cipher = communicator.Cipher(self.common_name, self.private_key,
-                                 remote_public_key)
+    cipher = communicator.Cipher(
+        self.common_name, self.private_key, remote_public_key
+    )
 
     # Make a nonce for this transaction
     if timestamp is None:
@@ -151,10 +159,13 @@ class Communicator(metaclass=abc.ABCMeta):
     # Newer endpoints only look at this HMAC. It is recalculated for each packet
     # in the session. Note that encrypted_cipher and encrypted_cipher_metadata
     # do not change between all packets in this session.
-    result.full_hmac = cipher.HMAC(result.encrypted, result.encrypted_cipher,
-                                   result.encrypted_cipher_metadata,
-                                   result.packet_iv.SerializeToBytes(),
-                                   struct.pack("<I", api_version))
+    result.full_hmac = cipher.HMAC(
+        result.encrypted,
+        result.encrypted_cipher,
+        result.encrypted_cipher_metadata,
+        result.packet_iv.SerializeToBytes(),
+        struct.pack("<I", api_version),
+    )
 
     result.api_version = api_version
 
@@ -175,10 +186,15 @@ class Communicator(metaclass=abc.ABCMeta):
     """
     try:
       response_comms = rdf_flows.ClientCommunication.FromSerializedBytes(
-          encrypted_response)
+          encrypted_response
+      )
       return self.DecodeMessages(response_comms)
-    except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError,
-            AttributeError) as e:
+    except (
+        rdfvalue.DecodeError,
+        type_info.TypeValueError,
+        ValueError,
+        AttributeError,
+    ) as e:
       raise DecodingError("Error while decrypting messages: %s" % e)
 
   @classmethod
@@ -198,8 +214,9 @@ class Communicator(metaclass=abc.ABCMeta):
     if compression == rdf_flows.PackedMessageList.CompressionType.UNCOMPRESSED:
       data = packed_message_list.message_list
 
-    elif (compression ==
-          rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION):
+    elif (
+        compression == rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION
+    ):
       try:
         data = zlib.decompress(packed_message_list.message_list)
       except zlib.error as e:
@@ -250,8 +267,9 @@ class Communicator(metaclass=abc.ABCMeta):
         remote_public_key = self._GetRemotePublicKey(source)
         if cipher.VerifyCipherSignature(remote_public_key):
           # At this point we know this cipher is legit, we can cache it.
-          self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher,
-                                          cipher)
+          self.encrypted_cipher_cache.Put(
+              response_comms.encrypted_cipher, cipher
+          )
           cipher_verified = True
 
       except UnknownClientCertError:
@@ -262,14 +280,15 @@ class Communicator(metaclass=abc.ABCMeta):
     plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
     try:
       packed_message_list = rdf_flows.PackedMessageList.FromSerializedBytes(
-          plain)
+          plain
+      )
     except rdfvalue.DecodeError as e:
       raise DecryptionError(e)
 
     message_list = self.DecompressMessageList(packed_message_list)
 
     # Are these messages authenticated?
-    # pyformat: disable
+    # fmt: off
     auth_state = self.VerifyMessageSignature(
         response_comms,
         packed_message_list,
@@ -277,19 +296,28 @@ class Communicator(metaclass=abc.ABCMeta):
         cipher_verified,
         response_comms.api_version,
         remote_public_key)
-    # pyformat: enable
+    # fmt: on
 
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:
       msg.auth_state = auth_state
       msg.source = cipher.cipher_metadata.source
 
-    return (message_list.job, cipher.cipher_metadata.source,
-            packed_message_list.timestamp)
+    return (
+        message_list.job,
+        cipher.cipher_metadata.source,
+        packed_message_list.timestamp,
+    )
 
-  def VerifyMessageSignature(self, unused_response_comms, packed_message_list,
-                             cipher, cipher_verified, api_version,
-                             remote_public_key):
+  def VerifyMessageSignature(
+      self,
+      unused_response_comms,
+      packed_message_list,
+      cipher,
+      cipher_verified,
+      api_version,
+      remote_public_key,
+  ):
     """Verify the message list signature.
 
     This is the way the messages are verified in the client.
@@ -327,6 +355,7 @@ class Communicator(metaclass=abc.ABCMeta):
     if not cipher.cipher_metadata:
       # Fake the metadata
       cipher.cipher_metadata = rdf_flows.CipherMetadata(
-          source=packed_message_list.source)
+          source=packed_message_list.source
+      )
 
     return result

@@ -1,8 +1,9 @@
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
+import {provideRouter} from '@angular/router';
+
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
 
 import {
   newClientApproval,
@@ -27,7 +28,7 @@ import {RecentClientFlows} from './recent_client_flows';
 
 initTestEnvironment();
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class DummyComponent {}
 
 describe('RecentClientFlows Component', () => {
@@ -39,17 +40,12 @@ describe('RecentClientFlows Component', () => {
     recentClientFlowsLocalStore = mockRecentClientFlowsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule.withRoutes([
-          {path: 'clients', component: DummyComponent},
-        ]),
-        RecentClientFlowsModule,
-        NoopAnimationsModule,
-      ],
+      imports: [RecentClientFlowsModule, NoopAnimationsModule],
       declarations: [DummyComponent],
       providers: [
         ...STORE_PROVIDERS,
         {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+        provideRouter([{path: 'clients', component: DummyComponent}]),
       ],
       teardown: {destroyAfterEach: false},
     })

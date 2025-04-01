@@ -1,5 +1,4 @@
 goog.module('grrUi.sidebar.sidebar');
-goog.module.declareLegacyNamespace();
 
 const {ClientSummaryDirective} = goog.require('grrUi.sidebar.clientSummaryDirective');
 const {ClientWarningsDirective} = goog.require('grrUi.sidebar.clientWarningsDirective');

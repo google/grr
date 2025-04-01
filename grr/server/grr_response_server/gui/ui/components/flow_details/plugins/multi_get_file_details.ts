@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {Observable, combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -19,13 +19,16 @@ import {Plugin} from './plugin';
  * Component that allows selecting, configuring, and starting a Flow.
  */
 @Component({
+  standalone: false,
   selector: 'multi-get-file-flow-details',
   templateUrl: './multi_get_file_details.ng.html',
   styleUrls: ['./multi_get_file_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MultiGetFileDetails extends Plugin {
-  constructor(readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  readonly flowResultsLocalStore = inject(FlowResultsLocalStore);
+
+  constructor() {
     super();
     this.flowResultsLocalStore.query(
       this.flow$.pipe(map((flow) => ({flow, withType: 'StatEntry'}))),

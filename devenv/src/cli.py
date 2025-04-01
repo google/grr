@@ -2,8 +2,9 @@
 """CLI utils."""
 
 import argparse
+from collections.abc import Callable
 import sys
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 
 _ARG_PARSER = argparse.ArgumentParser(prog="devtool.sh")

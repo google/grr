@@ -10,6 +10,7 @@ export interface FlowArgsViewData {
 
 /** Form that displays flow arguments. */
 @Component({
+  standalone: false,
   selector: 'app-flow-args-view',
   templateUrl: './flow_args_view.ng.html',
   styleUrls: ['./flow_args_view.scss'],

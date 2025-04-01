@@ -4,13 +4,17 @@
 These test cover the artifact downloader functionality which downloads files
 referenced by artifacts.
 """
+
 from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import mig_client_fs
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import jobs_pb2
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import transfer
 from grr.test_lib import flow_test_lib
@@ -22,19 +26,20 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super().setUp()
 
-    self.collector_replies = []
+    self.collector_replies: list[jobs_pb2.StatEntry] = []
 
     def ArtifactCollectorStub(this):
       for r in self.collector_replies:
-        this.SendReply(r)
+        this.SendReplyProto(r)
 
-    start_stubber = mock.patch.object(collectors.ArtifactCollectorFlow, "Start",
-                                      ArtifactCollectorStub)
+    start_stubber = mock.patch.object(
+        collectors.ArtifactCollectorFlow, "Start", ArtifactCollectorStub
+    )
     start_stubber.start()
     self.addCleanup(start_stubber.stop)
 
     self.start_file_fetch_args = []
-    self.received_files = []
+    self.received_files: list[rdf_client_fs.StatEntry] = []
     self.failed_files = []
 
     def StartFileFetch(this, pathspec, request_data=None):
@@ -46,29 +51,36 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       for r in self.received_files:
         this.ReceiveFetchedFile(
-            r, None, request_data=request_data, is_duplicate=False)
+            r, None, request_data=request_data, is_duplicate=False
+        )
 
       for r in self.failed_files:
         this.FileFetchFailed(r, request_data=request_data)
 
-    sff_stubber = mock.patch.object(transfer.MultiGetFileLogic,
-                                    "StartFileFetch", StartFileFetch)
+    sff_stubber = mock.patch.object(
+        transfer.MultiGetFileLogic, "StartFileFetch", StartFileFetch
+    )
     sff_stubber.start()
     self.addCleanup(sff_stubber.stop)
 
-  def RunFlow(self,
-              client_id,
-              artifact_list=None,
-              use_raw_filesystem_access=False):
+  def RunFlow(
+      self,
+      client_id,
+      artifact_list=None,
+      use_raw_filesystem_access=False,
+  ):
     if artifact_list is None:
       artifact_list = ["WindowsRunKeys"]
 
-    session_id = flow_test_lib.TestFlowHelper(
-        collectors.ArtifactFilesDownloaderFlow.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        collectors.ArtifactFilesDownloaderFlow,
         client_id=client_id,
-        artifact_list=artifact_list,
-        use_raw_filesystem_access=use_raw_filesystem_access,
-        creator=self.test_username)
+        creator=self.test_username,
+        flow_args=collectors.ArtifactFilesDownloaderFlowArgs(
+            artifact_list=artifact_list,
+            use_raw_filesystem_access=use_raw_filesystem_access,
+        ),
+    )
 
     return flow_test_lib.GetFlowResults(client_id, session_id)
 
@@ -77,16 +89,22 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         path=path,
         path_options=options,
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+    )
 
-    return rdf_client_fs.StatEntry(
-        pathspec=pathspec,
-        registry_data=rdf_protodict.DataBlob().SetValue(value),
-        registry_type=rdf_client_fs.StatEntry.RegistryType.REG_SZ)
+    return mig_client_fs.ToProtoStatEntry(
+        rdf_client_fs.StatEntry(
+            pathspec=pathspec,
+            registry_data=rdf_protodict.DataBlob().SetValue(value),
+            registry_type=rdf_client_fs.StatEntry.RegistryType.REG_SZ,
+        )
+    )
 
   def MakeFileStatEntry(self, path):
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
-    return rdf_client_fs.StatEntry(pathspec=pathspec)
+    return mig_client_fs.ToProtoStatEntry(
+        rdf_client_fs.StatEntry(pathspec=pathspec)
+    )
 
   def testDoesNothingIfArtifactCollectorReturnsNothing(self):
     client_id = self.SetupClient(0)
@@ -96,8 +114,9 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testDoesNotIssueDownloadRequestsIfNoPathIsGuessed(self):
     client_id = self.SetupClient(0)
     self.collector_replies = [
-        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
-                                   u"blah-blah")
+        self.MakeRegistryStatEntry(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", "blah-blah"
+        )
     ]
     self.RunFlow(client_id)
     self.assertFalse(self.start_file_fetch_args)
@@ -110,28 +129,35 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     results = self.RunFlow(client_id)
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].found_pathspec,
-                     self.collector_replies[0].pathspec)
+    self.assertEqual(
+        results[0].found_pathspec,
+        mig_paths.ToRDFPathSpec(self.collector_replies[0].pathspec),
+    )
 
   def testSendsReplyEvenIfNoPathsAreGuessed(self):
     client_id = self.SetupClient(0)
     self.collector_replies = [
-        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
-                                   u"blah-blah")
+        self.MakeRegistryStatEntry(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", "blah-blah"
+        )
     ]
 
     results = self.RunFlow(client_id)
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].original_result, self.collector_replies[0])
+    self.assertEqual(
+        results[0].original_result,
+        mig_client_fs.ToRDFStatEntry(self.collector_replies[0]),
+    )
     self.assertFalse(results[0].HasField("found_pathspec"))
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesGuessedPathspecIfFileFetchFailsIntoReply(self):
     client_id = self.SetupClient(0)
     self.collector_replies = [
-        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
-                                   u"C:\\Windows\\bar.exe")
+        self.MakeRegistryStatEntry(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", "C:\\Windows\\bar.exe"
+        )
     ]
     self.failed_files = [
         rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS")
@@ -142,16 +168,22 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 1)
     self.assertEqual(
         results[0].found_pathspec,
-        rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS"))
+        rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS"),
+    )
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):
     client_id = self.SetupClient(0)
     self.collector_replies = [
-        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
-                                   u"C:\\Windows\\bar.exe")
+        self.MakeRegistryStatEntry(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", "C:\\Windows\\bar.exe"
+        )
     ]
-    self.received_files = [self.MakeFileStatEntry("C:\\Windows\\bar.exe")]
+    self.received_files = [
+        mig_client_fs.ToRDFStatEntry(
+            self.MakeFileStatEntry("C:\\Windows\\bar.exe")
+        )
+    ]
 
     results = self.RunFlow(client_id)
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test Protobuf behavior."""
 
-
 from absl.testing import absltest
 
 from grr_response_proto import tests_pb2

@@ -1,5 +1,4 @@
 goog.module('grrUi.routing.routing');
-goog.module.declareLegacyNamespace();
 
 const {NewUiButtonDirective} = goog.require('grrUi.routing.newUiButtonDirective');
 const {RoutingService} = goog.require('grrUi.routing.routingService');
@@ -52,12 +51,12 @@ exports.routingModule
 
           .state('userDashboard', {
             url: '',
-            template: '<grr-user-dashboard />',
+            template: '<grr-user-dashboard></grr-user-dashboard>',
             title: 'Home',
           })
           .state('search', {
             url: '/search?q&reason',
-            template: '<grr-clients-list />',
+            template: '<grr-clients-list></grr-clients-list>',
             title: function(params) {
               if (params['q']) {
                 return 'Search for "' + params['q'] + '"';
@@ -70,7 +69,7 @@ exports.routingModule
           })
           .state('apiDocs', {
             url: '/api-docs',
-            template: '<grr-api-docs />',
+            template: '<grr-api-docs></grr-api-docs>',
             title: 'API Docs'
           })
 
@@ -79,7 +78,7 @@ exports.routingModule
           //
           .state('clientApproval', {
             url: '/users/:username/approvals/client/:clientId/:approvalId',
-            template: '<grr-client-approval-view />',
+            template: '<grr-client-approval-view></grr-client-approval-view>',
             title: function(params) {
               return ['Approvals', params['username'], params['clientId']];
             },
@@ -91,7 +90,7 @@ exports.routingModule
           })
           .state('huntApproval', {
             url: '/users/:username/approvals/hunt/:huntId/:approvalId',
-            template: '<grr-hunt-approval-view />',
+            template: '<grr-hunt-approval-view></grr-hunt-approval-view>',
             title: function(params) {
               return ['Approvals', params['username'], params['huntId']];
             },
@@ -103,7 +102,7 @@ exports.routingModule
           })
           .state('cronJobApproval', {
             url: '/users/:username/approvals/cron-job/:cronJobId/:approvalId',
-            template: '<grr-cron-job-approval-view />',
+            template: '<grr-cron-job-approval-view></grr-cron-job-approval-view>',
             title: function(params) {
               return ['Approvals', params['username'], params['cronJobId']];
             }
@@ -115,7 +114,7 @@ exports.routingModule
 
           .state('crons', {
             url: '/crons/:cronJobId/:tab',
-            template: '<grr-cron-view />',
+            template: '<grr-cron-view></grr-cron-view>',
             params: {
               cronJobId: {value: null, squash: true},
               tab: {value: null, squash: true}
@@ -130,7 +129,7 @@ exports.routingModule
           })
           .state('hunts', {
             url: '/hunts/:huntId/:tab',
-            template: '<grr-hunts-view />',
+            template: '<grr-hunts-view></grr-hunts-view>',
             params: {
               huntId: {value: null, squash: true},
               tab: {value: null, squash: true}
@@ -154,7 +153,7 @@ exports.routingModule
           })
           .state('stats', {
             url: '/stats/:name/:client_label?start_time&duration',
-            template: '<grr-stats-view />',
+            template: '<grr-stats-view></grr-stats-view>',
             params: {
               name: {value: null, squash: true},
               client_label: {value: null, squash: true}
@@ -168,17 +167,17 @@ exports.routingModule
 
           .state('manageBinaries', {
             url: '/manage-binaries',
-            template: '<grr-config-binaries-view />',
+            template: '<grr-config-binaries-view></grr-config-binaries-view>',
             title: 'Binaries'
           })
           .state('config', {
             url: '/config',
-            template: '<grr-config-view />',
+            template: '<grr-config-view></grr-config-view>',
             title: 'Configuration'
           })
           .state('artifacts', {
             url: '/artifacts',
-            template: '<grr-artifact-manager-view />',
+            template: '<grr-artifact-manager-view></grr-artifact-manager-view>',
             title: 'Artifacts'
           })
 
@@ -199,7 +198,7 @@ exports.routingModule
           })
           .state('client.hostInfo', {
             url: '/host-info?reason',
-            template: '<grr-host-info />',
+            template: '<grr-host-info></grr-host-info>',
             title: 'Host Information',
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) +
@@ -207,7 +206,7 @@ exports.routingModule
           })
           .state('client.launchFlows', {
             url: '/launch-flow',
-            template: '<grr-start-flow-view />',
+            template: '<grr-start-flow-view></grr-start-flow-view>',
             title: 'Launch Flows',
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) +
@@ -215,7 +214,7 @@ exports.routingModule
           })
           .state('client.vfs', {
             url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
-            template: '<grr-file-view />',
+            template: '<grr-file-view></grr-file-view>',
             title: function(params) {
               return '/' + (params['path'] || '');
             },
@@ -230,7 +229,7 @@ exports.routingModule
           })
           .state('client.flows', {
             url: '/flows/:flowId/:tab',
-            template: '<grr-client-flows-view />',
+            template: '<grr-client-flows-view></grr-client-flows-view>',
             params: {
               flowId: {value: null, squash: true},
               tab: {value: null, squash: true}
@@ -249,7 +248,7 @@ exports.routingModule
           })
           .state('client.crashes', {
             url: '/crashes',
-            template: '<grr-client-crashes />',
+            template: '<grr-client-crashes></grr-client-crashes>',
             title: 'Crashes',
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) +
@@ -257,14 +256,14 @@ exports.routingModule
           })
           .state('client.debugRequests', {
             url: '/debug-requests',
-            template: '<grr-debug-requests-view />',
+            template: '<grr-debug-requests-view></grr-debug-requests-view>',
             title: 'Debug Requests',
             newUiUrl: (params) =>
                 '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.loadStats', {
             url: '/load-stats',
-            template: '<grr-client-load-view />',
+            template: '<grr-client-load-view></grr-client-load-view>',
             title: 'Load Stats',
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) +
@@ -275,14 +274,14 @@ exports.routingModule
       /**
        * This function builds page title based on the current state.
        */
-      var updateTitle = function() {
-        var breadcrumbs = [];
-        var curState = $state['$current'];
+      const updateTitle = function() {
+        let breadcrumbs = [];
+        let curState = $state['$current'];
         while (angular.isDefined(curState)) {
           if (angular.isString(curState.title)) {
             breadcrumbs.splice(0, 0, curState.title);
           } else if (angular.isFunction(curState.title)) {
-            var newItem = curState.title($state.params);
+            const newItem = curState.title($state.params);
             if (angular.isArray(newItem)) {
               breadcrumbs = newItem.concat(breadcrumbs);
             } else {
@@ -318,8 +317,8 @@ exports.routingModule
         evt.preventDefault();
 
         // Try to rewrite URL.
-        var url = $location.url().substring(1);
-        var rewrittenUrl = rewriteUrl(url);
+        const url = $location.url().substring(1);
+        const rewrittenUrl = rewriteUrl(url);
         if (rewrittenUrl) {
           $location.url(rewrittenUrl);
         }

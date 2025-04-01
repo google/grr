@@ -3,6 +3,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatPaginatorHarness} from '@angular/material/paginator/testing';
 import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {
   NetstatArgs,
@@ -32,7 +33,7 @@ describe('NetstatDetails component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [PluginsModule],
+      imports: [PluginsModule, NoopAnimationsModule],
       providers: [],
       teardown: {destroyAfterEach: false},
     })

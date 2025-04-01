@@ -6,7 +6,6 @@ from grr_response_core.lib import config_lib
 
 config_lib.DEFINE_list("Artifacts.artifact_dirs", [
     "%(grr_response_core/artifacts@grr-response-core|resource)",
-    "%(grr_response_core/artifacts/flow_templates@grr-response-core|resource)",
     "%(grr_response_core/artifacts/local@grr-response-core|resource)"
 ], "A list directories to load artifacts from.")
 

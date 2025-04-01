@@ -21,6 +21,7 @@ import {SnackBarErrorHandler} from '../helpers/error_snackbar/error_handler';
  * Component displaying the details for a single Client.
  */
 @Component({
+  standalone: false,
   selector: 'client-details',
   templateUrl: './client_details.ng.html',
   styleUrls: ['./client_details.scss'],
@@ -34,27 +35,17 @@ export class ClientDetails implements OnDestroy {
   readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
-  readonly clientVersions$ =
-    this.clientDetailsGlobalStore.selectedClientVersions$;
+  readonly clientVersions$;
 
-  currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
-  currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
-  currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
+  currentNumUsersShown;
+  currentNumInterfacesShown;
+  currentNumVolumesShown;
 
   @ViewChild('timeline') timeline!: MatSelectionList;
 
-  readonly canStartFlow$ = this.clientPageGlobalStore.hasAccess$;
+  readonly canStartFlow$;
 
-  readonly selectedIndex$ = combineLatest([
-    this.clientVersions$,
-    this.activatedRoute.paramMap,
-  ]).pipe(
-    take(1),
-    map(([versions, paramMap]) =>
-      this.findVersionOrShowError(versions, paramMap.get('sourceFlowId')),
-    ),
-    startWith(0),
-  );
+  readonly selectedIndex$;
 
   constructor(
     private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
@@ -62,6 +53,22 @@ export class ClientDetails implements OnDestroy {
     private readonly activatedRoute: ActivatedRoute,
     private readonly errorHandler: SnackBarErrorHandler,
   ) {
+    this.clientVersions$ =
+      this.clientDetailsGlobalStore.selectedClientVersions$;
+    this.currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
+    this.currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
+    this.currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
+    this.canStartFlow$ = this.clientPageGlobalStore.hasAccess$;
+    this.selectedIndex$ = combineLatest([
+      this.clientVersions$,
+      this.activatedRoute.paramMap,
+    ]).pipe(
+      take(1),
+      map(([versions, paramMap]) =>
+        this.findVersionOrShowError(versions, paramMap.get('sourceFlowId')),
+      ),
+      startWith(0),
+    );
     this.activatedRoute.paramMap
       .pipe(
         takeUntil(this.ngOnDestroy.triggered$),

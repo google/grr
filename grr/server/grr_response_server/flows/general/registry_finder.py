@@ -93,10 +93,12 @@ class LegacyRegistryFinder(flow_base.FlowBase):
   def Start(self):
     self.CallFlow(
         file_finder.LegacyFileFinder.__name__,
-        paths=self.args.keys_paths,
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        conditions=_ConditionsToFileFinderConditions(self.args.conditions),
-        action=rdf_file_finder.FileFinderAction.Stat(),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=self.args.keys_paths,
+            pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+            conditions=_ConditionsToFileFinderConditions(self.args.conditions),
+            action=rdf_file_finder.FileFinderAction.Stat(),
+        ),
         next_state=self.Done.__name__,
     )
 
@@ -126,10 +128,12 @@ class ClientRegistryFinder(flow_base.FlowBase):
   def Start(self):
     self.CallFlow(
         file_finder.ClientFileFinder.__name__,
-        paths=self.args.keys_paths,
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        conditions=_ConditionsToFileFinderConditions(self.args.conditions),
-        action=rdf_file_finder.FileFinderAction.Stat(),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=self.args.keys_paths,
+            pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+            conditions=_ConditionsToFileFinderConditions(self.args.conditions),
+            action=rdf_file_finder.FileFinderAction.Stat(),
+        ),
         next_state=self.Done.__name__,
     )
 

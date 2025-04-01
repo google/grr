@@ -78,7 +78,7 @@ exports.PeriodicRefreshDirective = function() {
     transclude: true,
     template: '<grr-force-refresh ' +
         'refresh-trigger="controller.refreshTrigger">' +
-        '<ng-transclude /></grr-force-refresh>',
+        '<ng-transclude></ng-transclude></grr-force-refresh>',
     controller: PeriodicRefreshController,
     controllerAs: 'controller'
   };

@@ -14,7 +14,7 @@ const routingService = goog.requireType('grrUi.routing.routingService');
  */
 const replaceInvalidChars_ = function(item) {
   return item.replace(/[^a-zA-Z0-9]/g, function(invChar) {
-    var hex = invChar.charCodeAt(0).toString(16);
+    const hex = invChar.charCodeAt(0).toString(16);
     return '_' + hex.toUpperCase();
   });
 };
@@ -28,8 +28,8 @@ const replaceInvalidChars_ = function(item) {
  * @export
  */
 exports.getFileId = function(filePath) {
-  var components = filePath.split('/');
-  var result = components.map(replaceInvalidChars_);
+  const components = filePath.split('/');
+  const result = components.map(replaceInvalidChars_);
   return '_' + result.join('-');
 };
 
@@ -42,16 +42,16 @@ exports.getFileId = function(filePath) {
  * @export
  */
 exports.getFilePathFromId = function(fileId) {
-  var replaceEncodedChars = function(item) {
+  const replaceEncodedChars = function(item) {
     return item.replace(/_[0-9A-F][0-9A-F]?/g, function(encChar) {
-      var charNum = parseInt(encChar.substr(1), 16);
+      const charNum = parseInt(encChar.substr(1), 16);
       return String.fromCharCode(charNum);
     });
   };
 
   // substr accounts for a leading '_'.
-  var components = fileId.substr(1).split('-');
-  var mapped = components.map(replaceEncodedChars);
+  const components = fileId.substr(1).split('-');
+  const mapped = components.map(replaceEncodedChars);
   return mapped.join('/');
 };
 
@@ -122,7 +122,7 @@ const FileViewController = class {
    * @private
    */
   onFileContextRoutingParamsChange_() {
-    var params = {
+    const params = {
       path: this.selectedFilePath,
     };
     params['version'] = this.fileVersion || undefined;

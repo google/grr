@@ -10,7 +10,7 @@ const {buildItems} = goog.require('grrUi.semantic.semanticProtoDirective');
  * Controller for SemanticDiffAnnotatedProtoDirective.
  * @unrestricted
  */
-var SemanticDiffAnnotatedProtoController = class {
+const SemanticDiffAnnotatedProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @param {!reflectionService.ReflectionService}

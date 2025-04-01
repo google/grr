@@ -1,5 +1,4 @@
 goog.module('grrUi.config.config');
-goog.module.declareLegacyNamespace();
 
 const {BinariesListDirective} = goog.require('grrUi.config.binariesListDirective');
 const {ConfigBinariesViewDirective} = goog.require('grrUi.config.configBinariesViewDirective');

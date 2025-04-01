@@ -1,0 +1,94 @@
+// Copyright 2024 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+
+syntax = "proto3";
+
+package rrg.action.execute_signed_command;
+
+import "google/protobuf/duration.proto";
+import "grr_response_proto/rrg/fs.proto";
+
+message Command {
+  // Path to the executable file to execute.
+  rrg.fs.Path path = 1;
+
+  // Arguments to pass to the command.
+  repeated string args = 2;
+
+  // Environment in which to invoke the command.
+  //
+  // Note that environment variables are not inherited from the RRG process
+  // and are empty if not specified.
+  map<string, string> env = 3;
+
+  oneof stdin {
+    // Fixed standard input to pass to the executed command.
+    bytes signed_stdin = 4;
+
+    // Whether the command should allow execution with arbitrary
+    // standard input without it being pre-signed.
+    bool unsigned_stdin_allowed = 5;
+  }
+}
+
+message Args {
+  // Serialized `Command` message to execute.
+  bytes command = 1;
+
+  // Standard input to pass to the executed command.
+  //
+  // For this option to work, the command that has been signed has to allow
+  // arbitrary standard input by having the `unsigned_stdin_allowed` flag set.
+  bytes unsigned_stdin = 2;
+
+  // An [Ed25519][1] signature of the command.
+  //
+  // [1]: https://en.wikipedia.org/wiki/EdDSA#Ed25519
+  bytes command_ed25519_signature = 3;
+
+  // Timeout after which command execution is aborted.
+  //
+  // If not specified, the command execution is aborted immediately.
+  google.protobuf.Duration timeout = 4;
+}
+
+message Result {
+  // [Exit code][1] of the command subprocess.
+  //
+  // This is available only if the command execution was not aborted by
+  // a signal which may happen on Unix systems.
+  //
+  // [1]: https://en.wikipedia.org/wiki/Exit_status
+  int32 exit_code = 1;
+
+  // [Exit signal][1] of the command subprocess.
+  //
+  // This is available only if the process was terminated by a signal and
+  // should happen only on Unix systems.
+  //
+  // [1]: https://en.wikipedia.org/wiki/Signal_(IPC)#POSIX_signals
+  int32 exit_signal = 2;
+
+  // Standard output of the command execution.
+  //
+  // Because in general standard output can be arbitrarily long, this will
+  // be truncated to fit within the message limit. `stdout_truncated` field
+  // will be set if it is the case.
+  bytes stdout = 3;
+
+  // Standard error of the command execution.
+  //
+  // Because in general standard error can be arbitrarily long, this will
+  // be truncated to fit within the message limit. `stderr_truncated` field
+  // will be set if it is the case.
+  bytes stderr = 4;
+
+  // Set if value of `stdout` had to be truncated.
+  bool stdout_truncated = 5;
+
+  // Set if value of `stderr` had to be truncated.
+  bool stderr_truncated = 6;
+}
+

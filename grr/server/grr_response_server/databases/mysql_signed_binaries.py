@@ -9,12 +9,15 @@ import MySQLdb.cursors
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 
 
 class MySQLDBSignedBinariesMixin(object):
   """Mixin providing a MySQL implementation of signed binaries DB logic."""
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def WriteSignedBinaryReferences(
       self,
@@ -41,6 +44,8 @@ class MySQLDBSignedBinariesMixin(object):
     )
     cursor.execute(query, args)
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadSignedBinaryReferences(
       self,
@@ -74,6 +79,8 @@ class MySQLDBSignedBinariesMixin(object):
     references.ParseFromString(raw_references)
     return references, datetime
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
   def ReadIDsForAllSignedBinaries(
       self,
@@ -90,6 +97,8 @@ class MySQLDBSignedBinariesMixin(object):
         for binary_type, binary_path in cursor.fetchall()
     ]
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def DeleteSignedBinaryReferences(
       self,

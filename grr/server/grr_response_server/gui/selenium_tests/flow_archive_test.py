@@ -30,8 +30,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
+    flow_test_lib.StartAndRunFlow(
+        gui_test_lib.FlowWithOneNetworkConnectionResult,
         self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,
@@ -49,8 +49,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     )
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    flow_test_lib.TestFlowHelper(
-        gui_test_lib.RecursiveTestFlow.__name__,
+    flow_test_lib.StartAndRunFlow(
+        gui_test_lib.RecursiveTestFlow,
         self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,
@@ -72,11 +72,13 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         self.action_mock,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 
@@ -95,11 +97,13 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         self.action_mock,
         client_id=self.client_id,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 
@@ -117,12 +121,14 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    flow_id = flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         self.action_mock,
         client_id=self.client_id,
         check_flow_errors=False,
-        pathspec=pathspec,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
         creator=self.test_username,
     )
 
@@ -189,12 +195,14 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
-    session_id = flow_test_lib.TestFlowHelper(
-        flows_transfer.GetFile.__name__,
-        pathspec=pathspec,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flows_transfer.GetFile,
         client_mock=self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,
+        flow_args=flows_transfer.GetFileArgs(
+            pathspec=pathspec,
+        ),
     )
 
     self.Open("/legacy#/clients/%s/flows/%s" % (self.client_id, session_id))
@@ -220,8 +228,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(MockMethodIsCalled)
 
   def testDoesNotShowDownloadAsPanelIfCollectionIsEmpty(self):
-    session_id = flow_test_lib.TestFlowHelper(
-        gui_test_lib.RecursiveTestFlow.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        gui_test_lib.RecursiveTestFlow,
         client_mock=self.action_mock,
         client_id=self.client_id,
         creator=self.test_username,

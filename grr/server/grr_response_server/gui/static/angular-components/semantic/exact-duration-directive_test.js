@@ -26,7 +26,7 @@ describe('exact duration directive', () => {
   const renderExactDuration = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-exact-duration value="value" />';
+    const template = '<grr-exact-duration value="value"></grr-exact-duration>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

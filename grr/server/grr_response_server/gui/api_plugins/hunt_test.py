@@ -81,12 +81,6 @@ class ApiCreateHuntHandlerTest(
     super().setUp()
     self.handler = hunt_plugin.ApiCreateHuntHandler()
 
-  def testQueueHuntRunnerArgumentIsNotRespected(self):
-    args = hunt_pb2.ApiCreateHuntArgs(flow_name=file_finder.FileFinder.__name__)
-    args.hunt_runner_args.queue = "BLAH"
-    result = self.handler.Handle(args, context=self.context)
-    self.assertFalse(result.hunt_runner_args.HasField("queue"))
-
   def testNetworkBytesLimitHuntRunnerArgumentIsRespected(self):
     args = hunt_pb2.ApiCreateHuntArgs(
         flow_name=file_finder.ClientFileFinder.__name__
@@ -115,7 +109,7 @@ class ApiCreateHuntHandlerTest(
   def testPresubmit_HasPresbmitRule(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="NOT_USED",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
@@ -149,7 +143,7 @@ class ApiCreateHuntHandlerTest(
   def testPresubmit_HasPresbmitRuleWithExtraLabels(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="NOT_USED",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
@@ -176,7 +170,7 @@ class ApiCreateHuntHandlerTest(
   def testPresubmit_NoLabelRule(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="ENABLE",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
@@ -193,7 +187,7 @@ class ApiCreateHuntHandlerTest(
   def testPresubmit_WrongLabelRule(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="NOT_THERE",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
@@ -232,7 +226,7 @@ class ApiCreateHuntHandlerTest(
   def testPresubmit_ForceSubmit(self):
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="FORCE",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):
@@ -1196,64 +1190,6 @@ class ApiGetExportedHuntResultsHandlerTest(
     )
 
 
-class ApiCreatePerClientFileCollectionHuntTest(absltest.TestCase):
-
-  def setUp(self):
-    super().setUp()
-
-    self.handler = hunt_plugin.ApiCreatePerClientFileCollectionHuntHandler()
-    self.context = api_call_context.ApiCallContext(username="test")
-    self.client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-
-  def testCreatesHuntFor2FilesSingleClient(self):
-    args = hunt_plugin.ApiCreatePerClientFileCollectionHuntArgs(
-        description="Per-client file collection",
-        per_client_args=[
-            hunt_plugin.PerClientFileCollectionArgs(
-                client_id=self.client_id,
-                paths=["/etc/hosts", "/foo/bar"],
-            ),
-        ],
-    )
-    result = self.handler.Handle(args, self.context)
-    self.assertTrue(result.hunt_id)
-
-  def testFailsWhenMoreThan1000FilesScheduledForCollection(self):
-    args = hunt_plugin.ApiCreatePerClientFileCollectionHuntArgs(
-        description="Per-client file collection",
-        per_client_args=[
-            hunt_plugin.PerClientFileCollectionArgs(
-                client_id=self.client_id,
-                paths=[f"/etc/hosts/{i}" for i in range(1001)],
-            ),
-        ],
-    )
-
-    with self.assertRaises(ValueError):
-      self.handler.Handle(args, self.context)
-
-  def testFailsWhenMoreThan250ClientsScheduledForCollection(self):
-    args = hunt_plugin.ApiCreatePerClientFileCollectionHuntArgs(
-        description="Per-client file collection", per_client_args=[]
-    )
-
-    # Ensure that we get 251 unique client ids.
-    client_ids = set()
-    while len(client_ids) < 251:
-      client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-      client_ids.add(client_id)
-
-      args.per_client_args.append(
-          hunt_plugin.PerClientFileCollectionArgs(
-              client_id=client_id,
-              paths=["/etc/hosts"],
-          )
-      )
-
-    with self.assertRaises(ValueError):
-      self.handler.Handle(args, self.context)
-
-
 class ListHuntErrorsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
@@ -1436,9 +1372,9 @@ class TestHistogram(absltest.TestCase):
     min_ts, max_ts = 0, 100
     num_buckets = 5
 
-    histogram = hunt_plugin.Histogram(min_ts, max_ts, num_buckets)
-    for timestamp in timestamps:
-      histogram.Insert(timestamp)
+    histogram = hunt_plugin.Histogram(
+        min_ts, max_ts, num_buckets, values=timestamps
+    )
 
     expected_bucket_size = 20
     self.assertLen(histogram.buckets, 5)
@@ -1452,11 +1388,53 @@ class TestHistogram(absltest.TestCase):
     )
     self.assertEqual(last_bucket.count, 20)
 
-  def testHistogramRaisesWhenInsertingOutofRangeTimestamp(self):
-    min_ts, max_ts = 0, 100
-    histogram = hunt_plugin.Histogram(min_ts, max_ts, 5)
+  def testHistogramRaisesWhenInsertingOutOfRangeTimestamp(self):
     with self.assertRaises(ValueError):
-      histogram.Insert(min_ts - 1)
+      hunt_plugin.Histogram(
+          min_timestamp=0, max_timestamp=100, num_buckets=5, values=[-1]
+      )
+
+  def testCumulativeHistogram(self):
+    histogram = hunt_plugin.Histogram(
+        min_timestamp=0,
+        max_timestamp=9,
+        num_buckets=3,
+        values=[0, 1, 2] + [3, 4] + [6],  # Bucket 0 + Bucket 1 + Bucket 2
+    )
+    cumulative_histogram = histogram.GetCumulativeHistogram()
+    expected_bucket_boundaries = [0, 3, 6]
+    expected_bucket_counts = [3, 5, 6]
+
+    self.assertLen(cumulative_histogram.buckets, 3)
+    self.assertEqual(
+        [b.lower_boundary_ts for b in cumulative_histogram.buckets],
+        expected_bucket_boundaries,
+    )
+    self.assertEqual(
+        [b.count for b in cumulative_histogram.buckets],
+        expected_bucket_counts,
+    )
+
+  def testCumulativeHistogramContainsIncludesEmptyHistogramBuckets(self):
+    histogram = hunt_plugin.Histogram(
+        min_timestamp=0,
+        max_timestamp=3,
+        num_buckets=3,
+        values=[1, 1],  # Bucket 1
+        # Buckets 0 and 2 are empty
+    )
+    cumulative_histogram = histogram.GetCumulativeHistogram()
+    expected_bucket_boundaries = [0, 1, 2]
+    expected_bucket_counts = [0, 2, 2]
+
+    self.assertEqual(
+        [b.lower_boundary_ts for b in cumulative_histogram.buckets],
+        expected_bucket_boundaries,
+    )
+    self.assertEqual(
+        [b.count for b in cumulative_histogram.buckets],
+        expected_bucket_counts,
+    )
 
 
 def main(argv):

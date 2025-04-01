@@ -52,6 +52,7 @@ export declare interface ApprovalParams {
  * Component to request approval for the current client.
  */
 @Component({
+  standalone: false,
   selector: 'approval-card',
   templateUrl: './approval_card.ng.html',
   styleUrls: ['./approval_card.scss'],
@@ -107,64 +108,29 @@ export class ApprovalCard implements OnDestroy, AfterViewInit {
 
   readonly formRequestedApprovers = new Set<string>();
   @ViewChild('approversInput') approversInputEl!: ElementRef<HTMLInputElement>;
-  readonly approverSuggestions$ =
-    this.approvalCardLocalStore.approverSuggestions$.pipe(
-      map((approverSuggestions) =>
-        (approverSuggestions ?? []).filter(
-          (username) => !this.formRequestedApprovers.has(username),
-        ),
-      ),
-    );
+  readonly approverSuggestions$;
 
   // `approvalParams` emits whenever `submitRequest` is called.
-  @Output() readonly approvalParams = new EventEmitter<ApprovalParams>();
-  private readonly submit$ = new Subject<void>();
+  @Output() readonly approvalParams;
+  private readonly submit$;
   submitRequest(event?: Event) {
     event?.preventDefault();
     this.submit$.next();
   }
 
-  readonly ccEmail$ = this.configGlobalStore.approvalConfig$.pipe(
-    map((config) => config.optionalCcEmail),
-  );
+  readonly ccEmail$;
 
-  readonly defaultAccessDurationDays$ = this.configGlobalStore.uiConfig$.pipe(
-    map(
-      (config) => Number(config.defaultAccessDurationSeconds) / (24 * 60 * 60),
-    ),
-  );
+  readonly defaultAccessDurationDays$;
 
-  readonly maxAccessDurationDays$ = this.configGlobalStore.uiConfig$.pipe(
-    map((config) => {
-      this.controls.duration.setValidators([
-        DurationFormControl.defaultTimeValidator(
-          false,
-          Number(config.maxAccessDurationSeconds),
-        ),
-      ]);
-      return Number(config.maxAccessDurationSeconds) / (24 * 60 * 60);
-    }),
-  );
+  readonly maxAccessDurationDays$;
 
   durationHint$?: Observable<string | undefined>;
 
-  readonly requestInProgress$ = this.requestApprovalStatus$.pipe(
-    map((status) => status?.status === RequestStatusType.SENT),
-  );
+  readonly requestInProgress$;
 
-  readonly submitDisabled$ = this.requestApprovalStatus$.pipe(
-    map(
-      (status) =>
-        status?.status === RequestStatusType.SENT ||
-        status?.status === RequestStatusType.SUCCESS,
-    ),
-  );
+  readonly submitDisabled$;
 
-  readonly error$ = this.requestApprovalStatus$.pipe(
-    map((status) =>
-      status?.status === RequestStatusType.ERROR ? status.error : null,
-    ),
-  );
+  readonly error$;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -173,6 +139,51 @@ export class ApprovalCard implements OnDestroy, AfterViewInit {
     private readonly router: Router,
     private readonly location: Location,
   ) {
+    this.approverSuggestions$ =
+      this.approvalCardLocalStore.approverSuggestions$.pipe(
+        map((approverSuggestions) =>
+          (approverSuggestions ?? []).filter(
+            (username) => !this.formRequestedApprovers.has(username),
+          ),
+        ),
+      );
+    this.approvalParams = new EventEmitter<ApprovalParams>();
+    this.submit$ = new Subject<void>();
+    this.ccEmail$ = this.configGlobalStore.approvalConfig$.pipe(
+      map((config) => config.optionalCcEmail),
+    );
+    this.defaultAccessDurationDays$ = this.configGlobalStore.uiConfig$.pipe(
+      map(
+        (config) =>
+          Number(config.defaultAccessDurationSeconds) / (24 * 60 * 60),
+      ),
+    );
+    this.maxAccessDurationDays$ = this.configGlobalStore.uiConfig$.pipe(
+      map((config) => {
+        this.controls.duration.setValidators([
+          DurationFormControl.defaultTimeValidator(
+            false,
+            Number(config.maxAccessDurationSeconds),
+          ),
+        ]);
+        return Number(config.maxAccessDurationSeconds) / (24 * 60 * 60);
+      }),
+    );
+    this.requestInProgress$ = this.requestApprovalStatus$.pipe(
+      map((status) => status?.status === RequestStatusType.SENT),
+    );
+    this.submitDisabled$ = this.requestApprovalStatus$.pipe(
+      map(
+        (status) =>
+          status?.status === RequestStatusType.SENT ||
+          status?.status === RequestStatusType.SUCCESS,
+      ),
+    );
+    this.error$ = this.requestApprovalStatus$.pipe(
+      map((status) =>
+        status?.status === RequestStatusType.ERROR ? status.error : null,
+      ),
+    );
     // Trigger the suggestion of previously requested approvers.
     this.approvalCardLocalStore.suggestApprovers('');
 

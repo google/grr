@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
 
-from typing import Dict, List
-
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 
 
-def GetAvailableReportPlugins() -> List[report_plugin_base.ReportPluginBase]:
+def GetAvailableReportPlugins() -> list[report_plugin_base.ReportPluginBase]:
   """Lists the registered report plugins."""
   return sorted(
       REGISTRY.GetRegisteredPlugins().values(), key=lambda cls: cls.__name__
@@ -38,11 +36,11 @@ class _Registry(object):
   """
 
   def __init__(self):
-    self.plugins: Dict[str, report_plugin_base.ReportPluginBase] = {}
+    self.plugins: dict[str, report_plugin_base.ReportPluginBase] = {}
 
   def GetRegisteredPlugins(
       self,
-  ) -> Dict[str, report_plugin_base.ReportPluginBase]:
+  ) -> dict[str, report_plugin_base.ReportPluginBase]:
     return self.plugins
 
   def RegisterPlugin(

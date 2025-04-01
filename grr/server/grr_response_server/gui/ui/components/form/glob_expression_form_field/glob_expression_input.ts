@@ -36,6 +36,7 @@ function getSelectedGlobExpressionPart(text: string, cursor: number) {
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
+  standalone: false,
   selector: 'app-glob-expression-input',
   templateUrl: './glob_expression_input.ng.html',
   styleUrls: ['./glob_expression_input.scss'],

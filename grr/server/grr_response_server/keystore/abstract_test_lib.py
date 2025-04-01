@@ -2,7 +2,7 @@
 """Common utilities for testing keystore implementations."""
 
 import abc
-from typing import Sequence
+from collections.abc import Sequence
 
 from grr_response_server.keystore import abstract
 

@@ -4,14 +4,14 @@
 import os
 
 from grr_response_server.databases import db
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class DatabaseTestYaraMixin(object):
   """A mixin class for testing YARA methods of database implementations."""
 
   def testWriteYaraSignatureReferenceIncorrectUsername(self):
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     with self.assertRaises(db.UnknownGRRUserError) as context:
       self.db.WriteYaraSignatureReference(blob_id=blob_id, username="quux")
@@ -21,7 +21,7 @@ class DatabaseTestYaraMixin(object):
   def testWriteYaraSignatureReferenceDuplicated(self):
     self.db.WriteGRRUser("foo")
 
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     # Writing duplicated signatures is possible, it should not raise.
     self.db.WriteYaraSignatureReference(blob_id=blob_id, username="foo")
@@ -30,12 +30,12 @@ class DatabaseTestYaraMixin(object):
   def testVerifyYaraSignatureReferenceSimple(self):
     self.db.WriteGRRUser("foo")
 
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
     self.db.WriteYaraSignatureReference(blob_id=blob_id, username="foo")
 
     self.assertTrue(self.db.VerifyYaraSignatureReference(blob_id))
 
   def testVerifyYaraSignatureReferenceIncorrect(self):
-    blob_id = blobs.BlobID(os.urandom(32))
+    blob_id = models_blobs.BlobID(os.urandom(32))
 
     self.assertFalse(self.db.VerifyYaraSignatureReference(blob_id))

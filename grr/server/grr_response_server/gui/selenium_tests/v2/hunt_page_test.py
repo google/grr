@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Iterable
 import traceback
-from typing import Iterable
 
 from absl import app
 
@@ -103,55 +103,72 @@ class HuntPageTest(
     )
 
     # Start hunt and add results and errors.
-    client_ids = self.SetupClients(2)
+    # 0: Crashed client.
+    # 1: Completed client with error.
+    # 2: Completed client with result.
+    # 3: Completed client without result.
+    # 4: Unfinished client.
+    client_ids = self.SetupClients(5)
     hunt.StartHunt(hunt_id)
     self.RunHuntWithClientCrashes([client_ids[0]])
+    self.RunHunt(client_ids[1:])
     error_msg = "Client Error"
+    error_client_id = client_ids[1]
     self.AddErrorToHunt(
-        hunt_id, client_ids[0], error_msg, traceback.format_exc()
+        hunt_id, error_client_id, error_msg, traceback.format_exc()
     )
-    self.RunHunt([client_ids[1]])
+    result_client_id = client_ids[2]
     self.AddResultsToHunt(
-        hunt_id, client_ids[1], [rdf_file_finder.FileFinderResult()]
+        hunt_id, result_client_id, [rdf_file_finder.FileFinderResult()]
     )
+    self.FinishHuntFlow(hunt_id, result_client_id)
+    self.FinishHuntFlow(hunt_id, client_ids[3])
 
     # Make sure new results are reflected on the progress and results.
     self.WaitUntil(
         self.IsElementPresent,
         (
-            "css=app-hunt-progress .summary:nth-child(1):contains('Complete50"
-            " %1 clients')"
+            "css=app-hunt-progress .summary:nth-child(1):contains('Complete80"
+            " %4 clients')"
         ),
     )
     self.WaitUntil(
         self.IsElementPresent,
         (
             "css=app-hunt-progress .summary:nth-child(2):contains('In"
-            " progress50 %1 clients')"
+            " progress20 %1 clients')"
         ),
     )
     self.WaitUntil(
         self.IsElementPresent,
         (
             "css=app-hunt-progress .summary:nth-child(3):contains('Without"
-            " results0 %0 clients')"
+            " results60 %3 clients')"
         ),
     )
     self.WaitUntil(
         self.IsElementPresent,
         (
             "css=app-hunt-progress .summary:nth-child(4):contains('With"
-            " results50 %1 clients')"
+            " results20 %1 clients')"
         ),
     )
     self.WaitUntil(
         self.IsElementPresent,
         (
-            "css=app-hunt-progress .summary:nth-child(5):contains('Errors and"
-            " Crashes50 %1 clients')"
+            "css=app-hunt-progress .summary:nth-child(5):contains('Errors"
+            "20 %1 clients')"
+        ),
+    )
+    self.WaitUntil(
+        self.IsElementPresent,
+        (
+            "css=app-hunt-progress .summary:nth-child(6):contains('Crashes"
+            "20 %1 clients')"
         ),
     )
 
+    # Check the client with error.
     self.WaitUntil(
         self.IsElementPresent,
         "css=app-hunt-results"
@@ -159,12 +176,12 @@ class HuntPageTest(
     )
     self.WaitUntil(
         self.IsElementPresent,
-        f"css=app-hunt-results mat-row:contains('{client_ids[0]}')",
+        f"css=app-hunt-results mat-row:contains('{error_client_id}')",
     )
     self.Click("css=app-hunt-results mat-row button:contains('View details')")
     self.WaitUntil(
         self.IsElementPresent,
-        f"css=hunt-result-details h3:contains('Client: {client_ids[0]}')",
+        f"css=hunt-result-details h3:contains('Client: {error_client_id}')",
     )
     self.WaitUntil(
         self.IsElementPresent,
@@ -179,6 +196,7 @@ class HuntPageTest(
     self.Open(f"/v2/hunts/{hunt_id}")
     self.WaitUntilEqual(f"/v2/hunts/{hunt_id}", self.GetCurrentUrlPath)
 
+    # Check the client with result.
     self.WaitUntil(
         self.IsElementPresent,
         "css=app-hunt-results [role=tab]:contains('File Finder')",
@@ -187,13 +205,13 @@ class HuntPageTest(
 
     self.WaitUntil(
         self.IsElementPresent,
-        f"css=app-hunt-results mat-row:contains('{client_ids[1]}')",
+        f"css=app-hunt-results mat-row:contains('{result_client_id}')",
     )
     self.Click("css=app-hunt-results mat-row button:contains('View details')")
 
     self.WaitUntil(
         self.IsElementPresent,
-        f"css=hunt-result-details h3:contains('Client: {client_ids[1]}')",
+        f"css=hunt-result-details h3:contains('Client: {result_client_id}')",
     )
     self.WaitUntil(
         self.IsElementPresent,

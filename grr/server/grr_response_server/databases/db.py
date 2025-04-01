@@ -34,18 +34,26 @@ from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
+from grr_response_proto import signed_commands_pb2
 from grr_response_proto import user_pb2
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 
 
 CLIENT_STATS_RETENTION = rdfvalue.Duration.From(31, rdfvalue.DAYS)
 
 # Use 254 as max length for usernames to allow email addresses.
 MAX_USERNAME_LENGTH = 254
+
+# Use 128 as max length for command IDs.
+MAX_SIGNED_COMMAND_ID_LENGTH = 128
+
+ED25519_SIGNATURE_LENGTH = 64
 
 MAX_LABEL_LENGTH = 100
 
@@ -425,6 +433,18 @@ class FlowExistsError(Error):
     self.flow_id = flow_id
 
 
+class AtLeastOneDuplicatedSignedCommandError(Error):
+  """Raised when an insertion fails because the command already exists."""
+
+  def __init__(self, commands):
+    printable_commands = ", ".join(
+        [f"({c.id}, {c.operating_system})" for c in commands]
+    )
+    super().__init__(
+        f"At least one duplicate signed command in [{printable_commands}]."
+    )
+
+
 class StringTooLongError(ValueError):
   """Validation error raised if a string is too long."""
 
@@ -674,8 +694,6 @@ class Database(metaclass=abc.ABCMeta):
       client_ids: Collection[str],
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
@@ -691,10 +709,6 @@ class Database(metaclass=abc.ABCMeta):
         contacted the server.
       last_ping: An rdfvalue.Datetime, indicating the last time the client
         contacted the server.
-      last_clock: An rdfvalue.Datetime, indicating the last client clock time
-        reported to the server.
-      last_ip: A network address, indicating the last observed IP address for
-        the client.
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
@@ -705,8 +719,6 @@ class Database(metaclass=abc.ABCMeta):
       client_id: str,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
@@ -721,10 +733,6 @@ class Database(metaclass=abc.ABCMeta):
         contacted the server.
       last_ping: An rdfvalue.Datetime, indicating the last time the client
         contacted the server.
-      last_clock: An rdfvalue.Datetime, indicating the last client clock time
-        reported to the server.
-      last_ip: A network address, indicating the last observed IP address for
-        the client.
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
@@ -733,8 +741,6 @@ class Database(metaclass=abc.ABCMeta):
         client_ids=[client_id],
         first_seen=first_seen,
         last_ping=last_ping,
-        last_clock=last_clock,
-        last_ip=last_ip,
         last_foreman=last_foreman,
         fleetspeak_validation_info=fleetspeak_validation_info,
     )
@@ -2222,11 +2228,10 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadFlowRequestsReadyForProcessing(
+  def ReadFlowRequests(
       self,
       client_id: str,
       flow_id: str,
-      next_needed_request: Optional[int] = None,
   ) -> Dict[
       int,
       Tuple[
@@ -2240,25 +2245,11 @@ class Database(metaclass=abc.ABCMeta):
           ],
       ],
   ]:
-    """Reads all requests for a flow that can be processed by the worker.
-
-    There are 2 kinds of requests that are going to be returned by this call:
-    1. Completed requests. These are requests that received all the
-       responses, including the status message, and their
-       "needs_processing" attribute is set to True.
-    2. Incremental requests. These are requests that have the callback state
-       specified (via the "callback_state" attribute) and are not yet
-       completed.
-
-    Completed requests are going to be returned with all the corresponding
-    responses. Incremental requests are going to be returned with new
-    responses only (that is, with responses having ids greater or equal to
-    request's 'next_response_id' attribute).
+    """Reads all requests for a flow.
 
     Args:
       client_id: The client id on which this flow is running.
       flow_id: The id of the flow to read requests for.
-      next_needed_request: The next request id that the flow needs to process.
 
     Returns:
       A dict mapping flow request id to tuples (request,
@@ -2532,6 +2523,51 @@ class Database(metaclass=abc.ABCMeta):
 
     Returns:
       Number of flow log entries of a given flow.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      request_id: int,
+      logs: Mapping[int, rrg_pb2.Log],
+  ) -> None:
+    """Writes new log entries for a particular action request.
+
+    Args:
+      client_id: An identifier of the client on which the action that logged the
+        message ran on.
+      flow_id: An identifier of the flow that issued the action that logged the
+        message.
+      request_id: An identifier of the flow action request that spawned the
+        action that logged the message.
+      logs: A mapping from response identifiers to log entries.
+
+    Raises:
+      UnknownFlowError: If the specified flow is not known.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+  ) -> Sequence[rrg_pb2.Log]:
+    """Reads log entries logged by actions issued by a particular flow.
+
+    Args:
+      client_id: An identifier of the client on which the action that logged the
+        message ran on.
+      flow_id: An identifier of the flow that issued the action that logged the
+        message.
+      offset: Number of log entries to skip (in response order).
+      count: Number of log entries to read.
+
+    Returns:
+      A sequence of log messages (sorted in order in which they were logged).
     """
 
   @abc.abstractmethod
@@ -3173,7 +3209,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteYaraSignatureReference(
       self,
-      blob_id: blobs.BlobID,
+      blob_id: models_blobs.BlobID,
       username: str,
   ) -> None:
     """Marks the specified blob id as a YARA signature.
@@ -3186,7 +3222,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def VerifyYaraSignatureReference(
       self,
-      blob_id: blobs.BlobID,
+      blob_id: models_blobs.BlobID,
   ) -> bool:
     """Verifies whether the specified blob is a YARA signature.
 
@@ -3241,7 +3277,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[blobs.BlobID, str],
+      key_names: Dict[models_blobs.BlobID, str],
   ) -> None:
     """Associates the specified blobs with the given encryption keys.
 
@@ -3252,8 +3288,8 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadBlobEncryptionKeys(
       self,
-      blob_ids: Collection[blobs.BlobID],
-  ) -> Dict[blobs.BlobID, Optional[str]]:
+      blob_ids: Collection[models_blobs.BlobID],
+  ) -> Dict[models_blobs.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs.
 
     Args:
@@ -3262,6 +3298,69 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       An mapping from blob to a key name associated with it (if available).
     """
+
+  def WriteSignedCommand(
+      self,
+      signed_command: signed_commands_pb2.SignedCommand,
+  ) -> None:
+    """Writes a signed command to the database.
+
+    Args:
+      signed_command: A signed command to write.
+
+    Raises:
+      AtLeastOneDuplicatedSignedCommandError: The command already exists.
+    """
+    self.WriteSignedCommands([signed_command])
+
+  @abc.abstractmethod
+  def WriteSignedCommands(
+      self,
+      signed_commands: Sequence[signed_commands_pb2.SignedCommand],
+  ) -> None:
+    """Writes signed commands to the database.
+
+    Args:
+      signed_commands: Signed commands to write.
+
+    Raises:
+      AtLeastOneDuplicatedSignedCommandError: At least one of the commands
+      already exists.
+    """
+
+  @abc.abstractmethod
+  def ReadSignedCommand(
+      self,
+      id_: str,
+      operating_system: signed_commands_pb2.SignedCommand.OS,
+  ) -> signed_commands_pb2.SignedCommand:
+    """Reads a signed command from the database.
+
+    Args:
+      id_: The identifier of the command to read.
+      operating_system: Operating system of the command to read.
+
+    Returns:
+      A signed command for the given name.
+    Raises:
+      NotFoundError: The command does not exist.
+    """
+
+  @abc.abstractmethod
+  def ReadSignedCommands(
+      self,
+  ) -> Sequence[signed_commands_pb2.SignedCommand]:
+    """Reads all signed commands from the database.
+
+    Returns:
+      All signed commands.
+    """
+
+  @abc.abstractmethod
+  def DeleteAllSignedCommands(
+      self,
+  ):
+    """Deletes all signed commands from the database."""
 
 
 class DatabaseValidationWrapper(Database):
@@ -3303,16 +3402,12 @@ class DatabaseValidationWrapper(Database):
       client_ids: Collection[str],
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
-      last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
     _ValidateClientIds(client_ids)
     precondition.AssertOptionalType(first_seen, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(last_ping, rdfvalue.RDFDatetime)
-    precondition.AssertOptionalType(last_clock, rdfvalue.RDFDatetime)
-    precondition.AssertOptionalType(last_ip, jobs_pb2.NetworkAddress)
     precondition.AssertOptionalType(last_foreman, rdfvalue.RDFDatetime)
 
     if fleetspeak_validation_info is not None:
@@ -3322,8 +3417,6 @@ class DatabaseValidationWrapper(Database):
         client_ids=client_ids,
         first_seen=first_seen,
         last_ping=last_ping,
-        last_clock=last_clock,
-        last_ip=last_ip,
         last_foreman=last_foreman,
         fleetspeak_validation_info=fleetspeak_validation_info,
     )
@@ -4213,11 +4306,10 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateFlowId(flow_id)
     return self.delegate.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
-  def ReadFlowRequestsReadyForProcessing(
+  def ReadFlowRequests(
       self,
       client_id: str,
       flow_id: str,
-      next_needed_request: Optional[int] = None,
   ) -> Dict[
       int,
       Tuple[
@@ -4233,11 +4325,7 @@ class DatabaseValidationWrapper(Database):
   ]:
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
-    if next_needed_request is None:
-      raise ValueError("next_needed_request must be provided.")
-    return self.delegate.ReadFlowRequestsReadyForProcessing(
-        client_id, flow_id, next_needed_request=next_needed_request
-    )
+    return self.delegate.ReadFlowRequests(client_id, flow_id)
 
   def WriteFlowProcessingRequests(
       self,
@@ -4420,6 +4508,42 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateFlowId(flow_id)
 
     return self.delegate.CountFlowLogEntries(client_id, flow_id)
+
+  def WriteFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      request_id: int,
+      logs: Mapping[int, rrg_pb2.Log],
+  ) -> None:
+    """Writes new log entries for a particular action request."""
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+
+    return self.delegate.WriteFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        logs=logs,
+    )
+
+  def ReadFlowRRGLogs(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+  ) -> Sequence[rrg_pb2.Log]:
+    """Reads log entries logged by actions issued by a particular flow."""
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+
+    return self.delegate.ReadFlowRRGLogs(
+        client_id=client_id,
+        flow_id=flow_id,
+        offset=offset,
+        count=count,
+    )
 
   def WriteFlowOutputPluginLogEntry(
       self,
@@ -4802,7 +4926,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteYaraSignatureReference(
       self,
-      blob_id: blobs.BlobID,
+      blob_id: models_blobs.BlobID,
       username: str,
   ) -> None:
     _ValidateUsername(username)
@@ -4810,7 +4934,7 @@ class DatabaseValidationWrapper(Database):
 
   def VerifyYaraSignatureReference(
       self,
-      blob_id: blobs.BlobID,
+      blob_id: models_blobs.BlobID,
   ) -> bool:
     return self.delegate.VerifyYaraSignatureReference(blob_id)
 
@@ -4844,7 +4968,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[blobs.BlobID, str],
+      key_names: Dict[models_blobs.BlobID, str],
   ) -> None:
     for blob_id in key_names.keys():
       _ValidateBlobID(blob_id)
@@ -4853,12 +4977,53 @@ class DatabaseValidationWrapper(Database):
 
   def ReadBlobEncryptionKeys(
       self,
-      blob_ids: Collection[blobs.BlobID],
-  ) -> Dict[blobs.BlobID, Optional[str]]:
+      blob_ids: Collection[models_blobs.BlobID],
+  ) -> Dict[models_blobs.BlobID, Optional[str]]:
     for blob_id in blob_ids:
       _ValidateBlobID(blob_id)
 
     return self.delegate.ReadBlobEncryptionKeys(blob_ids)
+
+  def WriteSignedCommands(
+      self,
+      signed_commands: Sequence[signed_commands_pb2.SignedCommand],
+  ) -> None:
+    for signed_command in signed_commands:
+      command = rrg_execute_signed_command_pb2.Command()
+      command.ParseFromString(signed_command.command)
+
+      _ValidateSignedCommandId(signed_command.id)
+      _ValidateOperatingSystem(signed_command.operating_system)
+      _ValidateEd25519Signature(signed_command.ed25519_signature)
+      _ValidateStringLength(
+          "signed_command.command.path",
+          command.path.raw_bytes,
+          max_length=65535,
+          min_length=1,
+      )
+
+    return self.delegate.WriteSignedCommands(signed_commands)
+
+  def ReadSignedCommand(
+      self,
+      id_: str,
+      operating_system: signed_commands_pb2.SignedCommand.OS,
+  ) -> signed_commands_pb2.SignedCommand:
+    _ValidateStringId("id", id_)
+    _ValidateProtoEnumType(
+        operating_system, signed_commands_pb2.SignedCommand.OS
+    )
+    return self.delegate.ReadSignedCommand(id_, operating_system)
+
+  def ReadSignedCommands(
+      self,
+  ) -> Sequence[signed_commands_pb2.SignedCommand]:
+    return self.delegate.ReadSignedCommands()
+
+  def DeleteAllSignedCommands(
+      self,
+  ) -> None:
+    return self.delegate.DeleteAllSignedCommands()
 
   # Minimal allowed timestamp is DB-specific. Thus the validation code for
   # timestamps is DB-specific as well.
@@ -4886,12 +5051,6 @@ class DatabaseValidationWrapper(Database):
           "Timestamp is less than the minimal timestamp allowed by the DB: "
           f"{timestamp} < {self.delegate.MinTimestamp()}."
       )
-
-
-def _ValidateEnumType(value, expected_enum_type):
-  if value not in expected_enum_type.reverse_enum:
-    message = "Expected one of `%s` but got `%s` instead"
-    raise TypeError(message % (expected_enum_type.reverse_enum, value))
 
 
 class ProtoEnumProtocol(Protocol):
@@ -4947,6 +5106,13 @@ def _ValidateApprovalId(approval_id):
   _ValidateStringId("approval_id", approval_id)
 
 
+def _ValidateSignedCommandId(signed_command_id: str) -> None:
+  _ValidateStringId("signed_command_id", signed_command_id)
+  _ValidateStringLength(
+      "signed_command.id", signed_command_id, MAX_SIGNED_COMMAND_ID_LENGTH
+  )
+
+
 def _ValidateApprovalType(approval_type):
   if (
       approval_type
@@ -4955,13 +5121,18 @@ def _ValidateApprovalType(approval_type):
     raise ValueError("Unexpected approval type: %s" % approval_type)
 
 
-def _ValidateStringLength(name, string, max_length):
-  if len(string) > max_length:
+def _ValidateStringLength(name, string, max_length, min_length=0):
+  if len(string) > max_length or len(string) < min_length:
     raise StringTooLongError(
-        "{} can have at most {} characters, got {}.".format(
-            name, max_length, len(string)
+        "{} must have between {} and {} characters, got {}.".format(
+            name, min_length, max_length, len(string)
         )
     )
+
+
+def _ValidateNumBytes(name: str, bytez: bytes, num: int) -> None:
+  if len(bytez) != num:
+    raise ValueError(f"{name} must have exactly {num} bytes, got {len(bytez)}.")
 
 
 def _ValidateUsername(username):
@@ -5035,7 +5206,7 @@ def _ValidateDuration(duration):
 
 
 def _ValidateBlobID(blob_id):
-  precondition.AssertType(blob_id, blobs.BlobID)
+  precondition.AssertType(blob_id, models_blobs.BlobID)
 
 
 def _ValidateSHA256HashID(sha256_hash_id):
@@ -5056,3 +5227,18 @@ def _ValidateEmail(email):
   _ValidateStringLength("email", email, MAX_EMAIL_LENGTH)
   if email and not _EMAIL_REGEX.match(email):
     raise ValueError("Invalid E-Mail address: {}".format(email))
+
+
+def _ValidateOperatingSystem(
+    operating_system: "signed_commands_pb2.SignedCommand.OS",
+) -> None:
+  _ValidateProtoEnumType(operating_system, signed_commands_pb2.SignedCommand.OS)
+  if operating_system == signed_commands_pb2.SignedCommand.OS.UNSET:
+    raise ValueError("Operating system must be set.")
+
+
+def _ValidateEd25519Signature(signature: bytes) -> None:
+  precondition.AssertType(signature, bytes)
+  _ValidateNumBytes(
+      "Invalid ed25519 signature", signature, ED25519_SIGNATURE_LENGTH
+  )

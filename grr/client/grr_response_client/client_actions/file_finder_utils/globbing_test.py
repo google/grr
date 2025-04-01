@@ -1,10 +1,9 @@
 #!/usr/bin/env python
+from collections.abc import Iterator, Sequence
 import contextlib
 import io
 import os
 import platform
-from typing import Iterator
-from typing import Sequence
 import unittest
 
 from absl import app

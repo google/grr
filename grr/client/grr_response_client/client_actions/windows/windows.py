@@ -7,6 +7,7 @@ libs/server_stubs.py
 """
 
 import binascii
+import itertools
 import logging
 import os
 import subprocess
@@ -43,6 +44,13 @@ IGNORE_PROPS = [
     "__NAMESPACE",
     "__SERVER",
     "__PATH",
+    "__RELPATH",
+    "__PROPERTY_COUNT",
+    "__DERIVATION",
+    "__CLASS",
+    "__SUPERCLASS",
+    "__GENUS",
+    "__DYNASTY",
 ]
 
 
@@ -206,16 +214,17 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   try:
     for result in query_results:
       response = rdf_protodict.Dict()
-      properties = list(result.Properties_) + list(
-          getattr(result, "SystemProperties_", [])
+      prop_iter = itertools.chain(
+          result.Properties_,
+          getattr(result, "SystemProperties_", []),
       )
-
-      for prop in properties:
-        if prop.Name not in IGNORE_PROPS:
-          # Protodict can handle most of the types we care about, but we may
-          # get some objects that we don't know how to serialize, so we tell the
-          # dict to set the value to an error message and keep going
-          response.SetItem(prop.Name, prop.Value, raise_on_error=False)
+      for prop in prop_iter:
+        if prop.Name in IGNORE_PROPS:
+          continue
+        # Protodict can handle most of the types we care about, but we may
+        # get some objects that we don't know how to serialize, so we tell the
+        # dict to set the value to an error message and keep going
+        response.SetItem(prop.Name, prop.Value, raise_on_error=False)
       yield response
 
   except pythoncom.com_error as e:

@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.reportDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 const {ReflectionService} = goog.require('grrUi.core.reflectionService');
@@ -10,19 +9,19 @@ const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
 
 
 /** @type {number} */
-var WEEK_SECONDS = 7 * 24 * 60 * 60;
+const WEEK_SECONDS = 7 * 24 * 60 * 60;
 
 // A week ago
 /** @type {number} */
-var DEFAULT_START_TIME_SECS =
+const DEFAULT_START_TIME_SECS =
     Math.ceil(moment().valueOf() / 1000 - WEEK_SECONDS);
 
 // One week
 /** @type {number} */
-var DEFAULT_DURATION_SECS = WEEK_SECONDS;
+const DEFAULT_DURATION_SECS = WEEK_SECONDS;
 
 /** @type {string} */
-var DEFAULT_CLIENT_LABEL = '';
+const DEFAULT_CLIENT_LABEL = '';
 
 /**
  * Controller for ReportDirective.
@@ -114,17 +113,17 @@ const ReportController = class {
    * @private
    */
   onParamsChange_() {
-    var startTime = this.scope_['startTime'];
+    const startTime = this.scope_['startTime'];
     if (angular.isDefined(startTime)) {
       this.startTime = startTime;
     }
 
-    var duration = this.scope_['duration'];
+    const duration = this.scope_['duration'];
     if (angular.isDefined(duration)) {
       this.duration = duration;
     }
 
-    var clientLabel = this.scope_['clientLabel'];
+    const clientLabel = this.scope_['clientLabel'];
     if (angular.isDefined(clientLabel)) {
       this.clientLabel = clientLabel;
     }
@@ -153,7 +152,7 @@ const ReportController = class {
       return;
     }
 
-    var name = this.reportDesc['name'];
+    const name = this.reportDesc['name'];
     // `!name' handles all falsey values, including '' and undefined.
     if (!name) {
       return;
@@ -161,23 +160,23 @@ const ReportController = class {
 
     this.state = 'LOADING';
 
-    var startTime = DEFAULT_START_TIME_SECS;
+    let startTime = DEFAULT_START_TIME_SECS;
     if (this.startTime !== null) {
       startTime = this.startTime;
     }
 
-    var duration = DEFAULT_DURATION_SECS;
+    let duration = DEFAULT_DURATION_SECS;
     if (this.duration !== null) {
       duration = this.duration;
     }
 
-    var clientLabel = DEFAULT_CLIENT_LABEL;
+    let clientLabel = DEFAULT_CLIENT_LABEL;
     if (this.clientLabel !== null) {
       clientLabel = this.clientLabel;
     }
 
-    var apiUrl = 'stats/reports/' + name;
-    var apiParams = {
+    const apiUrl = 'stats/reports/' + name;
+    const apiParams = {
       start_time: startTime * 1e6,  // conversion to μs
       duration: duration,
       client_label: clientLabel
@@ -192,7 +191,7 @@ const ReportController = class {
       this.clientLabel = clientLabel;
     }
 
-    var fetchTime = this.grrTimeService_.getCurrentTimeMs();
+    const fetchTime = this.grrTimeService_.getCurrentTimeMs();
     this.latestFetchTime_ = fetchTime;
     this.grrApiService_.get(apiUrl, apiParams).then(function(response) {
       if (fetchTime !== this.latestFetchTime_) {

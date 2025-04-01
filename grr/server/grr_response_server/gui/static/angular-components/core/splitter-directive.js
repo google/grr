@@ -78,9 +78,9 @@ const SplitterController = class {
 
     // Wait until DOM updates so that splitter is applied to a div that
     // has a meaningful width and height. Give up after 5 attempts.
-    var count = 0;
-    var stop;
-    var registerSplitter = function() {
+    let count = 0;
+    let stop;
+    const registerSplitter = function() {
       if ($(this.element_).width() > 0 && $(this.element_).height() > 0 ||
           count > 5) {
         Split(elems, splitterOptions);

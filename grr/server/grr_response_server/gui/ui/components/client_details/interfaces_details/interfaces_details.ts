@@ -5,6 +5,7 @@ import {NetworkInterface} from '../../../lib/models/client';
  * Component the details for a single NetworkInterface.
  */
 @Component({
+  standalone: false,
   selector: 'interfaces-details',
   templateUrl: './interfaces_details.ng.html',
   styleUrls: ['./interfaces_details.scss'],

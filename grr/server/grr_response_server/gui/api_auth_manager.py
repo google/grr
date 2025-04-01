@@ -134,7 +134,7 @@ class APIAuthorizationManager(object):
 
 
 # Set in InitializeApiAuthManager
-API_AUTH_MGR = None
+API_AUTH_MGR: APIAuthorizationManager = None
 
 
 def InitializeApiAuthManager(default_router_cls=None):

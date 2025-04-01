@@ -1,5 +1,4 @@
 goog.module('grrUi.user.userDashboardDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');
@@ -132,7 +131,7 @@ const UserDashboardController = class {
    * @export
    */
   onHuntClicked(hunt) {
-    var huntId = hunt['value']['urn']['value'].split('/')[2];
+    const huntId = hunt['value']['urn']['value'].split('/')[2];
     this.grrRoutingService_.go('hunts', {huntId: huntId});
   }
 };

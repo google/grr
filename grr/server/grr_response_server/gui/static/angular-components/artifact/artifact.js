@@ -1,5 +1,4 @@
 goog.module('grrUi.artifact.artifact');
-goog.module.declareLegacyNamespace();
 
 const {ArtifactDescriptorDirective} = goog.require('grrUi.artifact.artifactDescriptorDirective');
 const {ArtifactDescriptorsService} = goog.require('grrUi.artifact.artifactDescriptorsService');
@@ -44,7 +43,7 @@ exports.artifactModule.service(
 
 exports.artifactModule.run(function(
     grrSemanticRepeatedFormDirectivesRegistryService) {
-  var registry = grrSemanticRepeatedFormDirectivesRegistryService;
+  const registry = grrSemanticRepeatedFormDirectivesRegistryService;
 
   registry.registerDirective(
       ArtifactsListFormDirective.semantic_type, ArtifactsListFormDirective);
@@ -52,7 +51,7 @@ exports.artifactModule.run(function(
 
 
 exports.artifactModule.run(function(grrSemanticValueDirectivesRegistryService) {
-  var registry = grrSemanticValueDirectivesRegistryService;
+  const registry = grrSemanticValueDirectivesRegistryService;
 
   registry.registerDirective(
       ArtifactDescriptorDirective.semantic_type, ArtifactDescriptorDirective);

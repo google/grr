@@ -28,28 +28,22 @@
   </button>
 </div>
 
-<div class="add-path-row">
-  <div class="error">
-    <mat-error
-      *ngIf="controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')"
-    >
-      At least one non-empty path expression expected.
-    </mat-error>
-  </div>
+<mat-error *ngIf="controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')">
+  At least one non-empty path expression expected.
+</mat-error>
 
-  <button
-    mat-stroked-button
-    color="primary"
-    type="button"
-    (click)="addPathExpression()"
-    id="button-add-path-expression"
-  >
-    Add path expression
-  </button>
-</div>
+<button
+  mat-stroked-button
+  color="primary"
+  type="button"
+  (click)="addPathExpression()"
+  id="button-add-path-expression"
+>
+  Add path expression
+</button>
 
 <div class="conditions">
-  <div class="title">Filter by file content</div>
+  <mat-label>Filter by file content</mat-label>
 
   <div class="buttons">
     <button
@@ -90,7 +84,7 @@
 </div>
 
 <div class="conditions">
-  <div class="title">Filter by file attributes</div>
+  <div class="option-title">Filter by file attributes</div>
 
   <div class="buttons">
     <button

@@ -20,7 +20,7 @@ exports.setAutoRefreshInterval = function(millis) {
 
 
 /** @const {number} */
-var MAX_ITEMS_TO_CHECK_FOR_FILES = 50;
+const MAX_ITEMS_TO_CHECK_FOR_FILES = 50;
 
 
 /**
@@ -30,9 +30,7 @@ var MAX_ITEMS_TO_CHECK_FOR_FILES = 50;
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-const ResultsCollectionController = function(
-    $scope) {
-
+const ResultsCollectionController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -67,7 +65,7 @@ ResultsCollectionController.prototype.transformItems = function(items) {
     this.numCheckedItems_ += items.length;
 
     this.resultsAreFiles = false;
-    for (var i = 0; i < items.length; i++) {
+    for (let i = 0; i < items.length; i++) {
       if (getPathSpecFromValue(items[i]) != null) {
         this.resultsAreFiles = true;
         break;

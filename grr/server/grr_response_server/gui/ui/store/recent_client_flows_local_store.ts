@@ -110,16 +110,17 @@ class RecentClientFlowsComponentStore extends ComponentStore<RecentClientFlowsSt
 /** Per-component Store for getting the top 3 flows for a recent client. */
 @Injectable()
 export class RecentClientFlowsLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new RecentClientFlowsComponentStore(this.httpApiService);
+    this.flowListEntries$ = this.store.flowListEntries$;
+    this.hasAccess$ = this.store.hasAccess$;
+  }
 
-  private readonly store = new RecentClientFlowsComponentStore(
-    this.httpApiService,
-  );
+  private readonly store;
 
-  readonly flowListEntries$: Observable<FlowListState> =
-    this.store.flowListEntries$;
+  readonly flowListEntries$: Observable<FlowListState>;
 
-  readonly hasAccess$: Observable<boolean | null> = this.store.hasAccess$;
+  readonly hasAccess$: Observable<boolean | null>;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

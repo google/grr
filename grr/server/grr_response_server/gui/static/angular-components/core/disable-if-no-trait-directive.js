@@ -49,9 +49,9 @@ const DisableIfNoTraitController = class {
    * @private
    */
   onUserInfo_(response) {
-    var traitValue = false;
+    let traitValue = false;
 
-    var interfaceTraits = response['data']['value']['interface_traits'];
+    const interfaceTraits = response['data']['value']['interface_traits'];
     if (angular.isDefined(interfaceTraits)) {
       if (angular.isDefined(interfaceTraits['value'][this.traitName_])) {
         traitValue = interfaceTraits['value'][this.traitName_]['value'];

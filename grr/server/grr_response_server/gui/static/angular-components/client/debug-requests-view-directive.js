@@ -1,5 +1,4 @@
 goog.module('grrUi.client.debugRequestsViewDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const routingService = goog.requireType('grrUi.routing.routingService');
@@ -48,8 +47,8 @@ const DebugRequestsViewController = class {
     this.actionRequests = undefined;
 
     if (angular.isDefined(this.clientId)) {
-      var url = 'clients/' + this.clientId + '/action-requests';
-      var fetchResponses = 1;
+      const url = 'clients/' + this.clientId + '/action-requests';
+      let fetchResponses = 1;
       if (angular.isDefined(this.scope_['fetchResponses'])) {
         fetchResponses = this.scope_['fetchResponses'];
       }

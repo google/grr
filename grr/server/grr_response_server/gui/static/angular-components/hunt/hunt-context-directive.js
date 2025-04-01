@@ -38,7 +38,7 @@ const HuntContextController = class {
       return;
     }
 
-    var url = '/hunts/' + huntId + '/context';
+    const url = '/hunts/' + huntId + '/context';
     this.grrApiService_.get(url).then(function success(response) {
       this.context = response.data['context'];
       this.state = response.data['state'];

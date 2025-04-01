@@ -23,6 +23,7 @@ type Controls = ReturnType<typeof makeControls>;
  * A form that makes it possible to configure the timeline flow.
  */
 @Component({
+  standalone: false,
   selector: 'timeline-form',
   templateUrl: './timeline_form.ng.html',
   styleUrls: ['./timeline_form.scss'],

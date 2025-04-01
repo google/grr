@@ -8,6 +8,7 @@ import {
 
 /** Form that configures a CollectSingleFile flow. */
 @Component({
+  standalone: false,
   selector: 'condition-panel',
   templateUrl: './condition_panel.ng.html',
   styleUrls: ['./condition_panel.scss'],

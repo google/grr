@@ -1136,17 +1136,14 @@ SecondaryFileIncluded: true
   def testMatchBuildContext(self):
     context = """
 Test1 Context:
-  Client.labels: [Test1]
   ClientBuilder.target_platforms:
     - linux_amd64_deb
     - linux_i386_deb
     - windows_amd64_exe
 
 Test2 Context:
-  Client.labels: [Test2]
 
 Test3 Context:
-  Client.labels: [Test3]
   ClientBuilder.target_platforms:
     - linux_amd64_deb
     - windows_i386_exe
@@ -1170,7 +1167,6 @@ Test3 Context:
     """Raise because the same target was listed twice."""
     context = """
 Test1 Context:
-  Client.labels: [Test1]
   ClientBuilder.target_platforms:
     - linux_amd64_deb
     - linux_i386_deb

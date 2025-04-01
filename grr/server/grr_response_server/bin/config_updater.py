@@ -477,11 +477,8 @@ You are about to rotate the Fleetspeak server key. Note that:
     point on.
     """)
     if input("Continue? [yN]: ").upper() == "Y":
-      if grr_config.CONFIG["Server.fleetspeak_enabled"]:
-        config_updater_util.FleetspeakConfig().RotateKey()
-        print(
-            "Fleetspeak server key rotated, please restart fleetspeak-server."
-        )
+      config_updater_util.FleetspeakConfig().RotateKey()
+      print("Fleetspeak server key rotated, please restart fleetspeak-server.")
 
 
 def Run():

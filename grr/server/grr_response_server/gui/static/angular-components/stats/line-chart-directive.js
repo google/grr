@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.lineChartDirective');
-goog.module.declareLegacyNamespace();
 
 const {buildTimeseriesGraph} = goog.require('grrUi.stats.graphUtils');
 

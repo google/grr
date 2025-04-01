@@ -1,9 +1,10 @@
 @use '@angular/material' as mat;
 @use '../../../material-theme' as c;
+@use 'sass:color';
 
 $outline-width: 4px;
 $background: mat.get-color-from-palette(c.$background, hover);
-$invisible: transparentize($background, 1);
+$invisible: color.adjust($background, $alpha: -1.0);
 $transition-time: 200ms;
 
 :host {

@@ -84,7 +84,7 @@ exports.WizardFormPageController = class {
     this.scope_['onShow']();
   }
 };
-var WizardFormPageController = exports.WizardFormPageController;
+const WizardFormPageController = exports.WizardFormPageController;
 
 
 

@@ -1,7 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
 
 import {
   CollectLargeFileFlowArgs,
@@ -32,7 +31,7 @@ describe('CollectLargeFileFlowDetails', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, PluginsModule],
       providers: [],
       teardown: {destroyAfterEach: false},
     })
@@ -55,6 +54,7 @@ describe('CollectLargeFileFlowDetails', () => {
         args: largeFileArgs,
         state: FlowState.FINISHED,
       }),
+      '' /** exportCommandPrefix can be left empty for testing purposes */,
     );
     expect(menuItems.length).toBe(1);
     expect(menuItems[0].title).toMatch('Download Encrypted File');

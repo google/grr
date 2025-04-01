@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Iterable
 import datetime
-from typing import Iterable
 
 from absl import app
 
@@ -294,7 +294,7 @@ class HuntCreationTest(
 
     hunt_cfg = rdf_config.AdminUIHuntConfig(
         default_exclude_labels=["no-no"],
-        make_default_exclude_labels_a_presubmit_check=True,
+        presubmit_check_with_skip_tag="TAG_NEEDED",
         presubmit_warning_message="not cool",
     )
     with test_lib.ConfigOverrider({"AdminUI.hunt_config": hunt_cfg}):

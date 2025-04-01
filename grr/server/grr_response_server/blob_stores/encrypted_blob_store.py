@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """An module with implementation of the encrypted blobstore."""
 
+from collections.abc import Iterable
 import logging
-from typing import Iterable
 from typing import Optional
 
 from grr_response_server import blob_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.keystore import abstract as abstract_ks
-from grr_response_server.models import blobs as blob_models
+from grr_response_server.models import blobs as models_blobs
 
 
 class EncryptedBlobStore(blob_store.BlobStore):
@@ -41,7 +41,7 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def WriteBlobs(
       self,
-      blobs: dict[blob_models.BlobID, bytes],
+      blobs: dict[models_blobs.BlobID, bytes],
   ) -> None:
     """Writes blobs to the blobstore."""
     crypter = self._ks.Crypter(self._key_name)
@@ -67,8 +67,8 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def ReadBlobs(
       self,
-      blob_ids: Iterable[blob_models.BlobID],
-  ) -> dict[blob_models.BlobID, Optional[bytes]]:
+      blob_ids: Iterable[models_blobs.BlobID],
+  ) -> dict[models_blobs.BlobID, Optional[bytes]]:
     """Reads specified blobs from the blobstore."""
     blobs = dict()
 
@@ -89,7 +89,7 @@ class EncryptedBlobStore(blob_store.BlobStore):
         # There is no associated key. It is possible that the blob is just not
         # encrypted: we can verify by computing its blob identifier and compare
         # it with the identifier we wanted to read.
-        if blob_models.BlobID.Of(encrypted_blob) == blob_id:
+        if models_blobs.BlobID.Of(encrypted_blob) == blob_id:
           # The blob identifier of "encrypted" blob matches to blob identifier
           # of the original blob, which means it is not encrypted, and we can
           # just return it.
@@ -132,8 +132,8 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[blob_models.BlobID],
-  ) -> dict[blob_models.BlobID, bool]:
+      blob_ids: Iterable[models_blobs.BlobID],
+  ) -> dict[models_blobs.BlobID, bool]:
     """Checks whether the specified blobs exist in the blobstore."""
     return self._bs.CheckBlobsExist(blob_ids)
 
@@ -145,7 +145,7 @@ class EncryptedBlobWithoutKeysError(Exception):
   writing the encryption keys to the database fails.
   """
 
-  def __init__(self, blob_id: blob_models.BlobID) -> None:
+  def __init__(self, blob_id: models_blobs.BlobID) -> None:
     """Initializes the error.
 
     Args:

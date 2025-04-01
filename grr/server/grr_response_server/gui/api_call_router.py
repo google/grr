@@ -8,7 +8,6 @@ from typing import Optional
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_context
-from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui.api_plugins import artifact as api_artifact
 from grr_response_server.gui.api_plugins import client as api_client
@@ -20,6 +19,7 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
@@ -824,6 +824,20 @@ class ApiCallRouterStub(ApiCallRouter):
     """Export Osquery results for a client and a flow in the specified format."""
     raise NotImplementedError()
 
+  # Signed commands methods.
+  # ========================
+  #
+  @Category("SignedCommands")
+  @ResultType(api_signed_commands.ApiSignedCommand)
+  @Http("GET", "/api/signed-commands")
+  def ListSignedCommands(
+      self,
+      args: Optional[None] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_signed_commands.ApiListSignedCommandsHandler:
+    """Get all signed commands."""
+    raise NotImplementedError()
+
   # Cron jobs methods.
   # =================
   #
@@ -1130,18 +1144,6 @@ class ApiCallRouterStub(ApiCallRouter):
     Returns:
       An API handler for the timeline hunt export.
     """
-    raise NotImplementedError()
-
-  @Category("Hunts")
-  @ArgsType(api_hunt.ApiCreatePerClientFileCollectionHuntArgs)
-  @ResultType(api_hunt.ApiHunt)
-  @Http("POST", "/api/hunts/per-client-file-collection", strip_root_types=False)
-  def CreatePerClientFileCollectionHunt(
-      self,
-      args: api_hunt.ApiCreatePerClientFileCollectionHuntArgs,
-      context: api_call_context.ApiCallContext,
-  ) -> api_call_handler_base.ApiCallHandler:
-    """Create a new per-client file collection hunt."""
     raise NotImplementedError()
 
   # Stats metrics methods.

@@ -32,6 +32,7 @@ const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[] | undefined> = (
  * results.
  */
 @Component({
+  standalone: false,
   selector: 'list_directory-flow-details',
   templateUrl: './list_directory_details.ng.html',
   styleUrls: ['./list_directory_details.scss'],

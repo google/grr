@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -9,10 +8,10 @@ const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonD
 
 
 /** @const */
-var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
+const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 /** @const */
-var OPERATION_POLL_INTERVAL_MS = 1000;
+const OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 /**
@@ -77,19 +76,19 @@ const FileDownloadViewController = class {
    * @private
    */
   onContextChange_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
 
     if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
-      var commandUrl =
+      const commandUrl =
           'clients/' + clientId + '/vfs-download-command/' + filePath;
       this.grrApiService_.get(commandUrl).then(function(response) {
         this.downloadCommand = response.data['command'];
       }.bind(this));
 
-      var detailsUrl = 'clients/' + clientId + '/vfs-details/' + filePath;
-      var params = {};
+      const detailsUrl = 'clients/' + clientId + '/vfs-details/' + filePath;
+      const params = {};
       if (fileVersion) {
         params['timestamp'] = fileVersion;
       }
@@ -111,10 +110,10 @@ const FileDownloadViewController = class {
       return;
     }
 
-    var clientId = this.fileContext['clientId'];
-    var selectedFilePath = this.fileContext['selectedFilePath'];
-    var url = 'clients/' + clientId + '/vfs-update';
-    var params = {
+    const clientId = this.fileContext['clientId'];
+    const selectedFilePath = this.fileContext['selectedFilePath'];
+    const url = 'clients/' + clientId + '/vfs-update';
+    const params = {
       file_path: selectedFilePath,
     };
 
@@ -146,8 +145,8 @@ const FileDownloadViewController = class {
    * @private
    */
   pollUpdateOperationState_() {
-    var clientId = this.fileContext['clientId'];
-    var url = 'clients/' + clientId + '/vfs-update/' + this.updateOperationId;
+    const clientId = this.fileContext['clientId'];
+    const url = 'clients/' + clientId + '/vfs-update/' + this.updateOperationId;
 
     this.grrApiService_.get(url).then(
         function success(response) {
@@ -178,12 +177,12 @@ const FileDownloadViewController = class {
    * @export
    */
   downloadFile() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
 
-    var url = 'clients/' + clientId + '/vfs-blob/' + filePath;
-    var params = {};
+    const url = 'clients/' + clientId + '/vfs-blob/' + filePath;
+    const params = {};
     if (fileVersion) {
       params['timestamp'] = fileVersion;
     }

@@ -1,6 +1,6 @@
 @use '@angular/material' as mat;
 @use '../../../material-theme' as c;
-@use './base';
+@use 'base';
 
 .path-type-note {
   color: mat.get-color-from-palette(c.$foreground, text-light);

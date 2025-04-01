@@ -3,6 +3,7 @@
 """Script to build windows templates."""
 
 import argparse
+from collections.abc import Callable
 import errno
 import glob
 import logging
@@ -11,7 +12,6 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Callable
 
 parser = argparse.ArgumentParser(description="Build windows templates.")
 

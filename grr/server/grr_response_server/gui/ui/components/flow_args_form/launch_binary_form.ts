@@ -23,6 +23,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a LaunchBinary flow. */
 @Component({
+  standalone: false,
   templateUrl: './launch_binary_form.ng.html',
   styleUrls: ['./launch_binary_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,26 +35,30 @@ export class LaunchBinaryForm extends FlowArgumentForm<
   // TODO: As future UX improvement, we could highlight binaries
   // that match the current client OS, since binaries are "bound" to one OS on
   // upload.
-  readonly binaries$ = this.configGlobalStore.binaries$.pipe(
-    map((binaries) =>
-      Array.from(binaries.filter((b) => b.type === BinaryType.EXECUTABLE))
-        .map((b) => ({...b, path: REQUIRED_BINARY_PREFIX + b.path}))
-        .sort(compareAlphabeticallyBy((b) => b.path)),
-    ),
-  );
+  readonly binaries$;
 
-  readonly filteredBinaries$ = combineLatest([
-    this.binaries$,
-    this.controls.binary.valueChanges.pipe(startWith('')),
-  ]).pipe(
-    map(([entries, searchString]) => {
-      searchString = searchString?.toLowerCase() ?? '';
-      return entries.filter((b) => b.path.toLowerCase().includes(searchString));
-    }),
-  );
+  readonly filteredBinaries$;
 
   constructor(private readonly configGlobalStore: ConfigGlobalStore) {
     super();
+    this.binaries$ = this.configGlobalStore.binaries$.pipe(
+      map((binaries) =>
+        Array.from(binaries.filter((b) => b.type === BinaryType.EXECUTABLE))
+          .map((b) => ({...b, path: REQUIRED_BINARY_PREFIX + b.path}))
+          .sort(compareAlphabeticallyBy((b) => b.path)),
+      ),
+    );
+    this.filteredBinaries$ = combineLatest([
+      this.binaries$,
+      this.controls.binary.valueChanges.pipe(startWith('')),
+    ]).pipe(
+      map(([entries, searchString]) => {
+        searchString = searchString?.toLowerCase() ?? '';
+        return entries.filter((b) =>
+          b.path.toLowerCase().includes(searchString),
+        );
+      }),
+    );
   }
 
   override makeControls() {

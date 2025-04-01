@@ -189,6 +189,7 @@
         [huntId]="huntId"
         [tabsConfig]="(huntResultTabs$ | async) ?? []"
         [isLoading]="(huntResultsByTypeCountLoading$ | async) === true"
+        [exportCommandPrefix]="(exportCommandPrefix$ | async) ?? defaultExportCommandPrefix "
         (selectedHuntResult)="openHuntResultDetailsInDrawer($event)">
       </app-hunt-results>
     </ng-container>

@@ -3,6 +3,10 @@ import {TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {
+  ForemanClientRuleType,
+  ForemanLabelClientRuleMatchMode,
+} from '../../../lib/api/api_interfaces';
+import {
   newClientRuleSet,
   newHunt,
   newSafetyLimits,
@@ -13,7 +17,11 @@ import {HuntArguments} from './hunt_arguments';
 
 initTestEnvironment();
 
-@Component({template: '<hunt-arguments [hunt]="hunt"></hunt-arguments>'})
+@Component({
+  standalone: false,
+  template: '<hunt-arguments [hunt]="hunt"></hunt-arguments>',
+  jit: true,
+})
 class TestHostComponent {
   hunt = newHunt({});
 }
@@ -53,7 +61,7 @@ describe('HuntArguments test', () => {
 
     expect(text).toContain('match any (or)');
     expect(text).toContain('match any:foo, bar');
-    expect(text).toContain('Greater Than:123');
+    expect(text).toContain('Greater Than:1337');
     expect(text).toContain('I am a regex');
 
     expect(text).toContain('200 clients/min (standard)');
@@ -89,5 +97,37 @@ describe('HuntArguments test', () => {
     expect(text).not.toContain('345 seconds');
     expect(text).not.toContain('345 B');
     expect(text).toContain('Unlimited');
+  });
+
+  it('default match mode and rule type are displayed correctly', () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.hunt = newHunt({
+      clientRuleSet: newClientRuleSet({
+        matchMode: undefined,
+        rules: [
+          {
+            ruleType: ForemanClientRuleType.LABEL,
+            label: {
+              labelNames: ['foo', 'bar'],
+              matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY,
+            },
+          },
+          {
+            os: {osWindows: true, osLinux: true, osDarwin: false},
+          },
+        ],
+      }),
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement).toBeTruthy();
+    const text = fixture.nativeElement.textContent;
+
+    expect(text).toContain('match all (and)');
+    expect(text).toContain('match any:foo, bar');
+    expect(text).toContain('Windows');
+    expect(text).toContain('Linux');
   });
 });

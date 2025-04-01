@@ -79,13 +79,17 @@ class ApprovalPageComponentStore extends ComponentStore<ApprovalPageState> {
   providedIn: 'root',
 })
 export class ApprovalPageGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ApprovalPageComponentStore(this.httpApiService);
+    this.approval$ = this.store.approval$;
+    this.grantRequestStatus$ = this.store.grantRequestStatus$;
+  }
 
-  private readonly store = new ApprovalPageComponentStore(this.httpApiService);
+  private readonly store;
 
-  readonly approval$: Observable<ClientApproval | null> = this.store.approval$;
+  readonly approval$: Observable<ClientApproval | null>;
 
-  readonly grantRequestStatus$ = this.store.grantRequestStatus$;
+  readonly grantRequestStatus$;
 
   selectApproval(approvalKey: ApprovalKey): void {
     this.store.selectApproval(approvalKey);

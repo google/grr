@@ -1,5 +1,4 @@
 goog.module('grrUi.client.virtualFileSystem.fileTextViewDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
@@ -62,8 +61,8 @@ const FileTextViewController = class {
    * @private
    */
   onContextChange_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
 
     if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
       this.fetchText_();
@@ -100,13 +99,13 @@ const FileTextViewController = class {
    * @private
    */
   fetchText_() {
-    var clientId = this.fileContext['clientId'];
-    var filePath = this.fileContext['selectedFilePath'];
-    var fileVersion = this.fileContext['selectedFileVersion'];
-    var offset = (this.page - 1) * this.chunkSize_;
+    const clientId = this.fileContext['clientId'];
+    const filePath = this.fileContext['selectedFilePath'];
+    const fileVersion = this.fileContext['selectedFileVersion'];
+    const offset = (this.page - 1) * this.chunkSize_;
 
-    var url = 'clients/' + clientId + '/vfs-text/' + filePath;
-    var params = {};
+    const url = 'clients/' + clientId + '/vfs-text/' + filePath;
+    const params = {};
     params['encoding'] = this.encoding;
     params['offset'] = offset;
     params['length'] = this.chunkSize_;
@@ -119,7 +118,7 @@ const FileTextViewController = class {
             function(response) {
               this.fileContent = response.data['content'];
 
-              var total_size = response.data['total_size'];
+              const total_size = response.data['total_size'];
               this.pageCount = Math.ceil(total_size / this.chunkSize_);
             }.bind(this),
             function() {

@@ -11,6 +11,7 @@ import {HuntResultDetailsGlobalStore} from '../../../../store/hunt_result_detail
  * Component displaying the details for a single hunt result.
  */
 @Component({
+  standalone: false,
   selector: 'hunt-result-details',
   templateUrl: './hunt_result_details.ng.html',
   styleUrls: ['./hunt_result_details.scss'],
@@ -18,21 +19,28 @@ import {HuntResultDetailsGlobalStore} from '../../../../store/hunt_result_detail
 })
 export class HuntResultDetails implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
-  readonly huntId$ = this.huntResultDetailsGlobalStore.huntId$;
-  readonly clientId$ = this.huntResultDetailsGlobalStore.clientId$;
-  readonly timestamp$ = this.huntResultDetailsGlobalStore.timestamp$;
-  readonly resultOrErrorDisplay$ =
-    this.huntResultDetailsGlobalStore.resultOrErrorDisplay$;
-  readonly flowWithDescriptor$ =
-    this.huntResultDetailsGlobalStore.flowWithDescriptor$;
-  readonly isFlowLoading$ = this.huntResultDetailsGlobalStore.isFlowLoading$;
-  readonly isHuntResultLoading$ =
-    this.huntResultDetailsGlobalStore.isHuntResultLoading$;
+  readonly huntId$;
+  readonly clientId$;
+  readonly timestamp$;
+  readonly resultOrErrorDisplay$;
+  readonly flowWithDescriptor$;
+  readonly isFlowLoading$;
+  readonly isHuntResultLoading$;
 
   constructor(
     private readonly activatedRoute: ActivatedRoute,
     private readonly huntResultDetailsGlobalStore: HuntResultDetailsGlobalStore,
   ) {
+    this.huntId$ = this.huntResultDetailsGlobalStore.huntId$;
+    this.clientId$ = this.huntResultDetailsGlobalStore.clientId$;
+    this.timestamp$ = this.huntResultDetailsGlobalStore.timestamp$;
+    this.resultOrErrorDisplay$ =
+      this.huntResultDetailsGlobalStore.resultOrErrorDisplay$;
+    this.flowWithDescriptor$ =
+      this.huntResultDetailsGlobalStore.flowWithDescriptor$;
+    this.isFlowLoading$ = this.huntResultDetailsGlobalStore.isFlowLoading$;
+    this.isHuntResultLoading$ =
+      this.huntResultDetailsGlobalStore.isHuntResultLoading$;
     this.activatedRoute.paramMap
       .pipe(
         takeUntil(this.ngOnDestroy.triggered$),

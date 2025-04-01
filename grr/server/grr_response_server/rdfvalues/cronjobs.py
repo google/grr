@@ -18,6 +18,7 @@ class CronJobRunStatus(rdf_structs.RDFProtoStruct):
 
 class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   """Args to create a run for a cron job."""
+
   protobuf = flows_pb2.CreateCronJobFlowArgs
   rdf_deps = [
       rdfvalue.DurationSeconds,
@@ -28,7 +29,8 @@ class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   def GetFlowArgsClass(self):
     if self.flow_runner_args.flow_name:
       flow_cls = registry.FlowRegistry.FlowClassByName(
-          self.flow_runner_args.flow_name)
+          self.flow_runner_args.flow_name
+      )
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -41,6 +43,7 @@ class SystemCronAction(rdf_structs.RDFProtoStruct):
 
 class HuntCronAction(rdf_structs.RDFProtoStruct):
   """Cron Action that starts a hunt."""
+
   protobuf = flows_pb2.HuntCronAction
   rdf_deps = [
       rdf_hunts.HuntRunnerArgs,
@@ -65,6 +68,7 @@ class CronJobAction(rdf_structs.RDFProtoStruct):
 
 class CronJob(rdf_structs.RDFProtoStruct):
   """The cron job class."""
+
   protobuf = flows_pb2.CronJob
   rdf_deps = [
       CronJobAction,
@@ -76,6 +80,7 @@ class CronJob(rdf_structs.RDFProtoStruct):
 
 class CronJobRun(rdf_structs.RDFProtoStruct):
   """A single run of a cron job."""
+
   protobuf = flows_pb2.CronJobRun
   rdf_deps = [
       rdfvalue.RDFDatetime,
@@ -111,4 +116,5 @@ class CreateCronJobArgs(rdf_structs.RDFProtoStruct):
         description=api_args.description,
         frequency=api_args.periodicity,
         lifetime=api_args.lifetime,
-        allow_overruns=api_args.allow_overruns)
+        allow_overruns=api_args.allow_overruns,
+    )

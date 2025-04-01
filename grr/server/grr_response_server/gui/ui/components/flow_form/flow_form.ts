@@ -19,6 +19,7 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
  * Component that allows selecting, configuring, and starting a Flow.
  */
 @Component({
+  standalone: false,
   selector: 'flow-form',
   templateUrl: './flow_form.ng.html',
   styleUrls: ['./flow_form.scss'],
@@ -27,41 +28,47 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
+  readonly selectedFD$;
 
   @ViewChild('form') formElement!: ElementRef<HTMLFormElement>;
 
   @ViewChild(FlowArgsForm) flowArgsForm!: FlowArgsForm;
 
-  private readonly flowArgsFormValid$ = new BehaviorSubject<boolean>(true);
+  private readonly flowArgsFormValid$;
 
-  readonly disabled$ = combineLatest([
-    this.flowArgsFormValid$,
-    this.clientPageGlobalStore.startFlowStatus$,
-  ]).pipe(
-    map(
-      ([valid, startFlowStatus]) =>
-        !valid || startFlowStatus?.status === RequestStatusType.SENT,
-    ),
-    startWith(false),
-  );
+  readonly disabled$;
 
-  readonly requestInProgress$ =
-    this.clientPageGlobalStore.startFlowStatus$.pipe(
+  readonly requestInProgress$;
+
+  readonly error$;
+
+  readonly hasAccess$;
+
+  constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
+    this.selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
+    this.flowArgsFormValid$ = new BehaviorSubject<boolean>(true);
+    this.disabled$ = combineLatest([
+      this.flowArgsFormValid$,
+      this.clientPageGlobalStore.startFlowStatus$,
+    ]).pipe(
+      map(
+        ([valid, startFlowStatus]) =>
+          !valid || startFlowStatus?.status === RequestStatusType.SENT,
+      ),
+      startWith(false),
+    );
+    this.requestInProgress$ = this.clientPageGlobalStore.startFlowStatus$.pipe(
       map((status) => status?.status === RequestStatusType.SENT),
     );
-
-  readonly error$ = this.clientPageGlobalStore.startFlowStatus$.pipe(
-    map((status) =>
-      status?.status === RequestStatusType.ERROR ? status.error : undefined,
-    ),
-  );
-
-  readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$.pipe(
-    startWith(false),
-  );
-
-  constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {}
+    this.error$ = this.clientPageGlobalStore.startFlowStatus$.pipe(
+      map((status) =>
+        status?.status === RequestStatusType.ERROR ? status.error : undefined,
+      ),
+    );
+    this.hasAccess$ = this.clientPageGlobalStore.hasAccess$.pipe(
+      startWith(false),
+    );
+  }
 
   ngOnInit() {}
 

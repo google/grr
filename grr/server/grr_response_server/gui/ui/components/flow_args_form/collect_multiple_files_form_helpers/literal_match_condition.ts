@@ -22,6 +22,7 @@ import {
 
 /** Form that configures a literal match condition. */
 @Component({
+  standalone: false,
   selector: 'literal-match-condition',
   templateUrl: './literal_match_condition.ng.html',
   styles: ['.literal-mode { width: 150px; }'],

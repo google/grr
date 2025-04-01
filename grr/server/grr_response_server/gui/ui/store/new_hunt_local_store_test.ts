@@ -234,7 +234,7 @@ describe('NewHuntLocalStore', () => {
   it('emits EMPTY presubmit options - no config', fakeAsync(async () => {
     configGlobalStore.mockedObservables.uiConfig$.next({
       huntConfig: {
-        makeDefaultExcludeLabelsAPresubmitCheck: false,
+        presubmitCheckWithSkipTag: '',
       },
     });
     newHuntLocalStore.setCurrentDescription('');
@@ -247,7 +247,7 @@ describe('NewHuntLocalStore', () => {
   it('emits EMPTY presubmit options - force tag', fakeAsync(async () => {
     configGlobalStore.mockedObservables.uiConfig$.next({
       huntConfig: {
-        makeDefaultExcludeLabelsAPresubmitCheck: true,
+        presubmitCheckWithSkipTag: 'FORCE',
       },
     });
     newHuntLocalStore.setCurrentDescription('something FORCE another thing');
@@ -260,8 +260,8 @@ describe('NewHuntLocalStore', () => {
   it('emits presubmit options', fakeAsync(async () => {
     configGlobalStore.mockedObservables.uiConfig$.next({
       huntConfig: {
-        makeDefaultExcludeLabelsAPresubmitCheck: true,
         defaultExcludeLabels: ['exterminate', 'exterminate'],
+        presubmitCheckWithSkipTag: 'FORCE',
         presubmitWarningMessage: 'nonono',
       },
     });

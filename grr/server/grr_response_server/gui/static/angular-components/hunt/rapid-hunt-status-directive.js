@@ -69,7 +69,7 @@ const RapidHuntStatusController = class {
 
     this.grrApiService_.getCached('/config/AdminUI.rapid_hunts_enabled')
         .then((response) => {
-          this.enabled = response['data']['value']['value'];
+          this.enabled = response['data']['value']['value']['value']['value'];
 
           if (this.enabled) {
             this.scope_.$watch('flowName', this.onFlowChange_.bind(this));

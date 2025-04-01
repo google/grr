@@ -26,8 +26,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def RecordCrash(self, client_id, timestamp):
     with test_lib.FakeTime(timestamp):
       client = flow_test_lib.CrashClientMock(client_id)
-      flow_test_lib.TestFlowHelper(
-          flow_test_lib.FlowWithOneClientRequest.__name__,
+      flow_test_lib.StartAndRunFlow(
+          flow_test_lib.FlowWithOneClientRequest,
           client,
           client_id=client_id,
           creator=self.test_username,

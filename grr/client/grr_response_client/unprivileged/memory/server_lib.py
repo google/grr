@@ -5,7 +5,7 @@ import abc
 import sys
 import time
 import traceback
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Generic, Optional, TypeVar
 import yara
 from grr_response_client import client_utils
 from grr_response_client.unprivileged import communication
@@ -112,7 +112,7 @@ class UploadSignatureHandler(
 
 
 def _YaraStringMatchToProto(
-    offset: int, value: Tuple[int, str, bytes], context: bytes
+    offset: int, value: tuple[int, str, bytes], context: bytes
 ) -> memory_pb2.StringMatch:
   return memory_pb2.StringMatch(
       chunk_offset=offset,

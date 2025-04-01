@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.bigquery."""
-
 import io
 import json
 import os
@@ -19,6 +17,7 @@ from grr.test_lib import test_lib
 
 class BigQueryClientTest(test_lib.GRRBaseTest):
   """Tests BigQuery client."""
+
   PROJECT_ID = "grr-dummy"
   SERVICE_ACCOUNT_JSON = """{"type": "service_account"}"""
 
@@ -28,16 +27,21 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
   def testInsertData(self, mock_http, mock_build, mock_creds):
     bq_client = bigquery.GetBigQueryClient(
         service_account_json=self.SERVICE_ACCOUNT_JSON,
-        project_id=self.PROJECT_ID)
+        project_id=self.PROJECT_ID,
+    )
 
-    schema_path = os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                               "ExportedFile.schema")
+    schema_path = os.path.join(
+        config.CONFIG["Test.data_dir"], "bigquery", "ExportedFile.schema"
+    )
     with open(schema_path, mode="rt", encoding="utf-8") as schema_file:
       schema_data = json.load(schema_file)
 
     data_fd = open(
-        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json.gz"), "rb")
+        os.path.join(
+            config.CONFIG["Test.data_dir"], "bigquery", "ExportedFile.json.gz"
+        ),
+        "rb",
+    )
     now = rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch()
     job_id = "hunts_HFFE1D044_Results_%s" % now
     bq_client.InsertData("ExportedFile", data_fd, schema_data, job_id)
@@ -46,7 +50,8 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     insert = mock_build.return_value.jobs.return_value.insert
     self.assertEqual(insert.call_count, 1)
     self.assertEqual(
-        job_id, insert.call_args_list[0][1]["body"]["jobReference"]["jobId"])
+        job_id, insert.call_args_list[0][1]["body"]["jobReference"]["jobId"]
+    )
 
   def testRetryUpload(self):
     service = mock.Mock()
@@ -58,7 +63,8 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     job = mock.Mock()
     # Always raise errors.HttpError on job.execute()
     job.configure_mock(
-        **{"execute.side_effect": errors.HttpError(resp, b"nocontent")})
+        **{"execute.side_effect": errors.HttpError(resp, b"nocontent")}
+    )
     job_id = "hunts_HFFE1D044_Results_1446056474"
 
     jobs = mock.Mock()

@@ -24,6 +24,7 @@ import {DateTime} from '../../../lib/date_time';
 
 /** Form that configures a modification time condition. */
 @Component({
+  standalone: false,
   selector: 'time-range-condition',
   templateUrl: './time_range_condition.ng.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

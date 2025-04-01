@@ -23,12 +23,6 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 
-# pylint: disable=unused-import
-# Required for google_config_validator
-from grr_response_core.lib.local import plugins
-
-# pylint: enable=unused-import
-
 FLAGS = flags.FLAGS
 
 
@@ -219,6 +213,17 @@ class TemplateBuilder(object):
       # The repacker uses this context to chose the .msi extension for the
       # repacked installer.
       context.append("Target:WindowsMsi")
+    if "Target:Darwin" in context:
+      if not grr_config.CONFIG.Get(
+          "ClientBuilder.install_dir", context=context
+      ):
+        raise ValueError("ClientBuilder.install_dir must be set on Darwin.")
+      if not grr_config.CONFIG.Get(
+          "ClientBuilder.fleetspeak_plist_path", context=context
+      ):
+        raise ValueError(
+            "ClientBuilder.fleetspeak_plist_path must be set on Darwin."
+        )
 
     template_path = None
     # If output is specified, place the built template file there, otherwise
@@ -428,12 +433,6 @@ def main(args):
   logger.handlers = [handler]
 
   if args.subparser_name == "build":
-    if grr_config.CONFIG["Client.fleetspeak_enabled"]:
-      if grr_config.CONFIG.ContextApplied("Platform:Darwin"):
-        if not grr_config.CONFIG.Get("ClientBuilder.install_dir"):
-          raise RuntimeError("ClientBuilder.install_dir must be set.")
-        if not grr_config.CONFIG.Get("ClientBuilder.fleetspeak_plist_path"):
-          raise RuntimeError("ClientBuilder.fleetspeak_plist_path must be set.")
     TemplateBuilder().BuildTemplate(context=context, output=args.output)
   elif args.subparser_name == "repack":
     if args.debug_build:

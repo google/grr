@@ -87,8 +87,8 @@ const ClientStatusIconsController = class {
         this.lastPing = 0;
       }
 
-      var currentTimeMs = this.grrTimeService_.getCurrentTimeMs();
-      var timeLastSeenSecs = (currentTimeMs - this.lastPing / 1000) / 1000;
+      const currentTimeMs = this.grrTimeService_.getCurrentTimeMs();
+      const timeLastSeenSecs = (currentTimeMs - this.lastPing / 1000) / 1000;
 
       if (timeLastSeenSecs < 60 * 15) {
         this.iconName = 'online';
@@ -98,7 +98,7 @@ const ClientStatusIconsController = class {
         this.iconName = 'offline';
       }
 
-      var crashTime = /** @type {number} */ (
+      const crashTime = /** @type {number} */ (
           this.scope_.$eval('client.value.last_crash_at.value'));
       if (angular.isDefined(crashTime) &&
           (currentTimeMs / 1000 - crashTime / 1000000) < 60 * 60 * 24) {
@@ -115,12 +115,12 @@ const ClientStatusIconsController = class {
         if (angular.isDefined(
                 volume['value']['actual_available_allocation_units']) &&
             angular.isDefined(volume['value']['total_allocation_units'])) {
-          var percent =
+          const percent =
               (volume['value']['actual_available_allocation_units']['value'] /
                volume['value']['total_allocation_units']['value']) *
               100;
           if (percent <= 5) {
-            var volumeName = '';
+            let volumeName = '';
             if (volume['value']['name']) {
               volumeName = volume['value']['name']['value'];
             }

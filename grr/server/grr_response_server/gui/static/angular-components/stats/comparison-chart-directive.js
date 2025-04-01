@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.comparisonChartDirective');
-goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ComparisonChartDirective.

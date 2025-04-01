@@ -5,12 +5,10 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
 import logging
 import re
 import smtplib
 import socket
-
 
 from grr_response_core import config
 from grr_response_core.lib import utils
@@ -49,47 +47,52 @@ class EmailAlerterBase(metaclass=MetaclassRegistry):
       result.append(self.AddEmailDomain(address))
     return result
 
-  def SendEmail(self,
-                to_addresses,
-                from_address,
-                subject,
-                message,
-                attachments=None,
-                is_html=True,
-                cc_addresses=None,
-                message_id=None,
-                headers=None):
+  def SendEmail(
+      self,
+      to_addresses,
+      from_address,
+      subject,
+      message,
+      attachments=None,
+      is_html=True,
+      cc_addresses=None,
+      message_id=None,
+      headers=None,
+  ):
     """Sends an email."""
     raise NotImplementedError()
 
 
 class SMTPEmailAlerter(EmailAlerterBase):
 
-  def SendEmail(self,
-                to_addresses,
-                from_address,
-                subject,
-                message,
-                attachments=None,
-                is_html=True,
-                cc_addresses=None,
-                message_id=None,
-                headers=None):
+  def SendEmail(
+      self,
+      to_addresses,
+      from_address,
+      subject,
+      message,
+      attachments=None,
+      is_html=True,
+      cc_addresses=None,
+      message_id=None,
+      headers=None,
+  ):
     """This method sends an email notification.
 
     Args:
       to_addresses: blah@mycompany.com string, list of addresses as csv string,
-                    or rdf_standard.DomainEmailAddress
+        or rdf_standard.DomainEmailAddress
       from_address: blah@mycompany.com string
       subject: email subject string
       message: message contents string, as HTML or plain text
-      attachments: iterable of filename string and file data tuples,
-                   e.g. {"/file/name/string": filedata}
+      attachments: iterable of filename string and file data tuples, e.g.
+        {"/file/name/string": filedata}
       is_html: true if message is in HTML format
-      cc_addresses: blah@mycompany.com string, or list of addresses as
-                    csv string
+      cc_addresses: blah@mycompany.com string, or list of addresses as csv
+        string
       message_id: smtp message_id. Used to enable conversation threading
       headers: dict of str-> str, headers to set
+
     Raises:
       EmailNotSentError: for problems connecting to smtp server.
     """
@@ -110,8 +113,9 @@ class SMTPEmailAlerter(EmailAlerterBase):
         part = MIMEBase("application", "octet-stream")
         part.set_payload(file_data)
         encoders.encode_base64(part)
-        part.add_header("Content-Disposition",
-                        "attachment; filename=\"%s\"" % file_name)
+        part.add_header(
+            "Content-Disposition", 'attachment; filename="%s"' % file_name
+        )
         msg.attach(part)
 
     msg["Subject"] = subject
@@ -132,24 +136,32 @@ class SMTPEmailAlerter(EmailAlerterBase):
       msg.add_header(header, value)
 
     try:
-      s = smtplib.SMTP(config.CONFIG["Worker.smtp_server"],
-                       int(config.CONFIG["Worker.smtp_port"]))
+      s = smtplib.SMTP(
+          config.CONFIG["Worker.smtp_server"],
+          int(config.CONFIG["Worker.smtp_port"]),
+      )
       s.ehlo()
       if config.CONFIG["Worker.smtp_starttls"]:
         s.starttls()
         s.ehlo()
-      if (config.CONFIG["Worker.smtp_user"] and
-          config.CONFIG["Worker.smtp_password"]):
-        s.login(config.CONFIG["Worker.smtp_user"],
-                config.CONFIG["Worker.smtp_password"])
+      if (
+          config.CONFIG["Worker.smtp_user"]
+          and config.CONFIG["Worker.smtp_password"]
+      ):
+        s.login(
+            config.CONFIG["Worker.smtp_user"],
+            config.CONFIG["Worker.smtp_password"],
+        )
 
       s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
       s.quit()
     except (socket.error, smtplib.SMTPException) as e:
-      raise EmailNotSentError("Could not connect to SMTP server to send email. "
-                              "Please check config option Worker.smtp_server. "
-                              "Currently set to %s. Error: %s" %
-                              (config.CONFIG["Worker.smtp_server"], e))
+      smtp_server = config.CONFIG["Worker.smtp_server"]
+      raise EmailNotSentError(
+          "Could not connect to SMTP server to send email. "
+          "Please check config option Worker.smtp_server. "
+          f"Currently set to {smtp_server}."
+      ) from e
 
 
 EMAIL_ALERTER = None

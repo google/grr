@@ -67,6 +67,7 @@
               {{ hunt.flowName }}
             </app-copy-button>
           </div>
+          <!-- TODO(user): Replace the aria-label with a better description, e.g. "Fetching user data" -->
           <mat-progress-bar
               *ngIf="huntStarted(hunt)"
               [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
@@ -75,6 +76,7 @@
               [matTooltip]="getHuntProgressTooltip(hunt)"
               color="success"
               class = "right"
+              aria-label="Loading"
             ></mat-progress-bar>
         </div>
       </div>

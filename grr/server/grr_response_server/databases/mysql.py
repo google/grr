@@ -9,7 +9,7 @@ import logging
 import math
 import random
 import time
-from typing import Callable
+from typing import Callable, Union
 import warnings
 
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.
@@ -22,6 +22,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_server import threadpool
 from grr_response_server.databases import db as db_module
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blob_keys
 from grr_response_server.databases import mysql_blobs
@@ -35,6 +36,7 @@ from grr_response_server.databases import mysql_migration
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_signed_binaries
+from grr_response_server.databases import mysql_signed_commands
 from grr_response_server.databases import mysql_users
 from grr_response_server.databases import mysql_utils
 from grr_response_server.databases import mysql_yara
@@ -154,6 +156,9 @@ def _SetSqlMode(cursor):
   ]
 
   sql_mode = _ReadVariable("sql_mode", cursor)
+  if sql_mode is None:
+    raise Error("Unable to read sql_mode variable.")
+
   components = [x.strip() for x in sql_mode.split(",")]
   filtered_components = [
       x for x in components if x.upper() not in incompatible_modes
@@ -455,22 +460,23 @@ def _SleepWithBackoff(exponent):
   time.sleep(jitter * math.pow(_TXN_RETRY_BACKOFF_BASE, exponent))
 
 
-# pyformat: disable
-class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
-              mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
-              mysql_blob_keys.MySQLDBBlobKeysMixin,
-              mysql_clients.MySQLDBClientMixin,
-              mysql_cronjobs.MySQLDBCronJobMixin,
-              mysql_events.MySQLDBEventMixin,
-              mysql_flows.MySQLDBFlowMixin,
-              mysql_foreman_rules.MySQLDBForemanRulesMixin,
-              mysql_hunts.MySQLDBHuntMixin,
-              mysql_paths.MySQLDBPathMixin,
-              mysql_signed_binaries.MySQLDBSignedBinariesMixin,
-              mysql_users.MySQLDBUsersMixin,
-              mysql_yara.MySQLDBYaraMixin,
-              db_module.Database):
-  # pyformat: enable
+class MysqlDB(
+    mysql_artifacts.MySQLDBArtifactsMixin,
+    mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
+    mysql_blob_keys.MySQLDBBlobKeysMixin,
+    mysql_clients.MySQLDBClientMixin,
+    mysql_cronjobs.MySQLDBCronJobMixin,
+    mysql_events.MySQLDBEventMixin,
+    mysql_flows.MySQLDBFlowMixin,
+    mysql_foreman_rules.MySQLDBForemanRulesMixin,
+    mysql_hunts.MySQLDBHuntMixin,
+    mysql_paths.MySQLDBPathMixin,
+    mysql_signed_binaries.MySQLDBSignedBinariesMixin,
+    mysql_signed_commands.MySQLDBSignedCommandsMixin,
+    mysql_users.MySQLDBUsersMixin,
+    mysql_yara.MySQLDBYaraMixin,
+    db_module.Database,
+):
   """Implements db.Database and blob_store.BlobStore using MySQL."""
 
   def ClearTestDB(self):
@@ -480,12 +486,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
   _WRITE_ROWS_BATCH_SIZE = 10000
   _DELETE_ROWS_BATCH_SIZE = 5000
 
-  def __init__(self,
-               host=None,
-               port=None,
-               user=None,
-               password=None,
-               database=None):
+  def __init__(
+      self, host=None, port=None, user=None, password=None, database=None
+  ):
     """Creates a datastore implementation.
 
     Args:
@@ -513,21 +516,24 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         ".*Invalid.*character string.*",
     ]:
       warnings.filterwarnings(
-          "ignore", category=MySQLdb.Warning, message=message)
+          "ignore", category=MySQLdb.Warning, message=message
+      )
 
     self._connect_args = dict(
         host=host or config.CONFIG["Mysql.host"],
         port=port or config.CONFIG["Mysql.port"],
         user=user or config.CONFIG["Mysql.username"],
         password=password or config.CONFIG["Mysql.password"],
-        database=database or config.CONFIG["Mysql.database"])
+        database=database or config.CONFIG["Mysql.database"],
+    )
 
     client_key_path = config.CONFIG["Mysql.client_key_path"]
     if client_key_path:
       logging.debug("Client key file configured, trying to use SSL.")
       self._connect_args["client_key_path"] = client_key_path
       self._connect_args["client_cert_path"] = config.CONFIG[
-          "Mysql.client_cert_path"]
+          "Mysql.client_cert_path"
+      ]
       self._connect_args["ca_cert_path"] = config.CONFIG["Mysql.ca_cert_path"]
 
     _SetupDatabase(**self._connect_args)
@@ -540,11 +546,11 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
 
     self.flow_processing_request_handler_thread = None
     self.flow_processing_request_handler_stop = None
-    self.flow_processing_request_handler_pool = (
-        threadpool.ThreadPool.Factory(
-            "flow_processing_pool",
-            min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
-            max_threads=config.CONFIG["Mysql.flow_processing_threads_max"]))
+    self.flow_processing_request_handler_pool = threadpool.ThreadPool.Factory(
+        "flow_processing_pool",
+        min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
+        max_threads=config.CONFIG["Mysql.flow_processing_threads_max"],
+    )
 
   def _Connect(self):
     return _Connect(**self._connect_args)
@@ -552,9 +558,14 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
   def Close(self):
     self.pool.close()
 
-  def _RunInTransaction(self,
-                        function: Callable[[MySQLdb.Connection], None],
-                        readonly: bool = False) -> None:
+  def _RunInTransaction(
+      self,
+      function: Callable[
+          [Union[MySQLdb.connections.Connection, mysql_pool._ConnectionProxy]],
+          None,
+      ],
+      readonly: bool = False,
+  ) -> None:
     """Runs function within a transaction.
 
     Allocates a connection, begins a transaction on it and passes the connection
@@ -600,7 +611,10 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
           else:
             raise
         except MySQLdb.OperationalError as e:
-          if e.args[0] == mysql_conn_errors.SERVER_GONE_ERROR:
+          if e.args[0] in [
+              mysql_conn_errors.SERVER_GONE_ERROR,
+              mysql_conn_errors.SERVER_LOST,
+          ]:
             # The connection to the MySQL server is broken. That might be
             # the case with other existing connections in the pool. We will
             # retry with all connections in the pool, expecting that they
@@ -620,6 +634,8 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
             else:
               raise
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
   @mysql_utils.WithTransaction()
   def Now(self, cursor: MySQLdb.cursors.Cursor) -> rdfvalue.RDFDatetime:
     cursor.execute("SELECT UNIX_TIMESTAMP(NOW(6))")

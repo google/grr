@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.hunt');
-goog.module.declareLegacyNamespace();
 
 const {HuntClientsDirective} = goog.require('grrUi.hunt.huntClientsDirective');
 const {HuntContextDirective} = goog.require('grrUi.hunt.huntContextDirective');

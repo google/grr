@@ -1,12 +1,11 @@
 goog.module('grrUi.core.versionDropdownDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 
 
 
 /** @const */
-var REFRESH_VERSIONS_EVENT = 'RefreshVersionsEvent';
+const REFRESH_VERSIONS_EVENT = 'RefreshVersionsEvent';
 
 
 /**
@@ -63,7 +62,7 @@ const VersionDropdownController = class {
     }
 
     if (angular.isDefined(this.versions)) {
-      for (var i = 0; i < this.versions.length; ++i) {
+      for (let i = 0; i < this.versions.length; ++i) {
         if (newValue === this.versions[i]['value']) {
           this.version = this.scope_['version'].toString();
           return;
@@ -121,12 +120,12 @@ const VersionDropdownController = class {
    * @private
    */
   fetchVersions_() {
-    var url = this.scope_['url'];
+    const url = this.scope_['url'];
 
     if (angular.isDefined(url)) {
       this.updateInProgress_ = true;
       this.requestCounter_ += 1;
-      var curCounter = this.requestCounter_;
+      const curCounter = this.requestCounter_;
 
       this.grrApiService_.get(url).then(function(response) {
         // Make sure that the response we got corresponds to the latest
@@ -146,7 +145,7 @@ const VersionDropdownController = class {
    * @private
    */
   onVersionsFetched_(response) {
-    var responseField = this.scope_['responseField'] || 'times';
+    const responseField = this.scope_['responseField'] || 'times';
 
     this.versions = response['data'][responseField];
 

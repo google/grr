@@ -26,7 +26,7 @@ initTestEnvironment();
 describe('CollectMultipleFilesForm', () => {
   beforeEach(waitForAsync(() => {
     return TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, ReactiveFormsModule, FlowArgsFormModule],
+      imports: [ReactiveFormsModule, FlowArgsFormModule, NoopAnimationsModule],
       providers: [
         HttpApiService,
         {provide: HttpApiService, useFactory: mockHttpApiService},

@@ -8,7 +8,6 @@ import {
 } from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
 
 import {ResultAccordionHarness} from '../../../../components/flow_details/helpers/testing/result_accordion_harness';
 import {newHunt} from '../../../../lib/models/model_test_util';
@@ -31,7 +30,8 @@ describe('HuntProgress Component', () => {
   beforeEach(waitForAsync(() => {
     huntPageGlobalStore = mockHuntPageGlobalStore();
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, HuntProgressModule, RouterTestingModule],
+      // Note: NoopAnimationsModule has to be last.
+      imports: [HuntProgressModule, NoopAnimationsModule],
       providers: [...STORE_PROVIDERS],
       teardown: {destroyAfterEach: false},
     })
@@ -89,7 +89,7 @@ describe('HuntProgress Component', () => {
     fixture.detectChanges();
 
     const summaries = fixture.nativeElement.querySelectorAll('.summary');
-    expect(summaries.length).toBe(5);
+    expect(summaries.length).toBe(6);
 
     expect(summaries[0].children[0].innerText).toContain('Complete');
     expect(summaries[0].children[1].innerText).toContain('3 %');
@@ -107,9 +107,13 @@ describe('HuntProgress Component', () => {
     expect(summaries[3].children[1].innerText).toContain('1 %');
     expect(summaries[3].children[2].innerText).toContain('1 client');
 
-    expect(summaries[4].children[0].innerText).toContain('Errors and Crashes');
-    expect(summaries[4].children[1].innerText).toContain('5 %');
-    expect(summaries[4].children[2].innerText).toContain('5 clients');
+    expect(summaries[4].children[0].innerText).toContain('Errors');
+    expect(summaries[4].children[1].innerText).toContain('3 %');
+    expect(summaries[4].children[2].innerText).toContain('3 clients');
+
+    expect(summaries[5].children[0].innerText).toContain('Crashes');
+    expect(summaries[5].children[1].innerText).toContain('2 %');
+    expect(summaries[5].children[2].innerText).toContain('2 clients');
   });
 
   it('does not show negative numbers', () => {
@@ -129,7 +133,7 @@ describe('HuntProgress Component', () => {
     fixture.detectChanges();
 
     const summaries = fixture.nativeElement.querySelectorAll('.summary');
-    expect(summaries.length).toBe(5);
+    expect(summaries.length).toBe(6);
 
     expect(summaries[0].children[0].innerText).toContain('Complete');
     expect(summaries[0].children[1].innerText).toContain('0 %');
@@ -147,9 +151,13 @@ describe('HuntProgress Component', () => {
     expect(summaries[3].children[1].innerText).toContain('0 %');
     expect(summaries[3].children[2].innerText).toContain('0 client');
 
-    expect(summaries[4].children[0].innerText).toContain('Errors and Crashes');
+    expect(summaries[4].children[0].innerText).toContain('Errors');
     expect(summaries[4].children[1].innerText).toContain('0 %');
     expect(summaries[4].children[2].innerText).toContain('0 clients');
+
+    expect(summaries[5].children[0].innerText).toContain('Crashes');
+    expect(summaries[5].children[1].innerText).toContain('0 %');
+    expect(summaries[5].children[2].innerText).toContain('0 clients');
   });
 
   describe('Hunt progress loading spinner', () => {

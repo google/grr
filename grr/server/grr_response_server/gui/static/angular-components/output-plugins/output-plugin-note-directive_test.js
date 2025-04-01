@@ -46,7 +46,7 @@ describe('output plugin note directive', () => {
     $rootScope.outputPluginsUrl = '/foo/bar';
 
     const template = '<grr-output-plugin-note output-plugin="outputPlugin" ' +
-        'output-plugins-url="outputPluginsUrl" />';
+        'output-plugins-url="outputPluginsUrl"></grr-output-plugin-note>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

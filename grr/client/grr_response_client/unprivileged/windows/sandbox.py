@@ -5,9 +5,10 @@ Adds support for global sandbox initialization and handles checks for whether
 sandboxing is supported by the current platform.
 """
 
+from collections.abc import Iterable
 import logging
 import platform
-from typing import Iterable, Optional
+from typing import Optional
 
 _sandbox_name: Optional[str] = None
 

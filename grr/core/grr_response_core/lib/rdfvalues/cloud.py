@@ -82,30 +82,18 @@ class CloudInstance(rdf_structs.RDFProtoStruct):
   ]
 
 
-def MakeGoogleUniqueID(cloud_instance):
-  """Make the google unique ID of zone/project/id."""
-  if not (
-      cloud_instance.zone
-      and cloud_instance.project_id
-      and cloud_instance.instance_id
-  ):
-    raise ValueError(
-        "Bad zone/project_id/id: '%s/%s/%s'"
-        % (
-            cloud_instance.zone,
-            cloud_instance.project_id,
-            cloud_instance.instance_id,
-        )
-    )
-  return "/".join([
-      cloud_instance.zone.split("/")[-1],
-      cloud_instance.project_id,
-      cloud_instance.instance_id,
-  ])
-
-
+# TODO: Return a proto instead of an RDFValue.
 def BuildCloudMetadataRequests():
-  """Build the standard set of cloud metadata to collect during interrogate."""
+  """Build the standard set of cloud metadata to collect during interrogate.
+
+  The `label` field is used to identify the metadata in the response, and should
+  match a valid field of the corresponding <Platform>CloudInstance proto.
+  Example: A request for instance_type=CloudInstance.InstanceType.GOOGLE with
+          `label="instance_id"` -> `GoogleCloudInstance.instance_id`
+
+  Returns:
+    A CloudMetadataRequests proto with the standard set of interrogate requests.
+  """
   return CloudMetadataRequests(
       requests=[
           CloudMetadataRequest.ForAmazon(
@@ -157,39 +145,3 @@ def BuildCloudMetadataRequests():
           ),
       ],
   )
-
-
-def ConvertCloudMetadataResponsesToCloudInstance(metadata_responses):
-  """Convert CloudMetadataResponses to CloudInstance proto.
-
-  Ideally we'd just get the client to fill out a CloudInstance proto, but we
-  need to keep the flexibility of collecting new metadata and creating new
-  fields without a client push. So instead we bring back essentially a dict of
-  results and fill the proto on the server side.
-
-  Args:
-    metadata_responses: CloudMetadataResponses object from the client.
-
-  Returns:
-    CloudInstance object
-  Raises:
-    ValueError: if client passes bad or unset cloud type.
-  """
-  if metadata_responses.instance_type == "GOOGLE":
-    cloud_instance = GoogleCloudInstance()
-    result = CloudInstance(cloud_type="GOOGLE", google=cloud_instance)
-  elif metadata_responses.instance_type == "AMAZON":
-    cloud_instance = AmazonCloudInstance()
-    result = CloudInstance(cloud_type="AMAZON", amazon=cloud_instance)
-  else:
-    raise ValueError(
-        "Unknown cloud instance type: %s" % metadata_responses.instance_type
-    )
-
-  for cloud_metadata in metadata_responses.responses:
-    setattr(cloud_instance, cloud_metadata.label, cloud_metadata.text)
-
-  if result.cloud_type == "GOOGLE":
-    cloud_instance.unique_id = MakeGoogleUniqueID(cloud_instance)
-
-  return result

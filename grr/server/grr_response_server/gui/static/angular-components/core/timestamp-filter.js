@@ -14,7 +14,7 @@ const timeService = goog.requireType('grrUi.core.timeService');
  */
 const filterImplementation = function(grrTimeService, value) {
   if (angular.isNumber(value)) {
-    var timestamp = value / 1000;
+    const timestamp = value / 1000;
     return grrTimeService.formatAsUTC(timestamp);
   } else {
     return '-';

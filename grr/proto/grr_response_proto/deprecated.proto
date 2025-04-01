@@ -8,7 +8,6 @@
 syntax = "proto2";
 
 import "google/protobuf/any.proto";
-import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/api/client.proto";
 import "grr_response_proto/api/flow.proto";
 import "grr_response_proto/artifact.proto";
@@ -19,6 +18,8 @@ import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 
 package grr;
+
+// LINT: LEGACY_NAMES
 
 message CollectArtifactDependenciesArgs {
   repeated string artifact_list = 1 [(sem_type) = {
@@ -1439,4 +1440,161 @@ message ArtifactProcessorDescriptor {
   optional string name = 1;
   optional string description = 2;
   repeated string output_types = 3;
+}
+
+message Anomaly {
+  enum AnomalyLevel {
+    UNKNOWN_ANOMALY_LEVEL = 0;
+    VERY_LOW = 1;
+    LOW = 2;
+    MEDIUM = 3;
+    HIGH = 4;
+    VERY_HIGH = 5;
+  }
+
+  enum AnomalyType {
+    UNKNOWN_ANOMALY_TYPE = 0;
+    PARSER_ANOMALY = 1;    // Found during format parsing.
+    ANALYSIS_ANOMALY = 2;  // Found during analysis.
+    MANUAL_ANOMALY = 3;    // Found by humans.
+  }
+
+  optional AnomalyType type = 1 [(sem_type) = {
+    description: "Type of anomaly this represents.",
+  }];
+
+  optional AnomalyLevel severity = 2 [(sem_type) = {
+    description: "Severity of the anomaly if it is a true positive.",
+  }];
+
+  optional AnomalyLevel confidence = 3 [(sem_type) = {
+    description: "Confidence that the anomaly is a true positive.",
+  }];
+
+  optional string symptom = 4 [(sem_type) = {
+    description: "A description of what is anomalous.",
+  }];
+
+  optional string explanation = 5 [(sem_type) = {
+    description: "A description of possible explanations for the anomaly if "
+                 "additional information is available.",
+  }];
+
+  optional string generated_by = 6 [(sem_type) = {
+    description: "String describing what generated the anomaly, this is "
+                 "normally the name of a parser or artifact.",
+  }];
+
+  optional PathSpec reference_pathspec = 7 [(sem_type) = {
+    description: "A pathspec pointing to the object where the anomaly was "
+                 "found."
+  }];
+
+  repeated string anomaly_reference_id = 8 [(sem_type) = {
+    description: "A string used to reference the anomaly in the Anomaly "
+                 "database."
+  }];
+
+  repeated string finding = 9 [(sem_type) = {
+    description: "String descriptions of data that triggered the Anomaly."
+  }];
+}
+
+message CpuSample {
+  optional float user_cpu_time = 1;
+  optional float system_cpu_time = 2;
+  optional float cpu_percent = 3;
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time of this sample."
+  }];
+}
+
+message IOSample {
+  optional uint64 read_count = 1;
+  optional uint64 write_count = 2;
+  optional uint64 read_bytes = 3;
+  optional uint64 write_bytes = 4;
+  optional uint64 timestamp = 5 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time of this sample."
+  }];
+}
+
+message ClientStats {
+  repeated CpuSample cpu_samples = 1;
+  optional uint64 RSS_size = 2;
+  optional uint64 VMS_size = 3;
+  optional float memory_percent = 4;
+  optional uint64 bytes_received = 5;
+  optional uint64 bytes_sent = 6;
+  repeated IOSample io_samples = 7;
+  optional uint64 create_time = 8 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time of the process creation of the GRR process."
+  }];
+  optional uint64 boot_time = 9 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time of the system boot."
+  }];
+  optional uint64 timestamp = 10 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time when this ClientStats sample was stored."
+  }];
+}
+
+message GlobArgs {
+  repeated string paths = 1 [(sem_type) = {
+    type: "GlobExpression",
+    description: "A list of paths to glob that supports: ** path recursion,"
+                 " * wildcards and %% expansions.",
+  }];
+
+  optional PathSpec.PathType pathtype = 2 [
+    (sem_type) = {
+      description: "Type of access to glob in.",
+    },
+    default = OS
+  ];
+
+  optional PathSpec root_path = 3 [(sem_type) = {
+    description: "The root path to begin the glob.  Users should almost never"
+                 " need to change this. root_path.pathtype is unused in"
+                 " favor of pathtype to allow it to be modified by users.",
+    label: ADVANCED
+  }];
+
+  optional bool process_non_regular_files = 4 [
+    (sem_type) = {
+      description: "Work with all kinds of files - not only with regular ones."
+                   "NOTE: This is very dangerous and should be used with care, see "
+                   "MemoryCollector as an example.",
+      label: HIDDEN,
+    },
+    default = false
+  ];
+
+  optional PathSpec.ImplementationType implementation_type = 5 [(sem_type) = {
+    label: ADVANCED,
+    description: "Force use of an implementation."
+  }];
+}
+
+message PerClientFileCollectionArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional PathSpec.PathType path_type = 2 [
+    (sem_type) = { description: "Path type used to collect given file paths." }
+  ];
+  repeated string paths = 3
+      [(sem_type) = { description: "File paths to collect." }];
+}
+
+message ApiCreatePerClientFileCollectionHuntArgs {
+  optional string description = 1;
+  optional uint64 duration_secs = 2 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "Maximum amount of time the hunt is allowed to run."
+  }];
+  repeated PerClientFileCollectionArgs per_client_args = 3;
 }

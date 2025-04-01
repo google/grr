@@ -24,6 +24,7 @@ from grr_response_proto import api_utils_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import output_plugin_pb2
@@ -37,7 +38,6 @@ from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.flows.general import export
-from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
@@ -47,7 +47,7 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.models import hunts as models_hunts
-from grr_response_server.models import protobuf_utils
+from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
@@ -57,15 +57,13 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
-FORCE_HUNT_TAG = "FORCE"
-
-# pyformat: disable
+# fmt: off
 
 CANCELLED_BY_USER = "Cancelled by user"
 
 # /grr/server/grr_response_server/hunt.py,
 # //depot/@app/components/hunt/hunt_status_chip/hunt_status_chip.ts)
-# pyformat: enable
+# fmt: on
 
 
 class HuntNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -157,16 +155,16 @@ def InitApiHuntFromHuntObject(
   )
   # Set `state_comment` to empty string if unset to maintain API.
   api_hunt.state_comment = hunt_obj.hunt_state_comment
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "hunt_id")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "crash_limit")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "client_limit")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "client_rate")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "create_time", "created")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "duration")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "creator")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "init_start_time")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "last_start_time")
-  protobuf_utils.CopyAttr(hunt_obj, api_hunt, "description")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "hunt_id")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "crash_limit")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "client_limit")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "client_rate")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "create_time", "created")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "duration")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "creator")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "init_start_time")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "last_start_time")
+  models_utils.CopyAttr(hunt_obj, api_hunt, "description")
   api_hunt.is_robot = hunt_obj.creator in access_control.SYSTEM_USERS
 
   if hunt_counters is not None:
@@ -185,6 +183,7 @@ def InitApiHuntFromHuntObject(
       api_hunt.completed_clients_count = (
           hunt_counters.num_successful_clients
           + hunt_counters.num_failed_clients
+          + hunt_counters.num_crashed_clients
       )
   else:
     api_hunt.results_count = 0
@@ -209,23 +208,23 @@ def InitApiHuntFromHuntObject(
 
   if with_full_summary:
     hra = flows_pb2.HuntRunnerArgs()
-    protobuf_utils.CopyAttr(api_hunt, hra, "name", "hunt_name")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "description")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "crash_limit")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "client_limit")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "duration", "expiry_time")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "avg_results_per_client_limit")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "avg_cpu_seconds_per_client_limit")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "avg_network_bytes_per_client_limit")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "client_rate")
-    protobuf_utils.CopyAttr(hunt_obj, hra, "per_client_cpu_limit")
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(api_hunt, hra, "name", "hunt_name")
+    models_utils.CopyAttr(hunt_obj, hra, "description")
+    models_utils.CopyAttr(hunt_obj, hra, "crash_limit")
+    models_utils.CopyAttr(hunt_obj, hra, "client_limit")
+    models_utils.CopyAttr(hunt_obj, hra, "duration", "expiry_time")
+    models_utils.CopyAttr(hunt_obj, hra, "avg_results_per_client_limit")
+    models_utils.CopyAttr(hunt_obj, hra, "avg_cpu_seconds_per_client_limit")
+    models_utils.CopyAttr(hunt_obj, hra, "avg_network_bytes_per_client_limit")
+    models_utils.CopyAttr(hunt_obj, hra, "client_rate")
+    models_utils.CopyAttr(hunt_obj, hra, "per_client_cpu_limit")
+    models_utils.CopyAttr(
         hunt_obj,
         hra,
         "per_client_network_bytes_limit",
         "per_client_network_limit_bytes",
     )
-    protobuf_utils.CopyAttr(
+    models_utils.CopyAttr(
         hunt_obj, hra, "total_network_bytes_limit", "network_bytes_limit"
     )
     hra.output_plugins.extend(hunt_obj.output_plugins)
@@ -261,41 +260,16 @@ def InitApiHuntFromHuntMetadata(
       is_robot=hunt_metadata.creator in access_control.SYSTEM_USERS,
   )
 
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "hunt_id")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "client_limit")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "client_rate")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "create_time", "created")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "init_start_time")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "last_start_time")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "duration")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "creator")
-  protobuf_utils.CopyAttr(hunt_metadata, api_hunt, "description")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "hunt_id")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "client_limit")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "client_rate")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "create_time", "created")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "init_start_time")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "last_start_time")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "duration")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "creator")
+  models_utils.CopyAttr(hunt_metadata, api_hunt, "description")
   return api_hunt
-
-
-def ApiCreatePerClientFileCollectionHuntArgToHuntArgs(
-    args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
-) -> hunts_pb2.HuntArguments:
-  """Converts ApiCreatePerClientFileCollectionHuntArgs to HuntArguments."""
-  hunt_arguments = hunts_pb2.HuntArguments()
-  hunt_arguments.hunt_type = hunts_pb2.HuntArguments.HuntType.VARIABLE
-
-  for client_arg in args.per_client_args:
-    if client_arg.HasField("path_type"):
-      pathtype = client_arg.path_type
-    else:
-      pathtype = jobs_pb2.PathSpec.PathType.OS
-
-    flow_args = flows_pb2.MultiGetFileArgs()
-    for path in client_arg.paths:
-      flow_args.pathspecs.add(path=path, pathtype=pathtype)
-
-    flow_group = hunt_arguments.variable.flow_groups.add()
-    flow_group.flow_args.Pack(flow_args)
-    flow_group.client_ids.append(str(client_arg.client_id))
-    flow_group.flow_name = transfer.MultiGetFile.__name__
-
-  return hunt_arguments
 
 
 def InitApiHuntLogFromFlowLogEntry(
@@ -309,10 +283,10 @@ def InitApiHuntLogFromFlowLogEntry(
   # Remove as soon as AFF4 is gone.
   hunt_log.flow_name = "GenericHunt"
 
-  protobuf_utils.CopyAttr(fle, hunt_log, "client_id")
-  protobuf_utils.CopyAttr(fle, hunt_log, "flow_id")
-  protobuf_utils.CopyAttr(fle, hunt_log, "timestamp")
-  protobuf_utils.CopyAttr(fle, hunt_log, "message", "log_message")
+  models_utils.CopyAttr(fle, hunt_log, "client_id")
+  models_utils.CopyAttr(fle, hunt_log, "flow_id")
+  models_utils.CopyAttr(fle, hunt_log, "timestamp")
+  models_utils.CopyAttr(fle, hunt_log, "message", "log_message")
 
   return hunt_log
 
@@ -340,8 +314,8 @@ def InitApiHuntResultFromFlowResult(
   """Init ApiFlowResult from FlowResult."""
   api_flow_result = hunt_pb2.ApiHuntResult()
   api_flow_result.payload.CopyFrom(flow_result.payload)
-  protobuf_utils.CopyAttr(flow_result, api_flow_result, "client_id")
-  protobuf_utils.CopyAttr(flow_result, api_flow_result, "timestamp")
+  models_utils.CopyAttr(flow_result, api_flow_result, "client_id")
+  models_utils.CopyAttr(flow_result, api_flow_result, "timestamp")
 
   return api_flow_result
 
@@ -361,6 +335,7 @@ class Histogram:
   """A histogram of timestamps."""
 
   min_timestamp: int
+  max_timestamp: int
   num_buckets: int
   bucket_size: float
   buckets: list[Bucket]
@@ -370,8 +345,10 @@ class Histogram:
       min_timestamp: int,
       max_timestamp: int,
       num_buckets: int,
+      values: list[int],
   ):
     self.min_timestamp = min_timestamp
+    self.max_timestamp = max_timestamp
     self.num_buckets = num_buckets
     self.bucket_size = (max_timestamp - min_timestamp) / num_buckets
 
@@ -379,6 +356,9 @@ class Histogram:
     for i in range(num_buckets):
       lower = min_timestamp + i * self.bucket_size
       self.buckets.append(Bucket(lower_boundary_ts=lower))
+
+    for value in values:
+      self._Insert(value)
 
   def _GetBucketIndex(self, timestamp: int) -> int:
     if self.bucket_size == 0:
@@ -393,41 +373,46 @@ class Histogram:
 
     return index
 
-  def Insert(self, timestamp: int) -> None:
+  def _Insert(self, timestamp: int) -> None:
     self.buckets[self._GetBucketIndex(timestamp)].count += 1
+
+  def GetCumulativeHistogram(self) -> "Histogram":
+    """Returns the cumulative histogram."""
+    cumulative_histogram = Histogram(
+        min_timestamp=self.min_timestamp,
+        max_timestamp=self.max_timestamp,
+        num_buckets=self.num_buckets,
+        values=[],
+    )
+    cumulative_count = 0
+    for index, bucket in enumerate(self.buckets):
+      cumulative_count += bucket.count
+      cumulative_histogram.buckets[index].count = cumulative_count
+
+    return cumulative_histogram
 
 
 def InitApiGetHuntClientCompletionStatsResultFromHistograms(
-    flow_creation_time_histogram: Histogram,
-    flow_completion_time_histogram: Histogram,
+    flow_creation_histogram: Histogram,
+    flow_completion_histogram: Histogram,
 ) -> hunt_pb2.ApiGetHuntClientCompletionStatsResult:
   """Initializes ApiGetHuntClientCompletionStatsResult from given histograms."""
-  creation_time_samples = []
-  completion_time_samples = []
 
-  accumulative_start_count = 0
-  for index, bucket in enumerate(flow_creation_time_histogram.buckets):
-    if bucket.count == 0 and index > 0:
-      continue
-    accumulative_start_count += bucket.count
-    creation_time_samples.append(
-        analysis_pb2.SampleFloat(
-            x_value=bucket.lower_boundary_ts,
-            y_value=accumulative_start_count,
-        )
-    )
+  creation_time_samples = [
+      analysis_pb2.SampleFloat(
+          x_value=bucket.lower_boundary_ts,
+          y_value=bucket.count,
+      )
+      for bucket in flow_creation_histogram.GetCumulativeHistogram().buckets
+  ]
 
-  accumulative_complete_count = 0
-  for index, bucket in enumerate(flow_completion_time_histogram.buckets):
-    if bucket.count == 0 and index > 0:
-      continue
-    accumulative_complete_count += bucket.count
-    completion_time_samples.append(
-        analysis_pb2.SampleFloat(
-            x_value=bucket.lower_boundary_ts,
-            y_value=accumulative_complete_count,
-        )
-    )
+  completion_time_samples = [
+      analysis_pb2.SampleFloat(
+          x_value=bucket.lower_boundary_ts,
+          y_value=bucket.count,
+      )
+      for bucket in flow_completion_histogram.GetCumulativeHistogram().buckets
+  ]
 
   return hunt_pb2.ApiGetHuntClientCompletionStatsResult(
       start_points=creation_time_samples,
@@ -502,12 +487,6 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
     elif self.hunt_type == ApiHunt.HuntType.VARIABLE:
       return rdf_hunt_objects.HuntArgumentsVariable
-
-  def ObjectReference(self):
-    return rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.HUNT,
-        hunt=rdf_objects.HuntReference(hunt_id=str(self.hunt_id)),
-    )
 
 
 class ApiHuntResult(rdf_structs.RDFProtoStruct):
@@ -989,18 +968,6 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
           "Hunt with id %s could not be found" % str(args.hunt_id)
       ) from ex
 
-    def GetValue(
-        attributed_dict: jobs_pb2.AttributedDict, key: str
-    ) -> Optional[jobs_pb2.DataBlob]:
-      for entry in attributed_dict.dat:
-        if entry.k.string == key:
-          return entry.v
-
-    def RemoveKey(attributed_dict: jobs_pb2.AttributedDict, key: str):
-      for entry in attributed_dict.dat:
-        if entry.k.string == key:
-          attributed_dict.dat.remove(entry)
-
     result = []
     used_names = collections.Counter()
     for output_plugin_state in output_plugin_states:
@@ -1010,30 +977,10 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       plugin_id = f"{name}_{used_names[name]}"
       used_names[name] += 1
 
-      state = jobs_pb2.AttributedDict()
-      state.CopyFrom(output_plugin_state.plugin_state)
-
-      if GetValue(state, "source_urn"):
-        RemoveKey(state, "source_urn")
-      if GetValue(state, "token"):
-        RemoveKey(state, "token")
-      if errors := GetValue(state, "errors"):
-        if not errors.list.content:
-          RemoveKey(state, "errors")
-      if logs := GetValue(state, "logs"):
-        if not logs.list.content:
-          RemoveKey(state, "logs")
-      if error_count := GetValue(state, "error_count"):
-        if not error_count.integer:
-          RemoveKey(state, "error_count")
-      if success_count := GetValue(state, "success_count"):
-        if not success_count.integer:
-          RemoveKey(state, "success_count")
-
       api_plugin = output_plugin_pb2.ApiOutputPlugin()
       api_plugin.id = plugin_id
       api_plugin.plugin_descriptor.CopyFrom(plugin_descriptor)
-      api_plugin.state.Pack(state)
+      api_plugin.state.Pack(output_plugin_state.plugin_state)
 
       result.append(api_plugin)
 
@@ -1299,7 +1246,7 @@ class ApiGetHuntClientCompletionStatsHandler(
     states_and_timestamps = data_store.REL_DB.ReadHuntFlowsStatesAndTimestamps(
         str(args.hunt_id)
     )
-    num_buckets = max(1000, args.size)
+    num_buckets = max(100, args.size)
     flow_creation_times, flow_completion_times = [], []
 
     for stat in states_and_timestamps:
@@ -1315,13 +1262,13 @@ class ApiGetHuntClientCompletionStatsHandler(
     min_timestamp = min(flow_creation_times)
     max_timestamp = max(flow_creation_times + flow_completion_times)
 
-    started_histogram = Histogram(min_timestamp, max_timestamp, num_buckets)
-    for timestamp in flow_creation_times:
-      started_histogram.Insert(timestamp)
+    started_histogram = Histogram(
+        min_timestamp, max_timestamp, num_buckets, values=flow_creation_times
+    )
 
-    completed_histogram = Histogram(min_timestamp, max_timestamp, num_buckets)
-    for timestamp in flow_completion_times:
-      completed_histogram.Insert(timestamp)
+    completed_histogram = Histogram(
+        min_timestamp, max_timestamp, num_buckets, values=flow_completion_times
+    )
 
     return InitApiGetHuntClientCompletionStatsResultFromHistograms(
         started_histogram, completed_histogram
@@ -1355,7 +1302,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of hunt %s results (archived %d "
           "out of %d items, archive size is %d)"
           % (
@@ -1369,7 +1316,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     except Exception as e:
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for hunt %s: %s" % (args.hunt_id, e),
           None,
       )
@@ -1736,21 +1683,15 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
       args: hunt_pb2.ApiCreateHuntArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> hunt_pb2.ApiHunt:
-    hra = args.hunt_runner_args
+    assert context is not None
 
     flow_cls = registry.FlowRegistry.FlowClassByName(args.flow_name)
     if flow_cls.block_hunt_creation:
       raise ValueError(f"Flow '{args.flow_name}' cannot run as hunt")
 
-    hunt_obj = models_hunts.CreateHunt(
-        duration=hra.expiry_time,
-        client_rate=hra.client_rate,
-        client_limit=hra.client_limit,
-        crash_limit=hra.crash_limit,
-        avg_results_per_client_limit=hra.avg_results_per_client_limit,
-        avg_cpu_seconds_per_client_limit=hra.avg_cpu_seconds_per_client_limit,
-        avg_network_bytes_per_client_limit=hra.avg_network_bytes_per_client_limit,
-    )
+    hunt_obj = models_hunts.CreateHuntFromHuntRunnerArgs(args.hunt_runner_args)
+
+    hunt_obj.num_clients_at_start_time = 0
 
     hunt_obj.args.standard.flow_name = args.flow_name
     if args.HasField("flow_args"):
@@ -1759,38 +1700,26 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     hunt_obj.creator = context.username
 
     hunt_cfg = config.CONFIG["AdminUI.hunt_config"]
-    presubmit_on = bool(
-        hunt_cfg and hunt_cfg.make_default_exclude_labels_a_presubmit_check
-    )
-    if presubmit_on and FORCE_HUNT_TAG not in hra.description:
+    skip_tag = ""
+    if hunt_cfg and hunt_cfg.presubmit_check_with_skip_tag:
+      skip_tag = hunt_cfg.presubmit_check_with_skip_tag
+    if skip_tag not in args.hunt_runner_args.description:
       passes = self._HuntPresubmitCheck(
-          hra.client_rule_set, hunt_cfg.default_exclude_labels
+          args.hunt_runner_args.client_rule_set, hunt_cfg.default_exclude_labels
       )
       if not passes:
         message = hunt_cfg.presubmit_warning_message + (
-            "\nHunt creation failed because the presubmit check failed. Please"
-            " check exclude the following labels"
-            f" {hunt_cfg.default_exclude_labels} or add a '{FORCE_HUNT_TAG}='"
-            " tag to the hunt description."
+            "\nHunt creation failed because the presubmit check failed. You"
+            " MUST exclude the following labels from your fleet collection:"
+            f" {hunt_cfg.default_exclude_labels} or add a"
+            f" '{skip_tag}=<reason>' tag to the description."
         )
         raise HuntPresubmitError(message)
 
-    # At this point, either the presubmit is off, the FORCE tag is set,
+    # At this point, either the presubmit is off, the skip tag is set,
     # or the presubmit passed, so we can set the client_rule_set.
-    if hra.HasField("client_rule_set"):
-      hunt_obj.client_rule_set.CopyFrom(hra.client_rule_set)
-
-    protobuf_utils.CopyAttr(hra, hunt_obj, "description")
-    protobuf_utils.CopyAttr(hra, hunt_obj, "per_client_cpu_limit")
-    protobuf_utils.CopyAttr(
-        hra,
-        hunt_obj,
-        "per_client_network_limit_bytes",
-        "per_client_network_bytes_limit",
-    )
-    protobuf_utils.CopyAttr(
-        hra, hunt_obj, "network_bytes_limit", "total_network_bytes_limit"
-    )
+    if args.hunt_runner_args.HasField("client_rule_set"):
+      hunt_obj.client_rule_set.CopyFrom(args.hunt_runner_args.client_rule_set)
 
     if args.HasField("original_hunt") and args.HasField("original_flow"):
       raise ValueError(
@@ -1814,8 +1743,6 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
       hunt_obj.original_object.flow_reference.client_id = (
           args.original_flow.client_id
       )
-
-    hunt_obj.output_plugins.extend(hra.output_plugins)
 
     # Effectively writes the hunt to the DB.
     hunt.CreateHunt(hunt_obj)
@@ -2005,70 +1932,3 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name, content_generator=content_generator
     )
-
-
-class PerClientFileCollectionArgs(rdf_structs.RDFProtoStruct):
-  protobuf = hunt_pb2.PerClientFileCollectionArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
-
-
-class ApiCreatePerClientFileCollectionHuntArgs(rdf_structs.RDFProtoStruct):
-  protobuf = hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-      PerClientFileCollectionArgs,
-  ]
-
-
-class ApiCreatePerClientFileCollectionHuntHandler(
-    api_call_handler_base.ApiCallHandler
-):
-  """Creates a variable hunt to collect files across multiple clients."""
-
-  args_type = ApiCreatePerClientFileCollectionHuntArgs
-  result_type = ApiHunt
-  proto_args_type = hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs
-  proto_result_type = hunt_pb2.ApiHunt
-
-  MAX_CLIENTS = 250
-  MAX_FILES = 1000
-
-  def Handle(
-      self,
-      args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
-      context: api_call_context.ApiCallContext,
-  ) -> hunt_pb2.ApiHunt:
-    if len(args.per_client_args) > self.MAX_CLIENTS:
-      raise ValueError(
-          f"At most {self.MAX_CLIENTS} clients can be specified "
-          "in a per-client file collection hunt."
-      )
-
-    if sum(len(pca.paths) for pca in args.per_client_args) > self.MAX_FILES:
-      raise ValueError(
-          f"At most {self.MAX_FILES} file paths can be specified "
-          "in a per-client file collection hunt."
-      )
-    hunt_args = ApiCreatePerClientFileCollectionHuntArgToHuntArgs(args)
-
-    hunt_args = mig_hunt_objects.ToRDFHuntArguments(hunt_args)
-    hunt_obj = rdf_hunt_objects.Hunt(
-        args=hunt_args,
-        description=args.description,
-        creator=context.username,
-        client_rate=0.0,
-    )
-    if args.HasField("duration_secs"):
-      hunt_obj.duration = rdfvalue.DurationSeconds(args.duration_secs)
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    hunt.CreateHunt(hunt_obj)
-
-    return InitApiHuntFromHuntObject(hunt_obj, with_full_summary=True)
-
-
-# TODO: Temporary copy of migration function due to cyclic
-# dependency.
-def ToRDFApiHunt(proto: hunt_pb2.ApiHunt) -> ApiHunt:
-  return ApiHunt.FromSerializedBytes(proto.SerializeToString())

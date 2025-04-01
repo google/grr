@@ -1,5 +1,4 @@
 goog.module('grrUi.cron.cronJobInspectorDirective');
-goog.module.declareLegacyNamespace();
 
 
 

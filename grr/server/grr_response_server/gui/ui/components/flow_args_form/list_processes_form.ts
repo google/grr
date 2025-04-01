@@ -36,6 +36,7 @@ type Controls = ReturnType<typeof makeControls>;
 
 /** A form that configures the ListProcesses flow. */
 @Component({
+  standalone: false,
   selector: 'app-list-processes-form',
   templateUrl: './list_processes_form.ng.html',
   styleUrls: ['./list_processes_form.scss'],

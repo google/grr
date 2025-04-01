@@ -1,5 +1,4 @@
 goog.module('grrUi.outputPlugins.outputPlugins');
-goog.module.declareLegacyNamespace();
 
 const {OutputPluginLogsDirective} = goog.require('grrUi.outputPlugins.outputPluginLogsDirective');
 const {OutputPluginNoteBodyDirective} = goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective');

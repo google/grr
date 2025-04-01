@@ -15,25 +15,30 @@ const ASCII_ARTS: readonly string[] = [
  * A page rendering error information about an address that could not be found.
  */
 @Component({
+  standalone: false,
   selector: 'app-not-found-page',
   templateUrl: './not_found_page.ng.html',
   styleUrls: ['./not_found_page.scss'],
 })
 export class NotFoundPage {
-  readonly uiConfig$ = this.configGlobalStore.uiConfig$;
+  readonly uiConfig$;
 
-  readonly asciiArt = ASCII_ARTS[Math.floor(Math.random() * ASCII_ARTS.length)];
+  readonly asciiArt;
 
-  readonly legacyLink = makeLegacyLink();
+  readonly legacyLink;
 
-  readonly currentUrlPath = window.location.href.slice(
-    window.location.origin.length,
-  );
+  readonly currentUrlPath;
 
   constructor(
     private readonly configGlobalStore: ConfigGlobalStore,
     title: Title,
   ) {
+    this.uiConfig$ = this.configGlobalStore.uiConfig$;
+    this.asciiArt = ASCII_ARTS[Math.floor(Math.random() * ASCII_ARTS.length)];
+    this.legacyLink = makeLegacyLink();
+    this.currentUrlPath = window.location.href.slice(
+      window.location.origin.length,
+    );
     title.setTitle('GRR | Not Found');
   }
 

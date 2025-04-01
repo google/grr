@@ -21,14 +21,13 @@ from grr_response_server import flow
 from grr_response_server import notification
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows import file
+from grr_response_server.gui import access_controller
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
-from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
@@ -53,11 +52,8 @@ class ApiNotificationTest(
       message: Optional[str] = None,
   ) -> api_user_pb2.ApiNotification:
     self.CreateUser(self.context.username)
-    rdf_reference = None
-    if reference is not None:
-      rdf_reference = mig_objects.ToRDFObjectReference(reference)
     notification.Notify(
-        self.context.username, notification_type, message or "", rdf_reference
+        self.context.username, notification_type, message or "", reference
     )
     notifications = self.GetUserNotifications(self.context.username)
     notifications = [
@@ -378,8 +374,8 @@ class ApiApprovalScheduledFlowsTest(
   def testDoesNotStartScheduledFlowsIfGrantedApprovalIsNotValid(self):
     with mock.patch.object(flow, "StartScheduledFlows") as start_mock:
       with mock.patch.object(
-          approval_checks,
-          "CheckApprovalRequest",
+          access_controller.ApprovalChecker,
+          "CheckClientApprovals",
           side_effect=access_control.UnauthorizedAccess("foobazzle"),
       ):
         approval_id = self.RequestAndGrantClientApproval(
@@ -1004,32 +1000,32 @@ class ApiDeletePendingUserNotificationHandlerTest(
     with test_lib.FakeTime(self.TIME_0):
       notification.Notify(
           self.context.username,
-          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+          objects_pb2.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
           "<some message>",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id),
+          objects_pb2.ObjectReference(
+              reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+              client=objects_pb2.ClientReference(client_id=self.client_id),
           ),
       )
 
       notification.Notify(
           self.context.username,
-          rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+          objects_pb2.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
           "<some message with identical time>",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id),
+          objects_pb2.ObjectReference(
+              reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+              client=objects_pb2.ClientReference(client_id=self.client_id),
           ),
       )
 
     with test_lib.FakeTime(self.TIME_1):
       notification.Notify(
           self.context.username,
-          rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
+          objects_pb2.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
           "<some other message>",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(client_id=self.client_id),
+          objects_pb2.ObjectReference(
+              reference_type=objects_pb2.ObjectReference.Type.CLIENT,
+              client=objects_pb2.ClientReference(client_id=self.client_id),
           ),
       )
 

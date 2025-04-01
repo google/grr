@@ -41,6 +41,7 @@ except ImportError:
 FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
 
 _LOCALHOST = "localhost"
+_LOCALHOST_LOCALDOMAIN = "localhost.localdomain"
 
 
 class ClientURN(rdfvalue.RDFURN):
@@ -387,8 +388,8 @@ class Process(rdf_structs.RDFProtoStruct):
         cpu_times = psutil_process.cpu_times()
         response.user_cpu_time = cpu_times.user
         response.system_cpu_time = cpu_times.system
-        # This is very time consuming so we do not collect cpu_percent here.
-        # response.cpu_percent = psutil_process.get_cpu_percent()
+        # psutil_process.get_cpu_percent() is very time consuming so we do not
+        # collect it.
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
@@ -528,7 +529,7 @@ class Uname(rdf_structs.RDFProtoStruct):
     """Fill a Uname from the currently running platform."""
     uname = platform.uname()
     fqdn = socket.getfqdn()
-    if fqdn == _LOCALHOST:
+    if fqdn == _LOCALHOST or fqdn == _LOCALHOST_LOCALDOMAIN:
       # Avoid returning 'localhost' when there is a better value to use.
       fqdn = socket.gethostname()
     system = uname[0]

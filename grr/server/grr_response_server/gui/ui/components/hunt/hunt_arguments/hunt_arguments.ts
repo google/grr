@@ -93,7 +93,6 @@ export class HuntArguments {
       ForemanIntegerClientRuleForemanIntegerField.LAST_BOOT_TIME,
       'Last Boot Time',
     ],
-    [ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK, 'Client Clock'],
     [ForemanIntegerClientRuleForemanIntegerField.UNSET, 'Unset'],
     [undefined, 'Undefined Condition Field'],
   ]);

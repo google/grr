@@ -76,8 +76,8 @@ const HuntOverviewController = class {
     if (angular.isDefined(this.scope_['huntId'])) {
       this.huntId = this.scope_['huntId'];
 
-      var huntUrl = 'hunts/' + this.huntId;
-      var interval = AUTO_REFRESH_INTERVAL_MS;
+      const huntUrl = 'hunts/' + this.huntId;
+      const interval = AUTO_REFRESH_INTERVAL_MS;
 
       this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
       this.pollPromise_.then(undefined, undefined, (response) => {

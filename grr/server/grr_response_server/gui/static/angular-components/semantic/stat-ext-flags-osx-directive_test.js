@@ -24,7 +24,7 @@ describe('stat ext-flags for Mac directive', () => {
   const render = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-stat-ext-flags-osx value="value" />';
+    const template = '<grr-stat-ext-flags-osx value="value"></grr-stat-ext-flags-osx>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

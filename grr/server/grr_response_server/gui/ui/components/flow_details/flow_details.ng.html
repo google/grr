@@ -62,15 +62,22 @@
       </button>
     </div>
 
-    <mat-menu #exportMenu="matMenu">
-      <a
-        *ngFor="let item of exportMenuItems | slice:1; trackBy: trackExportMenuItem"
+    <mat-menu #exportMenu="matMenu" id ="exportMenu">
+      <ng-container *ngFor="let item of exportMenuItems | slice:1; trackBy: trackExportMenuItem">
+        <a *ngIf="item.type === ButtonType.LINK"
+          mat-menu-item
+          [href]="item.url"
+          [download]="item.downloadName"
+        >
+          {{ item.title }}
+        </a>
+        <a *ngIf="item.type === ButtonType.COPY_TO_CLIPBOARD"
         mat-menu-item
-        [href]="item.url"
-        [download]="item.downloadName"
-      >
-        {{ item.title }}
-      </a>
+        (click)="copyToClipboard(item.url)"
+        >
+          {{ item.title }}
+        </a>
+      </ng-container>
     </mat-menu>
 
     <div class="flow-status">
@@ -125,6 +132,14 @@
         (click)="triggerMenuEvent(flowMenuAction.CREATE_HUNT)"
       >
         <span>Create a fleet collection</span>
+      </button>
+      <button
+        name="copyApiCreateRequest"
+        *ngIf="(startFlowRequest$ | async) as request"
+        mat-menu-item
+        (click)="copyToClipboard(request)"
+      >
+        <span>Copy API Create Request</span>
       </button>
     </mat-menu>
   </div>

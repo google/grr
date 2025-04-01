@@ -1,5 +1,4 @@
 goog.module('grrUi.semantic.semantic');
-goog.module.declareLegacyNamespace();
 
 const {ApiHuntResultDirective} = goog.require('grrUi.semantic.apiHuntResultDirective');
 const {ByteSizeDirective} = goog.require('grrUi.semantic.byteSizeDirective');
@@ -119,7 +118,7 @@ exports.semanticModule.service(
 
 
 exports.semanticModule.run(function(grrSemanticValueDirectivesRegistryService) {
-  var registry = grrSemanticValueDirectivesRegistryService;
+  const registry = grrSemanticValueDirectivesRegistryService;
 
   registry.registerDirective(
       ApiHuntResultDirective.semantic_type, ApiHuntResultDirective);

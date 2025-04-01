@@ -22,11 +22,12 @@ describe('ApiHelperService', () => {
     const deferred = $q.defer();
     deferred.resolve({
       data: {
+        name: 'AdminUI.webauth_manager',
         value: {
-          type: 'RDFString',
-          value: 'FooBarAuthManager',
+          type: 'StringValue',
+          value: {value: {type: 'unicode', value: 'FooBarAuthManager'}}
         },
-      },
+      }
     });
     spyOn(grrApiService, 'getCached').and.returnValue(deferred.promise);
 

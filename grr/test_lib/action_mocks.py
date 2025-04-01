@@ -45,7 +45,7 @@ from grr.test_lib import worker_mocks
 class ActionMock(object):
   """A client mock which runs a real action.
 
-  This can be used as input for TestFlowHelper.
+  This can be used as input for StartAndRunFlow.
 
   It is possible to mix mocked actions with real actions. Simple extend this
   class and add methods for the mocked actions, while instantiating with the
@@ -104,7 +104,6 @@ class ActionMock(object):
         name=message.name,
         response_id=response_id,
         request_id=message.request_id,
-        task_id=message.Get("task_id"),
         payload=rdf_flows.GrrStatus(
             status=status or rdf_flows.GrrStatus.ReturnedStatus.OK),
         type=rdf_flows.GrrMessage.Type.STATUS)
@@ -118,7 +117,6 @@ class ActionMock(object):
           rdf_flows.GrrMessage(
               session_id=message.session_id,
               request_id=message.request_id,
-              task_id=message.Get("task_id"),
               name=message.name,
               response_id=i + 1,
               payload=r,
@@ -158,7 +156,8 @@ class ActionMock(object):
 
 class Store(server_stubs.ClientActionStub):
   """A test client action."""
-  pass
+  in_rdfvalue = rdf_protodict.DataBlob
+  in_proto = jobs_pb2.DataBlob
 
 
 action_registry.RegisterAdditionalTestClientAction(Store)
@@ -656,8 +655,7 @@ System Information
     self.response_count += 1
     return [
         rdf_protodict.Dict({
-            "Client.server_urls": [u"http://localhost:8001/"],
-            "Client.poll_min": 1.0
+            "Client.foreman_check_frequency": 3600,
         })
     ]
 
@@ -693,14 +691,23 @@ System Information
       return []
 
   def GetCloudVMMetadata(self, args):
-    result_list = []
-    for request in args.requests:
-      result_list.append(
-          rdf_cloud.CloudMetadataResponse(
-              label=request.label or request.url, text=request.label))
+    """Returns fake Google Cloud VM metadata."""
+    del args  # Unused.
+    result_list = [
+        rdf_cloud.CloudMetadataResponse(
+            label="instance_id", text="instance_id"
+        ),
+        rdf_cloud.CloudMetadataResponse(label="zone", text="zone"),
+        rdf_cloud.CloudMetadataResponse(label="project_id", text="project_id"),
+        rdf_cloud.CloudMetadataResponse(label="hostname", text="hostname"),
+        rdf_cloud.CloudMetadataResponse(
+            label="machine_type", text="machine_type"
+        ),
+    ]
     return [
         rdf_cloud.CloudMetadataResponses(
-            responses=result_list, instance_type="GOOGLE")
+            responses=result_list, instance_type="GOOGLE"
+        )
     ]
 
 

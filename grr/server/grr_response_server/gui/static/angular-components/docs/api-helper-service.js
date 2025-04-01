@@ -115,7 +115,8 @@ exports.ApiHelperService = class {
   buildStartFlow(clientId, createFlowJson) {
     return this.grrApiService_.getCached('/config/AdminUI.webauth_manager')
         .then(function(response) {
-          const webAuthType = response['data']['value']['value'];
+          const webAuthType =
+              response['data']['value']['value']['value']['value'];
           return this.buildStartFlow_(webAuthType, clientId, createFlowJson);
         }.bind(this));
   }

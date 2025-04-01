@@ -8,7 +8,7 @@ import {observeOnDestroy} from './reactive';
 
 initTestEnvironment();
 
-@Component({template: ''})
+@Component({standalone: false, template: '', jit: true})
 class TestComponent implements OnDestroy {
   readonly callback = jasmine.createSpy('callback');
   readonly ngOnDestroy = observeOnDestroy(this, this.callback);

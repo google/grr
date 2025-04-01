@@ -411,26 +411,31 @@ class VfsViewComponentStore extends ComponentStore<State> {
 /** Store for managing virtual filesystem state. */
 @Injectable()
 export class VfsViewLocalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new VfsViewComponentStore(this.httpApiService);
+    this.currentFile$ = this.store.currentFile$;
+    this.currentDirectory$ = this.store.currentDirectory$;
+    this.isRootSelected$ = this.store.isRootSelected$;
+    this.directoryTree$ = this.store.directoryTree$;
+    this.isListingCurrentDirectory$ = this.store.isListingCurrentDirectory$;
+  }
 
-  private readonly store = new VfsViewComponentStore(this.httpApiService);
+  private readonly store;
 
   /** The selected file, if the selected path points to a file. */
-  readonly currentFile$: Observable<File | null> = this.store.currentFile$;
+  readonly currentFile$: Observable<File | null>;
 
   /**
    * The selected directory. if the selected path points to a file, the file's
    * parent directory will be emitted.
    */
-  readonly currentDirectory$: Observable<DirectoryListing | null> =
-    this.store.currentDirectory$;
+  readonly currentDirectory$: Observable<DirectoryListing | null>;
 
-  readonly isRootSelected$: Observable<boolean> = this.store.isRootSelected$;
+  readonly isRootSelected$: Observable<boolean>;
 
-  readonly directoryTree$: Observable<DirectoryNode | null> =
-    this.store.directoryTree$;
+  readonly directoryTree$: Observable<DirectoryNode | null>;
 
-  readonly isListingCurrentDirectory$ = this.store.isListingCurrentDirectory$;
+  readonly isListingCurrentDirectory$;
 
   listCurrentDirectory(opts?: {maxDepth: number}) {
     this.store.listCurrentDirectory(opts);

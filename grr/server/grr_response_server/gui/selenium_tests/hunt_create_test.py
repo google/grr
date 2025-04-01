@@ -191,7 +191,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     )
 
     rule = foreman_rules.ForemanIntegerClientRule
-    label = rule.ForemanIntegerField.CLIENT_CLOCK.description
+    label = rule.ForemanIntegerField.CLIENT_VERSION.description
     self.Select(
         "css=grr-configure-rules-page div.well:nth(0) "
         "label:contains('Field') ~ * select",
@@ -205,7 +205,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Type(
         "css=grr-configure-rules-page div.well:nth(0) "
         "label:contains('Value') ~ * input",
-        "1336650631137737",
+        "1337",
     )
 
     self.Click("css=grr-configure-rules-page button[name=Add]")
@@ -372,12 +372,12 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(
         r.rules[1].rule_type, foreman_rules.ForemanClientRule.Type.INTEGER
     )
-    self.assertEqual(r.rules[1].integer.field, "CLIENT_CLOCK")
+    self.assertEqual(r.rules[1].integer.field, "CLIENT_VERSION")
     self.assertEqual(
         r.rules[1].integer.operator,
         foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
     )
-    self.assertEqual(r.rules[1].integer.value, 1336650631137737)
+    self.assertEqual(r.rules[1].integer.value, 1337)
 
     self.assertEqual(
         r.rules[2].rule_type, foreman_rules.ForemanClientRule.Type.REGEX

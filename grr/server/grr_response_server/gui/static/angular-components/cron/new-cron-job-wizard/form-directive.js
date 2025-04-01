@@ -37,8 +37,10 @@ const FormController = class {
 
     this.grrApiService_.get(DEFAULT_PLUGINS_URL)
         .then(function(response) {
-          if (angular.isDefined(response['data']['value'])) {
-            this.defaultOutputPluginName = response['data']['value']['value'];
+          if (angular.isDefined(response['data']['value']['value']['value']) &&
+              response['data']['value']['value']['value']['value']) {
+            this.defaultOutputPluginName =
+                response['data']['value']['value']['value']['value'];
           }
 
           return this.grrReflectionService_.getRDFValueDescriptor(
@@ -75,12 +77,12 @@ const FormController = class {
     if (newValue && this.huntRunnerArgs) {
       oldValue = oldValue || '';
 
-      var huntDescription;
+      let huntDescription;
       if (angular.isDefined(this.huntRunnerArgs.value.description)) {
         huntDescription = this.huntRunnerArgs.value.description.value;
       }
 
-      var cronSuffix = ' (cron)';
+      const cronSuffix = ' (cron)';
       if (angular.isUndefined(huntDescription) ||
           huntDescription == oldValue + cronSuffix) {
         this.huntRunnerArgs.value.description = {
@@ -142,7 +144,7 @@ const FormController = class {
           angular.copy(this.descriptors_['HuntRunnerArgs']['default']);
     }
 
-    var huntRunnerArgs = newValue['value']['hunt_runner_args']['value'];
+    const huntRunnerArgs = newValue['value']['hunt_runner_args']['value'];
     // Initialize CreateGenericHuntFlowArgs.hunt_runner_args.client_rule_set
     if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
       huntRunnerArgs['client_rule_set'] =
@@ -153,7 +155,7 @@ const FormController = class {
     // not initialized, initialize it to default output plugins list (if any).
     if (angular.isUndefined(huntRunnerArgs['output_plugins'])) {
       if (this.defaultOutputPluginName) {
-        var defaultPluginDescriptor = angular.copy(
+        const defaultPluginDescriptor = angular.copy(
             this.descriptors_['OutputPluginDescriptor']['default']);
         defaultPluginDescriptor['value']['plugin_name'] =
             angular.copy(this.descriptors_['RDFString']['default']);

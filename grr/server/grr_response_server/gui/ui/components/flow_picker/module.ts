@@ -10,7 +10,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {FlowsOverview} from '../../components/flow_picker/flows_overview';
@@ -26,7 +25,6 @@ import {FlowPicker} from './flow_picker';
     // TODO: re-enable clang format when solved.
     // prettier-ignore
     // keep-sorted start block=yes
-    BrowserAnimationsModule,
     CommonModule,
     FormsModule,
     MatAutocompleteModule,

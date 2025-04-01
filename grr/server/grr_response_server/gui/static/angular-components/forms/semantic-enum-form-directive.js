@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.semanticEnumFormDirective');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -35,13 +34,13 @@ const SemanticEnumFormController = class {
     if (angular.isDefined(newValue)) {
       this.allowedOptions = [];
       angular.forEach(newValue, function(option) {
-        var defaultLabel = '';
-        var defaultOptionName = this.scope_.$eval('metadata.default.value');
+        let defaultLabel = '';
+        const defaultOptionName = this.scope_.$eval('metadata.default.value');
         if (defaultOptionName == option.name) {
           defaultLabel = ' (default)';
         }
 
-        var label = option.name;
+        let label = option.name;
         if (option.doc) {
           label = option.doc;
         }

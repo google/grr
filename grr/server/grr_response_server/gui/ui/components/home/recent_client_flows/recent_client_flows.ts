@@ -12,6 +12,7 @@ import {RecentClientFlowsLocalStore} from '../../../store/recent_client_flows_lo
  * Displays a recent accessed client.
  */
 @Component({
+  standalone: false,
   selector: 'app-recent-client-flows',
   templateUrl: './recent_client_flows.ng.html',
   styleUrls: ['./recent_client_flows.scss'],
@@ -22,12 +23,8 @@ export class RecentClientFlows {
   constructor(
     private readonly configGlobalStore: ConfigGlobalStore,
     private readonly recentClientFlowsLocalStore: RecentClientFlowsLocalStore,
-  ) {}
-
-  private readonly approval$ = new BehaviorSubject<ClientApproval | null>(null);
-
-  readonly showApprovalChip$: Observable<boolean> =
-    this.recentClientFlowsLocalStore.hasAccess$.pipe(
+  ) {
+    this.showApprovalChip$ = this.recentClientFlowsLocalStore.hasAccess$.pipe(
       map((hasAccess) => {
         if (isNull(this.approval) || isNull(hasAccess)) {
           return false;
@@ -39,13 +36,20 @@ export class RecentClientFlows {
         return !inconsistency1 && !inconsistency2;
       }),
     );
+    this.hasAccess$ = this.recentClientFlowsLocalStore.hasAccess$;
+    this.entries$ = combineLatest([
+      this.recentClientFlowsLocalStore.flowListEntries$,
+      this.configGlobalStore.flowDescriptors$,
+    ]).pipe(map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []));
+  }
 
-  readonly hasAccess$ = this.recentClientFlowsLocalStore.hasAccess$;
+  private readonly approval$ = new BehaviorSubject<ClientApproval | null>(null);
 
-  readonly entries$: Observable<readonly FlowWithDescriptor[]> = combineLatest([
-    this.recentClientFlowsLocalStore.flowListEntries$,
-    this.configGlobalStore.flowDescriptors$,
-  ]).pipe(map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []));
+  readonly showApprovalChip$: Observable<boolean>;
+
+  readonly hasAccess$;
+
+  readonly entries$: Observable<readonly FlowWithDescriptor[]>;
 
   entryTrackByFunction(index: number, entry: FlowWithDescriptor) {
     return entry.flow.flowId;

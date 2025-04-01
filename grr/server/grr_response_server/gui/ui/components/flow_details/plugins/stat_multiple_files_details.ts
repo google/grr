@@ -33,6 +33,7 @@ const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[] | undefined> = (
  * Component that displays results of StatMultipleFiles flow.
  */
 @Component({
+  standalone: false,
   selector: 'stat-multiple-files-details',
   templateUrl: './stat_multiple_files_details.ng.html',
   styleUrls: ['./_base.scss'],
@@ -76,9 +77,12 @@ export class StatMultipleFilesDetails extends Plugin {
     }),
   );
 
-  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+  override getExportMenuItems(
+    flow: Flow,
+    exportCommandPrefix: string,
+  ): readonly ExportMenuItem[] {
+    const items = super.getExportMenuItems(flow, exportCommandPrefix);
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
-    const items = super.getExportMenuItems(flow);
 
     if (items.find((item) => item.url === downloadItem.url)) {
       return items;

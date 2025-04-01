@@ -70,6 +70,7 @@ message FlowContext {
   // optional uint64 remaining_cpu_quota = 12;
   optional string session_id = 13 [(sem_type) = { type: "SessionID" }];
 
+
   enum State {
     RUNNING = 0;
     TERMINATED = 1;
@@ -80,6 +81,8 @@ message FlowContext {
     WELL_KNOWN = 2;
     CLIENT_CRASHED = 4;
   }
+
+  //   /grr_response_proto/api/flow.proto)
 
   optional State state = 14;
   optional string status = 15;
@@ -136,6 +139,8 @@ message FlowLikeObjectReference {
 
 // Next field: 24
 message FlowRunnerArgs {
+  reserved 6;
+
   // DEPRECATED
   // optional GrrMessage.Priority priority = 1;
 
@@ -157,15 +162,6 @@ message FlowRunnerArgs {
     description: "The client id this flow operates on.",
     label: HIDDEN,
   }];
-
-  optional string queue = 6 [
-    (sem_type) = {
-      type: "RDFURN",
-      description: "The queue to use for the flow.",
-      label: HIDDEN,
-    },
-    default = "F"
-  ];
 
   // DEPRECATED.
   // optional string event_id = 7 [(sem_type) = {
@@ -241,6 +237,8 @@ message FlowRunnerArgs {
 
 // Next field ID: 31
 message HuntRunnerArgs {
+  reserved 7;
+
   optional string hunt_name = 1 [(sem_type) = {
     description: "The name of the class implementing the hunt to run.",
   }];
@@ -256,15 +254,6 @@ message HuntRunnerArgs {
 
   // DEPRECATED
   // optional string notification_event = 6;
-
-  optional string queue = 7 [
-    (sem_type) = {
-      description: "The queue to use for the hunt.",
-      type: "RDFURN",
-      label: HIDDEN,
-    },
-    default = "H"
-  ];
 
   optional uint64 cpu_limit = 9 [(sem_type) = {
     description: "An overall limit on the client cpu seconds used by this "
@@ -508,12 +497,6 @@ message DeleteGRRTempFilesArgs {
   }];
 }
 
-// Next field ID: 2
-message UpdateConfigurationArgs {
-  optional Dict config = 1
-      [(sem_type) = { description: "The config to send to the client." }];
-}
-
 // Next field ID: 3
 message ExecutePythonHackArgs {
   optional string hack_name = 1
@@ -527,22 +510,6 @@ message ExecutePythonHackArgs {
 message ExecutePythonHackResult {
   /// A string value that the Python script returned.
   optional string result_string = 1;
-}
-
-// Next field ID: 4
-message ExecuteCommandArgs {
-  optional string cmd = 1 [(sem_type) = {
-    description: "",
-  }];
-  optional string command_line = 2 [(sem_type) = {
-    description: "The arguments to the command as a shell command line."
-  }];
-  optional int64 time_limit = 3 [
-    (sem_type) = {
-      description: "The time limit for this execution, -1 means unlimited."
-    },
-    default = -1
-  ];
 }
 
 // Next field ID: 2
@@ -563,6 +530,12 @@ message UpdateClientArgs {
   }];
 }
 
+message UpdateClientStore {
+  optional string write_path = 1 [(sem_type) = {
+    description: "The path to write the binary to on the client.",
+  }];
+}
+
 // Next field ID: 3
 message LaunchBinaryArgs {
   optional string binary = 1 [(sem_type) = {
@@ -572,6 +545,12 @@ message LaunchBinaryArgs {
 
   optional string command_line = 2 [(sem_type) = {
     description: "Binary Arguments as a shell command line.",
+  }];
+}
+
+message LaunchBinaryStore {
+  optional string write_path = 1 [(sem_type) = {
+    description: "The path to write the binary to on the client.",
   }];
 }
 
@@ -624,10 +603,10 @@ message ArtifactCollectorFlowArgs {
     (sem_type) = {
       type: "ByteSize",
       description: "The maximum size of files we will download in bytes,"
-                   " 500MB by default.",
+                   " 5 GiB by default.",
       label: ADVANCED
     },
-    default = 500000000
+    default = 5368709120
   ];
 
   enum Dependency {
@@ -660,10 +639,7 @@ message ArtifactCollectorFlowArgs {
     default = false
   ];
 
-  optional bool old_client_snapshot_fallback = 13 [(sem_type) = {
-    description: "If true, in case of interpolation failure or no results, "
-                 "older client snapshots are going to be tried."
-  }];
+  reserved 13;
 
   optional bool recollect_knowledge_base = 14 [(sem_type) = {
     description: "Whether the dependencies should be collected as well or the"
@@ -679,10 +655,22 @@ message ArtifactCollectorFlowArgs {
 message ArtifactProgress {
   optional string name = 1;
   optional uint32 num_results = 2;
+
+  enum Status {
+    UNDEFINED = 0;
+    SUCCESS = 1;
+    FAILURE = 2;
+    SKIPPED_DUE_TO_OS_CONDITION = 3;
+  }
+  optional Status status = 3;
 }
 
 message ArtifactCollectorFlowProgress {
   repeated ArtifactProgress artifacts = 1;
+}
+
+message ArtifactCollectorFlowStore {
+  optional KnowledgeBase knowledge_base = 1;
 }
 
 // Next field ID: 12
@@ -706,10 +694,10 @@ message ArtifactFilesDownloaderFlowArgs {
     (sem_type) = {
       type: "ByteSize",
       description: "The maximum size of files we will download in bytes,"
-                   " 500MB by default.",
+                   " 5 GiB by default.",
       label: ADVANCED
     },
-    default = 500000000
+    default = 5368709120
   ];
 
   optional PathSpec.ImplementationType implementation_type = 11 [(sem_type) = {
@@ -747,6 +735,19 @@ message InterrogateArgs {
   ];
 }
 
+// Next field ID: 4
+message InterrogateStore {
+  optional ClientSnapshot client_snapshot = 1;
+
+  // TODO: Remove `fqdn` and `os` fields once `Interrogate` is
+  // refactored to knowledgebase from individual client calls and the
+  // `KnowledgeBaseInitializationFlow`.
+  optional string fqdn = 2
+      ;
+  optional string os = 3
+      ;
+}
+
 // Next field ID: 2
 message FileCollectorArgs {
   repeated FindSpec findspecs = 1 [(sem_type) = {
@@ -776,44 +777,6 @@ message RecursiveListDirectoryArgs {
 // Next field ID: 2
 message GrepArgs {
   optional GrepSpec request = 1;
-}
-
-// Next field ID: 6
-message GlobArgs {
-  repeated string paths = 1 [(sem_type) = {
-    type: "GlobExpression",
-    description: "A list of paths to glob that supports: ** path recursion,"
-                 " * wildcards and %% expansions.",
-  }];
-
-  optional PathSpec.PathType pathtype = 2 [
-    (sem_type) = {
-      description: "Type of access to glob in.",
-    },
-    default = OS
-  ];
-
-  optional PathSpec root_path = 3 [(sem_type) = {
-    description: "The root path to begin the glob.  Users should almost never"
-                 " need to change this. root_path.pathtype is unused in"
-                 " favor of pathtype to allow it to be modified by users.",
-    label: ADVANCED
-  }];
-
-  optional bool process_non_regular_files = 4 [
-    (sem_type) = {
-      description: "Work with all kinds of files - not only with regular ones."
-                   "NOTE: This is very dangerous and should be used with care, see "
-                   "MemoryCollector as an example.",
-      label: HIDDEN,
-    },
-    default = false
-  ];
-
-  optional PathSpec.ImplementationType implementation_type = 5 [(sem_type) = {
-    label: ADVANCED,
-    description: "Force use of an implementation."
-  }];
 }
 
 // Next field ID: 4
@@ -849,7 +812,7 @@ message GetMBRArgs {
 
 enum Browser {
   UNDEFINED = 0;
-  CHROME = 1;
+  CHROMIUM_BASED_BROWSERS = 1;
   FIREFOX = 2;
   INTERNET_EXPLORER = 3;
   OPERA = 4;
@@ -1701,6 +1664,16 @@ message FileFinderResult {
   }];
 }
 
+message FileFinderStore {
+  // Number of blobs we're still waiting to be uploaded to blob storage.
+  optional uint64 num_blob_waits = 1;
+}
+
+message FileFinderProgress {
+  // Number of files found.
+  optional uint64 files_found = 1;
+}
+
 message CollectFilesByKnownPathArgs {
   // Path files to be collected.
   repeated string paths = 1;
@@ -2254,11 +2227,10 @@ message ProcessMemoryRegion {
 }
 
 message YaraProcessDumpInformation {
+  reserved 2;
+
   optional Process process = 1 [(sem_type) = {
     description: "The process that was dumped to disk.",
-  }];
-  repeated PathSpec dump_files = 2 [(sem_type) = {
-    description: "Deprecated. Replaced by memory_regions[*].file.",
   }];
   optional string error = 3 [(sem_type) = {
     description: "Errors while dumping will be reported here. Mostly used "
@@ -2446,7 +2418,7 @@ message FlowIterator {
   }];
 }
 
-// Next id: 36
+// Next id: 39
 message Flow {
   reserved 10;
 
@@ -2459,7 +2431,24 @@ message Flow {
   // TODO(hanuszczak): `long_flow_id` is data duplication. Consider removing it.
   optional string long_flow_id = 6;
   optional google.protobuf.Any args = 7;
+
   optional AttributedDict persistent_data = 8;
+
+  // This field can be used to store arbitrary data a Flow class needs to
+  // persist across multiple state method invocations.
+  // Each Flow class should have a dedicated Store proto message defined.
+  // It is a successor of the unstructured `persistent_data` field.
+  optional google.protobuf.Any store = 36 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+  }];
+
+  // This field can be used to store a Flow's progress.
+  // The Flow class should have a dedicated Progress proto message defined,
+  // which will be held here.
+  optional google.protobuf.Any progress = 37 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+  }];
+
   optional ClientCrash client_crash_info = 9;
   optional string error_message = 11;
   optional string backtrace = 12;
@@ -2473,6 +2462,7 @@ message Flow {
   optional uint64 next_outbound_id = 18 [default = 1];
   optional uint64 next_request_to_process = 19 [default = 1];
   optional uint64 num_replies_sent = 32;
+  optional FlowResultMetadata result_metadata = 38;
   repeated OutputPluginState output_plugins_states = 20;
 
   enum FlowState {
@@ -2578,5 +2568,7 @@ message FlowResultMetadata {
   // empty.
   optional bool is_metadata_set = 3;
 }
+
+message DefaultFlowStore {}
 
 message DefaultFlowProgress {}

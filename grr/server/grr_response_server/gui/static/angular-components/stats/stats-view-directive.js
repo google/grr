@@ -1,5 +1,4 @@
 goog.module('grrUi.stats.statsViewDirective');
-goog.module.declareLegacyNamespace();
 
 const routingService = goog.requireType('grrUi.routing.routingService');
 
@@ -57,22 +56,22 @@ const StatsViewController = class {
    * @private
    */
   onUrlParamsChange_(unused_values, params) {
-    var selectionName = params['name'];
+    const selectionName = params['name'];
     if (angular.isDefined(selectionName)) {
       this.selectionName = selectionName;
     }
 
-    var startTimeStr = params['start_time'];
+    const startTimeStr = params['start_time'];
     if (angular.isDefined(startTimeStr)) {
       this.startTime = parseInt(startTimeStr, 10);
     }
 
-    var durationStr = params['duration'];
+    const durationStr = params['duration'];
     if (angular.isDefined(durationStr)) {
       this.duration = parseInt(durationStr, 10);
     }
 
-    var clientLabel = params['client_label'];
+    const clientLabel = params['client_label'];
     if (angular.isDefined(clientLabel)) {
       this.clientLabel = clientLabel;
     }
@@ -98,7 +97,7 @@ const StatsViewController = class {
     }
     this.oldSelectionName_ = this.selectionName;
 
-    var urlParams = {
+    const urlParams = {
       name: this.selectionName,
     };
 

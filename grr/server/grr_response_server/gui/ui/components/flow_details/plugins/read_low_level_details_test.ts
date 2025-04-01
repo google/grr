@@ -79,6 +79,7 @@ describe('ReadLowLevelDetails component', () => {
     expect(
       fixture.componentInstance.getExportMenuItems(
         fixture.componentInstance.flow,
+        '' /** exportCommandPrefix can be left empty for testing purposes */,
       )[0].url,
     ).toEqual('/api/v2/clients/C.1234/vfs-blob/temp/C.1234_456_somepath');
   });

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """This module contains regression tests for output plugins API handlers."""
 
+from unittest import mock
+
 from absl import app
 
-from grr_response_core.lib import utils
-from grr_response_server import instant_output_plugin
-from grr_response_server import output_plugin
+from grr_response_core.lib import registry
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import output_plugin as output_plugin_plugin
 from grr_response_server.output_plugins import csv_plugin
@@ -22,19 +22,13 @@ class ApiListOutputPluginDescriptorsHandlerTest(
   handler = output_plugin_plugin.ApiListOutputPluginDescriptorsHandler
 
   def Run(self):
-    with utils.MultiStubber(
-        (
-            output_plugin.OutputPlugin,
-            "classes",
-            {
-                "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
-            },
-        ),
-        (
-            instant_output_plugin.InstantOutputPlugin,
-            "classes",
-            {"CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin},
-        ),
+    with mock.patch.object(
+        registry.OutputPluginRegistry,
+        "PLUGIN_REGISTRY",
+        {
+            "CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin,
+            "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
+        },
     ):
       self.Check("ListOutputPluginDescriptors")
 

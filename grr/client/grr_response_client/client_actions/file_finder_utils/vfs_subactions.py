@@ -2,8 +2,9 @@
 """Implementation of client-side file-finder subactions."""
 
 import abc
+from collections.abc import Callable
 import stat
-from typing import Callable, Optional
+from typing import Optional
 
 from grr_response_client import actions
 from grr_response_client import client_utils_common

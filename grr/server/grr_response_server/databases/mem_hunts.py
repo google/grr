@@ -16,10 +16,7 @@ from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
-from grr_response_server.models import hunts
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
+from grr_response_server.models import hunts as models_hunts
 
 
 def UpdateHistogram(histogram: jobs_pb2.StatsHistogram, value: float):
@@ -46,22 +43,22 @@ def UpdateStats(running_stats: jobs_pb2.RunningStats, values: Iterable[float]):
 
 
 def InitializeClientResourcesStats(
-    client_resources: Sequence[jobs_pb2.ClientResources],
+    client_resources: list[jobs_pb2.ClientResources],
 ) -> jobs_pb2.ClientResourcesStats:
   """Initialized ClientResourcesStats with resources consumed by a single client."""
 
   stats = jobs_pb2.ClientResourcesStats()
   stats.user_cpu_stats.histogram.bins.extend([
       jobs_pb2.StatsHistogramBin(range_max_value=b)
-      for b in hunts.CPU_STATS_BINS
+      for b in models_hunts.CPU_STATS_BINS
   ])
   stats.system_cpu_stats.histogram.bins.extend([
       jobs_pb2.StatsHistogramBin(range_max_value=b)
-      for b in hunts.CPU_STATS_BINS
+      for b in models_hunts.CPU_STATS_BINS
   ])
   stats.network_bytes_sent_stats.histogram.bins.extend([
       jobs_pb2.StatsHistogramBin(range_max_value=b)
-      for b in hunts.NETWORK_STATS_BINS
+      for b in models_hunts.NETWORK_STATS_BINS
   ])
   UpdateStats(
       stats.user_cpu_stats,
@@ -80,7 +77,9 @@ def InitializeClientResourcesStats(
       key=lambda s: s.cpu_usage.user_cpu_time + s.cpu_usage.system_cpu_time,
       reverse=True,
   )
-  stats.worst_performers.extend(client_resources[: hunts.NUM_WORST_PERFORMERS])
+  stats.worst_performers.extend(
+      client_resources[: models_hunts.NUM_WORST_PERFORMERS]
+  )
 
   return stats
 
@@ -90,6 +89,9 @@ class InMemoryDBHuntMixin(object):
 
   hunts: Dict[str, hunts_pb2.Hunt]
   flows: Dict[str, flows_pb2.Flow]
+  hunt_output_plugins_states: dict[str, list[bytes]]
+  approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]]
+  flow_results: dict[tuple[str, str], list[flows_pb2.FlowResult]]
 
   def _GetHuntFlows(self, hunt_id: str) -> List[flows_pb2.Flow]:
     hunt_flows = [
@@ -97,7 +99,6 @@ class InMemoryDBHuntMixin(object):
         for f in self.flows.values()
         if f.parent_hunt_id == hunt_id and f.flow_id == hunt_id
     ]
-    hunt_flows = [mig_flow_objects.ToRDFFlow(f) for f in hunt_flows]
     return sorted(hunt_flows, key=lambda f: f.client_id)
 
   @utils.Synchronized
@@ -198,7 +199,7 @@ class InMemoryDBHuntMixin(object):
           self.hunt_output_plugins_states[hunt_id][state_index]
       )
     except KeyError as ex:
-      raise db.UnknownHuntOutputPluginError(hunt_id, state_index) from ex
+      raise db.UnknownHuntOutputPluginStateError(hunt_id, state_index) from ex
 
     modified_plugin_state = update_fn(state.plugin_state)
     state.plugin_state.CopyFrom(modified_plugin_state)
@@ -313,9 +314,7 @@ class InMemoryDBHuntMixin(object):
     for h in self.hunts.values():
       if not filter_fn(h):
         continue
-      h = mig_hunt_objects.ToRDFHunt(h)
-      hunt_metadata = rdf_hunt_objects.HuntMetadata.FromHunt(h)
-      hunt_metadata = mig_hunt_objects.ToProtoHuntMetadata(hunt_metadata)
+      hunt_metadata = models_hunts.InitHuntMetadataFromHunt(h)
       result.append(hunt_metadata)
 
     result.sort(key=lambda h: h.create_time, reverse=True)
@@ -332,6 +331,8 @@ class InMemoryDBHuntMixin(object):
     """Reads hunt log entries of a given hunt using given query options."""
     all_entries = []
     for flow_obj in self._GetHuntFlows(hunt_id):
+      # ReadFlowLogEntries is implemented in the db.Database class.
+      # pytype: disable=attribute-error
       for entry in self.ReadFlowLogEntries(
           flow_obj.client_id,
           flow_obj.flow_id,
@@ -339,7 +340,7 @@ class InMemoryDBHuntMixin(object):
           sys.maxsize,
           with_substring=with_substring,
       ):
-
+        # pytype: enable=attribute-error
         all_entries.append(
             flows_pb2.FlowLogEntry(
                 hunt_id=hunt_id,
@@ -372,6 +373,8 @@ class InMemoryDBHuntMixin(object):
     """Reads hunt results of a given hunt using given query options."""
     all_results = []
     for flow_obj in self._GetHuntFlows(hunt_id):
+      # ReadFlowResults is implemented in the db.Database class.
+      # pytype: disable=attribute-error
       for entry in self.ReadFlowResults(
           flow_obj.client_id,
           flow_obj.flow_id,
@@ -381,6 +384,7 @@ class InMemoryDBHuntMixin(object):
           with_type=with_type,
           with_substring=with_substring,
       ):
+        # pytype: enable=attribute-error
         all_results.append(
             flows_pb2.FlowResult(
                 hunt_id=hunt_id,
@@ -455,7 +459,6 @@ class InMemoryDBHuntMixin(object):
     ]
     results.sort(key=lambda f: f.last_update_time)
     results = results[offset : offset + count]
-    results = [mig_flow_objects.ToProtoFlow(f) for f in results]
     return results
 
   @utils.Synchronized
@@ -535,7 +538,6 @@ class InMemoryDBHuntMixin(object):
     client_resources = []
 
     for f in self._GetHuntFlows(hunt_id):
-      f = mig_flow_objects.ToProtoFlow(f)
       cr = jobs_pb2.ClientResources(
           session_id=str(rdfvalue.RDFURN(f.client_id).Add(f.flow_id)),
           client_id=str(rdf_client.ClientURN.FromHumanReadable(f.client_id)),
@@ -557,7 +559,6 @@ class InMemoryDBHuntMixin(object):
 
     result = []
     for f in self._GetHuntFlows(hunt_id):
-      f = mig_flow_objects.ToProtoFlow(f)
       result.append(
           db.FlowStateAndTimestamps(
               flow_state=f.flow_state,
@@ -587,6 +588,8 @@ class InMemoryDBHuntMixin(object):
 
     all_entries = []
     for flow_obj in self._GetHuntFlows(hunt_id):
+      # ReadFlowOutputPluginLogEntries is implemented in the db.Database class.
+      # pytype: disable=attribute-error
       for entry in self.ReadFlowOutputPluginLogEntries(
           flow_obj.client_id,
           flow_obj.flow_id,
@@ -595,6 +598,7 @@ class InMemoryDBHuntMixin(object):
           sys.maxsize,
           with_type=with_type,
       ):
+        # pytype: enable=attribute-error
         all_entries.append(
             flows_pb2.FlowOutputPluginLogEntry(
                 hunt_id=hunt_id,

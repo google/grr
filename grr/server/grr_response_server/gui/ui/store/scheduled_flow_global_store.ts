@@ -27,9 +27,12 @@ interface State {
   providedIn: 'root',
 })
 export class ScheduledFlowGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new ScheduledFlowComponentStore(this.httpApiService);
+    this.scheduledFlows$ = this.store.scheduledFlows$;
+  }
 
-  private readonly store = new ScheduledFlowComponentStore(this.httpApiService);
+  private readonly store;
 
   selectSource(source: {creator?: string; clientId?: string}) {
     this.store.selectSource(source);
@@ -39,8 +42,7 @@ export class ScheduledFlowGlobalStore {
     this.store.unscheduleFlow(scheduledFlowId);
   }
 
-  readonly scheduledFlows$: Observable<readonly ScheduledFlow[]> =
-    this.store.scheduledFlows$;
+  readonly scheduledFlows$: Observable<readonly ScheduledFlow[]>;
 }
 
 class ScheduledFlowComponentStore extends ComponentStore<State> {

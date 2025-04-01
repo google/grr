@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests client actions related to administrating the client."""
 
-import io
 import os
 import tempfile
 from unittest import mock
@@ -11,90 +10,9 @@ from absl.testing import absltest
 
 from grr_response_client.client_actions import admin
 from grr_response_client.unprivileged import sandbox
-from grr_response_core import config
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
-
-
-class ConfigActionTest(client_test_lib.EmptyActionTest):
-  """Tests the client actions UpdateConfiguration and GetConfiguration."""
-
-  def setUp(self):
-    super().setUp()
-    # These tests change the config so we preserve state.
-    config_stubber = test_lib.PreserveConfig()
-    config_stubber.Start()
-    self.addCleanup(config_stubber.Stop)
-
-  def testUpdateConfiguration(self):
-    """Test that we can update the config."""
-    # A unique name on the filesystem for the writeback.
-    self.config_file = os.path.join(self.temp_dir, "ConfigActionTest.yaml")
-
-    # In a real client, the writeback location should be set to something real,
-    # but for this test we make it the same as the config file..
-    config.CONFIG.SetWriteBack(self.config_file)
-
-    # Make sure the file is gone
-    self.assertRaises(IOError, open, self.config_file)
-
-    location = ["http://www.example1.com/", "http://www.example2.com/"]
-    request = rdf_protodict.Dict()
-    request["Client.server_urls"] = location
-    request["Client.foreman_check_frequency"] = 3600
-
-    result = self.RunAction(admin.UpdateConfiguration, request)
-
-    self.assertEqual(result, [])
-    self.assertEqual(config.CONFIG["Client.foreman_check_frequency"], 3600)
-
-    # Test the config file got written.
-    with io.open(self.config_file, "r") as filedesc:
-      data = filedesc.read()
-
-    server_urls = """
-Client.server_urls:
-- http://www.example1.com/
-- http://www.example2.com/
-"""
-    self.assertIn(server_urls, data)
-
-  def testOnlyUpdatableFieldsAreUpdated(self):
-    with test_lib.ConfigOverrider({
-        "Client.server_urls": ["http://something.com/"],
-        "Client.server_serial_number": 1,
-    }):
-
-      location = ["http://www.example.com"]
-      request = rdf_protodict.Dict()
-      request["Client.server_urls"] = location
-      request["Client.server_serial_number"] = 10
-
-      with self.assertRaises(ValueError):
-        self.RunAction(admin.UpdateConfiguration, request)
-
-      # Nothing was updated.
-      self.assertEqual(
-          config.CONFIG["Client.server_urls"], ["http://something.com/"]
-      )
-      self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
-
-  def testGetConfig(self):
-    """Check GetConfig client action works."""
-    # Use UpdateConfig to generate a config.
-    location = ["http://example.com/"]
-    request = rdf_protodict.Dict()
-    request["Client.server_urls"] = location
-    request["Client.foreman_check_frequency"] = 3600
-
-    self.RunAction(admin.UpdateConfiguration, request)
-    # Check that our GetConfig actually gets the real data.
-    self.RunAction(admin.GetConfiguration)
-
-    self.assertEqual(config.CONFIG["Client.foreman_check_frequency"], 3600)
-    self.assertEqual(config.CONFIG["Client.server_urls"], location)
 
 
 class GetClientInformationTest(absltest.TestCase):

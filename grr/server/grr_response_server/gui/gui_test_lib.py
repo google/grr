@@ -436,6 +436,13 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.driver.get("data:.")
     self.driver.get(self.base_url + url)
 
+    # Wait until page has been loaded. This is necessary for the jQuery check
+    # below to be reliable.
+    self.WaitUntil(self.GetElement, "xpath=//body")
+
+    # Load jQuery if it isn't already loaded by the application, as it's used to
+    # support CSS selectors in the Selenium tests. Skipping this check has
+    # caused issues in the past.
     jquery_present = self.driver.execute_script(
         "return window.$ !== undefined;"
     )
@@ -526,11 +533,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def GetAttribute(self, target, attribute):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return element.get_attribute(attribute)
-
-  def GetClipboard(self):
-    return self.GetJavaScriptValue(
-        "return await navigator.clipboard.readText();"
-    )
 
   def IsUserNotificationPresent(self, contains_string):
     self.Click("css=#notification_button")
@@ -908,7 +910,9 @@ class RecursiveTestFlow(flow_base.FlowBase):
       for i in range(2):
         self.Log("Subflow call %d", i)
         self.CallFlow(
-            self.__class__.__name__, depth=self.args.depth + 1, next_state="End"
+            self.__class__.__name__,
+            flow_args=RecursiveTestFlowArgs(depth=self.args.depth + 1),
+            next_state="End",
         )
 
 

@@ -8,7 +8,9 @@ import {ApprovalChip} from './approval_chip';
 import {ApprovalChipModule} from './approval_chip_module';
 
 @Component({
+  standalone: false,
   template: `<app-approval-chip [approval]="approval"></app-approval-chip>`,
+  jit: true,
 })
 class TestHostComponent {
   @Input() approval: ApprovalChip['approval'] = null;

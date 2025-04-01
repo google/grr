@@ -796,19 +796,19 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
         yield item
     except Exception as e:
       path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-      vfs_file_ref = rdf_objects.VfsFileReference(
+      vfs_file_ref = objects_pb2.VfsFileReference(
           client_id=args.client_id,
           path_type=path_type,
           path_components=components,
       )
-      object_reference = rdf_objects.ObjectReference(
-          reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+      object_reference = objects_pb2.ObjectReference(
+          reference_type=objects_pb2.ObjectReference.Type.VFS_FILE,
           vfs_file=vfs_file_ref,
       )
 
       notification.Notify(
           username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_BLOB_FETCH_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_BLOB_FETCH_FAILED,
           "File blob fetch failed for path %s on client %s: %s"
           % (args.client_id, args.file_path, e),
           object_reference,
@@ -1024,14 +1024,18 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
           new_path = utils.JoinPath(*components[len(k) :])
 
           pathspec = ps
-          last_pathtype = jobs_pb2.PathSpec.PathType.UNSET
+          last_pathtype = (
+              ps.pathtype
+              if ps.HasField("pathtype")
+              else jobs_pb2.PathSpec.PathType.OS
+          )
           while pathspec.HasField("nested_path"):
             pathspec = pathspec.nested_path
             last_pathtype = pathspec.pathtype
 
-          pathspec.nested_path = jobs_pb2.PathSpec(
-              path=new_path, pathtype=last_pathtype
-          )
+          pathspec.nested_path.path = new_path
+          pathspec.nested_path.pathtype = last_pathtype
+
         return ps
 
     # We don't have any pathspec in the database so we just send the path we
@@ -1582,16 +1586,16 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   ) -> Iterator[utils.StreamingZipGenerator]:
     if args.file_path:
       path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-      vfs_file_ref = rdf_objects.VfsFileReference(
+      vfs_file_ref = objects_pb2.VfsFileReference(
           client_id=args.client_id,
           path_type=path_type,
           path_components=components,
       )
     else:
-      vfs_file_ref = rdf_objects.VfsFileReference(client_id=args.client_id)
+      vfs_file_ref = objects_pb2.VfsFileReference(client_id=args.client_id)
 
-    object_reference = rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+    object_reference = objects_pb2.ObjectReference(
+        reference_type=objects_pb2.ObjectReference.Type.VFS_FILE,
         vfs_file=vfs_file_ref,
     )
     try:
@@ -1599,7 +1603,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         yield item
       notification.Notify(
           username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded an archive of folder %s from client %s."
           % (args.file_path, args.client_id),
           object_reference,
@@ -1608,7 +1612,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     except Exception as e:
       notification.Notify(
           username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for folder %s on client %s: %s"
           % (args.file_path, args.client_id, e),
           object_reference,

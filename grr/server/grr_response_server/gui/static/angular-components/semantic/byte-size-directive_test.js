@@ -22,7 +22,7 @@ describe('grrByteSize directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-byte-size value="value" />';
+    const template = '<grr-byte-size value="value"></grr-byte-size>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.utils');
-goog.module.declareLegacyNamespace();
 
 
 
@@ -39,8 +38,8 @@ exports.valueHasErrors = function(value) {
   }
 
   if (angular.isArray(value)) {
-    var alen = value.length;
-    for (var i = 0; i < alen; ++i) {
+    const alen = value.length;
+    for (let i = 0; i < alen; ++i) {
       if (valueHasErrors(value[i])) {
         return true;
       }
@@ -50,8 +49,8 @@ exports.valueHasErrors = function(value) {
   }
 
   if (angular.isObject(value['value'])) {
-    var nestedValue = value['value'];
-    for (var k in nestedValue) {
+    const nestedValue = value['value'];
+    for (const k in nestedValue) {
       if (valueHasErrors(nestedValue[k])) {
         return true;
       }
@@ -60,4 +59,4 @@ exports.valueHasErrors = function(value) {
 
   return false;
 };
-var valueHasErrors = exports.valueHasErrors;
+const valueHasErrors = exports.valueHasErrors;

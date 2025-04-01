@@ -39,6 +39,7 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
  * Component displaying overview info of a Client.
  */
 @Component({
+  standalone: false,
   selector: 'client-overview',
   templateUrl: './client_overview.ng.html',
   styleUrls: ['./client_overview.scss'],
@@ -48,58 +49,21 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
 export class ClientOverview implements OnInit, OnDestroy {
   private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
-  readonly client$ = this.clientPageGlobalStore.selectedClient$;
+  readonly client$;
 
-  readonly showApprovalChip$ = this.clientPageGlobalStore.approvalsEnabled$;
+  readonly showApprovalChip$;
 
-  readonly approval$ = this.clientPageGlobalStore.latestApproval$;
+  readonly approval$;
 
-  readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
+  readonly hasAccess$;
 
-  readonly ngOnDestroy = observeOnDestroy(this);
+  readonly ngOnDestroy;
 
-  readonly showOnlineNotificationToggle$ = combineLatest([
-    this.client$,
-    this.hasAccess$,
-  ]).pipe(
-    map(
-      ([client, hasAccess]) =>
-        hasAccess &&
-        (!client?.lastSeenAt || !isClientOnline(client.lastSeenAt)),
-    ),
-  );
+  readonly showOnlineNotificationToggle$;
 
-  readonly activeOnlineNotificationArgs$ =
-    this.clientPageGlobalStore.flowListEntries$.pipe(
-      withLatestFrom(this.userGlobalStore.currentUser$),
-      map(([data, user]) =>
-        data.flows?.find(
-          (f) =>
-            f.name === 'OnlineNotification' &&
-            f.creator === user.name &&
-            f.state === FlowState.RUNNING,
-        ),
-      ),
-      map((flow) => flow?.args as OnlineNotificationArgs | undefined),
-    );
+  readonly activeOnlineNotificationArgs$;
 
-  readonly clientWarnings$: Observable<ClientWarning[]> = combineLatest([
-    this.configGlobalStore.uiConfig$.pipe(
-      map((c) => c.clientWarnings?.rules || []),
-    ),
-    this.client$.pipe(
-      filter(isNonNull),
-      distinctUntilKeyChanged('clientId'),
-      map((client) => client.labels || []),
-    ),
-  ]).pipe(
-    filter(([clientWarnings, clientLabels]) => {
-      return clientWarnings.length > 0 && clientLabels.length > 0;
-    }),
-    map(([clientWarnings, clientLabels]) =>
-      this.getWarningsForClientByLabel(clientWarnings, clientLabels),
-    ),
-  );
+  readonly clientWarnings$: Observable<ClientWarning[]>;
 
   @Input() collapsed = false;
 
@@ -110,7 +74,53 @@ export class ClientOverview implements OnInit, OnDestroy {
     private readonly dialog: MatDialog,
     private readonly snackBar: MatSnackBar,
     private readonly markdownPipe: MarkdownPipe,
-  ) {}
+  ) {
+    this.client$ = this.clientPageGlobalStore.selectedClient$;
+    this.showApprovalChip$ = this.clientPageGlobalStore.approvalsEnabled$;
+    this.approval$ = this.clientPageGlobalStore.latestApproval$;
+    this.hasAccess$ = this.clientPageGlobalStore.hasAccess$;
+    this.ngOnDestroy = observeOnDestroy(this);
+    this.showOnlineNotificationToggle$ = combineLatest([
+      this.client$,
+      this.hasAccess$,
+    ]).pipe(
+      map(
+        ([client, hasAccess]) =>
+          hasAccess &&
+          (!client?.lastSeenAt || !isClientOnline(client.lastSeenAt)),
+      ),
+    );
+    this.activeOnlineNotificationArgs$ =
+      this.clientPageGlobalStore.flowListEntries$.pipe(
+        withLatestFrom(this.userGlobalStore.currentUser$),
+        map(([data, user]) =>
+          data.flows?.find(
+            (f) =>
+              f.name === 'OnlineNotification' &&
+              f.creator === user.name &&
+              f.state === FlowState.RUNNING,
+          ),
+        ),
+        map((flow) => flow?.args as OnlineNotificationArgs | undefined),
+      );
+    this.clientWarnings$ = combineLatest([
+      this.configGlobalStore.uiConfig$.pipe(
+        map((c) => c.clientWarnings?.rules || []),
+      ),
+      this.client$.pipe(
+        filter(isNonNull),
+        distinctUntilKeyChanged('clientId'),
+        map((client) => client.labels || []),
+      ),
+    ]).pipe(
+      filter(([clientWarnings, clientLabels]) => {
+        return clientWarnings.length > 0 && clientLabels.length > 0;
+      }),
+      map(([clientWarnings, clientLabels]) =>
+        this.getWarningsForClientByLabel(clientWarnings, clientLabels),
+      ),
+    );
+  }
 
   ngOnInit() {
     this.clientPageGlobalStore.lastRemovedClientLabel$

@@ -1,5 +1,4 @@
 goog.module('grrUi.acl.approvalInfoDirective');
-goog.module.declareLegacyNamespace();
 
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 

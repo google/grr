@@ -112,7 +112,7 @@
               <img class="grr-icon file" src="/static/images/file.png"
                    alt="File Like Object" title="File Like Object" ng-if="!item.value.is_directory.value">
             </td>
-            <td><grr-semantic-value value="::item.value.name" /></td>
+            <td><grr-semantic-value value="::item.value.name"></grr-semantic-value></td>
             <td>
               <grr-semantic-value class="pull-left"
                                   value="::item.value.stat.value.st_size"></grr-semantic-value>
@@ -124,9 +124,15 @@
               </span>
               <div class="clearfix"></div>
             </td>
-            <td><grr-semantic-value value="::item.value.stat.value.st_mtime" /></td>
-            <td><grr-semantic-value value="::item.value.stat.value.st_ctime" /></td>
-            <td><grr-timestamp value="::item.value.age.value" /></td>
+            <td>
+              <grr-semantic-value value="::item.value.stat.value.st_mtime"></grr-semantic-value>
+            </td>
+            <td>
+              <grr-semantic-value value="::item.value.stat.value.st_ctime"></grr-semantic-value>
+            </td>
+            <td>
+              <grr-timestamp value="::item.value.age.value"></grr-timestamp>
+            </td>
           </tr>
         </tbody>
 

@@ -33,6 +33,6 @@ exports.getFolderFromPath = function(path) {
     return '';
   }
 
-  var components = path.split('/');
+  const components = path.split('/');
   return components.slice(0, -1).join('/');
 };

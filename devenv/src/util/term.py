@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Terminal pretty stuffs."""
 
+from collections.abc import Callable
 import re
 import sys
-from typing import Callable
 
 
 _ESC = "\x1b"

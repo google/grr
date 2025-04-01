@@ -3,8 +3,8 @@ import {OverlayModule} from '@angular/cdk/overlay';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router} from '@angular/router';
-import {RouterTestingModule} from '@angular/router/testing';
+import {Router, RouterModule} from '@angular/router';
+
 import {
   RequestStatusType,
   type RequestStatus,
@@ -48,7 +48,11 @@ describe('ApprovalCard Component', () => {
     configGlobalStore = mockConfigGlobalStore();
 
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, RouterTestingModule, ApprovalCardModule],
+      imports: [
+        NoopAnimationsModule,
+        ApprovalCardModule,
+        RouterModule.forRoot([]),
+      ],
       providers: [
         {
           provide: ConfigGlobalStore,

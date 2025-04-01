@@ -18,9 +18,11 @@ from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
-                      stats_test_lib.StatsCollectorTestMixin,
-                      test_lib.GRRBaseTest):
+class StatsServerTest(
+    base_stats_server_test.StatsServerTestMixin,
+    stats_test_lib.StatsCollectorTestMixin,
+    test_lib.GRRBaseTest,
+):
 
   def setUpStatsServer(self, port):
     return stats_server.StatsServer("::1", port)
@@ -28,7 +30,8 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
   def testPrometheusIntegration(self):
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
     collector = prometheus_stats_collector.PrometheusStatsCollector(
-        registry=registry)
+        registry=registry
+    )
 
     with self.SetUpStatsCollector(collector):
       counter = metrics.Counter("foobars")
@@ -36,8 +39,9 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
 
     port = portpicker.pick_unused_port()
 
-    with mock.patch.object(stats_server.StatsServerHandler, "registry",
-                           registry):
+    with mock.patch.object(
+        stats_server.StatsServerHandler, "registry", registry
+    ):
       server = stats_server.StatsServer("::1", port)
       server.Start()
       self.addCleanup(server.Stop)

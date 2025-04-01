@@ -4,13 +4,13 @@ goog.module.declareLegacyNamespace();
 
 
 /** @const {number} */
-var KB_UNIT = 1024;
+const KB_UNIT = 1024;
 
 /** @const {number} */
-var MB_UNIT = KB_UNIT * 1024;
+const MB_UNIT = KB_UNIT * 1024;
 
 /** @const {number} */
-var GB_UNIT = MB_UNIT * 1024;
+const GB_UNIT = MB_UNIT * 1024;
 
 
 /**
@@ -66,14 +66,14 @@ const ByteSizeController = class {
       return;
     }
 
-    var byteSize = newValue.value;
+    const byteSize = newValue.value;
     if (angular.isNumber(byteSize)) {
-      var stringified = stringifyByteSize(byteSize);
-      var size = stringified[0];
-      var sizeToken = stringified[1];
+      const stringified = stringifyByteSize(byteSize);
+      const size = stringified[0];
+      const sizeToken = stringified[1];
 
-      var result = [Math.floor(size).toString()];
-      var decimalPart = Math.round((size % 1) * 10).toString();
+      const result = [Math.floor(size).toString()];
+      const decimalPart = Math.round((size % 1) * 10).toString();
       if (decimalPart !== '0') {
         result.push('.', decimalPart);
       }

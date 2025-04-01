@@ -32,7 +32,7 @@ const OnScrollIntoViewController = class {
     /** @type {boolean} */
     this.currentlyVisible = false;
 
-    var stop = $interval(this.onInterval.bind(this), 100);
+    const stop = $interval(this.onInterval.bind(this), 100);
     $scope.$on('$destroy', function() {
       $interval.cancel(stop);
     });
@@ -43,14 +43,14 @@ const OnScrollIntoViewController = class {
    * if element became visible.
    */
   onInterval() {
-    var elemOffset = $(this.element_).offset();
-    var elemWidth = $(this.element_).width();
-    var elemHeight = $(this.element_).height();
+    const elemOffset = $(this.element_).offset();
+    const elemWidth = $(this.element_).width();
+    const elemHeight = $(this.element_).height();
 
-    var elem = document.elementFromPoint(
+    let elem = document.elementFromPoint(
         elemOffset.left - $(this.window_).scrollLeft() + 1,
         elemOffset.top - $(this.window_).scrollTop() + 1);
-    var isVisible = (elem == $(this.element_)[0]);
+    let isVisible = (elem == $(this.element_)[0]);
 
     if (!isVisible) {
       elem = document.elementFromPoint(

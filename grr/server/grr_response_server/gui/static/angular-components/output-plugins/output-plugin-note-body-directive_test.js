@@ -38,7 +38,7 @@ describe('output plugin note directive', () => {
     $rootScope.outputPlugin = outputPlugin || angular.copy(defaultOutputPlugin);
 
     const template = '<grr-output-plugin-note-body ' +
-        'output-plugin="outputPlugin" />';
+        'output-plugin="outputPlugin"></grr-output-plugin-note-body>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

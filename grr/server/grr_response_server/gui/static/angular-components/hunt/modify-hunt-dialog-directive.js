@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.modifyHuntDialogDirective');
-goog.module.declareLegacyNamespace();
 
 const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
 const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');

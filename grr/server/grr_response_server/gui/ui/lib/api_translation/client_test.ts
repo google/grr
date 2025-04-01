@@ -22,6 +22,17 @@ describe('Client API Translation', () => {
         os: 'Linux',
         osMajorVersion: 10,
         osMinorVersion: 12,
+        users: [
+          {
+            username: 'foo.bar',
+            fullName: 'Foo Bar',
+            lastLogon: '1571789996679000',
+            homedir: '/home/foobar',
+            uid: 123,
+            gid: 234,
+            shell: '/bin/bash',
+          },
+        ],
       },
       osInfo: {
         system: 'Linux',
@@ -76,17 +87,6 @@ describe('Client API Translation', () => {
           ],
         },
       ],
-      users: [
-        {
-          username: 'foo.bar',
-          fullName: 'Foo Bar',
-          lastLogon: '1571789996679000',
-          homedir: '/home/foobar',
-          uid: 123,
-          gid: 234,
-          shell: '/bin/bash',
-        },
-      ],
       cloudInstance: {
         cloudType: 'GOOGLE' as CloudInstanceInstanceType,
         google: {
@@ -138,6 +138,17 @@ describe('Client API Translation', () => {
         os: 'Linux',
         osMajorVersion: 10,
         osMinorVersion: 12,
+        users: [
+          {
+            username: 'foo.bar',
+            fullName: 'Foo Bar',
+            lastLogon: '1571789996679000',
+            homedir: '/home/foobar',
+            uid: 123,
+            gid: 234,
+            shell: '/bin/bash',
+          },
+        ],
       },
       agentInfo: {
         clientName: 'foo',
@@ -161,6 +172,7 @@ describe('Client API Translation', () => {
         libcVer: '10',
         architecture: 'x86_64',
       },
+      // TODO: Remove outer users field.
       users: [
         {
           username: 'foo.bar',

@@ -52,10 +52,12 @@ class HomePageComponentStore extends ComponentStore<HomePageState> {
   providedIn: 'root',
 })
 export class HomePageGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(private readonly httpApiService: HttpApiService) {
+    this.store = new HomePageComponentStore(this.httpApiService);
+    this.recentClientApprovals$ = this.store.recentClientApprovals$;
+  }
 
-  private readonly store = new HomePageComponentStore(this.httpApiService);
+  private readonly store;
 
-  readonly recentClientApprovals$: Observable<readonly ClientApproval[]> =
-    this.store.recentClientApprovals$;
+  readonly recentClientApprovals$: Observable<readonly ClientApproval[]>;
 }

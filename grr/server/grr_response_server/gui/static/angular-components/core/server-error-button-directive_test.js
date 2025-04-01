@@ -13,7 +13,8 @@ describe('server error button directive', () => {
   let $scope;
 
 
-  beforeEach(module('/static/angular-components/core/server-error-button.html'));
+  beforeEach(
+      module('/static/angular-components/core/server-error-button.html'));
   beforeEach(module(coreModule.name));
   beforeEach(module(testsModule.name));
 
@@ -24,7 +25,7 @@ describe('server error button directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-server-error-button />';
+    const template = '<grr-server-error-button></grr-server-error-button>';
     const element = $compile(template)($scope);
     $scope.$apply();
     return element;

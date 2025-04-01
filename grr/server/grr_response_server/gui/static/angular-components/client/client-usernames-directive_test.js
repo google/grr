@@ -24,7 +24,7 @@ describe('client usernames', () => {
   const render = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-client-usernames value="value" />';
+    const template = '<grr-client-usernames value="value"></grr-client-usernames>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

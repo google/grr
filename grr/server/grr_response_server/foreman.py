@@ -38,7 +38,8 @@ class Foreman(object):
     if cur_flow.parent_hunt_id != hunt_id:
       raise RuntimeError(
           "Cannot start Hunt {} on {} because unrelated {} already exists."
-          .format(hunt_id, client_id, cur_flow.long_flow_id))
+          .format(hunt_id, client_id, cur_flow.long_flow_id)
+      )
 
     return True
 

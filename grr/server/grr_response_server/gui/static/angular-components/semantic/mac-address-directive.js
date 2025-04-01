@@ -10,9 +10,9 @@ goog.module.declareLegacyNamespace();
  * @return {string} Human-readable MAC address.
  */
 const convertMacAddressToString = function(address) {
-  var result = [];
-  for (var i = 0; i < address.length; ++i) {
-    var part = address.charCodeAt(i).toString(16);
+  const result = [];
+  for (let i = 0; i < address.length; ++i) {
+    let part = address.charCodeAt(i).toString(16);
     if (part.length === 1) {
       part = '0' + part;
     }
@@ -49,7 +49,7 @@ const MacAddressController = class {
    * @suppress {missingProperties} as value can be anything.
    */
   onValueChange(newValue) {
-    var address = newValue.value;
+    const address = newValue.value;
     if (angular.isString(address)) {
       this.convertedAddress = convertMacAddressToString(window.atob(address));
     } else {

@@ -19,6 +19,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import output_plugin_pb2 as api_output_plugin_pb2
@@ -38,12 +39,11 @@ from grr_response_server.gui import archive_generator
 from grr_response_server.gui import mig_api_call_handler_utils
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-from grr_response_server.models import protobuf_utils
+from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_flow_runner
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -88,12 +88,12 @@ def InitFlowContextFromFlowObject(
   """Creates a FlowContext from a Flow object."""
 
   flow_context = flows_pb2.FlowContext()
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "create_time")
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "creator")
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "current_state")
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "next_outbound_id")
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "backtrace")
-  protobuf_utils.CopyAttr(flow_obj, flow_context, "error_message", "status")
+  models_utils.CopyAttr(flow_obj, flow_context, "create_time")
+  models_utils.CopyAttr(flow_obj, flow_context, "creator")
+  models_utils.CopyAttr(flow_obj, flow_context, "current_state")
+  models_utils.CopyAttr(flow_obj, flow_context, "next_outbound_id")
+  models_utils.CopyAttr(flow_obj, flow_context, "backtrace")
+  models_utils.CopyAttr(flow_obj, flow_context, "error_message", "status")
 
   # TODO(amoser): No need to set this in all cases once the legacy API
   # is removed.
@@ -130,9 +130,9 @@ def InitRunnerArgsFromFlowObject(
   if flow_obj.HasField("client_id"):
     runner_args.client_id = str(rdfvalue.RDFURN(flow_obj.client_id))
 
-  protobuf_utils.CopyAttr(flow_obj, runner_args, "flow_class_name", "flow_name")
-  protobuf_utils.CopyAttr(flow_obj, runner_args, "cpu_limit")
-  protobuf_utils.CopyAttr(flow_obj, runner_args, "network_bytes_limit")
+  models_utils.CopyAttr(flow_obj, runner_args, "flow_class_name", "flow_name")
+  models_utils.CopyAttr(flow_obj, runner_args, "cpu_limit")
+  models_utils.CopyAttr(flow_obj, runner_args, "network_bytes_limit")
 
   if flow_obj.output_plugins:
     runner_args.output_plugins.extend(flow_obj.output_plugins)
@@ -150,13 +150,13 @@ def InitApiFlowFromFlowObject(
 
   api_flow = flow_pb2.ApiFlow()
 
-  protobuf_utils.CopyAttr(flow_obj, api_flow, "flow_id")
-  protobuf_utils.CopyAttr(flow_obj, api_flow, "client_id")
+  models_utils.CopyAttr(flow_obj, api_flow, "flow_id")
+  models_utils.CopyAttr(flow_obj, api_flow, "client_id")
   if flow_obj.HasField("long_flow_id"):
     api_flow.urn = str(rdfvalue.SessionID(flow_obj.long_flow_id))
-  protobuf_utils.CopyAttr(flow_obj, api_flow, "flow_class_name", "name")
-  protobuf_utils.CopyAttr(flow_obj, api_flow, "create_time", "started_at")
-  protobuf_utils.CopyAttr(
+  models_utils.CopyAttr(flow_obj, api_flow, "flow_class_name", "name")
+  models_utils.CopyAttr(flow_obj, api_flow, "create_time", "started_at")
+  models_utils.CopyAttr(
       flow_obj, api_flow, "last_update_time", "last_active_at"
   )
   api_flow.creator = flow_obj.creator
@@ -193,15 +193,13 @@ def InitApiFlowFromFlowObject(
     api_flow.args.CopyFrom(flow_obj.args)
 
   if with_progress:
+    # TODO: Once all `Progress` is reported with a proto, start
+    # calling `GetProgressProto()` here instead.
     flow_cls = _GetFlowClass(api_flow)
     if flow_cls:
       flow_instance = flow_cls(mig_flow_objects.ToRDFFlow(flow_obj))
       api_flow.progress.Pack(flow_instance.GetProgress().AsPrimitiveProto())
-      api_flow.result_metadata.CopyFrom(
-          mig_flow_objects.ToProtoFlowResultMetadata(
-              flow_instance.GetResultMetadata()
-          )
-      )
+    api_flow.result_metadata.CopyFrom(flow_obj.result_metadata)
 
   if with_state_and_context and flow_obj.HasField("persistent_data"):
     rdf_persistend_data = mig_protodict.ToRDFAttributedDict(
@@ -213,6 +211,8 @@ def InitApiFlowFromFlowObject(
     api_flow.state_data.CopyFrom(
         mig_api_call_handler_utils.ToProtoApiDataObject(rdf_api_data)
     )
+  if flow_obj.HasField("store"):
+    api_flow.store.CopyFrom(flow_obj.store)
 
   return api_flow
 
@@ -225,8 +225,8 @@ def InitApiFlowLogFromFlowLogEntry(
 
   api_flow_log = flow_pb2.ApiFlowLog()
   api_flow_log.flow_id = flow_id
-  protobuf_utils.CopyAttr(log_entry, api_flow_log, "message", "log_message")
-  protobuf_utils.CopyAttr(log_entry, api_flow_log, "timestamp")
+  models_utils.CopyAttr(log_entry, api_flow_log, "message", "log_message")
+  models_utils.CopyAttr(log_entry, api_flow_log, "timestamp")
 
   return api_flow_log
 
@@ -320,13 +320,11 @@ def InitApiScheduledFlowFromScheduledFlow(
 ) -> flow_pb2.ApiScheduledFlow:
   """Creates an ApiScheduledFlow from a ScheduledFlow."""
   api_scheduled_flow = flow_pb2.ApiScheduledFlow()
-  protobuf_utils.CopyAttr(
-      scheduled_flow, api_scheduled_flow, "scheduled_flow_id"
-  )
-  protobuf_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "client_id")
-  protobuf_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "creator")
-  protobuf_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "flow_name")
-  protobuf_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "create_time")
+  models_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "scheduled_flow_id")
+  models_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "client_id")
+  models_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "creator")
+  models_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "flow_name")
+  models_utils.CopyAttr(scheduled_flow, api_scheduled_flow, "create_time")
   if scheduled_flow.HasField("flow_args"):
     api_scheduled_flow.flow_args.CopyFrom(scheduled_flow.flow_args)
   if scheduled_flow.HasField("runner_args"):
@@ -355,8 +353,8 @@ def InitApiFlowResultFromFlowResult(
   api_flow_result = flow_pb2.ApiFlowResult()
   if result.HasField("payload"):
     api_flow_result.payload.CopyFrom(result.payload)
-  protobuf_utils.CopyAttr(result, api_flow_result, "timestamp")
-  protobuf_utils.CopyAttr(result, api_flow_result, "tag")
+  models_utils.CopyAttr(result, api_flow_result, "timestamp")
+  models_utils.CopyAttr(result, api_flow_result, "tag")
   return api_flow_result
 
 
@@ -790,11 +788,11 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> Iterator[flows_pb2.FlowResult]:
     assert context is not None
-    flow_ref = rdf_objects.FlowReference(
+    flow_ref = objects_pb2.FlowReference(
         client_id=args.client_id, flow_id=args.flow_id
     )
-    object_reference = rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.FLOW, flow=flow_ref
+    object_reference = objects_pb2.ObjectReference(
+        reference_type=objects_pb2.ObjectReference.Type.FLOW, flow=flow_ref
     )
     try:
       for item in generator.Generate(flow_results):
@@ -802,7 +800,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of flow %s from client %s (archived %d "
           "out of %d items, archive size is %d)"
           % (
@@ -818,7 +816,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     except Exception as e:
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s"
           % (args.flow_id, args.client_id, e),
           object_reference,
@@ -833,11 +831,11 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       args: flow_pb2.ApiGetFlowFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    flow_ref = rdf_objects.FlowReference(
+    flow_ref = objects_pb2.FlowReference(
         client_id=args.client_id, flow_id=args.flow_id
     )
-    object_reference = rdf_objects.ObjectReference(
-        reference_type=rdf_objects.ObjectReference.Type.FLOW, flow=flow_ref
+    object_reference = objects_pb2.ObjectReference(
+        reference_type=objects_pb2.ObjectReference.Type.FLOW, flow=flow_ref
     )
     try:
       for item in generator.Generate(mappings):
@@ -845,7 +843,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of flow %s from client %s (archived %d files, "
           "archive size is %d)"
           % (
@@ -860,7 +858,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     except Exception as e:
       notification.Notify(
           context.username,
-          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s"
           % (args.flow_id, args.client_id, e),
           object_reference,
@@ -1011,29 +1009,15 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
     type_indices = {}
     for output_plugin_state in flow_obj.output_plugins_states:
-      plugin_state = jobs_pb2.AttributedDict()
-      plugin_state.CopyFrom(output_plugin_state.plugin_state)
-
-      for index, item in enumerate(plugin_state.dat):
-        key = item.k.string
-        if key in ("token", "source_urn"):
-          del plugin_state.dat[index]
-
       plugin_descriptor = output_plugin_state.plugin_descriptor
 
       type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
       type_indices[plugin_descriptor.plugin_name] += 1
 
-      # Output plugins states are stored differently for hunts and for flows:
-      # as a dictionary for hunts and as a simple list for flows.
-      #
-      # TODO(user): store output plugins states in the same way for flows
-      # and hunts. Until this is done, we can emulate the same interface in
-      # the HTTP API.
       api_plugin = api_output_plugin_pb2.ApiOutputPlugin()
       api_plugin.id = f"{plugin_descriptor.plugin_name}_{type_index}"
       api_plugin.plugin_descriptor.CopyFrom(plugin_descriptor)
-      api_plugin.state.Pack(plugin_state)
+      api_plugin.state.Pack(output_plugin_state.plugin_state)
 
       plugin_results.append(api_plugin)
 
@@ -1271,37 +1255,34 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         if args.human_flows_only
         else None,
     )
-    api_flow_dict = {
-        flow.flow_id: InitApiFlowFromFlowObject(flow, with_args=False)
-        for flow in all_flows
-    }
-    # TODO(user): this is done for backwards API compatibility.
-    # Remove when AFF4 is gone.
-    for api_flow in api_flow_dict.values():
-      del api_flow.nested_flows[:]
 
-    child_flow_ids = set()
+    root_flows: List[flow_pb2.ApiFlow] = []
+    parent_to_children_map: dict[str, List[flow_pb2.ApiFlow]] = (
+        collections.defaultdict(list)
+    )
+    for f in all_flows:
+      api_flow = InitApiFlowFromFlowObject(f, with_args=False)
+      if not f.parent_flow_id:
+        root_flows.append(api_flow)
+      else:
+        parent_to_children_map[f.parent_flow_id].append(api_flow)
 
-    for flow_obj in all_flows:
-      if not flow_obj.parent_flow_id:
-        continue
+    root_flows.sort(key=lambda f: f.started_at or 0, reverse=True)
+    root_flows = root_flows[args.offset :]
+    if args.HasField("count"):
+      root_flows = root_flows[: args.count]
 
-      if flow_obj.parent_flow_id in api_flow_dict:
-        parent_flow = api_flow_dict[flow_obj.parent_flow_id]
-        parent_flow.nested_flows.append(api_flow_dict[flow_obj.flow_id])
-        child_flow_ids.add(flow_obj.flow_id)
+    def _AddNestedFlows(f: flow_pb2.ApiFlow):
+      for child in parent_to_children_map[f.flow_id]:
+        _AddNestedFlows(child)
+        f.nested_flows.append(child)
 
-    result = [
-        f for f in api_flow_dict.values() if f.flow_id not in child_flow_ids
-    ]
+    for root in root_flows:
+      _AddNestedFlows(root)
+
     # TODO(hanuszczak): Consult with the team what should we do in case of flows
     # with missing information.
-    # TODO: Refactor sorting andfiltering of flows to DB layer.
-    result.sort(key=lambda f: f.started_at or 0, reverse=True)
-    result = result[args.offset :]
-    if args.HasField("count"):
-      result = result[: args.count]
-    return flow_pb2.ApiListFlowsResult(items=result)
+    return flow_pb2.ApiListFlowsResult(items=root_flows)
 
   def Handle(
       self,

@@ -19,9 +19,11 @@ import {GlobExpressionExplanationModule} from './module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
       <app-glob-expression-input [formControl]="formControl" [client]="client">
       </app-glob-expression-input>`,
+  jit: true,
 })
 class TestHostComponent {
   client: Client | null = null;

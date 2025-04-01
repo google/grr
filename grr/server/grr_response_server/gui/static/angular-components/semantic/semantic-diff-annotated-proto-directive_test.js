@@ -44,7 +44,8 @@ describe('grr-semantic-diff-annotated-proto directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-semantic-diff-annotated-proto value="value" />';
+    const template = '<grr-semantic-diff-annotated-proto value="value">' +
+        '</grr-semantic-diff-annotated-proto>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

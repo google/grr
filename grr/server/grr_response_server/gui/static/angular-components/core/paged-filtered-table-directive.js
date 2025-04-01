@@ -197,7 +197,7 @@ const PagedFilteredTableController = class {
     if (this.scope_.autoRefreshInterval) {
       // Initialize the timer used to refresh data in the table.
       /** @type {!angular.$q.Promise} */
-      var refreshTimer = this.interval_(
+      const refreshTimer = this.interval_(
           this.onAutoRefresh_.bind(this), this.scope_.autoRefreshInterval);
 
       // Destroy the timer when the shared directive's scope is destroyed.
@@ -213,9 +213,9 @@ const PagedFilteredTableController = class {
    * @private
    */
   addTopDirective_() {
-    var template = /** @type {angular.jQuery} */ (angular.element(
-        '<grr-paged-filtered-table-top parent-controller="controller" />'));
-    var table = this.element_.closest('table');
+    const template = /** @type {angular.jQuery} */ (angular.element(
+        '<grr-paged-filtered-table-top parent-controller="controller"></grr-paged-filtered-table-top>'));
+    const table = this.element_.closest('table');
     template.insertBefore(table);
     this.compile_(template)(this.scope_);
   }
@@ -226,9 +226,9 @@ const PagedFilteredTableController = class {
    * @private
    */
   addBottomDirective_() {
-    var template = /** @type {angular.jQuery} */ (angular.element(
-        '<grr-paged-filtered-table-bottom parent-controller="controller" />'));
-    var table = this.element_.closest('table');
+    const template = /** @type {angular.jQuery} */ (angular.element(
+        '<grr-paged-filtered-table-bottom parent-controller="controller"></grr-paged-filtered-table-bottom>'));
+    const table = this.element_.closest('table');
     template.insertAfter(table);
     this.compile_(template)(this.scope_);
   }
@@ -244,7 +244,7 @@ const PagedFilteredTableController = class {
    */
   wrapWithCounterCheck_(callback) {
     this.requestCounter_ += 1;
-    var curRequestCounter = this.requestCounter_;
+    const curRequestCounter = this.requestCounter_;
 
     return function(data) {
       if (this.requestCounter_ == curRequestCounter) {
@@ -348,7 +348,7 @@ const PagedFilteredTableController = class {
    * @private
    */
   setItems_(newItems) {
-    var indexOffset = 0;
+    let indexOffset = 0;
     if (angular.equals(this.items, newItems.slice(0, this.items.length))) {
       indexOffset = this.items.length;
     } else {
@@ -357,7 +357,7 @@ const PagedFilteredTableController = class {
 
     this.items = newItems;
 
-    for (var i = indexOffset; i < this.items.length; ++i) {
+    for (let i = indexOffset; i < this.items.length; ++i) {
       this.transclude_(function(clone, scope) {
         scope.item = this.items[i];
         scope.$index = i;
@@ -377,7 +377,7 @@ const PagedFilteredTableController = class {
       return;
     }
 
-    var callback =
+    const callback =
         this.wrapWithCounterCheck_(this.onFetchedUnfilteredItems_.bind(this));
 
     this.autoRefreshInProgress_ = true;
@@ -429,8 +429,8 @@ exports.PagedFilteredTableDirective = function() {
     controller: PagedFilteredTableController,
     controllerAs: 'controller',
     link: function(scope, element, attrs, controllers) {
-      var providerController = undefined;
-      for (var i = 0; i < controllers.length; ++i) {
+      let providerController = undefined;
+      for (let i = 0; i < controllers.length; ++i) {
         if (angular.isObject(controllers[i])) {
           if (angular.isDefined(providerController)) {
             throw new Error('Can have only 1 provider.');

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Virtual filesystem module based on pyfsntfs."""
 
+from collections.abc import Callable, Iterable
 import stat
-from typing import Any, Callable, Dict, Iterable, Optional, Text, Type
+from typing import Any, Optional
 
 import pyfsntfs
 
@@ -25,7 +26,7 @@ FILE_ATTRIBUTE_HIDDEN = 0x00000002
 
 
 def _GetAlternateDataStreamCaseInsensitive(
-    fd: pyfsntfs.file_entry, name: Text
+    fd: pyfsntfs.file_entry, name: str
 ) -> Optional[pyfsntfs.data_stream]:
   name = name.lower()
   for data_stream in fd.alternate_data_streams:
@@ -41,7 +42,7 @@ class NTFSFile(vfs_base.VFSHandler):
   def __init__(
       self,
       base_fd: Optional[vfs_base.VFSHandler],
-      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      handlers: dict[Any, type[vfs_base.VFSHandler]],
       pathspec: Optional[rdf_paths.PathSpec] = None,
       progress_callback: Optional[Callable[[], None]] = None,
   ):
@@ -169,7 +170,7 @@ class NTFSFile(vfs_base.VFSHandler):
         pathspec.last.stream_name = data_stream.name
         yield self._Stat(entry, data_stream, pathspec.Copy())
 
-  def ListNames(self) -> Iterable[Text]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+  def ListNames(self) -> Iterable[str]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     self._CheckIsDirectory()
     for entry in self.fd.sub_file_entries:
       yield entry.name
@@ -224,7 +225,7 @@ class NTFSFile(vfs_base.VFSHandler):
       cls,
       fd: Optional[vfs_base.VFSHandler],
       component: rdf_paths.PathSpec,
-      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      handlers: dict[Any, type[vfs_base.VFSHandler]],
       pathspec: Optional[rdf_paths.PathSpec] = None,
       progress_callback: Optional[Callable[[], None]] = None,
   ) -> Optional[vfs_base.VFSHandler]:

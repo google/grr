@@ -30,11 +30,11 @@ class Opts:
   backoff: float = 1.0
   jitter: float = 0.0
 
-  # pyformat: disable
+  # fmt: off
   sleep: Callable[[datetime.timedelta], None] = (
       lambda timedelta: time.sleep(timedelta.total_seconds())
   )
-  # pyformat: enable
+  # fmt: on
 
 
 _E = TypeVar("_E", bound=Exception)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for PrometheusStatsCollector."""
 
-
 from absl import app
 
 from grr_response_core.stats import stats_test_utils

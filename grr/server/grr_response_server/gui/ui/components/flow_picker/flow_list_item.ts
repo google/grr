@@ -105,36 +105,38 @@ const COMMON_FILE_FLOWS: readonly FlowListItem[] = [
   providedIn: 'root',
 })
 export class FlowListItemService {
-  constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
-
-  // TODO: Update the way "allowed flows" are computed,
-  // once all FlowDescriptors, including restricted, are always returned from
-  // ListFlowDescriptors API endpoint.
-  readonly allowedFlowDescriptorNames$: Observable<ReadonlySet<string>> =
-    this.configGlobalStore.flowDescriptors$.pipe(
-      map((fds) => new Set(Array.from(fds.values()).map((fd) => fd.name))),
-    );
-
-  readonly flowsByCategory$: Observable<FlowsByCategory> =
-    this.allowedFlowDescriptorNames$.pipe(
+  constructor(private readonly configGlobalStore: ConfigGlobalStore) {
+    this.allowedFlowDescriptorNames$ =
+      this.configGlobalStore.flowDescriptors$.pipe(
+        map((fds) => new Set(Array.from(fds.values()).map((fd) => fd.name))),
+      );
+    this.flowsByCategory$ = this.allowedFlowDescriptorNames$.pipe(
       map((allowedNames) =>
         transformMapValues(FLOWS_BY_CATEGORY, (entries) =>
           entries.map((fli) => ({...fli, enabled: allowedNames.has(fli.type)})),
         ),
       ),
     );
-
-  readonly commonFlowNames$: Observable<readonly FlowType[]> =
-    this.allowedFlowDescriptorNames$.pipe(
+    this.commonFlowNames$ = this.allowedFlowDescriptorNames$.pipe(
       map((allowedNames) =>
         COMMON_FLOW_NAMES.filter((name) => allowedNames.has(name)),
       ),
     );
-
-  readonly commonFileFlows$: Observable<readonly FlowListItem[]> =
-    this.allowedFlowDescriptorNames$.pipe(
+    this.commonFileFlows$ = this.allowedFlowDescriptorNames$.pipe(
       map((allowedNames) =>
         COMMON_FILE_FLOWS.filter((fli) => allowedNames.has(fli.type)),
       ),
     );
+  }
+
+  // TODO: Update the way "allowed flows" are computed,
+  // once all FlowDescriptors, including restricted, are always returned from
+  // ListFlowDescriptors API endpoint.
+  readonly allowedFlowDescriptorNames$: Observable<ReadonlySet<string>>;
+
+  readonly flowsByCategory$: Observable<FlowsByCategory>;
+
+  readonly commonFlowNames$: Observable<readonly FlowType[]>;
+
+  readonly commonFileFlows$: Observable<readonly FlowListItem[]>;
 }

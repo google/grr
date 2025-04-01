@@ -3,7 +3,7 @@
 
 from collections.abc import Callable
 import re
-from typing import Dict, List, Optional
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import jobs_pb2
@@ -14,12 +14,12 @@ from grr_response_server.gui.api_plugins.report_plugins import report_plugin_bas
 
 
 def _LoadAuditEvents(
-    handlers: Dict[str, "jobs_pb2.AuditEvent.Action"],
+    handlers: dict[str, "jobs_pb2.AuditEvent.Action"],
     get_report_args: stats_pb2.ApiGetReportArgs,
     transformers: Optional[
         Callable[[objects_pb2.APIAuditEntry, jobs_pb2.AuditEvent], None]
     ] = None,
-) -> List[jobs_pb2.AuditEvent]:
+) -> list[jobs_pb2.AuditEvent]:
   """Returns AuditEvents for given handlers, actions, and timerange."""
   if transformers is None:
     transformers = {}
@@ -40,7 +40,7 @@ def _LoadAuditEvents(
 
 def _EntryToEvent(
     entry: objects_pb2.APIAuditEntry,
-    handlers: Dict[str, "jobs_pb2.AuditEvent.Action"],
+    handlers: dict[str, "jobs_pb2.AuditEvent.Action"],
     transformers: Optional[
         Callable[[objects_pb2.APIAuditEntry, jobs_pb2.AuditEvent], None]
     ],

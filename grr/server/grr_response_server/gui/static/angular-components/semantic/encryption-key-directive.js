@@ -10,10 +10,10 @@ goog.module.declareLegacyNamespace();
  * @return {string} Hex-encoded encryption key.
  */
 exports.stringifyEncryptionKey = function(base64Bytes) {
-  var decoded = window.atob(base64Bytes);
-  var result = [];
-  for (var i = 0; i < decoded.length; ++i) {
-    var c = decoded.charCodeAt(i).toString(16);
+  const decoded = window.atob(base64Bytes);
+  const result = [];
+  for (let i = 0; i < decoded.length; ++i) {
+    let c = decoded.charCodeAt(i).toString(16);
     if (c.length == 1) {
       c = '0' + c;
     }

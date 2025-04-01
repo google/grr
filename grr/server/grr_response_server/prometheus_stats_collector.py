@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Prometheus-based statistics collection."""
 
-
 import collections
 from typing import Dict, Text
 
@@ -25,8 +24,11 @@ class _Metric(object):
       Gauge, or Histogram.
   """
 
-  def __init__(self, metadata: rdf_stats.MetricMetadata,
-               registry: prometheus_client.registry.CollectorRegistry):
+  def __init__(
+      self,
+      metadata: rdf_stats.MetricMetadata,
+      registry: prometheus_client.registry.CollectorRegistry,
+  ):
     """Instantiates a new _Metric.
 
     Args:
@@ -38,7 +40,8 @@ class _Metric(object):
     """
     self.metadata = metadata
     self.fields = stats_utils.FieldDefinitionTuplesFromProtos(
-        metadata.fields_defs)
+        metadata.fields_defs
+    )
     field_names = [name for name, _ in self.fields]
 
     if metadata.metric_type == rdf_stats.MetricMetadata.MetricType.COUNTER:
@@ -46,24 +49,48 @@ class _Metric(object):
           metadata.varname,
           metadata.docstring,
           labelnames=field_names,
-          registry=registry)
+          registry=registry,
+      )
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.EVENT:
       bins = metadata.bins or [
-          0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8,
-          9, 10, 15, 20, 50, 100
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.75,
+          1,
+          1.5,
+          2,
+          2.5,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          20,
+          50,
+          100,
       ]
       self.metric = prometheus_client.Histogram(
           metadata.varname,
           metadata.docstring,
           labelnames=field_names,
           buckets=bins,
-          registry=registry)
+          registry=registry,
+      )
     elif metadata.metric_type == rdf_stats.MetricMetadata.MetricType.GAUGE:
       self.metric = prometheus_client.Gauge(
           metadata.varname,
           metadata.docstring,
           labelnames=field_names,
-          registry=registry)
+          registry=registry,
+      )
     else:
       raise ValueError("Unknown metric type: {!r}".format(metadata.metric_type))
 
@@ -71,8 +98,10 @@ class _Metric(object):
     if len(fields or ()) != len(self.fields):
       raise ValueError(
           "Statistic {} was created with {!r} fields, but a value with fields"
-          " {!r} was trying to be saved.".format(self.metadata.varname,
-                                                 self.fields, fields))
+          " {!r} was trying to be saved.".format(
+              self.metadata.varname, self.fields, fields
+          )
+      )
 
   def ForFields(self, fields) -> prometheus_client.metrics.MetricWrapperBase:
     self.Validate(fields)
@@ -83,7 +112,8 @@ class _Metric(object):
 
   def __repr__(self):
     return "<{} varname={!r} fields={!r} metric={!r}>".format(
-        type(self).__name__, self.metadata.varname, self.fields, self.metric)
+        type(self).__name__, self.metadata.varname, self.fields, self.metric
+    )
 
 
 def _DistributionFromHistogram(metric, values_by_suffix):
@@ -123,11 +153,14 @@ def _DistributionFromHistogram(metric, values_by_suffix):
   """
   dist = rdf_stats.Distribution(bins=list(metric.metadata.bins))
   if metric.metadata.bins and len(dist.heights) != len(
-      values_by_suffix["_bucket"]):
+      values_by_suffix["_bucket"]
+  ):
     raise ValueError(
         "Trying to create Distribution with {} bins, but underlying"
         "Histogram has {} buckets".format(
-            len(dist.heights), len(values_by_suffix["_bucket"])))
+            len(dist.heights), len(values_by_suffix["_bucket"])
+        )
+    )
   dist.heights = values_by_suffix["_bucket"]
 
   # Remove cumulative sum by subtracting the value of the previous bin

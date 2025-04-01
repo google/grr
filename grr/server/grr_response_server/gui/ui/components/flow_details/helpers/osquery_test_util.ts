@@ -5,27 +5,36 @@ import {OsqueryTable} from '../../../lib/api/api_interfaces';
 
 /** Helper data structure to parse an osquery_results_table */
 export class OsqueryResultsTableDOM {
-  readonly queryDiv = this.rootElement?.query(By.css('.results-query-text'));
-  readonly queryText = this.queryDiv?.nativeElement.innerText;
+  readonly queryDiv: DebugElement | undefined;
+  readonly queryText: string | undefined;
 
-  readonly columnElements = this.rootElement?.queryAll(By.css('th'));
-  readonly columnsText?: readonly string[] = this.columnElements?.map(
-    (columnElement) => columnElement.nativeElement.innerText,
-  );
+  readonly columnElements: DebugElement[] | undefined;
+  readonly columnsText?: readonly string[];
 
-  readonly cellDivs = this.rootElement?.queryAll(By.css('td'));
-  readonly cellsText?: readonly string[] = this.cellDivs?.map(
-    (cellDiv) => cellDiv.nativeElement.innerText,
-  );
+  readonly cellDivs: DebugElement[] | undefined;
+  readonly cellsText?: readonly string[];
 
   get rowsLength() {
     return this.rootElement?.queryAll(By.css('tr')).length;
   }
 
-  readonly errorDiv = this.rootElement?.query(By.css('.error'));
-  readonly errorText = this.errorDiv?.nativeElement.innerText;
+  readonly errorDiv: DebugElement | undefined;
+  readonly errorText: string | undefined;
 
-  constructor(private readonly rootElement?: DebugElement) {}
+  constructor(private readonly rootElement?: DebugElement) {
+    this.queryDiv = this.rootElement?.query(By.css('.results-query-text'));
+    this.queryText = this.queryDiv?.nativeElement.innerText;
+    this.columnElements = this.rootElement?.queryAll(By.css('th'));
+    this.columnsText = this.columnElements?.map(
+      (columnElement) => columnElement.nativeElement.innerText,
+    );
+    this.cellDivs = this.rootElement?.queryAll(By.css('td'));
+    this.cellsText = this.cellDivs?.map(
+      (cellDiv) => cellDiv.nativeElement.innerText,
+    );
+    this.errorDiv = this.rootElement?.query(By.css('.error'));
+    this.errorText = this.errorDiv?.nativeElement.innerText;
+  }
 }
 
 /**

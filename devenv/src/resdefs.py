@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Resource definitions."""
 
-from typing import List, Optional
+from typing import Optional
 
 from . import config
 from . import reslib
@@ -132,7 +132,7 @@ ADMIN_USER = reslib.AdminUser(
 class Devenv(reslib.Resource):
   """Wrapper resource for the entire devenv."""
 
-  components: List[reslib.Resource] = [
+  components: list[reslib.Resource] = [
       MYSQL_CTR,
       FLEETSPEAK_ADMIN_CTR,
       FLEETSPEAK_FRONTEND_CTR,
@@ -158,7 +158,7 @@ class Devenv(reslib.Resource):
   def destroy(self) -> None:
     GRR_POD.clean()
 
-  def containers(self) -> List[reslib.Container]:
+  def containers(self) -> list[reslib.Container]:
     return [ctr for ctr in self.components if isinstance(ctr, reslib.Container)]
 
   def container_by_name(self, name: str) -> Optional[reslib.Container]:

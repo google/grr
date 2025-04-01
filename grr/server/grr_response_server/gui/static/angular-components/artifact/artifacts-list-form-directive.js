@@ -1,5 +1,4 @@
 goog.module('grrUi.artifact.artifactsListFormDirective');
-goog.module.declareLegacyNamespace();
 
 const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
 
@@ -89,9 +88,9 @@ const ArtifactsListFormController = class {
       return true;
     }
 
-    var checkOsList = function(osList) {
-      for (var i in osList) {
-        var os = osList[i];
+    const checkOsList = function(osList) {
+      for (const i in osList) {
+        const os = osList[i];
         if (os.value == this.selectedPlatform) {
           return true;
         }
@@ -104,9 +103,10 @@ const ArtifactsListFormController = class {
       return true;
     }
 
-    var sourceList = descriptor['value']['artifact']['value']['sources'] || [];
-    for (var index in sourceList) {
-      var source = sourceList[index];
+    const sourceList =
+        descriptor['value']['artifact']['value']['sources'] || [];
+    for (const index in sourceList) {
+      const source = sourceList[index];
       if (checkOsList(source['value']['supported_os'] || [])) {
         return true;
       }
@@ -145,8 +145,8 @@ const ArtifactsListFormController = class {
    * @export
    */
   add(name) {
-    var index = -1;
-    for (var i = 0; i < this.scope_.value.length; ++i) {
+    let index = -1;
+    for (let i = 0; i < this.scope_.value.length; ++i) {
       if (this.scope_.value[i]['value'] == name['value']) {
         index = i;
         break;
@@ -167,8 +167,8 @@ const ArtifactsListFormController = class {
    * @export
    */
   remove(name) {
-    var index = -1;
-    for (var i = 0; i < this.scope_.value.length; ++i) {
+    let index = -1;
+    for (let i = 0; i < this.scope_.value.length; ++i) {
       if (this.scope_.value[i]['value'] == name['value']) {
         index = i;
         break;
@@ -206,8 +206,8 @@ const ArtifactsListFormController = class {
         angular.isDefined(this.scope_.value)) {
       this.descriptorsList = [];
       angular.forEach(this.descriptors, function(descriptor, name) {
-        var index = -1;
-        for (var i = 0; i < this.scope_.value.length; ++i) {
+        let index = -1;
+        for (let i = 0; i < this.scope_.value.length; ++i) {
           if (this.scope_.value[i]['value'] == name) {
             index = i;
             break;

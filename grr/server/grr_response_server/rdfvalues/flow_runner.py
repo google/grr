@@ -30,34 +30,24 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   Note that all flows receive these arguments. This object is stored in the
   flows state.context.arg attribute.
   """
+
   protobuf = flows_pb2.FlowRunnerArgs
   rdf_deps = [
       rdf_client.ClientURN,
       rdf_objects.FlowReference,
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
-      rdfvalue.RDFURN,
       RequestState,
   ]
 
 
 class OutputPluginState(rdf_structs.RDFProtoStruct):
   """The output plugin state."""
+
   protobuf = output_plugin_pb2.OutputPluginState
   rdf_deps = [
       rdf_protodict.AttributedDict,
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
   ]
-
-  def GetPlugin(self):
-    return self.plugin_descriptor.GetPluginForState(self.plugin_state)
-
-  def Log(self, msg):
-    # Cannot append to lists in AttributedDicts.
-    self.plugin_state["logs"] += [msg]
-
-  def Error(self, msg):
-    # Cannot append to lists in AttributedDicts.
-    self.plugin_state["errors"] += [msg]
 
 
 class FlowContext(rdf_structs.RDFProtoStruct):

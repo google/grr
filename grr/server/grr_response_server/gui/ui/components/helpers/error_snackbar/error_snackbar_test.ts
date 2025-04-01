@@ -13,7 +13,10 @@ import {DeepPartial} from '../../../lib/type_utils';
 import {ErrorSnackBar, WINDOW} from './error_snackbar';
 import {ErrorSnackBarModule} from './error_snackbar_module';
 
-@Component({})
+@Component({
+  standalone: false,
+  jit: true,
+})
 class TestHostComponent {
   constructor(public viewContainerRef: ViewContainerRef) {}
 }

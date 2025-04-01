@@ -93,7 +93,7 @@ const DownloadCollectionFilesController = class {
    * @export
    */
   generateFileArchive(format) {
-    var requestFormat = format.toUpperCase().replace('.', '_');
+    const requestFormat = format.toUpperCase().replace('.', '_');
     this.grrApiService_
         .downloadFile(
             this.scope_['downloadUrl'], {archive_format: requestFormat})

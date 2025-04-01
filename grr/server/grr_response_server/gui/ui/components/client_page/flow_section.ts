@@ -8,32 +8,40 @@ import {ApprovalParams} from '../approval_card/approval_card';
 
 /** Section in ClientPage that shows the flow form and list. */
 @Component({
+  standalone: false,
   selector: 'app-flow-section',
   templateUrl: './flow_section.ng.html',
   styleUrls: ['./flow_section.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowSection {
-  readonly client$ = this.clientPageGlobalStore.selectedClient$;
+  readonly client$;
 
-  readonly currentUser$ = this.userGlobalStore.currentUser$;
+  readonly currentUser$;
 
-  readonly showApprovalView$ = this.clientPageGlobalStore.approvalsEnabled$;
+  readonly showApprovalView$;
 
-  readonly latestApproval$ = this.clientPageGlobalStore.latestApproval$;
+  readonly latestApproval$;
 
-  readonly requestApprovalStatus$ =
-    this.clientPageGlobalStore.requestApprovalStatus$;
+  readonly requestApprovalStatus$;
 
-  readonly clientApprovalRoute$ =
-    this.clientPageGlobalStore.clientApprovalRoute$;
+  readonly clientApprovalRoute$;
 
-  readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
+  readonly hasAccess$;
 
   constructor(
     private readonly clientPageGlobalStore: ClientPageGlobalStore,
     private readonly userGlobalStore: UserGlobalStore,
-  ) {}
+  ) {
+    this.client$ = this.clientPageGlobalStore.selectedClient$;
+    this.currentUser$ = this.userGlobalStore.currentUser$;
+    this.showApprovalView$ = this.clientPageGlobalStore.approvalsEnabled$;
+    this.latestApproval$ = this.clientPageGlobalStore.latestApproval$;
+    this.requestApprovalStatus$ =
+      this.clientPageGlobalStore.requestApprovalStatus$;
+    this.clientApprovalRoute$ = this.clientPageGlobalStore.clientApprovalRoute$;
+    this.hasAccess$ = this.clientPageGlobalStore.hasAccess$;
+  }
 
   requestApproval(approvalParams: ApprovalParams) {
     this.client$.pipe(first()).subscribe((client) => {

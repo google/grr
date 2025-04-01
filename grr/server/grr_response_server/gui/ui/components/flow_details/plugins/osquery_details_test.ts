@@ -1,6 +1,7 @@
 import {DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {
   newOsqueryTable,
@@ -25,30 +26,40 @@ initTestEnvironment();
  * OsqueryDetails DOM
  */
 class OsqueryDetailsDOM {
-  readonly inProgressDiv? = this.rootElement.query(By.css('.in-progress'));
-  readonly inProgressText? = this.inProgressDiv?.nativeElement.innerText;
+  readonly inProgressDiv: DebugElement | null;
+  readonly inProgressText?: string;
 
-  readonly errorDiv? = this.rootElement.query(By.css('.error'));
-  readonly errorMessageDiv? = this.errorDiv?.query(By.css('div'));
-  readonly errorMessageText? = this.errorMessageDiv?.nativeElement.innerText;
+  readonly errorDiv: DebugElement | null;
+  readonly errorMessageDiv: DebugElement | null;
+  readonly errorMessageText: string;
 
-  readonly displayedTableRoot? = this.rootElement.query(
-    By.css('osquery-results-table'),
-  );
-  readonly displayedTable? = this.displayedTableRoot
-    ? new OsqueryResultsTableDOM(this.displayedTableRoot)
-    : null;
+  readonly displayedTableRoot: DebugElement | null;
+  readonly displayedTable: OsqueryResultsTableDOM | null;
 
-  readonly showAdditionalDiv? = this.rootElement.query(
-    By.css('.show-additional'),
-  );
-  readonly showAdditionalButton? = this.showAdditionalDiv?.query(
-    By.css('button'),
-  );
-  readonly showAdditionalButtonText? =
-    this.showAdditionalButton?.nativeElement.textContent;
+  readonly showAdditionalDiv: DebugElement | null;
+  readonly showAdditionalButton: DebugElement | null;
+  readonly showAdditionalButtonText: string;
 
-  constructor(private readonly rootElement: DebugElement) {}
+  constructor(rootElement: DebugElement) {
+    this.inProgressDiv = rootElement.query(By.css('.in-progress'));
+    this.inProgressText = this.inProgressDiv?.nativeElement.innerText;
+
+    this.errorDiv = rootElement.query(By.css('.error'));
+    this.errorMessageDiv = this.errorDiv?.query(By.css('div'));
+    this.errorMessageText = this.errorMessageDiv?.nativeElement.innerText;
+
+    this.displayedTableRoot = rootElement.query(
+      By.css('osquery-results-table'),
+    );
+    this.displayedTable = this.displayedTableRoot
+      ? new OsqueryResultsTableDOM(this.displayedTableRoot)
+      : null;
+
+    this.showAdditionalDiv = rootElement.query(By.css('.show-additional'));
+    this.showAdditionalButton = this.showAdditionalDiv?.query(By.css('button'));
+    this.showAdditionalButtonText =
+      this.showAdditionalButton?.nativeElement.textContent;
+  }
 }
 
 /**
@@ -70,7 +81,7 @@ describe('osquery-details component', () => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
     TestBed.configureTestingModule({
-      imports: [PluginsModule],
+      imports: [PluginsModule, NoopAnimationsModule],
       providers: [],
       teardown: {destroyAfterEach: false},
     })
@@ -301,6 +312,7 @@ describe('osquery-details component', () => {
     expect(
       fixture.componentInstance.getExportMenuItems(
         fixture.componentInstance.flow,
+        '' /** exportCommandPrefix can be left empty for testing purposes */,
       )[0],
     ).not.toEqual(
       fixture.componentInstance.getDownloadFilesExportMenuItem(
@@ -337,6 +349,7 @@ describe('osquery-details component', () => {
     expect(
       fixture.componentInstance.getExportMenuItems(
         fixture.componentInstance.flow,
+        '',
       )[0],
     ).toEqual(
       fixture.componentInstance.getDownloadFilesExportMenuItem(

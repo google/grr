@@ -8,27 +8,19 @@ package grr;
 
 // Proto representation of an ArtifactSource.
 message ArtifactSource {
+  reserved 4;
+
   enum SourceType {
+    reserved 5, 7, 40, 41, 42, 43, 46;
+
     COLLECTOR_TYPE_UNKNOWN = 0;
     FILE = 1;
     REGISTRY_KEY = 2;
     REGISTRY_VALUE = 3;
     WMI = 4;
-    // ARTIFACT has been deprecated in favor of ARTIFACT_GROUP.
-    ARTIFACT = 5;
     PATH = 6;
-    reserved 7;
     ARTIFACT_GROUP = 8;
-
-    // TODO(user): these types will likely be separated out from artifacts in
-    // the future
-    GRR_CLIENT_ACTION = 40;
-    LIST_FILES = 41;
-    ARTIFACT_FILES = 42;
-    reserved 43;
-
     COMMAND = 45;
-    REKALL_PLUGIN = 46;
   }
 
   optional SourceType type = 1 [(sem_type) = {
@@ -42,11 +34,6 @@ message ArtifactSource {
   repeated string conditions = 3 [(sem_type) = {
     description: "Object filter conditions that decide if this source"
                  " applies to a given system.",
-  }];
-
-  repeated string returned_types = 4 [(sem_type) = {
-    description: "A list of types that may be returned by this source. "
-                 "Anything returned that is not in this list will be filtered.",
   }];
 
   repeated string supported_os = 5 [(sem_type) = {

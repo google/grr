@@ -4,24 +4,27 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.gui.api_plugins import cron
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
 class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
-  def AddJobStatus(self, job_id, status):
-    status = cron.ApiCronJob().status_map[status]
+  def AddJobStatus(
+      self, job_id: str, status: "flows_pb2.CronJobRun.CronJobRunStatus"
+  ) -> None:
+
     data_store.REL_DB.UpdateCronJob(
-        job_id, last_run_time=rdfvalue.RDFDatetime.Now(), last_run_status=status
+        job_id,
+        last_run_time=rdfvalue.RDFDatetime.Now(),
+        last_run_status=status,
     )
 
   def setUp(self):
@@ -391,7 +394,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # execution
     with test_lib.FakeTime(0):
       self.AddJobStatus(
-          "InterrogateClientsCronJob", rdf_cronjobs.CronJobRunStatus.Status.OK
+          "InterrogateClientsCronJob",
+          flows_pb2.CronJobRun.CronJobRunStatus.FINISHED,
       )
 
     self.Open("/legacy")
@@ -412,7 +416,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     manager._GetThreadPool().Stop()
 
     self.AddJobStatus(
-        "InterrogateClientsCronJob", rdf_cronjobs.CronJobRunStatus.Status.ERROR
+        "InterrogateClientsCronJob", flows_pb2.CronJobRun.CronJobRunStatus.ERROR
     )
 
     self.Open("/legacy")
@@ -429,11 +433,11 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testCronJobNotificationIsShownAndClickable(self):
     notification.Notify(
         self.test_username,
-        rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
+        objects_pb2.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED,
         "Test CronJob notification",
-        rdf_objects.ObjectReference(
-            reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
-            cron_job=rdf_objects.CronJobReference(
+        objects_pb2.ObjectReference(
+            reference_type=objects_pb2.ObjectReference.Type.CRON_JOB,
+            cron_job=objects_pb2.CronJobReference(
                 cron_job_id="InterrogateClientsCronJob"
             ),
         ),

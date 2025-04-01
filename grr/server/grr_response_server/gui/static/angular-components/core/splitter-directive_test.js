@@ -91,6 +91,5 @@ describe('grr-splitter directive', () => {
     ]);
   });
 
-  it('correctly fills-in missing sizes if some are not specified', () => {
-  });
+  it('correctly fills-in missing sizes if some are not specified', () => {});
 });

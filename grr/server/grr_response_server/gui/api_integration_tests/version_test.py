@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from typing import Callable
+from collections.abc import Callable
 from typing import Optional
 from unittest import mock
 

@@ -32,6 +32,7 @@ export enum FlowFilter {
 
 /** Component that displays executed Flows on the currently selected Client. */
 @Component({
+  standalone: false,
   selector: 'flow-list',
   templateUrl: './flow_list.ng.html',
   styleUrls: ['./flow_list.scss'],
@@ -44,13 +45,40 @@ export class FlowList implements OnDestroy {
 
   readonly flowFiltersForm = new FormControl(FlowFilter.ALL_HUMAN_FLOWS);
 
-  readonly entries$: Observable<readonly FlowWithDescriptor[]> = combineLatest([
-    this.clientPageGlobalStore.flowListEntries$,
-    this.configGlobalStore.flowDescriptors$,
-  ]).pipe(map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []));
+  readonly webAuthType$;
+  readonly exportCommandPrefix$;
 
-  readonly filteredEntries$: Observable<readonly FlowWithDescriptor[]> =
-    combineLatest([
+  readonly entries$: Observable<readonly FlowWithDescriptor[]>;
+
+  readonly filteredEntries$: Observable<readonly FlowWithDescriptor[]>;
+
+  readonly loadMoreState$;
+
+  readonly selectedFlowId$;
+
+  scrollTarget: string | null = null;
+
+  private scrollOperationId: ReturnType<typeof setTimeout> | undefined;
+
+  readonly ngOnDestroy;
+
+  readonly client$;
+
+  constructor(
+    private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly clientPageGlobalStore: ClientPageGlobalStore,
+    private readonly router: Router,
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly errorHandler: SnackBarErrorHandler,
+    viewRef: ViewContainerRef,
+  ) {
+    this.webAuthType$ = this.configGlobalStore.webAuthType$;
+    this.exportCommandPrefix$ = this.configGlobalStore.exportCommandPrefix$;
+    this.entries$ = combineLatest([
+      this.clientPageGlobalStore.flowListEntries$,
+      this.configGlobalStore.flowDescriptors$,
+    ]).pipe(map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []));
+    this.filteredEntries$ = combineLatest([
       this.entries$,
       this.flowFiltersForm.valueChanges.pipe(
         startWith(FlowFilter.ALL_HUMAN_FLOWS),
@@ -69,39 +97,22 @@ export class FlowList implements OnDestroy {
         }),
       ),
     );
-
-  readonly loadMoreState$ = this.clientPageGlobalStore.flowListEntries$.pipe(
-    map(({isLoading, hasMore}) => {
-      if (isLoading || hasMore === undefined) {
-        return LoadMoreState.LOADING;
-      } else if (hasMore) {
-        return LoadMoreState.HAS_MORE;
-      } else {
-        return LoadMoreState.ALL_LOADED;
-      }
-    }),
-  );
-
-  readonly selectedFlowId$ = this.activatedRoute.params.pipe(
-    map((params) => params['flowId'] as string | null),
-  );
-
-  scrollTarget: string | null = null;
-
-  private scrollOperationId: ReturnType<typeof setTimeout> | undefined;
-
-  readonly ngOnDestroy = observeOnDestroy(this);
-
-  readonly client$ = this.clientPageGlobalStore.selectedClient$;
-
-  constructor(
-    private readonly configGlobalStore: ConfigGlobalStore,
-    private readonly clientPageGlobalStore: ClientPageGlobalStore,
-    private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute,
-    private readonly errorHandler: SnackBarErrorHandler,
-    viewRef: ViewContainerRef,
-  ) {
+    this.loadMoreState$ = this.clientPageGlobalStore.flowListEntries$.pipe(
+      map(({isLoading, hasMore}) => {
+        if (isLoading || hasMore === undefined) {
+          return LoadMoreState.LOADING;
+        } else if (hasMore) {
+          return LoadMoreState.HAS_MORE;
+        } else {
+          return LoadMoreState.ALL_LOADED;
+        }
+      }),
+    );
+    this.selectedFlowId$ = this.activatedRoute.params.pipe(
+      map((params) => params['flowId'] as string | null),
+    );
+    this.ngOnDestroy = observeOnDestroy(this);
+    this.client$ = this.clientPageGlobalStore.selectedClient$;
     const scrollIntoView = (selectedFlowId: string, timeout = 0) => {
       if (this.scrollOperationId) {
         // If there is already an existing scrollIntoView operation, cancel it.

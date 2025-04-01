@@ -1,5 +1,4 @@
 goog.module('grrUi.flow.flowInfoDirective');
-goog.module.declareLegacyNamespace();
 
 
 

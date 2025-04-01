@@ -47,14 +47,13 @@ class DummyTest(flow_test_lib.FlowTestsBaseclass):
   def testHasInput(self):
     """Test that the Dummy flow works."""
 
-    flow_id = flow_test_lib.TestFlowHelper(
-        dummy.Dummy.__name__,
+    flow_id = flow_test_lib.StartAndRunFlow(
+        dummy.Dummy,
         # Uses mocked implementation.
         action_mocks.ActionMock.With({"Dummy": DummyActionReturnsOnce}),
         creator=self.test_username,
         client_id=self.client_id,
-        # Flow arguments
-        flow_input="batata",
+        flow_args=dummy.DummyArgs(flow_input="batata"),
     )
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -70,8 +69,8 @@ class DummyTest(flow_test_lib.FlowTestsBaseclass):
     with self.assertRaisesRegex(
         RuntimeError, r"args.flow_input is empty, cannot proceed!"
     ):
-      flow_test_lib.TestFlowHelper(
-          dummy.Dummy.__name__,
+      flow_test_lib.StartAndRunFlow(
+          dummy.Dummy,
           # Should fail before calling the client
           None,
           creator=self.test_username,
@@ -85,14 +84,13 @@ class DummyTest(flow_test_lib.FlowTestsBaseclass):
     with self.assertRaisesRegex(
         RuntimeError, r".*Oops, something weird happened.*"
     ):
-      flow_test_lib.TestFlowHelper(
-          dummy.Dummy.__name__,
+      flow_test_lib.StartAndRunFlow(
+          dummy.Dummy,
           # Uses mocked implementation.
           action_mocks.ActionMock.With({"Dummy": DummyActionReturnsTwice}),
           creator=self.test_username,
           client_id=self.client_id,
-          # Flow arguments
-          flow_input="banana",
+          flow_args=dummy.DummyArgs(flow_input="banana"),
       )
 
 

@@ -1,5 +1,4 @@
 goog.module('grrUi.forms.extFlagsOsxPickerDirective');
-goog.module.declareLegacyNamespace();
 
 const {OSX_FLAGS} = goog.require('grrUi.client.extFlags');
 const {TroggableFlags} = goog.require('grrUi.forms.extFlagsTroggling');

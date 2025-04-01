@@ -11,7 +11,11 @@ import {DurationComponentsModule} from './module';
 
 initTestEnvironment();
 
-@Component({template: '<input durationInput [formControl]="formControl">'})
+@Component({
+  standalone: false,
+  template: '<input durationInput [formControl]="formControl">',
+  jit: true,
+})
 class TestHostComponent {
   readonly formControl = new UntypedFormControl();
 }

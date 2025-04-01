@@ -10,9 +10,11 @@ import {InfiniteListModule} from './infinite_list_module';
 initTestEnvironment();
 
 @Component({
+  standalone: false,
   template: `
     <app-infinite-list [hasMore]="hasMore" [isLoading]="isLoading" (loadMore)="loadMore()">
     </app-infinite-list>`,
+  jit: true,
 })
 class TestHostComponent {
   @Input() hasMore: boolean | null = null;

@@ -24,7 +24,7 @@ describe('User label directive', () => {
   }));
 
   const render = () => {
-    const template = '<grr-user-label />';
+    const template = '<grr-user-label></grr-user-label>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;

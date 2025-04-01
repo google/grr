@@ -19,13 +19,10 @@
               autocomplete="off">
     </textarea>
   </mat-form-field>
-  <div class="validation"
-       [hidden]="!controls.path.errors?.['required'] && !controls.signedUrl.errors?.['required']">
-    <mat-error *ngIf="controls.path.errors?.['required'] || controls.signedUrl.errors?.['required']">
-      File path and signed URL expected.
-    </mat-error>
-  </div>
-  <div class='title'>Path type</div>
+  <mat-error *ngIf="controls.path.errors?.['required'] || controls.signedUrl.errors?.['required']">
+    File path and signed URL expected.
+  </mat-error>
+  <div class='option-title'>Path type</div>
   <mat-radio-group aria-label="Path type" [formControl]="controls.pathType">
     <mat-radio-button *ngFor="let pt of pathTypes" [value]="pt" class="radio-option w100">
       {{pt}}

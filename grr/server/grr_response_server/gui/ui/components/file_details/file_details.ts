@@ -15,6 +15,7 @@ import {FileDetailsLocalStore} from '../../store/file_details_local_store';
 
 /** Component to show file contents and metadata. */
 @Component({
+  standalone: false,
   'selector': 'app-file-details',
   templateUrl: './file_details.ng.html',
   styleUrls: ['./file_details.scss'],
@@ -26,19 +27,15 @@ export class FileDetails implements OnDestroy {
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly hasMore$ = this.fileDetailsLocalStore.hasMore$;
+  readonly hasMore$;
 
-  readonly details$ = this.fileDetailsLocalStore.details$;
+  readonly details$;
 
-  readonly fileId$ = this.fileDetailsLocalStore.file$;
+  readonly fileId$;
 
-  readonly downloadUrl$ = this.fileDetailsLocalStore.file$.pipe(
-    map((f) => (f ? getFileBlobUrl(f.clientId, f.pathType, f.path) : null)),
-  );
+  readonly downloadUrl$;
 
-  readonly hasContents$ = this.fileDetailsLocalStore.details$.pipe(
-    map((details) => !!details?.lastContentCollected?.timestamp),
-  );
+  readonly hasContents$;
 
   @Input()
   set file(file: FileIdentifier | null | undefined) {
@@ -50,12 +47,23 @@ export class FileDetails implements OnDestroy {
     }
   }
 
-  readonly isRecollecting$ = this.fileDetailsLocalStore.isRecollecting$;
+  readonly isRecollecting$;
 
   constructor(
     private readonly fileDetailsLocalStore: FileDetailsLocalStore,
     readonly router: Router,
-  ) {}
+  ) {
+    this.hasMore$ = this.fileDetailsLocalStore.hasMore$;
+    this.details$ = this.fileDetailsLocalStore.details$;
+    this.fileId$ = this.fileDetailsLocalStore.file$;
+    this.downloadUrl$ = this.fileDetailsLocalStore.file$.pipe(
+      map((f) => (f ? getFileBlobUrl(f.clientId, f.pathType, f.path) : null)),
+    );
+    this.hasContents$ = this.fileDetailsLocalStore.details$.pipe(
+      map((details) => !!details?.lastContentCollected?.timestamp),
+    );
+    this.isRecollecting$ = this.fileDetailsLocalStore.isRecollecting$;
+  }
 
   loadMore() {
     this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);

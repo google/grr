@@ -24,13 +24,15 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     client_id = self.SetupClient(0)
 
-    session_id = flow_test_lib.TestFlowHelper(
-        flow_registry_finder.RegistryFinder.__name__,
+    session_id = flow_test_lib.StartAndRunFlow(
+        flow_registry_finder.RegistryFinder,
         client_mock,
         client_id=client_id,
-        keys_paths=paths,
-        conditions=[],
         creator=self.test_username,
+        flow_args=flow_registry_finder.RegistryFinderArgs(
+            keys_paths=paths,
+            conditions=[],
+        ),
     )
 
     return flow_test_lib.GetFlowResults(client_id, session_id)
@@ -38,36 +40,42 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def testRegistryFinder(self):
     # Listing inside a key gives the values.
     results = self._RunRegistryFinder(
-        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
+        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"]
+    )
     self.assertLen(results, 2)
     self.assertCountEqual(
         [x.stat_entry.registry_data.GetValue() for x in results],
-        ["Value1", "Value2"])
+        ["Value1", "Value2"],
+    )
 
     # This is a key so we should get back the default value.
     results = self._RunRegistryFinder(
-        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"])
+        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"]
+    )
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].stat_entry.registry_data.GetValue(),
-                     "DefaultValue")
+    self.assertEqual(
+        results[0].stat_entry.registry_data.GetValue(), "DefaultValue"
+    )
 
     # The same should work using a wildcard.
     results = self._RunRegistryFinder(["HKEY_LOCAL_MACHINE/SOFTWARE/*"])
 
     self.assertTrue(results)
     paths = [x.stat_entry.pathspec.path for x in results]
-    expected_path = u"/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"
+    expected_path = "/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"
     self.assertIn(expected_path, paths)
     idx = paths.index(expected_path)
-    self.assertEqual(results[idx].stat_entry.registry_data.GetValue(),
-                     "DefaultValue")
+    self.assertEqual(
+        results[idx].stat_entry.registry_data.GetValue(), "DefaultValue"
+    )
 
   def testListingRegistryKeysDoesYieldMTimes(self):
     # Just listing all keys does generate a full stat entry for each of
     # the results.
     results = self._RunRegistryFinder(
-        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
+        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"]
+    )
     results = sorted(results, key=lambda x: x.stat_entry.pathspec.path)
 
     # We expect 2 results: Value1 and Value2.

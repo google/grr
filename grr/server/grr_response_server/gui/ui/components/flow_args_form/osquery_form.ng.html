@@ -1,5 +1,5 @@
 
-<div class="main-container">
+<div class="column">
   <div class="query-section">
     <mat-form-field appearance="outline" class="editor-form-field">
       <mat-label>SQL query</mat-label>
@@ -32,9 +32,7 @@
       <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </span>
-  <div
-    [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'"
-  >
+  <div [hidden]="!fileCollectionSettingsShown" class="column collection-container">
     <mat-form-field>
       <mat-chip-grid
         #chipList
@@ -74,7 +72,7 @@
       <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </span>
-  <div [class]="lowLevelSettingsShown ? 'settings-container' : 'hide-content'">
+  <div [hidden]="!lowLevelSettingsShown" class="column settings-container">
     <mat-form-field class="timeout-form-field">
       <mat-label>Timeout</mat-label>
       <input
@@ -123,8 +121,8 @@
         <mat-icon>help_outline</mat-icon>
       </a>
     </mat-form-field>
-    <div class="validation" [hidden]="!(controls.configurationContent.value && controls.configurationPath.value)">
-      <mat-error>Only one of configuration content or configuration path can be set</mat-error>
-    </div>
+    <mat-error *ngIf="controls.configurationContent.value && controls.configurationPath.value">
+      Only one of configuration content or configuration path can be set
+    </mat-error>
   </div>
 </div>

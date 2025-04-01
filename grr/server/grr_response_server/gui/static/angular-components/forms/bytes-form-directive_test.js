@@ -124,7 +124,7 @@ describe('bytes form directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-form-bytes value="value" />';
+    const template = '<grr-form-bytes value="value"></grr-form-bytes>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

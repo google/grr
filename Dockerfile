@@ -6,7 +6,7 @@
 # time a new a PUSH happens in the GRR github repository.
 #
 # Examples:
-# - Run a grr server component (e.g. admin_ui):
+# - Run a GRR server component (e.g. admin_ui):
 #
 #   $ docker run -it \
 #       -v $(pwd)/docker_config_files/server:/configs \
@@ -14,7 +14,20 @@
 #       "-component" "admin_ui" \
 #       "-config" "/configs/grr.server.yaml"
 #
-# - Run the grr client component:
+# - Run the GRR client component via repacking client templates:
+#   Client installers for different operating systems are created by
+#   repacking client templates, which are included in the GRR Docker image
+#   downloaded from github (they are currently only build in the github workflow
+#   that creates the GRR Docker image and not in a local build). The Fleetspeak
+#   client requires connectivity to the Fleetspeak server, we recommend running
+#   this client in the Docker Compose stack (see compose.yaml for details)
+#   otherwise the config needs to be adjusted. The Docker Compose stack is also
+#   taking care of repacking the client templates and installing them in the
+#   GRR client container.
+#
+#   If you nontheless want to repack the client templates, install them in
+#   a local container and start the client, you can use the following commands:
+#
 #   -- Start the container and mount the client config directory:
 #       $ docker run -it \
 #          -v $(pwd)/docker_config_files/client:/configs \
@@ -26,7 +39,7 @@
 #      resulting debian file inside the container:
 #       root@<CONTAINER ID> $ /configs/repack_install_client.sh
 #
-#   -- Start fleetspeak and grr clients:
+#   -- Start Fleetspeak and GRR clients:
 #       root@<CONTAINER ID> $ fleetspeak-client -config /configs/client.config
 #
 #   -- (Optional) To verify if the client runs, check if the two expected
@@ -35,6 +48,8 @@
 #             ...        COMMAND
 #             ...        fleetspeak-client -config /configs/client.config
 #             ...        python -m grr_response_client.client ...
+# - To run a GRR client container without repacking checkout out the
+#   Dockerfile.client file.
 
 FROM ubuntu:22.04
 

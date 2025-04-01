@@ -6,7 +6,11 @@ import {SanitizerPipeModule} from './module';
 
 describe('SanitizerPipe', () => {
   describe('HTML sanitizer context', () => {
-    @Component({template: `<div [innerHTML]="htmlSnippet|sanitize"></div>`})
+    @Component({
+      standalone: false,
+      template: `<div [innerHTML]="htmlSnippet|sanitize"></div>`,
+      jit: true,
+    })
     class TestHostComponent {
       @Input() htmlSnippet?: string;
     }

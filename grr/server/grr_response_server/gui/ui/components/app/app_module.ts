@@ -1,4 +1,3 @@
-import {CommonModule} from '@angular/common';
 import {ErrorHandler, NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule, MatIconRegistry} from '@angular/material/icon';
@@ -7,6 +6,7 @@ import {MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouteReuseStrategy} from '@angular/router';
 
@@ -72,7 +72,7 @@ const GRR_MODULES = [
 @NgModule({
   declarations: [App, NotFoundPage],
   imports: [
-    CommonModule,
+    BrowserModule,
     BrowserAnimationsModule,
     ...ANGULAR_MATERIAL_MODULES,
     ...GRR_MODULES,

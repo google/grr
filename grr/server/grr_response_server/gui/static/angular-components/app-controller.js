@@ -1,5 +1,4 @@
 goog.module('grrUi.appController');
-goog.module.declareLegacyNamespace();
 
 
 /**

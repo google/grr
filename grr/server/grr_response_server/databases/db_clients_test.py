@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import ipaddress
 from unittest import mock
 
 from grr_response_core.lib import rdfvalue
@@ -11,7 +10,7 @@ from grr_response_proto import objects_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.models import clients
+from grr_response_server.models import clients as models_clients
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -113,11 +112,9 @@ class DatabaseTestClientsMixin(object):
     self.assertEmpty(md.certificate)
     self.assertFalse(md.first_seen)
     self.assertFalse(md.ping)
-    self.assertFalse(md.clock)
     self.assertFalse(md.last_foreman_time)
     self.assertFalse(md.last_crash_timestamp)
     self.assertFalse(md.startup_info_timestamp)
-    self.assertFalse(md.HasField("ip"))
     self.assertFalse(md.HasField("last_fleetspeak_validation_info"))
 
   def testClientMetadataSkipFields(self):
@@ -125,36 +122,25 @@ class DatabaseTestClientsMixin(object):
     self.db.WriteClientMetadata(
         client_id,
         first_seen=rdfvalue.RDFDatetime(100000000),
-        last_clock=rdfvalue.RDFDatetime(100000001),
         last_foreman=rdfvalue.RDFDatetime(100000002),
         last_ping=rdfvalue.RDFDatetime(100000003),
-        last_ip=clients.NetworkAddressFromIPAddress(
-            ipaddress.IPv4Address("8.8.8.8")
-        ),
         fleetspeak_validation_info={"foo": "bar"},
     )
     # Skip fields
     self.db.WriteClientMetadata(
         client_id,
         first_seen=None,
-        last_clock=None,
         last_foreman=None,
         last_ping=None,
-        last_ip=None,
         fleetspeak_validation_info=None,
     )
 
     md = self.db.ReadClientMetadata(client_id)
     self.assertEqual(md.first_seen, int(rdfvalue.RDFDatetime(100000000)))
-    self.assertEqual(md.clock, int(rdfvalue.RDFDatetime(100000001)))
     self.assertEqual(md.last_foreman_time, int(rdfvalue.RDFDatetime(100000002)))
     self.assertEqual(md.ping, int(rdfvalue.RDFDatetime(100000003)))
     self.assertEqual(
-        md.ip,
-        clients.NetworkAddressFromIPAddress(ipaddress.IPv4Address("8.8.8.8")),
-    )
-    self.assertEqual(
-        clients.FleetspeakValidationInfoToDict(
+        models_clients.FleetspeakValidationInfoToDict(
             md.last_fleetspeak_validation_info
         ),
         {"foo": "bar"},
@@ -165,7 +151,6 @@ class DatabaseTestClientsMixin(object):
     self.db.WriteClientMetadata(
         client_id,
         first_seen=rdfvalue.RDFDatetime(100000001),
-        last_clock=rdfvalue.RDFDatetime(100000011),
         last_foreman=rdfvalue.RDFDatetime(100000021),
         last_ping=rdfvalue.RDFDatetime(100000031),
     )
@@ -173,7 +158,6 @@ class DatabaseTestClientsMixin(object):
     self.assertLen(res, 1)
     m1 = res[client_id]
     self.assertEqual(m1.first_seen, rdfvalue.RDFDatetime(100000001))
-    self.assertEqual(m1.clock, rdfvalue.RDFDatetime(100000011))
     self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(100000021))
     self.assertEqual(m1.ping, rdfvalue.RDFDatetime(100000031))
 
@@ -186,10 +170,6 @@ class DatabaseTestClientsMixin(object):
     d.WriteClientMetadata(
         client_id,
         last_ping=rdfvalue.RDFDatetime(200000000000),
-        last_clock=rdfvalue.RDFDatetime(210000000000),
-        last_ip=clients.NetworkAddressFromIPAddress(
-            ipaddress.IPv4Address("8.8.8.8")
-        ),
         last_foreman=rdfvalue.RDFDatetime(220000000000),
     )
 
@@ -198,11 +178,6 @@ class DatabaseTestClientsMixin(object):
     m1 = res[client_id]
     self.assertIsInstance(m1, objects_pb2.ClientMetadata)
     self.assertEqual(m1.ping, int(rdfvalue.RDFDatetime(200000000000)))
-    self.assertEqual(m1.clock, int(rdfvalue.RDFDatetime(210000000000)))
-    self.assertEqual(
-        m1.ip,
-        clients.NetworkAddressFromIPAddress(ipaddress.IPv4Address("8.8.8.8")),
-    )
     self.assertEqual(
         m1.last_foreman_time,
         int(rdfvalue.RDFDatetime(220000000000)),
@@ -1299,14 +1274,12 @@ class DatabaseTestClientsMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
 
     first_seen_time = rdfvalue.RDFDatetime.Now()
-    last_clock_time = rdfvalue.RDFDatetime.Now()
     last_ping_time = rdfvalue.RDFDatetime.Now()
     last_foreman_time = rdfvalue.RDFDatetime.Now()
 
     self.db.WriteClientMetadata(
         client_id=client_id,
         first_seen=first_seen_time,
-        last_clock=last_clock_time,
         last_ping=last_ping_time,
         last_foreman=last_foreman_time,
     )
@@ -1325,7 +1298,6 @@ class DatabaseTestClientsMixin(object):
 
     full_info = self.db.ReadClientFullInfo(client_id)
     self.assertEqual(full_info.metadata.first_seen, int(first_seen_time))
-    self.assertEqual(full_info.metadata.clock, int(last_clock_time))
     self.assertEqual(full_info.metadata.ping, int(last_ping_time))
     self.assertEqual(
         full_info.metadata.last_foreman_time, int(last_foreman_time)
@@ -1647,7 +1619,7 @@ class DatabaseTestClientsMixin(object):
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
     metadata = res[client_id]
-    info = clients.FleetspeakValidationInfoToDict(
+    info = models_clients.FleetspeakValidationInfoToDict(
         metadata.last_fleetspeak_validation_info
     )
     self.assertEqual(info, {"foo": "bar", "12": "34"})
@@ -1665,7 +1637,7 @@ class DatabaseTestClientsMixin(object):
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
     metadata = res[client_id]
-    info = clients.FleetspeakValidationInfoToDict(
+    info = models_clients.FleetspeakValidationInfoToDict(
         metadata.last_fleetspeak_validation_info
     )
     self.assertEqual(info, {"foo": "bar", "new": "1234"})
@@ -1694,7 +1666,7 @@ class DatabaseTestClientsMixin(object):
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
     metadata = res[client_id]
-    info = clients.FleetspeakValidationInfoToDict(
+    info = models_clients.FleetspeakValidationInfoToDict(
         metadata.last_fleetspeak_validation_info
     )
     self.assertEqual(info, {"foo": "bar"})

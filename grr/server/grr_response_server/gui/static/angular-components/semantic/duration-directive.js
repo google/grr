@@ -10,7 +10,7 @@ goog.module.declareLegacyNamespace();
  * @return {boolean} True if value has a non-zero fractional part.
  * @private
  */
-var hasFraction_ = function(value) {
+const hasFraction_ = function(value) {
   return (value - Math.floor(value)) > 1e-16;
 };
 
@@ -26,11 +26,11 @@ exports.stringifySeconds = function(value) {
     return '0';
   }
 
-  var newDuration = moment.duration(value, 's');
+  const newDuration = moment.duration(value, 's');
 
-  var unit;
-  var units = ['d', 'h', 'm', 's'];
-  for (var i = 0; i < units.length; ++i) {
+  let unit;
+  const units = ['d', 'h', 'm', 's'];
+  for (let i = 0; i < units.length; ++i) {
     if (!hasFraction_(newDuration.as(units[i]))) {
       unit = units[i];
       break;
@@ -40,7 +40,7 @@ exports.stringifySeconds = function(value) {
     throw new Error('Internal logic error: unit can\'t be undefined.');
   }
 
-  var n = newDuration.as(unit);
+  let n = newDuration.as(unit);
   if (unit == 'd' && n % 7 == 0) {
     n = n / 7;
     unit = 'w';

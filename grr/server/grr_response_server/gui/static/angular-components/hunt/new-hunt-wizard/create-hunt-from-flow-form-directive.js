@@ -1,5 +1,4 @@
 goog.module('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective');
-goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
@@ -54,7 +53,7 @@ const CreateHuntFromFlowFormController = class {
    */
   onFlowIdClientIdChange_(newValues) {
     if (newValues.every(angular.isDefined)) {
-      var flowUrl = [
+      const flowUrl = [
         'clients', this.scope_['clientId'], 'flows', this.scope_['flowId']
       ].join('/');
       this.grrApiService_.get(flowUrl)
@@ -71,7 +70,7 @@ const CreateHuntFromFlowFormController = class {
    * @private
    */
   onFlowDataFetched_() {
-    var huntArgs =
+    const huntArgs =
         angular.copy(this.descriptors_['ApiCreateHuntArgs']['default']);
     huntArgs['value']['flow_name'] = angular.copy(this.flow_['value']['name']);
     huntArgs['value']['flow_args'] = angular.copy(this.flow_['value']['args']);

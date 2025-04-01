@@ -7,7 +7,7 @@ import {
   Router,
 } from '@angular/router';
 import {distinctUntilChanged, filter, map, startWith} from 'rxjs/operators';
-import {safeLocation} from 'safevalues/dom';
+import {setLocationHref} from 'safevalues/dom';
 
 import {
   GrrActivatedRouteSnapshot,
@@ -54,6 +54,7 @@ function hasPageViewTracking(route: GrrActivatedRouteSnapshot) {
  * The root component.
  */
 @Component({
+  standalone: false,
   selector: 'app-root',
   templateUrl: './app.ng.html',
   styleUrls: ['./app.scss'],
@@ -61,21 +62,9 @@ function hasPageViewTracking(route: GrrActivatedRouteSnapshot) {
   providers: [MetricsService],
 })
 export class App {
-  private readonly navigationEndEvent$ = this.router.events.pipe(
-    filter((event): event is ActivationEnd => event instanceof ActivationEnd),
-  );
+  private readonly navigationEndEvent$;
 
-  readonly fallbackLink$ = this.navigationEndEvent$.pipe(
-    map((event) => {
-      const route = event.snapshot as GrrActivatedRouteSnapshot;
-      const routeWithLegacyLink = findRouteWith(route, hasLegacyLink);
-      if (routeWithLegacyLink === undefined) {
-        return makeLegacyLink();
-      } else {
-        return makeLegacyLinkFromRoute(routeWithLegacyLink);
-      }
-    }),
-  );
+  readonly fallbackLink$;
 
   registerRedirect() {
     this.metricsService.registerUIRedirect(
@@ -84,28 +73,17 @@ export class App {
     );
   }
 
-  readonly isClientsPath$ = this.navigationEndEvent$.pipe(
-    map(() => this.router.url.startsWith(CLIENTS_ROUTE)),
-    distinctUntilChanged(),
-  );
+  readonly isClientsPath$;
 
-  readonly isNewHuntPath$ = this.navigationEndEvent$.pipe(
-    map(() => this.router.url.startsWith(NEW_HUNT_ROUTE)),
-    distinctUntilChanged(),
-  );
+  readonly isNewHuntPath$;
 
   @ViewChild('drawer') drawer!: MatDrawer;
 
-  readonly uiConfig$ = this.configGlobalStore.uiConfig$;
+  readonly uiConfig$;
 
-  readonly heading$ = this.configGlobalStore.uiConfig$.pipe(
-    map((config) => config.heading),
-  );
+  readonly heading$;
 
-  readonly canaryMode$ = this.userGlobalStore.currentUser$.pipe(
-    map((user) => user.canaryMode),
-    startWith(false),
-  );
+  readonly canaryMode$;
 
   constructor(
     private readonly router: Router,
@@ -114,6 +92,36 @@ export class App {
     private readonly userGlobalStore: UserGlobalStore,
     private readonly metricsService: MetricsService,
   ) {
+    this.navigationEndEvent$ = this.router.events.pipe(
+      filter((event): event is ActivationEnd => event instanceof ActivationEnd),
+    );
+    this.fallbackLink$ = this.navigationEndEvent$.pipe(
+      map((event) => {
+        const route = event.snapshot as GrrActivatedRouteSnapshot;
+        const routeWithLegacyLink = findRouteWith(route, hasLegacyLink);
+        if (routeWithLegacyLink === undefined) {
+          return makeLegacyLink();
+        } else {
+          return makeLegacyLinkFromRoute(routeWithLegacyLink);
+        }
+      }),
+    );
+    this.isClientsPath$ = this.navigationEndEvent$.pipe(
+      map(() => this.router.url.startsWith(CLIENTS_ROUTE)),
+      distinctUntilChanged(),
+    );
+    this.isNewHuntPath$ = this.navigationEndEvent$.pipe(
+      map(() => this.router.url.startsWith(NEW_HUNT_ROUTE)),
+      distinctUntilChanged(),
+    );
+    this.uiConfig$ = this.configGlobalStore.uiConfig$;
+    this.heading$ = this.configGlobalStore.uiConfig$.pipe(
+      map((config) => config.heading),
+    );
+    this.canaryMode$ = this.userGlobalStore.currentUser$.pipe(
+      map((user) => user.canaryMode),
+      startWith(false),
+    );
     this.navigationEndEvent$.subscribe(async (event) => {
       const drawerRoute = findRouteWith(
         event.snapshot,
@@ -145,10 +153,7 @@ export class App {
           UiRedirectSource.REDIRECT_ROUTER,
         );
         const fragmentWithHashtag = url.substring(i);
-        safeLocation.setHref(
-          window.location,
-          makeLegacyLink(fragmentWithHashtag),
-        );
+        setLocationHref(window.location, makeLegacyLink(fragmentWithHashtag));
       });
 
     this.activatedRoute.queryParamMap

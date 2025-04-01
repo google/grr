@@ -1,7 +1,7 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {RouterTestingModule} from '@angular/router/testing';
+import {RouterModule} from '@angular/router';
 
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow} from '../../../lib/models/model_test_util';
@@ -15,7 +15,7 @@ initTestEnvironment();
 describe('app-interrogate-details component', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      imports: [NoopAnimationsModule, PluginsModule, RouterModule.forRoot([])],
       providers: [],
       teardown: {destroyAfterEach: false},
     }).compileComponents();

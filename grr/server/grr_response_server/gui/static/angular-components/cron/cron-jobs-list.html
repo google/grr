@@ -64,11 +64,11 @@
         ng-class="{'row-selected': item.value.cron_job_id.value == controller.selectedCronJobId,
                   'danger': item.value.is_failing.value == true,
                   'warning': item.value.is_failing.value != true && item.isStuck == true}">
-      <td><grr-cron-job-status-icon cron-job="::item" /></td>
+      <td><grr-cron-job-status-icon cron-job="::item"></grr-cron-job-status-icon></td>
       <td>{$ ::item.value.cron_job_id.value $}</td>
-      <td><grr-semantic-value value="::item.value.last_run_time" /></td>
-      <td><grr-semantic-value value="::item.value.frequency" /></td>
-      <td><grr-semantic-value value="::item.value.description" /></td>
+      <td><grr-semantic-value value="::item.value.last_run_time"></grr-semantic-value></td>
+      <td><grr-semantic-value value="::item.value.frequency"></grr-semantic-value></td>
+      <td><grr-semantic-value value="::item.value.description"></grr-semantic-value></td>
     </tr>
 
   </tbody>

@@ -46,6 +46,7 @@ class YaraProcessScanMatchConverter(base.ExportConverter):
             process_scan_time_us=value.scan_time_us,
             string_id=yara_string_match.string_id,
             offset=yara_string_match.offset,
+            context=yara_string_match.context,
         )
 
 

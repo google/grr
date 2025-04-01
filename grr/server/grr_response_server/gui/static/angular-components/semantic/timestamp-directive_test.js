@@ -27,7 +27,7 @@ describe('timestamp directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-timestamp value="value" />';
+    const template = '<grr-timestamp value="value"></grr-timestamp>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

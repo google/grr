@@ -14,6 +14,7 @@ const TITLES: {readonly [key in ApprovalStatus['type']]: string} = {
 
 /** Chip that shows the validity of an Approval. */
 @Component({
+  standalone: false,
   selector: 'app-approval-chip',
   templateUrl: './approval_chip.ng.html',
   styleUrls: ['./approval_chip.scss'],

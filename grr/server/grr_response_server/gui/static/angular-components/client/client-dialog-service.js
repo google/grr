@@ -30,7 +30,7 @@ exports.ClientDialogService = class {
    * @export
    */
   openAddClientLabels(clients) {
-    var directive = AddClientsLabelsDialogDirective;
+    const directive = AddClientsLabelsDialogDirective;
     return this.grrDialogService_.openDirectiveDialog(
         directive.directive_name, {clients: clients});
   }
@@ -43,13 +43,13 @@ exports.ClientDialogService = class {
    * @export
    */
   openRemoveClientLabels(clients) {
-    var directive = RemoveClientsLabelsDialogDirective;
+    const directive = RemoveClientsLabelsDialogDirective;
     return this.grrDialogService_.openDirectiveDialog(
         directive.directive_name, {clients: clients});
   }
 };
 
-var ClientDialogService = exports.ClientDialogService;
+const ClientDialogService = exports.ClientDialogService;
 
 
 /**

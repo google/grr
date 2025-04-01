@@ -3,8 +3,8 @@ goog.module.declareLegacyNamespace();
 
 
 
-var LOADING_STARTED_EVENT_NAME = 'grrLoadingStartedEvent';
-var LOADING_FINISHED_EVENT_NAME = 'grrLoadingFinishedEvent';
+const LOADING_STARTED_EVENT_NAME = 'grrLoadingStartedEvent';
+const LOADING_FINISHED_EVENT_NAME = 'grrLoadingFinishedEvent';
 
 
 /**
@@ -56,7 +56,7 @@ const LoadingIndicatorController = class {
    * @private
    */
   onLoadingFinishedEvent_(event, key) {
-    var index = this.queue.indexOf(key);
+    const index = this.queue.indexOf(key);
     if (index >= 0) {
       this.queue.splice(index, 1);
       this.queueIsEmpty = this.queue.length === 0;
@@ -89,7 +89,7 @@ exports.LoadingIndicatorDirective = function() {
   };
 };
 
-var LoadingIndicatorDirective = exports.LoadingIndicatorDirective;
+const LoadingIndicatorDirective = exports.LoadingIndicatorDirective;
 
 
 /**

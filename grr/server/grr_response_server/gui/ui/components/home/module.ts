@@ -1,3 +1,4 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
@@ -7,7 +8,6 @@ import {MatInputModule} from '@angular/material/input';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalChipModule} from '../../components/approval_chip/approval_chip_module';
@@ -29,8 +29,8 @@ import {RecentActivityModule} from './recent_activity/module';
     // keep-sorted start block=yes
     ApiModule,
     ApprovalChipModule,
-    BrowserAnimationsModule,
     ClientSearchModule,
+    CommonModule,
     MatButtonModule,
     MatChipsModule,
     MatFormFieldModule,

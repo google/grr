@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """A BlobStore backed by Google Cloud Storage."""
 
+from collections.abc import Iterable
 import logging
-from typing import Dict, Iterable, Optional
+from typing import Optional
 
 from google.cloud import exceptions
 from google.cloud import storage
@@ -10,7 +11,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 
 from grr_response_core import config
 from grr_response_server import blob_store
-from grr_response_server.models import blobs
+from grr_response_server.models import blobs as models_blobs
 
 
 class ConfigError(Exception):
@@ -36,11 +37,13 @@ class GCSBlobStore(blob_store.BlobStore):
     self._bucket = self._client.bucket(bucket_name)
     self._blob_prefix = blob_prefix
 
-  def _GetFilename(self, blob_id: blobs.BlobID) -> str:
+  def _GetFilename(self, blob_id: models_blobs.BlobID) -> str:
     hex_blob_id = bytes(blob_id).hex()
     return f"{self._blob_prefix}{hex_blob_id}"
 
-  def WriteBlobs(self, blob_id_data_map: Dict[blobs.BlobID, bytes]) -> None:
+  def WriteBlobs(
+      self, blob_id_data_map: dict[models_blobs.BlobID, bytes]
+  ) -> None:
     """Creates or overwrites blobs."""
     for blob_id, blob in blob_id_data_map.items():
       filename = self._GetFilename(blob_id)
@@ -74,7 +77,7 @@ class GCSBlobStore(blob_store.BlobStore):
             "Unable to write blob %s to datastore, %s", blob_id, e
         )
 
-  def ReadBlob(self, blob_id: blobs.BlobID) -> Optional[bytes]:
+  def ReadBlob(self, blob_id: models_blobs.BlobID) -> Optional[bytes]:
     """Reads the blob contexts, identified by the given BlobID."""
     filename = self._GetFilename(blob_id)
     try:
@@ -87,12 +90,12 @@ class GCSBlobStore(blob_store.BlobStore):
       raise
 
   def ReadBlobs(
-      self, blob_ids: Iterable[blobs.BlobID]
-  ) -> Dict[blobs.BlobID, Optional[bytes]]:
+      self, blob_ids: Iterable[models_blobs.BlobID]
+  ) -> dict[models_blobs.BlobID, Optional[bytes]]:
     """Reads all blobs, specified by blob_ids, returning their contents."""
     return {blob_id: self.ReadBlob(blob_id) for blob_id in blob_ids}
 
-  def CheckBlobExists(self, blob_id: blobs.BlobID) -> bool:
+  def CheckBlobExists(self, blob_id: models_blobs.BlobID) -> bool:
     """Checks if a blob with a given BlobID exists."""
     filename = self._GetFilename(blob_id)
     try:
@@ -103,7 +106,7 @@ class GCSBlobStore(blob_store.BlobStore):
       raise
 
   def CheckBlobsExist(
-      self, blob_ids: Iterable[blobs.BlobID]
-  ) -> Dict[blobs.BlobID, bool]:
+      self, blob_ids: Iterable[models_blobs.BlobID]
+  ) -> dict[models_blobs.BlobID, bool]:
     """Checks if blobs for the given identifiers already exist."""
     return {blob_id: self.CheckBlobExists(blob_id) for blob_id in blob_ids}

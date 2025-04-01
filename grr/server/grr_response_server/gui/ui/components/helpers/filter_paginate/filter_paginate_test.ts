@@ -17,6 +17,7 @@ declare interface DummyRow {
 }
 
 @Component({
+  standalone: false,
   template: `
 <app-filter-paginate [dataSource]="dataSource" [dataLength]="dataLength">
   <table mat-table [dataSource]="dataSource">
@@ -28,6 +29,7 @@ declare interface DummyRow {
     </ng-container>
   </table>
 </app-filter-paginate>`,
+  jit: true,
 })
 class TestHostComponentWithDataLength {
   dataSource?: MatTableDataSource<DummyRow>;
@@ -36,6 +38,7 @@ class TestHostComponentWithDataLength {
 }
 
 @Component({
+  standalone: false,
   template: `
 <app-filter-paginate [dataSource]="dataSource">
   <table mat-table [dataSource]="dataSource">
@@ -47,6 +50,7 @@ class TestHostComponentWithDataLength {
     </ng-container>
   </table>
 </app-filter-paginate>`,
+  jit: true,
 })
 class TestHostComponent {
   dataSource?: MatTableDataSource<DummyRow>;

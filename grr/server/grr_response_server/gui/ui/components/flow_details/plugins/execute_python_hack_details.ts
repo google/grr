@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 
@@ -14,12 +14,17 @@ import {Plugin} from './plugin';
 
 /** Details and results of ExecutePythonHack flow. */
 @Component({
+  standalone: false,
   templateUrl: './execute_python_hack_details.ng.html',
   styleUrls: ['./execute_python_hack_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExecutePythonHackDetails extends Plugin {
-  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
+  private readonly flowResultsLocalStore: FlowResultsLocalStore = inject(
+    FlowResultsLocalStore,
+  );
+
+  constructor() {
     super();
 
     this.flowResultsLocalStore.query(

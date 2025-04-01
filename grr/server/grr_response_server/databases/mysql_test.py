@@ -14,6 +14,7 @@ from absl.testing import absltest
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 from MySQLdb.constants import CR as mysql_conn_errors
 
+from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_mixin
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql
@@ -73,7 +74,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
 
   @classmethod
   def setUpClass(cls):
-    super().setUpClass()
+    super().setUpClass()  # pytype: disable=attribute-error
     cls._conn = cls._Connect()
     # The MySQL DB object sets some warning filters, and relies upon them.
     # Since filters are reset between tests, we'll keep them here and restore
@@ -84,7 +85,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
   def tearDownClass(cls):
     cls._DropTestDB()
     cls._conn.Close()
-    super().tearDownClass()
+    super().tearDownClass()  # pytype: disable=attribute-error
 
   @classmethod
   def _EnableNonIndexedQueryLogging(cls, conn):
@@ -154,6 +155,13 @@ class TestMysqlDB(
   interface brought in by the db_test.DatabaseTestMixin.
   """
 
+  db: abstract_db.DatabaseValidationWrapper
+
+  @property
+  def delegate(self) -> mysql.MysqlDB:
+    assert isinstance(self.db.delegate, mysql.MysqlDB)
+    return self.db.delegate
+
   def testIsRetryable(self):
     self.assertFalse(mysql._IsRetryable(Exception("Some general error.")))
     self.assertFalse(
@@ -207,9 +215,9 @@ class TestMysqlDB(
     def AddUserFn(con):
       self.AddUser(con, "AzureDiamond", "hunter2")
 
-    self.db.delegate._RunInTransaction(AddUserFn)
+    self.delegate._RunInTransaction(AddUserFn)
 
-    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
+    users = self.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users, (("AzureDiamond", b"hunter2"),))
 
   @mock.patch.object(mysql, "_SleepWithBackoff")
@@ -222,8 +230,8 @@ class TestMysqlDB(
     def AddUserFn2(con):
       self.AddUser(con, "user2", "pw2")
 
-    self.db.delegate._RunInTransaction(AddUserFn1)
-    self.db.delegate._RunInTransaction(AddUserFn2)
+    self.delegate._RunInTransaction(AddUserFn1)
+    self.delegate._RunInTransaction(AddUserFn2)
 
     # We'll start two transactions which read/modify rows in different orders.
     # This should force (at least) one to fail with a deadlock, which should be
@@ -263,10 +271,10 @@ class TestMysqlDB(
       cursor.close()
 
     thread_1 = threading.Thread(
-        target=lambda: self.db.delegate._RunInTransaction(Transaction1)
+        target=lambda: self.delegate._RunInTransaction(Transaction1)
     )
     thread_2 = threading.Thread(
-        target=lambda: self.db.delegate._RunInTransaction(Transaction2)
+        target=lambda: self.delegate._RunInTransaction(Transaction2)
     )
 
     thread_1.start()
@@ -276,7 +284,7 @@ class TestMysqlDB(
     thread_2.join()
 
     # Both transaction should have succeeded
-    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
+    users = self.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(
         users, (("user1", b"pw1-updated"), ("user2", b"pw2-updated"))
     )
@@ -302,7 +310,7 @@ class TestMysqlDB(
         return mysql._ReadVariable("max_allowed_packet", cursor)
 
     # Lower packet size for future connections (i.e. set global var).
-    self.db.delegate._RunInTransaction(SetMaxAllowedPacket)
+    self.delegate._RunInTransaction(SetMaxAllowedPacket)
 
     # Any new connection should fix the packet size (i.e. raise it back up).
     db = self.__class__._Connect()
@@ -318,7 +326,7 @@ class TestMysqlDB(
       with contextlib.closing(conn.cursor()) as cursor:
         mysql._SetGlobalVariable("max_allowed_packet", 20 << 10, cursor)
 
-    self.db.delegate._RunInTransaction(SetMaxAllowedPacket)
+    self.delegate._RunInTransaction(SetMaxAllowedPacket)
 
     # MaxAllowedPacketSettingTooLowError will be raised since
     # _SetGlobalVariable call will fail (via the mock). This way
@@ -353,7 +361,7 @@ class TestMysqlDB(
 
     with mock.patch.object(self.db.delegate, "_max_pool_size", 6):
       with self.assertRaises(MySQLdb.OperationalError) as context:
-        self.db.delegate._RunInTransaction(RaiseServerGoneError)
+        self.delegate._RunInTransaction(RaiseServerGoneError)
       self.assertIn(expected_error_msg, str(context.exception))
 
       self.assertFalse(sleep_with_backoff_fn.called)
@@ -374,9 +382,9 @@ class TestMysqlDB(
       if call_count == 1:
         raise mysql_utils.RetryableError()
 
-    self.db.delegate._RunInTransaction(RaisesRetryableError)
+    self.delegate._RunInTransaction(RaisesRetryableError)
     self.assertEqual(call_count, 2)
-    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
+    users = self.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertLen(users, 1)
 
   @mock.patch.object(mysql, "_SleepWithBackoff", lambda _: None)
@@ -386,7 +394,7 @@ class TestMysqlDB(
       raise mysql_utils.RetryableError()
 
     with self.assertRaises(mysql_utils.RetryableError):
-      self.db.delegate._RunInTransaction(RaisesRetryableError)
+      self.delegate._RunInTransaction(RaisesRetryableError)
 
   @mock.patch.object(mysql, "_SleepWithBackoff")
   @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
@@ -408,7 +416,7 @@ class TestMysqlDB(
       )
 
     with self.assertRaises(MySQLdb.OperationalError) as context:
-      self.db.delegate._RunInTransaction(RaisePermanentError)
+      self.delegate._RunInTransaction(RaisePermanentError)
     self.assertIn(expected_error_msg, str(context.exception))
 
     self.assertFalse(sleep_with_backoff_fn.called)

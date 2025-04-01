@@ -26,7 +26,7 @@ describe('grr-artifact-name directive', () => {
   const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    const template = '<grr-artifact-name value="value" />';
+    const template = '<grr-artifact-name value="value"></grr-artifact-name>';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

@@ -2,13 +2,14 @@
 """Communication protocol with unprivileged servers."""
 
 import abc
+from collections.abc import Callable
 import contextlib
 import enum
 import os
 import platform
 import struct
 import subprocess
-from typing import BinaryIO, Callable, List, NamedTuple, Optional, Set
+from typing import BinaryIO, NamedTuple, Optional
 
 import psutil
 
@@ -255,7 +256,7 @@ class Channel(NamedTuple):
     )
 
 
-ArgsFactory = Callable[[Channel], List[str]]
+ArgsFactory = Callable[[Channel], list[str]]
 
 
 class SubprocessServer(Server):
@@ -268,12 +269,12 @@ class SubprocessServer(Server):
   _past_instances_total_cpu_time = 0.0
   _past_instances_total_sys_time = 0.0
 
-  _started_instances: Set["SubprocessServer"] = set()
+  _started_instances: set["SubprocessServer"] = set()
 
   def __init__(
       self,
       args_factory: ArgsFactory,
-      extra_file_descriptors: Optional[List[FileDescriptor]] = None,
+      extra_file_descriptors: Optional[list[FileDescriptor]] = None,
   ):
     """Constructor.
 
