@@ -70,6 +70,7 @@ setup_args = dict(
         "fleetspeak-client-bin==0.1.13",
         "olefile==0.46",
         "PyInstaller==5.13.2",
+        "ipaddress",
     ],
     # Data files used by GRR. Access these via the config_lib "resource" filter.
     data_files=data_files,
