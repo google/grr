@@ -86,7 +86,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Set up
         run: |
           sudo apt install fakeroot debhelper libffi-dev libssl-dev
@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Set up
         run: |
           pip install --upgrade setuptools virtualenv
@@ -149,7 +149,7 @@ jobs:
           # (including the C++ 14 compatible compiler) are properly
           # registered in the environment variables.
           docker exec "${DOCKER_CONTAINER}" bash -l travis/set_up_test_user.sh
-          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"'
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.10 -m venv "/home/${DOCKER_USER}/INSTALL"'
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
           docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
@@ -167,7 +167,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Build installers
         shell: bash
         run: |
