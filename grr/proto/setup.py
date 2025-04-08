@@ -16,8 +16,8 @@ from setuptools.command.sdist import sdist
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
+GRPCIO = "grpcio==1.71.0"
+GRPCIO_TOOLS = "grpcio-tools==1.71.0"
 PROTOBUF = "protobuf>=3.20.3,<4"
 
 
