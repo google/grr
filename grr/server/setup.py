@@ -180,7 +180,7 @@ setup_args = dict(
         "google-api-python-client==1.12.11",
         "google-auth==2.23.3",
         "google-cloud-storage==2.13.0",
-        "google-cloud-pubsub==2.18.4",
+        "google-cloud-pubsub==2.29.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client-builder==%s"
         % VERSION.get("Version", "packagedepends"),
