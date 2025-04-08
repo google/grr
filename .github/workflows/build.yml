@@ -149,7 +149,7 @@ jobs:
           # (including the C++ 14 compatible compiler) are properly
           # registered in the environment variables.
           docker exec "${DOCKER_CONTAINER}" bash -l travis/set_up_test_user.sh
-          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.10 -m venv "/home/${DOCKER_USER}/INSTALL"'
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"'
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
           docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
