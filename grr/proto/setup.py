@@ -18,7 +18,7 @@ os.chdir(THIS_DIRECTORY)
 
 GRPCIO = "grpcio==1.71.0"
 GRPCIO_TOOLS = "grpcio-tools==1.71.0"
-PROTOBUF = "protobuf"
+PROTOBUF = "protobuf>5.20,<6"
 
 
 def get_config():
