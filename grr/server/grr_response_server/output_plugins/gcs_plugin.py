@@ -34,7 +34,7 @@ class GcsOutputPlugin(output_plugin.OutputPlugin):
   produces_output_streams = False
 
 
-  def _UploadBlobFromStream(self, project_id, bucket_name, client_path, client_id, flow_id, destination_blob_name):
+  def UploadBlobFromStream(self, project_id, bucket_name, client_path, client_id, flow_id, destination_blob_name):
     """Uploads bytes from a stream to a blob"""
     storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket(bucket_name)
