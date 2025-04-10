@@ -61,11 +61,11 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     return plugin.uploaded_files
 
 
-  def testClientFileFinderResponse(self):
+  def testClientFileFinderResponseUploaded(self):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
-    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=1, chunk_size=1)
+    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
         uploaded_files = self._CallPlugin(
@@ -77,6 +77,77 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         )
 
     self.assertEqual(uploaded_files, 1)
+
+
+  def testClientFileFinderResponseNoProjectId(self):
+    rdf_payload = rdf_file_finder.FileFinderResult()
+    rdf_payload.stat_entry.st_size = 1234
+    rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
+        uploaded_files = self._CallPlugin(
+            plugin_args=gcs_plugin.GcsOutputPluginArgs(
+              project_id="",
+              gcs_bucket="text-gcs-bucket"
+            ),
+            responses=[rdf_payload],
+        )
+
+    self.assertEqual(uploaded_files, 0)
+
+
+  def testClientFileFinderResponseNoGcsBucket(self):
+    rdf_payload = rdf_file_finder.FileFinderResult()
+    rdf_payload.stat_entry.st_size = 1234
+    rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
+        uploaded_files = self._CallPlugin(
+            plugin_args=gcs_plugin.GcsOutputPluginArgs(
+              project_id="test-project-id",
+              gcs_bucket=""
+            ),
+            responses=[rdf_payload],
+        )
+
+    self.assertEqual(uploaded_files, 0)
+
+
+  def testClientFileFinderResponseEmptyFile(self):
+    rdf_payload = rdf_file_finder.FileFinderResult()
+    rdf_payload.stat_entry.st_size = 0
+    rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
+        uploaded_files = self._CallPlugin(
+            plugin_args=gcs_plugin.GcsOutputPluginArgs(
+              project_id="test-project-id",
+              gcs_bucket="text-gcs-bucket"
+            ),
+            responses=[rdf_payload],
+        )
+
+    self.assertEqual(uploaded_files, 0)
+
+
+  def testClientFileFinderResponseNoTransferredFile(self):
+    rdf_payload = rdf_file_finder.FileFinderResult()
+    rdf_payload.stat_entry.st_size = 1234
+    rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
+        uploaded_files = self._CallPlugin(
+            plugin_args=gcs_plugin.GcsOutputPluginArgs(
+              project_id="test-project-id",
+              gcs_bucket="text-gcs-bucket"
+            ),
+            responses=[rdf_payload],
+        )
+
+    self.assertEqual(uploaded_files, 0)
 
 
 if __name__ == '__main__':
