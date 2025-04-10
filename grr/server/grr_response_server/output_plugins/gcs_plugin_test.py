@@ -65,6 +65,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
     rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
@@ -83,6 +84,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
     rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
@@ -101,6 +103,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
     rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
@@ -119,6 +122,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 0
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
     rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=[])
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
@@ -137,6 +141,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
         uploaded_files = self._CallPlugin(
