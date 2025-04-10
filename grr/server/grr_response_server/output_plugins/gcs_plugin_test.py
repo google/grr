@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_server.output_plugins import gcs_plugin
@@ -57,6 +58,8 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         plugin.Flush(plugin_state)
         plugin.UpdateState(plugin_state)
 
+    return plugin.uploaded_files
+
 
   def testClientFileFinderResponse(self):
     response = rdf_client_fs.StatEntry()
@@ -67,15 +70,22 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     )
     response.st_size = 1234
 
+    rdf_payload = rdf_file_finder.FileFinderResult()
+    rdf_payload.stat_entry.st_size = 1234
+    rdf_payload.stat_entry.pathspec.pathtype = "OS"
+    rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
+    rdf_payload.transferred_file = "/var/log/test.log"
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
-        mock_post = self._CallPlugin(
+        uploaded_files = self._CallPlugin(
             plugin_args=gcs_plugin.GcsOutputPluginArgs(
               project_id="test-project-id",
               gcs_bucket="text-gcs-bucket"
             ),
-            responses=[response],
+            responses=[rdf_payload],
         )
+
+    self.assertEqual(uploaded_files, 1)
 
 
 if __name__ == '__main__':

@@ -32,6 +32,7 @@ class GcsOutputPlugin(output_plugin.OutputPlugin):
   description = "Send to GCS for each result."
   args_type = GcsOutputPluginArgs
   produces_output_streams = False
+  uploaded_files = 0
 
 
   def UploadBlobFromStream(self, project_id, bucket_name, client_path, client_id, flow_id, destination_blob_name):
@@ -55,6 +56,7 @@ class GcsOutputPlugin(output_plugin.OutputPlugin):
                 client_path = db.ClientPath.FromPathSpec(client_id, response.payload.stat_entry.pathspec)
                 self.UploadBlobFromStream(self.args.project_id, self.args.gcs_bucket, client_path, client_id, flow_id, response.payload.stat_entry.pathspec.path)
                 logging.info("response client_id: %s, flow_id: %s, transferred_file: %s", client_id, flow_id, response.payload.stat_entry.pathspec.path)
+                self.uploaded_files += 1
             else:
                 logging.warning("%s : file size is 0, nothing to push to GCS", response.payload.stat_entry.pathspec.path)
 
