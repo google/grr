@@ -42,7 +42,7 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         source_urn=self.source_id, args=plugin_args
     )
 
-    plugin_cls.upload_blob_from_stream = MagicMock()
+    plugin_cls.UploadBlobFromStream = MagicMock()
 
     messages = []
     for response in responses:

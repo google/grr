@@ -26,20 +26,6 @@ class GcsOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.GcsOutputPluginArgs
 
 
-def _ToDict(rdfval: rdf_structs.RDFProtoStruct) -> JsonDict:
-    return json_format.MessageToDict(rdfval.AsPrimitiveProto(), float_precision=8)
-
-
-def upload_blob_from_stream(project_id, bucket_name, client_path, client_id, flow_id, destination_blob_name):
-    """Uploads bytes from a stream to a blob"""
-    storage_client = storage.Client(project=project_id)
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(client_id+"/"+flow_id+destination_blob_name)
-    fd = file_store.OpenFile(client_path)
-    fd.seek(0)
-    blob.upload_from_file(fd)
-
-
 class GcsOutputPlugin(output_plugin.OutputPlugin):
   """An output plugin that sends the object to GCS for each response received."""
   name = "GCS Bucket"
@@ -47,6 +33,15 @@ class GcsOutputPlugin(output_plugin.OutputPlugin):
   args_type = GcsOutputPluginArgs
   produces_output_streams = False
 
+
+  def _UploadBlobFromStream(self, project_id, bucket_name, client_path, client_id, flow_id, destination_blob_name):
+    """Uploads bytes from a stream to a blob"""
+    storage_client = storage.Client(project=project_id)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(client_id+"/"+flow_id+destination_blob_name)
+    fd = file_store.OpenFile(client_path)
+    fd.seek(0)
+    blob.upload_from_file(fd)
 
   def ProcessResponse(self, state, response):
     """Sends objects to GCS for each response."""
@@ -58,7 +53,7 @@ class GcsOutputPlugin(output_plugin.OutputPlugin):
         if response.payload.HasField("transferred_file"):
             if response.payload.stat_entry.st_size > 0 :
                 client_path = db.ClientPath.FromPathSpec(client_id, response.payload.stat_entry.pathspec)
-                upload_blob_from_stream(self.args.project_id, self.args.gcs_bucket, client_path, client_id, flow_id, response.payload.stat_entry.pathspec.path)
+                self.UploadBlobFromStream(self.args.project_id, self.args.gcs_bucket, client_path, client_id, flow_id, response.payload.stat_entry.pathspec.path)
                 logging.info("response client_id: %s, flow_id: %s, transferred_file: %s", client_id, flow_id, response.payload.stat_entry.pathspec.path)
             else:
                 logging.warning("%s : file size is 0, nothing to push to GCS", response.payload.stat_entry.pathspec.path)
