@@ -62,19 +62,10 @@ class GcsOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
 
   def testClientFileFinderResponse(self):
-    response = rdf_client_fs.StatEntry()
-    response.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-    response.pathspec.path = "/var/log/test.log"
-    response.pathspec.path_options = (
-        rdf_paths.PathSpec.Options.CASE_LITERAL
-    )
-    response.st_size = 1234
-
     rdf_payload = rdf_file_finder.FileFinderResult()
     rdf_payload.stat_entry.st_size = 1234
-    rdf_payload.stat_entry.pathspec.pathtype = "OS"
     rdf_payload.stat_entry.pathspec.path = ("/var/log/test.log")
-    rdf_payload.transferred_file = "/var/log/test.log"
+    rdf_payload.transferred_file = rdf_client_fs.BlobImageDescriptor(chunks=1, chunk_size=1)
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(15)):
         uploaded_files = self._CallPlugin(
