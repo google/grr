@@ -104,3 +104,13 @@ message ElasticsearchOutputPluginArgs {
     description: "The Elasticsearch index to place the events in"
   }];
 }
+
+message GcsOutputPluginArgs {
+  optional string gcs_bucket = 1 [(sem_type) = {
+    description: "The GCS bucket to which objects will be stored.",
+  }];
+  optional string project_id = 2 [(sem_type) = {
+    description: "The Project ID with the GCS bucket.",
+  }];
+}
+
