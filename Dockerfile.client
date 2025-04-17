@@ -1,0 +1,64 @@
+### A Docker image containing Fleetspeak and GRR clients.
+#
+# Fleetspeak client starts the GRR client as a subprocess based on the config.
+#
+# Fleetspeak client requires connectivity to Fleetspeak server, we
+# recommend running this client in the Docker Compose stack otherwise the config
+# needs to be adjusted.
+#
+# See documentation in compose.watch.yaml on how to start the Compose stack.
+#
+# (Debugging) To verify if the client runs, check if the Fleetspeak and
+# GRR processes are running inside the container.
+#   - Open a shell in the container:
+#       $ docker exec -it grr-client /bin/bash
+#   - Check that the following processes are running:
+#    $ ps aux
+#      ...
+#      ...  fleetspeak-client -config /configs/client/client.config
+#      ...  /bin/bash /configs/client/grr_fleetspeak_client.sh --config /configs/client/grr.client.yaml
+#      ...  /usr/share/grr-server/bin/python /usr/share/grr-server/bin/grr_fleetspeak_client --config /configs/client/grr.client.yaml
+#      ...
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Buffering output (sometimes indefinitely if a thread is stuck in
+# a loop) makes for a non-optimal user experience when containers
+# are run in the foreground, so we disable that.
+ENV PYTHONUNBUFFERED=0
+
+RUN apt-get update && \
+  apt-get install -y \
+  python-is-python3 \
+  python3-dev \
+  python3-pip \
+  python3-venv \
+  build-essential \
+  linux-headers-generic
+
+ENV FLEETSPEAK_BIN /fleetspeak/bin
+RUN mkdir -p $FLEETSPEAK_BIN
+COPY --from=ghcr.io/google/fleetspeak:latest /fleetspeak/bin/client $FLEETSPEAK_BIN/fleetspeak-client
+ENV PATH=${FLEETSPEAK_BIN}:${PATH}
+
+ENV VIRTUAL_ENV=/usr/share/grr-server
+ENV GRR_SOURCE=/usr/src/grr
+
+RUN python -m venv --system-site-packages $VIRTUAL_ENV
+ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
+
+RUN mkdir -p ${GRR_SOURCE}
+ADD . ${GRR_SOURCE}
+
+WORKDIR ${GRR_SOURCE}
+
+RUN ${VIRTUAL_ENV}/bin/python -m pip install \
+  -e grr/proto \
+  -e grr/core \
+  -e grr/client
+
+RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
+  ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py
+
+ENTRYPOINT [ "fleetspeak-client" ]
