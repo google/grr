@@ -102,7 +102,7 @@ def _Execute(
   alarm = None
   if time_limit > 0:
     alarm = threading.Timer(time_limit, HandleAlarm, (p,))
-    alarm.setDaemon(True)
+    alarm.daemon = True
     alarm.start()
 
   stdout, stderr, exit_status = b"", b"", -1
