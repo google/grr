@@ -114,3 +114,20 @@ message GcsOutputPluginArgs {
   }];
 }
 
+message WebhookOutputPluginArgs {
+  optional string url = 1
+      [(sem_type) = { description: "The HTTP Webhook to send the events to." }];
+  optional bool verify_https = 2 [
+    (sem_type) = {
+      description: "If true, verifies that HTTPS is configured.",
+      label: HIDDEN
+    },
+    default = false
+  ];
+  repeated string annotations = 3 [(sem_type) = {
+    description: "Annotations to add to exported data. This field can be "
+                 "used to differentiate sets of exported data inside a "
+                 "particular exported type. e.g. data collected by users "
+                 "vs. data collected by cronjob."
+  }];
+}
