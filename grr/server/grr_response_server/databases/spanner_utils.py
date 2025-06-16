@@ -550,11 +550,11 @@ class Database:
   def PublishFlowProcessingRequests(self, requests: [str]) -> None:
     self.PublishRequests(requests, self.flow_processing_top_path)
 
-  def ReadMessageHandlerRequests(self):
-    return self.ReadRequests(self.message_handler_sub_path)
+  def ReadMessageHandlerRequests(self, min_req: Optional[int] = None):
+    return self.ReadRequests(self.message_handler_sub_path, min_req)
 
-  def ReadFlowProcessingRequests(self):
-    return self.ReadRequests(self.flow_processing_sub_path)
+  def ReadFlowProcessingRequests(self, min_req: Optional[int] = None):
+    return self.ReadRequests(self.flow_processing_sub_path, min_req)
 
   def AckMessageHandlerRequests(self, ack_ids: [str]) -> None:
     self.AckRequests(ack_ids, self.message_handler_sub_path)
@@ -605,12 +605,13 @@ class Database:
     # Make the request
     response = client.seek(request=request)
 
-  def ReadRequests(self, sub_path: str):
+  def ReadRequests(self, sub_path: str, min_req: Optional[int] = None):
     # Make the request
 
     start_time = time.time()
     results = {}
-    while time.time() - start_time < 2:
+    want_more = True
+    while want_more or (time.time() - start_time < 2):
       time.sleep(0.1)
 
       response = self.subscriber.pull(
@@ -626,6 +627,8 @@ class Database:
                           "ack_id": resp.ack_id,
                           "publish_time": resp.message.publish_time}
                         })
+      if min_req and len(results) >= min_req:
+        want_more = False
 
     return results.values()
 
