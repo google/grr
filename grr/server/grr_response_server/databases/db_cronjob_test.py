@@ -191,7 +191,7 @@ class DatabaseTestCronJobMixin(object):
     job = self._CreateCronJob()
     self.db.WriteCronJob(job)
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
+    current_time = rdfvalue.RDFDatetime.Now()
     lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
@@ -232,7 +232,7 @@ class DatabaseTestCronJobMixin(object):
     for j in jobs:
       self.db.WriteCronJob(j)
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
+    current_time = rdfvalue.RDFDatetime.Now()
     lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
@@ -254,7 +254,7 @@ class DatabaseTestCronJobMixin(object):
     with self.assertRaises(ValueError):
       self.db.ReturnLeasedCronJobs([job])
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
+    current_time = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
           cronjob_ids=[leased_job.cron_job_id],
@@ -276,14 +276,14 @@ class DatabaseTestCronJobMixin(object):
     for j in jobs:
       self.db.WriteCronJob(j)
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
+    current_time = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
           lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES)
       )
       self.assertLen(leased, 3)
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10001)
+    current_time = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(current_time):
       unleased_jobs = self.db.LeaseCronJobs(
           lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES)
@@ -292,7 +292,7 @@ class DatabaseTestCronJobMixin(object):
 
       self.db.ReturnLeasedCronJobs(leased)
 
-    current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10002)
+    current_time = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
           lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES)

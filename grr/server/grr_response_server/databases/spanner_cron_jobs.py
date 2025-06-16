@@ -260,7 +260,7 @@ class CronJobsMixin:
           "ids_to_update": ids_to_update,
       }
 
-      txn.execute_sql(sql=update_query, params=update_params)
+      txn.execute_update(update_query, update_params)
 
       # ---------------------------------------------------------------------
       # Query (and return) jobs that were updated
@@ -304,9 +304,9 @@ class CronJobsMixin:
         continue
 
       conditions.append(
-          "(cj.JobId={job_%d} AND "
-          "cj.LeaseEndTime={ld_%d} AND "
-          "cj.LeaseOwner={lo_%d})" % (i, i, i)
+          "(cj.JobId=@job_%d AND "
+          "cj.LeaseEndTime=@ld_%d AND "
+          "cj.LeaseOwner=@lo_%d)" % (i, i, i)
       )
       dt_leased_until = (
           rdfvalue.RDFDatetime()
@@ -343,7 +343,7 @@ class CronJobsMixin:
         params_job_ids_to_return["ld_%d" % i] = ld
         params_job_ids_to_return["lo_%d" % i] = lo
 
-      response = txn.ParamQuery(
+      response = txn.execute_sql(
           query_job_ids_to_return, params_job_ids_to_return
       )
 
@@ -360,19 +360,19 @@ class CronJobsMixin:
       update_query = """
       UPDATE CronJobs as cj
       SET cj.LeaseEndTime = NULL, cj.LeaseOwner = NULL
-      WHERE cj.JobId IN UNNEST({ids_to_return})
+      WHERE cj.JobId IN UNNEST(@ids_to_return)
       """
       update_params = {
           "ids_to_return": ids_to_return,
       }
 
-      txn.ParamExecute(update_query, update_params)
+      txn.execute_update(update_query, update_params)
 
       # ---------------------------------------------------------------------
       # Query (and return) jobs that were updated
       # ---------------------------------------------------------------------
       where_returned = """
-       WHERE cj.JobId IN UNNEST({updated_ids})
+       WHERE cj.JobId IN UNNEST(@updated_ids)
       """
       returned_params = {
           "updated_ids": ids_to_return,
@@ -386,7 +386,7 @@ class CronJobsMixin:
 
     returned_jobs = self.db.Transact(
         Transaction, txn_tag="ReturnLeasedCronJobs"
-    ).value
+    )
     if unleased_jobs:
       raise ValueError("CronJobs to return are not leased: %s" % unleased_jobs)
     if len(returned_jobs) != len(jobs):
