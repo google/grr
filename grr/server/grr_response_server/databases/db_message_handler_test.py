@@ -93,6 +93,7 @@ class DatabaseTestHandlerMixin(object):
         m.ClearField("timestamp")
       got += l
     self.db.DeleteMessageHandlerRequests(got)
+    self.db.UnregisterMessageHandler()
 
     got.sort(key=lambda req: req.request_id)
     self.assertEqual(requests, got)

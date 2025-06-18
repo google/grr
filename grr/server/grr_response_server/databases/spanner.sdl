@@ -644,3 +644,30 @@ CREATE TABLE SignedCommands(
   Ed25519Signature BYTES(64) NOT NULL,
   Command BYTES(MAX) NOT NULL,
 ) PRIMARY KEY (Id, OperatingSystem);
+
+CREATE TABLE MessageHandlerRequests(
+  RequestId STRING(16) NOT NULL,
+  HandlerName STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  LeasedUntil TIMESTAMP,
+  LeasedBy STRING(128),
+  Payload `grr.MessageHandlerRequest` NOT NULL,
+) PRIMARY KEY (RequestId);
+
+CREATE INDEX MessageHandlerRequestsByLease
+  ON MessageHandlerRequests(LeasedUntil, LeasedBy);
+
+CREATE TABLE FlowProcessingRequests(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  RequestId STRING(36) NOT NULL,
+  DeliveryTime TIMESTAMP,
+  LeasedUntil TIMESTAMP,
+  LeasedBy STRING(128),
+  Payload `grr.FlowProcessingRequest` NOT NULL,
+) PRIMARY KEY (ClientId, FlowId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowProcessingRequestsIds
+  ON FlowProcessingRequests(RequestId);

@@ -316,53 +316,5 @@ class DatabaseTest(spanner_test_lib.TestCase):
     with self.assertRaises(RuntimeError):
       self.raw_db.Mutate(Mutation)
 
-  #######################################
-  # Queue Tests
-  #######################################
-  def testNewRequestQueueCallbackGetsCalled(self):
-    callback_func = mock.Mock()
-
-    requestQueue = self.raw_db.NewRequestQueue(
-        "MessageHandler",
-        callback_func,
-        receiver_max_keepalive_seconds=10,
-        receiver_max_active_callbacks=1,
-        receiver_max_messages_per_callback=1,
-    )
-
-    start_time = time.time()
-    requests = []
-    requests.append("foo".encode("utf-8"))
-    self.raw_db.PublishMessageHandlerRequests(requests)
-
-    while callback_func.call_count == 0:
-      time.sleep(0.1)
-      if time.time() - start_time > 10:
-        self.fail("Request was not processed in time.")
-
-    callback_func.assert_called_once()
-    result = callback_func.call_args.kwargs
-    ack_ids = []
-    ack_ids.append(result["ack_id"])
-    self.raw_db.AckMessageHandlerRequests(ack_ids)
-    requestQueue.Stop()
-
-  def testNewRequestCount(self):
-
-    start_time = time.time()
-    requests = []
-    requests.append("foo".encode("utf-8"))
-    requests.append("bar".encode("utf-8"))
-    self.raw_db.PublishMessageHandlerRequests(requests)
-
-    results = self.raw_db.ReadMessageHandlerRequests()
-    ack_ids = []
-    
-    for result in results:
-      ack_ids.append(result["ack_id"])
-
-    self.raw_db.AckMessageHandlerRequests(ack_ids)
-    self.assertLen(results, 2)
-
 if __name__ == "__main__":
   absltest.main()

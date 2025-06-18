@@ -4,6 +4,10 @@
 import dataclasses
 import datetime
 import logging
+import threading
+import time
+import uuid
+
 from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from google.api_core.exceptions import AlreadyExists, NotFound
@@ -234,6 +238,8 @@ class FlowsMixin:
 
   db: spanner_utils.Database
   _write_rows_batch_size: int
+
+  handler_thread: threading.Thread
 
   @property
   def _flow_processing_request_receiver(
@@ -741,18 +747,35 @@ class FlowsMixin:
 
     return result
 
-  def _BuildFlowProcessingRequestWrites(
+  def _WriteFlowProcessingRequests(
       self,
       requests: Iterable[flows_pb2.FlowProcessingRequest],
+      txn
   ) -> None:
-    """Writes a list of FlowProcessingRequests to the queue."""
-    flowProcessingRequests = []
+    """Writes a list of FlowProcessingRequests."""
+
+    columns = [
+      "RequestId",
+      "ClientId",
+      "FlowId",
+      "CreationTime",
+      "Payload",
+      "DeliveryTime"
+    ]
+    rows = []
     for request in requests:
-      request.creation_time=self.db.Now().AsMicrosecondsSinceEpoch()
-      flowProcessingRequests.append(request.SerializeToString())
+      row = [
+        str(uuid.uuid4()),
+        request.client_id,
+        request.flow_id,
+        spanner_lib.COMMIT_TIMESTAMP,
+        request,
+        request.delivery_time
+      ]
+      rows.append(row)
 
+    txn.insert(table="FlowProcessingRequests", columns=columns, values=rows)
     self.db.PublishFlowProcessingRequests(flowProcessingRequests)
-
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -762,7 +785,10 @@ class FlowsMixin:
   ) -> None:
     """Writes a list of flow processing requests to the database."""
 
-    self._BuildFlowProcessingRequestWrites(requests)
+    def Txn(txn) -> None:
+      self._WriteFlowProcessingRequests(requests, txn)
+
+    self.db.Transact(Txn, txn_tag="WriteFlowProcessingRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -770,14 +796,16 @@ class FlowsMixin:
       self,
   ) -> Sequence[flows_pb2.FlowProcessingRequest]:
     """Reads all flow processing requests from the database."""
+    query = """
+    SELECT fpr.Payload, fpr.CreationTime FROM FlowProcessingRequests AS fpr
+    """
     results = []
-    for result in self.db.ReadFlowProcessingRequests():
+    for payload, creation_time in self.db.ParamQuery(query, {}):
       req = flows_pb2.FlowProcessingRequest()
-      req.ParseFromString(result["payload"])
-      req.creation_time = int(
-        rdfvalue.RDFDatetime.FromDatetime(result["publish_time"])
-      )
-      req.ack_id = result["ack_id"]
+      req.ParseFromString(payload)
+      req.creation_time = rdfvalue.RDFDatetime.FromDatetime(
+          creation_time
+      ).AsMicrosecondsSinceEpoch()
       results.append(req)
 
     return results
@@ -787,18 +815,117 @@ class FlowsMixin:
   def AckFlowProcessingRequests(
       self, requests: Iterable[flows_pb2.FlowProcessingRequest]
   ) -> None:
-    """Acknowledges and deletes flow processing requests."""
-    ack_ids = []
-    for r in requests:
-      ack_ids.append(r.ack_id)
-    
-    self.db.AckFlowProcessingRequests(ack_ids)
+    """Deletes a list of flow processing requests from the database."""
+    def Txn(txn) -> None:
+      keys = []
+      for request in requests:
+        keys.append([request.client_id, request.flow_id, request.creation_time])
+      keyset = spanner_lib.KeySet(keys=keys)
+      txn.delete(table="FlowProcessingRequests", keyset=keyset)
+
+    self.db.Transact(Txn)
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def DeleteAllFlowProcessingRequests(self) -> None:
     """Deletes all flow processing requests from the database."""
-    self.db.DeleteAllFlowProcessingRequests()
+
+    def Txn(txn) -> None:
+      keyset = spanner_lib.KeySet(all_=True)
+      txn.delete(table="FlowProcessingRequests", keyset=keyset)
+
+    self.db.Transact(Txn)
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  def _LeaseFlowProcessingRequests(
+      self, limit: int
+  ) -> Sequence[flows_pb2.FlowProcessingRequest]:
+    """Leases a number of flow processing requests."""
+    now = rdfvalue.RDFDatetime.Now()
+    expiry = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
+
+    def Txn(txn) -> None:
+      keyset = spanner_lib.KeySet(all_=True)
+      params = {
+        "limit": limit,
+        "now": now.AsDatetime()
+      }
+      param_type = {
+        "limit": param_types.INT64,
+        "now": param_types.TIMESTAMP
+      }
+      requests = txn.execute_sql(
+              "SELECT RequestId, CreationTime, Payload "
+              "FROM FlowProcessingRequests "
+              "WHERE "
+              " (DeliveryTime IS NULL OR DeliveryTime <= @now) AND "
+              " (LeasedUntil IS NULL OR LeasedUntil < @now) "
+              "LIMIT @limit",
+              params=params,
+              param_types=param_type)
+
+      res = []
+      request_ids = []
+      for request_id, creation_time, request in cursor.fetchall():
+        req = flows_pb2.FlowProcessingRequest()
+        req.ParseFromString(request)
+        req.creation_time = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+          creation_time
+        )
+        res.append(req)
+        request_ids.append(request_id)
+
+      query = (
+        "UPDATE FlowProcessingRequests "
+        "SET LeasedUntil=@leased_until, LeasedBy=@leased_by "
+        "WHERE RequestId IN UNNEST(@request_ids)"
+      )
+      params = {
+        "request_ids": request_ids,
+        "leased_by": leased_by,
+        "leased_until": expiry.AsDatetime()
+      }
+      param_type = {
+        "request_ids": param_types.Array(param_types.STRING),
+        "leased_by": param_types.STRING,
+        "leased_until": param_types.TIMESTAMP
+      }
+      txn.execute_update(query, params, param_type)
+
+      return res
+
+    return self.db.Transact(Txn)
+
+  _FLOW_REQUEST_POLL_TIME_SECS = 3
+
+  def _FlowProcessingRequestHandlerLoop(
+      self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
+  ) -> None:
+    """The main loop for the flow processing request queue."""
+    self.flow_processing_request_handler_pool.Start()
+
+    while not self.flow_processing_request_handler_stop:
+      thread_pool = self.flow_processing_request_handler_pool
+      free_threads = thread_pool.max_threads - thread_pool.busy_threads
+      if free_threads == 0:
+        time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
+        continue
+      try:
+        msgs = self._LeaseFlowProcessingRequests(free_threads)
+        if msgs:
+          for m in msgs:
+            self.flow_processing_request_handler_pool.AddTask(
+                target=handler, args=(m,)
+            )
+        else:
+          time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
+
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("_FlowProcessingRequestHandlerLoop raised %s.", e)
+        time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
+
+    self.flow_processing_request_handler_pool.Stop()
 
   def RegisterFlowProcessingHandler(
       self, handler: Callable[[flows_pb2.FlowProcessingRequest], None]
@@ -806,51 +933,26 @@ class FlowsMixin:
     """Registers a handler to receive flow processing messages."""
     self.UnregisterFlowProcessingHandler()
 
-    def Callback(payload: bytes, msg_id: str, ack_id: str, publish_time):
-      try:
-        req = flows_pb2.FlowProcessingRequest()
-        req.ParseFromString(payload)
-        date_time_now = rdfvalue.RDFDatetime.Now()
-        epoch_now = date_time_now.AsMicrosecondsSinceEpoch()
-        epoch_in_ten = epoch_now + 10 * 1000000
-        if req.delivery_time > epoch_now:
-          ack_ids = []
-          ack_ids.append(ack_id)
-          # figure out when we reach the delivery time, and push it out (max 10 mins allowed by PubSub)
-          ack_deadline = req.delivery_time if req.delivery_time <= epoch_in_ten else epoch_in_ten
-          # PubSub wants the deadline in seconds from now
-          ack_deadline = int((ack_deadline - epoch_now)/1000000) 
-          self.db.LeaseFlowProcessingRequests(ack_ids, ack_deadline)
-        else:
-          #req.creation_time = int(
-          #  rdfvalue.RDFDatetime.FromDatetime(publish_time)
-          #)
-          req.ack_id = ack_id
-          handler(req)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception(
-            "Exception raised during FlowProcessingRequest processing: %s", e
-        )
-
-    receiver = self.db.NewRequestQueue(
-        "FlowProcessing",
-        Callback,
-        receiver_max_keepalive_seconds=3000,
-        receiver_max_active_callbacks=50,
-        receiver_max_messages_per_callback=1,
-    )
-    self._flow_processing_request_receiver = receiver
+    if handler:
+      self.flow_processing_request_handler_stop = False
+      self.flow_processing_request_handler_thread = threading.Thread(
+          name="flow_processing_request_handler",
+          target=self._FlowProcessingRequestHandlerLoop,
+          args=(handler,),
+      )
+      self.flow_processing_request_handler_thread.daemon = True
+      self.flow_processing_request_handler_thread.start()
 
   def UnregisterFlowProcessingHandler(
       self, timeout: Optional[rdfvalue.Duration] = None
   ) -> None:
     """Unregisters any registered flow processing handler."""
-    del timeout  # Unused.
-    if self._flow_processing_request_receiver is not None:
-      # Pytype doesn't understand that the if-check above ensures that
-      # _flow_processing_request_receiver is not None.
-      self._flow_processing_request_receiver.Stop()  # pytype: disable=attribute-error
-      self._flow_processing_request_receiver = None
+    if self.flow_processing_request_handler_thread:
+      self.flow_processing_request_handler_stop = True
+      self.flow_processing_request_handler_thread.join(timeout)
+      if self.flow_processing_request_handler_thread.is_alive():
+        raise RuntimeError("Flow processing handler did not join in time.")
+      self.flow_processing_request_handler_thread = None
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -918,7 +1020,7 @@ class FlowsMixin:
               flow_processing_requests.append(req)
 
         if flow_processing_requests:
-          self._BuildFlowProcessingRequestWrites(flow_processing_requests)
+          self._WriteFlowProcessingRequests(flow_processing_requests, txn)
 
     try:
       self.db.Transact(Txn, txn_tag="WriteFlowRequests")
@@ -1393,7 +1495,7 @@ class FlowsMixin:
           fpr.delivery_time = int(start_time)
         flow_processing_requests.append(fpr)
 
-      self._BuildFlowProcessingRequestWrites(flow_processing_requests)
+      self._WriteFlowProcessingRequests(flow_processing_requests, txn)
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2091,18 +2193,139 @@ class FlowsMixin:
 
     return results
 
+  def RegisterMessageHandler(
+      self,
+      handler: Callable[[Sequence[objects_pb2.MessageHandlerRequest]], None],
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> None:
+    """Leases a number of message handler requests up to the indicated limit."""
+    self.UnregisterMessageHandler()
+
+    if handler:
+      self.handler_stop = False
+      self.handler_thread = threading.Thread(
+          name="message_handler",
+          target=self._MessageHandlerLoop,
+          args=(handler, lease_time, limit),
+      )
+      self.handler_thread.daemon = True
+      self.handler_thread.start()
+
+  def UnregisterMessageHandler(
+      self, timeout: Optional[rdfvalue.Duration] = None
+  ) -> None:
+    """Unregisters any registered message handler."""
+    if self.handler_thread:
+      self.handler_stop = True
+      self.handler_thread.join(timeout)
+      if self.handler_thread.is_alive():
+        raise RuntimeError("Message handler thread did not join in time.")
+      self.handler_thread = None
+
+  _MESSAGE_HANDLER_POLL_TIME_SECS = 5
+
+  def _MessageHandlerLoop(
+      self,
+      handler: Callable[[Iterable[objects_pb2.MessageHandlerRequest]], None],
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> None:
+    """Loop to handle outstanding requests."""
+    while not self.handler_stop:
+      try:
+        msgs = self._LeaseMessageHandlerRequests(lease_time, limit)
+        if msgs:
+          handler(msgs)
+        else:
+          time.sleep(self._MESSAGE_HANDLER_POLL_TIME_SECS)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("_LeaseMessageHandlerRequests raised %s.", e)
+
+  def _LeaseMessageHandlerRequests(
+      self,
+      lease_time: rdfvalue.Duration,
+      limit: int = 1000,
+  ) -> Iterable[objects_pb2.MessageHandlerRequest]:
+    """Leases a number of message handler requests up to the indicated limit."""
+    now = rdfvalue.RDFDatetime.Now()
+    delivery_time = now + lease_time
+
+    leased_until = delivery_time.AsMicrosecondsSinceEpoch()
+    leased_by = utils.ProcessIdString()
+
+    def Txn(txn) -> None:
+      # Read the message handler requests waiting for leases
+      keyset = spanner_lib.KeySet(all_=True)
+      params = {
+        "limit": limit,
+        "now": now.AsDatetime()
+      }
+      param_type = {
+        "limit": param_types.INT64,
+        "now": param_types.TIMESTAMP
+      }
+      requests = txn.execute_sql(
+              "SELECT RequestId, CreationTime, Payload "
+              "FROM MessageHandlerRequests "
+              "WHERE LeasedUntil IS NULL OR LeasedUntil < @now "
+              "LIMIT @limit",
+              params=params,
+              param_types=param_type)
+      res = []
+      request_ids = []
+      for request_id, creation_time, request in requests:
+        req = objects_pb2.MessageHandlerRequest()
+        req.ParseFromString(request)
+        req.timestamp = req.leased_until = rdfvalue.RDFDatetime.FromDatetime(
+          creation_time
+        ).AsMicrosecondsSinceEpoch()
+        req.leased_until = leased_until
+        req.leased_by = leased_by
+        res.append(req)
+        request_ids.append(request_id)
+
+      query = (
+        "UPDATE MessageHandlerRequests "
+        "SET LeasedUntil=@leased_until, LeasedBy=@leased_by "
+        "WHERE RequestId IN UNNEST(@request_ids)"
+      )
+      params = {
+        "request_ids": request_ids,
+        "leased_by": leased_by,
+        "leased_until": delivery_time.AsDatetime()
+      }
+      param_type = {
+        "request_ids": param_types.Array(param_types.STRING),
+        "leased_by": param_types.STRING,
+        "leased_until": param_types.TIMESTAMP
+      }
+      txn.execute_update(query, params, param_type)
+
+      return res
+
+    return self.db.Transact(Txn)
+
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def WriteMessageHandlerRequests(
       self, requests: Iterable[objects_pb2.MessageHandlerRequest]
   ) -> None:
     """Writes a list of message handler requests to the queue."""
+    def Mutation(mut) -> None:
+      creation_timestamp = spanner_lib.COMMIT_TIMESTAMP
+      rows = []
+      columns = ["RequestId", "HandlerName", "CreationTime", "Payload"]
+      for request in requests:
+        rows.append([
+          str(request.request_id),
+          request.handler_name,
+          creation_timestamp,
+          request,
+        ])
+      mut.insert(table="MessageHandlerRequests", columns=columns, values=rows)
 
-    msgRequests = []
-    for request in requests:
-      msgRequests.append(request.SerializeToString())
-
-    self.db.PublishMessageHandlerRequests(msgRequests)
+    self.db.Transact(Mutation)
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2110,129 +2333,42 @@ class FlowsMixin:
       self,
   ) -> Sequence[objects_pb2.MessageHandlerRequest]:
     """Reads all message handler requests from the queue."""
-
+    query = """
+    SELECT t.Payload, t.CreationTime, t.LeasedBy, t.LeasedUntil FROM MessageHandlerRequests AS t
+    """
     results = []
-    for result in self.db.ReadMessageHandlerRequests():
+    for payload, creation_time, leased_by, leased_until in self.db.ParamQuery(query, {}):
       req = objects_pb2.MessageHandlerRequest()
-      req.ParseFromString(result["payload"])
-      req.timestamp = int(
-          rdfvalue.RDFDatetime.FromDatetime(result["publish_time"])
-      )
-      req.ack_id = result["ack_id"]
+      req.ParseFromString(payload)
+      req.timestamp = rdfvalue.RDFDatetime.FromDatetime(
+          creation_time
+      ).AsMicrosecondsSinceEpoch()
+      if leased_by is not None:
+        req.leased_by = leased_by
+      if leased_until is not None:
+        req.leased_until = rdfvalue.RDFDatetime.FromDatetime(
+          creation_time
+      ).AsMicrosecondsSinceEpoch()
       results.append(req)
 
     return results
 
-  def _BuildDeleteMessageHandlerRequestWrites(
-      self,
-      txn,
-      requests: Iterable[objects_pb2.MessageHandlerRequest],
-  ) -> None:
-    """Deletes given requests within a given transaction."""
-    ack_ids = []
-    for r in requests:
-      ack_ids.append(r.ack_id)
-    
-    self.db.AckMessageHandlerRequests(ack_ids)
-
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def DeleteMessageHandlerRequests(
-      self, requests: Iterable[objects_pb2.MessageHandlerRequest]
+      self,
+      requests: Iterable[objects_pb2.MessageHandlerRequest],
   ) -> None:
     """Deletes a list of message handler requests from the database."""
-    ack_ids = []
-    for request in requests:
-      ack_ids.append(request.ack_id)
 
-    self.db.AckMessageHandlerRequests(ack_ids)
+    query = "DELETE FROM MessageHandlerRequests WHERE RequestId IN UNNEST(@request_ids)"
+    request_ids = []
+    for r in requests:
+        request_ids.append(str(r.request_id))
+    params={"request_ids": request_ids}
+    param_type={"request_ids": param_types.Array(param_types.STRING)}
 
-  def _LeaseMessageHandlerRequest(
-      self,
-      req: objects_pb2.MessageHandlerRequest,
-      lease_time: rdfvalue.Duration,
-  ) -> bool:
-    """Leases the given message handler request.
-
-    Leasing of the message amounts to the following:
-    1. The message gets deleted from the queue.
-    2. It gets rescheduled in the future (at now + lease_time) with
-      "leased_until" and "leased_by" attributes set.
-
-    Args:
-      req: MessageHandlerRequest to lease.
-      lease_time: Lease duration.
-
-    Returns:
-      Copy of the original request object with "leased_until" and "leased_by"
-      attributes set.
-    """
-    date_time_now = rdfvalue.RDFDatetime.Now()
-    epoch_now = date_time_now.AsMicrosecondsSinceEpoch()
-    delivery_time = date_time_now + lease_time
-
-    leased = False
-    if not req.leased_by or req.leased_until <= epoch_now:
-      # If the message has not been leased yet or the lease has expired
-      # then take and write back the clone back to the queue
-      # and delete the original message 
-      clone = objects_pb2.MessageHandlerRequest()
-      clone.CopyFrom(req)
-      clone.leased_until = delivery_time.AsMicrosecondsSinceEpoch()
-      clone.leased_by = utils.ProcessIdString()
-      clone.ack_id = ""
-      self.WriteMessageHandlerRequests([clone])
-      self.DeleteMessageHandlerRequests([req])
-    elif req.leased_until > epoch_now:
-      # if we have leased the message (leased_until set and in the future)
-      # then we modify ack deadline to match the leased_until time
-      leased = True
-      ack_ids = []
-      ack_ids.append(req.ack_id)
-      self.db.LeaseMessageHandlerRequests(ack_ids, int((req.leased_until - epoch_now)/1000000))
-
-    return leased
-
-  def RegisterMessageHandler(
-      self,
-      handler: Callable[[Sequence[objects_pb2.MessageHandlerRequest]], None],
-      lease_time: rdfvalue.Duration,
-      limit: int = 1000,
-  ) -> None:
-    """Registers a message handler to receive batches of messages."""
-    self.UnregisterMessageHandler()
-
-    def Callback(payload: bytes, msg_id: str, ack_id: str, publish_time):
-      try:
-        req = objects_pb2.MessageHandlerRequest()
-        req.ParseFromString(payload)
-        req.ack_id = ack_id
-        leased = self._LeaseMessageHandlerRequest(req, lease_time)
-        if leased:
-          logging.info("Leased message handler request: %s", req.request_id)
-          handler([req])
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception(
-            "Exception raised during MessageHandlerRequest processing: %s", e
-        )
-
-    receiver = self.db.NewRequestQueue(
-        "MessageHandler",
-        Callback,
-        receiver_max_keepalive_seconds=_MESSAGE_HANDLER_MAX_KEEPALIVE_SECONDS,
-        receiver_max_active_callbacks=_MESSAGE_HANDLER_MAX_ACTIVE_CALLBACKS,
-        receiver_max_messages_per_callback=limit,
-    )
-    self._message_handler_receiver = receiver
-
-  def UnregisterMessageHandler(
-      self, timeout: Optional[rdfvalue.Duration] = None
-  ) -> None:
-    """Unregisters any registered message handler."""
-    del timeout  # Unused.
-    if self._message_handler_receiver:
-      self._message_handler_receiver.Stop()  # pytype: disable=attribute-error  # always-use-return-annotations
-      self._message_handler_receiver = None
+    self.db.ParamExecute(query, params, param_type)
 
   def _ReadHuntState(
       self, txn, hunt_id: str

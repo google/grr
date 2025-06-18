@@ -1,7 +1,9 @@
 
 from google.cloud.spanner import Client
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_server import threadpool
 from grr_response_server.databases import db as db_module
 from grr_response_server.databases import spanner_artifacts
 from grr_response_server.databases import spanner_blob_keys
@@ -44,6 +46,17 @@ class SpannerDB(
     """Initializes the database."""
     self.db = db
     self._write_rows_batch_size = 10000
+
+    self.handler_thread = None
+    self.handler_stop = True
+
+    self.flow_processing_request_handler_thread = None
+    self.flow_processing_request_handler_stop = None
+    self.flow_processing_request_handler_pool = threadpool.ThreadPool.Factory(
+        "spanner_flow_processing_pool",
+        min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
+        max_threads=config.CONFIG["Mysql.flow_processing_threads_max"],
+    )
 
   @classmethod
   def FromConfig(cls) -> "Database":
