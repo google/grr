@@ -241,28 +241,6 @@ class FlowsMixin:
 
   handler_thread: threading.Thread
 
-  @property
-  def _flow_processing_request_receiver(
-      self,
-  ) -> Optional[spanner_utils.RequestQueue]:
-    return getattr(self, "__flow_processing_request_receiver", None)
-
-  @_flow_processing_request_receiver.setter
-  def _flow_processing_request_receiver(
-      self, value: Optional[spanner_utils.RequestQueue]
-  ) -> None:
-    setattr(self, "__flow_processing_request_receiver", value)
-
-  @property
-  def _message_handler_receiver(self) -> Optional[spanner_utils.RequestQueue]:
-    return getattr(self, "__message_handler_receiver", None)
-
-  @_message_handler_receiver.setter
-  def _message_handler_receiver(
-      self, value: Optional[spanner_utils.RequestQueue]
-  ) -> None:
-    setattr(self, "__message_handler_receiver", value)
-
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def WriteFlowObject(

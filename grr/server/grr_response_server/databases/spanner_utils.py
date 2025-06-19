@@ -22,7 +22,6 @@ from typing import TypeVar
 
 from concurrent import futures
 
-from google.cloud import pubsub_v1
 from google.cloud import spanner_v1 as spanner_lib
 
 from google.cloud.spanner import KeyRange, KeySet
@@ -43,46 +42,6 @@ Cursor = Iterator[Row]
 
 _T = TypeVar("_T")
 
-class RequestQueue:
-  """
-  This stores the callback internally, and will continue to deliver messages to
-  the callback as long as it is referenced in python code and Stop is not
-  called.
-  """
-
-  def __init__(
-      self,
-      subscriber,
-      subscription_path: str,
-      callback,  # : Callable
-      receiver_max_keepalive_seconds: int,
-      receiver_max_active_callbacks: int,
-      receiver_max_messages_per_callback: int,
-  ):
-
-    # An optional executor to use. If not specified, a default one with maximum 10
-    # threads will be created.
-    executor = futures.ThreadPoolExecutor(max_workers=receiver_max_active_callbacks)
-    # A thread pool-based scheduler. It must not be shared across SubscriberClients.
-    scheduler = pubsub_v1.subscriber.scheduler.ThreadScheduler(executor)
-
-    #flow_control = pubsub_v1.types.FlowControl(max_messages=receiver_max_messages_per_callback)
-
-    self.streaming_pull_future = subscriber.subscribe(
-      subscription_path, callback=callback, scheduler=scheduler
-      #subscription_path, callback=callback, scheduler=scheduler, flow_control=flow_control
-    )
-
-  def Stop(self):
-    if self.streaming_pull_future:
-      try:
-        self.streaming_pull_future.cancel()
-      except asyncio.CancelledError:
-        pass # Expected when cancelling
-      except Exception as e:
-        print(f"Warning: Exception while cancelling future: {e}")
-
-      time.sleep(0.1) # Give a short buffer for threads to clean up
 
 class Database:
   """A wrapper around the PySpanner class.
@@ -94,18 +53,10 @@ class Database:
 
   _PYSPANNER_PARAM_REGEX = re.compile(r"@p\d+") 
 
-  def __init__(self, pyspanner: spanner_lib.database, project_id: str,
-               msg_handler_top_id: str, msg_handler_sub_id: str,
-               flow_processing_top_id: str, flow_processing_sub_id: str) -> None:
+  def __init__(self, pyspanner: spanner_lib.database, project_id: str) -> None:
     super().__init__()
     self._pyspanner = pyspanner
     self.project_id = project_id
-    self.publisher = pubsub_v1.PublisherClient()
-    self.subscriber = pubsub_v1.SubscriberClient()
-    self.flow_processing_sub_path = self.subscriber.subscription_path(project_id, flow_processing_sub_id)
-    self.flow_processing_top_path = self.publisher.topic_path(project_id, flow_processing_top_id)
-    self.message_handler_sub_path = self.subscriber.subscription_path(project_id, msg_handler_sub_id)
-    self.message_handler_top_path = self.publisher.topic_path(project_id, msg_handler_top_id)
 
   def Now(self) -> rdfvalue.RDFDatetime:
     """Retrieves current time as reported by the database."""
@@ -543,136 +494,3 @@ class Database:
         )
     
     return results
-
-  def PublishMessageHandlerRequests(self, requests: [str]) -> None:
-    self.PublishRequests(requests, self.message_handler_top_path)
-
-  def PublishFlowProcessingRequests(self, requests: [str]) -> None:
-    self.PublishRequests(requests, self.flow_processing_top_path)
-
-  def ReadMessageHandlerRequests(self, min_req: Optional[int] = None):
-    return self.ReadRequests(self.message_handler_sub_path, min_req)
-
-  def ReadFlowProcessingRequests(self, min_req: Optional[int] = None):
-    return self.ReadRequests(self.flow_processing_sub_path, min_req)
-
-  def AckMessageHandlerRequests(self, ack_ids: [str]) -> None:
-    self.AckRequests(ack_ids, self.message_handler_sub_path)
-
-  def AckFlowProcessingRequests(self, ack_ids: [str]) -> None:
-    self.AckRequests(ack_ids, self.flow_processing_sub_path)
-  
-  def DeleteAllMessageHandlerRequests(self) -> None:
-    self.DeleteAllRequests(self.message_handler_sub_path)
-
-  def DeleteAllFlowProcessingRequests(self) -> None:
-    self.DeleteAllRequests(self.flow_processing_sub_path)
-  
-  def LeaseMessageHandlerRequests(self, ack_ids: [str], ack_deadline: int) -> None:
-    self.subscriber.modify_ack_deadline(
-      request={
-        "subscription": self.message_handler_sub_path,
-        "ack_ids": ack_ids,
-        "ack_deadline_seconds": ack_deadline,
-      }
-    )
-
-  def LeaseFlowProcessingRequests(self, ack_ids: [str], ack_deadline: int) -> None:
-    self.subscriber.modify_ack_deadline(
-      request={
-        "subscription": self.flow_processing_sub_path,
-        "ack_ids": ack_ids,
-        "ack_deadline_seconds": ack_deadline,
-      }
-    )
-
-  def PublishRequests(self, requests: [str], top_path: str) -> None:
-    for req in requests:
-      self.publisher.publish(top_path, req)
-
-  def AckRequests(self, ack_ids: [str], sub_path: str) -> None:
-    self.subscriber.acknowledge(
-      request={"subscription": sub_path, "ack_ids": ack_ids}
-    )
-
-  def DeleteAllRequests(self, sub_path: str) -> None:
-    client = pubsub_v1.SubscriberClient()
-    # Initialize request argument(s)
-    request = {
-        "subscription": sub_path,
-        "time": datetime.datetime.now(pytz.utc) + datetime.timedelta(days=30) 
-    }
-    # Make the request
-    response = client.seek(request=request)
-
-  def ReadRequests(self, sub_path: str, min_req: Optional[int] = None):
-    # Make the request
-
-    start_time = time.time()
-    results = {}
-    want_more = True
-    while want_more or (time.time() - start_time < 2):
-      time.sleep(0.1)
-
-      response = self.subscriber.pull(
-        request = {
-          "subscription": sub_path,
-          "max_messages": 10000,
-        },
-      )
-      for resp in response.received_messages:
-        results.update({resp.message.message_id: {
-                          "payload": resp.message.data,
-                          "msg_id": resp.message.message_id,
-                          "ack_id": resp.ack_id,
-                          "publish_time": resp.message.publish_time}
-                        })
-      if min_req and len(results) >= min_req:
-        want_more = False
-
-    return results.values()
-
-  def NewRequestQueue(
-      self,
-      queue: str,
-      callback: Callable[[Sequence[Any], bytes], None],
-      receiver_max_keepalive_seconds: Optional[int] = None,
-      receiver_max_active_callbacks: Optional[int] = None,
-      receiver_max_messages_per_callback: Optional[int] = None,
-  ) -> RequestQueue:
-    """Registers a queue callback in a given queue.
-
-    Args:
-      queue: Name of the queue.
-      callback: Callback with 2 args (expanded_key, payload). expanded_key is a
-        sequence where each item corresponds to an item of the message's key.
-        Payload is the message itself, serialized as bytes.
-      receiver_max_keepalive_seconds: Num seconds before the lease on the
-        message expires (if the message is not acked before the lease expires,
-        it will be delivered again).
-      receiver_max_active_callbacks: Max number of callback to be called in
-        parallel.
-      receiver_max_messages_per_callback: Max messages to receive per callback.
-
-    Returns:
-      New queue receiver objects.
-    """
-
-    def _Callback(message: pubsub_v1.subscriber.message.Message):
-      payload = message.data
-      callback(payload=payload, msg_id=message.message_id, ack_id=message.ack_id,
-               publish_time=message.publish_time)
-
-    if queue == "MessageHandler" or queue == "":
-      subscription_path = self.message_handler_sub_path
-    elif queue == "FlowProcessing":
-      subscription_path = self.flow_processing_sub_path
-
-    return RequestQueue(
-        self.subscriber,
-        subscription_path,
-        _Callback,
-        receiver_max_keepalive_seconds=receiver_max_keepalive_seconds,
-        receiver_max_active_callbacks=receiver_max_active_callbacks,
-        receiver_max_messages_per_callback=receiver_max_messages_per_callback,
-    )

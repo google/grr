@@ -1,13 +1,11 @@
 """A library with utilities for testing the Spanner database implementation."""
 import os
 import unittest
-import uuid
 
 from typing import Optional
 
 from absl.testing import absltest
 
-from google.cloud import pubsub_v1
 from google.cloud import spanner_v1 as spanner_lib
 from google.cloud import spanner_admin_database_v1
 from google.cloud.spanner import Client, KeySet
@@ -110,10 +108,6 @@ class TestCase(absltest.TestCase):
   This class takes care of setting up a clean database for every test method. It
   is intended to be used with database test suite mixins.
   """
-  msg_handler_top = None
-  msg_handler_sub = None
-  flow_processing_top = None
-  flow_processing_sub = None
 
   project_id = None
 
@@ -122,60 +116,12 @@ class TestCase(absltest.TestCase):
 
     self.project_id = _GetEnvironOrSkip("PROJECT_ID")
 
-    msg_uuid=str(uuid.uuid4())
-    flow_uuid=str(uuid.uuid4())
-    self.msg_handler_top_id = "msg-top"+msg_uuid
-    self.msg_handler_sub_id = "msg-sub"+msg_uuid
-
-    self.flow_processing_top_id = "flow-top"+flow_uuid
-    self.flow_processing_sub_id = "flow-sub"+flow_uuid
-
-    publisher = pubsub_v1.PublisherClient()
-    msg_handler_top_path = publisher.topic_path(self.project_id, self.msg_handler_top_id)
-    flow_processing_top_path = publisher.topic_path(self.project_id, self.flow_processing_top_id)
-    message_handler_top = publisher.create_topic(request={"name": msg_handler_top_path})
-    flow_processing_top = publisher.create_topic(request={"name": flow_processing_top_path})
-
-    subscriber = pubsub_v1.SubscriberClient()
-    msg_handler_sub_path = subscriber.subscription_path(self.project_id, self.msg_handler_sub_id)
-    flow_processing_sub_path = subscriber.subscription_path(self.project_id, self.flow_processing_sub_id)
-    message_handler_sub = subscriber.create_subscription(request={"name": msg_handler_sub_path,
-                                                                  "topic": msg_handler_top_path}
-    )
-    flow_processing_sub = subscriber.create_subscription(request={"name": flow_processing_sub_path,
-                                                                  "topic": flow_processing_top_path}
-    )
-
-
     _clean_database()
 
-    self.raw_db = spanner_utils.Database(_TEST_DB, self.project_id,
-                                         self.msg_handler_top_id, self.msg_handler_sub_id,
-                                         self.flow_processing_top_id, self.flow_processing_sub_id)
+    self.raw_db = spanner_utils.Database(_TEST_DB, self.project_id)
 
     spannerDB = spanner_db.SpannerDB(self.raw_db)
     self.db = abstract_db.DatabaseValidationWrapper(spannerDB)
-
-  def tearDown(self):
-    subscriber = pubsub_v1.SubscriberClient()
-    msg_handler_sub_path = subscriber.subscription_path(self.project_id, self.msg_handler_sub_id)
-    flow_processing_sub_path = subscriber.subscription_path(self.project_id, self.flow_processing_sub_id)
-
-    # Wrap the subscriber in a 'with' block to automatically call close() to
-    # close the underlying gRPC channel when done.
-    with subscriber:
-       subscriber.delete_subscription(request={"subscription": msg_handler_sub_path})
-       subscriber.delete_subscription(request={"subscription": flow_processing_sub_path})
-
-    publisher = pubsub_v1.PublisherClient()
-    msg_handler_top_path = publisher.topic_path(self.project_id, self.msg_handler_top_id)
-    flow_processing_top_path = publisher.topic_path(self.project_id, self.flow_processing_top_id)
-
-    publisher.delete_topic(request={"topic": msg_handler_top_path})
-    publisher.delete_topic(request={"topic": flow_processing_top_path})
-
-    super().tearDown()
-
 
 def _get_table_names(db):
     with db.snapshot() as snapshot:
