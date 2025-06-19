@@ -770,12 +770,13 @@ class FlowsMixin:
         request.flow_id,
         spanner_lib.COMMIT_TIMESTAMP,
         request,
-        request.delivery_time
+        rdfvalue.RDFDatetime(
+            request.delivery_time
+        ).AsDatetime()
       ]
       rows.append(row)
 
     txn.insert(table="FlowProcessingRequests", columns=columns, values=rows)
-    self.db.PublishFlowProcessingRequests(flowProcessingRequests)
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -819,7 +820,10 @@ class FlowsMixin:
     def Txn(txn) -> None:
       keys = []
       for request in requests:
-        keys.append([request.client_id, request.flow_id, request.creation_time])
+        creation_time = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          request.creation_time
+        ).AsDatetime()
+        keys.append([request.client_id, request.flow_id, creation_time])
       keyset = spanner_lib.KeySet(keys=keys)
       txn.delete(table="FlowProcessingRequests", keyset=keyset)
 
@@ -867,12 +871,12 @@ class FlowsMixin:
 
       res = []
       request_ids = []
-      for request_id, creation_time, request in cursor.fetchall():
+      for request_id, creation_time, request in requests:
         req = flows_pb2.FlowProcessingRequest()
         req.ParseFromString(request)
-        req.creation_time = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+        req.creation_time = rdfvalue.RDFDatetime.FromDatetime(
           creation_time
-        )
+        ).AsMicrosecondsSinceEpoch()
         res.append(req)
         request_ids.append(request_id)
 
@@ -883,7 +887,7 @@ class FlowsMixin:
       )
       params = {
         "request_ids": request_ids,
-        "leased_by": leased_by,
+        "leased_by": utils.ProcessIdString(),
         "leased_until": expiry.AsDatetime()
       }
       param_type = {
