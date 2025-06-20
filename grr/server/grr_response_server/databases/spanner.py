@@ -65,7 +65,7 @@ class SpannerDB(
     Returns:
       A GRR database instance.
     """
-    project_id = config.CONFIG["Spanner.project_id"]
+    project_id = config.CONFIG["Spanner.project"]
     spanner_client = Client(project_id)
     spanner_instance = spanner_client.instance(config.CONFIG["Spanner.instance"])
     spanner_database = spanner_instance.database(config.CONFIG["Spanner.database"])

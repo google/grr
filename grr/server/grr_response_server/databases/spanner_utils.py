@@ -57,20 +57,6 @@ class Database:
     super().__init__()
     self._pyspanner = pyspanner
     self.project_id = project_id
-
-#  def Now(self) -> rdfvalue.RDFDatetime:
-#    """Retrieves current time as reported by the database."""
-#    with self._pyspanner.snapshot() as snapshot:
-#      timestamp = None
-#      query = "SELECT CURRENT_TIMESTAMP() AS now"
-#      results = snapshot.execute_sql(query)
-#      for row in results:
-#        timestamp = row[0]
-#      return rdfvalue.RDFDatetime.FromDatetime(timestamp)
-
-#  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
-#    """Returns minimal timestamp allowed by the DB."""
-#    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
   
   def _parametrize(self, query: str, names: Iterable[str]) -> str:
     match = self._PYSPANNER_PARAM_REGEX.search(query)
@@ -230,10 +216,6 @@ class Database:
           print(f"Warning for key '{key}': {e}. Setting type to None.")
           param_type[key] = None # Or re-raise, or handle differently
 
-    print("query: {}".format(query))
-    print("params: {}".format(params))
-    print("param_type: {}".format(param_type))
-
     with self._pyspanner.snapshot() as snapshot:
         results = snapshot.execute_sql(
             query,
@@ -296,10 +278,6 @@ class Database:
         print(f"Warning for key '{key}': {e}. Setting type to None.")
         param_type[key] = None # Or re-raise, or handle differently
 
-    print("query: {}".format(query))
-    print("params: {}".format(params))
-    print("param_type: {}".format(param_type))
-
     def param_execute(transaction):
         row_ct = transaction.execute_update(
             query,
@@ -307,7 +285,6 @@ class Database:
             param_types=param_type,
         )
 
-        print("{} record(s) updated.".format(row_ct))
     self._pyspanner.run_in_transaction(param_execute)
 
   def ExecutePartitioned(
