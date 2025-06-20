@@ -58,19 +58,19 @@ class Database:
     self._pyspanner = pyspanner
     self.project_id = project_id
 
-  def Now(self) -> rdfvalue.RDFDatetime:
-    """Retrieves current time as reported by the database."""
-    with self._pyspanner.snapshot() as snapshot:
-      timestamp = None
-      query = "SELECT CURRENT_TIMESTAMP() AS now"
-      results = snapshot.execute_sql(query)
-      for row in results:
-        timestamp = row[0]
-      return rdfvalue.RDFDatetime.FromDatetime(timestamp)
+#  def Now(self) -> rdfvalue.RDFDatetime:
+#    """Retrieves current time as reported by the database."""
+#    with self._pyspanner.snapshot() as snapshot:
+#      timestamp = None
+#      query = "SELECT CURRENT_TIMESTAMP() AS now"
+#      results = snapshot.execute_sql(query)
+#      for row in results:
+#        timestamp = row[0]
+#      return rdfvalue.RDFDatetime.FromDatetime(timestamp)
 
-  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
-    """Returns minimal timestamp allowed by the DB."""
-    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
+#  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
+#    """Returns minimal timestamp allowed by the DB."""
+#    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
   
   def _parametrize(self, query: str, names: Iterable[str]) -> str:
     match = self._PYSPANNER_PARAM_REGEX.search(query)

@@ -54,8 +54,8 @@ class SpannerDB(
     self.flow_processing_request_handler_stop = None
     self.flow_processing_request_handler_pool = threadpool.ThreadPool.Factory(
         "spanner_flow_processing_pool",
-        min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
-        max_threads=config.CONFIG["Mysql.flow_processing_threads_max"],
+        min_threads=config.CONFIG["Spanner.flow_processing_threads_min"],
+        max_threads=config.CONFIG["Spanner.flow_processing_threads_max"],
     )
 
   @classmethod
@@ -65,18 +65,12 @@ class SpannerDB(
     Returns:
       A GRR database instance.
     """
-    project_id = config.CONFIG["ProjectID"]
+    project_id = config.CONFIG["Spanner.project_id"]
     spanner_client = Client(project_id)
     spanner_instance = spanner_client.instance(config.CONFIG["Spanner.instance"])
     spanner_database = spanner_instance.database(config.CONFIG["Spanner.database"])
-    msg_handler_top_id = config.CONFIG["MessageHandler.topic_id"]
-    msg_handler_sub_id = config.CONFIG["MessageHandler.subscription_id"]
-    flow_processing_top_id = config.CONFIG["FlowProcessing.topic_id"]
-    flow_processing_sub_id = config.CONFIG["FlowProcessing.subscription_id"]
 
-    return cls(spanner_utils.Database(spanner_database, project_id,
-                                      msg_handler_top_id, msg_handler_sub_id,
-                                      flow_processing_top_id, flow_processing_sub_id))
+    return cls(spanner_utils.Database(spanner_database, project_id))
 
   def Now(self) -> rdfvalue.RDFDatetime:
     """Retrieves current time as reported by the database."""

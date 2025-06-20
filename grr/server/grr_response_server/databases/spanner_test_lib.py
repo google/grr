@@ -54,7 +54,7 @@ def Init(sdl_path: str, proto_bundle: bool) -> None:
   if _TEST_DB is not None:
     raise AssertionError("Spanner test library already initialized")
 
-  project_id = _GetEnvironOrSkip("PROJECT_ID")
+  project_id = _GetEnvironOrSkip("SPANNER_PROJECT_ID")
   instance_id = _GetEnvironOrSkip("SPANNER_GRR_INSTANCE")
   database_id = _GetEnvironOrSkip("SPANNER_GRR_DATABASE")
 
