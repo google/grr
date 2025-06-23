@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """A library with user methods of Spanner database implementation."""
-
+import base64
 import datetime
 import logging
 import sys
@@ -415,7 +415,7 @@ class UsersMixin:
         "Message": notification.message,
     }
     if notification.reference:
-      row["Reference"] = notification.reference.SerializeToString()
+      row["Reference"] = base64.b64encode(notification.reference.SerializeToString())
 
     try:
       self.db.Insert(
