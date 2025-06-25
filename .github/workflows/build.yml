@@ -3,7 +3,7 @@ on: [push, pull_request]
 env:
   GCS_BUCKET: autobuilds.grr-response.com
   GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
-  DOCKER_REPOSITORY: ghcr.io/google/grr
+  DOCKER_REPOSITORY: ghcr.io/${{ github.repository_owner }}/grr
 jobs:
   test-devenv:
     runs-on: ubuntu-22.04
