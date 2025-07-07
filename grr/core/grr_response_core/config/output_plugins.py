@@ -79,3 +79,15 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_string("Elasticsearch.index", "grr-flows",
                          "The index assigned to all submitted events.")
+
+# WebhookOutputPlugin
+config_lib.DEFINE_string(
+    "Webhook.url", None, "Absolute URL of the HTTP Webhook, e.g. "
+    "'https://mywebhookserver.example.com:8088'")
+
+config_lib.DEFINE_bool(
+    "Webhook.verify_https", True,
+    "Verify the certificate for HTTPS connections. Setting this to False comes "
+    "with big security risks. Instead, when using self-signed certificates, "
+    "set REQUESTS_CA_BUNDLE environment variable to the path of the cert file. "
+    "See https://requests.readthedocs.io/en/master/user/advanced/.")
