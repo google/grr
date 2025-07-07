@@ -1,14 +1,14 @@
 
 services:
   grr-admin-ui:
-    image: ghcr.io/google/grr:testing
+    image: ghcr.io/google/grr:test
 
   grr-fleetspeak-frontend:
-    image: ghcr.io/google/grr:testing
+    image: ghcr.io/google/grr:test
 
   grr-worker:
-    image: ghcr.io/google/grr:testing
+    image: ghcr.io/google/grr:test
 
   grr-client:
-    image: ghcr.io/google/grr:testing
+    image: ghcr.io/google/grr:test
     privileged: true
