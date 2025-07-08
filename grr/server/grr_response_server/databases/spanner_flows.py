@@ -806,7 +806,7 @@ class FlowsMixin:
       keyset = spanner_lib.KeySet(keys=keys)
       txn.delete(table="FlowProcessingRequests", keyset=keyset)
 
-    self.db.Transact(Txn)
+    self.db.Transact(Txn, txn_tag="AckFlowProcessingRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -817,7 +817,7 @@ class FlowsMixin:
       keyset = spanner_lib.KeySet(all_=True)
       txn.delete(table="FlowProcessingRequests", keyset=keyset)
 
-    self.db.Transact(Txn)
+    self.db.Transact(Txn, txn_tag="DeleteAllFlowProcessingRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -878,7 +878,7 @@ class FlowsMixin:
 
       return res
 
-    return self.db.Transact(Txn)
+    return self.db.Transact(Txn, txn_tag="_LeaseFlowProcessingRequests")
 
   _FLOW_REQUEST_POLL_TIME_SECS = 3
 
@@ -1071,7 +1071,7 @@ class FlowsMixin:
             "RequestID",
             "CallbackState",
             "ExpectedResponseCount",
-        ],
+        ]
     ):
 
       request_key = _RequestKey(
@@ -1793,10 +1793,10 @@ class FlowsMixin:
       txn.update(
           table="FlowRequests",
           columns=columns,
-          values=rows,
+          values=rows
       )
 
-    self.db.Transact(Txn)
+    self.db.Transact(Txn, txn_tag="UpdateIncrementalFlowRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -1813,7 +1813,7 @@ class FlowsMixin:
       row["HuntId"] = entry.hunt_id
 
     try:
-      self.db.Insert(table="FlowLogEntries", row=row)
+      self.db.Insert(table="FlowLogEntries", row=row, txn_tag="WriteFlowLogEntry")
     except NotFound as error:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
@@ -1993,7 +1993,7 @@ class FlowsMixin:
       row["HuntId"] = entry.hunt_id
 
     try:
-      self.db.Insert(table="FlowOutputPluginLogEntries", row=row)
+      self.db.Insert(table="FlowOutputPluginLogEntries", row=row, txn_tag="WriteFlowOutputPluginLogEntry")
     except NotFound as error:
       raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
@@ -2147,7 +2147,7 @@ class FlowsMixin:
 
       txn.delete(table="ScheduledFlows", keyset=keyset)
 
-    self.db.Transact(Transaction)
+    self.db.Transact(Transaction, txn_tag="DeleteScheduledFlow")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2301,7 +2301,7 @@ class FlowsMixin:
 
       return res
 
-    return self.db.Transact(Txn)
+    return self.db.Transact(Txn, txn_tag="_LeaseMessageHandlerRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2322,7 +2322,7 @@ class FlowsMixin:
         ])
       mut.insert(table="MessageHandlerRequests", columns=columns, values=rows)
 
-    self.db.Transact(Mutation)
+    self.db.Transact(Mutation, txn_tag="WriteMessageHandlerRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2391,7 +2391,7 @@ class FlowsMixin:
         row = txn.read(
             table="Flows",
             keyset=spanner_lib.KeySet(keys=[[client_id, flow_id]]),
-            columns=_READ_FLOW_OBJECT_COLS,
+            columns=_READ_FLOW_OBJECT_COLS
         ).one()
       except NotFound as error:
         raise db.UnknownFlowError(client_id, flow_id, cause=error)
@@ -2447,7 +2447,7 @@ class FlowsMixin:
         row = txn.read(
             table="Flows",
             keyset=spanner_lib.KeySet(keys=[[client_id, flow_id]]),
-            columns=_READ_FLOW_OBJECT_COLS,
+            columns=_READ_FLOW_OBJECT_COLS
         ).one()
         flow = _ParseReadFlowObjectRow(client_id, flow_id, row)
         print(flow)
@@ -2455,8 +2455,8 @@ class FlowsMixin:
         raise db.UnknownFlowError(client_id, flow_id, cause=error)
       return flow
 
-    leased_flow = self.db.Transact(Txn)
-    flow = self.db.Transact(Txn2)
+    leased_flow = self.db.Transact(Txn, txn_tag="LeaseFlowForProcessing")
+    flow = self.db.Transact(Txn2, txn_tag="LeaseFlowForProcessing2")
     leased_flow.processing_since = flow.processing_since
     return leased_flow
 
@@ -2470,7 +2470,7 @@ class FlowsMixin:
         row = txn.read(
             table="FlowRequests",
             keyset=spanner_lib.KeySet(keys=[[flow_obj.client_id, flow_obj.flow_id, flow_obj.next_request_to_process]]),
-            columns=["NeedsProcessing", "StartTime"],
+            columns=["NeedsProcessing", "StartTime"]
         ).one()
         if row[0]:
           start_time = row[1]
@@ -2496,8 +2496,8 @@ class FlowsMixin:
                    flow_obj.next_request_to_process,
                    spanner_lib.COMMIT_TIMESTAMP,
                    flow_obj.num_replies_sent,
-          ]],
+          ]]
       )
       return True
 
-    return self.db.Transact(Txn)
+    return self.db.Transact(Txn, txn_tag="ReleaseProcessedFlow")

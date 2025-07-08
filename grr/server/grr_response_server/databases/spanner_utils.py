@@ -283,10 +283,10 @@ class Database:
         row_ct = transaction.execute_update(
             query,
             params=params,
-            param_types=param_type,
+            param_types=param_type
         )
 
-    self._pyspanner.run_in_transaction(param_execute, transaction_tag=txn_tag)
+    self._pyspanner.run_in_transaction(param_execute)
 
   def ExecutePartitioned(
       self, query: str, txn_tag: Optional[str] = None

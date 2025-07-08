@@ -201,7 +201,8 @@ class HuntsMixin:
     WHERE h.HuntId = @hunt_id
     """
 
-    txn.execute_update(query, params=params, param_types=params_types)
+    txn.execute_update(query, params=params, param_types=params_types,
+                       request_options={"request_tag": "_UpdateHuntObject:Hunts:execute_update"})
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -935,6 +936,7 @@ class HuntsMixin:
           table="HuntOutputPlugins",
           keyset=spanner_lib.KeySet(keys=[[hunt_id, state_index]]),
           columns=["Name", "Args", "State"],
+          request_options={"request_tag": "UpdateHuntOutputPluginState:HuntOutputPlugins:read"}
       ).one()
       state = _HuntOutputPluginStateFromRow(
           row[0], row[1], row[2]

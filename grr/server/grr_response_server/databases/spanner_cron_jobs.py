@@ -237,7 +237,8 @@ class CronJobsMixin:
         query_ids_to_update += "AND cj.JobId IN UNNEST(@cronjob_ids)"
         params_ids_to_update["cronjob_ids"] = cronjob_ids
 
-      response = txn.execute_sql(sql=query_ids_to_update, params=params_ids_to_update)
+      response = txn.execute_sql(sql=query_ids_to_update, params=params_ids_to_update,
+                                request_options={"request_tag": "LeaseCronJobs:CronJobs:execute_sql"})
 
       ids_to_update = []
       for (job_id,) in response:
@@ -260,7 +261,8 @@ class CronJobsMixin:
           "ids_to_update": ids_to_update,
       }
 
-      txn.execute_update(update_query, update_params)
+      txn.execute_update(update_query, update_params,
+                         request_options={"request_tag": "LeaseCronJobs:CronJobs:execute_update"})
 
       # ---------------------------------------------------------------------
       # Query (and return) jobs that were updated
@@ -366,7 +368,8 @@ class CronJobsMixin:
           "ids_to_return": ids_to_return,
       }
 
-      txn.execute_update(update_query, update_params)
+      txn.execute_update(update_query, update_params,
+                         request_options={"request_tag": "ReturnLeasedCronJobs:CronJobs:execute_update"})
 
       # ---------------------------------------------------------------------
       # Query (and return) jobs that were updated
@@ -557,7 +560,8 @@ class CronJobsMixin:
       for job_id, run_id in rows:
         keyset = spanner_lib.KeySet(keys=[[job_id, run_id]])
         
-        txn.delete(table="CronJobRuns", keyset=keyset)
+        txn.delete(table="CronJobRuns", keyset=keyset,
+                   request_options={"request_tag": "DeleteOldCronJobRuns:CronJobRuns:delete"})
 
       return len(rows)
 

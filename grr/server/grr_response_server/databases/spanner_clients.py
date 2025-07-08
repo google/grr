@@ -384,13 +384,13 @@ class ClientsMixin:
       mut.update(
         table="Clients",
         columns=("ClientId", "LastRRGStartuptime"),
-        values=[(client_id, spanner_lib.COMMIT_TIMESTAMP)],
+        values=[(client_id, spanner_lib.COMMIT_TIMESTAMP)]
       )
 
       mut.insert(
         table="ClientRRGStartups",
         columns=("ClientId", "CreationTime", "Startup"),
-        values=[(client_id, spanner_lib.COMMIT_TIMESTAMP, startup)],
+        values=[(client_id, spanner_lib.COMMIT_TIMESTAMP, startup)]
       )
 
     try:
