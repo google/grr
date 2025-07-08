@@ -470,7 +470,10 @@ class CronJobsMixin:
     rows = spanner_lib.KeySet(ranges=[rowrange])
 
     res = []
-    for row in self.db.ReadSet(table="CronJobRuns", rows=rows, cols=cols):
+    for row in self.db.ReadSet(table="CronJobRuns",
+                               rows=rows,
+                               cols=cols,
+                               txn_tag="ReadCronJobRuns"):
       res.append(
           _CronJobRunFromRow(
               job_run=row[0],
@@ -509,7 +512,10 @@ class CronJobsMixin:
         "Backtrace",
     ]
     try:
-      row = self.db.Read(table="CronJobRuns", key=(job_id, run_id), cols=cols)
+      row = self.db.Read(table="CronJobRuns",
+                         key=(job_id, run_id),
+                         cols=cols,
+                         txn_tag="ReadCronJobRun")
     except NotFound as error:
       raise db.UnknownCronJobRunError(
           "Run with job id %s and run id %s not found." % (job_id, run_id)

@@ -55,7 +55,10 @@ class ArtifactsMixin:
       UnknownArtifactError: when the artifact does not exist.
     """
     try:
-      row = self.db.Read("Artifacts", key=[name], cols=("Platforms", "Payload"))
+      row = self.db.Read("Artifacts",
+                         key=[name],
+                         cols=("Platforms", "Payload"),
+                         txn_tag="ReadArtifacts")
     except NotFound as error:
       raise db.UnknownArtifactError(name) from error
 

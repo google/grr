@@ -276,7 +276,10 @@ class HuntsMixin:
     ]
 
     try:
-      row = self.db.Read(table="Hunts", key=[hunt_id], cols=cols)
+      row = self.db.Read(table="Hunts",
+                         key=[hunt_id],
+                         cols=cols,
+                         txn_tag="ReadHuntObject")
     except NotFound as e:
       raise abstract_db.UnknownHuntError(hunt_id) from e
 
@@ -856,7 +859,10 @@ class HuntsMixin:
     """Reads all hunt output plugins states of a given hunt."""
     # Make sure the hunt is there.
     try:
-      self.db.Read(table="Hunts", key=[hunt_id,], cols=("HuntId",))
+      self.db.Read(table="Hunts",
+                   key=[hunt_id,],
+                   cols=("HuntId",),
+                   txn_tag="ReadHuntOutputPluginsStates")
     except NotFound as e:
       raise abstract_db.UnknownHuntError(hunt_id) from e
 

@@ -51,7 +51,10 @@ class YaraMixin:
     key = (base64.b64encode(bytes(blob_id)),)
 
     try:
-      self.db.Read(table="YaraSignatureReferences", key=key, cols=("BlobId",))
+      self.db.Read(table="YaraSignatureReferences",
+                   key=key,
+                   cols=("BlobId",),
+                   txn_tag="VerifyYaraSignatureReference")
     except NotFound:
       return False
 

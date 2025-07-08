@@ -325,6 +325,7 @@ class FlowsMixin:
           table="Flows",
           key=[client_id, flow_id],
           cols=_READ_FLOW_OBJECT_COLS,
+          txn_tag="ReadFlowObject"
       )
     except NotFound as error:
       raise db.UnknownFlowError(client_id, flow_id, cause=error)
@@ -1538,6 +1539,7 @@ class FlowsMixin:
     self.db.DeleteWithPrefix(
         "FlowRequests",
         (client_id, flow_id),
+        txn_tag="DeleteAllFlowRequestsAndResponses"
     )
 
   @db_utils.CallLogged
@@ -1571,7 +1573,10 @@ class FlowsMixin:
         "CreationTime",
     ]
     requests = []
-    for row in self.db.ReadSet(table="FlowRequests", rows=rows, cols=req_cols):
+    for row in self.db.ReadSet(table="FlowRequests",
+                               rows=rows,
+                               cols=req_cols,
+                               txn_tag="ReadAllFlowRequestsAndResponses:FlowRequests"):
       request = flows_pb2.FlowRequest()
       request.ParseFromString(row[0])
       request.needs_processing = row[1]
@@ -1592,7 +1597,10 @@ class FlowsMixin:
     ]
     responses = {}
     for row in self.db.ReadSet(
-        table="FlowResponses", rows=rows, cols=resp_cols
+        table="FlowResponses",
+        rows=rows,
+        cols=resp_cols,
+        txn_tag="ReadAllFlowRequestsAndResponses:FlowResponses"
     ):
       if row[1] is not None:
         response = flows_pb2.FlowStatus()
@@ -1706,7 +1714,10 @@ class FlowsMixin:
         "Iterator",
         "CreationTime",
     ]
-    for row in self.db.ReadSet(table="FlowResponses", rows=rows, cols=resp_cols):
+    for row in self.db.ReadSet(table="FlowResponses",
+                               rows=rows,
+                               cols=resp_cols,
+                               txn_tag="ReadFlowRequests:FlowResponses"):
       if row[1]:
         response = flows_pb2.FlowStatus()
         response.ParseFromString(row[1])
@@ -1742,7 +1753,10 @@ class FlowsMixin:
         "CallbackState",
         "CreationTime",
     ]
-    for row in self.db.ReadSet(table="FlowRequests", rows=rows, cols=req_cols):
+    for row in self.db.ReadSet(table="FlowRequests",
+                               rows=rows,
+                               cols=req_cols,
+                               txn_tag="ReadFlowRequests:FlowRequests"):
       request = flows_pb2.FlowRequest()
       request.ParseFromString(row[0])
       request.needs_processing = row[1]
@@ -2101,7 +2115,7 @@ class FlowsMixin:
     }
 
     try:
-      self.db.InsertOrUpdate(table="ScheduledFlows", row=row)
+      self.db.InsertOrUpdate(table="ScheduledFlows", row=row, txn_tag="WriteScheduledFlow")
     except Exception as error:
       if "Parent row for row [" in str(error):
         raise db.UnknownClientError(scheduled_flow.client_id) from error
@@ -2158,7 +2172,8 @@ class FlowsMixin:
     ]
     results = []
 
-    for row in self.db.ReadSet("ScheduledFlows", rows, cols):
+    for row in self.db.ReadSet("ScheduledFlows", rows, cols,
+                               txn_tag="ListScheduledFlows"):
       sf = flows_pb2.ScheduledFlow()
       sf.client_id = row[0]
       sf.creator = row[1]

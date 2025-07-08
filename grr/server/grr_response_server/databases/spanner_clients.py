@@ -95,7 +95,10 @@ class ClientsMixin:
         "FleetspeakValidationInfo",
     )
 
-    for row in self.db.ReadSet(table="Clients", rows=keyset, cols=cols):
+    for row in self.db.ReadSet(table="Clients",
+                               rows=keyset,
+                               cols=cols,
+                               txn_tag="MultiReadClientMetadata"):
       client_id = row[0]
 
       metadata = objects_pb2.ClientMetadata()

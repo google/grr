@@ -65,6 +65,7 @@ class SignedBinariesMixin:
           table="SignedBinaries",
           key=(binary_type, binary_id.path),
           cols=("BlobReferences", "CreationTime"),
+          txn_tag="ReadSignedBinaryReferences"
       )
     except NotFound as error:
       raise db.UnknownSignedBinaryError(binary_id) from error

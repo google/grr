@@ -32,7 +32,10 @@ class PathsMixin:
     # mutations. We still have to validate the client id.
     if not path_infos:
       try:
-        self.db.Read(table="Clients", key=[client_id], cols=(["ClientId"]))
+        self.db.Read(table="Clients",
+                     key=[client_id],
+                     cols=(["ClientId"]),
+                     txn_tag="WritePathInfos")
       except NotFound as error:
         raise abstract_db.UnknownClientError(client_id) from error
       return

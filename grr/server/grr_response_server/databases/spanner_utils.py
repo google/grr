@@ -131,7 +131,7 @@ class Database:
     Returns:
       The result of the transaction function executed.
     """
-    return self._pyspanner.run_in_transaction(func)
+    return self._pyspanner.run_in_transaction(func, transaction_tag=txn_tag)
 
   def Mutate(
       self, func: Callable[["Mutation"], None], txn_tag: Optional[str] = None
@@ -156,7 +156,7 @@ class Database:
       A cursor over the query results.
     """
     with self._pyspanner.snapshot() as snapshot:
-        results = snapshot.execute_sql(query)
+        results = snapshot.execute_sql(query, request_options={"request_tag": txn_tag})
 
     return results
 
@@ -221,6 +221,7 @@ class Database:
             query,
             params=params,
             param_types=param_type,
+            request_options={"request_tag": txn_tag}
         )
 
     return results
@@ -285,7 +286,7 @@ class Database:
             param_types=param_type,
         )
 
-    self._pyspanner.run_in_transaction(param_execute)
+    self._pyspanner.run_in_transaction(param_execute, transaction_tag=txn_tag)
 
   def ExecutePartitioned(
       self, query: str, txn_tag: Optional[str] = None
@@ -305,12 +306,8 @@ class Database:
     Returns:
       Nothing.
     """
-    query_options = None
-    if txn_tag is not None:
-      query_options = spanner_lib.QueryOptions()
-      query_options.SetTag(txn_tag)
-
-    return self._pyspanner.execute_partitioned_dml(query)
+    return self._pyspanner.execute_partitioned_dml(query,
+                                                   request_options={"request_tag": txn_tag})
 
   def Insert(
       self, table: str, row: Mapping[str, Any], txn_tag: Optional[str] = None
@@ -330,7 +327,7 @@ class Database:
     columns = list(columns)
     values = list(values)
 
-    with self._pyspanner.batch() as batch:
+    with self._pyspanner.batch(request_options={"request_tag": txn_tag}) as batch:
       batch.insert(
         table=table,
         columns=columns,
@@ -355,7 +352,7 @@ class Database:
     columns = list(columns)
     values = list(values)
 
-    with self._pyspanner.batch() as batch:
+    with self._pyspanner.batch(request_options={"request_tag": txn_tag}) as batch:
       batch.update(
         table=table,
         columns=columns,
@@ -380,7 +377,7 @@ class Database:
     columns = list(columns)
     values = list(values)
 
-    with self._pyspanner.batch() as batch:
+    with self._pyspanner.batch(request_options={"request_tag": txn_tag}) as batch:
       batch.insert_or_update(
         table=table,
         columns=columns,
@@ -403,10 +400,11 @@ class Database:
     keyset = KeySet(all_=True)
     if key:
       keyset = KeySet(keys=[key])
-    with self._pyspanner.batch() as batch:
+    with self._pyspanner.batch(request_options={"request_tag": txn_tag}) as batch:
       batch.delete(table, keyset)
 
-  def DeleteWithPrefix(self, table: str, key_prefix: Sequence[Any]) -> None:
+  def DeleteWithPrefix(self, table: str, key_prefix: Sequence[Any],
+                       txn_tag: Optional[str] = None) -> None:
     """Deletes a range of rows with common key prefix from the given table.
 
     Args:
@@ -419,7 +417,7 @@ class Database:
     range = KeyRange(start_closed=key_prefix, end_closed=key_prefix)
     keyset = KeySet(ranges=[range])
 
-    with self._pyspanner.batch() as batch:
+    with self._pyspanner.batch(request_options={"request_tag": txn_tag}) as batch:
       batch.delete(table, keyset)
 
   def Read(
@@ -427,6 +425,7 @@ class Database:
       table: str,
       key: Sequence[Any],
       cols: Sequence[str],
+      txn_tag: Optional[str] = None
   ) -> Mapping[str, Any]:
     """Read a single row with the given key from the specified table.
 
@@ -443,7 +442,8 @@ class Database:
         results = snapshot.read(
             table=table,
             columns=cols,
-            keyset=keyset
+            keyset=keyset,
+            request_options={"request_tag": txn_tag}
         )
     return results.one()
 
@@ -452,6 +452,7 @@ class Database:
       table: str,
       rows: KeySet,
       cols: Sequence[str],
+      txn_tag: Optional[str] = None
   ) -> Iterator[Mapping[str, Any]]:
     """Read a set of rows from the specified table.
 
@@ -467,7 +468,8 @@ class Database:
         results = snapshot.read(
             table=table,
             columns=cols,
-            keyset=rows
+            keyset=rows,
+            request_options={"request_tag": txn_tag}
         )
     
     return results

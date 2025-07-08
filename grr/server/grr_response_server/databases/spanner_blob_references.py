@@ -64,7 +64,10 @@ class BlobReferencesMixin:
 
     hashes_left = set(hashes)
     for row in self.db.ReadSet(
-        table="HashBlobReferences", rows=rows, cols=("HashId", "BlobId", "Offset", "Size")
+        table="HashBlobReferences",
+        rows=rows,
+        cols=("HashId", "BlobId", "Offset", "Size"),
+        txn_tag="ReadHashBlobReferences"
     ):
       hash_id = rdf_objects.SHA256HashID(base64.b64decode(row[0]))
 

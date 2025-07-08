@@ -84,7 +84,10 @@ class UsersMixin:
     """Reads a user object corresponding to a given name."""
     cols = ("Email", "Password", "Type", "CanaryMode", "UiMode")
     try:
-      row = self.db.Read(table="Users", key=[username], cols=cols)
+      row = self.db.Read(table="Users",
+                         key=[username],
+                         cols=cols,
+                         txn_tag="ReadGRRUser")
     except NotFound as error:
       raise abstract_db.UnknownGRRUserError(username) from error
 
