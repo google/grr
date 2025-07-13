@@ -7,7 +7,7 @@ env:
   SPANNER_EMULATOR_HOST: localhost:9010
   SPANNER_DATABASE: grr-database
   SPANNER_INSTANCE: grr-instance
-  SPANNER_PROJECT: spanner-emulator-project
+  SPANNER_PROJECT_ID: spanner-emulator-project
 jobs:
   test-devenv:
     runs-on: ubuntu-22.04
@@ -56,7 +56,7 @@ jobs:
         run: |
           gcloud config configurations create emulator
           gcloud config set auth/disable_credentials true
-          gcloud config set project ${{ env.SPANNER_PROJECT }}
+          gcloud config set project ${{ env.SPANNER_PROJECT_ID }}
           gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
           gcloud emulators spanner start &
           gcloud spanner instances create ${{ env.SPANNER_INSTANCE }} \
