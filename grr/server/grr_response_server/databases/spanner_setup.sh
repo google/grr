@@ -22,7 +22,7 @@ if [ ! -f ./spanner_grr.pb ]; then
 fi
 
 echo "2/3 : Creating GRR database on Spanner..."
-gcloud spanner databases create ${SPANNER_GRR_DATABASE} --instance ${SPANNER_GRR_INSTANCE}
+gcloud spanner databases create ${SPANNER_DATABASE} --instance ${SPANNER_INSTANCE}
 
 echo "3/3 : Creating tables ..."
-gcloud spanner databases ddl update ${SPANNER_GRR_DATABASE} --instance=${SPANNER_GRR_INSTANCE} --ddl-file=spanner.sdl --proto-descriptors-file=spanner_grr.pb
+gcloud spanner databases ddl update ${SPANNER_DATABASE} --instance=${SPANNER_INSTANCE} --ddl-file=spanner.sdl --proto-descriptors-file=spanner_grr.pb
