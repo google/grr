@@ -1,7 +1,7 @@
 """A library with utilities for testing the Spanner database implementation."""
 import os
+import random
 import unittest
-import uuid
 
 from typing import Optional
 
@@ -57,7 +57,7 @@ def Init(sdl_path: str, proto_bundle: bool) -> None:
 
   project_id = _GetEnvironOrSkip("SPANNER_PROJECT_ID")
   instance_id = _GetEnvironOrSkip("SPANNER_INSTANCE")
-  database_id = _GetEnvironOrSkip("SPANNER_DATABASE") + str(uuid.uuid4())
+  database_id = _GetEnvironOrSkip("SPANNER_DATABASE") + "-" + random.randint(1, 100000)
 
   spanner_client = Client(project_id)
   database_admin_api = spanner_client.database_admin_api
