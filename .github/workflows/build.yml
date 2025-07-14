@@ -8,6 +8,7 @@ env:
   SPANNER_DATABASE: grr-database
   SPANNER_INSTANCE: grr-instance
   SPANNER_PROJECT_ID: spanner-emulator-project
+  PROJECT_ID: spanner-emulator-project
 jobs:
   test-devenv:
     runs-on: ubuntu-22.04
