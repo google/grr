@@ -101,6 +101,7 @@ def TearDown() -> None:
   if _TEST_DB is not None:
     # Create a client
     _TEST_DB.drop()
+    _TEST_DB = None
 
 
 class TestCase(absltest.TestCase):
