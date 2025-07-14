@@ -57,7 +57,7 @@ def Init(sdl_path: str, proto_bundle: bool) -> None:
 
   project_id = _GetEnvironOrSkip("SPANNER_PROJECT_ID")
   instance_id = _GetEnvironOrSkip("SPANNER_INSTANCE")
-  database_id = _GetEnvironOrSkip("SPANNER_DATABASE") + "-" + random.randint(1, 100000)
+  database_id = _GetEnvironOrSkip("SPANNER_DATABASE") + "-" + str(random.randint(1, 100000))
 
   spanner_client = Client(project_id)
   database_admin_api = spanner_client.database_admin_api
