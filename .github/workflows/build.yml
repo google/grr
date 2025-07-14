@@ -68,7 +68,7 @@ jobs:
           ./spanner_setup.sh
           cd -
           # Remove the Database for a clean test env
-          gcloud spanner databases delete ${{ env.SPANNER_DATABASE }} --instance=${{ env.SPANNER_INSTANCE }}
+          gcloud spanner databases delete ${{ env.SPANNER_DATABASE }} --instance=${{ env.SPANNER_INSTANCE }} --quiet
       - name: Test
         run: |
           source "${HOME}/INSTALL/bin/activate"
