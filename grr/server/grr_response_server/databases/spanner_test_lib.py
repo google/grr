@@ -98,6 +98,8 @@ def TearDown() -> None:
   This must be called once per process after all the tests.
   A `tearDownModule` is a perfect place for it.
   """
+  global _TEST_DB
+
   if _TEST_DB is not None:
     # Create a client
     _TEST_DB.drop()
