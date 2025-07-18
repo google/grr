@@ -496,8 +496,8 @@ CREATE TABLE HashBlobReferences(
 CREATE TABLE ApiAuditEntry (
   Username STRING(256) NOT NULL,
   CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
-  HttpRequestPath String(MAX) NOT NULL,
-  RouterMethodName String(256) NOT NULL,
+  HttpRequestPath STRING(MAX) NOT NULL,
+  RouterMethodName STRING(256) NOT NULL,
   ResponseCode `grr.APIAuditEntry.Code` NOT NULL,
 ) PRIMARY KEY (Username, CreationTime);
 

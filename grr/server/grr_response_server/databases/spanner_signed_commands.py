@@ -97,12 +97,6 @@ class SignedCommandsMixin:
       FROM
         SignedCommands AS c
     """
-    query = """
-      SELECT
-        c.Id, c.OperatingSystem, c.Ed25519Signature, c.Command
-      FROM
-        SignedCommands AS c
-    """
     signed_commands = []
     for (
         command_id,

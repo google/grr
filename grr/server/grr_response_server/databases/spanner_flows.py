@@ -2450,7 +2450,6 @@ class FlowsMixin:
             columns=_READ_FLOW_OBJECT_COLS
         ).one()
         flow = _ParseReadFlowObjectRow(client_id, flow_id, row)
-        print(flow)
       except NotFound as error:
         raise db.UnknownFlowError(client_id, flow_id, cause=error)
       return flow
@@ -2487,7 +2486,7 @@ class FlowsMixin:
           table="Flows",
           columns=["ClientId", "FlowId", "Flow", "State", "UserCpuTimeUsed",
                    "SystemCpuTimeUsed", "NetworkBytesSent", "ProcessingWorker",
-                   "ProcessingStartTime", "ProcessingEndTime", "NextRequesttoProcess",
+                   "ProcessingStartTime", "ProcessingEndTime", "NextRequestToProcess",
                    "UpdateTime", "ReplyCount"],
           values=[[flow_obj.client_id, flow_obj.flow_id,flow_obj,
                    int(flow_obj.flow_state), float(flow_obj.cpu_time_used.user_cpu_time),

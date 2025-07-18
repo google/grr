@@ -24,6 +24,5 @@ class SpannerDatabaseFlowsTest(
   """Spanner flow tests."""
   pass  # Test methods are defined in the base mixin class.
 
-
 if __name__ == "__main__":
   absltest.main()

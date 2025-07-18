@@ -383,7 +383,7 @@ class ClientsMixin:
     def Mutation(mut: spanner_utils.Mutation) -> None:
       mut.update(
         table="Clients",
-        columns=("ClientId", "LastRRGStartuptime"),
+        columns=("ClientId", "LastRRGStartupTime"),
         values=[(client_id, spanner_lib.COMMIT_TIMESTAMP)]
       )
 
