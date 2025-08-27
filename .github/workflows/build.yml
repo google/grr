@@ -49,27 +49,27 @@ jobs:
           fi
           python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
-      - name: 'Install Cloud SDK'
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: 'beta,pubsub-emulator,cloud-spanner-emulator'
-      - name: 'Start Spanner emulator'
-        run: |
-          gcloud config configurations create emulator
-          gcloud config set auth/disable_credentials true
-          gcloud config set project ${{ env.SPANNER_PROJECT_ID }}
-          gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
-          gcloud emulators spanner start &
-          gcloud spanner instances create ${{ env.SPANNER_INSTANCE }} \
-            --config=emulator-config --description="Spanner Test Instance" --nodes=1
-          sudo apt-get update
-          sudo apt install -y protobuf-compiler libprotobuf-dev
-          # Verify that we can create the Spanner Instance and Database
-          cd grr/server/grr_response_server/databases
-          ./spanner_setup.sh
-          cd -
-          # Remove the Database for a clean test env
-          gcloud spanner databases delete ${{ env.SPANNER_DATABASE }} --instance=${{ env.SPANNER_INSTANCE }} --quiet
+      #- name: 'Install Cloud SDK'
+      #  uses: google-github-actions/setup-gcloud@v2
+      #  with:
+      #    install_components: 'beta,pubsub-emulator,cloud-spanner-emulator'
+      #- name: 'Start Spanner emulator'
+      #  run: |
+      #    gcloud config configurations create emulator
+      #    gcloud config set auth/disable_credentials true
+      #    gcloud config set project ${{ env.SPANNER_PROJECT_ID }}
+      #    gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
+      #    gcloud emulators spanner start &
+      #    gcloud spanner instances create ${{ env.SPANNER_INSTANCE }} \
+      #      --config=emulator-config --description="Spanner Test Instance" --nodes=1
+      #    sudo apt-get update
+      #    sudo apt install -y protobuf-compiler libprotobuf-dev
+      #    # Verify that we can create the Spanner Instance and Database
+      #    cd grr/server/grr_response_server/databases
+      #    ./spanner_setup.sh
+      #    cd -
+      #    # Remove the Database for a clean test env
+      #    gcloud spanner databases delete ${{ env.SPANNER_DATABASE }} --instance=${{ env.SPANNER_INSTANCE }} --quiet
       - name: Test
         run: |
           source "${HOME}/INSTALL/bin/activate"
