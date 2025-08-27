@@ -38,3 +38,4 @@ compose.watch.yaml
 Dockerfile.client
 
 grr/server/grr_response_server/databases/spanner_grr.pb
+spanner-setup.txt

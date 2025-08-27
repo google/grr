@@ -2287,7 +2287,6 @@ message FlowProcessingRequest {
   optional uint64 creation_time = 4 [(sem_type) = {
     type: "RDFDatetime",
   }];
-  optional string ack_id = 5;
 }
 
 message FlowRequest {

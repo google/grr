@@ -480,6 +480,11 @@ class FlowsMixin:
   @db_utils.CallAccounted
   def WriteFlowResults(self, results: Sequence[flows_pb2.FlowResult]) -> None:
     """Writes flow results for a given flow."""
+    for batch in collection.Batch(results, self._write_rows_batch_size):
+      self._WriteFlowResults(batch)
+
+  def _WriteFlowResults(self, results: Sequence[flows_pb2.FlowError]) -> None:
+    """Writes flow errors for a given flow."""
 
     def Mutation(mut) -> None:
       rows = []
@@ -502,6 +507,11 @@ class FlowsMixin:
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def WriteFlowErrors(self, errors: Sequence[flows_pb2.FlowError]) -> None:
+    """Writes flow errors for a given flow."""
+    for batch in collection.Batch(errors, self._write_rows_batch_size):
+      self._WriteFlowErrors(batch)
+
+  def _WriteFlowErrors(self, errors: Sequence[flows_pb2.FlowError]) -> None:
     """Writes flow errors for a given flow."""
 
     def Mutation(mut) -> None:

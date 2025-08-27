@@ -4,11 +4,11 @@ env:
   GCS_BUCKET: autobuilds.grr-response.com
   GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
   DOCKER_REPOSITORY: ghcr.io/${{ github.repository_owner }}/grr
-  SPANNER_EMULATOR_HOST: localhost:9010
-  SPANNER_DATABASE: grr-database
-  SPANNER_INSTANCE: grr-instance
-  SPANNER_PROJECT_ID: spanner-emulator-project
-  PROJECT_ID: spanner-emulator-project
+  #SPANNER_EMULATOR_HOST: localhost:9010
+  #SPANNER_DATABASE: grr-database
+  #SPANNER_INSTANCE: grr-instance
+  #SPANNER_PROJECT_ID: spanner-emulator-project
+  #PROJECT_ID: spanner-emulator-project
 jobs:
   test-devenv:
     runs-on: ubuntu-22.04
