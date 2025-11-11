@@ -38,7 +38,6 @@ class ArtifactsMixin:
       self.db.Insert(table="Artifacts", row=row, txn_tag="WriteArtifact")
     except AlreadyExists as error:
       raise db.DuplicatedArtifactError(name) from error
- 
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
