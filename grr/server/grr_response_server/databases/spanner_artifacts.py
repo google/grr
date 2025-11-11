@@ -97,7 +97,7 @@ class ArtifactsMixin:
       UnknownArtifactError when the artifact does not exist.
     """
     def Transaction(txn) -> None:
-      # Spanner does not raise if we attept to delete a non-existing row so
+      # Spanner does not raise if we attempt to delete a non-existing row so
       # we check it exists ourselves.
       keyset = spanner_lib.KeySet(keys=[[name],])
 
