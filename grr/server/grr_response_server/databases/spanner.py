@@ -63,7 +63,7 @@ class SpannerDB(
     )
 
   @classmethod
-  def FromConfig(cls) -> "Database":
+  def FromConfig(cls) -> "SpannerDB":
     """Creates a GRR database instance for Spanner path specified in the config.
 
     Returns:
