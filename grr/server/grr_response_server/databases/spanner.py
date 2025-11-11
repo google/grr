@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+"""Spanner implementation of the GRR relational database abstraction.
 
+See grr/server/db.py for interface.
+"""
 from google.cloud.spanner import Client
 
 from grr_response_core import config
