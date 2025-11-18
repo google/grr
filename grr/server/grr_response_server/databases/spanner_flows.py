@@ -2263,7 +2263,6 @@ class FlowsMixin:
 
     def Txn(txn) -> None:
       # Read the message handler requests waiting for leases
-      keyset = spanner_lib.KeySet(all_=True)
       params = {
         "limit": limit,
         "now": now.AsDatetime()
