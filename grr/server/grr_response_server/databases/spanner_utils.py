@@ -207,7 +207,7 @@ class Database:
     """
     if not param_type:
       param_type = {}
-    names, values = collection.Unzip(params.items())
+    names, _ = collection.Unzip(params.items())
     query =  self._parametrize(query, names)
 
     for key, value in params.items():
