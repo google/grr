@@ -178,7 +178,7 @@ class Database:
 
   def ParamQuery(
       self, query: str, params: Mapping[str, Any],
-      param_type: Optional[dict] = {}, txn_tag: Optional[str] = None
+      param_type: Optional[dict] = None, txn_tag: Optional[str] = None
   ) -> Cursor:
     """Queries PySpanner database using the given query string with params.
 
