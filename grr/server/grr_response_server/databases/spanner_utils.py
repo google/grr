@@ -40,7 +40,7 @@ from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 
 Row = Tuple[Any, ...]
-Cursor = Iterator[Row]
+Cursor = Iterable[Row]
 
 _T = TypeVar("_T")
 class Mutation(_Mutation):
