@@ -230,7 +230,7 @@ class Database:
 
   def ParamQuerySingle(
       self, query: str, params: Mapping[str, Any],
-      param_type: Optional[dict] = {}, txn_tag: Optional[str] = None
+      param_type: Optional[dict] = None, txn_tag: Optional[str] = None
   ) -> Row:
     """Queries the database for a single row using with a query with params.
 
