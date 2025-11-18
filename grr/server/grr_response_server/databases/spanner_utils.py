@@ -41,7 +41,13 @@ Row = Tuple[Any, ...]
 Cursor = Iterator[Row]
 
 _T = TypeVar("_T")
+class Mutation(_Mutation):
+  """A wrapper around the PySpanner Mutation class."""
+  pass
 
+class Transaction(_Transaction):
+  """A wrapper around the PySpanner Transaction class."""
+  pass
 
 class Database:
   """A wrapper around the PySpanner class.
