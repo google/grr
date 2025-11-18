@@ -1151,7 +1151,7 @@ class FlowsMixin:
       rows.append([r.client_id, r.flow_id, str(r.request_id), str(r.response_id),
                    response,status,iterator,spanner_lib.COMMIT_TIMESTAMP])
 
-      txn.insert_or_update(table="FlowResponses", columns=columns, values=rows)
+    txn.insert_or_update(table="FlowResponses", columns=columns, values=rows)
 
   def _BuildExpectedUpdates(
       self, updates: dict[_RequestKey, int], txn
