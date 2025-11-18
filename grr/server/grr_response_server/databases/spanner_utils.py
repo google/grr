@@ -205,7 +205,7 @@ class Database:
       ValueError: If the query contains disallowed sequences.
       KeyError: If some parameter is not specified.
     """
-     if not param_type:
+    if not param_type:
       param_type = {}
     names, values = collection.Unzip(params.items())
     query =  self._parametrize(query, names)
