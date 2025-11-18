@@ -28,7 +28,7 @@ from google.cloud.spanner_v1.batch import _BatchBase as _Mutation
 
 from google.cloud.spanner import KeyRange, KeySet
 from google.cloud.spanner_admin_database_v1.types import spanner_database_admin
-from google.cloud.spanner_v1 import Mutation, param_types
+from google.cloud.spanner_v1 import param_types
 
 from google.rpc.code_pb2 import OK
 
