@@ -483,7 +483,7 @@ class FlowsMixin:
     for batch in collection.Batch(results, self._write_rows_batch_size):
       self._WriteFlowResults(batch)
 
-  def _WriteFlowResults(self, results: Sequence[flows_pb2.FlowError]) -> None:
+  def _WriteFlowResults(self, results: Sequence[flows_pb2.FlowResult]) -> None:
     """Writes flow errors for a given flow."""
 
     def Mutation(mut) -> None:
