@@ -839,7 +839,6 @@ class FlowsMixin:
     expiry = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
 
     def Txn(txn) -> None:
-      keyset = spanner_lib.KeySet(all_=True)
       params = {
         "limit": limit,
         "now": now.AsDatetime()
