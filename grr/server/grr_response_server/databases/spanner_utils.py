@@ -59,7 +59,7 @@ class Database:
 
   _PYSPANNER_PARAM_REGEX = re.compile(r"@p\d+") 
 
-  def __init__(self, pyspanner: spanner_lib.database, project_id: str) -> None:
+  def __init__(self, pyspanner: spanner_lib.Database, project_id: str) -> None:
     super().__init__()
     self._pyspanner = pyspanner
     self.project_id = project_id
