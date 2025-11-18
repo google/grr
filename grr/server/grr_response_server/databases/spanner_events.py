@@ -96,7 +96,7 @@ class EventsMixin:
       a.Username,
       TIMESTAMP_TRUNC(a.CreationTime, DAY, "UTC") AS day,
       COUNT(*)
-    FROM APIAuditEntry AS a
+    FROM ApiAuditEntry AS a
     """
 
     params = {}
