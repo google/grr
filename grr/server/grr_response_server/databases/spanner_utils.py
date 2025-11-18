@@ -22,7 +22,9 @@ from typing import TypeVar
 
 from concurrent import futures
 
-from google.cloud import spanner_v1 as spanner_lib
+from google.cloud.spanner_v1 import database as spanner_lib
+from google.cloud.spanner_v1.transaction import Transaction as _Transaction
+from google.cloud.spanner_v1.batch import _BatchBase as _Mutation
 
 from google.cloud.spanner import KeyRange, KeySet
 from google.cloud.spanner_admin_database_v1.types import spanner_database_admin
