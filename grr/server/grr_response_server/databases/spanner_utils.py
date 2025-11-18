@@ -282,10 +282,11 @@ class Database:
         param_type[key] = None # Or re-raise, or handle differently
 
     def param_execute(transaction):
-        row_ct = transaction.execute_update(
+        transaction.execute_update(
             query,
             params=params,
-            param_types=param_type
+            param_types=param_type,
+            request_options={"request_tag": txn_tag},
         )
 
     self._pyspanner.run_in_transaction(param_execute)
