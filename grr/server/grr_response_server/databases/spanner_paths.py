@@ -120,7 +120,7 @@ class PathsMixin:
     query = """
     SELECT p.Path, p.CreationTime, p.IsDir,
            ps.CreationTime, ps.Stat,
-           ph.CreationTime, ph.FileHash,
+           ph.CreationTime, ph.FileHash
       FROM Paths AS p
            LEFT JOIN PathFileStats AS ps
                   ON p.ClientId = ps.ClientId
