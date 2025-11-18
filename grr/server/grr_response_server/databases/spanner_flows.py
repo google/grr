@@ -980,7 +980,7 @@ class FlowsMixin:
 
         rows.append([r.client_id, r.flow_id, str(r.request_id), r.needs_processing, str(r.next_response_id),
                      r.callback_state, r, spanner_lib.COMMIT_TIMESTAMP, start_time])
-        txn.insert_or_update(table="FlowRequests", columns=columns, values=rows)
+      txn.insert_or_update(table="FlowRequests", columns=columns, values=rows)
 
       if needs_processing:
         flow_processing_requests = []
