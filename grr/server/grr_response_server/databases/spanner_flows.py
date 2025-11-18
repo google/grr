@@ -2332,7 +2332,7 @@ class FlowsMixin:
         ])
       mut.insert(table="MessageHandlerRequests", columns=columns, values=rows)
 
-    self.db.Transact(Mutation, txn_tag="WriteMessageHandlerRequests")
+    self.db.Mutate(Mutation, txn_tag="WriteMessageHandlerRequests")
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
