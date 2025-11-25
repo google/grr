@@ -279,7 +279,7 @@ class Database:
       KeyError: If some parameter is not specified.
     """
     names, _ = collection.Unzip(params.items())
-    query =  self._parametrize(query, names)
+    query = self._parametrize(query, names)
 
     param_type = {}
     for key, value in params.items():
