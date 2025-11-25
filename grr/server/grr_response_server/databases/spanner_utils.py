@@ -216,7 +216,7 @@ class Database:
     if not param_type:
       param_type = {}
     names, _ = collection.Unzip(params.items())
-    query =  self._parametrize(query, names)
+    query = self._parametrize(query, names)
 
     for key, value in params.items():
       if key not in param_type:
