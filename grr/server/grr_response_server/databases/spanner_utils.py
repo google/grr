@@ -469,7 +469,7 @@ class Database:
       rows: KeySet,
       cols: Sequence[str],
       txn_tag: Optional[str] = None
-  ) -> Iterator[Mapping[str, Any]]:
+  ) -> Cursor:
     """Read a set of rows from the specified table.
 
     Args:
