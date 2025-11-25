@@ -252,7 +252,7 @@ class DatabaseTest(spanner_test_lib.TestCase):
     self.raw_db.Insert(table="Table", row={"Key": "foo", "Column": "foo@x.com"})
 
     result = self.raw_db.Read(table="Table", key=("foo",), cols=("Column",))
-    self.assertEqual(result, ['foo@x.com'])
+    self.assertEqual(result, ["foo@x.com"])
 
   def testReadNotExisting(self):
     with self.assertRaises(NotFound):
