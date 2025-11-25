@@ -286,13 +286,13 @@ class DatabaseTest(spanner_test_lib.TestCase):
   #######################################
   def testMutateSimple(self):
 
-    def Mutation(txn) -> None:
-      txn.insert(
+    def Mutation(mut) -> None:
+      mut.insert(
         table="Table",
         columns=("Key",),
         values=[("foo",)]
       )
-      txn.insert(
+      mut.insert(
         table="Table",
         columns=("Key",),
         values=[("bar",)]
