@@ -420,7 +420,8 @@ class Database:
 
     Args:
       table: A table from which rows are to be deleted.
-      key: A sequence of value denoting the prefix of the key of rows to delete.
+      key_prefix: A sequence of value denoting the prefix of the key of rows to delete.
+      txn_tag: Spanner transaction tag.
 
     Returns:
       Nothing.
