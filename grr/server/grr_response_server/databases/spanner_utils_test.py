@@ -305,8 +305,8 @@ class DatabaseTest(spanner_test_lib.TestCase):
 
   def testMutateException(self):
 
-    def Mutation(txn) -> None:
-      txn.insert(
+    def Mutation(mut) -> None:
+      mut.insert(
         table="Table",
         columns=("Key",),
         values=[("foo",)]
