@@ -131,7 +131,7 @@ class Database:
       self,
       func: Callable[["Transaction"], _T],
       txn_tag: Optional[str] = None,
-  ) -> List[Any]:
+  ) -> _T:
 
     """Execute the given callback function in a Spanner transaction.
 
