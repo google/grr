@@ -441,7 +441,7 @@ class Database:
       key: Sequence[Any],
       cols: Sequence[str],
       txn_tag: Optional[str] = None
-  ) -> Mapping[str, Any]:
+  ) -> Row:
     """Read a single row with the given key from the specified table.
 
     Args:
