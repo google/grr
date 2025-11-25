@@ -2371,9 +2371,8 @@ class FlowsMixin:
     for r in requests:
         request_ids.append(str(r.request_id))
     params={"request_ids": request_ids}
-    param_type={"request_ids": param_types.Array(param_types.STRING)}
 
-    self.db.ParamExecute(query, params, param_type)
+    self.db.ParamExecute(query, params, txn_tag="DeleteMessageHandlerRequests")
 
   def _ReadHuntState(
       self, txn, hunt_id: str
