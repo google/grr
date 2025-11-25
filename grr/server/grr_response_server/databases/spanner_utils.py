@@ -471,6 +471,7 @@ class Database:
       table: A name of the table to read from.
       rows: A set of keys specifying which rows to read.
       cols: Columns of the row to read.
+      txn_tag: Spanner transaction tag.
 
     Returns:
       Mappings from columns to values of the rows read.
