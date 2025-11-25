@@ -289,8 +289,8 @@ class Database:
         print(f"Warning for key '{key}': {e}. Setting type to None.")
         param_type[key] = None # Or re-raise, or handle differently
 
-    def param_execute(transaction):
-        transaction.execute_update(
+    def param_execute(txn: Transaction):
+        txn.execute_update(
             query,
             params=params,
             param_types=param_type,
