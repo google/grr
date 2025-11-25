@@ -148,7 +148,7 @@ class Database:
 
     Args:
       func: A mutation function to execute.
-      txn_tag: Optional[str] = None,
+      txn_tag: Spanner transaction tag.
     """
 
     self.Transact(func, txn_tag=txn_tag)
