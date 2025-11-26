@@ -567,7 +567,7 @@ class CronJobsMixin:
 
       return len(rows)
 
-    return self.db.Transact(Transaction, txn_tag="DeleteOldCronJobRuns").value
+    return self.db.Transact(Transaction, txn_tag="DeleteOldCronJobRuns")
 
   def _SelectCronJobsWith(
       self,
