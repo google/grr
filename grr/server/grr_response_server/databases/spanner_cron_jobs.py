@@ -560,8 +560,10 @@ class CronJobsMixin:
       for job_id, run_id in rows:
         keyset = spanner_lib.KeySet(keys=[[job_id, run_id]])
         
-        txn.delete(table="CronJobRuns", keyset=keyset,
-                   request_options={"request_tag": "DeleteOldCronJobRuns:CronJobRuns:delete"})
+        txn.delete(
+          table="CronJobRuns",
+          keyset=keyset,
+        )
 
       return len(rows)
 
