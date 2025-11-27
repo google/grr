@@ -952,6 +952,13 @@ class FlowsMixin:
       self,
       requests: Collection[flows_pb2.FlowRequest],
   ) -> None:
+    for batch in collection.Batch(requests, self._write_rows_batch_size):
+      self._WriteFlowRequests(batch)
+
+  def _WriteFlowRequests(
+      self,
+      requests: Collection[flows_pb2.FlowRequest],
+  ) -> None:
     """Writes a list of flow requests to the database."""
 
     flow_keys = [(r.client_id, r.flow_id) for r in requests]
