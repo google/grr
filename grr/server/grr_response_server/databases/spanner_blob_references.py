@@ -16,10 +16,32 @@ class BlobReferencesMixin:
   """A Spanner database mixin with implementation of blob references methods."""
 
   db: spanner_utils.Database
+  BATCH_SIZE = 16000
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
   def WriteHashBlobReferences(
+      self,
+      references_by_hash: Mapping[
+          rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
+      ],
+  ) -> None:
+    """Writes blob references for a given set of hashes."""
+    batch = dict()
+    for k, v in references_by_hash.items():
+      batch[k] = v
+      if len(batch) == self.BATCH_SIZE:
+        self._WriteHashBlobReferences(batch)
+        batch = dict()
+    if batch:
+      self._WriteHashBlobReferences(batch)
+
+  def _WriteHashBlobReferences(
+      self,
+      references_by_hash: Mapping[
+          rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
+      ],
+  ) -> None:
       self,
       references_by_hash: Mapping[
           rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
