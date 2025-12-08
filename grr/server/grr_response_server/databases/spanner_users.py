@@ -12,7 +12,6 @@ from google.api_core.exceptions import NotFound
 from google.cloud import spanner as spanner_lib
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import iterator
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
