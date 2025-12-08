@@ -1,6 +1,3 @@
-import random
-from unittest import mock
-
 from absl.testing import absltest
 
 from google.cloud import spanner as spanner_lib
