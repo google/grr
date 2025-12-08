@@ -185,7 +185,7 @@ class CronJobsMixin:
       # we check it exists ourselves.
       keyset = spanner_lib.KeySet(keys=[[cronjob_id]])
       try:
-        txn.read(table="CronJobs", keyset=keyset, columns=['JobId']).one()
+        txn.read(table="CronJobs", keyset=keyset, columns=["JobId"]).one()
       except NotFound as error:
         raise db.UnknownCronJobError(cronjob_id) from error
 
