@@ -7,7 +7,6 @@ from typing import Sequence
 from google.api_core.exceptions import AlreadyExists, InvalidArgument, NotFound
 from google.cloud import spanner as spanner_lib
 
-from grr_response_core.lib.util import iterator
 from grr_response_proto import signed_commands_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
