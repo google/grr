@@ -2,7 +2,6 @@ from absl.testing import absltest
 
 from grr_response_server.databases import db_flows_test
 from grr_response_server.databases import spanner_test_lib
-from grr_response_server.databases import spanner_utils
 
 
 def setUpModule() -> None:
