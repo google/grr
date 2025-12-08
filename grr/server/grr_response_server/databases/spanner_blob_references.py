@@ -57,7 +57,6 @@ class BlobReferencesMixin:
               columns=("HashId", "BlobId", "Offset", "Size",),
               values=[(hash_id_b64, base64.b64encode(bytes(ref.blob_id)), ref.offset, ref.size,)]
           )
-  
     self.db.Mutate(Mutation, txn_tag="WriteHashBlobReferences")
 
 
