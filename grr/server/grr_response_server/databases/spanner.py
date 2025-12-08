@@ -24,8 +24,6 @@ from grr_response_server.databases import spanner_signed_commands
 from grr_response_server.databases import spanner_users
 from grr_response_server.databases import spanner_utils
 from grr_response_server.databases import spanner_yara
-from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 class SpannerDB(
     spanner_artifacts.ArtifactsMixin,
