@@ -90,7 +90,6 @@ def Init(sdl_path: str, proto_bundle: bool) -> None:
 
   instance = spanner_client.instance(instance_id)
   _TEST_DB = instance.database(database_id)
- 
 
 def TearDown() -> None:
   """Tears down the Spanner testing environment.
