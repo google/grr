@@ -488,5 +488,4 @@ class Database:
             keyset=rows,
             request_options={"request_tag": txn_tag}
         )
-    
     return results
