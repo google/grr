@@ -3,7 +3,6 @@
 import base64
 import datetime
 import logging
-import sys
 import uuid
 
 from typing import Optional, Sequence, Tuple
