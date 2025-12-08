@@ -1,9 +1,6 @@
 from absl.testing import absltest
 
-from google.cloud import spanner as spanner_lib
-from grr_response_proto import flows_pb2
 from grr_response_server.databases import db_flows_test
-from grr_response_server.databases import db_test_utils
 from grr_response_server.databases import spanner_test_lib
 
 
