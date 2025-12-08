@@ -42,11 +42,6 @@ class BlobReferencesMixin:
           rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
       ],
   ) -> None:
-      self,
-      references_by_hash: Mapping[
-          rdf_objects.SHA256HashID, Collection[objects_pb2.BlobReference]
-      ],
-  ) -> None:
     """Writes blob references for a given set of hashes."""
     def Mutation(mut) -> None:
       for hash_id, refs in references_by_hash.items():
