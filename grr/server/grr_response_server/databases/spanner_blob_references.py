@@ -75,7 +75,6 @@ class BlobReferencesMixin:
       hash_id_b64 = base64.b64encode(bytes(h.AsBytes()))
       key_ranges.append(spanner_lib.KeyRange(start_closed=[hash_id_b64,], end_closed=[hash_id_b64,]))
       result[h] = []
-  
     rows = spanner_lib.KeySet(ranges=key_ranges)
 
     hashes_left = set(hashes)
