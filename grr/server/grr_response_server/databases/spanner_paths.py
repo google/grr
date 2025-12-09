@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """A module with path methods of the Spanner database implementation."""
 import base64
-from typing import Collection, Dict, Iterable, Optional, Sequence
+from collections.abc import Collection, Iterable, Sequence
+from typing import Optional
 
 from google.api_core.exceptions import NotFound
 from google.cloud import spanner as spanner_lib
