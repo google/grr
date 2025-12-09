@@ -42,7 +42,6 @@ class Database:
     super().__init__()
     self._pyspanner = pyspanner
     self.project_id = project_id
-  
   def _parametrize(self, query: str, names: Iterable[str]) -> str:
     match = self._PYSPANNER_PARAM_REGEX.search(query)
     if match is not None:
