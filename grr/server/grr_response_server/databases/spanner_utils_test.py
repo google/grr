@@ -156,7 +156,6 @@ class DatabaseTest(spanner_test_lib.TestCase):
     self.raw_db.Insert(table="Table", row={"Key": "baz"})
 
     self.raw_db.ExecutePartitioned("DELETE FROM Table AS t WHERE t.Key LIKE 'ba%'")
-    
     results = list(self.raw_db.Query("SELECT t.Key FROM Table AS t"))
     self.assertLen(results, 1)
     self.assertEqual(results[0], ["foo",])
