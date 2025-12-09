@@ -167,7 +167,7 @@ class Database:
       A cursor over the query results.
     """
     with self._pyspanner.snapshot() as snapshot:
-        results = snapshot.execute_sql(query, request_options={"request_tag": txn_tag})
+      results = snapshot.execute_sql(query, request_options={"request_tag": txn_tag})
 
     return results
 
