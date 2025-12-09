@@ -6,7 +6,6 @@ from absl.testing import absltest
 from google.cloud import spanner as spanner_lib
 from google.api_core.exceptions import NotFound
 
-from grr_response_core.lib.util import iterator
 
 from grr_response_server.databases import spanner_test_lib
 from grr_response_server.databases import spanner_utils
