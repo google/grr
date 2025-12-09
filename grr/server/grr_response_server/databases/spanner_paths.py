@@ -10,7 +10,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_utils
-from grr_response_server.databases import spanner_clients
 from grr_response_server.databases import spanner_utils
 from grr_response_server.models import paths as models_paths
 
