@@ -20,12 +20,11 @@ from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import rrg_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
-from grr_response_server.databases import spanner_clients
 from grr_response_server.databases import spanner_utils
 from grr_response_server.models import hunts as models_hunts
-from grr_response_proto import rrg_pb2
 
 
 SPANNER_DELETE_FLOW_REQUESTS_FAILURES = metrics.Counter(
