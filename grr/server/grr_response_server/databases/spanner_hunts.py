@@ -18,7 +18,6 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_utils
-from grr_response_server.databases import spanner_flows
 from grr_response_server.databases import spanner_utils
 from grr_response_server.models import hunts as models_hunts
 
