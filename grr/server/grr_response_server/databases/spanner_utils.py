@@ -68,9 +68,10 @@ class Database:
         TypeError: Raised for any unsupported type or empty container value.
     """
     if value is None:
-        # Cannot determine a specific Spanner type from a None value alone.
-        # This indicates that the type is ambiguous without further schema context.
-        return None
+      # Cannot determine a specific Spanner type from a None value alone.
+      # This indicates that the type is ambiguous without further schema
+      # context.
+      return None
 
     py_type = type(value)
 
