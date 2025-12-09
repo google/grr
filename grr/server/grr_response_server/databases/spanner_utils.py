@@ -36,7 +36,7 @@ class Database:
   queries through a transaction runner handling all brittle logic for the user.
   """
 
-  _PYSPANNER_PARAM_REGEX = re.compile(r"@p\d+") 
+  _PYSPANNER_PARAM_REGEX = re.compile(r"@p\d+")
 
   def __init__(self, pyspanner: spanner_lib.Database, project_id: str) -> None:
     super().__init__()
