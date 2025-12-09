@@ -2375,7 +2375,7 @@ class FlowsMixin:
     query = "DELETE FROM MessageHandlerRequests WHERE RequestId IN UNNEST(@request_ids)"
     request_ids = []
     for r in requests:
-        request_ids.append(str(r.request_id))
+      request_ids.append(str(r.request_id))
     params={"request_ids": request_ids}
 
     self.db.ParamExecute(query, params, txn_tag="DeleteMessageHandlerRequests")
