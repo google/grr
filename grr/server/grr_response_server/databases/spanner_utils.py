@@ -64,7 +64,6 @@ class Database:
         A google.cloud.spanner_v1.types.Type object, or None if the type
         cannot be reliably inferred (e.g., for a standalone None value or
         an empty list).
-        
     Raises:
         TypeError: Raised for any unsupported type or empty container value.
     """
