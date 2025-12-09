@@ -482,10 +482,10 @@ class Database:
       Mappings from columns to values of the rows read.
     """
     with self._pyspanner.snapshot() as snapshot:
-        results = snapshot.read(
-            table=table,
-            columns=cols,
-            keyset=rows,
-            request_options={"request_tag": txn_tag}
-        )
+      results = snapshot.read(
+          table=table,
+          columns=cols,
+          keyset=rows,
+          request_options={"request_tag": txn_tag}
+      )
     return results
