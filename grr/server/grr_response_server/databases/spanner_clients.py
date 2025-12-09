@@ -1,24 +1,22 @@
 #!/usr/bin/env python
 """A module with client methods of the Spanner database implementation."""
 
+from collections.abc import Collection, Iterator, Mapping, Sequence
 import datetime
-import logging
-import re
-from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Optional
 
 from google.api_core.exceptions import NotFound
 from google.cloud import spanner as spanner_lib
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import iterator
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 # Aliasing the import since the name db clashes with the db annotation.
 from grr_response_server.databases import db as db_lib
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import spanner_utils
 from grr_response_server.models import clients as models_clients
-from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class ClientsMixin:
