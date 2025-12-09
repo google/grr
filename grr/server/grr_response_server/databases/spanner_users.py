@@ -504,8 +504,8 @@ class UsersMixin:
 
     param_placeholders = ", ".join([f"{{ts{i}}}" for i in range(len(timestamps))])
     for i, timestamp in enumerate(timestamps):
-        param_name = f"ts{i}"
-        params[param_name] = timestamp.AsDatetime()
+      param_name = f"ts{i}"
+      params[param_name] = timestamp.AsDatetime()
 
     query = f"""
       UPDATE UserNotifications n
