@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """A module with hunt methods of the Spanner database implementation."""
 import base64
-
-from typing import AbstractSet, Callable, Collection, Iterable, List, Mapping, Optional, Sequence, Set
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence, Set
+from typing import Optional
 
 from google.api_core.exceptions import AlreadyExists, NotFound
 
