@@ -230,12 +230,12 @@ class Database:
           param_type[key] = None # Or re-raise, or handle differently
 
     with self._pyspanner.snapshot() as snapshot:
-        results = snapshot.execute_sql(
-            query,
-            params=params,
-            param_types=param_type,
-            request_options={"request_tag": txn_tag}
-        )
+      results = snapshot.execute_sql(
+          query,
+          params=params,
+          param_types=param_type,
+          request_options={"request_tag": txn_tag}
+      )
 
     return results
 
