@@ -1,26 +1,10 @@
 """Spanner-related helpers and other utilities."""
 
-import contextlib
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import datetime
 import decimal
-import pytz
 import re
-import time
-
-from typing import Any
-from typing import Callable
-from typing import Generic
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Type
-from typing import TypeVar
-
-from concurrent import futures
+from typing import Any, Optional, Tuple, TypeVar
 
 from google.cloud.spanner_v1 import database as spanner_lib
 from google.cloud.spanner_v1.transaction import Transaction as _Transaction
