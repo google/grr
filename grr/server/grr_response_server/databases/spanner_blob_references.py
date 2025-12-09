@@ -70,7 +70,6 @@ class BlobReferencesMixin:
     """Reads blob references of a given set of hashes."""
     result = {}
     key_ranges = []
- 
     for h in hashes:
       hash_id_b64 = base64.b64encode(bytes(h.AsBytes()))
       key_ranges.append(spanner_lib.KeyRange(start_closed=[hash_id_b64,], end_closed=[hash_id_b64,]))
