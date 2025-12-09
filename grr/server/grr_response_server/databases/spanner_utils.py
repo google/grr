@@ -15,8 +15,6 @@ from google.cloud.spanner_v1 import param_types
 
 from grr_response_core.lib.util import collection
 
-from grr_response_proto import flows_pb2
-from grr_response_proto import objects_pb2
 
 Row = Tuple[Any, ...]
 Cursor = Iterable[Row]
