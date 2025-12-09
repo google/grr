@@ -250,7 +250,6 @@ class DatabaseTest(spanner_test_lib.TestCase):
   def testReadNotExisting(self):
     with self.assertRaises(NotFound):
       self.raw_db.Read(table="Table", key=("foo",), cols=("Column",))
-  
   #######################################
   # ReadSet Tests
   #######################################
