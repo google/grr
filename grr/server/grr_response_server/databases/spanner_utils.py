@@ -13,9 +13,6 @@ from google.cloud.spanner_v1.batch import _BatchBase as _Mutation
 from google.cloud.spanner import KeyRange, KeySet
 from google.cloud.spanner_v1 import param_types
 
-from google.rpc.code_pb2 import OK
-
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import iterator
 
