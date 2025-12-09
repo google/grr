@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """A module with flow methods of the Spanner database implementation."""
 
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 import dataclasses
-import datetime
 import logging
 import threading
 import time
+from typing import Any, Optional, Union
 import uuid
-
-from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from google.api_core.exceptions import AlreadyExists, NotFound
 from google.cloud import spanner as spanner_lib
