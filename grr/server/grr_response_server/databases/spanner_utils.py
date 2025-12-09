@@ -455,12 +455,12 @@ class Database:
     """
     keyset = KeySet(keys=[key])
     with self._pyspanner.snapshot() as snapshot:
-        results = snapshot.read(
-            table=table,
-            columns=cols,
-            keyset=keyset,
-            request_options={"request_tag": txn_tag}
-        )
+      results = snapshot.read(
+          table=table,
+          columns=cols,
+          keyset=keyset,
+          request_options={"request_tag": txn_tag}
+      )
     return results.one()
 
   def ReadSet(
