@@ -76,32 +76,33 @@ class Database:
     py_type = type(value)
 
     if py_type is int:
-        return param_types.INT64
+      return param_types.INT64
     elif py_type is float:
-        return param_types.FLOAT64
+      return param_types.FLOAT64
     elif py_type is str:
-        return param_types.STRING
+      return param_types.STRING
     elif py_type is bool:
-        return param_types.BOOL
+      return param_types.BOOL
     elif py_type is bytes:
-        return param_types.BYTES
+      return param_types.BYTES
     elif py_type is datetime.date:
-        return param_types.DATE
+      return param_types.DATE
     elif py_type is datetime.datetime:
-        # Note: Spanner TIMESTAMPs are stored in UTC. Ensure datetime objects
-        # are timezone-aware (UTC) when writing data. This function only maps the type.
-        return param_types.TIMESTAMP
+      # Note: Spanner TIMESTAMPs are stored in UTC. Ensure datetime objects
+      # are timezone-aware (UTC) when writing data. This function only maps the
+      # type.
+      return param_types.TIMESTAMP
     elif py_type is decimal.Decimal:
-        return param_types.NUMERIC
+      return param_types.NUMERIC
     elif py_type is list:
-        if len(value) > 0:
-          return param_types.Array(self._get_param_type(value[0]))
-        else:
-          raise TypeError(f"Empty value for Python type: {py_type.__name__} for Spanner type conversion.")
+      if len(value) > 0:
+        return param_types.Array(self._get_param_type(value[0]))
+      else:
+        raise TypeError(f"Empty value for Python type: {py_type.__name__} for Spanner type conversion.")
     else:
-        # Potentially raise an error for unsupported types or return None
-        # For a generic solution, raising an error for unknown types is often safer.
-        raise TypeError(f"Unsupported Python type: {py_type.__name__} for Spanner type conversion.")
+      # Potentially raise an error for unsupported types or return None
+      # For a generic solution, raising an error for unknown types is often safer.
+      raise TypeError(f"Unsupported Python type: {py_type.__name__} for Spanner type conversion.")
 
   def Transact(
       self,
