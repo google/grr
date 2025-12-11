@@ -7,6 +7,7 @@ from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import dummy_pb2
 from grr_response_proto import flows_pb2
+from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -53,52 +54,54 @@ class ApiListHuntsHandlerRegressionTest(
         replace[hunt_id] = "H:00000%d" % i
 
     self.Check(
-        "ListHunts", args=hunt_plugin.ApiListHuntsArgs(), replace=replace
-    )
-    self.Check(
-        "ListHunts", args=hunt_plugin.ApiListHuntsArgs(count=1), replace=replace
+        "ListHunts", args=api_hunt_pb2.ApiListHuntsArgs(), replace=replace
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(offset=1, count=1),
+        args=api_hunt_pb2.ApiListHuntsArgs(count=1),
         replace=replace,
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
+        args=api_hunt_pb2.ApiListHuntsArgs(offset=1, count=1),
+        replace=replace,
+    )
+    self.Check(
+        "ListHunts",
+        args=api_hunt_pb2.ApiListHuntsArgs(
             offset=0,
             count=2,
-            robot_filter=hunt_plugin.ApiListHuntsArgs.RobotFilter.NO_ROBOTS,
+            robot_filter=api_hunt_pb2.ApiListHuntsArgs.RobotFilter.NO_ROBOTS,
         ),
         replace=replace,
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
+        args=api_hunt_pb2.ApiListHuntsArgs(
             offset=0,
             count=2,
-            robot_filter=hunt_plugin.ApiListHuntsArgs.RobotFilter.ONLY_ROBOTS,
+            robot_filter=api_hunt_pb2.ApiListHuntsArgs.RobotFilter.ONLY_ROBOTS,
         ),
         replace=replace,
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
+        args=api_hunt_pb2.ApiListHuntsArgs(
             offset=0, count=2, robot_filter="UNKNOWN"
         ),
         replace=replace,
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
-            offset=0, count=2, with_state=hunt_plugin.ApiHunt.State.PAUSED
+        args=api_hunt_pb2.ApiListHuntsArgs(
+            offset=0, count=2, with_state=api_hunt_pb2.ApiHunt.State.PAUSED
         ),
         replace=replace,
     )
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
-            offset=0, count=2, with_state=hunt_plugin.ApiHunt.State.STARTED
+        args=api_hunt_pb2.ApiListHuntsArgs(
+            offset=0, count=2, with_state=api_hunt_pb2.ApiHunt.State.STARTED
         ),
         replace=replace,
     )
@@ -149,24 +152,24 @@ class ApiListHuntResultsRegressionTest(
     replace = {hunt_id: "H:123456"}
     self.Check(
         "ListHuntResults",
-        args=hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiListHuntResultsArgs(hunt_id=hunt_id),
         replace=replace,
     )
     self.Check(
         "ListHuntResults",
-        args=hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, count=1),
+        args=api_hunt_pb2.ApiListHuntResultsArgs(hunt_id=hunt_id, count=1),
         replace=replace,
     )
     self.Check(
         "ListHuntResults",
-        args=hunt_plugin.ApiListHuntResultsArgs(
+        args=api_hunt_pb2.ApiListHuntResultsArgs(
             hunt_id=hunt_id, offset=1, count=1
         ),
         replace=replace,
     )
     self.Check(
         "ListHuntResults",
-        args=hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, filter="foo"),
+        args=api_hunt_pb2.ApiListHuntResultsArgs(hunt_id=hunt_id, filter="foo"),
         replace=replace,
     )
 
@@ -204,7 +207,7 @@ class ApiCountHuntResultsByTypeRegressionTest(
     replace = {hunt_id: "H:123456"}
     self.Check(
         "CountHuntResultsByType",
-        args=hunt_plugin.ApiCountHuntResultsByTypeArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiCountHuntResultsByTypeArgs(hunt_id=hunt_id),
         replace=replace,
     )
 
@@ -227,7 +230,7 @@ class ApiGetHuntHandlerRegressionTest(
 
     self.Check(
         "GetHunt",
-        args=hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
 
@@ -257,7 +260,7 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
 
     self.Check(
         "GetHunt",
-        args=hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
 
@@ -289,7 +292,7 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
 
     self.Check(
         "GetHunt",
-        args=hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
 
@@ -335,17 +338,17 @@ class ApiListHuntLogsHandlerRegressionTest(
 
     self.Check(
         "ListHuntLogs",
-        args=hunt_plugin.ApiListHuntLogsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiListHuntLogsArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
     self.Check(
         "ListHuntLogs",
-        args=hunt_plugin.ApiListHuntLogsArgs(hunt_id=hunt_id, count=1),
+        args=api_hunt_pb2.ApiListHuntLogsArgs(hunt_id=hunt_id, count=1),
         replace={hunt_id: "H:123456"},
     )
     self.Check(
         "ListHuntLogs",
-        args=hunt_plugin.ApiListHuntLogsArgs(
+        args=api_hunt_pb2.ApiListHuntLogsArgs(
             hunt_id=hunt_id, offset=1, count=1
         ),
         replace={hunt_id: "H:123456"},
@@ -394,17 +397,17 @@ class ApiListHuntErrorsHandlerRegressionTest(
 
     self.Check(
         "ListHuntErrors",
-        args=hunt_plugin.ApiListHuntErrorsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiListHuntErrorsArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
     self.Check(
         "ListHuntErrors",
-        args=hunt_plugin.ApiListHuntErrorsArgs(hunt_id=hunt_id, count=1),
+        args=api_hunt_pb2.ApiListHuntErrorsArgs(hunt_id=hunt_id, count=1),
         replace={hunt_id: "H:123456"},
     )
     self.Check(
         "ListHuntErrors",
-        args=hunt_plugin.ApiListHuntErrorsArgs(
+        args=api_hunt_pb2.ApiListHuntErrorsArgs(
             hunt_id=hunt_id, offset=1, count=1
         ),
         replace={hunt_id: "H:123456"},
@@ -449,17 +452,17 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
     self.Check(
         "ListHuntCrashes",
-        args=hunt_plugin.ApiListHuntCrashesArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiListHuntCrashesArgs(hunt_id=hunt_id),
         replace=replace,
     )
     self.Check(
         "ListHuntCrashes",
-        args=hunt_plugin.ApiListHuntCrashesArgs(hunt_id=hunt_id, count=1),
+        args=api_hunt_pb2.ApiListHuntCrashesArgs(hunt_id=hunt_id, count=1),
         replace=replace,
     )
     self.Check(
         "ListHuntCrashes",
-        args=hunt_plugin.ApiListHuntCrashesArgs(
+        args=api_hunt_pb2.ApiListHuntCrashesArgs(
             hunt_id=hunt_id, offset=1, count=1
         ),
         replace=replace,
@@ -494,19 +497,19 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     replace = {hunt_id: "H:123456"}
     self.Check(
         "GetHuntClientCompletionStats",
-        args=hunt_plugin.ApiGetHuntClientCompletionStatsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs(hunt_id=hunt_id),
         replace=replace,
     )
     self.Check(
         "GetHuntClientCompletionStats",
-        args=hunt_plugin.ApiGetHuntClientCompletionStatsArgs(
+        args=api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs(
             hunt_id=hunt_id, size=4
         ),
         replace=replace,
     )
     self.Check(
         "GetHuntClientCompletionStats",
-        args=hunt_plugin.ApiGetHuntClientCompletionStatsArgs(
+        args=api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs(
             hunt_id=hunt_id, size=100
         ),
         replace=replace,
@@ -533,7 +536,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
 
     self.Check(
         "GetHuntResultsExportCommand",
-        args=hunt_plugin.ApiGetHuntResultsExportCommandArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntResultsExportCommandArgs(hunt_id=hunt_id),
         replace=replace,
     )
 
@@ -572,7 +575,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
 
     self.Check(
         "ListHuntOutputPlugins",
-        args=hunt_plugin.ApiListHuntOutputPluginsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiListHuntOutputPluginsArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
 
@@ -614,7 +617,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
 
     self.Check(
         "ListHuntOutputPluginLogs",
-        args=hunt_plugin.ApiListHuntOutputPluginLogsArgs(
+        args=api_hunt_pb2.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_id, plugin_id="DummyHuntTestOutputPlugin_0"
         ),
         replace={hunt_id: "H:123456"},
@@ -654,7 +657,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
 
     self.Check(
         "ListHuntOutputPluginErrors",
-        args=hunt_plugin.ApiListHuntOutputPluginErrorsArgs(
+        args=api_hunt_pb2.ApiListHuntOutputPluginErrorsArgs(
             hunt_id=hunt_id, plugin_id="FailingDummyHuntOutputPlugin_0"
         ),
         replace={hunt_id: "H:123456"},
@@ -684,7 +687,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
 
     self.Check(
         "GetHuntStats",
-        args=hunt_plugin.ApiGetHuntStatsArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiGetHuntStatsArgs(hunt_id=hunt_id),
         replace=replace,
     )
 
@@ -717,22 +720,25 @@ class ApiListHuntClientsHandlerRegressionTest(
 
     self.Check(
         "ListHuntClients",
-        args=hunt_plugin.ApiListHuntClientsArgs(
-            hunt_id=hunt_id, client_status="STARTED"
+        args=api_hunt_pb2.ApiListHuntClientsArgs(
+            hunt_id=hunt_id,
+            client_status=api_hunt_pb2.ApiListHuntClientsArgs.ClientStatus.STARTED,
         ),
         replace=replace,
     )
     self.Check(
         "ListHuntClients",
-        args=hunt_plugin.ApiListHuntClientsArgs(
-            hunt_id=hunt_id, client_status="OUTSTANDING"
+        args=api_hunt_pb2.ApiListHuntClientsArgs(
+            hunt_id=hunt_id,
+            client_status=api_hunt_pb2.ApiListHuntClientsArgs.ClientStatus.OUTSTANDING,
         ),
         replace=replace,
     )
     self.Check(
         "ListHuntClients",
-        args=hunt_plugin.ApiListHuntClientsArgs(
-            hunt_id=hunt_id, client_status="COMPLETED"
+        args=api_hunt_pb2.ApiListHuntClientsArgs(
+            hunt_id=hunt_id,
+            client_status=api_hunt_pb2.ApiListHuntClientsArgs.ClientStatus.COMPLETED,
         ),
         replace=replace,
     )
@@ -759,12 +765,16 @@ class ApiModifyHuntHandlerRegressionTest(
     with test_lib.FakeTime(43):
       self.Check(
           "ModifyHunt",
-          args=hunt_plugin.ApiModifyHuntArgs(hunt_id=hunt_id, client_limit=142),
+          args=api_hunt_pb2.ApiModifyHuntArgs(
+              hunt_id=hunt_id, client_limit=142
+          ),
           replace=replace,
       )
       self.Check(
           "ModifyHunt",
-          args=hunt_plugin.ApiModifyHuntArgs(hunt_id=hunt_id, state="STOPPED"),
+          args=api_hunt_pb2.ApiModifyHuntArgs(
+              hunt_id=hunt_id, state=api_hunt_pb2.ApiHunt.State.STOPPED
+          ),
           replace=replace,
       )
 
@@ -785,7 +795,7 @@ class ApiDeleteHuntHandlerRegressionTest(
 
     self.Check(
         "DeleteHunt",
-        args=hunt_plugin.ApiDeleteHuntArgs(hunt_id=hunt_id),
+        args=api_hunt_pb2.ApiDeleteHuntArgs(hunt_id=hunt_id),
         replace={hunt_id: "H:123456"},
     )
 

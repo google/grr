@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """Incremental MySQL migrations implementation."""
 
+from collections.abc import Callable, Sequence
 import contextlib
 import logging
 import os
 import re
 import time
-from typing import Callable, Optional, Sequence, Text
+from typing import Optional
 
 from MySQLdb.connections import Connection
 from MySQLdb.cursors import Cursor
@@ -19,15 +20,15 @@ def GetLatestMigrationNumber(cursor: Cursor) -> int:
   return rows[0][0]
 
 
-def _MigrationFilenameToInt(fname: Text) -> int:
+def _MigrationFilenameToInt(fname: str) -> int:
   """Converts migration filename to a migration number."""
   base, _ = os.path.splitext(fname)
   return int(base)
 
 
 def ListMigrationsToProcess(
-    migrations_root: Text, current_migration_number: Optional[int]
-) -> Sequence[Text]:
+    migrations_root: str, current_migration_number: Optional[int]
+) -> Sequence[str]:
   """Lists filenames of migrations with numbers bigger than a given one."""
   migrations = []
   for m in os.listdir(migrations_root):
@@ -41,7 +42,7 @@ def ListMigrationsToProcess(
 
 
 def ProcessMigrations(
-    open_conn_fn: Callable[[], Connection], migrations_root: Text
+    open_conn_fn: Callable[[], Connection], migrations_root: str
 ) -> None:
   """Processes migrations from a given folder.
 
@@ -105,7 +106,7 @@ def ProcessMigrations(
         cursor.execute('SELECT RELEASE_LOCK("grr_migration")')
 
 
-def DumpCurrentSchema(cursor: Cursor) -> Text:
+def DumpCurrentSchema(cursor: Cursor) -> str:
   """Dumps current database schema."""
   cursor.execute(
       "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "

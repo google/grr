@@ -3,8 +3,9 @@
 
 The module contains classes that interact with VFS.
 """
+from collections.abc import Callable, Iterator
 import io
-from typing import Optional, Text, List, Iterator, Callable
+from typing import Optional
 
 from grr_api_client import client
 from grr_api_client import errors as api_errors
@@ -119,7 +120,7 @@ class VfsFile(io.BufferedIOBase):
   def write(self, b):
     raise io.UnsupportedOperation()
 
-  def writelines(self, lines: List[Text]) -> None:
+  def writelines(self, lines: list[str]) -> None:
     raise io.UnsupportedOperation()
 
   def detach(self) -> None:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
@@ -169,7 +170,7 @@ class VFS(object):
     self._client = client_
     self._path_type = path_type
 
-  def ls(self, path: Text, max_depth: int = 1) -> List[jobs_pb2.StatEntry]:
+  def ls(self, path: str, max_depth: int = 1) -> list[jobs_pb2.StatEntry]:
     """Lists contents of a given VFS directory.
 
     Args:
@@ -205,7 +206,7 @@ class VFS(object):
         inner_entries += []
     return representer.StatEntryList(stat_entries + inner_entries)
 
-  def refresh(self, path: Text, max_depth: int = 1) -> None:
+  def refresh(self, path: str, max_depth: int = 1) -> None:
     """Syncs the collected VFS with current filesystem of the client.
 
     Args:
@@ -227,7 +228,7 @@ class VFS(object):
     except api_errors.AccessForbiddenError as e:
       raise errors.ApprovalMissingError(self._client.client_id, e)
 
-  def open(self, path: Text) -> VfsFile:
+  def open(self, path: str) -> VfsFile:
     """Opens a file object corresponding to the given path in the VFS.
 
     The returned file object is read-only.
@@ -247,7 +248,7 @@ class VFS(object):
 
     return VfsFile(f.GetBlobWithOffset)
 
-  def wget(self, path: Text) -> Text:
+  def wget(self, path: str) -> str:
     """Returns a link to the file specified.
 
     Args:
@@ -267,15 +268,15 @@ class VFS(object):
     if f.is_directory:
       raise ValueError('`{}` is a directory'.format(path))
 
-    link = '{}/api/clients/{}/vfs-blob/{}'
+    link = '{}/api/v2/clients/{}/vfs-blob/{}'
     return link.format(FLAGS.grr_admin_ui_url, self._client.client_id,
                        get_vfs_path(path, self._path_type))
 
-  def _get_file(self, path: Text):
+  def _get_file(self, path: str):
     return self._client.File(get_vfs_path(path, self._path_type))
 
 
-def get_vfs_path(path: Text, path_type: jobs_pb2.PathSpec.PathType) -> Text:
+def get_vfs_path(path: str, path_type: jobs_pb2.PathSpec.PathType) -> str:
   if path_type == jobs_pb2.PathSpec.OS:
     return 'fs/os{}'.format(path)
   elif path_type == jobs_pb2.PathSpec.TSK:

@@ -60,7 +60,9 @@
 /***************************************************************************************************
  * Zone JS is required by default for Angular itself.
  */
-import 'zone.js/dist/zone'; // Included with Angular CLI.
+// zone.js is not found if not specified with the file extension.
+// tslint:disable-next-line:ban-malformed-import-paths
+import 'zone.js';
 /***************************************************************************************************
  * APPLICATION IMPORTS
  */

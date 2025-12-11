@@ -5,12 +5,12 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
+from collections.abc import Mapping
 import logging
 import platform
 import re
 import socket
 import sys
-from typing import Mapping
 
 import distro
 import psutil
@@ -20,7 +20,6 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
@@ -42,6 +41,7 @@ FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
 
 _LOCALHOST = "localhost"
 _LOCALHOST_LOCALDOMAIN = "localhost.localdomain"
+_ARPA_SUFFIXES = ("ip6.arpa", "in-addr.arpa")
 
 
 class ClientURN(rdfvalue.RDFURN):
@@ -177,35 +177,21 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
       User,
   ]
 
-  def _CreateNewUser(self, kb_user):
-    self.users.Append(kb_user)
-    return ["users.%s" % k for k in kb_user.AsDict()]
-
-  def MergeOrAddUser(self, kb_user):
+  def MergeOrAddUser(self, kb_user: User) -> None:
     """Merge a user into existing users or add new if it doesn't exist.
 
     Args:
       kb_user: A User rdfvalue.
-
-    Returns:
-      A list of strings with the set attribute names, e.g. ["users.sid"]
     """
 
     user = self.GetUser(
         sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username
     )
-    new_attrs = []
-    merge_conflicts = []  # Record when we overwrite a value.
     if not user:
-      new_attrs = self._CreateNewUser(kb_user)
+      self.users.Append(kb_user)
     else:
       for key, val in kb_user.AsDict().items():
-        if user.Get(key) and user.Get(key) != val:
-          merge_conflicts.append((key, user.Get(key), val))
         user.Set(key, val)
-        new_attrs.append("users.%s" % key)
-
-    return new_attrs, merge_conflicts
 
   def GetUser(self, sid=None, uid=None, username=None):
     """Retrieve a User based on sid, uid or username.
@@ -529,7 +515,11 @@ class Uname(rdf_structs.RDFProtoStruct):
     """Fill a Uname from the currently running platform."""
     uname = platform.uname()
     fqdn = socket.getfqdn()
-    if fqdn == _LOCALHOST or fqdn == _LOCALHOST_LOCALDOMAIN:
+    if (
+        fqdn == _LOCALHOST
+        or fqdn == _LOCALHOST_LOCALDOMAIN
+        or any(fqdn.endswith(suffix) for suffix in _ARPA_SUFFIXES)
+    ):
       # Avoid returning 'localhost' when there is a better value to use.
       fqdn = socket.gethostname()
     system = uname[0]
@@ -600,12 +590,6 @@ class OSXServiceInformation(rdf_structs.RDFProtoStruct):
 # Start of the Registry Specific Data types
 class RunKey(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.RunKey
-
-
-class RunKeyEntry(rdf_protodict.RDFValueArray):
-  """Structure of a Run Key entry with keyname, filepath, and last written."""
-
-  rdf_type = RunKey
 
 
 class ClientCrash(rdf_structs.RDFProtoStruct):

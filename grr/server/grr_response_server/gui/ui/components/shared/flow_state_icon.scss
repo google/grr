@@ -1,0 +1,24 @@
+@use '../../material-theme' as c;
+@use '@angular/material' as mat;
+
+:host {
+  @include mat.badge-overrides(
+    (
+      background-color: var(--mat-sys-primary),
+    )
+  );
+
+  background-color: transparent;
+}
+
+.flow-in-progress-icon {
+  color: c.$color-warn;
+}
+
+.flow-error-icon {
+  color: c.$color-danger;
+}
+
+.flow-finished-icon {
+  color: c.$color-success;
+}

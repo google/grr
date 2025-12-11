@@ -1,0 +1,58 @@
+@use '@angular/material' as mat;
+
+.horizontal-space {
+  width: 2rem;
+}
+
+.vertical-divider {
+  width: 0;
+  height: 2em;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+}
+
+.client-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.label-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: var(--mat-sys-primary-container),
+      label-text-color: var(--mat-sys-on-primary-container),
+    )
+  );
+}
+
+.info {
+  display: flex;
+  column-gap: 2rem;
+
+  // Width of the expand button + column-gap.
+  margin-left: 5rem;
+
+  table {
+    height: fit-content;
+  }
+
+  table td {
+    padding-right: 20px;
+
+    &:first-of-type {
+      color: var(--mat-sys-secondary);
+    }
+
+    &:last-of-type {
+      min-width: 15em;
+      max-width: 20vw;
+    }
+  }
+
+  .value {
+    max-width: 15vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+

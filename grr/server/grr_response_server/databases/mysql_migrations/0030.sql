@@ -1,0 +1,2 @@
+ALTER TABLE signed_commands
+  ADD COLUMN source_path MEDIUMBLOB NOT NULL DEFAULT '';

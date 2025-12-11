@@ -1,0 +1,182 @@
+<ng-template #flowList let-flow="flow" let-nestedLevel="nestedLevel">
+  <a mat-list-item
+      [routerLink]="flow.flowId"
+      routerLinkActive
+      #flowActive="routerLinkActive"
+      class="flow-list-item-{{ flow.flowId }}"
+      [activated]="flowActive.isActive"
+      [class.nested-flow]="nestedLevel > 0"
+      [style.padding-left.px]="nestedLevel < 5 ? nestedLevel * 15 : 5 * 15"
+    >
+
+      @if (nestedLevel > 0) {
+        <mat-icon matListItemIcon>account_tree</mat-icon>
+      } @else if (flow.isRobot) {
+        <mat-icon matListItemIcon>smart_toy</mat-icon>
+      } @else {
+        <user matListItemIcon [username]="flow?.creator" />
+      }
+
+      <div matListItemTitle class="flow-list-title-line">
+        <span>{{ flow.flowType | friendlyFlowName }}</span>
+        @if (flow.args | flowArgsPreview:flow.flowType; as preview) {
+          <span>: {{ preview }}</span>
+        }
+      </div>
+
+      <div matListItemLine>
+        <copy-button class="flow-id">{{ flow?.flowId }}</copy-button>
+        Started:<timestamp [date]="flow?.startedAt" class="start-time" />
+      </div>
+
+
+      <span matListItemMeta>
+        @if (flow.nestedFlows != null) {
+          <button
+              mat-icon-button
+              matTooltip="Toggle nested flows"
+              (click)="toggleNestedFlows($event, flow.flowId)"
+              aria-hidden="false"
+              aria-label="Toggle nested flows"
+              name="toggleNestedFlows"
+          >
+            <mat-icon [class]="{'active-icon': expandedNestedFlows.has(flow.flowId)}">
+              account_tree
+            </mat-icon>
+          </button>
+        }
+
+        <flow-state-icon [flow]="flow" />
+
+        <button mat-icon-button
+          (click)="copyFlowLink($event, flow)"
+          aria-label="copy flow link"
+        >
+          <mat-icon>link</mat-icon>
+        </button>
+        <button mat-icon-button
+          [matMenuTriggerFor]="menu"
+          aria-label="flow menu"
+          (click)="$event.preventDefault(); $event.stopPropagation()"
+          name="flowMenuButton"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          @if (flow?.state === FlowState.RUNNING) {
+            <button mat-menu-item (click)="clientStore.cancelFlow(flow.flowId)">
+              <span>Cancel flow</span>
+            </button>
+          }
+          <button mat-menu-item (click)="duplicateFlow(flow)">
+            <span>Duplicate flow</span>
+          </button>
+
+          @let blockHuntCreation = globalStore.flowDescriptorsMap().get(flow.name)?.blockHuntCreation;
+          <button mat-menu-item
+            matTooltip="Can't start a fleet collection from {{ flow.flowType | friendlyFlowName }} Flow"
+            [matTooltipDisabled]="!blockHuntCreation"
+            (click)="createFleetCollection(flow)"
+          >
+            <span>Create a fleet collection</span>
+          </button>
+          @if (globalStore.webAuthType() != null) {
+            <button mat-menu-item (click)="copyToClipboard(getCreateFlowAPIRequest(flow))" >
+              <span>Copy API Create Request</span>
+            </button>
+          }
+        </mat-menu>
+
+      </span>
+    </a>
+
+    <!-- Recursively show nested flows. -->
+    @if (expandedNestedFlows.has(flow.flowId)) {
+      @for (nestedFlow of flow.nestedFlows; track nestedFlow.flowId) {
+        <ng-container *ngTemplateOutlet="flowList; context: {
+          flow: nestedFlow,
+          nestedLevel: nestedLevel + 1,
+        }"></ng-container>
+      }
+    }
+</ng-template>
+
+<ng-template #scheduledFlowList let-scheduledFlow="scheduledFlow">
+  <a mat-list-item
+      [routerLink]="['/clients', scheduledFlow.clientId, 'flows', 'scheduled-flow']"
+      routerLinkActive
+      #flowActive="routerLinkActive"
+      [activated]="flowActive.isActive"
+    >
+      <user matListItemIcon [username]="scheduledFlow?.creator" />
+
+      <div matListItemTitle class="flow-list-title-line">
+        Scheduled: {{ scheduledFlow.flowType | friendlyFlowName }}
+      </div>
+
+      <div matListItemLine>
+        <copy-button class="flow-id">{{ scheduledFlow?.scheduledFlowId }}</copy-button>
+        Created:<timestamp [date]="scheduledFlow?.createTime" class="create-time" />
+      </div>
+
+      <span matListItemMeta>
+        <mat-icon
+            aria-label="flow pending approval icon"
+            class="flow-pending-approval-icon"
+            matTooltip="Pending approval"
+        >
+          schedule
+        </mat-icon>
+
+        <button mat-icon-button
+          (click)="copyScheduledFlowLink($event, scheduledFlow)"
+          aria-label="copy flow link"
+        >
+          <mat-icon>link</mat-icon>
+        </button>
+      </span>
+    </a>
+</ng-template>
+
+<split-panel direction="horizontal" [initialSize]="25">
+  <div slot="panel1" class="flows-container">
+    <div class="flow-list-menu">
+      <mat-form-field appearance="outline">
+        <mat-select [formControl]="flowFiltersForm">
+          @for (flowFilter of FlowFilter | keyvalue; track flowFilter.value) {
+            <mat-option [value]="flowFilter.value">{{ flowFilter.value }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (clientStore.client() != null) {
+        <button mat-flat-button (click)="openCreateFlowDialog()">New Flow</button>
+      }
+    </div>
+    <div class="flow-list-container">
+      <mat-nav-list disableRipple class="scheduled-flow-list">
+        @for (scheduledFlow of clientStore.scheduledFlows(); track scheduledFlow.scheduledFlowId) {
+          <ng-container *ngTemplateOutlet="scheduledFlowList; context: {scheduledFlow}"></ng-container>
+        }
+      </mat-nav-list>
+
+      <mat-nav-list disableRipple class="flow-list">
+        @for (flow of filteredFlows(); track flow.flowId) {
+          <ng-container *ngTemplateOutlet="flowList; context: {flow, nestedLevel: 0}"></ng-container>
+        }
+      </mat-nav-list>
+    @if (clientStore.hasMoreFlows()) {
+      <div class="more-flows-button">
+        <button mat-button="outlined" (click)="clientStore.increaseFlowsCount(100)">
+          <mat-icon>cached</mat-icon>100 more
+        </button>
+        <button mat-button="outlined" (click)="clientStore.increaseFlowsCount(250)">
+          <mat-icon>cached</mat-icon>250 more
+        </button>
+      </div>
+    }
+    </div>
+  </div>
+  <div slot="panel2" class="flow-details">
+    <router-outlet />
+  </div>
+</split-panel>

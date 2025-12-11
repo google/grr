@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A module with API handlers related to the timeline colllection."""
-
-from typing import Iterator
+from collections.abc import Iterator
 from typing import Optional
 
 from grr_response_core.lib import utils
@@ -48,7 +47,6 @@ class ApiGetCollectedHuntTimelinesArgs(rdf_structs.RDFProtoStruct):
 class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the timeline exporter."""
 
-  args_type = ApiGetCollectedTimelineArgs
   proto_args_type = timeline_pb2.ApiGetCollectedTimelineArgs
 
   def Handle(
@@ -119,7 +117,6 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the hunt timelines exporter."""
 
-  args_type = ApiGetCollectedHuntTimelinesArgs
   proto_args_type = timeline_pb2.ApiGetCollectedHuntTimelinesArgs
 
   def __init__(self):

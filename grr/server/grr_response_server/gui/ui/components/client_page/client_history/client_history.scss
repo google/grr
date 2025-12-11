@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+:host {
+  display: flex;
+
+  // The client history is rendered in the router-outlet of the client page. We
+  // want it to fill the remaining space, so we set height: 100% and
+  // overflow: auto. To see the full client-history and snapshot content, there
+  // are scrollbars on each element.
+  height: 100%;
+  overflow: auto;
+}
+
+.snapshot-timeline {
+  min-width: 15%;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  overflow-y: scroll;
+}
+
+mat-list-item {
+  @include mat.list-overrides(
+    (
+      active-indicator-shape: 0,
+    )
+  );
+}
+
+.snapshot-title {
+  display: flex;
+  align-items: center;
+
+  mat-icon {
+    margin-right: 15px;
+  }
+
+  timestamp {
+    pointer-events: none;
+  }
+}
+
+.snapshot {
+  overflow-y: scroll;
+  flex: 1;
+}

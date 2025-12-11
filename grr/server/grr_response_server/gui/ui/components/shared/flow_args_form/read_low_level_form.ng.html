@@ -1,0 +1,57 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.READ_LOW_LEVEL, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute path</mat-label>
+    <input matInput
+        class="monospace"
+        [formControl]="controls.path"
+        name="path"
+        placeholder="/some/path"
+        autocomplete="off" />
+    <mat-error>
+      <form-errors [validationErrors]="controls.path.errors" />
+    </mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Length</mat-label>
+    <input matInput
+      byteInput
+      class="monospace"
+      [formControl]="controls.length"
+      placeholder="1 MB"
+      name="length"
+      autocomplete="off"
+    />
+
+    @if (controls.length.value) {
+      <mat-hint>
+        Will collect {{ controls.length.value | number }} bytes.
+      </mat-hint>
+    }
+    <mat-error>
+      <form-errors [validationErrors]="controls.length.errors" />
+    </mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Offset</mat-label>
+    <input matInput
+      byteInput
+      class="monospace"
+      [formControl]="controls.offset"
+      name="offset"
+      placeholder="12 B"
+      autocomplete="off"
+    />
+    @if (controls.offset.value) {
+      <mat-hint>
+        Will start collecting at {{ controls.offset.value | number }} bytes
+      </mat-hint>
+    }
+  </mat-form-field>
+
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

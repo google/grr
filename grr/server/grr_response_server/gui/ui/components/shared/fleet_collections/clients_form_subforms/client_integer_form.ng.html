@@ -1,0 +1,16 @@
+<h5>{{ integerData().field ?? ForemanIntegerField.UNSET | friendlyForemanIntegerClientRule }}</h5>
+<form>
+  <mat-form-field appearance="outline" class="operator">
+    <mat-label>Operator</mat-label>
+    <mat-select [formControl]="integerData().controls.operator">
+      <mat-option [value]="RuleOperator.EQUAL">Equal</mat-option>
+      <mat-option [value]="RuleOperator.LESS_THAN">Less Than</mat-option>
+      <mat-option [value]="RuleOperator.GREATER_THAN">Greater Than</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="value">
+    <mat-label>Value</mat-label>
+    <input matInput [formControl]="integerData().controls.value" autocomplete="off">
+  </mat-form-field>
+</form>

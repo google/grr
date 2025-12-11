@@ -1,0 +1,29 @@
+:host {
+  display: flex;
+  gap: 16px;
+
+  h5 {
+    min-width: 30%;
+  }
+
+  form {
+    flex-grow: 1;
+  }
+}
+
+form {
+  display: flex;
+  gap: 20px;
+}
+
+.match-mode {
+  display: block;
+  flex-grow: 1;
+}
+
+.label-forms {
+  flex-grow: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

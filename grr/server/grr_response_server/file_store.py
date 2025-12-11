@@ -46,8 +46,8 @@ class FileNotFoundError(Error):  # pylint: disable=redefined-builtin
 class FileHasNoContentError(Error):
   """Raised when trying to read a file that was never downloaded."""
 
-  def __init__(self, path: str) -> None:
-    super().__init__("File was never collected: %r" % (path,))
+  def __init__(self, client_path: db.ClientPath) -> None:
+    super().__init__("File was never collected: %r" % (client_path,))
 
 
 class MissingBlobReferencesError(Error):
@@ -137,8 +137,8 @@ class BlobStream:
   def __init__(
       self,
       client_path: db.ClientPath,
-      blob_refs: Iterable[rdf_objects.BlobReference],
-      hash_id: str,
+      blob_refs: Sequence[rdf_objects.BlobReference],
+      hash_id: Optional[rdf_objects.HashID],
   ) -> None:
     self._client_path = client_path
     self._blob_refs = blob_refs
@@ -147,7 +147,9 @@ class BlobStream:
     self._max_unbound_read = config.CONFIG["Server.max_unbound_read_size"]
 
     self._offset = 0
-    self._length = self._blob_refs[-1].offset + self._blob_refs[-1].size
+    self._length = 0
+    if self._blob_refs:
+      self._length = self._blob_refs[-1].offset + self._blob_refs[-1].size
 
     self._current_ref = None
     self._current_chunk = None
@@ -195,7 +197,7 @@ class BlobStream:
     result = io.BytesIO()
     while result.tell() < length:
       chunk, ref = self._GetChunk()
-      if not chunk:
+      if not chunk or not ref:
         break
 
       part = chunk[self._offset - ref.offset :]
@@ -234,7 +236,7 @@ class BlobStream:
     return self._length
 
   @property
-  def hash_id(self) -> rdf_objects.HashID:
+  def hash_id(self) -> Optional[rdf_objects.HashID]:
     """Hash ID identifying hashed data."""
     return self._hash_id
 
@@ -308,7 +310,7 @@ def AddFilesWithUnknownHashes(
     for client_path, blob_ref in client_path_blob_ref_batch:
       blob = blobs[models_blob.BlobID(blob_ref.blob_id)]
       if blob is None:
-        raise BlobNotFoundError(blob_ref.blob_id)
+        raise BlobNotFoundError(models_blob.BlobID(blob_ref.blob_id))
 
       offset = client_path_offset[client_path]
       if blob_ref.size != len(blob):
@@ -356,7 +358,7 @@ def AddFileWithUnknownHash(
     client_path: db.ClientPath,
     blob_refs: Sequence[rdf_objects.BlobReference],
     use_external_stores: bool = True,
-) -> Dict[db.ClientPath, rdf_objects.SHA256HashID]:
+) -> rdf_objects.SHA256HashID:
   """Add a new file consisting of given blob IDs."""
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertIterableType(blob_refs, rdf_objects.BlobReference)

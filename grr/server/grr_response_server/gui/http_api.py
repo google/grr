@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
 
-import functools
 import http.client
 import itertools
 import json
 import logging
+import re
 import time
 import traceback
-from typing import Dict, Type, TypeVar
+from typing import Iterable, Optional, Union
+from urllib import parse
 
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 
+from google.protobuf import descriptor as proto_descriptor
 from google.protobuf import json_format
 from google.protobuf import message
 from grr_response_core import config
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import serialization
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
@@ -28,7 +27,7 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
-from grr_response_server.gui import api_value_renderers
+from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
 
 _FIELDS = (
@@ -89,15 +88,13 @@ class RouterMatcher:
     # annotation (thus adding additional unforeseen HTTP paths/methods). We
     # don't want the HTTP API to depend on a particular router implementation.
     for _, metadata in router_cls.GetAnnotatedMethods().items():
-      for http_method, path, unused_options in metadata.http_methods:
+      for http_method, path in metadata.http_methods:
         routing_map.add(
-            routing.Rule(path, methods=[http_method], endpoint=metadata)
-        )
-        # This adds support for the next version of the API that uses
-        # standardized JSON protobuf serialization.
-        routing_map.add(
+            # https://werkzeug.palletsprojects.com/en/stable/routing/#werkzeug.routing.Rule
+            # If GET is present in the list of methods and HEAD is not, HEAD
+            # is added automatically.
             routing.Rule(
-                path.replace("/api/", "/api/v2/"),
+                path,
                 methods=[http_method],
                 endpoint=metadata,
             )
@@ -116,89 +113,79 @@ class RouterMatcher:
 
     return routing_map
 
-  def _SetField(self, args, type_info, value):
-    """Sets fields on the arg rdfvalue object."""
-    if hasattr(type_info, "enum"):
-      try:
-        coerced_obj = type_info.enum[value.upper()]
-      except KeyError:
-        # A bool is an enum but serializes to "1" / "0" which are both not in
-        # enum or reverse_enum.
-        coerced_obj = serialization.FromHumanReadable(type_info.type, value)
-    else:
-      coerced_obj = serialization.FromHumanReadable(type_info.type, value)
-    args.Set(type_info.name, coerced_obj)
+  def _FillProtoWithRouteArgs(
+      self,
+      args_proto: message.Message,
+      route_args: dict[str, str],
+  ) -> None:
+    """Fills out the proto with the query param values."""
+    for field in route_args:
+      if field in args_proto.DESCRIPTOR.fields_by_name:
+        try:
+          _SetFieldProto(
+              args_proto,
+              args_proto.DESCRIPTOR.fields_by_name[field],
+              route_args[field],
+          )
+        except ValueError as e:
+          raise InvalidRequestArgumentsInRouteError() from e
 
-  def _GetArgsFromRequest(self, request, method_metadata, route_args):
+  def _GetArgsFromRequest(
+      self,
+      request: http_request.HttpRequest,
+      method_metadata: api_call_router.RouterMethodMetadata,
+      route_args: dict[str, str],
+  ) -> Optional[message.Message]:
     """Builds args struct out of HTTP request."""
-    format_mode = GetRequestFormatMode(request, method_metadata)
 
     if request.method in ["GET", "HEAD"]:
-      if method_metadata.args_type:
-        unprocessed_request = request.args
-        if hasattr(unprocessed_request, "dict"):
-          unprocessed_request = unprocessed_request.dict()
+      if not method_metadata.proto_args_type:
+        return None
 
-        args_type = method_metadata.args_type
-        try:
-          args = FlatDictToRDFValue(unprocessed_request, args_type)
-        except ValueError as error:
-          raise InvalidRequestArgumentsInRouteError() from error
+      # Capture fields on the URL request params.
+      nested_request = UnflattenDict(request.args)
 
-        for type_info in args.type_infos:
-          try:
-            if type_info.name in route_args:
-              self._SetField(args, type_info, route_args[type_info.name])
-          except Exception as e:  # pylint: disable=broad-except
-            raise InvalidRequestArgumentsInRouteError() from e
-
-      else:
-        args = None
-    elif request.method in ["POST", "DELETE", "PATCH"]:
+      # Fill out the proto with the query param values.
+      args_proto = method_metadata.proto_args_type()
       try:
-        if request.content_type and request.content_type.startswith(
-            "multipart/form-data;"
-        ):
-          payload = json.loads(request.form["_params_"].decode("utf-8"))
-          args = method_metadata.args_type()
-          args.FromDict(payload)
+        RecursivelyBuildProtoFromStringDict(nested_request, args_proto)
+      except ValueError as e:
+        raise InvalidRequestArgumentsInRouteError() from e
 
-          for name, fd in request.files.items():
-            args.Set(name, fd.read())
-        elif format_mode == JsonMode.PROTO3_JSON_MODE:
-          # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
-          args_proto = method_metadata.args_type().protobuf()
-          json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
-          args = method_metadata.args_type.FromSerializedBytes(
-              args_proto.SerializeToString()
-          )
-        else:
-          json_data = request.get_data(as_text=True) or "{}"
-          payload = json.loads(json_data)
-          args = method_metadata.args_type()
-          if payload:
-            args.FromDict(payload)
-      except Exception as e:  # pylint: disable=broad-except
+      # Also override fields that are captured in the route.
+      self._FillProtoWithRouteArgs(args_proto, route_args)
+
+      return args_proto
+
+    elif request.method in ["POST", "DELETE", "PATCH"]:
+      if not method_metadata.proto_args_type:
+        return None
+
+      args_proto = method_metadata.proto_args_type()
+      try:
+        json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
+      except json_format.ParseError as e:
         logging.exception(
-            "Error while parsing POST request %s (%s): %s",
+            "Error while parsing %s request %s (%s): %s",
+            request.method,
             request.path,
             request.method,
             e,
         )
         raise PostRequestParsingError() from e
 
-      for type_info in args.type_infos:
-        if type_info.name in route_args:
-          try:
-            self._SetField(args, type_info, route_args[type_info.name])
-          except Exception as e:  # pylint: disable=broad-except
-            raise InvalidRequestArgumentsInRouteError() from e
+      # Also override fields that are captured in the route.
+      self._FillProtoWithRouteArgs(args_proto, route_args)
+      return args_proto
+
     else:
       raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
 
-    return args
-
-  def MatchRouter(self, request):
+  def MatchRouter(self, request: http_request.HttpRequest) -> tuple[
+      api_call_router.ApiCallRouter,
+      api_call_router.RouterMethodMetadata,
+      Optional[message.Message],
+  ]:
     """Returns a router for a given HTTP request."""
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
     routing_map = self._GetRoutingMap(router)
@@ -215,60 +202,33 @@ class RouterMatcher:
       ) from e
 
     router_method_metadata, route_args_dict = match
+    proto_args = self._GetArgsFromRequest(
+        request, router_method_metadata, route_args_dict
+    )
     return (
         router,
         router_method_metadata,
-        self._GetArgsFromRequest(
-            request, router_method_metadata, route_args_dict
-        ),
+        proto_args,
     )
 
 
-class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
-  """Custom JSON encoder that encodes handlers output.
-
-  Custom encoder is required to facilitate usage of primitive values -
-  booleans, integers and strings - in handlers responses.
-
-  If handler references an RDFString or RDFInteger when building a
-  response, it will lead to JSON encoding failure when response encoded,
-  unless this custom encoder is used. Another way to solve this issue would be
-  to explicitly call api_value_renderers.RenderValue on every value returned
-  from the renderer, but it will make the code look overly verbose and dirty.
-  """
-
-  def default(self, o):
-    if isinstance(o, rdfvalue.RDFInteger):
-      return int(o)
-
-    if isinstance(o, rdfvalue.RDFString):
-      return str(o)
-
-    return super().default(o)
-
-
-class JsonMode(object):
-  """Enum class for various JSON encoding modes."""
-
-  PROTO3_JSON_MODE = 0
-  GRR_JSON_MODE = 1
-  GRR_ROOT_TYPES_STRIPPED_JSON_MODE = 2
-  GRR_TYPE_STRIPPED_JSON_MODE = 3
-
-
-def GetRequestFormatMode(request, method_metadata):
-  """Returns JSON format mode corresponding to a given request and method."""
-  if request.path.startswith("/api/v2/"):
-    return JsonMode.PROTO3_JSON_MODE
-
-  if request.args.get("strip_type_info", ""):
-    return JsonMode.GRR_TYPE_STRIPPED_JSON_MODE
-
-  for http_method, unused_url, options in method_metadata.http_methods:
-    if http_method == request.method and options.get("strip_root_types", False):
-      return JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE
-
-  return JsonMode.GRR_JSON_MODE
+def _ContentDispositionHeader(filename: str):
+  """Content-Disposition as specified by RFC 6266."""
+  try:
+    filename.encode("ascii")
+    is_ascii = True
+  except UnicodeEncodeError:
+    is_ascii = False
+  # https://datatracker.ietf.org/doc/html/rfc9110#name-quoted-strings
+  quotable_characters = r"^[\t \x21-\x7e]*$"
+  if is_ascii and re.match(quotable_characters, filename):
+    f = filename.replace("\\", "\\\\").replace('"', r"\"")
+    return (
+        f'attachment;  filename="{f}";'
+        f" filename*=utf-8''{parse.quote(filename)}"
+    )
+  else:
+    return f"attachment; filename*=utf-8''{parse.quote(filename)}"
 
 
 class HttpRequestHandler:
@@ -287,65 +247,66 @@ class HttpRequestHandler:
     # Handle() method. API router will be responsible for all the ACL checks.
     return api_call_context.ApiCallContext(request.user)
 
-  def _FormatResultAsJson(self, result, format_mode=None):
+  def _FormatResultAsJson(self, result):
     if result is None:
       return dict(status="OK")
 
-    if format_mode == JsonMode.PROTO3_JSON_MODE:
-      json_data = json_format.MessageToJson(
-          result.AsPrimitiveProto(), float_precision=8
-      )
-      return json.loads(json_data)
-    elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
-      result_dict = {}
-      for field, value in result.ListSetFields():
-        if isinstance(
-            field,
-            (
-                rdf_structs.ProtoDynamicEmbedded,
-                rdf_structs.ProtoEmbedded,
-                rdf_structs.ProtoList,
-            ),
-        ):
-          result_dict[field.name] = api_value_renderers.RenderValue(value)
-        else:
-          result_dict[field.name] = api_value_renderers.RenderValue(value)[
-              "value"
-          ]
-      return result_dict
-    elif format_mode == JsonMode.GRR_TYPE_STRIPPED_JSON_MODE:
-      rendered_data = api_value_renderers.RenderValue(result)
-      return api_value_renderers.StripTypeInfo(rendered_data)
-    elif format_mode == JsonMode.GRR_JSON_MODE:
-      return api_value_renderers.RenderValue(result)
-    else:
-      raise ValueError("Invalid format_mode: %s" % format_mode)
+    json_data = json_format.MessageToJson(result)
+    return json.loads(json_data)
 
-  @staticmethod
-  def CallApiHandler(handler, args, context=None):
-    """Handles API call to a given handler with given args and context."""
+  def CallApiHandler(
+      self,
+      handler: api_call_handler_base.ApiCallHandler,
+      args: Optional[message.Message] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> Optional[message.Message]:
+    """Handles API call to a given handler with given args and context.
 
-    if handler.proto_args_type:
-      result = handler.Handle(args.AsPrimitiveProto(), context=context)
-    else:
-      result = handler.Handle(args, context=context)
+    Only handles non-streaming requests.
 
-    # TODO: Once all ApiCallHandlers are migrated this code
-    # can likely be moved to the result json formatter (legacy UI formatting
-    # currently relies on RDFValue).
-    if isinstance(result, message.Message):
-      rdf_cls = handler.result_type
-      proto_bytes = result.SerializeToString()
-      result = rdf_cls.FromSerializedBytes(proto_bytes)
+    Args:
+      handler: An instance of an API call handler.
+      args: A proto message containing arguments for the handler call.
+      context: An instance of ApiCallContext.
 
-    expected_type = handler.result_type
-    if expected_type is None:
-      expected_type = None.__class__
+    Returns:
+      A proto message with the result of the handler call.
 
-    if result.__class__ != expected_type:
+    Raises:
+      UnexpectedResultTypeError: If the handler returns a result of an
+        unexpected type.
+    """
+
+    result = handler.Handle(args, context=context)
+
+    if handler.proto_result_type and not result:
       raise UnexpectedResultTypeError(
-          "Expected %s, but got %s."
-          % (expected_type.__name__, result.__class__.__name__)
+          "Handler (%s) expected to return a proto message, but didn't:"
+          " %s vs %s"
+          % (
+              handler.__class__.__name__,
+              handler.proto_result_type,
+              result.__class__.__name__,
+          )
+      )
+
+    if not result:
+      return None
+
+    if not isinstance(result, message.Message):
+      raise UnexpectedResultTypeError(
+          "Handler (%s) expected a proto message result, but got: %s"
+          % (handler.__class__.__name__, type(result))
+      )
+
+    if not isinstance(result, handler.proto_result_type):
+      raise UnexpectedResultTypeError(
+          "Handler (%s) expected %s, but got %s."
+          % (
+              handler.__class__.__name__,
+              handler.proto_result_type,
+              result.__class__.__name__,
+          )
       )
 
     return result
@@ -370,9 +331,7 @@ class HttpRequestHandler:
     # does content sniffing and doesn't respect Content-Disposition header) and
     # IE will treat the document as html and execute arbitrary JS that was
     # passed with the payload.
-    str_data = json.dumps(
-        rendered_data, cls=JSONEncoderWithRDFPrimitivesSupport
-    )
+    str_data = json.dumps(rendered_data)
     # XSSI protection and tags escaping
     rendered_str = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
         ">", r"\u003e"
@@ -429,9 +388,10 @@ class HttpRequestHandler:
         direct_passthrough=True,
         context=context,
     )
-    response.headers["Content-Disposition"] = (
-        "attachment; filename=%s" % binary_stream.filename
-    ).encode("utf-8")
+    response.headers["Content-Disposition"] = _ContentDispositionHeader(
+        binary_stream.filename
+    )
+
     if method_name:
       response.headers["X-API-Method"] = method_name.encode("utf-8")
 
@@ -454,7 +414,9 @@ class HttpRequestHandler:
       )
 
     try:
-      router, method_metadata, args = self._router_matcher.MatchRouter(request)
+      router, method_metadata, proto_args = self._router_matcher.MatchRouter(
+          request
+      )
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
       logging.exception(
@@ -497,51 +459,61 @@ class HttpRequestHandler:
           dict(message=str(e), traceBack=traceback.format_exc()),
       )
 
-    request.method_metadata = method_metadata
-    request.parsed_args = args
+    request.parsed_args = proto_args
 
     context = self._BuildContext(request)
 
     data_store.REL_DB.WriteGRRUser(request.user, email=request.email)
 
     handler = None
+
+    # The **convention** is that router methods take the same argument type as
+    # the handler they return. Some routers use the params to check whether
+    # access is allowed.
+    if method_metadata.proto_args_type:
+      router_args = proto_args
+    else:
+      router_args = None
+
     try:
       # ACL checks are done here by the router. If this method succeeds (i.e.
       # does not raise), then handlers run without further ACL checks (they're
       # free to do some in their own implementations, though).
-      handler = getattr(router, method_metadata.name)(args, context=context)
-
-      if handler.args_type != method_metadata.args_type:
-        raise RuntimeError(
-            "Handler args type doesn't match method args type: %s vs %s"
-            % (handler.args_type, method_metadata.args_type)
-        )
-
-      binary_result_type = (
-          api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE
+      handler = getattr(router, method_metadata.name)(
+          router_args, context=context
       )
 
-      if handler.result_type != method_metadata.result_type and not (
-          handler.result_type is None
-          and method_metadata.result_type == binary_result_type
-      ):
+      if handler.proto_args_type != method_metadata.proto_args_type:
         raise RuntimeError(
-            "Handler result type doesn't match method result type: %s vs %s"
-            % (handler.result_type, method_metadata.result_type)
+            f"Handler {handler.__class__.__name__}.proto_args_type doesn't"
+            f" match expected method args type: {handler.proto_args_type} vs"
+            f" {method_metadata.proto_args_type}"
         )
+
+      if not method_metadata.is_streaming:
+        if handler.proto_result_type != method_metadata.proto_result_type:
+          raise RuntimeError(
+              f"Handler {handler.__class__.__name__}.proto_result_type doesn't"
+              " match expected method result type:"
+              f" {handler.proto_result_type} vs"
+              f" {method_metadata.proto_result_type}"
+          )
 
       # HEAD method is only used for checking the ACLs for particular API
       # methods.
       if request.method == "HEAD":
         # If the request would return a stream, we add the Content-Length
         # header to the response.
-        if (
-            method_metadata.result_type
-            == method_metadata.BINARY_STREAM_RESULT_TYPE
-        ):
-          if handler.proto_args_type:
-            args = args.AsPrimitiveProto()
-          binary_stream = handler.Handle(args, context=context)
+        if method_metadata.is_streaming:
+          binary_stream = handler.Handle(proto_args, context=context)
+          if not isinstance(
+              binary_stream, api_call_handler_base.ApiBinaryStream
+          ):
+            raise RuntimeError(
+                "Invalid result type returned from the API handler. Expected"
+                " ApiBinaryStream, got %s"
+                % binary_stream.__class__.__name__
+            )
           return self._BuildResponse(
               200,
               {"status": "OK"},
@@ -559,22 +531,20 @@ class HttpRequestHandler:
               context=context,
           )
 
-      if (
-          method_metadata.result_type
-          == method_metadata.BINARY_STREAM_RESULT_TYPE
-      ):
-        if handler.proto_args_type:
-          args = args.AsPrimitiveProto()
-        binary_stream = handler.Handle(args, context=context)
+      if method_metadata.is_streaming:
+        binary_stream = handler.Handle(proto_args, context=context)
+        if not isinstance(binary_stream, api_call_handler_base.ApiBinaryStream):
+          raise RuntimeError(
+              "Invalid result type returned from the API handler. Expected"
+              " ApiBinaryStream, got %s"
+              % binary_stream.__class__.__name__
+          )
         return self._BuildStreamingResponse(
             binary_stream, method_name=method_metadata.name, context=context
         )
       else:
-        format_mode = GetRequestFormatMode(request, method_metadata)
-        result = self.CallApiHandler(handler, args, context=context)
-        rendered_data = self._FormatResultAsJson(
-            result, format_mode=format_mode
-        )
+        result = self.CallApiHandler(handler, proto_args, context=context)
+        rendered_data = self._FormatResultAsJson(result)
 
         return self._BuildResponse(
             200,
@@ -711,61 +681,198 @@ def _GetRequestOrigin(request):
     return "unknown"
 
 
-_V = TypeVar("_V", bound=rdfvalue.RDFValue)
+def UnflattenDict(
+    flattened_dict: dict[str, str],
+) -> dict[str, str]:
+  """Converts a flattened dictionary to a nested structure.
 
-
-def FlatDictToRDFValue(dct: Dict[str, str], cls: Type[_V]) -> _V:
-  """Converts a flat dictionary to an RDF value instance.
-
-  In the flat dictionary, dots are used to denote a path of nested attributes in
-  the resulting message. Consider the following dictionary:
-
-      { "foo.bar": "42", "foo.baz.quux": "thud" }
-
-  It can correspond (depending on the schema) to the following Protocol Buffers
-  message (or some RDF value):
-
-      foo {
-          bar: 42
-          baz: {
-              quux: "thud"
-          }
+  For example, the following dictionary:
+    {
+      "foo.bar": "42",
+      "foo.baz.quux": "thud"
+    }
+  will be converted to:
+    {
+      "foo": {
+        "bar": "42",
+        "baz": {
+          "quux": "thud"
+        }
       }
-
-  Note that excessive or unrecognized keys are going to be ignored and no value
-  is going to be set for them without issuing any errors.
+    }
 
   Args:
-    dct: A flat dictionary to convert.
-    cls: An RDF value type to interpret the dictionary as.
+    flattened_dict: A flat dictionary to convert.
 
   Returns:
-    An instance of the specified RDF value type.
+    A nested dictionary with values preserved.
   """
-  result = cls()
+  nested_dict: dict[str, str] = {}
+  for key, value in flattened_dict.items():
+    parts = key.split(".")
+    current_level = nested_dict
 
-  for key, value in dct.items():
-    path = key.split(".")
+    # For every part but the last, create an empty dictionary if it
+    # doesn't exist yet. Otherwise add the value to the dictionary.
+    for i, part in enumerate(parts):
+      if i == len(parts) - 1:
+        # Last part, assign the value
+        current_level[part] = value
+      else:
+        # Not the last part, ensure it's a dictionary
+        if part not in current_level:
+          current_level[part] = {}
+        current_level = current_level[part]
+  return nested_dict
 
-    # First, we need to lookup the type that the field ought to have: for this
-    # we simply go down the type descriptors.
-    try:
-      attr_cls_getter = lambda cls, name: cls.type_infos[name].type
-      attr_cls = functools.reduce(attr_cls_getter, path, cls)
-    except KeyError:
+
+_DESCRIPTOR_TYPE_TO_NAME = {
+    proto_descriptor.FieldDescriptor.TYPE_DOUBLE: "double",
+    proto_descriptor.FieldDescriptor.TYPE_FLOAT: "float",
+    proto_descriptor.FieldDescriptor.TYPE_INT64: "int64",
+    proto_descriptor.FieldDescriptor.TYPE_UINT64: "uint64",
+    proto_descriptor.FieldDescriptor.TYPE_INT32: "int32",
+    proto_descriptor.FieldDescriptor.TYPE_FIXED64: "fixed64",
+    proto_descriptor.FieldDescriptor.TYPE_FIXED32: "fixed32",
+    proto_descriptor.FieldDescriptor.TYPE_BOOL: "bool",
+    proto_descriptor.FieldDescriptor.TYPE_STRING: "string",
+    proto_descriptor.FieldDescriptor.TYPE_GROUP: "group",
+    proto_descriptor.FieldDescriptor.TYPE_MESSAGE: "message",
+    proto_descriptor.FieldDescriptor.TYPE_BYTES: "bytes",
+    proto_descriptor.FieldDescriptor.TYPE_UINT32: "uint32",
+    proto_descriptor.FieldDescriptor.TYPE_ENUM: "enum",
+    proto_descriptor.FieldDescriptor.TYPE_SFIXED32: "sfixed32",
+    proto_descriptor.FieldDescriptor.TYPE_SFIXED64: "sfixed64",
+    proto_descriptor.FieldDescriptor.TYPE_SINT32: "sint32",
+    proto_descriptor.FieldDescriptor.TYPE_SINT64: "sint64",
+}
+
+
+def _ConvertStringToValue(
+    field_descriptor: proto_descriptor.FieldDescriptor,
+    value: str,
+):
+  """Converts a string value to the appropriate type based on the field descriptor.
+
+  Args:
+      field_descriptor: The descriptor of the field.
+      value: The string value to convert.
+
+  Returns:
+      The converted value.
+
+  Raises:
+      ValueError: If the value cannot be converted to the expected type.
+  """
+  field_name = field_descriptor.name
+  field_type = field_descriptor.type
+  try:
+    field_type_name = _DESCRIPTOR_TYPE_TO_NAME[field_type]
+  except KeyError:
+    field_type_name = f"unknown type ({field_type})"
+
+  if field_type == proto_descriptor.FieldDescriptor.TYPE_STRING:
+    return value
+  elif field_type in [
+      proto_descriptor.FieldDescriptor.TYPE_INT32,
+      proto_descriptor.FieldDescriptor.TYPE_INT64,
+      proto_descriptor.FieldDescriptor.TYPE_UINT32,
+      proto_descriptor.FieldDescriptor.TYPE_UINT64,
+  ]:
+    return int(value)
+  elif field_type in [
+      proto_descriptor.FieldDescriptor.TYPE_FLOAT,
+      proto_descriptor.FieldDescriptor.TYPE_DOUBLE,
+  ]:
+    return float(value)
+  elif field_type == proto_descriptor.FieldDescriptor.TYPE_BOOL:
+    if value.lower() in ("true", "1"):
+      return True
+    elif value.lower() in ("false", "0"):
+      return False
+    else:
+      raise ValueError(
+          f"Could not convert '{value}' to boolean for field '{field_name}'."
+      )
+  elif field_type == proto_descriptor.FieldDescriptor.TYPE_ENUM:
+    # Try to get the enum value from the string name
+    enum_value = field_descriptor.enum_type.values_by_name.get(value)
+    if enum_value is None:
+      # If not found by name, try to get it by number
+      try:
+        enum_number = int(value)
+        enum_value = field_descriptor.enum_type.values_by_number.get(
+            enum_number
+        )
+      except ValueError:
+        pass  # it was not a number either
+    if enum_value is None:
+      raise ValueError(
+          f"'{value}' is not a valid enum value for field"
+          f" '{field_name}'. Available values:"
+          f" {field_descriptor.enum_type.values_by_name.keys()} or numbers:"
+          f" {field_descriptor.enum_type.values_by_number.keys()}"
+      )
+    return enum_value.number
+  else:
+    raise ValueError(
+        f"Unsupported field type: {field_type_name} for field '{field_name}'."
+    )
+
+
+def _SetFieldProto(
+    args_proto: message.Message,
+    field_descriptor: proto_descriptor.FieldDescriptor,
+    value: Union[str, Iterable[str]],
+):
+  """Sets fields on the arg_proto object.
+
+  Args:
+    args_proto: Proto message to set the field on.
+    field_descriptor: Descriptor of the field to set.
+    value: Value to set. Doesn't support all field types.
+  """
+  field_name = field_descriptor.name
+
+  # pylint: disable=line-too-long
+  is_repeated = field_descriptor.label == proto_descriptor.FieldDescriptor.LABEL_REPEATED
+  # pylint: enable=line-too-long
+  try:
+    if is_repeated:
+      current_field = getattr(args_proto, field_name)
+      for item in value:
+        current_field.append(_ConvertStringToValue(field_descriptor, item))
+    else:
+      converted_value = _ConvertStringToValue(field_descriptor, value)
+      setattr(args_proto, field_name, converted_value)
+  except ValueError as e:
+    raise ValueError(
+        f"Error setting field '{field_name}' with value '{value}': {e}"
+    ) from e
+
+
+def RecursivelyBuildProtoFromStringDict(
+    str_dict: dict[str, str], proto: message.Message
+) -> message.Message:
+  """Recursively parses a dict into a proto."""
+
+  for k, v in str_dict.items():
+    if k not in proto.DESCRIPTOR.fields_by_name:
+      # Ignore unknown fields.
       continue
 
-    # We do from-string conversion only for non-enum values. Enums will do an
-    # automatic conversion upon assignment.
-    if not issubclass(attr_cls, rdf_structs.EnumNamedValue):
-      value = serialization.FromHumanReadable(attr_cls, value)
-
-    # Then, we can go down the path to the second-to-last attribute and finally
-    # set the value on the last one.
-    child_attr = functools.reduce(rdf_structs.RDFStruct.Get, path[:-1], result)
-    child_attr.Set(path[-1], value)
-
-  return result
+    field_descriptor = proto.DESCRIPTOR.fields_by_name[k]
+    if field_descriptor.message_type is not None:
+      # Nested message, recursively parse the value.
+      nested_empty = getattr(proto, k)
+      RecursivelyBuildProtoFromStringDict(v, nested_empty)
+    else:
+      # Leaf field, set the value.
+      _SetFieldProto(
+          proto,
+          field_descriptor,
+          v,
+      )
 
 
 HTTP_REQUEST_HANDLER = None

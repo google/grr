@@ -1,0 +1,163 @@
+<collapsible-container [state]="CollapsibleState.EXPANDED">
+  <collapsible-title>
+    <div class="client-title">
+      <mat-icon class="computer-icon">computer</mat-icon>
+      <a
+        [routerLink]="['/clients', clientStore.clientId()]"
+        class="text-link-hover"
+      >
+        <h2 class="client-name">
+          @if (clientStore.client()) {
+            {{ clientStore.client()?.knowledgeBase?.fqdn }}
+          } @else {
+            {{ clientStore.clientId() }}
+          }
+        </h2>
+      </a>
+      <!-- mdash -->
+      <span>&#8212;</span>
+
+      <copy-button class="id">{{clientStore.clientId()}}</copy-button>
+
+      <div class="horizontal-space"></div>
+
+      <mat-chip-set>
+        <!--
+        - If the user has no access the approval status should be shown, i.e. user
+          should know if approval is missing/pending/expired etc.
+        - If the user has access we show the approval status to show the duration of the
+          access.
+        - Approvals can be disabled, then access is granted without approval, we do
+          not show any approval chip.
+        -->
+        @if (!clientStore.hasAccess() || clientStore.latestApproval()) {
+          <a [routerLink]="['/clients', clientStore.clientId(), 'approvals']">
+            <approval-chip [approval]="clientStore.latestApproval()" />
+          </a>
+        }
+        @if (clientStore.client()) {
+          <online-chip [lastSeen]="clientStore.client()?.lastSeenAt"></online-chip>
+        }
+      </mat-chip-set>
+
+      <div class="vertical-divider"></div>
+
+      <mat-chip-set>
+        @for (label of clientStore.client()?.labels; track label.name) {
+          <a [routerLink]="['/clients']" [queryParams]="{'q': 'label:' + label.name}">
+            <mat-chip
+              class="label-chip"
+              (removed)="openRemoveLabelDialog(label)"
+            >
+              {{label.name}}
+              <button matChipRemove aria-label="'remove ' + label">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          </a>
+        }
+      </mat-chip-set>
+
+      <button
+        *ngIf="clientStore.client()"
+        mat-button
+        class="add_label"
+        (click)="openAddLabelDialog()"
+      >
+        <mat-icon>add</mat-icon>Add label
+      </button>
+    </div>
+    @for (warning of clientWarnings(); track warning) {
+      <error-message [message]="warning" />
+    }
+  </collapsible-title>
+  <collapsible-content>
+    <div class="info">
+      <table>
+        <tr class="fqdn">
+          <td>FQDN:</td>
+          <td>
+            <copy-button>{{ clientStore.client()?.knowledgeBase?.fqdn }}</copy-button>
+          </td>
+        </tr>
+        <tr class="os">
+          <td>OS:</td>
+          <td>
+            <copy-button>
+              <div class="value">
+                {{ clientStore.client()?.osInfo?.system + ' ' +
+                clientStore.client()?.osInfo?.version + ' ' +
+                clientStore.client()?.osInfo?.kernel }}
+              </div>
+            </copy-button>
+          </td>
+        </tr>
+        <tr class="users">
+          <td>Users:</td>
+          <td>
+            @if (clientStore.client()) {
+              <copy-button>
+                <div class="value">{{ formatUsers(clientStore.client()?.users ?? []) }}</div>
+              </copy-button>
+            }
+          </td>
+        </tr>
+      </table>
+
+      <table>
+        <tr class="first-seen">
+          <td>First seen:</td>
+          <td>
+            <timestamp
+              [date]="clientStore.client()?.firstSeenAt"
+              relativeTimestamp="visible"
+            />
+          </td>
+        </tr>
+        <tr class="last-seen">
+          <td>Last seen:</td>
+          <td>
+            <timestamp
+              [date]="clientStore.client()?.lastSeenAt"
+              relativeTimestamp="visible"
+            />
+          </td>
+        </tr>
+        <tr class="last-boot">
+          <td>Last booted at:</td>
+          <td>
+            <timestamp
+              [date]="clientStore.client()?.lastBootedAt"
+              relativeTimestamp="visible"
+            />
+          </td>
+        </tr>
+      </table>
+
+      <table>
+        <tr class="grr-agent">
+          <td>GRR agent:</td>
+          <td>
+            <copy-button>{{ clientStore.client()?.agentInfo?.clientDescription +
+              ' ' + clientStore.client()?.agentInfo?.clientVersion }}</copy-button>
+          </td>
+        </tr>
+        <tr class="grr-agent-build">
+          <td>GRR agent built time:</td>
+          <td>
+            <timestamp
+              [date]="clientStore.client()?.agentInfo?.buildTime"
+              relativeTimestamp="visible"
+            />
+          </td>
+        </tr>
+        <tr class="rrg-agent">
+          <td>RRG agent:</td>
+          <td>
+            <copy-button>{{ clientStore.client()?.rrgVersion }}</copy-button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </collapsible-content>
+</collapsible-container>

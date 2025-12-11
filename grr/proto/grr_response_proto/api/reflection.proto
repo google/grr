@@ -80,7 +80,10 @@ message ApiRDFValueDescriptor {
   }];
 }
 
+// Next id: 11
 message ApiMethod {
+  reserved 6, 7, 8;
+
   optional string name = 1;
   optional string category = 2;
   optional string doc = 3;
@@ -88,15 +91,8 @@ message ApiMethod {
   optional string http_route = 4;
   repeated string http_methods = 5;
 
-  optional ApiRDFValueDescriptor args_type_descriptor = 6;
-
-  enum ResultKind {
-    NONE = 0;
-    VALUE = 1;
-    BINARY_STREAM = 2;
-  }
-  optional ResultKind result_kind = 7;
-  optional ApiRDFValueDescriptor result_type_descriptor = 8;
+  optional string args_type_url = 9;
+  optional string result_type_url = 10;
 }
 
 // Next id: 6
@@ -117,23 +113,15 @@ message ApiOutputPluginDescriptor {
   optional string description = 2 [
     (sem_type) = { description: "Human readable output plugin's description." }
   ];
+  // The proto type_url of the arguments that output plugin takes.
   optional string args_type = 3 [(sem_type) = {
-    description: "RDF type of the arguments that output plugin takes."
+    description: "Proto type url of the arguments that output plugin takes."
   }];
 }
 
 //
 // Method arguments and results.
 //
-
-message ApiGetRDFValueDescriptorArgs {
-  optional string type = 1
-      [(sem_type) = { description: "RDFValue type name." }];
-}
-
-message ApiListRDFValueDescriptorsResult {
-  repeated ApiRDFValueDescriptor items = 1;
-}
 
 message ApiListOutputPluginDescriptorsResult {
   repeated ApiOutputPluginDescriptor items = 1;

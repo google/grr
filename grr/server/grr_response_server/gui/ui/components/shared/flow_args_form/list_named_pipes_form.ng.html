@@ -1,0 +1,47 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.LIST_NAMED_PIPES_FLOW, flowArgs())">
+  <div class="column">
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>Pipe name regex</mat-label>
+      <input matInput
+        [formControl]="controls.pipeNameRegex"
+        class="monospace"
+        name="pipeNameRegex" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>Process executable regex</mat-label>
+      <input matInput
+        [formControl]="controls.procExeRegex"
+        class="monospace"
+        name="procExeRegex" />
+    </mat-form-field>
+
+    <mat-form-field class="w33" appearance="outline">
+      <mat-label>Pipe type</mat-label>
+      <mat-select matInput
+          [formControl]="controls.pipeTypeFilter"
+          name="pipeTypeFilter"
+        >
+        <mat-option [value]="PipeTypeFilter.ANY_TYPE">Any</mat-option>
+        <mat-option [value]="PipeTypeFilter.BYTE_TYPE">Only byte</mat-option>
+        <mat-option [value]="PipeTypeFilter.MESSAGE_TYPE">Only message</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="w33" appearance="outline">
+      <mat-label>Pipe end</mat-label>
+      <mat-select matInput
+          [formControl]="controls.pipeEndFilter"
+          name="pipeEndFilter"
+        >
+        <mat-option [value]="PipeEndFilter.ANY_END">Any</mat-option>
+        <mat-option [value]="PipeEndFilter.CLIENT_END">Only client</mat-option>
+        <mat-option [value]="PipeEndFilter.SERVER_END">Only server</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

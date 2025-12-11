@@ -215,14 +215,6 @@ def ToRDFRunKey(proto: sysinfo_pb2.RunKey) -> rdf_client.RunKey:
   return rdf_client.RunKey.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoBlobArray(rdf: rdf_client.RunKeyEntry) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFRunKeyEntry(proto: jobs_pb2.BlobArray) -> rdf_client.RunKeyEntry:
-  return rdf_client.RunKeyEntry.FromSerializedBytes(proto.SerializeToString())
-
-
 def ToProtoClientCrash(rdf: rdf_client.ClientCrash) -> jobs_pb2.ClientCrash:
   return rdf.AsPrimitiveProto()
 

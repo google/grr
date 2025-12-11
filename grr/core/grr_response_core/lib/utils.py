@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR."""
 
+from collections.abc import Iterable
 import errno
 import functools
 import getpass
+import gzip
 import io
 import os
 import pathlib
@@ -18,7 +20,7 @@ import tarfile
 import tempfile
 import threading
 import time
-from typing import Generic, Iterable, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 import weakref
 import zipfile
 
@@ -838,12 +840,7 @@ class StreamingTarGenerator(object):
     super().__init__()
 
     self._stream = RollingMemoryStream()
-    # TODO(user):pytype: self._stream should be a valid IO object.
-    # pytype: disable=wrong-arg-types
-    self._tar_fd = tarfile.open(
-        mode="w:gz", fileobj=self._stream, encoding="utf-8"
-    )
-    # pytype: enable=wrong-arg-types
+    self._stream_gzip = gzip.GzipFile(mode="wb", fileobj=self._stream)
 
     self._ResetState()
 
@@ -858,7 +855,7 @@ class StreamingTarGenerator(object):
     self.Close()
 
   def Close(self):
-    self._tar_fd.close()
+    self._stream_gzip.close()
 
     value = self._stream.GetValueAndReset()
     self._stream.close()
@@ -874,22 +871,21 @@ class StreamingTarGenerator(object):
 
     self.cur_file_size = 0
 
-    self.cur_info = self._tar_fd.tarinfo()
-    self.cur_info.tarfile = self._tar_fd
+    self.cur_info = tarfile.TarInfo()
     self.cur_info.type = tarfile.REGTYPE
     self.cur_info.name = arcname
     self.cur_info.size = st.st_size
     self.cur_info.mode = st.st_mode
     self.cur_info.mtime = st.st_mtime or time.time()
 
-    self._tar_fd.addfile(self.cur_info)
+    self._stream_gzip.write(self.cur_info.tobuf(encoding="utf-8"))
 
     return self._stream.GetValueAndReset()
 
   def WriteFileChunk(self, chunk):
     """Writes file chunk."""
 
-    self._tar_fd.fileobj.write(chunk)
+    self._stream_gzip.write(chunk)
     self.cur_file_size += len(chunk)
     return self._stream.GetValueAndReset()
 
@@ -904,15 +900,9 @@ class StreamingTarGenerator(object):
           % (self.cur_info.size, self.cur_file_size)
       )
 
-    # TODO(user):pytype: BLOCKSIZE/NUL constants are not visible to type
-    # checker.
-    # pytype: disable=module-attr
-    blocks, remainder = divmod(self.cur_file_size, tarfile.BLOCKSIZE)
+    remainder = self.cur_file_size % tarfile.BLOCKSIZE
     if remainder > 0:
-      self._tar_fd.fileobj.write(tarfile.NUL * (tarfile.BLOCKSIZE - remainder))
-      blocks += 1
-    self._tar_fd.offset += blocks * tarfile.BLOCKSIZE
-    # pytype: enable=module-attr
+      self._stream_gzip.write(tarfile.NUL * (tarfile.BLOCKSIZE - remainder))
 
     self._ResetState()
 

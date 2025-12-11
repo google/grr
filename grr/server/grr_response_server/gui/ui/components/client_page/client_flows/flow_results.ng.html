@@ -1,0 +1,24 @@
+@let flowResultsByType = clientStore.flowResultsByFlowId().get(flowId() ?? '');
+
+@if (flow()?.errorDescription; as errorDescription) {
+  <error-message [message]="errorDescription" />
+}
+
+<div class="overview-container">
+  <div class="overview-left">
+    <div>
+      {{flowResultsByType?.countLoaded ?? "?"}} of {{flowResultsByType?.totalCount ?? "?"}}
+      results loaded
+    </div>
+    @if ((flowResultsByType?.totalCount ?? 0) > (flowResultsByType?.countLoaded ?? 0)) {
+      <button mat-flat-button (click)="loadMore()">Load more</button>
+    }
+  </div>
+  <div class="overview-right">
+    <flow-results-download-button [flow]="flow()" />
+  </div>
+</div>
+
+
+<collection-results [collectionResultsByType]="flowResultsByType?.flowResultsByPayloadType" />
+

@@ -292,9 +292,3 @@ class ForemanCondition(rdf_structs.RDFProtoStruct):
     if self.expiration_time < self.creation_time:
       raise ValueError("Rule expires before it was created.")
     return self.expiration_time - self.creation_time
-
-
-class ForemanRules(rdf_protodict.RDFValueArray):
-  """A list of rules that the foreman will apply."""
-
-  rdf_type = ForemanRule

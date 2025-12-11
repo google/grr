@@ -1,0 +1,22 @@
+@for (interface of interfaces(); track interface) {
+  <table>
+    <tr>
+      <td>Name</td>
+      <td><copy-button>{{ interface.interfaceName }}</copy-button></td>
+    </tr>
+    <tr>
+      <td>MAC Address</td>
+      <td><copy-button>{{ interface.macAddress }}</copy-button></td>
+    </tr>
+    <tr>
+      <td>IP Addresses</td>
+      <td>
+        @for (address of interface.addresses; track address) {
+          <div><copy-button>{{ address.ipAddress }}</copy-button></div>
+        }
+      </td>
+    </tr>
+  </table>
+} @empty {
+  <div>None.</div>
+}

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Testing utilities for the timeline flow."""
+from collections.abc import Sequence
 import random
-from typing import Optional, Sequence
+from typing import Optional
 
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_proto import flows_pb2

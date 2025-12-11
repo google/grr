@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 
-from typing import List, Optional
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
@@ -107,8 +107,9 @@ class AclTestMixin(object):
     if not requestor:
       requestor = self.test_username
 
-    args = api_user.ApiGrantClientApprovalArgs(
-        client_id=client_id, username=requestor, approval_id=approval_id)
+    args = api_user_pb2.ApiGrantClientApprovalArgs(
+        client_id=client_id, username=requestor, approval_id=approval_id
+    )
     handler = api_user.ApiGrantClientApprovalHandler()
     handler.Handle(
         args, context=api_call_context.ApiCallContext(username=approver))
@@ -135,15 +136,16 @@ class AclTestMixin(object):
     requestor = requestor or self.test_username
     handler = api_user.ApiListClientApprovalsHandler()
     return handler.Handle(
-        api_user.ApiListClientApprovalsArgs(),
-        context=api_call_context.ApiCallContext(username=requestor)).items
+        api_user_pb2.ApiListClientApprovalsArgs(),
+        context=api_call_context.ApiCallContext(username=requestor),
+    ).items
 
   def RequestHuntApproval(
       self,
       hunt_id: str,
       requestor: Optional[str] = None,
       reason: str = "Running tests",
-      email_cc_address: Optional[List[str]] = None,
+      email_cc_address: Optional[list[str]] = None,
       approver: str = "approver",
   ) -> str:
     """Request hunt approval for a given hunt."""
@@ -188,8 +190,9 @@ class AclTestMixin(object):
     else:
       self.CreateUser(approver)
 
-    args = api_user.ApiGrantHuntApprovalArgs(
-        hunt_id=hunt_id, username=requestor, approval_id=approval_id)
+    args = api_user_pb2.ApiGrantHuntApprovalArgs(
+        hunt_id=hunt_id, username=requestor, approval_id=approval_id
+    )
     handler = api_user.ApiGrantHuntApprovalHandler()
     handler.Handle(
         args, context=api_call_context.ApiCallContext(username=approver))
@@ -221,15 +224,16 @@ class AclTestMixin(object):
     requestor = requestor or self.test_username
     handler = api_user.ApiListHuntApprovalsHandler()
     return handler.Handle(
-        api_user.ApiListHuntApprovalsArgs(),
-        context=api_call_context.ApiCallContext(username=requestor)).items
+        api_user_pb2.ApiListHuntApprovalsArgs(),
+        context=api_call_context.ApiCallContext(username=requestor),
+    ).items
 
   def RequestCronJobApproval(
       self,
       cron_job_id: str,
       requestor: Optional[str] = None,
       reason: str = "Running tests",
-      email_cc_address: Optional[List[str]] = None,
+      email_cc_address: Optional[list[str]] = None,
       approver: str = "approver",
   ) -> str:
     """Request cron job approval for a given cron job."""
@@ -273,8 +277,9 @@ class AclTestMixin(object):
     else:
       self.CreateUser(approver)
 
-    args = api_user.ApiGrantCronJobApprovalArgs(
-        cron_job_id=cron_job_id, username=requestor, approval_id=approval_id)
+    args = api_user_pb2.ApiGrantCronJobApprovalArgs(
+        cron_job_id=cron_job_id, username=requestor, approval_id=approval_id
+    )
     handler = api_user.ApiGrantCronJobApprovalHandler()
     handler.Handle(
         args, context=api_call_context.ApiCallContext(username=approver))
@@ -305,5 +310,6 @@ class AclTestMixin(object):
     requestor = requestor or self.test_username
     handler = api_user.ApiListCronJobApprovalsHandler()
     return handler.Handle(
-        api_user.ApiListCronJobApprovalsArgs(),
-        context=api_call_context.ApiCallContext(username=requestor)).items
+        api_user_pb2.ApiListCronJobApprovalsArgs(),
+        context=api_call_context.ApiCallContext(username=requestor),
+    ).items

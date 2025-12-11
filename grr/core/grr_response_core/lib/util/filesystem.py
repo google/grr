@@ -5,7 +5,7 @@ import array
 import os
 import platform
 import stat
-from typing import Dict, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 from grr_response_core.lib.util import precondition
 
@@ -197,7 +197,7 @@ class StatCache:
   _Key = NamedTuple("_Key", (("path", str), ("follow_symlink", bool)))  # pylint: disable=invalid-name
 
   def __init__(self):
-    self._cache: Dict[StatCache._Key, Stat] = {}
+    self._cache: dict[StatCache._Key, Stat] = {}
 
   def Get(self, path: str, follow_symlink: bool = True) -> Stat:
     """Stats given file or returns a cached result if available.

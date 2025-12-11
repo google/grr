@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.output_plugin."""
-
 from unittest import mock
 
 from absl import app
@@ -8,7 +6,7 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import output_plugin
-from grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import test_lib
@@ -26,7 +24,7 @@ class OutputPluginTest(test_lib.GRRBaseTest):
 
   def testGetArgsHandlesMissingPluginsCorrectly(self):
     plugin_args = rdf_flow_runner.FlowRunnerArgs(
-        flow_name=transfer.GetFile.__name__
+        flow_name=file_finder.ClientFileFinder.__name__,
     )
     descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="TestOutputPluginWithArgs", args=plugin_args

@@ -1,0 +1,40 @@
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="main-container-osquery-helper">
+    <mat-label>Search for Osquery tables</mat-label>
+
+    <input matInput
+      type="text"
+      [formControl]="searchControl"
+      [matAutocomplete]="auto" />
+    <mat-autocomplete #auto="matAutocomplete" class="mat-autocomplete-osquery-helper">
+      @for (categoryWithMatchMap of filteredCategories(); track categoryWithMatchMap.categoryName) {
+        <mat-optgroup
+          [label]="categoryWithMatchMap.categoryName">
+          @for (tableSpec of categoryWithMatchMap.tableSpecs; track tableSpec.name) {
+            <mat-option
+              [value]="tableSpec.name"
+              class="item-container-osquery-helper">
+              <table-info-item
+                [matchMap]="categoryWithMatchMap.matchMap"
+                [tableSpec]="tableSpec">
+              </table-info-item>
+            </mat-option>
+          }
+
+        </mat-optgroup>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button matButton type="button" [mat-dialog-close]="null" >Cancel</button>
+  <button
+    matButton="filled"
+    type="button"
+    [mat-dialog-close]="queryToReturn()"
+    [disabled]="queryToReturn() == null"
+    >
+    Overwrite query with template from this table
+  </button>
+</mat-dialog-actions>

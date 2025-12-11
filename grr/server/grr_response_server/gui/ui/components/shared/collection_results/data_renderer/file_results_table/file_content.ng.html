@@ -1,0 +1,59 @@
+<div class="file-actions">
+  @if (isFile()) {
+    <button
+      mat-stroked-button
+      (click)="recollectFile()"
+      [disabled]="isRecollecting()"
+    >
+      @if (isRecollecting()) {
+        <mat-icon><mat-spinner diameter="15"></mat-spinner></mat-icon>
+      } @else {
+        <mat-icon>refresh</mat-icon>
+      }
+      <span>Recollect from client</span>
+    </button>
+  }
+
+  @if (downloadUrl() && currentHexContent() != null) {
+    <a [href]="downloadUrl()" >
+      <button mat-stroked-button><mat-icon>download</mat-icon>Download</button>
+    </a>
+  } @else {
+    <button mat-stroked-button disabled><mat-icon>download</mat-icon>Download</button>
+  }
+</div>
+
+
+<mat-tab-group dynamicHeight>
+  <mat-tab label="File Stat">
+    @if (isFile() || isDirectory()) {
+      <stat-view [path]="currentFileOrDirectoryDetails()" />
+    } @else {
+      @if (currentFileContentAccess() === false) {
+        <div>No access to the file, request client access.</div>
+      } @else {
+        <div>Loading path details...</div>
+      }
+    }
+  </mat-tab>
+  <mat-tab label="Binary Content" [disabled]="currentHexContent() == null">
+    <hex-view [blobContent]="currentHexContent()" />
+    @if (hasMoreHexContent()) {
+      <button mat-flat-button
+          class="load-more-button"
+          (click)="loadMoreHexContent(32 * 1000)">
+        Load More Binary Content
+      </button>
+    }
+  </mat-tab>
+  <mat-tab label="Text Content" [disabled]="currentTextContent() == null">
+    <text-view [textContent]="currentTextContent()" />
+    @if (hasMoreTextContent()) {
+      <button mat-flat-button
+          class="load-more-button"
+          (click)="loadMoreTextContent(32 * 1000)">
+        Load More Text Content
+      </button>
+    }
+  </mat-tab>
+</mat-tab-group>

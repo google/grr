@@ -22,7 +22,8 @@ from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_integration_test_lib
-from grr_response_server.output_plugins import csv_plugin
+from grr_response_server.instant_output_plugins import csv_instant_plugin
+from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -252,12 +253,15 @@ class ApiClientLibHuntTest(
     namelist = zip_fd.namelist()
     self.assertTrue(namelist)
 
+  @test_plugins.WithInstantOutputPluginProto(
+      csv_instant_plugin.CSVInstantOutputPluginProto
+  )
   def testExportedResults(self):
     hunt_id = self.StartHunt()
 
     zip_stream = io.BytesIO()
     self.api.Hunt(hunt_id).GetExportedResults(
-        csv_plugin.CSVInstantOutputPlugin.plugin_name
+        csv_instant_plugin.CSVInstantOutputPluginProto.plugin_name
     ).WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
 

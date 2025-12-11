@@ -1,0 +1,9 @@
+
+
+@if (fileResults().length > 0) {
+  <file-results-table [results]="fileResults()" [isHuntResult]="isHuntResult()" />
+}
+
+@if (registryResults().length > 0) {
+  <registry-results-table [results]="registryResults()" [isHuntResult]="isHuntResult()" />
+}

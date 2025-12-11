@@ -603,32 +603,192 @@ class DatabaseTestClientsMixin(object):
 
   def testClientStartupInfo(self):
     """StartupInfo is written to a separate table, make sure the merge works."""
-    d = self.db
-
     client_id = db_test_utils.InitializeClient(self.db)
 
     client = objects_pb2.ClientSnapshot(client_id=client_id, kernel="12.3")
     client.startup_info.boot_time = 123
     client.knowledge_base.fqdn = "test1234.examples.com"
-    d.WriteClientSnapshot(client)
+    self.db.WriteClientSnapshot(client)
 
-    client = d.ReadClientSnapshot(client_id)
+    client = self.db.ReadClientSnapshot(client_id)
     self.assertEqual(client.startup_info.boot_time, 123)
 
     client = objects_pb2.ClientSnapshot(client_id=client_id)
     client.kernel = "12.4"
     client.startup_info.boot_time = 124
-    d.WriteClientSnapshot(client)
+    self.db.WriteClientSnapshot(client)
 
     client = objects_pb2.ClientSnapshot(client_id=client_id)
     client.kernel = "12.5"
     client.startup_info.boot_time = 125
-    d.WriteClientSnapshot(client)
+    self.db.WriteClientSnapshot(client)
 
-    hist = d.ReadClientSnapshotHistory(client_id)
+    hist = self.db.ReadClientSnapshotHistory(client_id)
     self.assertLen(hist, 3)
     startup_infos = [cl.startup_info for cl in hist]
     self.assertEqual([si.boot_time for si in startup_infos], [125, 124, 123])
+
+  def testReadClientStartupInfoHistory(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = jobs_pb2.StartupInfo()
+    startup_1.boot_time = 123
+    startup_1.client_info.client_version = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup_1)
+
+    startup_2 = jobs_pb2.StartupInfo()
+    startup_2.boot_time = 124
+    startup_2.client_info.client_version = 2
+    self.db.WriteClientStartupInfo(self.client_id, startup_2)
+
+    hist = self.db.ReadClientStartupInfoHistory(self.client_id)
+    self.assertLen(hist, 2)
+    self.assertIsInstance(hist[0], jobs_pb2.StartupInfo)
+    self.assertIsInstance(hist[1], jobs_pb2.StartupInfo)
+    self.assertGreater(hist[0].timestamp, hist[1].timestamp)
+    self.assertEqual(hist[0].boot_time, 124)
+    self.assertEqual(hist[1].boot_time, 123)
+
+  def testReadClientStartupInfoHistoryWithEmptyTimerange(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = jobs_pb2.StartupInfo()
+    startup_1.boot_time = 123
+    startup_1.client_info.client_version = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup_1)
+
+    startup_2 = jobs_pb2.StartupInfo()
+    startup_2.boot_time = 124
+    startup_2.client_info.client_version = 2
+    self.db.WriteClientStartupInfo(self.client_id, startup_2)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(None, None)
+    )
+    self.assertLen(hist, 2)
+    self.assertEqual(hist[0].boot_time, 124)
+    self.assertEqual(hist[1].boot_time, 123)
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithBothFromTo(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    timestamp_before = self.db.Now()
+
+    startup_1 = jobs_pb2.StartupInfo()
+    startup_1.boot_time = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup_1)
+
+    timestamp_between = self.db.Now()
+
+    startup_2 = jobs_pb2.StartupInfo()
+    startup_2.boot_time = 2
+    startup_2.client_info.client_version = 2
+    self.db.WriteClientStartupInfo(self.client_id, startup_2)
+    timestamp_after = self.db.Now()
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(timestamp_before, timestamp_between)
+    )
+    self.assertLen(hist, 1)
+    self.assertEqual(hist[0].boot_time, 1)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(timestamp_between, timestamp_after)
+    )
+    self.assertLen(hist, 1)
+    self.assertEqual(hist[0].boot_time, 2)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(timestamp_before, timestamp_after)
+    )
+    self.assertLen(hist, 2)
+    self.assertEqual(hist[0].boot_time, 2)
+    self.assertEqual(hist[1].boot_time, 1)
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithFromOnly(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = jobs_pb2.StartupInfo()
+    startup_1.boot_time = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup_1)
+
+    timestamp_between = self.db.Now()
+
+    startup_2 = jobs_pb2.StartupInfo()
+    startup_2.boot_time = 2
+    self.db.WriteClientStartupInfo(self.client_id, startup_2)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(timestamp_between, None)
+    )
+    self.assertLen(hist, 1)
+    self.assertEqual(hist[0].boot_time, 2)
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithToOnly(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = jobs_pb2.StartupInfo()
+    startup_1.boot_time = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup_1)
+
+    timestamp_between = rdfvalue.RDFDatetime(
+        self.db.ReadClientStartupInfo(self.client_id).timestamp
+    )
+
+    startup_2 = jobs_pb2.StartupInfo()
+    startup_2.boot_time = 2
+    startup_2.client_info.client_version = 2
+    self.db.WriteClientStartupInfo(self.client_id, startup_2)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(None, timestamp_between)
+    )
+    self.assertLen(hist, 1)
+    self.assertEqual(hist[0].boot_time, 1)
+
+  def testReadClientStartupInfoHistoryWithEmptyHistory(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    timestamp_1 = self.db.Now()
+    # No startup info written.
+    timestamp_2 = self.db.Now()
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, timerange=(timestamp_1, timestamp_2)
+    )
+    self.assertEmpty(hist)
+
+  def testReadClientStartupInfoHistoryIncludesSnapshotCollectionsByDefault(
+      self,
+  ):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    snapshot = objects_pb2.ClientSnapshot(client_id=self.client_id)
+    snapshot.startup_info.boot_time = 123
+    self.db.WriteClientSnapshot(snapshot)
+
+    hist = self.db.ReadClientStartupInfoHistory(self.client_id)
+    self.assertLen(hist, 1)
+    self.assertEqual(hist[0].boot_time, 123)
+
+  def testReadClientStartupInfoHistoryWithExcludeSnapshotCollections(self):
+    self.client_id = db_test_utils.InitializeClient(self.db)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.boot_time = 123
+    startup.client_info.client_version = 1
+    self.db.WriteClientStartupInfo(self.client_id, startup)
+
+    snapshot = objects_pb2.ClientSnapshot(client_id=self.client_id)
+    snapshot.startup_info.boot_time = 124
+    self.db.WriteClientSnapshot(snapshot)
+
+    hist = self.db.ReadClientStartupInfoHistory(
+        self.client_id, exclude_snapshot_collections=True
+    )
+    self.assertLen(hist, 1)
+    self.assertIsInstance(hist[0], jobs_pb2.StartupInfo)
+    self.assertEqual(hist[0].boot_time, 123)
 
   def testClientSummary(self):
     d = self.db
@@ -1249,7 +1409,7 @@ class DatabaseTestClientsMixin(object):
     d.WriteClientSnapshot(cl)
     si = jobs_pb2.StartupInfo(boot_time=1)
     d.WriteClientStartupInfo(client_id, si)
-    d.AddClientLabels(client_id, "test_owner", ["test_label"])
+    d.AddClientLabels(client_id, "test_owner", ["test_label1", "test_label2"])
 
     full_info = d.ReadClientFullInfo(client_id)
 
@@ -1266,9 +1426,12 @@ class DatabaseTestClientsMixin(object):
 
     self.assertEqual(full_info.last_startup_info.boot_time, 1)
 
-    self.assertLen(full_info.labels, 1)
+    self.assertLen(full_info.labels, 2)
     self.assertEqual(full_info.labels[0].owner, "test_owner")
-    self.assertEqual(full_info.labels[0].name, "test_label")
+    self.assertEqual(full_info.labels[0].name, "test_label1")
+
+    self.assertEqual(full_info.labels[1].owner, "test_owner")
+    self.assertEqual(full_info.labels[1].name, "test_label2")
 
   def testReadClientFullInfoTimestamps(self):
     client_id = db_test_utils.InitializeClient(self.db)

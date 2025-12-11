@@ -2,8 +2,8 @@
 """VFS-related part of GRR API client library."""
 
 import abc
+from collections.abc import Sequence
 from typing import Optional
-from typing import Sequence
 
 from google.protobuf import message
 from grr_api_client import context as api_context

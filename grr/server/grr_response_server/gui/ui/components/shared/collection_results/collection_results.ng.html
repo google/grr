@@ -1,0 +1,95 @@
+
+@let collections = collectionResultsByType();
+@if (collections) {
+  @for (collectionResult of collections | keyvalue; track collectionResult.key) {
+    @switch (collectionResult.key) {
+      @case (PayloadType.CLIENT_SNAPSHOT) {
+        <client-snapshots [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_BROWSER_HISTORY_RESULT) {
+        <collect-browser-history-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_CLOUD_VM_METADATA_RESULT) {
+        <collect-cloud-vm-metadata-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_DISTRO_INFO_RESULT) {
+        <collect-distro-info-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT) {
+        <collect-files-by-known-path-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_LARGE_FILE_FLOW_RESULT) {
+        <collect-large-file-flow-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.COLLECT_MULTIPLE_FILES_RESULT) {
+        <collect-multiple-files-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.EXECUTE_BINARY_RESPONSE) {
+        <execute-binary-responses [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.EXECUTE_PYTHON_HACK_RESULT) {
+        <execute-python-hack-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.EXECUTE_RESPONSE) {
+        <execute-response-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.FILE_FINDER_RESULT) {
+        <file-finder-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.GET_CROWDSTRIKE_AGENT_ID_RESULT) {
+        <get-crowdstrike-agent-id-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.GET_MEMORY_SIZE_RESULT) {
+        <get-memory-size-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.HARDWARE_INFO) {
+        <hardware-infos [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.KNOWLEDGE_BASE) {
+        <knowledge-bases [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.LIST_CONTAINERS_FLOW_RESULT) {
+        <list-containers-flow-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.NETWORK_CONNECTION) {
+        <network-connections [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.OSQUERY_RESULT) {
+        <osquery-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.PROCESS) {
+        <processes [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.READ_LOW_LEVEL_FLOW_RESULT) {
+        <read-low-level-flow-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.SOFTWARE_PACKAGES) {
+        <software-packagez [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.STAT_ENTRY) {
+        <stat-entry-results [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.USER) {
+        <users [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.YARA_PROCESS_SCAN_MATCH) {
+        <yara-process-scan-matches [collectionResults]="collectionResult.value" />
+      }
+      @case (PayloadType.YARA_PROCESS_DUMP_RESPONSE) {
+        <yara-process-dump-responses [collectionResults]="collectionResult.value" />
+      }
+      @case (undefined) {
+        <p>
+          Collection result cannot be displayed, please use the debug panel to see the raw result.
+        </p>
+      }
+      @default {
+        <p>
+          Collection result component is not implemented, please use the debug panel to see the raw
+          result.
+        </p>
+
+      }
+    }
+  }
+}

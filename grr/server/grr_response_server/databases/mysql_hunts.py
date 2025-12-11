@@ -1,15 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
 
-from collections.abc import Callable
-from typing import AbstractSet
-from typing import Collection
-from typing import Iterable
-from typing import List
-from typing import Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence, Set
 from typing import Optional
-from typing import Sequence
-from typing import Tuple
 
 import MySQLdb
 from MySQLdb import cursors
@@ -292,13 +285,13 @@ class MySQLDBHuntMixin(object):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> List[hunts_pb2.Hunt]:
+  ) -> list[hunts_pb2.Hunt]:
     """Reads multiple hunt objects from the database."""
     assert cursor is not None
     query = "SELECT {columns} FROM hunts ".format(columns=_HUNT_COLUMNS_SELECT)
@@ -359,13 +352,13 @@ class MySQLDBHuntMixin(object):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> List[hunts_pb2.HuntMetadata]:
+  ) -> list[hunts_pb2.HuntMetadata]:
     """Reads metadata for hunt objects from the database."""
     assert cursor is not None
     query = """
@@ -480,7 +473,7 @@ class MySQLDBHuntMixin(object):
     return result
 
   def _HuntOutputPluginStateFromRow(
-      self, row: Tuple[str, bytes, bytes, bytes]
+      self, row: tuple[str, bytes, bytes, bytes]
   ) -> output_plugin_pb2.OutputPluginState:
     """Builds OutputPluginState object from a DB row."""
     (
@@ -531,7 +524,7 @@ class MySQLDBHuntMixin(object):
       self,
       hunt_id: str,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> List[output_plugin_pb2.OutputPluginState]:
+  ) -> list[output_plugin_pb2.OutputPluginState]:
     """Reads all hunt output plugins states of a given hunt."""
     assert cursor is not None
 
@@ -609,7 +602,7 @@ class MySQLDBHuntMixin(object):
           jobs_pb2.AttributedDict,
       ],
       cursor: Optional[cursors.Cursor] = None,
-  ) -> jobs_pb2.AttributedDict:
+  ) -> None:
     """Updates hunt output plugin state for a given output plugin."""
     assert cursor is not None
 
@@ -639,7 +632,6 @@ class MySQLDBHuntMixin(object):
     )
     args = [modified_plugin_state.SerializeToString(), hunt_id_int, state_index]
     cursor.execute(query, args)
-    return state.plugin_state
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -720,10 +712,11 @@ class MySQLDBHuntMixin(object):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
       with_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Iterable[flows_pb2.FlowResult]:
+  ) -> Sequence[flows_pb2.FlowResult]:
     """Reads hunt results of a given hunt using given query options."""
     assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
@@ -742,6 +735,8 @@ class MySQLDBHuntMixin(object):
       query += "AND tag = %s "
       args.append(with_tag)
 
+    if with_proto_type_url:
+      with_type = db_utils.TypeURLToRDFTypeName(with_proto_type_url)
     if with_type:
       query += "AND type = %s "
       args.append(with_type)
@@ -804,21 +799,30 @@ class MySQLDBHuntMixin(object):
       hunt_id: str,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       cursor: Optional[cursors.Cursor] = None,
   ) -> int:
     """Counts hunt results of a given hunt using given query options."""
     assert cursor is not None
     hunt_id_int = db_utils.HuntIDToInt(hunt_id)
 
-    query = "SELECT COUNT(*) FROM flow_results WHERE hunt_id = %s "
+    query = """
+      SELECT COUNT(*)
+      FROM flow_results
+      WHERE hunt_id = %s AND flow_id = %s
+    """
 
-    args = [hunt_id_int]
+    args = [hunt_id_int, hunt_id_int]
 
     if with_tag is not None:
       query += "AND tag = %s "
       args.append(with_tag)
 
-    if with_type is not None:
+    if with_proto_type_url is not None:
+      query += "AND type = %s "
+      with_type = db_utils.TypeURLToRDFTypeName(with_proto_type_url)
+      args.append(with_type)
+    elif with_type is not None:
       query += "AND type = %s "
       args.append(with_type)
 
@@ -844,6 +848,31 @@ class MySQLDBHuntMixin(object):
 
     cursor.execute(query, [hunt_id_int])
     return dict(cursor.fetchall())
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountHuntResultsByProtoTypeUrl(
+      self,
+      hunt_id: str,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Mapping[str, int]:
+    """Returns counts of hunt results grouped by proto result type."""
+    assert cursor is not None
+    hunt_id_int = db_utils.HuntIDToInt(hunt_id)
+
+    query = (
+        "SELECT type, COUNT(*) FROM flow_results "
+        "WHERE hunt_id = %s GROUP BY type"
+    )
+
+    cursor.execute(query, [hunt_id_int])
+    rdf_dict = dict(cursor.fetchall())
+    proto_dict = {}
+    for rdf_type, count in rdf_dict.items():
+      proto_type_url = db_utils.RDFTypeNameToTypeURL(rdf_type)
+      proto_dict[proto_type_url] = count
+    return proto_dict
 
   def _HuntFlowCondition(self, condition):
     """Builds an SQL condition matching db.HuntFlowsCondition."""

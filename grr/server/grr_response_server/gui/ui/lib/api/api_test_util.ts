@@ -4,7 +4,7 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {StatEntry} from '../../lib/models/vfs';
-import {translateStatEntry} from '../api_translation/flow';
+import {translateStatEntry} from '../api/translation/flow';
 
 import {PathSpec, PathSpecPathType} from './api_interfaces';
 

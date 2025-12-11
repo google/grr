@@ -1,0 +1,9 @@
+<h2 mat-dialog-title>Remove label <samp>{{dialogData.label.name}}</samp>?</h2>
+<mat-dialog-actions>
+  <button
+      mat-button
+      cdkFocusInitial
+      [matDialogClose]="true"
+      (click)="onRemoveClick()">Remove</button>
+  <button mat-button [matDialogClose]="false">Cancel</button>
+</mat-dialog-actions>

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Mixin class to be used in tests for DB implementations."""
 
+from collections.abc import Callable, Iterable
 import itertools
 import random
 import string
-from typing import Any, Callable, Dict, Iterable, Optional, Text
+from typing import Any, Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -13,6 +14,7 @@ from grr_response_proto import hunts_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
@@ -26,7 +28,7 @@ class QueryTestHelpersMixin(object):
       self,
       fetch_all_fn: Callable[[], Iterable[Any]],
       fetch_range_fn: Callable[[int, int], Iterable[Any]],
-      error_desc: Optional[Text] = None,
+      error_desc: Optional[str] = None,
   ):
     """Tests a DB API method with different offset/count combinations.
 
@@ -70,8 +72,8 @@ class QueryTestHelpersMixin(object):
   def DoFilterCombinationsTest(
       self,
       fetch_fn: Callable[..., Iterable[Any]],
-      conditions: Dict[Text, Any],
-      error_desc: Optional[Text] = None,
+      conditions: dict[str, Any],
+      error_desc: Optional[str] = None,
   ):
     """Tests a DB API method with different keyword arguments combinations.
 
@@ -131,8 +133,8 @@ class QueryTestHelpersMixin(object):
   def DoFilterCombinationsAndOffsetCountTest(
       self,
       fetch_fn: Callable[..., Iterable[Any]],
-      conditions: Dict[Text, Any],
-      error_desc: Optional[Text] = None,
+      conditions: dict[str, Any],
+      error_desc: Optional[str] = None,
   ):
     """Tests a DB API methods with combinations of offset/count args and kwargs.
 
@@ -211,6 +213,7 @@ def InitializeClient(
 def InitializeRRGClient(
     db: abstract_db.Database,
     client_id: Optional[str] = None,
+    os_type: Optional["rrg_os_pb2.Type"] = None,
 ) -> str:
   """Initialize a test client that supports RRG.
 
@@ -218,6 +221,8 @@ def InitializeRRGClient(
     db: A database object.
     client_id: A specific client id to use for initialized client. If none is
       provided a randomly generated one is used.
+    os_type: Operating system type of the initialized client. If none is
+      provided, it is picked randomly out of the supported systems.
 
   Returns:
     A client id for the initialized client.
@@ -228,6 +233,16 @@ def InitializeRRGClient(
   startup.metadata.version.major = 1
   startup.metadata.version.minor = 2
   startup.metadata.version.patch = 3
+
+  if os_type is not None:
+    startup.os_type = os_type
+  else:
+    startup.os_type = random.choice([
+        rrg_os_pb2.LINUX,
+        rrg_os_pb2.MACOS,
+        rrg_os_pb2.WINDOWS,
+    ])
+
   db.WriteClientRRGStartup(client_id, startup)
 
   return client_id

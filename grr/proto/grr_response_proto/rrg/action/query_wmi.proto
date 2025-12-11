@@ -12,6 +12,10 @@ message Args {
     //
     // [1]: https://learn.microsoft.com/en-us/windows/win32/wmisdk/wql-sql-for-wmi
     string query = 1;
+    /// WMI namespace object path [1] to use for the query.
+    ///
+    /// [1]: https://learn.microsoft.com/en-us/windows/win32/wmisdk/describing-a-wmi-namespace-object-path
+    string namespace = 2;
 }
 
 message Result {

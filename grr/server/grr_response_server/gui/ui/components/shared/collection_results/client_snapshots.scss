@@ -1,0 +1,18 @@
+table {
+  border-collapse: collapse;
+  border-left: 2px solid var(--mat-sys-outline-variant);
+  border-bottom: 2px solid var(--mat-sys-outline-variant);
+}
+
+// First colum is as wide as the largest content.
+td {
+  width: 1%;
+  min-width: 200px;
+  white-space: nowrap;
+  padding: 8px;
+  background-color: var(--mat-sys-color-surface-container-low);
+}
+// Last column is as large as possible.
+td:last-child {
+  width: 100%;
+}

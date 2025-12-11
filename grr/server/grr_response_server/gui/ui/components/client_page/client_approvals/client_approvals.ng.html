@@ -1,0 +1,46 @@
+
+<!-- Router outlet to load the approval request (but not display it). -->
+<router-outlet />
+
+<div class="approvals-container">
+  <!-- Display the approval request if it exists and is for the current client. -->
+  @let requestedApproval = approvalRequestStore.requestedClientApproval();
+  @if (requestedApproval && requestedApproval?.subject?.clientId === clientStore.clientId()) {
+    <approval-request
+      [approval]="requestedApproval"
+      (grantApproval)="approvalRequestStore.grantClientApproval(requestedApproval)"/>
+
+    <mat-divider></mat-divider>
+  }
+
+
+  @let latestApproval = clientStore.latestApproval();
+
+  @if(latestApproval && latestApproval.status.type === 'valid') {
+    <granted-approval [approval]="latestApproval" />
+
+  } @else if(latestApproval && latestApproval.status.type === 'pending') {
+    <!-- If the user does not have access to the client, there might be more than one pending
+    approval, we show them all. -->
+    @for(approval of clientStore.clientApprovals(); track approval.approvalId) {
+      @if(approval.status.type === 'pending') {
+        <pending-approval [approval]="approval" />
+        <mat-divider></mat-divider>
+      }
+    }
+    <button mat-stroked-button (click)="showForm = true">Send new approval request</button>
+
+  } @else {
+    @if(clientStore.hasAccess()) {
+      <p>Access granted without approval</p>
+    } @else {
+      <client-approval-form />
+    }
+  }
+
+  <mat-divider></mat-divider>
+
+  @if (showForm) {
+    <client-approval-form />
+  }
+</div>

@@ -5,12 +5,14 @@ from unittest import mock
 
 from absl import app
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -21,7 +23,6 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import email_plugin
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -50,9 +51,13 @@ class ApiGetFlowHandlerRegressionTest(
           creator=self.test_username,
       )
 
+      child_flows = data_store.REL_DB.ReadChildFlowObjects(client_id, flow_id)
+
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF12"
       )
+      for i, child_flow in enumerate(child_flows):
+        replace[child_flow.flow_id] = f"F:FFFFFF{i:02X}"
 
       # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
       # database as bytes. The `store` here contains the source flow id, and
@@ -81,7 +86,9 @@ class ApiGetFlowHandlerRegressionTest(
 
       self.Check(
           "GetFlow",
-          args=flow_plugin.ApiGetFlowArgs(client_id=client_id, flow_id=flow_id),
+          args=api_flow_pb2.ApiGetFlowArgs(
+              client_id=client_id, flow_id=flow_id
+          ),
           replace=replace,
       )
 
@@ -92,12 +99,16 @@ class ApiGetFlowHandlerRegressionTest(
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF13"
       )
+      for i, child_flow in enumerate(child_flows):
+        replace[child_flow.flow_id] = f"F.EEEEEE{i:02X}"
 
       # Fetch the same flow which is now should be marked as pending
       # termination.
       self.Check(
           "GetFlow",
-          args=flow_plugin.ApiGetFlowArgs(client_id=client_id, flow_id=flow_id),
+          args=api_flow_pb2.ApiGetFlowArgs(
+              client_id=client_id, flow_id=flow_id
+          ),
           replace=replace,
       )
 
@@ -198,15 +209,22 @@ class ApiListFlowsHandlerRegressionTest(
         )
     )
 
+    interrogate_child_flows = data_store.REL_DB.ReadChildFlowObjects(
+        client_id=client_id,
+        flow_id=flow_id_1,
+    )
+    for i, interrogate_child_flow in enumerate(interrogate_child_flows):
+      replace[interrogate_child_flow.flow_id] = f"F:FFFFFF{i:02X}"
+
     self.Check(
         "ListFlows",
-        args=flow_plugin.ApiListFlowsArgs(client_id=client_id),
+        args=api_flow_pb2.ApiListFlowsArgs(client_id=client_id),
         replace=replace,
     )
 
     self.Check(
         "ListFlows",
-        args=flow_plugin.ApiListFlowsArgs(
+        args=api_flow_pb2.ApiListFlowsArgs(
             client_id=client_id,
             top_flows_only=True,
         ),
@@ -215,9 +233,11 @@ class ApiListFlowsHandlerRegressionTest(
 
     self.Check(
         "ListFlows",
-        args=flow_plugin.ApiListFlowsArgs(
+        args=api_flow_pb2.ApiListFlowsArgs(
             client_id=client_id,
-            min_started_at=rdfvalue.RDFDatetimeSeconds(44),
+            min_started_at=rdfvalue.RDFDatetimeSeconds(
+                44
+            ).AsMicrosecondsSinceEpoch(),
             top_flows_only=True,
         ),
         replace=replace,
@@ -225,9 +245,11 @@ class ApiListFlowsHandlerRegressionTest(
 
     self.Check(
         "ListFlows",
-        args=flow_plugin.ApiListFlowsArgs(
+        args=api_flow_pb2.ApiListFlowsArgs(
             client_id=client_id,
-            max_started_at=rdfvalue.RDFDatetimeSeconds(43),
+            max_started_at=rdfvalue.RDFDatetimeSeconds(
+                43
+            ).AsMicrosecondsSinceEpoch(),
             top_flows_only=True,
         ),
         replace=replace,
@@ -235,7 +257,7 @@ class ApiListFlowsHandlerRegressionTest(
 
     self.Check(
         "ListFlows",
-        args=flow_plugin.ApiListFlowsArgs(
+        args=api_flow_pb2.ApiListFlowsArgs(
             client_id=client_id,
             human_flows_only=True,
         ),
@@ -267,7 +289,7 @@ class ApiListFlowRequestsHandlerRegressionTest(
 
     self.Check(
         "ListFlowRequests",
-        args=flow_plugin.ApiListFlowRequestsArgs(
+        args=api_flow_pb2.ApiListFlowRequestsArgs(
             client_id=client_id, flow_id=flow_id
         ),
         replace=replace,
@@ -302,14 +324,14 @@ class ApiListFlowResultsHandlerRegressionTest(
     flow_id = self._RunFlow(client_id)
     self.Check(
         "ListFlowResults",
-        args=flow_plugin.ApiListFlowResultsArgs(
+        args=api_flow_pb2.ApiListFlowResultsArgs(
             client_id=client_id, flow_id=flow_id, filter="evil"
         ),
         replace={flow_id: "W:ABCDEF"},
     )
     self.Check(
         "ListFlowResults",
-        args=flow_plugin.ApiListFlowResultsArgs(
+        args=api_flow_pb2.ApiListFlowResultsArgs(
             client_id=client_id, flow_id=flow_id, filter="benign"
         ),
         replace={flow_id: "W:ABCDEF"},
@@ -346,21 +368,21 @@ class ApiListFlowLogsHandlerRegressionTest(
     replace = {flow_id: "W:ABCDEF"}
     self.Check(
         "ListFlowLogs",
-        args=flow_plugin.ApiListFlowLogsArgs(
+        args=api_flow_pb2.ApiListFlowLogsArgs(
             client_id=client_id, flow_id=flow_id
         ),
         replace=replace,
     )
     self.Check(
         "ListFlowLogs",
-        args=flow_plugin.ApiListFlowLogsArgs(
+        args=api_flow_pb2.ApiListFlowLogsArgs(
             client_id=client_id, flow_id=flow_id, count=1
         ),
         replace=replace,
     )
     self.Check(
         "ListFlowLogs",
-        args=flow_plugin.ApiListFlowLogsArgs(
+        args=api_flow_pb2.ApiListFlowLogsArgs(
             client_id=client_id, flow_id=flow_id, count=1, offset=1
         ),
         replace=replace,
@@ -381,7 +403,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
 
     self.Check(
         "GetFlowResultsExportCommand",
-        args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
+        args=api_flow_pb2.ApiGetFlowResultsExportCommandArgs(
             client_id=client_id, flow_id=flow_urn
         ),
     )
@@ -405,9 +427,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     client_id = self.SetupClient(0)
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
-        args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost", emails_limit=42
-        ),
+        args=email_plugin.EmailOutputPluginArgs(email_address="test@localhost"),
     )
 
     with test_lib.FakeTime(42):
@@ -419,7 +439,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
 
     self.Check(
         "ListFlowOutputPlugins",
-        args=flow_plugin.ApiListFlowOutputPluginsArgs(
+        args=api_flow_pb2.ApiListFlowOutputPluginsArgs(
             client_id=client_id, flow_id=flow_id
         ),
         replace={flow_id: "W:ABCDEF"},
@@ -445,7 +465,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost", emails_limit=42
+            email_address="test@localhost",
         ),
     )
 
@@ -458,7 +478,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
     self.Check(
         "ListFlowOutputPluginLogs",
-        args=flow_plugin.ApiListFlowOutputPluginLogsArgs(
+        args=api_flow_pb2.ApiListFlowOutputPluginLogsArgs(
             client_id=client_id,
             flow_id=flow_id,
             plugin_id="EmailOutputPlugin_0",
@@ -496,7 +516,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
     self.Check(
         "ListFlowOutputPluginErrors",
-        args=flow_plugin.ApiListFlowOutputPluginErrorsArgs(
+        args=api_flow_pb2.ApiListFlowOutputPluginErrorsArgs(
             client_id=client_id,
             flow_id=flow_id,
             plugin_id="FailingDummyHuntOutputPlugin_0",
@@ -524,16 +544,19 @@ class ApiCreateFlowHandlerRegressionTest(
       return api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id)
 
     with test_lib.FakeTime(42):
+      flow_args = flows_pb2.ListProcessesArgs(
+          filename_regex=".", fetch_binaries=True
+      )
+      packed_args = any_pb2.Any()
+      packed_args.Pack(flow_args)
       self.Check(
           "CreateFlow",
-          args=flow_plugin.ApiCreateFlowArgs(
+          args=api_flow_pb2.ApiCreateFlowArgs(
               client_id=client_id,
-              flow=flow_plugin.ApiFlow(
+              flow=api_flow_pb2.ApiFlow(
                   name=processes.ListProcesses.__name__,
-                  args=processes.ListProcessesArgs(
-                      filename_regex=".", fetch_binaries=True
-                  ),
-                  runner_args=rdf_flow_runner.FlowRunnerArgs(output_plugins=[]),
+                  args=packed_args,
+                  runner_args=flows_pb2.FlowRunnerArgs(output_plugins=[]),
               ),
           ),
           replace=ReplaceFlowId,
@@ -558,7 +581,7 @@ class ApiCancelFlowHandlerRegressionTest(
     with test_lib.FakeTime(4242):
       self.Check(
           "CancelFlow",
-          args=flow_plugin.ApiCancelFlowArgs(
+          args=api_flow_pb2.ApiCancelFlowArgs(
               client_id=client_id, flow_id=flow_id
           ),
           replace={flow_id: "W:ABCDEF"},
@@ -597,7 +620,7 @@ class ApiExplainGlobExpressionHandlerTest(
     client_id = self.SetupClient(0)
     self.Check(
         "ExplainGlobExpression",
-        args=flow_plugin.ApiExplainGlobExpressionArgs(
+        args=api_flow_pb2.ApiExplainGlobExpressionArgs(
             client_id=client_id, glob_expression="/foo/*"
         ),
     )

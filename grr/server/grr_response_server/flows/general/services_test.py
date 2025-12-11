@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from typing import Iterator
+from collections.abc import Iterator
 
 from absl.testing import absltest
 

@@ -62,6 +62,11 @@
     "supported_os": [ "Linux" ]
   },
 
+  { "name": "TestArtifactWithAlias",
+    "aliases": ["ArtifactAlias"],
+    "doc": "Test artifact with alias"
+  },
+
   { "name": "NullArtifact",
     "doc": "Null"
   },

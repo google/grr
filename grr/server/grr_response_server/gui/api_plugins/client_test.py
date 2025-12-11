@@ -10,12 +10,14 @@ from google.protobuf import timestamp_pb2
 from google.protobuf import text_format
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
+from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr.test_lib import db_test_lib
@@ -329,10 +331,12 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = client_pb2.ApiInterrogateClientArgs(client_id=self.client_id)
     result = self.handler.Handle(args, context=self.context)
 
-    results = data_store.REL_DB.ReadAllFlowObjects(self.client_id)
-    self.assertLen(results, 1)
-    self.assertEqual(result.operation_id, results[0].flow_id)
-    self.assertEqual(results[0].creator, "api_test_user")
+    result = data_store.REL_DB.ReadFlowObject(
+        client_id=self.client_id,
+        flow_id=result.operation_id,
+    )
+    self.assertEqual(result.flow_class_name, discovery.Interrogate.__name__)
+    self.assertEqual(result.creator, "api_test_user")
 
 
 class ApiGetClientVersionTimesTest(api_test_lib.ApiCallHandlerTest):
@@ -418,6 +422,222 @@ class ApiGetClientVersionsTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(result.items[0].client_id, self.client_id)
     self.assertEqual(result.items[0].knowledge_base.fqdn, self.fqdn)
     self.assertEqual(result.items[0].os_info.kernel, f"{kernels[1]}")
+
+
+class ApiGetClientSnapshotsTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientSnapshots using the relational db."""
+
+  def setUp(self):
+    super().setUp()
+    self.handler = client_plugin.ApiGetClientSnapshotsHandler()
+
+  def testReturnsAll(self):
+    self.client_id = self.SetupClient(0)
+    self.fqdn = "test1234.examples.com"
+
+    snapshot1 = objects_pb2.ClientSnapshot()
+    snapshot1.client_id = self.client_id
+    snapshot1.knowledge_base.fqdn = self.fqdn
+    snapshot1.kernel = "42"
+
+    snapshot2 = objects_pb2.ClientSnapshot()
+    snapshot2.client_id = self.client_id
+    snapshot2.knowledge_base.fqdn = self.fqdn
+    snapshot2.kernel = "45"
+
+    snapshot3 = objects_pb2.ClientSnapshot()
+    snapshot3.client_id = self.client_id
+    snapshot3.knowledge_base.fqdn = self.fqdn
+    snapshot3.kernel = "100"
+
+    before_snapshots = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientSnapshot(snapshot1)
+    data_store.REL_DB.WriteClientSnapshot(snapshot2)
+    data_store.REL_DB.WriteClientSnapshot(snapshot3)
+    after_snapshots = data_store.REL_DB.Now()
+
+    args = client_pb2.ApiGetClientSnapshotsArgs(
+        client_id=self.client_id,
+        start=before_snapshots.AsMicrosecondsSinceEpoch(),
+        end=after_snapshots.AsMicrosecondsSinceEpoch(),
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.snapshots, 3)
+    self.assertEqual(result.snapshots[0].client_id, self.client_id)
+    self.assertEqual(result.snapshots[0].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.snapshots[0].kernel, snapshot1.kernel)
+    self.assertEqual(result.snapshots[1].client_id, self.client_id)
+    self.assertEqual(result.snapshots[1].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.snapshots[1].kernel, snapshot2.kernel)
+    self.assertEqual(result.snapshots[2].client_id, self.client_id)
+    self.assertEqual(result.snapshots[2].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.snapshots[2].kernel, snapshot3.kernel)
+
+  def testFiltersStartAndEnd(self):
+    self.client_id = self.SetupClient(0)
+    self.fqdn = "test1234.examples.com"
+
+    snapshot1 = objects_pb2.ClientSnapshot()
+    snapshot1.client_id = self.client_id
+    snapshot1.knowledge_base.fqdn = self.fqdn
+    snapshot1.kernel = "42"
+
+    snapshot2 = objects_pb2.ClientSnapshot()
+    snapshot2.client_id = self.client_id
+    snapshot2.knowledge_base.fqdn = self.fqdn
+    snapshot2.kernel = "45"
+
+    snapshot3 = objects_pb2.ClientSnapshot()
+    snapshot3.client_id = self.client_id
+    snapshot3.knowledge_base.fqdn = self.fqdn
+    snapshot3.kernel = "100"
+
+    data_store.REL_DB.WriteClientSnapshot(snapshot1)
+    before_snapshot2 = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientSnapshot(snapshot2)
+    after_snapshot2 = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientSnapshot(snapshot3)
+
+    args = client_pb2.ApiGetClientSnapshotsArgs(
+        client_id=self.client_id,
+        start=before_snapshot2.AsMicrosecondsSinceEpoch(),
+        end=after_snapshot2.AsMicrosecondsSinceEpoch(),
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.snapshots, 1)
+    self.assertEqual(result.snapshots[0].client_id, snapshot2.client_id)
+    self.assertEqual(
+        result.snapshots[0].knowledge_base.fqdn, snapshot2.knowledge_base.fqdn
+    )
+    self.assertEqual(result.snapshots[0].kernel, snapshot2.kernel)
+
+
+class ApiGetClientStartupInfosTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientStartupInfos using the relational db."""
+
+  def setUp(self):
+    super().setUp()
+    self.handler = client_plugin.ApiGetClientStartupInfosHandler()
+
+  def testReturnsAll(self):
+    self.client_id = self.SetupClient(0)
+
+    startup_info_1 = jobs_pb2.StartupInfo()
+    startup_info_1.client_info.client_version = 1
+
+    startup_info_2 = jobs_pb2.StartupInfo()
+    startup_info_2.client_info.client_version = 2
+
+    startup_info_3 = jobs_pb2.StartupInfo()
+    startup_info_3.client_info.client_version = 3
+
+    before_snapshots = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_1)
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_2)
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_3)
+    after_snapshots = data_store.REL_DB.Now()
+
+    args = client_pb2.ApiGetClientStartupInfosArgs(
+        client_id=self.client_id,
+        start=before_snapshots.AsMicrosecondsSinceEpoch(),
+        end=after_snapshots.AsMicrosecondsSinceEpoch(),
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.startup_infos, 3)
+    self.assertEqual(result.startup_infos[0].client_info.client_version, 1)
+    self.assertEqual(result.startup_infos[1].client_info.client_version, 2)
+    self.assertEqual(result.startup_infos[2].client_info.client_version, 3)
+
+  def testFiltersStartAndEnd(self):
+    self.client_id = self.SetupClient(0)
+
+    startup_info_1 = jobs_pb2.StartupInfo()
+    startup_info_1.client_info.client_version = 1
+
+    startup_info_2 = jobs_pb2.StartupInfo()
+    startup_info_2.client_info.client_version = 2
+
+    startup_info_3 = jobs_pb2.StartupInfo()
+    startup_info_3.client_info.client_version = 3
+
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_1)
+    before_snapshot = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_2)
+    after_snapshot = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_3)
+
+    args = client_pb2.ApiGetClientStartupInfosArgs(
+        client_id=self.client_id,
+        start=before_snapshot.AsMicrosecondsSinceEpoch(),
+        end=after_snapshot.AsMicrosecondsSinceEpoch(),
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.startup_infos, 1)
+    self.assertEqual(result.startup_infos[0].client_info.client_version, 2)
+
+  def testIncludesSnapshotCollectionsByDefault(self):
+    self.client_id = self.SetupClient(0)
+
+    startup_info_1 = jobs_pb2.StartupInfo()
+    startup_info_1.client_info.client_version = 1
+
+    snapshot_2 = objects_pb2.ClientSnapshot(client_id=self.client_id)
+    snapshot_2.startup_info.client_info.client_version = 2
+
+    startup_info_3 = jobs_pb2.StartupInfo()
+    startup_info_3.client_info.client_version = 3
+
+    before_snapshots = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_1)
+    data_store.REL_DB.WriteClientSnapshot(snapshot_2)
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_3)
+    after_snapshots = data_store.REL_DB.Now()
+
+    args = client_pb2.ApiGetClientStartupInfosArgs(
+        client_id=self.client_id,
+        start=before_snapshots.AsMicrosecondsSinceEpoch(),
+        end=after_snapshots.AsMicrosecondsSinceEpoch(),
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.startup_infos, 3)
+    self.assertEqual(result.startup_infos[0].client_info.client_version, 1)
+    self.assertEqual(result.startup_infos[1].client_info.client_version, 2)
+    self.assertEqual(result.startup_infos[2].client_info.client_version, 3)
+
+  def testExcludesSnapshotCollectionsIfRequested(self):
+    self.client_id = self.SetupClient(0)
+
+    startup_info_1 = jobs_pb2.StartupInfo()
+    startup_info_1.client_info.client_version = 1
+
+    snapshot_2 = objects_pb2.ClientSnapshot(client_id=self.client_id)
+    snapshot_2.startup_info.client_info.client_version = 2
+
+    startup_info_3 = jobs_pb2.StartupInfo()
+    startup_info_3.client_info.client_version = 3
+
+    before_snapshots = data_store.REL_DB.Now()
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_1)
+    data_store.REL_DB.WriteClientSnapshot(snapshot_2)
+    data_store.REL_DB.WriteClientStartupInfo(self.client_id, startup_info_3)
+    after_snapshots = data_store.REL_DB.Now()
+
+    args = client_pb2.ApiGetClientStartupInfosArgs(
+        client_id=self.client_id,
+        start=before_snapshots.AsMicrosecondsSinceEpoch(),
+        end=after_snapshots.AsMicrosecondsSinceEpoch(),
+        exclude_snapshot_collections=True,
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.startup_infos, 2)
+    self.assertEqual(result.startup_infos[0].client_info.client_version, 1)
+    self.assertEqual(result.startup_infos[1].client_info.client_version, 3)
 
 
 def TSProtoFromString(string):

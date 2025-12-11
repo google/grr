@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  margin: 1rem;
+}
+
+.approvals-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+  width: 80em;
+
+  margin: 0 auto;
+}
+
+mat-divider {
+  margin: 15px 0;
+}

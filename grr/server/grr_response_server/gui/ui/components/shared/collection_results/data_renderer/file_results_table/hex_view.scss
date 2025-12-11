@@ -1,0 +1,27 @@
+:host {
+  display: flex;
+  column-gap: 0.5em;
+  padding: 0 1em;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
+.hex-table td {
+  padding: 4px;
+  text-align: center;
+}
+
+.chars-table td {
+  padding: 4px 0;
+  text-align: center;
+}
+
+.offset {
+  user-select: none;
+}
+
+.content {
+  background: var(--mat-sys-surface-container-low);
+}

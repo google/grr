@@ -173,7 +173,7 @@ router_params:
   file_finder_flow:
     enabled: True
     max_flows_per_client_daily: 2
-    min_interval_between_duplicate_flows: 1h
+    min_interval_between_duplicate_flows: !duration_seconds "1h"
 users:
   - "%s"
 """.format(ROBOT_ROUTER_NAME)

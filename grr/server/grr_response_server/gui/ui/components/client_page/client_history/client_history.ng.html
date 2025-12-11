@@ -1,0 +1,28 @@
+<div class="snapshot-timeline">
+  <mat-nav-list
+    #timeline
+    disableRipple
+  >
+    @for (history of clientStore.clientHistory(); track history) {
+      <mat-list-item
+        [routerLink]="historyTimestamp(history)"
+        routerLinkActive
+        #historyActive="routerLinkActive"
+        [activated]="historyActive.isActive"
+      >
+        <div matListItemTitle class="snapshot-title">
+          <mat-icon inline>circle</mat-icon>
+          @if (history.startupInfo?.timestamp) {
+            <timestamp [date]="history.startupInfo?.timestamp" relativeTimestamp="hidden" />
+            <mat-icon inline matTooltip="Startup Entry">rocket_launch</mat-icon>
+          } @else if (history.snapshot?.timestamp) {
+            <timestamp [date]="history.snapshot?.timestamp" relativeTimestamp="hidden" />
+          }
+        </div>
+      </mat-list-item>
+    }
+  </mat-nav-list>
+</div>
+<div class="snapshot">
+  <router-outlet />
+</div>

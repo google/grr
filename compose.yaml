@@ -145,7 +145,6 @@ services:
     container_name: grr-worker
     volumes:
       - ./docker_config_files:/configs
-      - ${HOME}/.config/gcloud:/root/.config/gcloud
     hostname: grr-worker
     depends_on:
       db:

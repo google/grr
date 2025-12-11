@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The in-memory database methods for handling artifacts."""
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from grr_response_proto import artifact_pb2
 from grr_response_server.databases import db

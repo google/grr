@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.signing."""
-
-
 import io
 import platform
 import tempfile

@@ -1,0 +1,14 @@
+@use '@angular/material' as mat;
+
+:host {
+  width: 100%;
+}
+
+nav {
+  // Explicitly set the background color so that the scrollable content is hidden
+  // behind the nav.
+  background-color: var(--mat-sys-surface-container);
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+}

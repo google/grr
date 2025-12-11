@@ -1,0 +1,24 @@
+:host {
+  display: flex;
+  gap: 16px;
+
+  h5 {
+    min-width: 30%;
+  }
+
+  form {
+    flex-grow: 1;
+  }
+}
+
+form {
+  display: flex;
+  gap: 1em;
+
+  .operator {
+    flex-grow: 1;
+  }
+  .value {
+    flex-grow: 2;
+  }
+}

@@ -22,6 +22,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import rrg_test_lib
 from grr.test_lib import testing_startup
 from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_tcp_response_pb2 as rrg_get_tcp_response_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
@@ -43,8 +44,8 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
-    command.args.append("--string")
-    command.args.append("bios-version")
+    command.args_signed.append("--string")
+    command.args_signed.append("bios-version")
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = "dmidecode_bios_version"
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
@@ -52,12 +53,10 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     signed_command.ed25519_signature = b"\x00" * 64
     db.WriteSignedCommand(signed_command)
 
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Linux"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.LINUX,
+    )
 
     def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_execute_signed_command_pb2.Args()
@@ -69,8 +68,8 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):
         raise RuntimeError(f"Unexpected command path: {command.path}")
 
-      if command.args != ["--string", "bios-version"]:
-        raise RuntimeError(f"Unexpected command args: {command.args}")
+      if command.args_signed != ["--string", "bios-version"]:
+        raise RuntimeError(f"Unexpected command args: {command.args_signed}")
 
       result = rrg_execute_signed_command_pb2.Result()
       result.exit_code = 0
@@ -212,6 +211,10 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         result.vm_metadata.google.project_id,
         "example-project",
     )
+    self.assertEqual(
+        result.vm_metadata.google.unique_id,
+        "us-central1-c/example-project/7723260132568912421",
+    )
 
   @db_test_lib.WithDatabase
   def testRRGAmazonLinux(
@@ -222,8 +225,8 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
-    command.args.append("--string")
-    command.args.append("bios-version")
+    command.args_signed.append("--string")
+    command.args_signed.append("bios-version")
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = "dmidecode_bios_version"
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
@@ -231,12 +234,10 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
     signed_command.ed25519_signature = b"\x00" * 64
     db.WriteSignedCommand(signed_command)
 
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Linux"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.LINUX,
+    )
 
     def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_execute_signed_command_pb2.Args()
@@ -248,8 +249,8 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):
         raise RuntimeError(f"Unexpected command path: {command.path}")
 
-      if command.args != ["--string", "bios-version"]:
-        raise RuntimeError(f"Unexpected command args: {command.args}")
+      if command.args_signed != ["--string", "bios-version"]:
+        raise RuntimeError(f"Unexpected command args: {command.args_signed}")
 
       result = rrg_execute_signed_command_pb2.Result()
       result.exit_code = 0
@@ -407,12 +408,10 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
       self,
       db: abstract_db.Database,
   ) -> None:
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Windows"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
 
     def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_query_wmi_pb2.Args()
@@ -566,18 +565,20 @@ class CollectCloudVMMetadataTest(flow_test_lib.FlowTestsBaseclass):
         result.vm_metadata.google.project_id,
         "example.com:foo-prod",
     )
+    self.assertEqual(
+        result.vm_metadata.google.unique_id,
+        "europe-west4-c/example.com:foo-prod/3123781986532187642",
+    )
 
   @db_test_lib.WithDatabase
   def testRRGAmazonWindows(
       self,
       db: abstract_db.Database,
   ) -> None:
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Windows"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
 
     def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_query_wmi_pb2.Args()

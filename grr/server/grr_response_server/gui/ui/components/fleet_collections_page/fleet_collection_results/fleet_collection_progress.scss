@@ -1,0 +1,28 @@
+.summary-container {
+  display: flex;
+  justify-content: start;
+  gap: 4px;
+}
+
+.summary {
+  display: grid;
+  justify-items: center;
+
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.title {
+  color: var(--mat-sys-secondary);
+  font-weight: bold;
+}
+
+.error,
+.error .title {
+  color: var(--mat-sys-error);
+}
+
+mat-divider {
+  margin: 1rem 0;
+}

@@ -4,12 +4,13 @@
 See grr/server/db.py for interface.
 """
 
+from collections.abc import Callable
 import contextlib
 import logging
 import math
 import random
 import time
-from typing import Callable, Union
+from typing import Union
 import warnings
 
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.

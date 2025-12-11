@@ -5,7 +5,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -118,12 +117,6 @@ class FlowNotification(rdf_structs.RDFProtoStruct):
       rdf_client.ClientURN,
       rdfvalue.SessionID,
   ]
-
-
-class NotificationList(rdf_protodict.RDFValueArray):
-  """A List of notifications for this user."""
-
-  rdf_type = Notification
 
 
 class PackedMessageList(rdf_structs.RDFProtoStruct):

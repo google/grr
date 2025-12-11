@@ -144,6 +144,47 @@ message ApiGetClientVersionTimesResult {
   }];
 }
 
+// Next ID: 4
+message ApiGetClientSnapshotsArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional uint64 start = 2 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timerange start (timerange is a closed interval)."
+  }];
+  optional uint64 end = 3 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timerange end (timerange is a closed interval)."
+  }];
+}
+
+// Next ID: 2
+message ApiGetClientSnapshotsResult {
+  repeated ClientSnapshot snapshots = 1;
+}
+
+// Next ID: 5
+message ApiGetClientStartupInfosArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional uint64 start = 2 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timerange start (timerange is a closed interval)."
+  }];
+  optional uint64 end = 3 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timerange end (timerange is a closed interval)."
+  }];
+  // If true, startup info that was collected as part of the snapshot will not
+  // be returned.
+  optional bool exclude_snapshot_collections = 4;
+}
+
+// Next ID: 2
+message ApiGetClientStartupInfosResult {
+  repeated StartupInfo startup_infos = 1;
+}
+
 message ApiInterrogateClientArgs {
   optional string client_id = 1
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
@@ -152,23 +193,6 @@ message ApiInterrogateClientArgs {
 message ApiInterrogateClientResult {
   optional string operation_id = 1
       [(sem_type) = { description: "The id of the interrogate operation." }];
-}
-
-message ApiGetInterrogateOperationStateArgs {
-  optional string operation_id = 1
-      [(sem_type) = { description: "The id of the interrogate operation." }];
-  optional string client_id = 2
-      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
-}
-
-message ApiGetInterrogateOperationStateResult {
-  enum State {
-    RUNNING = 0;
-    FINISHED = 1;
-  }
-
-  optional State state = 1
-      [(sem_type) = { description: "The state of the interrogate operation." }];
 }
 
 message ApiGetLastClientIPAddressArgs {

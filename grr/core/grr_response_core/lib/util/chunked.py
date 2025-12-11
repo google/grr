@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """A module with utilities for a very simple chunked serialization format."""
 
+from collections.abc import Iterator
 import struct
-from typing import IO, Iterator, Optional
+from typing import IO, Optional
 
 
 class Error(Exception):
@@ -82,24 +83,21 @@ def Read(
 
 
 def ReadAll(
-    buf: IO[bytes], max_chunk_size: Optional[int] = None
+    buf: IO[bytes],
 ) -> Iterator[bytes]:
   """Reads all the chunks from the input buffer (until the end).
 
   Args:
     buf: An input buffer to read the chunks from.
-    max_chunk_size: If set, will raise if chunk's size is larger than a given
-      value.
 
   Yields:
     Chunks of bytes stored in the buffer.
 
   Raises:
     InvalidSizeTagError if the buffer contains incorrect sequence of bytes.
-    ChunkSizeTooBigError if the read chunk size is larger than max_chunk_size.
   """
   while True:
-    chunk = Read(buf, max_chunk_size=max_chunk_size)
+    chunk = Read(buf)
     if chunk is None:
       return
 

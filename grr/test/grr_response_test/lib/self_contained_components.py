@@ -55,7 +55,7 @@ def _GetServerComponentArgs(config_path: str) -> list[str]:
 
   monitoring_port = portpicker.pick_unused_port()
 
-  return [
+  return [  # pytype: disable=bad-return-type
       "--config",
       primary_config_path,
       "--secondary_configs",

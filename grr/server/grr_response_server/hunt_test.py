@@ -4,29 +4,32 @@
 import glob
 import os
 import sys
+from typing import Optional
 from unittest import mock
 
 from absl import app
 
+from google.protobuf import any_pb2
+from google.protobuf import message as message_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
 from grr_response_server import mig_foreman_rules
+from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
-from grr_response_server.flows.general import transfer
+from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -36,6 +39,56 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
+
+
+class OPPWithArgs(output_plugin.OutputPluginProto):
+  """A dummy hunt output plugin that accepts arguments."""
+
+  name = "OPPWithArgs"
+  description = "Dummy hunt output plugin with arguments."
+  args_type = jobs_pb2.LogMessage
+
+  args_during_init: list[Optional[jobs_pb2.LogMessage]] = []
+
+  def __init__(
+      self,
+      source_urn: Optional[rdfvalue.RDFURN] = None,
+      args: Optional[jobs_pb2.LogMessage] = None,
+  ):
+    super().__init__(source_urn=source_urn, args=args)
+    OPPWithArgs.args_during_init.append(args)
+
+  def ProcessResults(self, replies: list[flows_pb2.FlowResult]) -> None:
+    pass
+
+
+class OPPInitFails(output_plugin.OutputPluginProto):
+
+  def __init__(
+      self,
+      source_urn: Optional[rdfvalue.RDFURN] = None,
+      args: Optional[message_pb2.Message] = None,
+  ):
+    super().__init__(source_urn=source_urn, args=args)
+    raise RuntimeError("Init failed!")
+
+
+class _DummyRDFOP(output_plugin.OutputPlugin):
+  name = "_DummyRDFOP"
+  description = "Dummy RDF Output Plugin."
+  processed_values = []
+
+  def ProcessResponses(self, state, values):
+    _DummyRDFOP.processed_values.extend(values)
+
+
+class _DummyProtoOP(output_plugin.OutputPluginProto):
+  name = "_DummyProtoOP"
+  description = "Dummy Proto Output Plugin."
+  processed_values = []
+
+  def ProcessResults(self, replies: list[flows_pb2.FlowResult]) -> None:
+    _DummyProtoOP.processed_values.extend(replies)
 
 
 class HuntTest(
@@ -50,9 +103,12 @@ class HuntTest(
     args.paths = ["/tmp/evil.txt"]
     args.action.action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
 
-    return rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=file_finder.ClientFileFinder.__name__,
-        flow_args=rdf_structs.AnyValue.Pack(args),
+    return rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=file_finder.ClientFileFinder.__name__,
+            flow_args=rdf_structs.AnyValue.Pack(args),
+        ),
     )
 
   def _CreateHunt(self, **kwargs):
@@ -364,9 +420,12 @@ class HuntTest(
     flow_args.paths = [path]
     flow_args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
 
-    hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=file_finder.FileFinder.__name__,
-        flow_args=rdf_structs.AnyValue.Pack(flow_args),
+    hunt_args = rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=file_finder.FileFinder.__name__,
+            flow_args=rdf_structs.AnyValue.Pack(flow_args),
+        ),
     )
 
     hunt_id, _ = self._CreateAndRunHunt(
@@ -382,8 +441,11 @@ class HuntTest(
     self.assertEqual(hunt_counters.num_results, 5 * num_files)
 
   def testStoppingHuntMarksHuntFlowsForTermination(self):
-    hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=flow_test_lib.InfiniteFlow.__name__
+    hunt_args = rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=flow_test_lib.InfiniteFlow.__name__
+        ),
     )
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
@@ -594,6 +656,30 @@ class HuntTest(
     )
     self.assertLen(logs, 5)
 
+  @test_plugins.WithOutputPluginProto(_DummyProtoOP)
+  def testHuntFlowWithRDFAndProtoOutputPlugins(self):
+    _DummyRDFOP.processed_values = []
+    _DummyProtoOP.processed_values = []
+
+    rdf_plugin = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=_DummyRDFOP.__name__
+    )
+    proto_plugin = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=_DummyProtoOP.__name__
+    )
+
+    self._CreateAndRunHunt(
+        num_clients=1,
+        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
+        client_rule_set=foreman_rules.ForemanClientRuleSet(),
+        client_rate=0,
+        args=self.ClientFileFinderHuntArgs(),
+        output_plugins=[rdf_plugin, proto_plugin],
+    )
+
+    self.assertLen(_DummyRDFOP.processed_values, 1)
+    self.assertLen(_DummyProtoOP.processed_values, 1)
+
   def testUpdatesStatsCounterOnOutputPluginSuccess(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin"
@@ -675,8 +761,11 @@ class HuntTest(
   def testHuntIsStoppedIfAveragePerClientResultsCountTooHigh(self):
     client_ids = self.SetupClients(5)
 
-    hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=processes.ListProcesses.__name__
+    hunt_args = rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=processes.ListProcesses.__name__
+        ),
     )
     hunt_id = self._CreateHunt(
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
@@ -1042,8 +1131,11 @@ class HuntTest(
       prev = p
 
   def testHuntFlowLogsAreCorrectlyWrittenAndCanBeRead(self):
-    hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-        flow_name=flow_test_lib.DummyLogFlow.__name__
+    hunt_args = rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=flow_test_lib.DummyLogFlow.__name__
+        ),
     )
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=10,
@@ -1101,94 +1193,6 @@ class HuntTest(
     self.assertEqual(flows[0].cpu_limit, 42)
     self.assertEqual(flows[0].network_bytes_limit, 43)
 
-  def testStartVariableHuntRaisesIfMoreThanOneFlowPerClient(self):
-    client_id = self.SetupClients(1)[0]
-
-    hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
-    for index in range(2):
-      flow_args = transfer.GetFileArgs()
-      flow_args.pathspec.path = f"/tmp/evil_{index}.txt"
-      flow_args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-
-      hunt_obj.args.variable.flow_groups.append(
-          rdf_hunt_objects.VariableHuntFlowGroup(
-              client_ids=[client_id],
-              flow_name=transfer.GetFile.__name__,
-              flow_args=rdf_structs.AnyValue.Pack(flow_args),
-          )
-      )
-
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    data_store.REL_DB.WriteHuntObject(hunt_obj)
-
-    with self.assertRaises(hunt.CanStartAtMostOneFlowPerClientError):
-      hunt.StartHunt(hunt_obj.hunt_id)
-
-    # Check that no flows were scheduled on the client.
-    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
-    self.assertEmpty(flows)
-
-  def testVariableHuntCanNotBeScheduledWithNonZeroClientRate(self):
-    hunt_obj = rdf_hunt_objects.Hunt(client_rate=42)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
-
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    data_store.REL_DB.WriteHuntObject(hunt_obj)
-    with self.assertRaises(hunt.VariableHuntCanNotHaveClientRateError):
-      hunt.StartHunt(hunt_obj.hunt_id)
-
-    hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
-
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    data_store.REL_DB.WriteHuntObject(hunt_obj)
-    hunt.StartHunt(hunt_obj.hunt_id)  # Should not raise.
-
-  def testVariableHuntSchedulesAllFlowsOnStart(self):
-    client_ids = self.SetupClients(10)
-
-    hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
-
-    for index, pair in enumerate(collection.Batch(client_ids, 2)):
-      flow_args = transfer.GetFileArgs()
-      flow_args.pathspec.path = f"/tmp/evil_{index}.txt"
-      flow_args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-
-      hunt_obj.args.variable.flow_groups.append(
-          rdf_hunt_objects.VariableHuntFlowGroup(
-              client_ids=pair,
-              flow_name=transfer.GetFile.__name__,
-              flow_args=rdf_structs.AnyValue.Pack(flow_args),
-          )
-      )
-
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    data_store.REL_DB.WriteHuntObject(hunt_obj)
-    hunt.StartHunt(hunt_obj.hunt_id)
-
-    hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
-    self.assertEqual(hunt_counters.num_clients, 10)
-
-    all_flows = data_store.REL_DB.ReadHuntFlows(
-        hunt_obj.hunt_id, 0, sys.maxsize
-    )
-    self.assertCountEqual(client_ids, [f.client_id for f in all_flows])
-
-    for index, pair in enumerate(collection.Batch(client_ids, 2)):
-      for client_id in pair:
-        all_flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
-        self.assertLen(all_flows, 1)
-
-        self.assertEqual(
-            all_flows[0].flow_class_name, transfer.GetFile.__name__
-        )
-        rdf_flow = mig_flow_objects.ToRDFFlow(all_flows[0])
-        self.assertEqual(
-            rdf_flow.args.pathspec.path, "/tmp/evil_%d.txt" % index
-        )
-
   def testHuntIDFromURN(self):
     self.assertEqual(
         hunt.HuntIDFromURN(rdfvalue.RDFURN("aff4:/hunts/H:12345678")),
@@ -1222,6 +1226,104 @@ class HuntTest(
     ):
       with self.assertRaises(hunt.flow.CanNotStartFlowWithExistingIdError):
         hunt.StartHuntFlowOnClient(client_id, hunt_id)
+
+  def testCreateHuntWithRDFPluginInitializesState(self):
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name="StatefulDummyHuntOutputPlugin"
+    )
+    args = flows_pb2.FileFinderArgs(
+        paths=["/tmp/evil.txt"],
+        action=flows_pb2.FileFinderAction(
+            action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
+        ),
+    )
+    packed_args = any_pb2.Any()
+    packed_args.Pack(args)
+    hunt_args = hunts_pb2.HuntArguments(
+        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
+        standard=hunts_pb2.HuntArgumentsStandard(
+            flow_name=file_finder.ClientFileFinder.__name__,
+            flow_args=packed_args,
+        ),
+    )
+    hunt_obj = hunts_pb2.Hunt(
+        hunt_id=rdf_hunt_objects.RandomHuntId(),
+        creator=self.test_username,
+        args=hunt_args,
+        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+        output_plugins=[plugin_descriptor],
+    )
+    hunt.CreateHunt(hunt_obj)
+
+    states = data_store.REL_DB.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertLen(states, 1)
+    self.assertEqual(
+        states[0].plugin_descriptor.plugin_name, "StatefulDummyHuntOutputPlugin"
+    )
+
+  @test_plugins.WithOutputPluginProto(OPPInitFails)
+  def testCreateHuntWithProtoPluginInitFails(self):
+    args = flows_pb2.FileFinderArgs(
+        paths=["/tmp/evil.txt"],
+        action=flows_pb2.FileFinderAction(
+            action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
+        ),
+    )
+    packed_args = any_pb2.Any()
+    packed_args.Pack(args)
+    hunt_args = hunts_pb2.HuntArguments(
+        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
+        standard=hunts_pb2.HuntArgumentsStandard(
+            flow_name=file_finder.ClientFileFinder.__name__,
+            flow_args=packed_args,
+        ),
+    )
+    hunt_obj = hunts_pb2.Hunt(
+        hunt_id=rdf_hunt_objects.RandomHuntId(),
+        creator=self.test_username,
+        args=hunt_args,  # Should be irrelevant.
+        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+        output_plugins=[
+            output_plugin_pb2.OutputPluginDescriptor(
+                plugin_name=OPPInitFails.__name__
+            )
+        ],
+    )
+    with self.assertRaisesRegex(RuntimeError, "Init failed!"):
+      hunt.CreateHunt(hunt_obj)
+
+  @test_plugins.WithOutputPluginProto(OPPWithArgs)
+  def testCreateHuntWithOutputPluginProtoWithArgs(self):
+    OPPWithArgs.args_during_init = []
+
+    args = jobs_pb2.LogMessage(data="args")
+    any_args = any_pb2.Any()
+    any_args.Pack(args)
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPWithArgs.__name__,
+        args=any_args,
+    )
+
+    hunt_args = hunts_pb2.HuntArguments(
+        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
+        standard=hunts_pb2.HuntArgumentsStandard(
+            flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
+        ),
+    )
+
+    hunt_obj = hunts_pb2.Hunt(
+        hunt_id=rdf_hunt_objects.RandomHuntId(),
+        creator=self.test_username,
+        args=hunt_args,
+        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+        output_plugins=[plugin_descriptor],
+    )
+    hunt.CreateHunt(hunt_obj)
+
+    self.assertCountEqual(
+        OPPWithArgs.args_during_init,
+        [jobs_pb2.LogMessage(data="args")],
+    )
 
 
 def main(argv):

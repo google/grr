@@ -1,0 +1,7 @@
+
+@for (processes of processesPerClientId() | keyvalue; track processes) {
+  @if (isHuntResult()) {
+    <p class="client-id">Client ID: <copy-button>{{ processes.key }}</copy-button></p>
+  }
+  <process-tree [processes]="processes.value" />
+}

@@ -24,7 +24,11 @@ class ListProcessesArgs(rdf_structs.RDFProtoStruct):
 
 
 class ListProcesses(
-    flow_base.FlowBase[flows_pb2.ListProcessesArgs, flows_pb2.DefaultFlowStore]
+    flow_base.FlowBase[
+        flows_pb2.ListProcessesArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
 ):
   """List running processes on a system."""
 

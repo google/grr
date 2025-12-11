@@ -3,13 +3,18 @@
 
 from absl import app
 
+from grr_response_proto import api_call_router_pb2
+from grr_response_proto.api import client_pb2 as api_client_pb2
+from grr_response_proto.api import flow_pb2 as api_flow_pb2
+from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
+from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_labels_restricted_call_router as api_router
 from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import flow as api_flow
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 
@@ -104,25 +109,19 @@ class ApiLabelsRestrictedCallRouterTest(
       # Reflection methods.
       "ListKbFields",
       "ListFlowDescriptors",
-      "GetRDFValueDescriptor",
-      "ListRDFValuesDescriptors",
       "ListOutputPluginDescriptors",
-      "ListKnownEncodings",
       "ListApiMethods",
   ]
 
-  def CheckMethod(self, method, **kwargs):
+  def CheckMethod(self, method, proto_args=None):
     if not method:
       raise ValueError("Method can't ne None.")
 
     annotations = api_router.ApiLabelsRestrictedCallRouter.GetAnnotatedMethods()
-    args_type = annotations[method.__name__].args_type
+    proto_args_type = annotations[method.__name__].proto_args_type
 
-    if args_type:
-      args = args_type(**kwargs)
-      self.checks[method.__name__] = args
-    elif kwargs:
-      raise ValueError("Method %s doesn't accept arguments." % method.__name__)
+    if proto_args_type:
+      self.checks[method.__name__] = proto_args
     else:
       self.checks[method.__name__] = None
 
@@ -160,46 +159,125 @@ class ApiLabelsRestrictedCallRouterTest(
 
     # Clients methods
     self.CheckMethod(c.SearchClients)
-    self.CheckMethod(c.GetClient, client_id=self.client_id)
-    self.CheckMethod(c.GetClientVersions, client_id=self.client_id)
-    self.CheckMethod(c.GetClientVersionTimes, client_id=self.client_id)
-    self.CheckMethod(c.InterrogateClient, client_id=self.client_id)
-    self.CheckMethod(c.GetInterrogateOperationState)
-    self.CheckMethod(c.GetLastClientIPAddress, client_id=self.client_id)
+    self.CheckMethod(
+        c.GetClient, api_client_pb2.ApiGetClientArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.GetClientVersions,
+        api_client_pb2.ApiGetClientVersionsArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetClientVersionTimes,
+        api_client_pb2.ApiGetClientVersionTimesArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.InterrogateClient,
+        api_client_pb2.ApiInterrogateClientArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetLastClientIPAddress,
+        api_client_pb2.ApiGetLastClientIPAddressArgs(client_id=self.client_id),
+    )
 
     # Virtual file system methods.
-    self.CheckMethod(c.ListFiles, client_id=self.client_id)
-    self.CheckMethod(c.GetFileDetails, client_id=self.client_id)
-    self.CheckMethod(c.GetFileText, client_id=self.client_id)
-    self.CheckMethod(c.GetFileBlob, client_id=self.client_id)
-    self.CheckMethod(c.GetFileVersionTimes, client_id=self.client_id)
-    self.CheckMethod(c.GetFileDownloadCommand, client_id=self.client_id)
-    self.CheckMethod(c.CreateVfsRefreshOperation, client_id=self.client_id)
+    self.CheckMethod(
+        c.ListFiles, api_vfs_pb2.ApiListFilesArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.GetFileDetails,
+        api_vfs_pb2.ApiGetFileDetailsArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetFileText, api_vfs_pb2.ApiGetFileTextArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.GetFileBlob, api_vfs_pb2.ApiGetFileBlobArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.GetFileVersionTimes,
+        api_vfs_pb2.ApiGetFileVersionTimesArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetFileDownloadCommand,
+        api_vfs_pb2.ApiGetFileDownloadCommandArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.CreateVfsRefreshOperation,
+        api_vfs_pb2.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id),
+    )
     self.CheckMethod(c.GetVfsRefreshOperationState)
-    self.CheckMethod(c.GetVfsTimeline, client_id=self.client_id)
-    self.CheckMethod(c.GetVfsTimelineAsCsv, client_id=self.client_id)
+    self.CheckMethod(
+        c.GetVfsTimeline,
+        api_vfs_pb2.ApiGetVfsTimelineArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetVfsTimelineAsCsv,
+        api_vfs_pb2.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id),
+    )
 
     # Clients labels methods.
     self.CheckMethod(c.ListClientsLabels)
-    self.CheckMethod(c.AddClientsLabels, client_ids=[self.client_id])
-    self.CheckMethod(c.RemoveClientsLabels, client_ids=[self.client_id])
+    self.CheckMethod(
+        c.AddClientsLabels,
+        api_client_pb2.ApiAddClientsLabelsArgs(client_ids=[self.client_id]),
+    )
+    self.CheckMethod(
+        c.RemoveClientsLabels,
+        api_client_pb2.ApiRemoveClientsLabelsArgs(client_ids=[self.client_id]),
+    )
 
     # Clients flows methods.
-    self.CheckMethod(c.ListFlows, client_id=self.client_id)
-    self.CheckMethod(c.GetFlow, client_id=self.client_id)
+    self.CheckMethod(
+        c.ListFlows, api_flow_pb2.ApiListFlowsArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.GetFlow,
+        proto_args=api_flow_pb2.ApiGetFlowArgs(client_id=self.client_id),
+    )
     self.CheckMethod(
         c.CreateFlow,
-        client_id=self.client_id,
-        flow=api_flow.ApiFlow(name=processes.ListProcesses.__name__),
+        proto_args=api_flow_pb2.ApiCreateFlowArgs(
+            client_id=self.client_id,
+            flow=api_flow_pb2.ApiFlow(name=processes.ListProcesses.__name__),
+        ),
     )
-    self.CheckMethod(c.CancelFlow, client_id=self.client_id)
-    self.CheckMethod(c.ListFlowResults, client_id=self.client_id)
-    self.CheckMethod(c.GetFlowResultsExportCommand, client_id=self.client_id)
-    self.CheckMethod(c.GetFlowFilesArchive, client_id=self.client_id)
-    self.CheckMethod(c.ListFlowOutputPlugins, client_id=self.client_id)
-    self.CheckMethod(c.ListFlowOutputPluginLogs, client_id=self.client_id)
-    self.CheckMethod(c.ListFlowOutputPluginErrors, client_id=self.client_id)
-    self.CheckMethod(c.ListFlowLogs, client_id=self.client_id)
+    self.CheckMethod(
+        c.CancelFlow, api_flow_pb2.ApiCancelFlowArgs(client_id=self.client_id)
+    )
+    self.CheckMethod(
+        c.ListFlowResults,
+        proto_args=api_flow_pb2.ApiListFlowResultsArgs(
+            client_id=self.client_id
+        ),
+    )
+    self.CheckMethod(
+        c.GetFlowResultsExportCommand,
+        api_flow_pb2.ApiGetFlowResultsExportCommandArgs(
+            client_id=self.client_id
+        ),
+    )
+    self.CheckMethod(
+        c.GetFlowFilesArchive,
+        api_flow_pb2.ApiGetFlowFilesArchiveArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.ListFlowOutputPlugins,
+        api_flow_pb2.ApiListFlowOutputPluginsArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.ListFlowOutputPluginLogs,
+        api_flow_pb2.ApiListFlowOutputPluginLogsArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.ListFlowOutputPluginErrors,
+        api_flow_pb2.ApiListFlowOutputPluginErrorsArgs(
+            client_id=self.client_id
+        ),
+    )
+    self.CheckMethod(
+        c.ListFlowLogs,
+        api_flow_pb2.ApiListFlowLogsArgs(client_id=self.client_id),
+    )
 
     # Cron jobs methods.
     self.CheckMethod(c.ListCronJobs)
@@ -208,27 +286,77 @@ class ApiLabelsRestrictedCallRouterTest(
 
     # Hunts methods.
     self.CheckMethod(c.ListHunts)
-    self.CheckMethod(c.GetHunt, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntErrors, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntLogs, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntResults, hunt_id=self.hunt_id)
-    self.CheckMethod(c.GetHuntResultsExportCommand, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntOutputPlugins, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntOutputPluginLogs, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntOutputPluginErrors, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntCrashes, hunt_id=self.hunt_id)
-    self.CheckMethod(c.GetHuntClientCompletionStats, hunt_id=self.hunt_id)
-    self.CheckMethod(c.GetHuntStats, hunt_id=self.hunt_id)
-    self.CheckMethod(c.ListHuntClients, hunt_id=self.hunt_id)
-    self.CheckMethod(c.GetHuntContext, hunt_id=self.hunt_id)
+    self.CheckMethod(
+        c.GetHunt, api_hunt_pb2.ApiGetHuntArgs(hunt_id=self.hunt_id)
+    )
+    self.CheckMethod(
+        c.ListHuntErrors,
+        api_hunt_pb2.ApiListHuntErrorsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.ListHuntLogs, api_hunt_pb2.ApiListHuntLogsArgs(hunt_id=self.hunt_id)
+    )
+    self.CheckMethod(
+        c.ListHuntResults,
+        api_hunt_pb2.ApiListHuntResultsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.GetHuntResultsExportCommand,
+        api_hunt_pb2.ApiGetHuntResultsExportCommandArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.ListHuntOutputPlugins,
+        api_hunt_pb2.ApiListHuntOutputPluginsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.ListHuntOutputPluginLogs,
+        api_hunt_pb2.ApiListHuntOutputPluginLogsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.ListHuntOutputPluginErrors,
+        api_hunt_pb2.ApiListHuntOutputPluginErrorsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.ListHuntCrashes,
+        api_hunt_pb2.ApiListHuntCrashesArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.GetHuntClientCompletionStats,
+        api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.GetHuntStats, api_hunt_pb2.ApiGetHuntStatsArgs(hunt_id=self.hunt_id)
+    )
+    self.CheckMethod(
+        c.ListHuntClients,
+        api_hunt_pb2.ApiListHuntClientsArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.GetHuntContext,
+        api_hunt_pb2.ApiGetHuntContextArgs(hunt_id=self.hunt_id),
+    )
     self.CheckMethod(c.CreateHunt)
-    self.CheckMethod(c.GetHuntFilesArchive, hunt_id=self.hunt_id)
-    self.CheckMethod(c.GetHuntFile, hunt_id=self.hunt_id)
+    self.CheckMethod(
+        c.GetHuntFilesArchive,
+        api_hunt_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id),
+    )
+    self.CheckMethod(
+        c.GetHuntFile, api_hunt_pb2.ApiGetHuntFileArgs(hunt_id=self.hunt_id)
+    )
 
     # Approvals methods.
-    self.CheckMethod(c.CreateClientApproval, client_id=self.client_id)
-    self.CheckMethod(c.GetClientApproval, client_id=self.client_id)
-    self.CheckMethod(c.ListClientApprovals, client_id=self.client_id)
+    self.CheckMethod(
+        c.CreateClientApproval,
+        api_user_pb2.ApiCreateClientApprovalArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.GetClientApproval,
+        api_user_pb2.ApiGetClientApprovalArgs(client_id=self.client_id),
+    )
+    self.CheckMethod(
+        c.ListClientApprovals,
+        api_user_pb2.ApiListClientApprovalsArgs(client_id=self.client_id),
+    )
     self.CheckMethod(c.ListHuntApprovals)
     self.CheckMethod(c.ListCronJobApprovals)
 
@@ -247,10 +375,7 @@ class ApiLabelsRestrictedCallRouterTest(
     # Reflection methods.
     self.CheckMethod(c.ListKbFields)
     self.CheckMethod(c.ListFlowDescriptors)
-    self.CheckMethod(c.GetRDFValueDescriptor)
-    self.CheckMethod(c.ListRDFValuesDescriptors)
     self.CheckMethod(c.ListOutputPluginDescriptors)
-    self.CheckMethod(c.ListKnownEncodings)
     self.CheckMethod(c.ListApiMethods)
 
     non_checked_methods = set(self.checks.keys()) - set(
@@ -291,7 +416,7 @@ class ApiLabelsRestrictedCallRouterTest(
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelName(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["bar"]
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -302,7 +427,7 @@ class ApiLabelsRestrictedCallRouterTest(
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelOwner(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"], allow_labels_owners=["somebody"]
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -313,7 +438,7 @@ class ApiLabelsRestrictedCallRouterTest(
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"]
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -324,6 +449,8 @@ class ApiLabelsRestrictedCallRouterTest(
         "GetClient",
         "GetClientVersions",
         "GetClientVersionTimes",
+        "GetClientSnapshots",
+        "GetClientStartupInfos",
         "CreateClientApproval",
         "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
@@ -331,7 +458,7 @@ class ApiLabelsRestrictedCallRouterTest(
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_id)
 
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"]
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -341,13 +468,15 @@ class ApiLabelsRestrictedCallRouterTest(
         "GetClient",
         "GetClientVersions",
         "GetClientVersionTimes",
+        "GetClientSnapshots",
+        "GetClientStartupInfos",
         "CreateClientApproval",
         "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   # Check router with vfs access turned on.
   def testWithoutFlowsWithVfsAndSingleMislabeledUnapprovedClient(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_vfs_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -362,7 +491,7 @@ class ApiLabelsRestrictedCallRouterTest(
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"], allow_vfs_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -384,7 +513,7 @@ class ApiLabelsRestrictedCallRouterTest(
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_id)
 
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"], allow_vfs_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -414,7 +543,7 @@ class ApiLabelsRestrictedCallRouterTest(
 
   # Check router with flows access turned on.
   def testWithFlowsWithoutVfsAndSingleMislabeledUnapprovedClient(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_flows_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -425,7 +554,7 @@ class ApiLabelsRestrictedCallRouterTest(
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"], allow_flows_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)
@@ -443,7 +572,7 @@ class ApiLabelsRestrictedCallRouterTest(
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_id)
 
-    params = api_router.ApiLabelsRestrictedCallRouterParams(
+    params = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams(
         allow_labels=["foo"], allow_flows_access=True
     )
     router = api_router.ApiLabelsRestrictedCallRouter(params=params)

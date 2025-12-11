@@ -1,0 +1,22 @@
+@use '../../../material-theme' as c;
+
+
+.conditions {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.condition {
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.outline {
+  outline: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+}
+
+.windows-path-warning {
+  color: c.$color-warn;
+}

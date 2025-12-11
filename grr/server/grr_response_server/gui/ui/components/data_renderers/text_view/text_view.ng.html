@@ -1,6 +1,0 @@
-<pre
-  class="monospace"
-><span *ngFor="let line of textContent$ | async; last as isLast">{{
-  line}}{{ isLast ? '' : '\n'}}</span
-  ><div class="more-indicator" matTooltip="Click on 'Show more' to show truncated content." *ngIf="hasMore$ | async"
-  >…</div></pre>

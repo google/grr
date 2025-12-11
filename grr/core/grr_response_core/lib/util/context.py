@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """A module with utilities for dealing with context managers."""
-
-from typing import ContextManager
-from typing import Generic
-from typing import Sequence
-from typing import TypeVar
+from collections.abc import Sequence
+import contextlib
+from typing import Generic, TypeVar
 
 _T = TypeVar("_T")
 
 
-class MultiContext(ContextManager[Sequence[_T]], Generic[_T]):
+class MultiContext(
+    contextlib.AbstractContextManager[Sequence[_T]], Generic[_T]
+):
   """A context managers that sequences multiple context managers.
 
   This is similar to the monadic `sequence` operator: it takes a list of context
@@ -20,7 +20,9 @@ class MultiContext(ContextManager[Sequence[_T]], Generic[_T]):
   open multiple files.
   """
 
-  def __init__(self, managers: Sequence[ContextManager[_T]]) -> None:
+  def __init__(
+      self, managers: Sequence[contextlib.AbstractContextManager[_T]]
+  ) -> None:
     self._managers = managers
 
   def __enter__(self) -> Sequence[_T]:

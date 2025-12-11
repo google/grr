@@ -50,12 +50,5 @@ def FlowResultToClientPath(item: flows_pb2.FlowResult) -> db.ClientPath:
     return db.ClientPath.FromPathSpec(
         client_id, mig_paths.ToRDFPathSpec(payload.stat.pathspec)
     )
-  elif payload_any.Is(flows_pb2.ArtifactFilesDownloaderResult.DESCRIPTOR):
-    payload = flows_pb2.ArtifactFilesDownloaderResult()
-    payload_any.Unpack(payload)
-    if payload.HasField("downloaded_file"):
-      return db.ClientPath.FromPathSpec(
-          client_id, mig_paths.ToRDFPathSpec(payload.downloaded_file.pathspec)
-      )
 
   raise ItemNotExportableError(item)
