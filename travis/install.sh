@@ -9,7 +9,7 @@ source "${HOME}/INSTALL/bin/activate"
 # https://github.com/pypa/setuptools/issues/3278
 # (it behaves incorrectly on Ubuntu 22 on virtualenvs with access to
 # globally installed packages).
-pip install --upgrade pip wheel six 'setuptools<58.3.1' nodeenv
+pip install --upgrade 'pip<23.1' wheel six 'setuptools<58.3.1' nodeenv
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
