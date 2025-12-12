@@ -104,29 +104,6 @@ jobs:
           path: gcs_upload_dir/
           retention-days: 1
 
-  build-osx:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-      - name: Set up
-        run: |
-          pip install --upgrade setuptools virtualenv
-          virtualenv "${HOME}/INSTALL"
-      - name: Build installers
-        run: |
-          travis/install_client_builder.sh
-          travis/build_templates.sh
-          ls -la gcs_upload_dir
-      - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: osx-installers
-          path: gcs_upload_dir/
-          retention-days: 1
-
   build-centos:
     runs-on: ubuntu-22.04
     env:
@@ -191,7 +168,6 @@ jobs:
     needs:
       - build-centos
       - build-ubuntu
-      - build-osx
       - build-windows
     steps:
       - uses: actions/checkout@v4
@@ -325,7 +301,6 @@ jobs:
       - test-ubuntu
       - build-centos
       - build-ubuntu
-      - build-osx
       - build-windows
       - build-openapi
     steps:
@@ -344,8 +319,6 @@ jobs:
           mv -v _artifacts/centos-installers/* $OUTPUT_DIR/centos
           mkdir -p $OUTPUT_DIR/ubuntu/
           mv -v _artifacts/ubuntu-installers/* $OUTPUT_DIR/ubuntu
-          mkdir -p $OUTPUT_DIR/osx/
-          mv -v _artifacts/osx-installers/* $OUTPUT_DIR/osx
           mkdir -p $OUTPUT_DIR/windows/
           mv -v _artifacts/windows-installers/* $OUTPUT_DIR/windows
       - name: Authenticate
