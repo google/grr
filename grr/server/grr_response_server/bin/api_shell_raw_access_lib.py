@@ -40,16 +40,16 @@ class RawConnector(connectors.Connector):
       ]
 
       if args is None:
-        if mdata.args_type is None:
+        if mdata.proto_args_type is None:
           return self._router
-        elif root_mdata.args_type is None:
+        elif root_mdata.proto_args_type is None:
           return self._root_router
       else:
-        if mdata.args_type and mdata.args_type.protobuf == args.__class__:
+        if mdata.proto_args_type and mdata.proto_args_type == args.__class__:
           return self._router
         elif (
-            root_mdata.args_type
-            and root_mdata.args_type.protobuf == args.__class__
+            root_mdata.proto_args_type
+            and root_mdata.proto_args_type == args.__class__
         ):
           return self._root_router
 
@@ -66,12 +66,6 @@ class RawConnector(connectors.Connector):
   def _CallMethod(self, method_name, args):
     router = self._MatchRouter(method_name, args)
 
-    # TODO: Remove this once all handler are migrated to protos.
-    rdf_args = None
-    if args is not None:
-      mdata = router.__class__.GetAnnotatedMethods()[method_name]
-      rdf_args = mdata.args_type.FromSerializedBytes(args.SerializeToString())
-
     method = getattr(router, method_name)
     try:
       handler = method(args, context=self._context)
@@ -79,12 +73,18 @@ class RawConnector(connectors.Connector):
       if handler.proto_args_type:
         result = handler.Handle(args, context=self._context)
       else:
-        result = handler.Handle(rdf_args, context=self._context)
+        result = handler.Handle(None, context=self._context)
 
-      if isinstance(result, message.Message):
-        rdf_cls = handler.result_type
-        proto_bytes = result.SerializeToString()
-        result = rdf_cls.FromSerializedBytes(proto_bytes)
+      # Results should be proto messages or binary streams.
+      if result and (
+          not isinstance(result, message.Message)
+          and not isinstance(result, api_call_handler_base.ApiBinaryStream)
+      ):
+        raise RuntimeError(
+            "Invalid result type returned from the API handler. Expected "
+            "proto message or binary stream, got %s"
+            % result.__class__.__name__
+        )
 
       return result
     except access_control.UnauthorizedAccess as e:
@@ -109,12 +109,7 @@ class RawConnector(connectors.Connector):
       handler_name: str,
       args: message.Message,
   ) -> Optional[message.Message]:
-    rdf_result = self._CallMethod(handler_name, args)
-
-    if rdf_result is not None:
-      return rdf_result.AsPrimitiveProto()
-    else:
-      return None
+    return self._CallMethod(handler_name, args)
 
   def SendStreamingRequest(
       self,

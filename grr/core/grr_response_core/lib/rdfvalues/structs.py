@@ -3,11 +3,12 @@
 
 import base64
 from collections import abc
+from collections.abc import ByteString, Iterator, Sequence
 import copy
 import functools
 import logging
 import struct
-from typing import ByteString, Iterator, Optional, Sequence, Type, TypeVar, cast
+from typing import Optional, TypeVar, cast
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
@@ -1602,7 +1603,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     # biggest caveat here is that RDFStruct is defined *with the help*
     # of RDFStructMetaclass, so its name is not defined at the time
     # this code is evaluated.
-    cls: Type["RDFStruct"] = untyped_cls
+    cls: type["RDFStruct"] = untyped_cls
     cls.type_infos = type_info.TypeDescriptorSet()
 
     # Keep track of the late bound fields.
@@ -2325,7 +2326,7 @@ class AnyValue(RDFProtoStruct):
     result.value = value.SerializeToBytes()
     return result
 
-  def Unpack(self, cls: Type[_V]) -> _V:
+  def Unpack(self, cls: type[_V]) -> _V:
     """Unpacks `Any` into an instance of the specified RDF class.
 
     Args:
@@ -2345,7 +2346,7 @@ class AnyValue(RDFProtoStruct):
     return cls.FromSerializedBytes(self.value)
 
 
-def TypeURL(cls: Type[_V]) -> str:
+def TypeURL(cls: type[_V]) -> str:
   if cls.protobuf is None:
     raise ValueError("protobuf must be set on cls.")
   return f"type.googleapis.com/{cls.protobuf.DESCRIPTOR.full_name}"

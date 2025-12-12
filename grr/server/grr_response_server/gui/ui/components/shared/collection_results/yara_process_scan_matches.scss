@@ -1,0 +1,8 @@
+
+
+.ellipsize-table-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

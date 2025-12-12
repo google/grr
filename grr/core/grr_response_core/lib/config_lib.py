@@ -13,7 +13,7 @@ import platform
 import re
 import sys
 import traceback
-from typing import Any, BinaryIO, Dict, Optional, Type, cast
+from typing import Any, BinaryIO, Optional, cast
 
 from absl import flags
 
@@ -827,7 +827,7 @@ class GrrConfigManager(object):
   def PrintHelp(self):
     print(self.FormatHelp())
 
-  def MergeData(self, merge_data: Dict[Any, Any], raw_data=None):
+  def MergeData(self, merge_data: dict[Any, Any], raw_data=None):
     """Merges data read from a config file into the current config."""
     self.FlushCache()
     if raw_data is None:
@@ -945,7 +945,7 @@ class GrrConfigManager(object):
       reset: bool = True,
       must_exist: bool = False,
       process_includes: bool = True,
-      parser: Type[
+      parser: type[
           config_parser.GRRConfigParser
       ] = config_parser.IniConfigFileParser,
   ):

@@ -1,0 +1,26 @@
+
+<div class="row">
+  <mat-icon>error_outline</mat-icon>
+  <h1>Grr! The requested address could not be found.</h1>
+</div>
+
+<div class="monospace">
+  <strong>Diagnostic information:</strong><br>
+  Version: {{ globalStore.uiConfig()?.grrVersion }}<br>
+  Address: {{ currentUrlPath }}<br>
+</div>
+
+<div class="row">
+  <button mat-stroked-button (click)="navigateBack()">
+    <mat-icon>arrow_back</mat-icon> Go back
+  </button>
+  <a mat-stroked-button
+    [href]="globalStore.uiConfig()?.reportUrl"
+    target="_blank"
+    rel="noreferrer"
+  >
+    <mat-icon>feedback</mat-icon> Report the problem
+  </a>
+</div>
+
+<div class="monospace" aria-hidden="true">{{ asciiArt }}</div>

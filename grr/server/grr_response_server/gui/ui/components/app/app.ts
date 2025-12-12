@@ -1,29 +1,30 @@
-import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
-import {MatDrawer} from '@angular/material/sidenav';
+import {CommonModule} from '@angular/common';
 import {
-  ActivatedRoute,
-  ActivationEnd,
-  NavigationStart,
-  Router,
-} from '@angular/router';
-import {distinctUntilChanged, filter, map, startWith} from 'rxjs/operators';
-import {setLocationHref} from 'safevalues/dom';
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
+import {toSignal} from '@angular/core/rxjs-interop';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule, MatIconRegistry} from '@angular/material/icon';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatTabsModule} from '@angular/material/tabs';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {ActivationEnd, Router, RouterModule} from '@angular/router';
+import {filter} from 'rxjs/operators';
 
-import {
-  GrrActivatedRouteSnapshot,
-  makeLegacyLink,
-  makeLegacyLinkFromRoute,
-} from '../../lib/routing';
-import {
-  MetricsService,
-  UiRedirectDirection,
-  UiRedirectSource,
-} from '../../lib/service/metrics_service/metrics_service';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {UserGlobalStore} from '../../store/user_global_store';
+import {ApiModule} from '../../lib/api/module';
+import {GrrActivatedRouteSnapshot} from '../../lib/routing';
+import {LoadingService} from '../../lib/service/loading_service/loading_service';
+import {GlobalStore} from '../../store/global_store';
+import {UserMenu} from './user_menu';
 
-const CLIENTS_ROUTE = '/clients';
-const NEW_HUNT_ROUTE = '/new-hunt';
+const NEW_FLEET_COLLECTION_ROUTE = '/new-fleet-collection';
 
 /** Recursively searches a route and all child routes to fulfill a predicate. */
 function findRouteWith(
@@ -42,11 +43,7 @@ function findRouteWith(
   return undefined;
 }
 
-function hasLegacyLink(route: GrrActivatedRouteSnapshot) {
-  return route.data.legacyLink !== undefined;
-}
-
-function hasPageViewTracking(route: GrrActivatedRouteSnapshot) {
+function hasPageViewTracking(route: GrrActivatedRouteSnapshot): boolean {
   return route.data.pageViewTracking !== undefined;
 }
 
@@ -54,131 +51,51 @@ function hasPageViewTracking(route: GrrActivatedRouteSnapshot) {
  * The root component.
  */
 @Component({
-  standalone: false,
   selector: 'app-root',
   templateUrl: './app.ng.html',
   styleUrls: ['./app.scss'],
+  imports: [
+    ApiModule,
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatSidenavModule,
+    MatSnackBarModule,
+    MatTabsModule,
+    MatToolbarModule,
+    MatTooltipModule,
+    RouterModule,
+    UserMenu,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [MetricsService],
 })
 export class App {
-  private readonly navigationEndEvent$;
+  private readonly router = inject(Router);
+  protected readonly globalStore = inject(GlobalStore);
+  readonly loadingService = inject(LoadingService);
 
-  readonly fallbackLink$;
+  private readonly navigationEndEvent$ = this.router.events.pipe(
+    filter((event): event is ActivationEnd => event instanceof ActivationEnd),
+  );
+  private readonly navigationEndEvent = toSignal(this.navigationEndEvent$);
 
-  registerRedirect() {
-    this.metricsService.registerUIRedirect(
-      UiRedirectDirection.NEW_TO_OLD,
-      UiRedirectSource.REDIRECT_BUTTON,
-    );
-  }
+  protected readonly isNewFleetCollectionPath = computed<boolean>(() => {
+    if (this.navigationEndEvent() !== undefined) {
+      return this.router.url.startsWith(NEW_FLEET_COLLECTION_ROUTE);
+    }
+    return false;
+  });
 
-  readonly isClientsPath$;
+  constructor() {
+    inject(MatIconRegistry).setDefaultFontSetClass('material-icons-outlined');
 
-  readonly isNewHuntPath$;
+    this.globalStore.initialize();
 
-  @ViewChild('drawer') drawer!: MatDrawer;
+    effect(() => {
+      const event = this.navigationEndEvent();
+      if (!event) return;
 
-  readonly uiConfig$;
-
-  readonly heading$;
-
-  readonly canaryMode$;
-
-  constructor(
-    private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute,
-    private readonly configGlobalStore: ConfigGlobalStore,
-    private readonly userGlobalStore: UserGlobalStore,
-    private readonly metricsService: MetricsService,
-  ) {
-    this.navigationEndEvent$ = this.router.events.pipe(
-      filter((event): event is ActivationEnd => event instanceof ActivationEnd),
-    );
-    this.fallbackLink$ = this.navigationEndEvent$.pipe(
-      map((event) => {
-        const route = event.snapshot as GrrActivatedRouteSnapshot;
-        const routeWithLegacyLink = findRouteWith(route, hasLegacyLink);
-        if (routeWithLegacyLink === undefined) {
-          return makeLegacyLink();
-        } else {
-          return makeLegacyLinkFromRoute(routeWithLegacyLink);
-        }
-      }),
-    );
-    this.isClientsPath$ = this.navigationEndEvent$.pipe(
-      map(() => this.router.url.startsWith(CLIENTS_ROUTE)),
-      distinctUntilChanged(),
-    );
-    this.isNewHuntPath$ = this.navigationEndEvent$.pipe(
-      map(() => this.router.url.startsWith(NEW_HUNT_ROUTE)),
-      distinctUntilChanged(),
-    );
-    this.uiConfig$ = this.configGlobalStore.uiConfig$;
-    this.heading$ = this.configGlobalStore.uiConfig$.pipe(
-      map((config) => config.heading),
-    );
-    this.canaryMode$ = this.userGlobalStore.currentUser$.pipe(
-      map((user) => user.canaryMode),
-      startWith(false),
-    );
-    this.navigationEndEvent$.subscribe(async (event) => {
-      const drawerRoute = findRouteWith(
-        event.snapshot,
-        (route) => route.outlet === 'drawer',
-      );
-      if (drawerRoute) {
-        await this.drawer.open();
-      } else {
-        await this.drawer.close();
-      }
-    });
-
-    // Redirect URLs with fragments (#) to legacy UI.
-    this.router.events
-      .pipe(
-        filter(
-          (event): event is NavigationStart => event instanceof NavigationStart,
-        ),
-      )
-      .subscribe((event) => {
-        const url: string = event?.url;
-        if (!url) return;
-
-        const i = url.indexOf('#');
-        if (i < 0) return; // has no fragment
-
-        this.metricsService.registerUIRedirect(
-          UiRedirectDirection.NEW_TO_OLD,
-          UiRedirectSource.REDIRECT_ROUTER,
-        );
-        const fragmentWithHashtag = url.substring(i);
-        setLocationHref(window.location, makeLegacyLink(fragmentWithHashtag));
-      });
-
-    this.activatedRoute.queryParamMap
-      .pipe(
-        map((params) => {
-          if (!params.has('source')) return;
-
-          const source = params.get('source') as UiRedirectSource;
-          this.metricsService.registerUIRedirect(
-            UiRedirectDirection.OLD_TO_NEW,
-            source,
-          );
-
-          // Remove query params without reloading the page.
-          this.router.navigate([], {
-            queryParams: {
-              'source': null,
-            },
-            queryParamsHandling: 'merge',
-          });
-        }),
-      )
-      .subscribe();
-
-    this.navigationEndEvent$.subscribe(async (event) => {
       const route = event.snapshot as GrrActivatedRouteSnapshot;
       const routeWithPageViewTracking = findRouteWith(
         route,
@@ -194,18 +111,8 @@ export class App {
             routeWithPageViewTracking?.data?.pageViewTracking?.pageTitle,
           'page_path':
             routeWithPageViewTracking?.data?.pageViewTracking?.pagePath,
-          'page_location':
-            routeWithPageViewTracking?.data?.pageViewTracking?.pageLocation,
-          'page_referrer':
-            routeWithPageViewTracking?.data?.pageViewTracking?.pageReferrer,
         });
       }
-    });
-  }
-
-  ngAfterViewInit() {
-    this.drawer.closedStart.subscribe(() => {
-      this.router.navigate([{outlets: {'drawer': null}}], {replaceUrl: true});
     });
   }
 }

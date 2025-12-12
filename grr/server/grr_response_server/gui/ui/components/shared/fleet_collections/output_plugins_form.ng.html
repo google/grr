@@ -1,0 +1,70 @@
+<ng-template #outputPluginForm let-plugin="plugin" let-index="index">
+  <div class="plugin-container">
+    <div>
+      <div class="plugin">
+        @if (!disabled()) {
+          <button mat-icon-button
+            type="button"
+            (click)="removeOutputPlugin(index)"
+            [attr.aria-label]="'Remove output plugin ' + plugin.pluginType"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+        {{plugin.prettyName}}
+      </div>
+    </div>
+    <div class="form-container">
+      @switch (plugin.pluginType) {
+
+        @case (OutputPluginType.EMAIL) {
+          <email-output-plugin-form [plugin]="plugin" />
+        }
+        @case (OutputPluginType.UNKNOWN) {
+          <div>Unknown output plugin: {{ plugin.prettyName }}</div>
+        }
+        @default {
+          checkExhaustive(plugin.pluginType);
+        }
+      }
+    </div>
+  </div>
+</ng-template>
+
+
+<collapsible-container>
+  <collapsible-title>
+    <h4>Export data</h4>
+  </collapsible-title>
+  <collapsible-content>
+    @if (disabled()) {
+      <fieldset disabled readonly>
+        @for (plugin of configuredOutputPlugins(); track plugin) {
+          <ng-container
+            *ngTemplateOutlet="outputPluginForm; context: {plugin: plugin, index: $index}" />
+        }
+      </fieldset>
+    } @else {
+      @for (plugin of configuredOutputPlugins(); track plugin) {
+        @if (pluginIsAvailable(plugin.pluginType)) {
+          <ng-container
+            *ngTemplateOutlet="outputPluginForm; context: {plugin: plugin, index: $index}" />
+        }
+      }
+      <button mat-flat-button [matMenuTriggerFor]="menu">Add output plugin</button>
+      <mat-menu #menu="matMenu">
+        @for (plugin of globalStore.outputPluginDescriptors(); track plugin.pluginType) {
+          @if (SUPPORTED_OUTPUT_PLUGINS.has(plugin.pluginType)) {
+            <button mat-menu-item (click)="addOutputPlugin(plugin.pluginType)">
+              {{plugin.friendlyName}}
+            </button>
+          } @else {
+            <button mat-menu-item disabled>
+              {{plugin.friendlyName}} - not supported in the UI
+            </button>
+          }
+        }
+      </mat-menu>
+    }
+  </collapsible-content>
+</collapsible-container>

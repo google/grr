@@ -3,7 +3,7 @@
 
 from collections import abc
 import logging
-from typing import List, Text, Union, cast
+from typing import Union, cast
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
@@ -75,7 +75,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       TypeError: if the value can't be serialized and raise_on_error is True
     """
     type_mappings = [
-        (Text, "string"),
+        (str, "string"),
         (bytes, "data"),
         (bool, "boolean"),
         (int, "integer"),
@@ -196,7 +196,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, **kwargs):
     super().__init__(initializer=None)
 
-    self.dat: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper] = None
+    self.dat: Union[list[KeyValue], rdf_structs.RepeatedFieldHelper] = None
 
     # Support initializing from a mapping
     if isinstance(initializer, dict):
@@ -350,7 +350,7 @@ class Dict(rdf_structs.RDFProtoStruct):
     self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return super().SerializeToBytes()
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return str(self.ToDict())
 
 
@@ -390,7 +390,7 @@ class AttributedDict(Dict):
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
-    if isinstance(key, Text):
+    if isinstance(key, str):
       return super().__setitem__(key, value)
 
     raise TypeError("Non-string key: {!r}".format(key))
@@ -400,7 +400,7 @@ class AttributedDict(Dict):
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
-    if isinstance(key, Text):
+    if isinstance(key, str):
       return super().__getitem__(key)
 
     raise TypeError("Non-string key: {!r}".format(key))
@@ -418,7 +418,7 @@ class AttributedDict(Dict):
     for key in self._values.keys():
       if isinstance(key, bytes):
         byte_keys.add(key)
-      elif not isinstance(key, Text):
+      elif not isinstance(key, str):
         raise TypeError("Non-string key: {!r}".format(key))
 
     for byte_key in byte_keys:
@@ -441,92 +441,6 @@ class BlobArray(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       DataBlob,
   ]
-
-
-class RDFValueArray(rdf_structs.RDFProtoStruct):
-  """A type which serializes a list of RDFValue instances.
-
-  TODO(user): This needs to be deprecated in favor of just defining a
-  protobuf with a repeated field (This can be now done dynamically, which is the
-  main reason we used this in the past).
-  """
-
-  protobuf = jobs_pb2.BlobArray
-  allow_custom_class_name = True
-  rdf_deps = [
-      DataBlob,
-  ]
-
-  # Set this to an RDFValue class to ensure all members adhere to this type.
-  rdf_type = None
-
-  def __init__(self, initializer=None):
-    super().__init__()
-
-    if self.__class__ == initializer.__class__:
-      self.content = initializer.Copy().content
-    else:
-      try:
-        for item in initializer:
-          self.Append(item)
-      except TypeError:
-        if initializer is not None:
-          raise rdfvalue.InitializeError(
-              "%s can not be initialized from %s"
-              % (self.__class__.__name__, type(initializer))
-          )
-
-  def Append(self, value=None, **kwarg):
-    """Add another member to the array.
-
-    Args:
-      value: The new data to append to the array.
-      **kwarg:  Create a new element from these keywords.
-
-    Returns:
-      The value which was added. This can be modified further by the caller and
-      changes will be propagated here.
-
-    Raises:
-      ValueError: If the value to add is not allowed.
-    """
-    if self.rdf_type is not None:
-      if (
-          isinstance(value, rdfvalue.RDFValue)
-          and value.__class__ != self.rdf_type
-      ):
-        raise ValueError("Can only accept %s" % self.rdf_type)
-
-      try:
-        # Try to coerce the value.
-        value = self.rdf_type(value, **kwarg)  # pylint: disable=not-callable
-      except (TypeError, ValueError) as e:
-        raise ValueError(
-            "Unable to initialize %s from type %s"
-            % (self.__class__.__name__, type(value))
-        ) from e
-
-    self.content.Append(DataBlob().SetValue(value))
-
-  def Extend(self, values):
-    for v in values:
-      self.Append(v)
-
-  def __getitem__(self, item):
-    return self.content[item].GetValue()
-
-  def __len__(self):
-    return len(self.content)
-
-  def __iter__(self):
-    for blob in self.content:
-      yield blob.GetValue()
-
-  def __bool__(self):
-    return bool(self.content)
-
-  def Pop(self, index=0):
-    return self.content.Pop(index).GetValue()
 
 
 # TODO(user):pytype: Mapping is likely using abc.ABCMeta that provides a

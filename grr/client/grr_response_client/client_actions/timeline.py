@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """A module with a client action for timeline collection."""
 
+from collections.abc import Iterator
 import hashlib
 import os
 import stat as stat_mode
-from typing import Iterator, Optional
+from typing import Optional
 
 import psutil
 

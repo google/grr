@@ -1,7 +1,6 @@
 syntax = "proto2";
 
 import "grr_response_proto/api_utils.proto";
-import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 package grr;
@@ -41,6 +40,13 @@ message ApiCallRouterWithApprovalCheckParams {
   }];
   repeated string admin_users = 5
       [(sem_type) = { description: "Names of users that have admin access." }];
+
+  repeated string mitigation_flows_groups = 6 [(sem_type) = {
+    description: "Names of groups of users that have access to mitigation flows."
+  }];
+  repeated string mitigation_flows_users = 7 [(sem_type) = {
+    description: "Names of users that have access to mitigation flows."
+  }];
 }
 
 message ApiLabelsRestrictedCallRouterParams {
@@ -139,6 +145,10 @@ message RobotRouterGetCollectedTimelineParams {
   optional bool enabled = 1;
 }
 
+message RobotRouterMitigationActionsParams {
+  optional bool enabled = 1;
+}
+
 message RobotRouterGetFlowParams {
   optional bool enabled = 1;
 }
@@ -170,7 +180,7 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool skip_glob_checks_for_artifact_collector = 4;
 }
 
-// Next message id: 12
+// Next message id: 13
 message ApiCallRobotRouterParams {
   optional RobotRouterSearchClientsParams search_clients = 1;
 
@@ -185,59 +195,12 @@ message ApiCallRobotRouterParams {
 
   optional RobotRouterTimelineFlowParams timeline_flow = 9;
   optional RobotRouterGetCollectedTimelineParams get_collected_timeline = 11;
+  optional RobotRouterMitigationActionsParams mitigation_actions = 12;
 
   // DEPRECATED, don't use.
   // Note: this field wasn't renamed to DEPRECATED_robot_id, since router params
   // are read from YAML files and therefore field-name-sensitive.
   optional string robot_id = 7;
-}
-
-message ApiYaraHuntCallRouterParams {
-  // A client limit allowed for production hunts. This values also determines
-  // what kind of hunt is being created.
-  optional int64 prod_client_limit = 1;
-
-  // A client limit allowed for canary hunts. This value also determines what
-  // kind of hunt is being created.
-  optional int64 canary_client_limit = 2;
-
-  // A duration limiting how often production hunts can be created. New hunts
-  // cannot be created earlier than this duration after the previous hunt has
-  // been created.
-  optional uint64 prod_expiry_duration = 3 [(sem_type) = { type: "Duration" }];
-
-  // A duration limiting how often canary hunts can be created. New hunts cannot
-  // be created earlier than this duration after the previous hunt has been
-  // created.
-  optional uint64 canary_expiry_duration = 4
-      [(sem_type) = { type: "Duration" }];
-
-  // The following values are treated as the only allowed and default values for
-  // various hunt settings. If the user specifies a hunt creation setting other
-  // than one of these, an exception will be raised.
-  optional ForemanClientRuleSet client_rule_set = 5;
-  optional float client_rate = 6;
-  optional uint64 crash_limit = 7;
-  optional uint64 avg_results_per_client_limit = 8;
-  optional uint64 avg_cpu_seconds_per_client_limit = 9;
-  optional uint64 avg_network_bytes_per_client_limit = 10;
-  optional uint64 per_client_cpu_seconds_limit = 11;
-  optional uint64 per_client_network_bytes_limit = 12;
-  optional uint64 total_network_bytes_limit = 13;
-
-  // Similarly to the ones above, these values are the only allowed and default
-  // values allowed for the arguments specific to the YARA flow.
-  enum ErrorPolicy {
-    NO_ERRORS = 0;
-    ALL_ERRORS = 1;
-    CRITICAL_ERRORS = 2;
-  }
-  optional ErrorPolicy include_errors_in_results = 14;
-  optional bool include_misses_in_results = 15;
-  optional uint64 per_process_scan_seconds_limit = 16;
-  optional uint64 per_process_results_limit = 17;
-  optional uint64 per_process_dump_size_limit = 18
-      [(sem_type) = { type: "ByteSize" }];
 }
 
 message ApiInterrogateRouterParams {

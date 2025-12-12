@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """A module with utilities for working with the Sleuthkit's body format."""
 
+from collections.abc import Iterator
 import enum
 import io
 import stat
-from typing import Iterator, Optional
+from typing import Optional
 
 from grr_response_proto import timeline_pb2
 
@@ -96,6 +97,23 @@ def Stream(
 
   for entry in entries:
     path = entry.path.decode("utf-8", "surrogateescape")
+    mode = entry.mode
+
+    if not mode and entry.attributes:
+      # If there is no mode but we have file attributes, we are most likely on
+      # Windows so we just emulate mode similarly to what Python does [1].
+      #
+      # pylint: disable=line-too-long
+      # [1]: https://github.com/python/cpython/blob/v3.13.7/Python/fileutils.c#L1077-L1090
+      # pylint: enable=line-too-long
+      if entry.attributes & _FILE_ATTRIBUTE_DIRECTORY:
+        mode |= stat.S_IFDIR
+      else:
+        mode |= stat.S_IFREG
+      if entry.attributes & _FILE_ATTRIBUTE_READONLY:
+        mode |= 0o555
+      else:
+        mode |= 0o777
 
     # We don't generally want to use the built-in Python's CSV module for body
     # files because it very weirdly handles certain cases. For example, in non-
@@ -107,7 +125,7 @@ def Stream(
     buf.write("|")
     buf.write(inode_fmt(entry.ino))
     buf.write("|")
-    buf.write(stat.filemode(entry.mode))
+    buf.write(stat.filemode(mode))
     buf.write("|")
     buf.write(str(entry.uid))
     buf.write("|")
@@ -169,3 +187,8 @@ def _NtfsFileReference(ino: int) -> str:
   record = ino & ((1 << 48) - 1)
   sequence = ino >> 48
   return f"{record}-{sequence}"
+
+
+# https://learn.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
+_FILE_ATTRIBUTE_READONLY = 0x00000001
+_FILE_ATTRIBUTE_DIRECTORY = 0x00000010

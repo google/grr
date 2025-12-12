@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for blobs handling."""
 
-from typing import Collection, Mapping, Optional
+from collections.abc import Collection, Mapping
+from typing import Optional
 
 import MySQLdb.cursors
 

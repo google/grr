@@ -106,15 +106,3 @@ class CreateCronJobArgs(rdf_structs.RDFProtoStruct):
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
-
-  @classmethod
-  def FromApiCreateCronJobArgs(cls, api_args):
-    return cls(
-        flow_name=api_args.flow_name,
-        flow_args=api_args.flow_args,
-        hunt_runner_args=api_args.hunt_runner_args,
-        description=api_args.description,
-        frequency=api_args.periodicity,
-        lifetime=api_args.lifetime,
-        allow_overruns=api_args.allow_overruns,
-    )

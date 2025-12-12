@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """A module with utilities for retrying function execution."""
 
+from collections.abc import Callable
 import dataclasses
 import datetime
 import functools
 import logging
 import random
 import time
-from typing import Callable, Generic, Optional, Tuple, Type, TypeVar, Union
+from typing import Generic, Optional, TypeVar, Union
 
 
 @dataclasses.dataclass
@@ -45,7 +46,7 @@ class On(Generic[_E]):
 
   def __init__(
       self,
-      exception: Union[Type[_E], Tuple[Type[_E], ...]],
+      exception: Union[type[_E], tuple[type[_E], ...]],
       opts: Optional[Opts] = None,
   ) -> None:
     """Initializes the decorator.
@@ -78,7 +79,7 @@ class When(Generic[_E]):
 
   def __init__(
       self,
-      exception: Union[Type[_E], Tuple[Type[_E], ...]],
+      exception: Union[type[_E], tuple[type[_E], ...]],
       predicate: Callable[[_E], bool],
       opts: Optional[Opts] = None,
   ) -> None:

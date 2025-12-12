@@ -49,6 +49,25 @@ message FileMetadata {
     google.protobuf.Timestamp modification_time = 4;
     // Time at which the file was created.
     google.protobuf.Timestamp creation_time = 5;
+
+    // Identifier of the device containing the file (Unix-only).
+    uint64 unix_dev = 6;
+    // Inode number of the file (Unix-only).
+    uint64 unix_ino = 7;
+    // Type and rights mask of the file (Unix-only).
+    uint32 unix_mode = 8;
+    // Number of hard links pointing to the file (Unix-only).
+    uint64 unix_nlink = 9;
+    // Identifier of the user owning the file (Unix-only).
+    uint32 unix_uid = 10;
+    // Identifier of the group owning the file (Unix-only).
+    uint32 unix_gid = 11;
+    // Identifier of the device (only for special files, Unix-only).
+    uint64 unix_rdev = 12;
+    // Block size for the filesystem I/O.
+    uint64 unix_blksize = 13;
+    // Number of blocks allocated for the file.
+    uint64 unix_blocks = 14;
 }
 
 // Extended attribute of a file.

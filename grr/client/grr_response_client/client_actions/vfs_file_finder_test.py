@@ -5,7 +5,7 @@ import contextlib
 import hashlib
 import os
 import platform
-from typing import List, Optional, Tuple
+from typing import Optional
 import unittest
 from unittest import mock
 import zlib
@@ -82,7 +82,7 @@ def _GroupItemsByType(iterable):
 
 def _RunFileFinder(
     args: rdf_file_finder.FileFinderArgs,
-) -> List[rdf_file_finder.FileFinderResult]:
+) -> list[rdf_file_finder.FileFinderResult]:
   results = []
 
   def SendReply(rdf_value, *args, **kwargs):
@@ -620,7 +620,7 @@ class NtfsImageTestBase(absltest.TestCase):
       self._root = "/"
       self._paths_expr = "/*"
 
-  def _MockGetRawDevice(self, path: str) -> Tuple[rdf_paths.PathSpec, str]:
+  def _MockGetRawDevice(self, path: str) -> tuple[rdf_paths.PathSpec, str]:
     ntfs_img_path = os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img")
 
     pathspec = rdf_paths.PathSpec(

@@ -28,6 +28,15 @@ class MemKeystore(abstract.Keystore):
 
     return XorCrypter(key)
 
+  def MAC(self, name: str) -> "XorMAC":
+    """Creates a MAC for the given key to sign and verify data."""
+    try:
+      key = self._keys[name]
+    except KeyError as error:
+      raise abstract.UnknownKeyError(name) from error
+
+    return XorMAC(key)
+
 
 class XorCrypter(abstract.Crypter):
   """A simple crypter using XOR cipher.
@@ -61,3 +70,31 @@ class XorCrypter(abstract.Crypter):
       raise abstract.DecryptionError("Incorrect associated data")
 
     return unencrypted_data[: -len(assoc_data)]
+
+
+class XorMAC(abstract.MAC):
+  """A simple MAC using XOR cipher.
+
+  Note that this class is intended only for test purposes and should not be used
+  for any production code as it does not provide any security [1].
+
+  [1]: https://en.wikipedia.org/wiki/XOR_cipher#Use_and_security
+  """
+
+  def __init__(self, key: bytes) -> None:
+    """Initializes the MAC.
+
+    Args:
+      key: A key used for encrypting data.
+    """
+    super().__init__()
+    self._key = key
+
+  def ComputeMAC(self, data: bytes) -> bytes:
+    key = itertools.cycle(self._key)
+    return bytes(db ^ kb for db, kb in zip(data, key))
+
+  def VerifyMAC(self, mac_value: bytes, data: bytes) -> None:
+    expected_mac = self.ComputeMAC(data)
+    if mac_value != expected_mac:
+      raise abstract.MACVerificationError("Incorrect MAC")

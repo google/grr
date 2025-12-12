@@ -7,6 +7,7 @@ syntax = "proto3";
 package rrg.action.list_winreg_keys;
 
 import "grr_response_proto/rrg/winreg.proto";
+import "google/protobuf/timestamp.proto";
 
 message Args {
     // Root predefined key of the key to list subkeys of.
@@ -14,6 +15,12 @@ message Args {
 
     // Key relative to `root` to list subkeys of.
     string key = 2;
+
+    // Limit on the depth of recursion when visiting subkeys.
+    //
+    // The default value (0) is treated the same as value of 1, meaning only the
+    // immediate subkeys will be listed.
+    uint32 max_depth = 3;
 }
 
 message Result {
@@ -23,6 +30,9 @@ message Result {
     // Key relative to `root` of the listed subkey.
     string key = 2;
 
-    // Listed subkey.
+    // Listed subkey relative to `root` and `key`.
     string subkey = 3;
+
+    // Last modification time of the listed subkey.
+    google.protobuf.Timestamp modification_time = 4;
 }

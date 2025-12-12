@@ -1,0 +1,19 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.ONLINE_NOTIFICATION, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Recipient email address</mat-label>
+    <input matInput [formControl]="controls.email" />
+    <mat-hint>
+      Send an email notification when the client comes online.
+      @if (clientLastSeenAt()) {
+        Last seen <timestamp [date]="clientLastSeenAt()" relativeTimestamp="visible" />.
+      }
+    </mat-hint>
+    <mat-error>
+      <form-errors [validationErrors]="controls.email.errors" />
+    </mat-error>
+  </mat-form-field>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

@@ -2,8 +2,10 @@
 """Tests for the SimpleAPIAuthManager."""
 
 from absl import app
+from absl.testing import absltest
+import yaml
 
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from google.protobuf import json_format
 from grr_response_proto import tests_pb2
 from grr_response_server.authorization import groups
 from grr_response_server.gui import api_auth_manager
@@ -28,14 +30,10 @@ class DefaultDummyAuthManagerTestApiRouter(api_call_router.ApiCallRouter):
   pass
 
 
-class DummyAuthManagerTestConfigurableApiRouterParams(
-    rdf_structs.RDFProtoStruct
+class DummyAuthManagerTestConfigurableApiRouterProto(
+    api_call_router.ApiCallRouter
 ):
-  protobuf = tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams
-
-
-class DummyAuthManagerTestConfigurableApiRouter(api_call_router.ApiCallRouter):
-  params_type = DummyAuthManagerTestConfigurableApiRouterParams
+  proto_params_type = tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams
 
   def __init__(self, params=None):
     super().__init__(params=params)
@@ -313,13 +311,13 @@ users:
       )
 
   @api_test_lib.WithApiCallRouter(
-      "DummyAuthManagerTestConfigurableApiRouter",
-      DummyAuthManagerTestConfigurableApiRouter,
+      "DummyAuthManagerTestConfigurableApiRouterProto",
+      DummyAuthManagerTestConfigurableApiRouterProto,
   )
   def testConfigurableRouterIsInitializedWithoutParameters(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
-router: "DummyAuthManagerTestConfigurableApiRouter"
+router: "DummyAuthManagerTestConfigurableApiRouterProto"
 users:
 - "u1"
 """,
@@ -331,25 +329,104 @@ users:
     self.assertEqual(router.params.bar, 0)
 
   @api_test_lib.WithApiCallRouter(
-      "DummyAuthManagerTestConfigurableApiRouter",
-      DummyAuthManagerTestConfigurableApiRouter,
+      "DummyAuthManagerTestConfigurableApiRouterProto",
+      DummyAuthManagerTestConfigurableApiRouterProto,
   )
-  def testConfigurableRouterIsInitializedWithParameters(self):
+  def testConfigurableRouterIsInitializedWithParametersProtoAndTag(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
-router: "DummyAuthManagerTestConfigurableApiRouter"
+router: "DummyAuthManagerTestConfigurableApiRouterProto"
 router_params:
   foo: "Oh no!"
   bar: 42
+  # This router uses `proto_params_type` so it needs to either specify
+  # the raw value directly or use the !duration_seconds tag.
+  duration_s: !duration_seconds '1h'
 users:
 - "u1"
 """,
-        DefaultDummyAuthManagerTestApiRouter,
+        DummyAuthManagerTestConfigurableApiRouterProto,
     )
 
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.params.foo, "Oh no!")
     self.assertEqual(router.params.bar, 42)
+    self.assertEqual(router.params.duration_s, 3600)
+
+  @api_test_lib.WithApiCallRouter(
+      "DummyAuthManagerTestConfigurableApiRouterProto",
+      DummyAuthManagerTestConfigurableApiRouterProto,
+  )
+  def testConfigurableRouterIsInitializedWithParametersProtoWithoutTag(self):
+    auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
+        """
+router: "DummyAuthManagerTestConfigurableApiRouterProto"
+router_params:
+  foo: "Oh no!"
+  bar: 42
+  # This router uses `proto_params_type` so it needs to either specify
+  # the raw value directly or use the !duration_seconds tag.
+  duration_s: 3600
+users:
+- "u1"
+""",
+        DummyAuthManagerTestConfigurableApiRouterProto,
+    )
+
+    router = auth_mgr.GetRouterForUser("u1")
+    self.assertEqual(router.params.foo, "Oh no!")
+    self.assertEqual(router.params.bar, 42)
+    self.assertEqual(router.params.duration_s, 3600)
+
+  @api_test_lib.WithApiCallRouter(
+      "DummyAuthManagerTestConfigurableApiRouterProto",
+      DummyAuthManagerTestConfigurableApiRouterProto,
+  )
+  def testConfigurableRouterIsInitializedWithParametersProtoBadInput(self):
+    with self.assertRaises(json_format.ParseError):
+      api_auth_manager.APIAuthorizationManager.FromYaml(
+          """
+router: "DummyAuthManagerTestConfigurableApiRouterProto"
+router_params:
+  foo: "Oh no!"
+  bar: 42
+  # This should fail because it's not a valid number and there's no tag.
+  duration_s: '1h'
+users:
+- "u1"
+""",
+          DummyAuthManagerTestConfigurableApiRouterProto,
+      )
+
+
+class DurationSecondsYamlTagTest(absltest.TestCase):
+
+  def testDurationSecondsYamlTag(self):
+    yaml_data = """
+duration_str_no_tag: '1h'
+duration_str_tag: !duration_seconds '1h'
+duration_number_no_tag: 42
+duration_number_tag: !duration_seconds 42
+duration_str_tag_second: !duration_seconds '1s'
+duration_str_tag_minute: !duration_seconds '2m'
+duration_str_tag_hour: !duration_seconds '3h'
+duration_str_tag_day: !duration_seconds '4d'
+duration_str_tag_week: !duration_seconds '5w'
+"""
+    loader = yaml.SafeLoader
+    loader.add_constructor(
+        "!duration_seconds", api_auth_manager.DurationSecondsYamlConstructor
+    )
+    parsed_yaml = list(yaml.load_all(yaml_data, Loader=loader))[0]
+    self.assertEqual(parsed_yaml["duration_str_no_tag"], "1h")
+    self.assertEqual(parsed_yaml["duration_str_tag"], 3600)
+    self.assertEqual(parsed_yaml["duration_number_no_tag"], 42)
+    self.assertEqual(parsed_yaml["duration_number_tag"], 42)
+    self.assertEqual(parsed_yaml["duration_str_tag_second"], 1)
+    self.assertEqual(parsed_yaml["duration_str_tag_minute"], 2 * 60)
+    self.assertEqual(parsed_yaml["duration_str_tag_hour"], 3 * 60 * 60)
+    self.assertEqual(parsed_yaml["duration_str_tag_day"], 4 * 24 * 60 * 60)
+    self.assertEqual(parsed_yaml["duration_str_tag_week"], 5 * 7 * 24 * 60 * 60)
 
 
 def main(argv):

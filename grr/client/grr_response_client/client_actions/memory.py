@@ -3,6 +3,7 @@
 
 import abc
 import collections
+from collections.abc import Callable, Iterable, Iterator, Sequence
 import contextlib
 import io
 import logging
@@ -10,15 +11,7 @@ import os
 import platform
 import re
 import shutil
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import IO
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Sequence
+from typing import Any, IO, Optional
 
 import psutil
 import yara
@@ -254,14 +247,18 @@ class DirectYaraWrapper(YaraWrapper):
         # might miss results in unlikely scenarios. We doubt that the
         # Yara library even allows such constructs but it's good to be
         # aware that this can happen.
-        for offset, _, s in m.strings:
-          if offset + len(s) > chunk.overlap:
-            # We haven't seen this match before.
-            rdf_match = rdf_memory.YaraMatch.FromLibYaraMatch(
-                m, data, self._context_window
-            )
-            for string_match in rdf_match.string_matches:
-              string_match.offset += chunk.offset
+        for yara_string_match in m.strings:
+          rdf_match = None
+          for sm_instance in yara_string_match.instances:
+            if sm_instance.offset + sm_instance.matched_length > chunk.overlap:
+              # We haven't seen this match before.
+              rdf_match = rdf_memory.YaraMatch.FromLibYaraMatch(
+                  m, data, self._context_window
+              )
+              for string_match in rdf_match.string_matches:
+                string_match.offset += chunk.offset
+              break
+          if rdf_match is not None:
             yield rdf_match
             break
     except yara.TimeoutError as e:
@@ -277,15 +274,15 @@ class DirectYaraWrapper(YaraWrapper):
 class UnprivilegedYaraWrapper(YaraWrapper):
   """Wrapper for the sandboxed YARA library."""
 
-  def __init__(self, rules_str: str, psutil_processes: List[psutil.Process]):
+  def __init__(self, rules_str: str, psutil_processes: list[psutil.Process]):
     """Constructor.
 
     Args:
       rules_str: The YARA rules represented as string.
       psutil_processes: List of processes that can be scanned using `Match`.
     """
-    self._pid_to_serializable_file_descriptor: Dict[int, int] = {}
-    self._pid_to_exception: Dict[int, Exception] = {}
+    self._pid_to_serializable_file_descriptor: dict[int, int] = {}
+    self._pid_to_exception: dict[int, Exception] = {}
     self._server: Optional[communication.Server] = None
     self._client: Optional[memory_client.Client] = None
     self._rules_str = rules_str
@@ -371,7 +368,7 @@ class UnprivilegedYaraWrapper(YaraWrapper):
       raise YaraWrapperError()
 
   def _ScanResultToYaraMatches(
-      self, scan_result: memory_pb2.ScanResult, overlap_end_map: Dict[int, int]
+      self, scan_result: memory_pb2.ScanResult, overlap_end_map: dict[int, int]
   ) -> Iterator[rdf_memory.YaraMatch]:
     """Converts a scan result from protobuf to RDF."""
     for rule_match in scan_result.scan_match:
@@ -429,7 +426,7 @@ class BatchedUnprivilegedYaraWrapper(YaraWrapper):
   def __init__(
       self,
       rules_str: str,
-      psutil_processes: List[psutil.Process],
+      psutil_processes: list[psutil.Process],
       context_window: Optional[int] = None,
   ):
     """Constructor.
@@ -440,7 +437,7 @@ class BatchedUnprivilegedYaraWrapper(YaraWrapper):
       context_window: Amount of bytes surrounding the match to return.
     """
 
-    self._batches: List[UnprivilegedYaraWrapper] = []
+    self._batches: list[UnprivilegedYaraWrapper] = []
 
     for i in range(0, len(psutil_processes), self.BATCH_SIZE):
       process_batch = psutil_processes[i : i + self.BATCH_SIZE]
@@ -536,7 +533,7 @@ class YaraScanRequestMatcher:
   # Without sandboxing, the batching has no effect.
   def _BatchIterateRegions(
       self, process, scan_request: rdf_memory.YaraProcessScanRequest
-  ) -> Iterator[List[streaming.Chunk]]:
+  ) -> Iterator[list[streaming.Chunk]]:
     """Iterates over regions of a process."""
     streamer = streaming.Streamer(
         chunk_size=scan_request.chunk_size,
@@ -821,7 +818,7 @@ def _PrioritizeRegions(
 
 def _ApplySizeLimit(
     regions: Iterable[rdf_memory.ProcessMemoryRegion], size_limit: int
-) -> List[rdf_memory.ProcessMemoryRegion]:
+) -> list[rdf_memory.ProcessMemoryRegion]:
   """Truncates regions so that the total size stays in size_limit."""
   total_size = 0
   regions_in_limit = []

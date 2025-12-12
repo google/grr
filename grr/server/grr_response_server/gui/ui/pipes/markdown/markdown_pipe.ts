@@ -9,7 +9,7 @@ const GLOBAL_MARKED_CONFIG: MarkedOptions = {
 /**
  * Pipe which converts a Markdown string to an HTML string.
  */
-@Pipe({standalone: false, name: 'markdown'})
+@Pipe({name: 'markdown'})
 export class MarkdownPipe implements PipeTransform {
   transform(value: string, options: MarkedOptions = {}): string {
     return marked(value, {

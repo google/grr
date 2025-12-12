@@ -8,7 +8,6 @@ import os
 import platform
 import socket
 import time
-from typing import List, Text
 
 from absl import flags
 from absl.testing import absltest
@@ -26,7 +25,7 @@ from grr.test_lib import test_lib
 FLAGS = flags.FLAGS
 
 
-def _Query(query: Text, **kwargs) -> List[rdf_osquery.OsqueryResult]:
+def _Query(query: str, **kwargs) -> list[rdf_osquery.OsqueryResult]:
   args = rdf_osquery.OsqueryArgs(query=query, **kwargs)
   return list(osquery.Osquery().Process(args))
 

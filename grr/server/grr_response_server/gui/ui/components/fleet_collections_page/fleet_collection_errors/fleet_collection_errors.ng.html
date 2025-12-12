@@ -1,0 +1,56 @@
+
+<div class="loaded-errors-container">
+  @let countErrorsLoaded = fleetCollectionStore.fleetCollectionErrors().length;
+  {{ countErrorsLoaded }} of {{ fleetCollectionStore.totalErrorsCount() }} errors loaded
+  @if (fleetCollectionStore.totalErrorsCount() > countErrorsLoaded) {
+    <button mat-flat-button (click)="loadMore(100)">Load 100 more</button>
+  }
+</div>
+
+
+<filter-paginate [dataSource]="dataSource">
+  <table mat-table
+    matSort
+    multiTemplateDataRows
+    [dataSource]="dataSource"
+    (matSortChange)="announceSortChange($event)"
+  >
+
+    <ng-container matColumnDef="clientId">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by client ID">
+        Client ID
+      </th>
+      <td mat-cell *matCellDef="let r"><copy-button>{{ r.clientId }}</copy-button></td>
+    </ng-container>
+
+    <ng-container matColumnDef="timestamp">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by timestamp">
+        Timestamp
+      </th>
+      <td mat-cell *matCellDef="let r"><timestamp [date]="r.timestamp" [multiline]="true" /></td>
+    </ng-container>
+
+    <ng-container matColumnDef="logMessage">
+      <th mat-header-cell *matHeaderCellDef>Log message</th>
+      <td mat-cell *matCellDef="let r"><codeblock [code]="splitLines(r.logMessage)" /></td>
+    </ng-container>
+
+    <ng-container matColumnDef="backtrace">
+      <th mat-header-cell *matHeaderCellDef>Backtrace</th>
+      <td mat-cell *matCellDef="let r"><codeblock [code]="splitLines(r.backtrace)" /></td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns" class="row"></tr>
+
+    <tr *matNoDataRow>
+      <td colspan="4">No data</td>
+    </tr>
+  </table>
+</filter-paginate>

@@ -62,6 +62,10 @@ message OsqueryProgress {
   optional string error_message = 3;
 }
 
+message OsqueryStore {
+  optional uint64 total_collected_bytes = 2;
+}
+
 message OsqueryCollectedFile {
   optional StatEntry stat_entry = 1;
 }

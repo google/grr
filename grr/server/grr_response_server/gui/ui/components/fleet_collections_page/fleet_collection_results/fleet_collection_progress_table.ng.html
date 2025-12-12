@@ -1,0 +1,34 @@
+<table mat-table [dataSource]="dataSource">
+  <ng-container matColumnDef="timestamp">
+    <th mat-header-cell *matHeaderCellDef>Date</th>
+    <td mat-cell *matCellDef="let row"><timestamp [date]="row.timestamp" /></td>
+  </ng-container>
+
+  <ng-container matColumnDef="completedClients">
+    <th mat-header-cell *matHeaderCellDef>Completed clients</th>
+    <td mat-cell *matCellDef="let row">
+      <span>{{row.completedClients}}</span>
+      <span [matTooltip]="'Out of all scheduled clients: ' + totalClients()">
+        ({{ getPercentage(row.completedClients) }}%)
+      </span>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="scheduledClients">
+    <th mat-header-cell *matHeaderCellDef>Scheduled clients</th>
+    <td mat-cell *matCellDef="let row">
+      <span>{{row.scheduledClients}}</span>
+      <span [matTooltip]="'Out of all scheduled clients: ' + totalClients">
+        ({{ getPercentage(row.scheduledClients) }}%)
+      </span>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="columns"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+  <tr *matNoDataRow>
+    <td colspan="3">There is no hunt progress data to show.</td>
+  </tr>
+</table>
+

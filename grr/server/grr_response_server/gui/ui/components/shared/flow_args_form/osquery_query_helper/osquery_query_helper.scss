@@ -1,0 +1,18 @@
+// Styles declared here are effectively global because of ViewEncapsulation.None
+// Make sure to narrow their names enough
+
+.main-container-osquery-helper {
+  width: 100%;
+}
+
+.item-container-osquery-helper {
+  margin-bottom: 1em;
+}
+
+.mat-autocomplete-osquery-helper.mat-mdc-autocomplete-panel {
+  max-height: 40vh;
+}
+
+osquery-query-helper mat-dialog-actions[align='end'] {
+  padding: 0 25px 20px;
+}

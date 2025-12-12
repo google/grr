@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Tests for the flow database api."""
 
+from collections.abc import Sequence
 import queue
 import random
 import threading
 import time
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Optional, Union
 from unittest import mock
 
 from google.protobuf import any_pb2
@@ -2521,6 +2522,77 @@ class DatabaseTestFlowMixin(object):
         [i.payload for i in sample_results_summary],
     )
 
+  def testReadFlowResultsCorrectlyAppliesWithProtoTypeUrlFilter(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    sample_results_summary = []
+    sample_results_crash = []
+    for i in range(10):
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientSummary(
+              client_id=client_id,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results_summary.append(r)
+
+      r = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
+      r.payload.Pack(
+          jobs_pb2.ClientCrash(
+              client_id=client_id,
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  10 + i
+              ).AsMicrosecondsSinceEpoch(),
+          )
+      )
+      sample_results_crash.append(r)
+
+    self.db.WriteFlowResults(sample_results_summary + sample_results_crash)
+
+    any_proto = any_pb2.Any()
+    any_proto.Pack(jobs_pb2.ClientInformation())
+    client_information_type_url = any_proto.type_url
+    results = self.db.ReadFlowResults(
+        client_id,
+        flow_id,
+        0,
+        100,
+        with_proto_type_url=client_information_type_url,
+    )
+    self.assertEmpty(results)
+
+    any_proto.Pack(jobs_pb2.ClientSummary())
+    client_summary_type_url = any_proto.type_url
+    results = self.db.ReadFlowResults(
+        client_id, flow_id, 0, 100, with_proto_type_url=client_summary_type_url
+    )
+    self.assertCountEqual(
+        [i.payload for i in results],
+        [i.payload for i in sample_results_summary],
+    )
+
+  def testReadFlowResultsCorrectlyAppliesWithTypeAndProtoTypeUrlFilters(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    any_proto = any_pb2.Any()
+    any_proto.Pack(jobs_pb2.ClientSummary())
+    client_summary_type_url = any_proto.type_url
+
+    with self.assertRaises(ValueError):
+      self.db.ReadFlowResults(
+          client_id,
+          flow_id,
+          0,
+          100,
+          with_type=rdf_client.ClientSummary.__name__,
+          with_proto_type_url=client_summary_type_url,
+      )
+
   def testReadFlowResultsCorrectlyAppliesWithSubstringFilter(self):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
@@ -2698,6 +2770,44 @@ class DatabaseTestFlowMixin(object):
         {
             "ClientSummary": 3,
             "ClientCrash": 5,
+        },
+    )
+
+  def testCountFlowResultsByProtoTypeUrlReturnsCorrectNumbers(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    client_summary_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_summary_result.payload.Pack(
+        jobs_pb2.ClientSummary(client_id=client_id)
+    )
+
+    client_crash_result = flows_pb2.FlowResult(
+        client_id=client_id, flow_id=flow_id
+    )
+    client_crash_result.payload.Pack(jobs_pb2.ClientCrash(client_id=client_id))
+
+    sample_results = self._WriteFlowResults(
+        sample_results=[client_summary_result] * 3
+    )
+    sample_results.extend(
+        self._WriteFlowResults(sample_results=[client_crash_result] * 5)
+    )
+
+    counts_by_type = self.db.CountFlowResultsByProtoTypeUrl(client_id, flow_id)
+    any_proto = any_pb2.Any()
+    any_proto.Pack(jobs_pb2.ClientSummary())
+    client_summary_type_url = any_proto.type_url
+    any_proto.Pack(jobs_pb2.ClientCrash())
+
+    client_crash_type_url = any_proto.type_url
+    self.assertEqual(
+        counts_by_type,
+        {
+            client_summary_type_url: 3,
+            client_crash_type_url: 5,
         },
     )
 
@@ -3459,11 +3569,10 @@ class DatabaseTestFlowMixin(object):
     entry.output_plugin_id = "F00"
     entry.message = "Lorem ipsum."
 
-    with self.assertRaises(db.UnknownFlowError) as context:
+    with self.assertRaises(db.AtLeastOneUnknownFlowError) as context:
       self.db.WriteFlowOutputPluginLogEntry(entry)
 
-    self.assertEqual(context.exception.client_id, client_id)
-    self.assertEqual(context.exception.flow_id, flow_id)
+    self.assertEqual(context.exception.flow_keys, [(client_id, flow_id)])
 
   def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3481,6 +3590,51 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(
         [e.message for e in written_entries], [e.message for e in read_entries]
     )
+    got_ids = set(e.output_plugin_id for e in read_entries)
+    self.assertEqual(got_ids, {"1"})
+
+  def testReadAllFlowOutputPluginLogEntries(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, "1")
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, "2")
+
+    read_entries = self.db.ReadAllFlowOutputPluginLogEntries(
+        client_id, flow_id, 0, 100
+    )
+    self.assertLen(read_entries, 20)
+    got_ids = set(e.output_plugin_id for e in read_entries)
+    self.assertEqual(got_ids, {"1", "2"})
+
+  def testReadAllFlowOutputPluginLogEntriesWithTypeFilter(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, "1")
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, "2")
+
+    log_entries = self.db.ReadAllFlowOutputPluginLogEntries(
+        client_id,
+        flow_id,
+        0,
+        100,
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
+    self.assertLen(log_entries, 12)
+    got_ids = set(e.output_plugin_id for e in log_entries)
+    self.assertEqual(got_ids, {"1", "2"})
+
+    error_entries = self.db.ReadAllFlowOutputPluginLogEntries(
+        client_id,
+        flow_id,
+        0,
+        100,
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
+    self.assertLen(error_entries, 8)
+    got_ids = set(e.output_plugin_id for e in error_entries)
+    self.assertEqual(got_ids, {"1", "2"})
 
   def testFlowOutputPluginLogEntryWith1MbMessageCanBeWrittenAndThenRead(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3502,6 +3656,42 @@ class DatabaseTestFlowMixin(object):
 
     self.assertLen(read_entries, 1)
     self.assertEqual(read_entries[0].message, entry.message)
+    self.assertEqual(read_entries[0].output_plugin_id, "1")
+
+  def testWriteMultipleFlowOutputPluginLogEntries(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    output_plugin_id = "1"
+
+    entries = []
+    for i in range(10):
+      message = f"blah_🚀_{i}"
+      enum = flows_pb2.FlowOutputPluginLogEntry.LogEntryType
+      if i % 3 == 0:
+        log_entry_type = enum.ERROR
+      else:
+        log_entry_type = enum.LOG
+
+      entry = flows_pb2.FlowOutputPluginLogEntry(
+          client_id=client_id,
+          flow_id=flow_id,
+          output_plugin_id=output_plugin_id,
+          message=message,
+          log_entry_type=log_entry_type,
+      )
+      entries.append(entry)
+
+    self.db.WriteMultipleFlowOutputPluginLogEntries(entries)
+
+    read_entries = self.db.ReadFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id, 0, 100
+    )
+    self.assertLen(read_entries, 10)
+    self.assertEqual(
+        [e.message for e in entries], [e.message for e in read_entries]
+    )
+    got_ids = set(e.output_plugin_id for e in read_entries)
+    self.assertEqual(got_ids, {"1"})
 
   def testFlowOutputPluginLogEntriesCanBeReadWithTypeFilter(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3519,6 +3709,8 @@ class DatabaseTestFlowMixin(object):
         with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
     )
     self.assertLen(read_entries, 4)
+    got_ids = set(e.output_plugin_id for e in read_entries)
+    self.assertEqual(got_ids, {"1"})
 
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
         client_id,
@@ -3529,6 +3721,8 @@ class DatabaseTestFlowMixin(object):
         with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
     )
     self.assertLen(read_entries, 6)
+    got_ids = set(e.output_plugin_id for e in read_entries)
+    self.assertEqual(got_ids, {"1"})
 
   def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -3633,6 +3827,48 @@ class DatabaseTestFlowMixin(object):
             client_id,
             flow_id,
             output_plugin_id,
+            with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+        ),
+        4,
+    )
+
+  def testCountAllFlowOutputPluginLogEntries(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+    output_plugin_id_1 = "1"
+    self._WriteFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id_1
+    )
+
+    output_plugin_id_2 = "2"
+    self._WriteFlowOutputPluginLogEntries(
+        client_id, flow_id, output_plugin_id_2
+    )
+
+    self.assertEqual(
+        self.db.CountAllFlowOutputPluginLogEntries(client_id, flow_id),
+        20,
+    )
+
+  def testCountAllFlowOutputPluginLogEntriesRespectsWithTypeFilter(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    output_plugin_id = "1"
+    self._WriteFlowOutputPluginLogEntries(client_id, flow_id, output_plugin_id)
+
+    self.assertEqual(
+        self.db.CountAllFlowOutputPluginLogEntries(
+            client_id,
+            flow_id,
+            with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+        ),
+        6,
+    )
+    self.assertEqual(
+        self.db.CountAllFlowOutputPluginLogEntries(
+            client_id,
+            flow_id,
             with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
         ),
         4,
@@ -3891,7 +4127,7 @@ class DatabaseLargeTestFlowMixin(object):
 
   def _Responses(
       self, client_id, flow_id, request_id, num_responses
-  ) -> List[flows_pb2.FlowResponse]:
+  ) -> list[flows_pb2.FlowResponse]:
     # TODO(hanuszczak): Fix this lint properly.
     # pylint: disable=g-complex-comprehension
     return [
@@ -3908,7 +4144,7 @@ class DatabaseLargeTestFlowMixin(object):
 
   def _ResponsesAndStatus(
       self, client_id, flow_id, request_id, num_responses
-  ) -> List[Union[flows_pb2.FlowResponse, flows_pb2.FlowStatus]]:
+  ) -> list[Union[flows_pb2.FlowResponse, flows_pb2.FlowStatus]]:
     return self._Responses(client_id, flow_id, request_id, num_responses) + [
         flows_pb2.FlowStatus(
             client_id=client_id,
@@ -3918,9 +4154,9 @@ class DatabaseLargeTestFlowMixin(object):
         )
     ]
 
-  def _WriteResponses(self, num) -> Tuple[
+  def _WriteResponses(self, num) -> tuple[
       flows_pb2.FlowRequest,
-      List[Union[flows_pb2.FlowResponse, flows_pb2.FlowStatus]],
+      list[Union[flows_pb2.FlowResponse, flows_pb2.FlowStatus]],
   ]:
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(

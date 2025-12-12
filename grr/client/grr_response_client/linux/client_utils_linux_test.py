@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for client_utils_linux.py."""
-
 import contextlib
 import platform
 import tempfile

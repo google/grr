@@ -1,0 +1,36 @@
+@if (processes().detectedCycles) {
+  <error-message
+    message="There are cycles in the process tree. Please use the Debug output or download the results for further analysis." />
+}
+
+<ng-template #process let-node>
+  <span class="text-pid">{{node.pid}}</span>
+  <span class="text-cmdline">{{(node.cmdline || []).join(' ')}}</span>
+  <span class="text-user">{{node.username}}</span>
+  <span class="text-ctime"><timestamp [date]="node.date"/></span>
+</ng-template>
+
+<mat-tree #tree [dataSource]="processes().rootNodes" [childrenAccessor]="childrenAccessor">
+  <!-- This is the tree node template for leaf nodes -->
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+      <!-- use a disabled button to provide padding for tree leaf -->
+      <button mat-icon-button disabled aria-hidden="true"></button>
+      <ng-template *ngTemplateOutlet="process; context: {$implicit: node}"></ng-template>
+  </mat-tree-node>
+  <!-- This is the tree node template for expandable nodes -->
+  <mat-tree-node
+      *matTreeNodeDef="let node;when: hasChild"
+      matTreeNodePadding
+      matTreeNodeToggle
+      [cdkTreeNodeTypeaheadLabel]="node.name">
+    <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'Toggle ' + node.name">
+      <mat-icon class="mat-icon-rtl-mirror">
+        {{tree.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+      </mat-icon>
+    </button>
+    <ng-template *ngTemplateOutlet="process; context: {$implicit: node}"></ng-template>
+  </mat-tree-node>
+</mat-tree>
+
+
+

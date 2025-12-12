@@ -11,12 +11,16 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
   """A mixin class with keystore test suite."""
 
   @abc.abstractmethod
-  def CreateKeystore(self, key_names: Sequence[str]) -> abstract.Keystore:
+  def CreateKeystore(
+      self, aead_key_names: Sequence[str], mac_key_names: Sequence[str]
+  ) -> abstract.Keystore:
     """Creates a keystore instance with the specified key set.
 
     Args:
-      key_names: A sequence of key names that should be available in the created
-        keystore.
+      aead_key_names: A sequence of AEAD key names that should be available in
+        the created keystore.
+      mac_key_names: A sequence of MAC key names that should be available in the
+        created keystore.
 
     Returns:
       A keystore instance with the specified key set.
@@ -28,10 +32,13 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
 
   # Test methods do not require docstrings (but pylint is not aware that these
   # are actually test methods).
-  # pylint: disable=missing-function-docstring
+  # pylint: disable=missing-function-docstring,invalid-name
 
   def testCrypterRaisesOnUnknownKey(self):
-    keystore = self.CreateKeystore([])
+    keystore = self.CreateKeystore(
+        aead_key_names=[],
+        mac_key_names=[],
+    )
 
     with self.assertRaises(abstract.UnknownKeyError) as context:
       keystore.Crypter("foobar")
@@ -39,7 +46,7 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     self.assertEqual(context.exception.key_name, "foobar")
 
   def testCrypterEncryptsAndDecryptsSingleKey(self):
-    keystore = self.CreateKeystore(["foo"])
+    keystore = self.CreateKeystore(aead_key_names=["foo"], mac_key_names=[])
 
     crypter = keystore.Crypter("foo")
 
@@ -52,7 +59,9 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     self.assertEqual(decrypted_data, data)
 
   def testCrypterEncryptsAndDecryptsMultipleKeys(self):
-    keystore = self.CreateKeystore(["foo", "bar"])
+    keystore = self.CreateKeystore(
+        aead_key_names=["foo", "bar"], mac_key_names=[]
+    )
 
     crypter_foo = keystore.Crypter("foo")
     crypter_bar = keystore.Crypter("bar")
@@ -71,7 +80,9 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     self.assertEqual(decrypted_data_bar, data)
 
   def testCrypterDecryptionError(self):
-    crypter = self.CreateKeystore(["foo"]).Crypter("foo")
+    crypter = self.CreateKeystore(
+        aead_key_names=["foo"], mac_key_names=[]
+    ).Crypter("foo")
 
     data = b"\xBB\xAA\x55"
     encrypted_data = crypter.Encrypt(data, b"assoc_data")
@@ -79,5 +90,56 @@ class KeystoreTestMixin(metaclass=abc.ABCMeta):
     with self.assertRaises(abstract.DecryptionError):
       crypter.Decrypt(encrypted_data, b"different_assoc_data")
 
+  def testMACRaisesOnUnknownKey(self):
+    keystore = self.CreateKeystore(aead_key_names=[], mac_key_names=[])
+
+    with self.assertRaises(abstract.UnknownKeyError) as context:
+      keystore.MAC("foobar")
+
+    self.assertEqual(context.exception.key_name, "foobar")
+
+  def testMACComputesAndVerifiesSingleKey(self):
+    keystore = self.CreateKeystore(aead_key_names=[], mac_key_names=["foo"])
+
+    mac = keystore.MAC("foo")
+
+    data = b"\xBB\xAA\x55"
+
+    mac_data = mac.ComputeMAC(data)
+    self.assertNotEqual(data, mac_data)
+
+    mac.VerifyMAC(mac_data, data)
+
+  def testMACComputesAndVerifiesMultipleKeys(self):
+    keystore = self.CreateKeystore(
+        aead_key_names=[],
+        mac_key_names=["foo", "bar"],
+    )
+
+    mac_foo = keystore.MAC("foo")
+    mac_bar = keystore.MAC("bar")
+
+    data = b"\xBB\xAA\x55"
+
+    mac_data_foo = mac_foo.ComputeMAC(data)
+    mac_data_bar = mac_bar.ComputeMAC(data)
+    self.assertNotEqual(data, mac_data_foo)
+    self.assertNotEqual(data, mac_data_bar)
+    self.assertNotEqual(mac_data_foo, mac_data_bar)
+
+    mac_foo.VerifyMAC(mac_data_foo, data)
+    mac_bar.VerifyMAC(mac_data_bar, data)
+
+  def testMACVerificationError(self):
+    mac = self.CreateKeystore(aead_key_names=[], mac_key_names=["foo"]).MAC(
+        "foo"
+    )
+
+    data = b"\xBB\xAA\x55"
+    mac_data = mac.ComputeMAC(data)
+
+    with self.assertRaises(abstract.MACVerificationError):
+      mac.VerifyMAC(mac_data, b"different_data")
+
   # pytype: enable=attribute-error
-  # pylint: enable=missing-function-docstring
+  # pylint: enable=missing-function-docstring,invalid-name

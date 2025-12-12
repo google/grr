@@ -1,0 +1,53 @@
+<div class="time-range-form">
+  <div>From (local time):</div>
+  <mat-form-field>
+    <mat-label>Date</mat-label>
+    <input matInput
+      class="from-date-picker"
+      [matDatepicker]="fromDatepicker"
+      [(ngModel)]="fromTime" />
+      <mat-datepicker-toggle matIconSuffix [for]="fromDatepicker" />
+    <mat-datepicker #fromDatepicker/>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Time</mat-label>
+    <input matInput
+      class="from-time-picker"
+      [matTimepicker]="fromTimepicker"
+      [(ngModel)]="fromTime"
+      [ngModelOptions]="{updateOn: 'blur'}" />
+    <mat-timepicker #fromTimepicker/>
+    <mat-timepicker-toggle  matIconSuffix [for]="fromTimepicker"/>
+  </mat-form-field>
+  @if (fromTime) {
+    <div>From (UTC): {{fromTime.toUTCString()}}</div>
+  }
+  <form-errors [validationErrors]="formGroup.errors"/>
+</div>
+<div class="time-range-to">
+  <div>To (local time):</div>
+  <mat-form-field>
+    <mat-label>Date</mat-label>
+    <input matInput
+      class="to-date-picker"
+      [matDatepicker]="toDatepicker"
+      [(ngModel)]="toTime" />
+    <mat-datepicker #toDatepicker />
+    <mat-datepicker-toggle matIconSuffix [for]="toDatepicker" />
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Time</mat-label>
+    <input matInput
+      class="to-time-picker"
+      [matTimepicker]="toTimepicker"
+      [(ngModel)]="toTime"
+      [ngModelOptions]="{updateOn: 'blur'}" />
+    <mat-timepicker #toTimepicker />
+    <mat-timepicker-toggle matIconSuffix [for]="toTimepicker" />
+  </mat-form-field>
+  @if (toTime) {
+    <div>To (UTC): {{toTime.toUTCString()}}</div>
+  }
+  <form-errors [validationErrors]="formGroup.errors"/>
+</div>
+

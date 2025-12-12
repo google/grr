@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """A module with RDF values wrapping osquery protobufs."""
-
-from typing import Iterator
-from typing import Sequence
+from collections.abc import Iterator, Sequence
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import osquery_pb2
@@ -71,25 +69,6 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
 
     for row in self.rows:
       yield row.values[column_idx]
-
-  def Truncated(self, row_count: int) -> "OsqueryTable":
-    """Returns a fresh table with the first few rows of the original one.
-
-    Truncated doesn't modify the original table.
-
-    Args:
-      row_count: The number of rows to keep in the truncated table
-
-    Returns:
-      New OsqueryTable object with maximum row_count rows.
-    """
-    result = OsqueryTable()
-
-    result.query = self.query
-    result.header = self.header
-    result.rows = self.rows[:row_count]
-
-    return result
 
 
 class OsqueryResult(rdf_structs.RDFProtoStruct):

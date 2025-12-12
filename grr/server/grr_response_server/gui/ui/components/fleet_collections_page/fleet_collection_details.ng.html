@@ -1,0 +1,69 @@
+<nav
+    mat-tab-nav-bar
+    [tabPanel]="tabPanel"
+    [mat-stretch-tabs]="false"
+    [disablePagination]="true">
+  <a
+    mat-tab-link
+    [routerLink]="['configuration']"
+    routerLinkActive
+    #configurationActive="routerLinkActive"
+    [active]="configurationActive.isActive"
+  >
+    CONFIGURATION
+</a>
+  <a
+    mat-tab-link
+    [routerLink]="['results']"
+    routerLinkActive
+    #resultsActive="routerLinkActive"
+    [active]="resultsActive.isActive"
+    >
+    RESULTS
+  </a>
+  <a
+    mat-tab-link
+    [routerLink]="['errors']"
+    routerLinkActive
+    #errorsActive="routerLinkActive"
+    [active]="errorsActive.isActive"
+    >
+    ERRORS
+  </a>
+  <a
+    name="debug-tab"
+    mat-tab-link
+    [routerLink]="['debug']"
+    routerLinkActive
+    #logsActive="routerLinkActive"
+    [active]="logsActive.isActive"
+  >
+    DEBUGGING
+  </a>
+  <a
+    name="approvals-tab"
+    mat-tab-link
+    [routerLink]="['approvals']"
+    routerLinkActive
+    #approvalsActive="routerLinkActive"
+    [active]="approvalsActive.isActive"
+    >
+    <span class="approvals-tab-label">
+      APPROVALS:
+      <!--
+        - If the user has no access the approval status should be shown, i.e. user should know if
+          approval is missing/pending/expired etc.
+        - If the user has access we show the approval status to show the duration of the access.
+        - Approvals can be disabled, then access is granted without approval, we do
+          not show any approval chip.
+        -->
+      @if (!fleetCollectionStore.hasAccess() || fleetCollectionStore.latestApproval()) {
+        <approval-chip [approval]="fleetCollectionStore.latestApproval()" />
+      }
+    </span>
+  </a>
+</nav>
+
+<mat-tab-nav-panel #tabPanel>
+  <router-outlet />
+</mat-tab-nav-panel>

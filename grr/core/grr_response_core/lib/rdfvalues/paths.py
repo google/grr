@@ -16,10 +16,11 @@ On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
 
+from collections.abc import Iterable, Iterator, Sequence
 import itertools
 import posixpath
 import re
-from typing import Iterable, Iterator, Optional, Sequence
+from typing import Optional
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue

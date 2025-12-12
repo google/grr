@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  padding: 1rem;
+}
+
+.loaded-errors-container {
+  display: inline-flex;
+  gap: 1rem;
+  align-items: center;
+
+  padding: 10px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+
+  margin-bottom: 10px;
+}

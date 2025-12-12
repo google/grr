@@ -41,6 +41,10 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     with self.assertRaises(file_store.BlobNotFoundError):
       blob_stream.read(1)
 
+  def testReturnsEmptyBytesIfNoBlobs(self):
+    blob_stream = file_store.BlobStream(None, [], None)
+    self.assertEqual(blob_stream.read(), b"")
+
   def testReadsFirstByte(self):
     self.assertEqual(self.blob_stream.read(1), b"a")
 

@@ -125,13 +125,3 @@ def ToRDFForemanCondition(
   return foreman_rules.ForemanCondition.FromSerializedBytes(
       proto.SerializeToString()
   )
-
-
-def ToProtoBlobArray(rdf: foreman_rules.ForemanRules) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFForemanRules(proto: jobs_pb2.BlobArray) -> foreman_rules.ForemanRules:
-  return foreman_rules.ForemanRules.FromSerializedBytes(
-      proto.SerializeToString()
-  )

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr_response_core.lib.rdfvalues.containers."""
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import containers as rdf_containers

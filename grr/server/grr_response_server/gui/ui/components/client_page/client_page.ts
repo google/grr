@@ -1,58 +1,47 @@
-import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  Injector,
+  Input as RouterInput,
+} from '@angular/core';
+import {MatTabsModule} from '@angular/material/tabs';
 import {Title} from '@angular/platform-browser';
-import {ActivatedRoute} from '@angular/router';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {RouterModule} from '@angular/router';
 
-import {isNonNull} from '../../lib/preconditions';
-import {observeOnDestroy} from '../../lib/reactive';
-import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
+import {ClientStore} from '../../store/client_store';
+import {ClientOverview} from './client_overview';
 
 /**
  * Component displaying the details and actions for a single Client.
  */
 @Component({
-  standalone: false,
+  standalone: true,
   templateUrl: './client_page.ng.html',
   styleUrls: ['./client_page.scss'],
+  imports: [ClientOverview, RouterModule, MatTabsModule],
+  providers: [ClientStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientPage implements OnDestroy {
-  readonly ngOnDestroy = observeOnDestroy(this);
+export class ClientPage {
+  readonly injector = inject(Injector);
+  clientStore = inject(ClientStore);
 
-  readonly hasAccess$;
+  @RouterInput()
+  set clientId(id: string) {
+    this.clientStore.initialize(id);
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly clientPageGlobalStore: ClientPageGlobalStore,
-    private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
-    private readonly title: Title,
-  ) {
-    this.hasAccess$ = this.clientPageGlobalStore.hasAccess$;
-    this.selectedClientGlobalStore.selectClientId(
-      this.route.paramMap.pipe(
-        takeUntil(this.ngOnDestroy.triggered$),
-        map((params) => params.get('id')),
-        filter(isNonNull),
-      ),
+    this.clientStore.pollFlows(this.clientStore.triggerFetchFlows, {
+      injector: this.injector,
+    });
+    this.clientStore.pollScheduledFlows(
+      this.clientStore.triggerFetchScheduledFlows,
+      {injector: this.injector},
     );
+    this.clientStore.pollClientApprovals();
+  }
 
-    this.selectedClientGlobalStore.clientId$
-      .pipe(takeUntil(this.ngOnDestroy.triggered$), filter(isNonNull))
-      .subscribe((id) => {
-        this.clientPageGlobalStore.selectClient(id);
-      });
-
-    this.clientPageGlobalStore.selectedClient$
-      .pipe(takeUntil(this.ngOnDestroy.triggered$))
-      .subscribe((client) => {
-        if (client) {
-          const fqdn = client.knowledgeBase.fqdn;
-          const info = fqdn ? `${fqdn} (${client.clientId})` : client.clientId;
-          this.title.setTitle(`GRR | ${info}`);
-        } else {
-          this.title.setTitle('GRR');
-        }
-      });
+  constructor() {
+    inject(Title).setTitle('GRR | Client');
   }
 }

@@ -1,0 +1,11 @@
+<span [ngStyle]="{height: size(), width: size()}" matTooltip="{{!withName() ? username() : ''}}">
+  @let image_url = url() ;
+  @if (image_url) {
+    <img src="{{image_url}}" alt="User image of {{username()}}" [ngStyle]="{height: size()}">
+  } @else {
+    <mat-icon [ngStyle]="{fontSize: size(), width: size(), height: size()}">account_circle</mat-icon>
+  }
+</span>
+@if(withName()) {
+  <span class="username"> {{username()}}</span>
+}

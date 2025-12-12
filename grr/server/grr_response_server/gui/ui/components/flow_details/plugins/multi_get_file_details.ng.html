@@ -1,7 +1,0 @@
-<result-accordion
-  [title]="description$ | async"
-  [expandable]="!!(totalFiles$ | async)"
-  (firstOpened)="flowResultsLocalStore.queryMore(QUERY_MORE_COUNT)">
-  <file-results-table *ngIf="results$" [results]="results$ | async" [totalCount]="totalFiles$ | async" (loadMore)="flowResultsLocalStore.queryMore(QUERY_MORE_COUNT)">
-  </file-results-table>
-</result-accordion>

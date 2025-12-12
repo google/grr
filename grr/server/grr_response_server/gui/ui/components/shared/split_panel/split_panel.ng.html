@@ -1,0 +1,16 @@
+<div class="split-container"
+     [class.horizontal]="direction === 'horizontal'"
+     [class.vertical]="direction === 'vertical'">
+  <div class="panel panel1" [style.flex-basis.%]="firstPanelSize()">
+    <ng-content select="[slot='panel1']"></ng-content>
+  </div>
+  <div class="gutter"
+       [class.horizontal-gutter]="direction === 'horizontal'"
+       [class.vertical-gutter]="direction === 'vertical'"
+       (mousedown)="startDrag($event)">
+    <div class="gutter-highlight"></div>
+  </div>
+  <div class="panel panel2">
+    <ng-content select="[slot='panel2']"></ng-content>
+  </div>
+</div>

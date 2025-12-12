@@ -8,18 +8,6 @@ function getTypeName(obj: any): string {
   return obj?.constructor?.name ?? typeof obj;
 }
 
-/** Type guard that returns true if the value is either null or undefined. */
-export function isNull<T, U extends T | null | undefined>(
-  value: U,
-): value is (null | undefined) & U {
-  return value === null || value === undefined;
-}
-
-/** Type guard that returns true if the value is neither null nor undefined. */
-export function isNonNull<T>(value: T): value is NonNullable<T> {
-  return value !== null && value !== undefined;
-}
-
 /** Throws PreconditionError if value is null or undefined. */
 export function assertNonNull<T>(
   value: T,

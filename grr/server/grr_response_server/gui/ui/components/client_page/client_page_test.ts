@@ -1,127 +1,140 @@
-import {ChangeDetectorRef, Component} from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
-import {By} from '@angular/platform-browser';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {signal} from '@angular/core';
+import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router, RouterModule} from '@angular/router';
+import {RouterModule} from '@angular/router';
+import {RouterTestingHarness} from '@angular/router/testing';
 
-import {ApiModule} from '../../lib/api/module';
-import {newClient} from '../../lib/models/model_test_util';
-import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
+import {HttpApiWithTranslationService} from '../../lib/api/http_api_with_translation_service';
 import {
-  injectMockStore,
-  STORE_PROVIDERS,
-} from '../../store/store_test_providers';
-import {VfsViewLocalStore} from '../../store/vfs_view_local_store';
-import {mockVfsViewLocalStore} from '../../store/vfs_view_local_store_test_util';
-import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+  HttpApiWithTranslationServiceMock,
+  mockHttpApiWithTranslationService,
+} from '../../lib/api/http_api_with_translation_test_util';
+import {ClientStore} from '../../store/client_store';
+import {ClientStoreMock, newClientStoreMock} from '../../store/store_test_util';
+import {initTestEnvironment} from '../../testing';
 import {CLIENT_ROUTES} from '../app/routing';
-import {ClientDetailsModule} from '../client_details/module';
-import {ClientOverview} from '../client_overview/client_overview';
-
-import {ClientPageModule} from './client_page_module';
-import {FlowSection} from './flow_section';
+import {ClientHistory} from './client_history/client_history';
+import {ClientPage} from './client_page';
+import {ClientPageHarness} from './testing/client_page_harness';
 
 initTestEnvironment();
 
-// Load ClientPage in a router-outlet to consume the first URL route
-// "/clients/C.1234". Otherwise, ClientPage's router-outlet would consume it
-// and show a nested ClientPage.
-@Component({
-  standalone: false,
-  template: `<router-outlet></router-outlet>`,
-  jit: true,
-})
-class TestHostComponent {}
+async function createComponent() {
+  const fixture = TestBed.createComponent(ClientPage);
 
-describe('ClientPage Component', () => {
+  fixture.detectChanges();
+  const harness = await TestbedHarnessEnvironment.harnessForFixture(
+    fixture,
+    ClientPageHarness,
+  );
+
+  return {fixture, harness};
+}
+
+describe('Client Page Component', () => {
+  let httpApiService: HttpApiWithTranslationServiceMock;
+  let clientStoreMock: ClientStoreMock;
+
   beforeEach(waitForAsync(() => {
+    httpApiService = mockHttpApiWithTranslationService();
+    clientStoreMock = {
+      initialize: jasmine.createSpy('initialize'),
+      ...newClientStoreMock(),
+    };
+
     TestBed.configureTestingModule({
       imports: [
-        ApiModule,
+        ClientPage,
+        ClientHistory,
         NoopAnimationsModule,
-        ClientPageModule,
-        ClientDetailsModule,
-        RouterModule.forRoot(CLIENT_ROUTES),
+        RouterModule.forRoot(CLIENT_ROUTES, {
+          bindToComponentInputs: true,
+        }),
       ],
-      declarations: [TestHostComponent],
       providers: [
-        ...STORE_PROVIDERS,
-        {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
+        {
+          provide: HttpApiWithTranslationService,
+          useFactory: () => httpApiService,
+        },
       ],
       teardown: {destroyAfterEach: false},
     })
-      .overrideProvider(VfsViewLocalStore, {useFactory: mockVfsViewLocalStore})
+      .overrideComponent(ClientPage, {
+        set: {
+          providers: [
+            {
+              provide: ClientStore,
+              useValue: clientStoreMock,
+            },
+          ],
+        },
+      })
       .compileComponents();
   }));
 
-  it('loads client information on route change', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234']);
+  it('initializes ClientStore', async () => {
+    const routerTestingHarness = await RouterTestingHarness.create();
+    await routerTestingHarness.navigateByUrl('/clients/C.1222', ClientPage);
 
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges(); // Ensure ngOnInit hook completes.
+    expect(clientStoreMock.initialize).toHaveBeenCalledWith('C.1222');
+  });
 
-    const selectedClientGlobalStore = injectMockStore(
-      SelectedClientGlobalStore,
+  it('displays ClientOverview', fakeAsync(async () => {
+    const {harness} = await createComponent();
+    expect(await harness.getClientOverviewHarness()).toBeDefined();
+  }));
+
+  it('shows nav bar with all tabs', fakeAsync(async () => {
+    const {harness} = await createComponent();
+    const tabBar = await harness.getTabNavBar();
+    const tabLinks = await tabBar.getLinks();
+    expect(tabLinks.length).toBe(4);
+    expect(await tabLinks[0].getLabel()).toBe('Flows');
+    expect(await tabLinks[1].getLabel()).toBe('Client History');
+    expect(await tabLinks[2].getLabel()).toBe('Approvals');
+    expect(await tabLinks[3].getLabel()).toBe(
+      'Browse collected files & metadata',
     );
-    expect(selectedClientGlobalStore.selectClientId).toHaveBeenCalled();
+  }));
 
-    selectedClientGlobalStore.mockedObservables.clientId$.next('C.1234');
+  it('shows nav bar with enabled files tab if user has access', fakeAsync(async () => {
+    clientStoreMock.hasAccess = signal(true);
+    const {harness} = await createComponent();
 
-    expect(
-      injectMockStore(ClientPageGlobalStore).selectClient,
-    ).toHaveBeenCalledWith('C.1234');
-  });
+    const tabBar = await harness.getTabNavBar();
+    const tabLinks = await tabBar.getLinks({
+      label: 'Browse collected files & metadata',
+    });
 
-  it('shows client data', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234']);
+    expect(await tabLinks[0].isDisabled()).toBeFalse();
+  }));
 
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges(); // Ensure ngOnInit hook completes.
+  it('shows nav bar with disabled files tab if user has no access', fakeAsync(async () => {
+    clientStoreMock.hasAccess = signal(false);
+    const {harness} = await createComponent();
 
-    injectMockStore(
-      ClientPageGlobalStore,
-    ).mockedObservables.selectedClient$.next(newClient({clientId: 'C.1234'}));
-    fixture.detectChanges();
+    const tabBar = await harness.getTabNavBar();
+    const tabLinks = await tabBar.getLinks({
+      label: 'Browse collected files & metadata',
+    });
 
-    expect(fixture.debugElement.nativeElement.textContent).toContain('C.1234');
-  });
+    expect(await tabLinks[0].isDisabled()).toBeTrue();
+  }));
 
-  it('shows flow section initially', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234']);
+  it('navigation to /clients/C.1222/history opens History tab in router outlet', fakeAsync(async () => {
+    const routerTestingHarness = await RouterTestingHarness.create();
+    await routerTestingHarness.navigateByUrl('/clients/C.1222/history');
 
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges(); // Ensure ngOnInit hook completes.
+    const {harness} = await createComponent();
+    expect(await harness.isClientHistoryVisible()).toBeTrue();
+  }));
 
-    expect(
-      fixture.debugElement.query(By.directive(FlowSection)),
-    ).not.toBeNull();
-  });
+  it('navigation to /clients/C.1222/flows opens Flows tab in router outlet', fakeAsync(async () => {
+    const routerTestingHarness = await RouterTestingHarness.create();
+    await routerTestingHarness.navigateByUrl('/clients/C.1222/flows');
 
-  // tslint:disable-next-line:ban
-  xit('collapses ClientOverview when navigating to files (failing)', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234', 'files']);
-
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();
-
-    const tab = fixture.debugElement.query(By.css('nav .collected-files-tab'));
-    const rla = tab.references['filesActive'];
-
-    // For some reason, Angular's routerLinkActive does not correctly
-    // detect active routes in tests, even though the referenced link and
-    // active Router URL seem to match. After 1+ hours of researching and
-    // debugging, I resort to manually setting `isActive` to still test the
-    // association of [routerLinkActive] with ClientOverview.collapsed.
-    // TODO: stop setting readonly property `isActive`.
-    rla.isActive = true;
-    tab.injector.get(ChangeDetectorRef).markForCheck();
-    fixture.detectChanges();
-
-    expect(rla.isActive).toBe(true);
-    expect(
-      fixture.debugElement.query(By.directive(ClientOverview)).componentInstance
-        .collapsed,
-    ).toBe(true);
-  });
+    const {harness} = await createComponent();
+    expect(await harness.isClientFlowsVisible()).toBeTrue();
+  }));
 });

@@ -24,7 +24,6 @@ class HttpRequest(werkzeug_wrappers.Request):
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
-    self.method_metadata = None
     self.parsed_args = None
 
   @property

@@ -7,7 +7,6 @@ import platform
 import random
 import stat as stat_mode
 import time
-from typing import List
 
 from absl.testing import absltest
 
@@ -41,8 +40,8 @@ class TimelineTest(client_test_lib.EmptyActionTest):
 
       responses = self.RunAction(timeline.Timeline, args)
 
-      results: List[rdf_timeline.TimelineResult] = []
-      blobs: List[rdf_protodict.DataBlob] = []
+      results: list[rdf_timeline.TimelineResult] = []
+      blobs: list[rdf_protodict.DataBlob] = []
 
       # The test action runner is not able to distinguish between flow replies
       # and responses sent to well-known flow handlers, so we have to do the

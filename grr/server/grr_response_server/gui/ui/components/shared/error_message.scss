@@ -1,0 +1,22 @@
+:host {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+
+  width: 100%;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 1rem;
+
+  word-wrap: break-word;
+  white-space: pre-line;
+
+  background-color: var(--mat-sys-error);
+  color: var(--mat-sys-on-error);
+
+  mat-icon {
+    width: 5em;
+    padding: 1em;
+  }
+}

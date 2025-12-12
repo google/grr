@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for Notifications."""
-
 from absl import app
 
 from grr_response_proto import objects_pb2

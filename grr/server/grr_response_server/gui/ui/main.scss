@@ -1,104 +1,43 @@
 @use '@angular/material' as mat;
 @use 'material-theme' as c;
 
-@import 'material-theme';
 
-// Initialize Angular material theme.
-// Include non-theme styles for core.
-// TODO: Include the next 2 lines in the open source version when
-// AngularJS change is made public.
-@include mat.core();
-// Include all theme-styles for the components based on the current theme.
-@include mat.all-component-themes($theme);
-// Include typography for the components.
-@include mat.all-component-typographies(c.$custom-mdc-typography);
+:root {
+  --base-font-size: 14px;
+}
 
-$toolbar-height: 64px;
-
-$success-progress-bar-color: mat.get-color-from-palette(c.$foreground, success);
-$chips-icon-size: 20px;
-
-app,
 body,
 html {
   display: block;
   height: 100%;
   margin: 0;
   width: 100%;
-  /* Fallback font family: */
-  font-family: c.$roboto-family;
+  box-sizing: border-box;
+  font: var(--mat-sys-body-medium);
+  font-size: var(--base-font-size);
 }
 
-.flow-details-summary-actions {
-  position: absolute;
-  right: 86px;
-  top: 1.6em;
-  height: 3em;
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
 }
 
-.monospace,
-input.mat-mdc-input-element.monospace,
-input.mat-mdc-form-field-input-control.monospace {
-  font-family: 'Roboto Mono', monospace;
+samp {
+  background-color: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  padding: 0.2em 0.4em;
+  border-radius: 0.2em;
 }
 
-/* We remove the padding for Angular Material Autocomplete and Select
-components' List Options container */
-.mat-mdc-autocomplete-panel.mat-mdc-autocomplete-visible,
-.mat-mdc-select-panel.mat-mdc-select-panel {
-  padding: 0;
-}
-
-.mat-mdc-option.mat-mdc-option-active.mat-mdc-option-active,
-.mat-mdc-option:hover:not([disabled='false']) {
-  background-color: mat.get-color-from-palette(c.$background, hover);
-}
-
-/* Angular material Form Field overrides */
-/* By default Form Field inputs inherit the `subtitle-1` typography level,
-which is supposed to be used only for <h3> elements, as mentioned here:
-- https://material.angular.io/guide/typography#typography-levels
-We override this for the input fonts not to look gigantic.*/
-input.mat-mdc-form-field-input-control.mat-mdc-input-element {
-  font-weight: 400;
-  font-size: 14px;
-}
-
-.mat-mdc-form-field-error {
-  font-family: $google-sans-display-family;
-}
-
-.progress-spinner-button .progress-spinner-button-label-container {
-  display: flex;
-  align-items: center;
-  column-gap: 10px;
-}
-
-.mat-mdc-outlined-button.white-background {
-  background-color: white;
-}
-
-mat-progress-bar.mat-success {
-  --mdc-linear-progress-active-indicator-color: #{$success-progress-bar-color};
-  --mdc-linear-progress-track-color: #{$success-progress-bar-color};
-}
-
-.clickable {
-  cursor: pointer;
-
-  &:hover {
-    background-color: mat.get-color-from-palette(c.$primary, 100, 0.15);
-  }
-}
-
-.mat-mdc-card {
-  padding: 16px;
-
-  &.mat-card-outlined {
-    border: 1px solid #d8dade;
-    box-shadow: none;
-    border-radius: 8px;
-  }
+body.split-panel-dragging {
+  // stylelint-disable declaration-no-important --
+  // Override the user-select property to disable text selection globally while
+  // the split panel is being dragged.
+  user-select: none !important;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
 }
 
 a:any-link:not(.mat-mdc-button-base) {
@@ -110,421 +49,12 @@ a.text-link:any-link,
 a.text-link-hover:hover,
 .app-link,
 .app-link:hover {
-  color: mat.get-color-from-palette(c.$foreground, link);
+  color: var(--mat-sys-primary);
   text-decoration: underline;
-}
-
-.button-group {
-  white-space: nowrap;
-  display: flex;
-
-  & > .mat-mdc-outlined-button,
-  & > .mat-mdc-button-base {
-    &:first-child:not(:last-child) {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-
-    &:not(:first-child) {
-      border-left: none;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-
-    &.dropdown-button {
-      padding-left: 0;
-      padding-right: 0;
-      min-width: 24px;
-    }
-  }
-}
-
-.mat-mdc-form-field [mat-icon-button] .mat-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-
-/* Angular Material Chip component overrides: */
-.mat-mdc-chip {
-  .mat-mdc-chip-action-label {
-    display: inline-flex;
-  }
-
-  mat-icon:not(.mat-mdc-chip-remove) {
-    font-size: $chips-icon-size;
-    height: $chips-icon-size;
-    width: $chips-icon-size;
-    margin-right: 0.3em;
-  }
-
-  mat-spinner {
-    margin-right: 10px;
-    top: 3px;
-  }
-
-  .subtitle {
-    font-style: italic;
-    color: mat.get-color-from-palette(c.$foreground, text-light);
-    padding-left: 0.4em;
-  }
-
-  &.green-chip {
-    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        success-light
-      )};
-    --mdc-chip-label-text-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        text
-      )};
-  }
-
-  &.yellow-chip {
-    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        in-progress
-      )};
-    --mdc-chip-label-text-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        text
-      )};
-  }
-
-  &.red-chip {
-    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        danger-light
-      )};
-    --mdc-chip-label-text-color: white;
-  }
-
-  &.dark-chip {
-    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        divider
-      )};
-    --mdc-chip-label-text-color: white;
-  }
 }
 
 a:any-link mat-chip span {
   cursor: inherit;
 }
 
-mat-option {
-  .two-line-option-title {
-    font-size: 14px;
-    line-height: 1.2;
-  }
 
-  .two-line-option-subtitle {
-    font-size: 11px;
-    line-height: 1;
-    color: mat.get-color-from-palette(c.$foreground, text-light);
-  }
-}
-
-// Stretch checkboxes in mat-menu to the full width.
-.mat-mdc-menu-content mat-checkbox {
-  box-sizing: border-box;
-  width: 100%;
-}
-
-mat-checkbox.mat-mdc-checkbox {
-  --mdc-checkbox-selected-checkmark-color: white;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-.viz-hidden {
-  visibility: hidden;
-}
-
-.inline-chip {
-  align-items: center;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 16px;
-  box-sizing: border-box;
-  display: inline-flex;
-  padding: 0 8px;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.material-icons,
-.material-icons-outlined {
-  user-select: none;
-}
-
-.key-value-table {
-  td:first-of-type {
-    min-width: 10em;
-    vertical-align: top;
-    color: mat.get-color-from-palette(c.$foreground, text-light);
-  }
-
-  td:last-of-type {
-    width: 100%;
-    font-weight: 500;
-
-    app-copy-button {
-      max-width: 100%;
-
-      span {
-        display: inline-block;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 100%;
-        overflow: hidden;
-        vertical-align: middle;
-      }
-    }
-  }
-
-  td {
-    white-space: nowrap;
-  }
-}
-
-.result-table {
-  border-color: mat.get-color-from-palette(c.$foreground, divider-light);
-  color: mat.get-color-from-palette(c.$foreground, text-light);
-  font-size: 14px;
-  width: 100%;
-
-  .mat-mdc-header-cell {
-    border-bottom: none;
-    font-weight: 500;
-    font-size: inherit;
-  }
-
-  .mat-mdc-cell,
-  .mat-mdc-header-cell {
-    padding: 0.5em 0.25em;
-
-    &:last-of-type {
-      padding-right: 24px;
-    }
-
-    &:first-of-type {
-      padding-left: 24px;
-    }
-  }
-
-  .mat-mdc-row:last-child .mat-mdc-cell,
-  tr:last-child .mat-mdc-cell {
-    border-bottom: none;
-  }
-
-  .path {
-    word-break: break-word;
-    min-width: 200px;
-    width: 30%;
-
-    .copy-button {
-      font-size: 16px;
-      visibility: hidden;
-
-      line-height: 18px;
-      height: 18px;
-      width: 18px;
-    }
-
-    &:hover .copy-button {
-      visibility: visible;
-    }
-  }
-
-  .mat-mdc-cell > mat-icon,
-  td > mat-icon {
-    font-size: 16px;
-    height: 16px;
-    width: 16px;
-  }
-
-  .number {
-    white-space: nowrap;
-    width: 10%;
-  }
-
-  .timestamp {
-    width: 10%;
-  }
-
-  .centered {
-    text-align: center;
-  }
-}
-
-/* This block disables any interaction with the Flow Arg Forms */
-flow-details app-flow-args-view {
-  button,
-  .mat-mdc-button,
-  .mat-mdc-icon-button,
-  .mat-mdc-outlined-button,
-  .mat-mdc-flat-button
-    .mat-mdc-form-field:not(.mat-form-field-appearance-legacy)
-    .mat-form-field-prefix
-    .mat-mdc-icon-button,
-  .mat-mdc-form-field:not(.mat-form-field-appearance-legacy)
-    .mat-form-field-suffix
-    .mat-mdc-icon-button {
-    display: none;
-  }
-  .mat-mdc-form-field,
-  mat-radio-group,
-  mat-checkbox,
-  .mat-mdc-form-field .mat-mdc-floating-label[matformfieldfloatinglabel],
-  .mat-mdc-form-field-icon-prefix,
-  .mat-mdc-form-field-icon-suffix {
-    pointer-events: none;
-  }
-
-  /* We are interested in showing the OS file flag buttons in disabled mode: */
-  ext-flags-condition {
-    .mat-mdc-button {
-      display: block;
-      pointer-events: none;
-    }
-  }
-}
-
-/* Inserted HTML won't apply Angular's View Encapsulation attributes,
-therefore we need to define these styles outside of the Client Overview Cmp. */
-.client-warnings-container {
-  p {
-    margin-bottom: 0;
-  }
-
-  mat-card {
-    box-shadow: none;
-
-    a {
-      color: mat.get-color-from-palette(mat.$blue-palette, 600);
-    }
-  }
-}
-
-.mat-tree {
-  background: none;
-}
-
-.card {
-  border-radius: 8px;
-  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
-  background: white;
-  margin-top: c.$card-margin;
-  padding: 14px 30px;
-  color: mat.get-color-from-palette(mat.$grey-palette, 800);
-
-  .header {
-    display: flex;
-    font-size: 18px;
-    line-height: 24px;
-  }
-
-  &.no-side-paddings {
-    padding-left: 0;
-    padding-right: 0;
-  }
-}
-
-// Cards with dividers should not have the padding set, so dividers meet the
-// borders.
-.split-card {
-  @extend .card;
-  padding: 0;
-}
-
-.centered-content {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: c.$centered-content-max-width;
-  width: c.$centered-content-width;
-}
-
-/** List of items with vertical spacing and horizontally centered. */
-.content-list {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  row-gap: c.$page-spacing;
-  align-items: center;
-
-  & > * {
-    /* Prevent child padding overlapping outside of 100% width. */
-    box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-  }
-}
-
-.mat-mdc-menu-item .mat-icon.mat-icon-inline {
-  width: 24px;
-  margin-right: 0;
-}
-
-.extra-scrolling-space {
-  padding-bottom: 200px;
-}
-
-/* Angular Material table overrides */
-.mat-mdc-table {
-  .mat-mdc-row {
-    --mat-table-row-item-label-text-size: 14px;
-
-    .mat-mdc-cell {
-      --mat-table-row-item-outline-color: #{mat.get-color-from-palette(
-          c.$foreground,
-          divider-light
-        )};
-    }
-  }
-
-  .mat-mdc-header-row {
-    --mat-table-header-headline-size: 12px;
-    --mat-table-header-headline-weight: 400;
-    --mat-table-header-headline-color: #{mat.get-color-from-palette(
-        c.$foreground,
-        text-light
-      )};
-    --mat-table-header-headline-font: $roboto-family;
-  }
-
-  &.no-intra-cell-paddings .mat-mdc-row .mat-mdc-cell {
-    &:not(:first-of-type) {
-      padding-left: 0;
-    }
-
-    &:not(:last-of-type) {
-      padding-right: 0;
-    }
-  }
-}
-
-.mat-mdc-tab-link,
-.mat-mdc-tab {
-  --mat-tab-header-inactive-label-text-color: rgba(0, 0, 0, 1);
-  --mat-tab-header-inactive-focus-label-text-color: rgba(0, 0, 0, 1);
-  --mat-tab-header-inactive-hover-label-text-color: rgba(0, 0, 0, 1);
-}
-
-body .mat-button-toggle-group,
-body .mat-button-toggle-group:not([class*='mat-elevation-z']),
-body mat-button-toggle-group.mat-button-toggle-group {
-  border-radius: 4px;
-  box-shadow: none;
-
-  .mat-button-toggle {
-    border: 0.5px solid mat.get-color-from-palette(mat.$grey-palette, 300);
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 300);
-    color: mat.get-color-from-palette(mat.$blue-palette, 700);
-  }
-
-  .mat-button-toggle-checked {
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
-    color: white;
-  }
-}

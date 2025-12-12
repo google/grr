@@ -1,0 +1,179 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(flowType, flowArgs())">
+  <div class="conditions">
+    @for (control of controls.pathExpressions.controls; track control; let i = $index) {
+      <glob-expression-input
+        [client]="client() ?? null"
+        [formControl]="controls.pathExpressions.controls[i]"
+      >
+        <a
+            mat-icon-button
+            matSuffix
+            href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/flows/specifying-file-paths.html"
+            target="_blank"
+            matTooltip="Click for more details on glob expressions and interpolation.">
+          <mat-icon>help_outline</mat-icon>
+        </a>
+        <button mat-icon-button
+          matSuffix
+          type="button"
+          (click)="removePathExpression(i)"
+          aria-label="Remove path expression"
+        >
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </glob-expression-input>
+    }
+    <mat-error>
+      <form-errors [validationErrors]="controls.pathExpressions.errors" />
+    </mat-error>
+
+    <button
+      mat-button="filled"
+      type="button"
+      aria-label="Add path expression"
+      (click)="addPathExpression()"
+    >
+      <mat-icon>add</mat-icon> Add path expression
+    </button>
+  </div>
+
+  <div class="conditions">
+    <h4>Filter by file content</h4>
+    <div class="condition" [ngClass]="controls.contentsLiteralMatch ? 'outline': ''">
+      @if (controls.contentsLiteralMatch) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove literal match filter"
+            (click)="removeLiteralMatchCondition()">
+          <mat-icon>delete</mat-icon> Literal match filter
+        </button>
+        <literal-match-subform [formGroup]="controls.contentsLiteralMatch"/>
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add literal match filter"
+            (click)="addLiteralMatchCondition()">
+          <mat-icon>add</mat-icon> Literal match filter
+        </button>
+      }
+    </div>
+    <div class="condition" [ngClass]="controls.contentsRegexMatch ? 'outline': ''">
+      @if (controls.contentsRegexMatch) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove regex match filter"
+            (click)="removeRegexMatchCondition()">
+          <mat-icon>delete</mat-icon> Regex match filter
+        </button>
+        <regex-match-subform [formGroup]="controls.contentsRegexMatch" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add regex match filter"
+            (click)="addRegexMatchCondition()">
+          <mat-icon>add</mat-icon> Regex match filter
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="conditions">
+    <h4>Filter by file attributes</h4>
+    <div class="condition" [ngClass]="controls.modificationTime ? 'outline': ''">
+      @if (controls.modificationTime) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove modification time filter"
+            (click)="removeModificationTimeCondition()">
+          <mat-icon>delete</mat-icon> Modification time filter
+        </button>
+        <time-range-subform class="modification-time-subform" [formGroup]="controls.modificationTime" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add modification time filter"
+            (click)="addModificationTimeCondition()">
+          <mat-icon>add</mat-icon> Modification time filter
+        </button>
+      }
+    </div>
+    <div class="condition" [ngClass]="controls.accessTime ? 'outline': ''">
+      @if (controls.accessTime) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove access time filter"
+            (click)="removeAccessTimeCondition()">
+          <mat-icon>delete</mat-icon> Access time filter
+        </button>
+        <time-range-subform class="access-time-subform" [formGroup]="controls.accessTime" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add access time filter"
+            (click)="addAccessTimeCondition()">
+          <mat-icon>add</mat-icon> Access time filter
+        </button>
+      }
+    </div>
+    <div class="condition" [ngClass]="controls.inodeChangeTime ? 'outline': ''">
+      @if (controls.inodeChangeTime) {
+        <button mat-buttonutton="tonal"
+            type="button"
+            aria-label="Remove inode change time filter"
+            (click)="removeInodeChangeTimeCondition()">
+          <mat-icon>delete</mat-icon> Inode change time filter
+        </button>
+        <time-range-subform class="inode-change-time-subform" [formGroup]="controls.inodeChangeTime" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add inode change time filter"
+            (click)="addInodeChangeTimeCondition()">
+          <mat-icon>add</mat-icon> Inode change time filter
+        </button>
+      }
+    </div>
+
+    <div class="condition" [ngClass]="controls.size ? 'outline': ''">
+      @if (controls.size) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove file size filter"
+            (click)="removeSizeCondition()">
+          <mat-icon>delete</mat-icon> File size filter
+        </button>
+        <file-size-range-subform [formGroup]="controls.size" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add file size filter"
+            (click)="addSizeCondition()">
+          <mat-icon>add</mat-icon> File size filter
+        </button>
+      }
+    </div>
+
+    <div class="condition" [ngClass]="controls.extFlags ? 'outline': ''">
+      @if (controls.extFlags) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove extended file flags filter"
+            (click)="removeExtFlagsCondition()">
+          <mat-icon>delete</mat-icon> Extended file flags filter
+        </button>
+        <ext-flags-subform [formGroup]="controls.extFlags" [clientOs]="client()?.knowledgeBase?.os" />
+      } @else {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Add extended file flags filter"
+            (click)="addExtFlagsCondition()">
+          <mat-icon>add</mat-icon> Extended file flags filter
+        </button>
+      }
+    </div>
+
+  </div>
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

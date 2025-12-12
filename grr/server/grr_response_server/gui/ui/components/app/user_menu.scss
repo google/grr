@@ -1,0 +1,17 @@
+
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+
+  color: var(--mat-sys-on-surface)
+}
+
+.user-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}

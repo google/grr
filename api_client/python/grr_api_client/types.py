@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """Types-related part of GRR API client library."""
 
-from typing import Any
-from typing import Union
+from typing import Any, Union
 
 from google.protobuf import any_pb2
 from google.protobuf import message

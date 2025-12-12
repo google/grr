@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """Tests for Yara flows."""
 
+from collections.abc import Iterable, Sequence
 import contextlib
 import functools
 import inspect
 import os
 import platform
 import string
-from typing import Iterable, Optional, Sequence
+from typing import Optional
 import unittest
 from unittest import mock
 
@@ -24,12 +25,15 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_responses
 from grr_response_server.databases import db
 from grr_response_server.flows.general import memory
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -52,11 +56,25 @@ rule test_rule {
 
 
 class FakeMatch(object):
-
-  strings = [(100, "$s1", b"1234"), (200, "$s1", b"1234")]
-
   def __init__(self, rule_name="test_rule"):
     self.rule = rule_name
+
+  @property
+  def strings(self):
+    r1 = mock.Mock()
+    r1.identifier = "$s1"
+    r1.instances = [mock.Mock()]
+    r1.instances[0].offset = 100
+    r1.instances[0].matched_data = b"1234"
+    r1.instances[0].matched_length = 4
+
+    r2 = mock.Mock()
+    r2.identifier = "$s1"
+    r2.instances = [mock.Mock()]
+    r2.instances[0].offset = 200
+    r2.instances[0].matched_data = b"1234"
+    r2.instances[0].matched_length = 4
+    return [r1, r2]
 
 
 class FakeRules(object):
@@ -1048,7 +1066,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
   def testPathSpecCasingIsCorrected(self):
     flow = memory.DumpProcessMemory(rdf_flow_objects.Flow())
-    flow.SendReply = mock.Mock(spec=flow.SendReply)
+    flow.SendReplyProto = mock.Mock(spec=flow.SendReplyProto)
 
     request = rdf_flow_objects.FlowRequest(
         request_data={
@@ -1076,38 +1094,43 @@ class YaraFlowsTest(BaseYaraFlowsTest):
             )
         }
     )
-    pathspecs = [
-        rdf_paths.PathSpec.Temp(path="/C:/Grr/x_1_0_1.tmp"),
-        rdf_paths.PathSpec.Temp(path="/C:/Grr/x_1_1_2.tmp"),
-    ]
-    responses = flow_responses.Responses.FromResponses(
-        request,
-        [
-            rdf_flow_objects.FlowResponse(
-                payload=rdf_client_fs.StatEntry(pathspec=pathspec)
-            )
-            for pathspec in pathspecs
-        ],
+
+    flow_responses_any = []
+    for path in ["/C:/Grr/x_1_0_1.tmp", "/C:/Grr/x_1_1_2.tmp"]:
+      res = flows_pb2.FlowResponse()
+      res.any_payload.Pack(
+          jobs_pb2.StatEntry(
+              pathspec=jobs_pb2.PathSpec(
+                  path=path, pathtype=jobs_pb2.PathSpec.PathType.TMPFILE
+              )
+          )
+      )
+      flow_responses_any.append(mig_flow_objects.ToRDFFlowResponse(res))
+    flow_responses_any.append(rdf_flow_objects.FlowStatus(status="OK"))
+    responses = flow_responses.Responses.FromResponsesProto2Any(
+        flow_responses_any, request
     )
 
     flow.ProcessMemoryRegions(responses)
-    flow.SendReply.assert_any_call(
-        rdf_memory.YaraProcessDumpResponse(
+    flow.SendReplyProto.assert_any_call(
+        flows_pb2.YaraProcessDumpResponse(
             dumped_processes=[
-                rdf_memory.YaraProcessDumpInformation(
+                flows_pb2.YaraProcessDumpInformation(
                     memory_regions=[
-                        rdf_memory.ProcessMemoryRegion(
+                        flows_pb2.ProcessMemoryRegion(
                             start=1,
                             size=1,
-                            file=rdf_paths.PathSpec.Temp(
-                                path="/C:/Grr/x_1_0_1.tmp"
+                            file=jobs_pb2.PathSpec(
+                                path="/C:/Grr/x_1_0_1.tmp",
+                                pathtype=jobs_pb2.PathSpec.PathType.TMPFILE,
                             ),
                         ),
-                        rdf_memory.ProcessMemoryRegion(
+                        flows_pb2.ProcessMemoryRegion(
                             start=1,
                             size=1,
-                            file=rdf_paths.PathSpec.Temp(
-                                path="/C:/Grr/x_1_1_2.tmp"
+                            file=jobs_pb2.PathSpec(
+                                path="/C:/Grr/x_1_1_2.tmp",
+                                pathtype=jobs_pb2.PathSpec.PathType.TMPFILE,
                             ),
                         ),
                     ]

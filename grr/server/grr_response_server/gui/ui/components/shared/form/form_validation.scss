@@ -1,0 +1,9 @@
+@use '../../../material-theme' as c;
+
+.warning {
+  color: c.$color-warn;
+}
+
+.error {
+  color: c.$color-danger;
+}

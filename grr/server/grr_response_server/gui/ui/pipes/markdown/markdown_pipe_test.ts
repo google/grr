@@ -1,106 +1,39 @@
-import {Component, Input} from '@angular/core';
-import {TestBed} from '@angular/core/testing';
-import {BrowserTestingModule} from '@angular/platform-browser/testing';
+import {MarkdownPipe} from './markdown_pipe';
 
-import {MarkdownPipeModule} from './module';
+describe('Markdown Pipe', () => {
+  const pipe = new MarkdownPipe();
 
-@Component({
-  standalone: false,
-  template: `{{markdownSnippet|markdown}}`,
-  jit: true,
-})
-class TestHostComponent {
-  @Input() markdownSnippet?: string;
-}
-
-describe('MarkdownPipe', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [MarkdownPipeModule, BrowserTestingModule],
-      declarations: [TestHostComponent],
-    }).compileComponents();
-  });
-
-  it('shows empty string when the input is undefined', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = '';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent).toBe('');
+  it('shows empty string when the input is empty', () => {
+    expect(pipe.transform('')).toBe('');
   });
 
   it('converts non-markdown text correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = 'Hello world';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p>Hello world</p>',
-    );
+    expect(pipe.transform('Hello world')).toBe('<p>Hello world</p>\n');
   });
 
   it('converts bold text correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = '**test**';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p><strong>test</strong></p>',
-    );
+    expect(pipe.transform('**test**')).toBe('<p><strong>test</strong></p>\n');
   });
 
   it('converts italics text correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = '*test*';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p><em>test</em></p>',
-    );
+    expect(pipe.transform('*test*')).toBe('<p><em>test</em></p>\n');
   });
 
   it('converts links correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = '[Google](https://google.com)';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p><a href="https://google.com">Google</a></p>',
+    expect(pipe.transform('[Google](https://google.com)')).toBe(
+      '<p><a href="https://google.com">Google</a></p>\n',
     );
   });
 
   it('converts links in bold correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet =
-      '[**Google**](https://google.com)';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p><a href="https://google.com"><strong>Google</strong></a></p>',
+    expect(pipe.transform('[**Google**](https://google.com)')).toBe(
+      '<p><a href="https://google.com"><strong>Google</strong></a></p>\n',
     );
   });
 
   it('converts line breaks to HTML paragraphs correctly', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.markdownSnippet = 'Line 1\n\nLine 2';
-
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent.trim()).toBe(
-      '<p>Line 1</p>\n<p>Line 2</p>',
+    expect(pipe.transform('Line 1\n\nLine 2')).toBe(
+      '<p>Line 1</p>\n<p>Line 2</p>\n',
     );
   });
 });

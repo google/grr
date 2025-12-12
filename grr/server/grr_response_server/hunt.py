@@ -16,10 +16,12 @@ from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import mig_foreman_rules
 from grr_response_server import notification
+from grr_response_server import output_plugin_registry
 from grr_response_server.models import hunts as models_hunts
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
+from grr_response_server.rdfvalues import mig_output_plugin
 
 
 MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
@@ -264,9 +266,33 @@ def CreateHunt(hunt_obj: hunts_pb2.Hunt):
   data_store.REL_DB.WriteHuntObject(hunt_obj)
 
   if hunt_obj.output_plugins:
-    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
+    proto_plugin_descriptors = []
+    rdf_plugin_descriptors = []
+    for idx, op in enumerate(hunt_obj.output_plugins):
+      try:
+        output_plugin_registry.GetPluginClassByName(op.plugin_name)
+        proto_plugin_descriptors.append((idx, op))
+      except KeyError:
+        rdf_plugin_descriptors.append((idx, op))
+
+    for _, desc in proto_plugin_descriptors:
+      plugin_cls = output_plugin_registry.GetPluginClassByName(desc.plugin_name)
+      if plugin_cls.args_type is not None:
+        # `desc.args` is an instance of `any_pb2.Any`.
+        pl_args = plugin_cls.args_type()
+        pl_args.ParseFromString(desc.args.value)
+      else:
+        pl_args = None
+      # Proto-based plugins are stateless, but we initialize them here to
+      # validate their arguments.
+      plugin_cls(source_urn=hunt_obj.hunt_id, args=pl_args)
+
+    rdf_plugin_descriptors = [
+        (idx, mig_output_plugin.ToRDFOutputPluginDescriptor(op))
+        for idx, op in rdf_plugin_descriptors
+    ]
     output_plugins_states = flow.GetOutputPluginStates(
-        hunt_obj.output_plugins, source=f"hunts/{hunt_obj.hunt_id}"
+        rdf_plugin_descriptors, source=f"hunts/{hunt_obj.hunt_id}"
     )
     output_plugins_states = [
         mig_flow_runner.ToProtoOutputPluginState(state)
@@ -287,8 +313,12 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   if "duration" in kwargs:
     precondition.AssertType(kwargs["duration"], rdfvalue.Duration)
 
-  hunt_args = rdf_hunt_objects.HuntArguments.Standard(
-      flow_name=flow_name, flow_args=rdf_structs.AnyValue.Pack(flow_args)
+  hunt_args = rdf_hunt_objects.HuntArguments(
+      hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+      standard=rdf_hunt_objects.HuntArgumentsStandard(
+          flow_name=flow_name,
+          flow_args=rdf_structs.AnyValue.Pack(flow_args),
+      ),
   )
 
   hunt_obj = rdf_hunt_objects.Hunt(
@@ -325,45 +355,6 @@ def _ScheduleGenericHunt(hunt_obj: rdf_hunt_objects.Hunt):
   data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
 
 
-def _ScheduleVariableHunt(hunt_obj: rdf_hunt_objects.Hunt):
-  """Schedules flows for a variable hunt."""
-  if hunt_obj.client_rate != 0:
-    raise VariableHuntCanNotHaveClientRateError(
-        hunt_obj.hunt_id, hunt_obj.client_rate
-    )
-
-  seen_clients = set()
-  for flow_group in hunt_obj.args.variable.flow_groups:
-    for client_id in flow_group.client_ids:
-      if client_id in seen_clients:
-        raise CanStartAtMostOneFlowPerClientError(hunt_obj.hunt_id, client_id)
-      seen_clients.add(client_id)
-
-  now = rdfvalue.RDFDatetime.Now()
-  for flow_group in hunt_obj.args.variable.flow_groups:
-    flow_cls = registry.FlowRegistry.FlowClassByName(flow_group.flow_name)
-
-    if flow_group.HasField("flow_args"):
-      flow_args = flow_group.flow_args.Unpack(flow_cls.args_type)
-    else:
-      flow_args = None
-
-    for client_id in flow_group.client_ids:
-      flow.StartFlow(
-          client_id=client_id,
-          creator=hunt_obj.creator,
-          cpu_limit=hunt_obj.per_client_cpu_limit,
-          network_bytes_limit=hunt_obj.per_client_network_bytes_limit,
-          flow_cls=flow_cls,
-          flow_args=flow_args,
-          # Setting start_at explicitly ensures that flow.StartFlow won't
-          # process flow's Start state right away. Only the flow request
-          # will be scheduled.
-          start_at=now,
-          parent=flow.FlowParent.FromHuntID(hunt_obj.hunt_id),
-      )
-
-
 def StartHunt(hunt_id) -> rdf_hunt_objects.Hunt:
   """Starts a hunt with a given id."""
 
@@ -385,8 +376,6 @@ def StartHunt(hunt_id) -> rdf_hunt_objects.Hunt:
 
   if hunt_obj.args.hunt_type == hunt_obj.args.HuntType.STANDARD:
     _ScheduleGenericHunt(hunt_obj)
-  elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
-    _ScheduleVariableHunt(hunt_obj)
   else:
     raise UnknownHuntTypeError(
         f"Invalid hunt type for hunt {hunt_id}: {hunt_obj.args.hunt_type}"
@@ -551,6 +540,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
         flow_cls=flow_cls,
         flow_args=flow_args,
         start_at=start_at,
+        output_plugins=hunt_obj.output_plugins,
         parent=flow.FlowParent.FromHuntID(hunt_id),
     )
 
@@ -564,8 +554,6 @@ def StartHuntFlowOnClient(client_id, hunt_id):
         except OnlyStartedHuntCanBePausedError:
           pass
 
-  elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
-    raise NotImplementedError()
   else:
     raise UnknownHuntTypeError(
         f"Can't determine hunt type when starting hunt {client_id} on client"

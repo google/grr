@@ -3,11 +3,13 @@ import {
   ApiHuntReference,
   ApiHuntStateReason,
   ForemanClientRuleSet,
-  OutputPluginDescriptor,
 } from '../api/api_interfaces';
 import {Duration} from '../date_time';
 
-import {getFlowTitleFromFlowName} from './flow';
+import {ApiListHuntsArgsRobotFilter} from '../api/api_interfaces';
+import {FlowType, isFlowResult} from './flow';
+import {OutputPlugin} from './output_plugin';
+import {CollectionResult} from './result';
 import {Approval, ApprovalRequest} from './user';
 
 /** Key used to identify a hunt approval */
@@ -38,13 +40,12 @@ export declare interface SafetyLimits {
   readonly perClientNetworkBytesLimit: bigint;
 }
 
-/** Configuration for displaying hunt presubmit information */
-export declare interface HuntPresubmit {
-  markdownText: string;
-  // Ideally, we'd have an expected ForemanClientRuleSet here.
-  // However, deep equality can be tricky in TS and we have no need for it yet.
-  // So for now, we'll just use a list of expected excluded labels.
-  expectedExcludedLabels?: string[];
+/** Arguments for listing hunts. */
+export interface ListHuntsArgs {
+  readonly count?: number;
+  readonly offset?: number;
+  readonly robotFilter?: ApiListHuntsArgsRobotFilter;
+  readonly stateFilter?: HuntState;
 }
 
 /** ApiHunt.State proto mapping. */
@@ -76,11 +77,13 @@ export declare interface Hunt {
   readonly completedClientsCount: bigint;
   readonly crashedClientsCount: bigint;
   readonly failedClientsCount: bigint;
-  readonly created: Date;
+  // When creating a new hunt, the response does not contain the created field.
+  readonly created: Date | undefined;
   readonly creator: string;
   readonly description: string;
   readonly duration?: Duration;
   readonly flowArgs?: unknown;
+  readonly flowType?: FlowType;
   readonly flowName?: string;
   readonly huntId: string;
   readonly huntType: HuntType;
@@ -98,8 +101,63 @@ export declare interface Hunt {
   readonly flowReference?: ApiFlowReference;
   readonly huntReference?: ApiHuntReference;
   readonly clientRuleSet?: ForemanClientRuleSet;
-  readonly outputPlugins?: OutputPluginDescriptor[];
+  readonly outputPlugins?: OutputPlugin[];
   readonly resourceUsage?: HuntResourceUsage;
+}
+
+/** Arguments for listing hunt results. */
+export declare interface ListHuntResultsArgs {
+  readonly huntId: string;
+  readonly offset?: number;
+  readonly count?: number;
+  readonly filter?: string;
+  readonly withType?: string;
+}
+
+/** Arguments for listing hunt errors. */
+export declare interface ListHuntErrorsArgs {
+  readonly huntId: string;
+  readonly offset?: number;
+  readonly count?: number;
+  readonly filter?: string;
+}
+
+/** HuntResult represents a single hunt result. */
+export declare interface HuntResult extends CollectionResult {}
+
+/** Type guard for HuntResult. */
+export function isHuntResult(result: CollectionResult): result is HuntResult {
+  return !isFlowResult(result);
+}
+
+/** HuntError represents a single hunt error. */
+export declare interface HuntError {
+  readonly clientId: string;
+  readonly logMessage?: string;
+  readonly backtrace?: string;
+  readonly timestamp: Date;
+}
+
+/**
+ * ListHuntResultsResult represents a list of hunt results and the total count.
+ */
+export declare interface ListHuntResultsResult {
+  readonly totalCount: number | undefined;
+  readonly results: readonly HuntResult[];
+}
+
+/**
+ * ListHuntErrorsResult represents a list of hunt errors and the total count.
+ */
+export declare interface ListHuntErrorsResult {
+  readonly totalCount: number | undefined;
+  readonly errors: readonly HuntError[];
+}
+
+/** Result of listing hunts. */
+export declare interface ListHuntsResult {
+  readonly hunts: Hunt[];
+  readonly totalCount?: number;
 }
 
 /** Approval proto mapping. */
@@ -108,27 +166,27 @@ export declare interface HuntApproval extends Approval {
   readonly subject: Hunt;
 }
 
+/** Type guard for HuntApproval. */
+export function isHuntApproval(approval: Approval): approval is HuntApproval {
+  return (approval as HuntApproval).huntId !== undefined;
+}
+
 /** ApprovalRequest for hunt */
 export interface HuntApprovalRequest extends ApprovalRequest {
   readonly huntId: string;
 }
 
-/** Data format for rows in the Hunt Completion Progress table */
-export interface HuntCompletionProgressTableRow {
-  timestamp: number;
-  completedClients?: bigint;
-  scheduledClients?: bigint;
-  completedClientsPct?: bigint;
-  scheduledClientsPct?: bigint;
+/** HuntLog proto mapping. */
+export declare interface HuntLog {
+  readonly clientId?: string;
+  readonly logMessage?: string;
+  readonly flowName?: string;
+  readonly flowId?: string;
+  readonly timestamp?: Date;
 }
 
-/** Gets the hunt title to be displayed across different pages */
-export function getHuntTitle(hunt: Hunt | null): string {
-  const name = hunt?.name === 'GenericHunt' ? '' : hunt?.name;
-  return (
-    hunt?.description ||
-    name ||
-    'Untitled fleet collection' +
-      (hunt?.flowName ? ': ' + getFlowTitleFromFlowName(hunt.flowName) : '')
-  );
+/** Result of listing hunt logs. */
+export declare interface ListHuntLogsResult {
+  readonly logs: readonly HuntLog[];
+  readonly totalCount?: number;
 }

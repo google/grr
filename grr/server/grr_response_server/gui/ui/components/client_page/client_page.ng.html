@@ -1,35 +1,57 @@
-<client-overview [collapsed]="filesActive.isActive"></client-overview>
+<client-overview />
 
-<div>
-  <!-- Wrapper <div> to prevent row-gap between nav and divider. -->
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" [mat-stretch-tabs]="false" [disablePagination]="true">
-    <a
-      mat-tab-link
-      [routerLink]="['flows']"
-      routerLinkActive
-      #flowsActive="routerLinkActive"
-      [active]="flowsActive.isActive"
-      [disabled]="!(hasAccess$ | async)"
-    >
-      All flows
-    </a>
+<nav
+    mat-tab-nav-bar
+    [tabPanel]="tabPanel"
+    [mat-stretch-tabs]="true"
+    [disablePagination]="true">
+  <a
+    mat-tab-link
+    [routerLink]="['flows']"
+    routerLinkActive
+    #flowsActive="routerLinkActive"
+    [active]="flowsActive.isActive"
+    [class.active]="flowsActive.isActive"
+  >
+    Flows
+  </a>
+  <a
+    mat-tab-link
+    [routerLink]="['history']"
+    routerLinkActive
+    #historyActive="routerLinkActive"
+    [active]="historyActive.isActive"
+    [class.active]="historyActive.isActive"
+  >
+    Client History
+  </a>
+  <a
+    mat-tab-link
+    [routerLink]="['approvals']"
+    queryParamsHandling="merge"
+    routerLinkActive
+    #approvalsActive="routerLinkActive"
+    [active]="approvalsActive.isActive"
+    [class.requireApproval]="clientStore.hasAccess() == false"
+    [class.active]="approvalsActive.isActive"
+  >
+    Approvals
+</a>
+<a
+  mat-tab-link
+  [routerLink]="['files']"
+  routerLinkActive
+  #filesActive="routerLinkActive"
+  [active]="filesActive.isActive"
+  [class.active]="filesActive.isActive"
+  [disabled]="!clientStore.hasAccess()"
+>
+  Browse collected files & metadata
+</a>
+</nav>
 
-    <a
-      class="collected-files-tab"
-      mat-tab-link
-      [routerLink]="['files']"
-      routerLinkActive
-      #filesActive="routerLinkActive"
-      [active]="filesActive.isActive"
-      [disabled]="!(hasAccess$ | async)"
-    >
-      Browse collected files & metadata
-    </a>
-  </nav>
+<div class="divider"></div>
 
-  <div class="divider"></div>
-</div>
+<mat-tab-nav-panel #tabPanel />
 
-<mat-tab-nav-panel #tabPanel [ngClass]="{ 'hide-overflow-y': filesActive.isActive}">
-  <router-outlet></router-outlet>
-</mat-tab-nav-panel>
+<router-outlet />

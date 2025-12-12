@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 """Utility functions/decorators for DB implementations."""
 
+from collections.abc import Sequence
 import functools
 import logging
 import time
-from typing import Generic
-from typing import List
-from typing import Sequence
-from typing import Tuple
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
@@ -192,7 +189,7 @@ def OutputPluginIDToInt(output_plugin_id):
 
 
 def IntToOutputPluginID(output_plugin_id):
-  return "%08X" % output_plugin_id
+  return "%X" % output_plugin_id
 
 
 def CronJobRunIDToInt(cron_job_run_id):
@@ -234,7 +231,7 @@ class BatchPlanner(Generic[_T]):
   # be replaced with a generic NamedTuple. Unfortunately, Python 3.6
   # has issues with NamedTuples and generics. See:
   # https://stackoverflow.com/questions/50530959/generic-namedtuple-in-python-3-6
-  BatchPart = Tuple[_T, int, int]  # pylint: disable=invalid-name
+  BatchPart = tuple[_T, int, int]  # pylint: disable=invalid-name
   Batch = Sequence[BatchPart]  # pylint: disable=invalid-name
 
   def __init__(self, limit: int):
@@ -246,10 +243,10 @@ class BatchPlanner(Generic[_T]):
     """
     self._limit = limit
 
-    self._current_batch: List[BatchPlanner[_T].BatchPart] = []
+    self._current_batch: list[BatchPlanner[_T].BatchPart] = []
     self._current_batch_size = 0
 
-    self._batches: List[BatchPlanner[_T].Batch] = []
+    self._batches: list[BatchPlanner[_T].Batch] = []
 
   def _PlanOperation(self, key: _T, offset: int, count: int) -> int:
     """An utility method to plan a single operation.

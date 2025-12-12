@@ -1,0 +1,63 @@
+<filter-paginate [dataSource]="dataSource">
+  <table
+    mat-table
+    [dataSource]="dataSource"
+    matSort
+    (matSortChange)="announceSortChange($event)"
+  >
+    <ng-container matColumnDef="outputPluginId">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by plugin ID">
+        Plugin ID
+      </th>
+      <td mat-cell *matCellDef="let r">
+        {{ r.outputPluginId }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="timestamp">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by timestamp">
+        Timestamp
+      </th>
+      <td mat-cell *matCellDef="let r">
+        <timestamp [date]="r.timestamp" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="logEntryType">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by log type">
+        Type
+      </th>
+      <td mat-cell *matCellDef="let r">
+        {{ r.logEntryType }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="message">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by log message">
+        Message
+      </th>
+      <td mat-cell *matCellDef="let r">
+        <codeblock [code]="splitLines(r.message)" />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns" class="row"></tr>
+
+    <tr *matNoDataRow>
+      <td colspan="4">No data</td>
+    </tr>
+  </table>
+</filter-paginate>

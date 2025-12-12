@@ -8,56 +8,10 @@ import {
   assertNumber,
   assertTruthy,
   isEnum,
-  isNonNull,
-  isNull,
   PreconditionError,
 } from './preconditions';
 
 initTestEnvironment();
-
-describe('isNonNull', () => {
-  it('returns false if value is null', () => {
-    expect(isNonNull(null)).toBeFalse();
-  });
-
-  it('returns false if value is undefined', () => {
-    expect(isNonNull(undefined)).toBeFalse();
-  });
-
-  it('returns true for falsey values', () => {
-    expect(isNonNull(0)).toBeTrue();
-    expect(isNonNull(false)).toBeTrue();
-    expect(isNonNull('')).toBeTrue();
-  });
-
-  it('returns true for truthy values', () => {
-    expect(isNonNull(5)).toBeTrue();
-    expect(isNonNull({})).toBeTrue();
-    expect(isNonNull([])).toBeTrue();
-  });
-});
-
-describe('isNull', () => {
-  it('returns true if value is null', () => {
-    expect(isNull(null)).toBeTrue();
-  });
-
-  it('returns true if value is undefined', () => {
-    expect(isNull(undefined)).toBeTrue();
-  });
-
-  it('returns false for falsey values', () => {
-    expect(isNull(0)).toBeFalse();
-    expect(isNull(false)).toBeFalse();
-    expect(isNull('')).toBeFalse();
-  });
-
-  it('returns false for truthy values', () => {
-    expect(isNull(5)).toBeFalse();
-    expect(isNull({})).toBeFalse();
-    expect(isNull([])).toBeFalse();
-  });
-});
 
 describe('assertNonNull', () => {
   it('throws if value is null', () => {

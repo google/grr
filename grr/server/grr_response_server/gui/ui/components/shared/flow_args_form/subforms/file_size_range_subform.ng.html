@@ -1,0 +1,45 @@
+<div class="row">
+  <mat-form-field appearance="outline" class="minFileSize w33">
+    <mat-label>Minimum file size</mat-label>
+    <input
+      matInput
+      byteInput
+      placeholder=""
+      [formControl]="formGroup.controls.minFileSize"
+      name="minFileSize"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-error>
+      <form-errors [validationErrors]="formGroup.controls.minFileSize.errors" />
+    </mat-error>
+    @if (formGroup.controls.minFileSize.value) {
+      <mat-hint>
+        Collect files larger than {{ formGroup.controls.minFileSize.value | number }} bytes.
+      </mat-hint>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="maxFileSize w33">
+    <mat-label>Maximum file size</mat-label>
+    <input
+      matInput
+      byteInput
+      placeholder=""
+      [formControl]="formGroup.controls.maxFileSize"
+      name="maxFileSize"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-error>
+      <form-errors [validationErrors]="formGroup.controls.minFileSize.errors" />
+    </mat-error>
+    @if (formGroup.controls.maxFileSize.value) {
+      <mat-hint>
+        Collect files smaller than {{ formGroup.controls.maxFileSize.value | number }} bytes.
+      </mat-hint>
+    }
+  </mat-form-field>
+</div>
+<!-- Errors that are not specific to a single control, so we need to show them outside of the form fields. -->
+<form-errors [validationErrors]="formGroup.errors" />

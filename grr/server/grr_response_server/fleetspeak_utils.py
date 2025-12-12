@@ -3,7 +3,7 @@
 
 import binascii
 import datetime
-from typing import List
+from typing import Collection, List
 
 from google.protobuf import timestamp_pb2
 from grr_response_core import config
@@ -30,11 +30,22 @@ WRITE_TOTAL_TIMEOUT = datetime.timedelta(seconds=300)
 READ_SINGLE_TRY_TIMEOUT = datetime.timedelta(seconds=60)
 READ_TOTAL_TIMEOUT = datetime.timedelta(seconds=120)
 
+GRR_REQUEST_COUNT = metrics.Counter(
+    name="grr_request_count",
+    fields=[("action", str), ("labels", str)],
+)
+
+RRG_REQUEST_COUNT = metrics.Counter(
+    name="rrg_request_count",
+    fields=[("action", str), ("labels", str)],
+)
+
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
 def SendGrrMessageThroughFleetspeak(
     grr_id: str,
     grr_msg: rdf_flows.GrrMessage,
+    labels: Collection[str],  # TODO: Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -49,6 +60,7 @@ def SendGrrMessageThroughFleetspeak(
   Args:
     grr_id: ID of grr client to send message to.
     grr_msg: GRR message to send.
+    labels: Labels of the endpoint to send the message to.
   """
   fs_msg = fs_common_pb2.Message(
       message_type="GrrMessage",
@@ -69,11 +81,19 @@ def SendGrrMessageThroughFleetspeak(
       timeout=WRITE_TOTAL_TIMEOUT,
   )
 
+  GRR_REQUEST_COUNT.Increment(
+      fields=[
+          grr_msg.name,
+          ",".join(sorted(labels)),
+      ]
+  )
+
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
 def SendGrrMessageProtoThroughFleetspeak(
     grr_id: str,
     grr_msg: jobs_pb2.GrrMessage,
+    labels: Collection[str],  # TODO: Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -88,6 +108,7 @@ def SendGrrMessageProtoThroughFleetspeak(
   Args:
     grr_id: ID of grr client to send message to.
     grr_msg: GRR message to send.
+    labels: Labels of the endpoint to send the message to.
   """
   fs_msg = fs_common_pb2.Message(
       message_type="GrrMessage",
@@ -110,17 +131,26 @@ def SendGrrMessageProtoThroughFleetspeak(
       timeout=WRITE_TOTAL_TIMEOUT,
   )
 
+  GRR_REQUEST_COUNT.Increment(
+      fields=[
+          grr_msg.name,
+          ",".join(sorted(labels)),
+      ]
+  )
+
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
 def SendRrgRequest(
     client_id: str,
     request: rrg_pb2.Request,
+    labels: Collection[str],  # TODO: Remove once RRG rollout done.
 ) -> None:
   """Sends a RRG action request to the specified endpoint.
 
   Args:
     client_id: A unique endpoint identifier as recognized by GRR.
     request: A request to send to the endpoint.
+    labels: Labels of the endpoint to send the message to.
   """
   message = fs_common_pb2.Message()
   message.message_type = "rrg.Request"
@@ -143,6 +173,13 @@ def SendRrgRequest(
       message,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT,
+  )
+
+  RRG_REQUEST_COUNT.Increment(
+      fields=[
+          rrg_pb2.Action.Name(request.action),
+          ",".join(sorted(labels)),
+      ]
   )
 
 

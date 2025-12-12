@@ -5,14 +5,6 @@ from grr_response_proto import flows_pb2
 from grr_response_server.flows.general import transfer
 
 
-def ToProtoGetFileArgs(rdf: transfer.GetFileArgs) -> flows_pb2.GetFileArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFGetFileArgs(proto: flows_pb2.GetFileArgs) -> transfer.GetFileArgs:
-  return transfer.GetFileArgs.FromSerializedBytes(proto.SerializeToString())
-
-
 def ToProtoMultiGetFileArgs(
     rdf: transfer.MultiGetFileArgs,
 ) -> flows_pb2.MultiGetFileArgs:

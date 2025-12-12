@@ -1,0 +1,7 @@
+<h5>{{ regexData().field ?? ForemanStringField.UNSET | friendlyForemanStringClientRule }}</h5>
+<form>
+  <mat-form-field appearance="outline">
+    <mat-label>Attribute Regex</mat-label>
+    <input matInput [formControl]="regexData().controls.regex">
+  </mat-form-field>
+</form>

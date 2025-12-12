@@ -38,20 +38,6 @@ class OsqueryTableTest(absltest.TestCase):
     with self.assertRaises(KeyError):
       list(table.Column("D"))
 
-  def testTruncation(self):
-    table = rdf_osquery.OsqueryTable()
-    table.header.columns.append(rdf_osquery.OsqueryColumn(name="A"))
-
-    table.rows.append(rdf_osquery.OsqueryRow(values=["cell1"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["cell2"]))
-    table.rows.append(rdf_osquery.OsqueryRow(values=["cell3"]))
-
-    truncated = table.Truncated(1)
-    column_values = list(truncated.Column("A"))
-
-    self.assertLen(truncated.rows, 1)
-    self.assertEqual(column_values, ["cell1"])
-
 
 class OsqueryResultTest(absltest.TestCase):
 

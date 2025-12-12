@@ -1,27 +1,60 @@
 import {HexHash} from './flow';
 
-/** ApiFile mapping for files. */
-export declare interface File {
-  readonly isDirectory: false;
+/** A single entry in a browse filesystem result. */
+export declare interface BrowseFilesystemEntry {
+  readonly file: File | Directory | undefined;
+  children: BrowseFilesystemEntry[] | undefined;
+}
+
+/** A browse filesystem result. */
+export declare interface BrowseFilesystemResult {
+  readonly rootEntry: BrowseFilesystemEntry | undefined;
+}
+
+/** Common fields for files and directories. */
+export declare interface FileOrDirectory {
+  readonly isDirectory: boolean;
   readonly name: string;
   readonly path: string;
   readonly pathtype: PathSpecPathType;
-  readonly type?: string;
   readonly stat?: StatEntry;
+  readonly lastMetadataCollected?: Date;
+}
+
+/** ApiFile mapping for files. */
+export declare interface File extends FileOrDirectory {
+  readonly isDirectory: false;
+  readonly type?: string;
   readonly hash?: HexHash;
   readonly lastContentCollected?: {
     timestamp: Date;
     size: bigint;
   };
-  readonly lastMetadataCollected: Date;
 }
 
 /** ApiFile mapping for directories. */
-export declare interface Directory {
+export declare interface Directory extends FileOrDirectory {
   readonly isDirectory: true;
-  readonly name: string;
-  readonly path: string;
-  readonly pathtype: PathSpecPathType;
+}
+
+/** Type guard for Directory. */
+export function isDirectory(
+  fileOrDirectory: FileOrDirectory,
+): fileOrDirectory is Directory {
+  return fileOrDirectory.isDirectory;
+}
+
+/** Type guard for File. */
+export function isFile(
+  fileOrDirectory: FileOrDirectory,
+): fileOrDirectory is File {
+  return !fileOrDirectory.isDirectory;
+}
+
+/** A node in a tree containing directories and their subdirectories. */
+export interface DirectoryNode extends Directory {
+  readonly children?: readonly DirectoryNode[];
+  readonly loading: boolean;
 }
 
 /** PathSpec.PathType enum mapping. */
@@ -73,65 +106,19 @@ export declare interface StatEntry {
   readonly pathspec?: PathSpec;
 }
 
-/** Identifier of a VFS File: ClientID, PathType, Path. */
-export declare interface FileIdentifier {
-  readonly clientId: string;
-  readonly pathType: PathSpecPathType;
-  readonly path: string;
-}
-
-/** Splits a path "/foo/bar" into segments ["/", "/foo", "/foo/bar"]. */
-export function scanPath(path: string): readonly string[] {
-  if (!path.startsWith('/')) {
-    throw new Error(`Expected path to start with "/", got "${path}"`);
-  }
-
-  if (path.endsWith('/')) {
-    // Also turns the root path "/" to "".
-    path = path.slice(0, path.length - 1);
-  }
-
-  const parts = path.split('/');
-
-  for (let i = 1; i < parts.length; i++) {
-    const previous = parts[i - 1];
-    parts[i] = `${previous}/${parts[i]}`;
-  }
-
-  parts[0] = '/';
-
-  return parts;
-}
-
-/**
- * Returns true if `child` is a sub-directory of `parent`, e.g. `/foo` is a
- * sub-directory of `/`.
- */
-export function isSubDirectory(child: string, parent: string) {
-  if (parent.endsWith('/')) {
-    parent = parent.slice(0, parent.length - 1);
-  }
-
-  if (child.endsWith('/')) {
-    child = child.slice(0, child.length - 1);
-  }
-
-  if (!child.startsWith(parent)) {
+/** Returns true if the file is a symlink. */
+export function isSymlink(statEntry: StatEntry): boolean {
+  const stMode = statEntry.stMode;
+  if (stMode === undefined) {
     return false;
   }
-
-  // Return false for siblings that prefix-match, e.g. /foo is not a
-  // sub-directory of /fo.
-  return parent === '/' || child[parent.length] === '/';
+  return (Number(stMode) & 0o120000) === 0o120000;
 }
 
-/**
- * Returns the depth of a given path, e.g. `/foo` has a depth of 2, `/foo/bar`
- * has a depth of 3.
- */
-export function pathDepth(path: string) {
-  if (path.endsWith('/')) {
-    path = path.slice(0, path.length - 1);
-  }
-  return path.split('/').length;
+
+/** Content of a file. */
+export declare interface FileContent {
+  readonly totalLength: bigint;
+  readonly textContent?: string;
+  readonly blobContent?: ArrayBuffer;
 }

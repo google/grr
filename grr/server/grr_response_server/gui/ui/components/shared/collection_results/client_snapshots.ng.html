@@ -1,0 +1,94 @@
+@for (collectionResult of collectionResults(); track collectionResult) {
+  @if (isHuntResult(collectionResult)) {
+    <p class="client-id-container">
+      Client ID: <copy-button>{{collectionResult.clientId}}</copy-button>
+    </p>
+  }
+  @let clientSnapshot = clientSnapshotsFromCollectionResult(collectionResult);
+  <table class="client-snapshot-table">
+    <tr>
+      <td>
+        <h3>Operating System</h3>
+      </td>
+      <td>
+        <table class="operating-system-table">
+          <tr>
+            <td>Knowledge Base</td>
+            <td><knowledge-base-details [knowledgeBase]="clientSnapshot.knowledgeBase" /></td>
+          </tr>
+          <tr>
+            <td>Version</td>
+            <td><copy-button>{{ clientSnapshot.osVersion }}</copy-button></td>
+          </tr>
+          @if (clientSnapshot.osRelease) {
+            <tr>
+              <td>Release</td>
+              <td><copy-button>{{ clientSnapshot.osRelease }}</copy-button></td>
+            </tr>
+          }
+          @if (clientSnapshot.kernel) {
+            <tr>
+              <td>Kernel</td>
+              <td><copy-button>{{ clientSnapshot.kernel }}</copy-button></td>
+            </tr>
+          }
+          @if (clientSnapshot.installTime) {
+            <tr>
+              <td>Install Date</td>
+              <td><timestamp [date]="clientSnapshot.installTime" /></td>
+            </tr>
+          }
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <h3>Users</h3>
+      </td>
+      <td>
+        <users-details [users]="clientSnapshot.users" />
+      </td>
+    </tr>
+    @if (clientSnapshot.cloudInstance) {
+      <tr>
+        <td><h3>Cloud Instance</h3></td>
+        <td><cloud-instance-details [cloudInstance]="clientSnapshot.cloudInstance" /></td>
+      </tr>
+    }
+    <tr>
+      <td><h3>Startup Info</h3></td>
+      <td><startup-info-details [startupInfo]="clientSnapshot.startupInfo" /></td>
+    </tr>
+    <tr>
+      <td><h3>Hardware</h3></td>
+      <td>
+        <table class="hardware-table">
+          @if (clientSnapshot.arch) {
+            <tr>
+              <td>CPU Architecture</td>
+              <td>{{ clientSnapshot.arch }}</td>
+            </tr>
+          }
+          @if (clientSnapshot.memorySize) {
+            <tr>
+              <td>Memory Size</td>
+              <td>{{ clientSnapshot.memorySize }}</td>
+            </tr>
+          }
+          <tr>
+            <td>Hardware Info</td>
+            <td><hardware-info-details [hardwareInfo]="clientSnapshot.hardwareInfo" /></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td><h3>Storage Volumes</h3></td>
+      <td><volumes-details [volumes]="clientSnapshot.volumes"/></td>
+    </tr>
+    <tr>
+      <td><h3>Network Interfaces</h3></td>
+      <td><network-interfaces-details [interfaces]="clientSnapshot.networkInterfaces" /></td>
+    </tr>
+  </table>
+}

@@ -5,16 +5,20 @@ from typing import Optional
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
-from grr_response_proto.api import flow_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import timeline_pb2
+from grr_response_proto.api import client_pb2 as api_client_pb2
+from grr_response_proto.api import flow_pb2 as api_flow_pb2
+from grr_response_proto.api import timeline_pb2 as api_timeline_pb2
+from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.local import MITIGATION_FLOWS
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -25,74 +29,6 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-
-
-class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterSearchClientsParams
-
-
-class RobotRouterFileFinderFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterFileFinderFlowParams
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-  ]
-
-
-class RobotRouterArtifactCollectorFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterArtifactCollectorFlowParams
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-  ]
-
-
-class RobotRouterGetFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterGetFlowParams
-
-
-class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterListFlowResultsParams
-
-
-class RobotRouterListFlowLogsParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterListFlowLogsParams
-
-
-class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterGetFlowFilesArchiveParams
-  rdf_deps = [
-      rdf_paths.GlobExpression,
-  ]
-
-
-class RobotRouterGetFileBlobParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterGetFileBlobParams
-
-
-class RobotRouterTimelineFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterTimelineFlowParams
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-  ]
-
-
-class RobotRouterGetCollectedTimelineParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.RobotRouterGetCollectedTimelineParams
-
-
-class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.ApiCallRobotRouterParams
-  rdf_deps = [
-      RobotRouterArtifactCollectorFlowParams,
-      RobotRouterFileFinderFlowParams,
-      RobotRouterGetFlowFilesArchiveParams,
-      RobotRouterGetFlowParams,
-      RobotRouterListFlowLogsParams,
-      RobotRouterListFlowResultsParams,
-      RobotRouterSearchClientsParams,
-      RobotRouterTimelineFlowParams,
-      RobotRouterGetCollectedTimelineParams,
-      RobotRouterGetFileBlobParams,
-  ]
 
 
 LABEL_NAME_PREFIX = "robotapi-"
@@ -106,10 +42,8 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   the call to a standard ApiCreateFlowHandler.
   """
 
-  args_type = api_flow.ApiCreateFlowArgs
-  result_type = api_flow.ApiFlow
-  proto_args_type = flow_pb2.ApiCreateFlowArgs
-  proto_result_type = flow_pb2.ApiFlow
+  proto_args_type = api_flow_pb2.ApiCreateFlowArgs
+  proto_result_type = api_flow_pb2.ApiFlow
 
   def __init__(
       self,
@@ -123,9 +57,9 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args: flow_pb2.ApiCreateFlowArgs,
+      args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> flow_pb2.ApiFlow:
+  ) -> api_flow_pb2.ApiFlow:
     if not args.client_id:
       raise RuntimeError("Client id has to be specified.")
 
@@ -135,7 +69,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     delegate = api_flow.ApiCreateFlowHandler()
     # Note that runner_args are dropped. From all the arguments We use only
     # the flow name and the arguments.
-    delegate_args = flow_pb2.ApiCreateFlowArgs(client_id=args.client_id)
+    delegate_args = api_flow_pb2.ApiCreateFlowArgs(client_id=args.client_id)
     delegate_args.flow.name = self.override_flow_name or args.flow.name
     if self.override_flow_args:
       delegate_args.flow.args.CopyFrom(self.override_flow_args)
@@ -153,10 +87,8 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
   we just return a descriptor of a previously executed flow.
   """
 
-  args_type = api_flow.ApiCreateFlowArgs
-  result_type = api_flow.ApiFlow
-  proto_args_type = flow_pb2.ApiCreateFlowArgs
-  proto_result_type = flow_pb2.ApiFlow
+  proto_args_type = api_flow_pb2.ApiCreateFlowArgs
+  proto_result_type = api_flow_pb2.ApiFlow
 
   def __init__(self, flow_id: str):
     super().__init__()
@@ -167,11 +99,13 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args: flow_pb2.ApiCreateFlowArgs,
+      args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> flow_pb2.ApiFlow:
+  ) -> api_flow_pb2.ApiFlow:
     return api_flow.ApiGetFlowHandler().Handle(
-        flow_pb2.ApiGetFlowArgs(client_id=args.client_id, flow_id=self.flow_id),
+        api_flow_pb2.ApiGetFlowArgs(
+            client_id=args.client_id, flow_id=self.flow_id
+        ),
         context=context,
     )
 
@@ -179,14 +113,20 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
 class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   """Restricted router to be used by robots."""
 
-  params_type = ApiCallRobotRouterParams
+  proto_params_type = api_call_router_pb2.ApiCallRobotRouterParams
 
-  def __init__(self, params=None, delegate=None):
+  def __init__(
+      self,
+      params: Optional[api_call_router_pb2.ApiCallRobotRouterParams] = None,
+      delegate: Optional[api_call_router.ApiCallRouter] = None,
+  ):
     super().__init__(params=params)
 
     if params is None:
       raise ValueError("Router params are mandatory for ApiCallRobotRouter.")
-    self.params = params or self.__class__.params_type()
+    self.params: api_call_router_pb2.ApiCallRobotRouterParams = (
+        params or api_call_router_pb2.ApiCallRobotRouterParams()
+    )
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -225,7 +165,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
         or collectors.ArtifactCollectorFlow.__name__
     )
 
-  def SearchClients(self, args, context=None):
+  def SearchClients(
+      self,
+      args: api_client_pb2.ApiSearchClientsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     if not self.params.search_clients.enabled:
       raise access_control.UnauthorizedAccess(
           "SearchClients is not allowed by the configuration."
@@ -233,7 +177,14 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return api_client.ApiSearchClientsHandler()
 
-  def _CheckFileFinderArgs(self, flow_args, context=None):
+  def _CheckFileFinderArgs(
+      self,
+      flow_args: any_pb2.Any,
+  ):
+    unpacked = flows_pb2.FileFinderArgs()
+    unpacked.ParseFromString(flow_args.value)
+    flow_args = unpacked
+
     ffparams = self.params.file_finder_flow
 
     if not ffparams.enabled:
@@ -262,12 +213,17 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return throttle.FlowThrottler(
         daily_req_limit=ffparams.max_flows_per_client_daily,
-        dup_interval=rdfvalue.Duration(
-            ffparams.min_interval_between_duplicate_flows
+        dup_interval=rdfvalue.Duration.From(
+            ffparams.min_interval_between_duplicate_flows, rdfvalue.SECONDS
         ),
+        flow_args_type=flows_pb2.FileFinderArgs,
     )
 
-  def _CheckArtifactCollectorFlowArgs(self, flow_args):
+  def _CheckArtifactCollectorFlowArgs(self, flow_args: any_pb2.Any):
+    unpacked = flows_pb2.ArtifactCollectorFlowArgs()
+    unpacked.ParseFromString(flow_args.value)
+    flow_args = unpacked
+
     if not self.params.artifact_collector_flow.enabled:
       raise access_control.UnauthorizedAccess(
           "ArtifactCollectorFlow flow is not allowed by the configuration"
@@ -284,9 +240,10 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return throttle.FlowThrottler(
         daily_req_limit=acparams.max_flows_per_client_daily,
-        dup_interval=rdfvalue.Duration(
-            acparams.min_interval_between_duplicate_flows
+        dup_interval=rdfvalue.Duration.From(
+            acparams.min_interval_between_duplicate_flows, rdfvalue.SECONDS
         ),
+        flow_args_type=flows_pb2.ArtifactCollectorFlowArgs,
     )
 
   def _GetTimelineFlowThrottler(self):
@@ -294,10 +251,19 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return throttle.FlowThrottler(
         daily_req_limit=tfparams.max_flows_per_client_daily,
-        dup_interval=rdfvalue.Duration(
-            tfparams.min_interval_between_duplicate_flows
+        dup_interval=rdfvalue.Duration.From(
+            tfparams.min_interval_between_duplicate_flows, rdfvalue.SECONDS
         ),
+        flow_args_type=timeline_pb2.TimelineArgs,
     )
+
+  def _CheckMitigationActionAccess(self):
+    mitigation_actions_params = self.params.mitigation_actions
+
+    if not mitigation_actions_params.enabled:
+      raise access_control.UnauthorizedAccess(
+          "Mitigation actions are not allowed by the configuration."
+      )
 
   def _CheckFlowRobotId(self, client_id, flow_id, context=None):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
@@ -311,21 +277,31 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       )
     return flow_obj.flow_class_name
 
-  def _FixFileFinderArgs(self, source_args):
+  def _FixFileFinderArgs(
+      self, source_args: any_pb2.Any
+  ) -> flows_pb2.FileFinderArgs:
+    unpacked = flows_pb2.FileFinderArgs()
+    unpacked.ParseFromString(source_args.value)
+    source_args = unpacked
+
     ffparams = self.params.file_finder_flow
     if not ffparams.max_file_size:
       return
 
-    new_args = source_args.Copy()
-    if new_args.action.action_type == new_args.action.Action.HASH:
+    new_args = flows_pb2.FileFinderArgs()
+    new_args.CopyFrom(source_args)
+    if new_args.action.action_type == flows_pb2.FileFinderAction.Action.HASH:
       ha = new_args.action.hash
       ha.oversized_file_policy = ha.OversizedFilePolicy.SKIP
       ha.max_size = ffparams.max_file_size
-    elif new_args.action.action_type == new_args.action.Action.DOWNLOAD:
+    elif (
+        new_args.action.action_type
+        == flows_pb2.FileFinderAction.Action.DOWNLOAD
+    ):
       da = new_args.action.download
       da.oversized_file_policy = da.OversizedFilePolicy.SKIP
       da.max_size = ffparams.max_file_size
-    elif new_args.action.action_type == new_args.action.Action.STAT:
+    elif new_args.action.action_type == flows_pb2.FileFinderAction.Action.STAT:
       pass
     else:
       raise ValueError("Unknown action type: %s" % new_args.action)
@@ -334,7 +310,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
   def CreateFlow(
       self,
-      args: api_flow.ApiCreateFlowArgs,
+      args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> ApiRobotCreateFlowHandler:
     if not args.client_id:
@@ -345,9 +321,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       override_flow_name = self.effective_file_finder_flow_name
       if file_finder_args := self._FixFileFinderArgs(args.flow.args):
         override_flow_args = any_pb2.Any()
-        override_flow_args.Pack(
-            mig_file_finder.ToProtoFileFinderArgs(file_finder_args)
-        )
+        override_flow_args.Pack(file_finder_args)
       else:
         override_flow_args = None
       throttler = self._GetFileFinderThrottler()
@@ -360,6 +334,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       override_flow_name = "TimelineFlow"
       override_flow_args = None
       throttler = self._GetTimelineFlowThrottler()
+    elif args.flow.name in [flow.__name__ for flow in MITIGATION_FLOWS]:
+      self._CheckMitigationActionAccess()
+      override_flow_name = args.flow.name
+      override_flow_args = args.flow.args
+      throttler = throttle.FlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name
@@ -367,7 +346,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     try:
       throttler.EnforceLimits(
-          args.client_id.ToString(),
+          args.client_id,
           context.username,
           args.flow.name,
           args.flow.args,
@@ -384,7 +363,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
         override_flow_args=override_flow_args,
     )
 
-  def GetFlow(self, args, context=None):
+  def GetFlow(
+      self,
+      args: api_flow_pb2.ApiGetFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiGetFlowHandler:
     if not self.params.get_flow.enabled:
       raise access_control.UnauthorizedAccess(
           "GetFlow is not allowed by the configuration."
@@ -394,7 +377,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return api_flow.ApiGetFlowHandler()
 
-  def ListFlowResults(self, args, context=None):
+  def ListFlowResults(
+      self,
+      args: api_flow_pb2.ApiListFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListFlowResultsHandler:
     if not self.params.list_flow_results.enabled:
       raise access_control.UnauthorizedAccess(
           "ListFlowResults is not allowed by the configuration."
@@ -404,7 +391,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return api_flow.ApiListFlowResultsHandler()
 
-  def ListFlowLogs(self, args, context=None):
+  def ListFlowLogs(
+      self,
+      args: api_flow_pb2.ApiListFlowLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListFlowLogsHandler:
     if not self.params.list_flow_logs.enabled:
       raise access_control.UnauthorizedAccess(
           "ListFlowLogs is not allowed by the configuration."
@@ -414,7 +405,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return api_flow.ApiListFlowLogsHandler()
 
-  def GetFlowFilesArchive(self, args, context=None):
+  def GetFlowFilesArchive(
+      self,
+      args: api_flow_pb2.ApiGetFlowFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiGetFlowFilesArchiveHandler:
     if not self.params.get_flow_files_archive.enabled:
       raise access_control.UnauthorizedAccess(
           "GetFlowFilesArchive is not allowed by the configuration."
@@ -433,11 +428,20 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       return api_flow.ApiGetFlowFilesArchiveHandler()
     else:
       return api_flow.ApiGetFlowFilesArchiveHandler(
-          exclude_path_globs=options.exclude_path_globs,
-          include_only_path_globs=options.include_only_path_globs,
+          exclude_path_globs=[
+              rdf_paths.GlobExpression(ep) for ep in options.exclude_path_globs
+          ],
+          include_only_path_globs=[
+              rdf_paths.GlobExpression(ip)
+              for ip in options.include_only_path_globs
+          ],
       )
 
-  def GetCollectedTimeline(self, args, context=None):
+  def GetCollectedTimeline(
+      self,
+      args: api_timeline_pb2.ApiGetCollectedTimelineArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_timeline.ApiGetCollectedTimelineHandler:
     """Exports results of a timeline flow to the specific format."""
     if not self.params.get_collected_timeline.enabled:
       raise access_control.UnauthorizedAccess(
@@ -448,7 +452,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return api_timeline.ApiGetCollectedTimelineHandler()
 
-  def GetFileBlob(self, args, context=None):
+  def GetFileBlob(
+      self,
+      args: api_vfs_pb2.ApiGetFileBlobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_vfs.ApiGetFileBlobHandler:
     """Get byte contents of a VFS file on a given client."""
     if not self.params.get_file_blob.enabled:
       raise access_control.UnauthorizedAccess(

@@ -1,0 +1,28 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+
+  // The height of the custom input is higher than the toggle, setting a fixed
+  // hight to avoid shifting all form elements when switching between toggle
+  // and input.
+  min-height: 7em;
+}
+
+.width-50 {
+  width: 50%;
+}
+
+.width-80 {
+  width: 80%;
+}
+
+.fill-width {
+  flex-grow: 1;
+}

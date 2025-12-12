@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """MySQL implementation of DB methods for handling signed binaries."""
 
-from typing import Optional, Sequence, Tuple, cast
+from collections.abc import Sequence
+from typing import Optional, cast
 
 import MySQLdb
 import MySQLdb.cursors
@@ -51,7 +52,7 @@ class MySQLDBSignedBinariesMixin(object):
       self,
       binary_id: objects_pb2.SignedBinaryID,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
+  ) -> tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
     """Reads blob references for the signed binary with the given id."""
     assert cursor is not None
 

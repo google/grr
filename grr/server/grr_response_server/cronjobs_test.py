@@ -9,7 +9,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import mig_cronjobs
 from grr.test_lib import test_lib
@@ -67,19 +67,16 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     super().tearDown()
 
   def testCronJobPreservesFlowNameAndArguments(self):
-    pathspec = rdf_paths.PathSpec(
-        path="/foo", pathtype=rdf_paths.PathSpec.PathType.TSK
-    )
-
     cron_manager = cronjobs.CronManager()
 
-    flow_name = transfer.GetFile.__name__
+    flow_name = file_finder.ClientFileFinder.__name__
 
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d", allow_overruns=False, flow_name=flow_name
     )
 
-    cron_args.flow_args.pathspec = pathspec
+    cron_args.flow_args.paths = ["/foo"]
+    cron_args.flow_args.pathtype = rdf_paths.PathSpec.PathType.TSK
 
     job_id = cron_manager.CreateJob(cron_args=cron_args)
 
@@ -92,7 +89,10 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     hunt_args = cron_job.args.hunt_cron_action
     self.assertEqual(hunt_args.flow_name, flow_name)
 
-    self.assertEqual(hunt_args.flow_args.pathspec, pathspec)
+    self.assertEqual(hunt_args.flow_args.paths, ["/foo"])
+    self.assertEqual(
+        hunt_args.flow_args.pathtype, rdf_paths.PathSpec.PathType.TSK
+    )
 
     self.assertEqual(
         cron_job.frequency, rdfvalue.Duration.From(1, rdfvalue.DAYS)
@@ -102,7 +102,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testCronJobStartsRun(self):
     cron_manager = cronjobs.CronManager()
     create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = transfer.GetFile.__name__
+    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
     job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -125,7 +125,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testDisabledCronJobDoesNotCreateJobs(self):
     cron_manager = cronjobs.CronManager()
     create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = transfer.GetFile.__name__
+    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
     job_id1 = cron_manager.CreateJob(cron_args=create_flow_args)
     job_id2 = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -157,7 +157,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     try:
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1h", lifetime="1h", flow_name=transfer.GetFile.__name__
+          frequency="1h",
+          lifetime="1h",
+          flow_name=file_finder.ClientFileFinder.__name__,
       )
       with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         job_ids = []
@@ -258,7 +260,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__,
+              flow_name=file_finder.ClientFileFinder.__name__,
           )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -292,7 +294,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__,
+              flow_name=file_finder.ClientFileFinder.__name__,
           )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -341,7 +343,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
           allow_overruns=False,
           frequency="1h",
-          flow_name=transfer.GetFile.__name__,
+          flow_name=file_finder.ClientFileFinder.__name__,
       )
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -372,7 +374,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=False,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__,
+              flow_name=file_finder.ClientFileFinder.__name__,
           )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -409,7 +411,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
               allow_overruns=True,
               frequency="1h",
-              flow_name=transfer.GetFile.__name__,
+              flow_name=file_finder.ClientFileFinder.__name__,
           )
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -439,7 +441,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     cron_manager = cronjobs.CronManager()
 
     create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = transfer.GetFile.__name__
+    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
     cron_job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -456,7 +458,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1w", lifetime="1d", flow_name=transfer.GetFile.__name__
+          frequency="1w",
+          lifetime="1d",
+          flow_name=file_finder.ClientFileFinder.__name__,
       )
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
@@ -509,7 +513,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         create_flow_args = rdf_cronjobs.CreateCronJobArgs()
         create_flow_args.frequency = "1h"
         create_flow_args.lifetime = "1h"
-        create_flow_args.flow_name = transfer.GetFile.__name__
+        create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
         job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -596,7 +600,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_manager = cronjobs.CronManager()
         create_flow_args = rdf_cronjobs.CreateCronJobArgs()
         create_flow_args.lifetime = "1h"
-        create_flow_args.flow_name = transfer.GetFile.__name__
+        create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
         job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -650,7 +654,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     ):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-      create_flow_args.flow_name = transfer.GetFile.__name__
+      create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
@@ -682,7 +686,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testSchedulingJobWithFixedNamePreservesTheName(self):
     cron_manager = cronjobs.CronManager()
     create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = transfer.GetFile.__name__
+    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
 
     job_id = cron_manager.CreateJob(cron_args=create_flow_args, job_id="TheJob")
     self.assertEqual("TheJob", job_id)

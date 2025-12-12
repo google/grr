@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.row td {
+  border-bottom-width: 0;
+}
+
+.detail-row {
+  height: 0;
+  background: var(--mat-sys-surface-container);
+}
+
+.detail-wrapper {
+  display: grid;
+  overflow: hidden;
+  grid-template-rows: 0fr;
+  grid-template-columns: 100%;
+  transition: grid-template-rows 225ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.detail-wrapper-expanded {
+  grid-template-rows: 1fr;
+}
+
+.toggle-button-expanded {
+  transform: rotate(180deg);
+}
+
+.element-detail {
+  display: flex;
+  min-height: 0;
+}
+
+.path-copy-button {
+  max-width: 30em;
+  word-break: break-all;
+  white-space: normal;
+}

@@ -1,13 +1,15 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
 import hashlib
 import io
 import json
 import os
 import time
-from typing import Optional, Sequence
+from typing import Optional
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
@@ -16,6 +18,7 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_core_osquery
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
+from grr_response_proto import osquery_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -27,6 +30,64 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
 from grr.test_lib import skip
 from grr.test_lib import test_lib
+
+
+class GetColumnTest(absltest.TestCase):
+
+  def testEmpty(self):
+    table = osquery_pb2.OsqueryTable()
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="A"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="B"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="C"))
+
+    self.assertEmpty(list(osquery_flow._GetColumn(table, "A")))
+    self.assertEmpty(list(osquery_flow._GetColumn(table, "B")))
+    self.assertEmpty(list(osquery_flow._GetColumn(table, "C")))
+
+  def testValues(self):
+    table = osquery_pb2.OsqueryTable()
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="A"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="B"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="C"))
+    table.rows.append(osquery_pb2.OsqueryRow(values=["foo", "bar", "baz"]))
+    table.rows.append(osquery_pb2.OsqueryRow(values=["quux", "norf", "thud"]))
+    table.rows.append(osquery_pb2.OsqueryRow(values=["blarg", "shme", "ztesh"]))
+
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "A")), ["foo", "quux", "blarg"]
+    )
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "B")), ["bar", "norf", "shme"]
+    )
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "C")), ["baz", "thud", "ztesh"]
+    )
+
+  def testIncorrect(self):
+    table = osquery_pb2.OsqueryTable()
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="A"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="B"))
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="C"))
+
+    with self.assertRaises(KeyError):
+      list(osquery_flow._GetColumn(table, "D"))
+
+
+class TruncateTest(absltest.TestCase):
+
+  def testTruncation(self):
+    table = osquery_pb2.OsqueryTable()
+    table.header.columns.append(osquery_pb2.OsqueryColumn(name="A"))
+
+    table.rows.append(osquery_pb2.OsqueryRow(values=["cell1"]))
+    table.rows.append(osquery_pb2.OsqueryRow(values=["cell2"]))
+    table.rows.append(osquery_pb2.OsqueryRow(values=["cell3"]))
+
+    truncated = osquery_flow._Truncate(table, 1)
+    column_values = list(osquery_flow._GetColumn(truncated, "A"))
+
+    self.assertLen(truncated.rows, 1)
+    self.assertEqual(column_values, ["cell1"])
 
 
 @skip.Unless(
