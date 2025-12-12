@@ -19,7 +19,7 @@ jobs:
           devenv/devenv.sh start
           OK=false
           for attempt in $(seq 20); do
-            curl -su admin:admin http://localhost:4280/api/clients |
+            curl -su admin:admin http://localhost:4280/api/v2/clients |
               sed 1d |
               jq -r ".items[].value.client_id.value" |
               egrep -e "^C[.][0-9a-f]{16}\$" && { OK=true; break; }
