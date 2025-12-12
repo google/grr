@@ -1,0 +1,77 @@
+<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h2 mat-dialog-title class="new-fleet-collection-dialog-title">
+    New Fleet Collection
+  </h2>
+</div>
+
+<mat-dialog-content>
+  <h4>Create a fleet collection from a flow</h4>
+  <form>
+    <mat-form-field appearance="outline">
+      <mat-label>Client  ID</mat-label>
+      <input matInput [formControl]="clientIdControl" placeholder="C.1234567890abcdef" />
+
+      <mat-error>
+        <form-errors [validationErrors]="clientIdControl.errors" />
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Flow ID</mat-label>
+      <input matInput [formControl]="flowIdControl" placeholder="1234567890ABCDEF" />
+      <mat-error>
+        <form-errors [validationErrors]="flowIdControl.errors" />
+      </mat-error>
+    </mat-form-field>
+
+    <button mat-flat-button
+        type="button"
+        class="create-from-flow-button"
+        matDialogClose="true"
+        [disabled]="clientIdControl.errors || flowIdControl.errors"
+        routerLink="/new-fleet-collection"
+        [queryParams]="{'clientId': clientIdControl.value, 'flowId': flowIdControl.value}"
+    >
+      Next
+    </button>
+  </form>
+
+  <mat-divider />
+
+  <h4>Copy a fleet collection</h4>
+  <form>
+    <mat-form-field appearance="outline">
+      <mat-label>Fleet Collection ID</mat-label>
+      <input matInput [formControl]="fleetCollectionIdControl" placeholder="1234567890ABCDEF" />
+      <mat-error>
+        <form-errors [validationErrors]="fleetCollectionIdControl.errors" />
+      </mat-error>
+    </mat-form-field>
+
+    <button mat-flat-button
+        type="button"
+        class="create-from-fleet-collection-button"
+        matDialogClose="true"
+        [disabled]="fleetCollectionIdControl.errors"
+        routerLink="/new-fleet-collection"
+        [queryParams]="{'fleetCollectionId': fleetCollectionIdControl.value}"
+    >
+      Next
+    </button>
+  </form>
+
+  <mat-divider />
+
+  <p>
+  Alternatively, copy an existing fleet collection by clicking the triple dots menu in the fleet
+  collection list, or create a fleet collection from a flow by clicking the triple dots menu
+  in the flow list on the client page.
+  </p>
+
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-button [matDialogClose]="false">Cancel</button>
+</mat-dialog-actions>
+
+

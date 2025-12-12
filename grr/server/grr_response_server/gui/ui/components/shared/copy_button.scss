@@ -1,0 +1,47 @@
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
+
+$transition-time: 250ms;
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  background: transparent;
+  border-radius: 4px;
+  transition: background-color $transition-time ease;
+
+  @include mat.button-overrides(
+    (
+      text-container-height: 1.5rem,
+      text-with-icon-horizontal-padding: 4px,
+      text-label-text-color: var(--mat-sys-on-surface),
+    )
+  );
+
+  .content {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    background: transparent;
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-container-highest);
+  }
+}
+
+button {
+  border-radius: inherit;
+  height: 100%;
+}
+
+.hideIcon {
+  transition-duration: $transition-time;
+  visibility: hidden;
+}
+
+.multiline {
+  white-space: normal;
+}

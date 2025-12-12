@@ -1,0 +1,14 @@
+@if (exportMenuItems().length > 0) {
+  <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
+      Download options <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+  </button>
+  <mat-menu #exportMenu="matMenu" id ="exportMenu">
+    @for (item of exportMenuItems(); track item) {
+      @if (item.isLink) {
+        <a mat-menu-item [href]="item.url">{{ item.title }}</a>
+      } @else {
+        <a mat-menu-item (click)="copyToClipboard(item.url)">{{ item.title }}</a>
+      }
+    }
+  </mat-menu>
+}

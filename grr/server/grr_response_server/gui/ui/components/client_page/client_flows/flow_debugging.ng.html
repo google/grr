@@ -1,0 +1,51 @@
+
+<collapsible-container>
+  <collapsible-title><h4>Flow Logs</h4></collapsible-title>
+  <collapsible-content>
+    <flow-logs />
+  </collapsible-content>
+</collapsible-container>
+
+<collapsible-container>
+  <collapsible-title><h4>Flow Output Plugin Logs</h4></collapsible-title>
+  <collapsible-content>
+    <flow-output-plugin-logs />
+  </collapsible-content>
+</collapsible-container>
+
+<collapsible-container>
+  <collapsible-title><h4>Raw Flow</h4></collapsible-title>
+  <collapsible-content>
+    @let flow = clientStore.flowsByFlowId().get(flowId() ?? '');
+    @if (flow) {
+      <pre>{{ stringify(flow) }}</pre>
+    }
+  </collapsible-content>
+</collapsible-container>
+
+<collapsible-container>
+  <collapsible-title><h4>Collection Stats - load flow results first</h4></collapsible-title>
+  <collapsible-content>
+    @let flowResultsByType = clientStore.flowResultsByFlowId().get(flowId() ?? '');
+    <ul>
+      <li>Number of collected results: {{flowResultsByType?.totalCount ?? "???"}}.</li>
+      <li>
+        Number of loaded results: {{flowResultsByType?.countLoaded ?? "???"}} - split by type:
+        <ul>
+          @for (flowResults of flowResultsByType?.flowResultsByPayloadType | keyvalue; track flowResults.key) {
+            <li><pre>{{flowResults.key}}: {{flowResults.value.length}}</pre></li>
+          }
+        </ul>
+      </li>
+    </ul>
+  </collapsible-content>
+</collapsible-container>
+
+<collapsible-container>
+  <collapsible-title><h4>Raw Flow Results - load flow results first</h4></collapsible-title>
+  <collapsible-content>
+    @for (flowResult of flowResultsByType?.flowResultsByPayloadType | keyvalue; track flowResult.key) {
+        <pre>{{ stringify(flowResult) }}</pre>
+    }
+  </collapsible-content>
+</collapsible-container>

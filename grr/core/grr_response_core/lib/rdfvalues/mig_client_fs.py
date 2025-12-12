@@ -15,32 +15,6 @@ def ToRDFFilesystem(proto: sysinfo_pb2.Filesystem) -> rdf_client_fs.Filesystem:
   return rdf_client_fs.Filesystem.FromSerializedBytes(proto.SerializeToString())
 
 
-def ToProtoBlobArrayFromFilesystems(
-    rdf: rdf_client_fs.Filesystems,
-) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFilesystems(proto: jobs_pb2.BlobArray) -> rdf_client_fs.Filesystems:
-  return rdf_client_fs.Filesystems.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoFolderInformation(
-    rdf: rdf_client_fs.FolderInformation,
-) -> jobs_pb2.FolderInformation:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFFolderInformation(
-    proto: jobs_pb2.FolderInformation,
-) -> rdf_client_fs.FolderInformation:
-  return rdf_client_fs.FolderInformation.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoWindowsVolume(
     rdf: rdf_client_fs.WindowsVolume,
 ) -> sysinfo_pb2.WindowsVolume:
@@ -77,16 +51,6 @@ def ToProtoDiskUsage(rdf: rdf_client_fs.DiskUsage) -> sysinfo_pb2.DiskUsage:
 
 def ToRDFDiskUsage(proto: sysinfo_pb2.DiskUsage) -> rdf_client_fs.DiskUsage:
   return rdf_client_fs.DiskUsage.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoBlobArrayFromVolumes(
-    rdf: rdf_client_fs.Volumes,
-) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFVolumes(proto: jobs_pb2.BlobArray) -> rdf_client_fs.Volumes:
-  return rdf_client_fs.Volumes.FromSerializedBytes(proto.SerializeToString())
 
 
 def ToProtoExtAttr(rdf: rdf_client_fs.ExtAttr) -> jobs_pb2.StatEntry.ExtAttr:

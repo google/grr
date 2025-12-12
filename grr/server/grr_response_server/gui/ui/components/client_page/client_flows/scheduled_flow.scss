@@ -1,0 +1,4 @@
+:host {
+  display: block;
+  padding: 1rem;
+}

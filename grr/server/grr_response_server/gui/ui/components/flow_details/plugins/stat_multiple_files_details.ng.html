@@ -1,8 +1,0 @@
-<result-accordion
-  *loadFlowResults="query$ | async; let results=results; let queryMore=queryMore"
-  [title]="description$ | async"
-  [expandable]="(isResultsSectionExpandable$ | async) === true"
-  (firstOpened)="queryMore(QUERY_MORE_COUNT)">
-  <file-results-table *ngIf="results" [results]="results" [totalCount]="flowResultsCount$ | async" (loadMore)="queryMore(QUERY_MORE_COUNT)">
-  </file-results-table>
-</result-accordion>

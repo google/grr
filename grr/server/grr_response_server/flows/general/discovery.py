@@ -4,11 +4,8 @@
 import logging
 
 from google.protobuf import any_pb2
-from google.protobuf import empty_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import metrics
@@ -25,21 +22,24 @@ from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_utils
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import notification
+from grr_response_server import rrg_path
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import cloud
 from grr_response_server.flows.general import crowdstrike
 from grr_response_server.flows.general import hardware
+from grr_response_server.flows.general import memsize
 from grr_response_server.rdfvalues import mig_objects
-from grr_response_proto import rrg_pb2
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 from grr_response_proto.rrg.action import list_interfaces_pb2 as rrg_list_interfaces_pb2
 from grr_response_proto.rrg.action import list_mounts_pb2 as rrg_list_mounts_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 CLOUD_METADATA_COLLECTION_ERRORS = metrics.Counter(
@@ -52,23 +52,30 @@ class InterrogateArgs(rdf_structs.RDFProtoStruct):
 
 
 class Interrogate(
-    flow_base.FlowBase[flows_pb2.InterrogateArgs, flows_pb2.InterrogateStore]
+    flow_base.FlowBase[
+        flows_pb2.InterrogateArgs,
+        flows_pb2.InterrogateStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
 ):
   """Interrogate various things about the host."""
 
   category = "/Administrative/"
   args_type = InterrogateArgs
-  result_types = (rdf_client.ClientSummary,)
+  result_types = (rdf_objects.ClientSnapshot,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = flows_pb2.InterrogateArgs
-  proto_result_types = (jobs_pb2.ClientSummary,)
+  proto_result_types = (objects_pb2.ClientSnapshot,)
   proto_store_type = flows_pb2.InterrogateStore
 
   only_protos_allowed = True
 
   def Start(self):
     """Start off all the tests."""
+    if not self.python_agent_support and not self.rrg_support:
+      raise flow_base.FlowError("Neither Python nor RRG agent is supported")
+
     self.store.client_snapshot.client_id = self.client_id
     self.store.client_snapshot.metadata.source_flow_id = self.rdf_flow.flow_id
 
@@ -86,33 +93,40 @@ class Interrogate(
     # of them. If only one is supported we need to get metadata about that one
     # and only that one. It is important not to issue the request to the other
     # one as the flow will get stuck awaiting the response to come.
-    if self.rrg_support:
-      if self.python_agent_support:
-        self.CallClientProto(
-            server_stubs.GetClientInfo,
-            next_state=self.ClientInfo.__name__,
-        )
-      self.CallRRG(
-          action=rrg_pb2.Action.GET_SYSTEM_METADATA,
-          args=rrg_get_system_metadata_pb2.Args(),
-          next_state=self.HandleRRGGetSystemMetadata.__name__,
-      )
-      self.CallRRG(
-          action=rrg_pb2.Action.LIST_INTERFACES,
-          args=empty_pb2.Empty(),
-          next_state=self.HandleRRGListInterfaces.__name__,
-      )
-      self.CallRRG(
-          action=rrg_pb2.Action.LIST_MOUNTS,
-          args=empty_pb2.Empty(),
-          next_state=self.HandleRRGListMounts.__name__,
-      )
-    else:
-      # ClientInfo should be collected early on since we might need the client
+    if self.python_agent_support:
+      # These are features specific to the legacy agent (as RRG reports its
+      # configuration as part of its startup metadata and does not have any
+      # Python libraries as dependencies).
+
+      # `ClientInfo` should be collected early on since we might need the client
       # version later on to know what actions a client supports.
       self.CallClientProto(
-          server_stubs.GetClientInfo, next_state=self.ClientInfo.__name__
+          server_stubs.GetClientInfo,
+          next_state=self.ClientInfo.__name__,
       )
+      self.CallClientProto(
+          server_stubs.GetConfiguration,
+          next_state=self.ClientConfiguration.__name__,
+      )
+      self.CallClientProto(
+          server_stubs.GetLibraryVersions,
+          next_state=self.ClientLibraries.__name__,
+      )
+
+    if self.rrg_support:
+      rrg_stubs.GetSystemMetadata().Call(self.HandleRRGGetSystemMetadata)
+      rrg_stubs.ListInterfaces().Call(self.HandleRRGListInterfaces)
+      rrg_stubs.ListMounts().Call(self.HandleRRGListMounts)
+
+      # For RRG-enabled endpoints we can collect CrowdStrike ID collection right
+      # away because we always know the operating system. For Python agent-only
+      # endpoints it is handled after the call to `GetPlatformInfo` returns.
+      if config.CONFIG["Interrogate.collect_crowdstrike_agent_id"]:
+        self.CallFlowProto(
+            crowdstrike.GetCrowdStrikeAgentID.__name__,
+            next_state=self.ProcessGetCrowdStrikeAgentID.__name__,
+        )
+    else:
       self.CallClientProto(
           server_stubs.GetPlatformInfo, next_state=self.Platform.__name__
       )
@@ -128,16 +142,9 @@ class Interrogate(
           next_state=self.EnumerateFilesystems.__name__,
       )
 
-    self.CallClientProto(
-        server_stubs.GetMemorySize, next_state=self.StoreMemorySize.__name__
-    )
-    self.CallClientProto(
-        server_stubs.GetConfiguration,
-        next_state=self.ClientConfiguration.__name__,
-    )
-    self.CallClientProto(
-        server_stubs.GetLibraryVersions,
-        next_state=self.ClientLibraries.__name__,
+    self.CallFlowProto(
+        memsize.GetMemorySize.__name__,
+        next_state=self.StoreMemorySize.__name__,
     )
 
   @flow_base.UseProto2AnyResponses
@@ -167,7 +174,7 @@ class Interrogate(
     elif result.type == rrg_os_pb2.Type.WINDOWS:
       self.store.client_snapshot.knowledge_base.os = "Windows"
     else:
-      self.Log("Unexpected operating system: %s", result.type)
+      raise flow_base.FlowError(f"Unexpected operating system: {result.type}")
 
     self.store.client_snapshot.arch = result.arch
     # TODO: https://github.com/google/rrg/issues/58 - Remove once FQDN collec-
@@ -195,39 +202,25 @@ class Interrogate(
     self.store.fqdn = self.store.client_snapshot.knowledge_base.fqdn
     self.store.os = self.store.client_snapshot.knowledge_base.os
 
-    # We should not assume that the GRR client is running if we got responses
-    # from RRG. It means, that GRR-only requests will never be delivered and
-    # the flow will get stuck never reaching executing it's `End` method. To
-    # still preserve information in such cases, we write the snapshot right now.
-    # If GRR is running and adds more complete data, this information will be
-    # just overridden.
-    data_store.REL_DB.WriteClientSnapshot(self.store.client_snapshot)
-
-    # Cloud VM metadata collection is not supported in RRG at the moment but we
-    # still need it, so we fall back to the Python agent. This is the same call
-    # that we make in the `Interrogate.Platform` method handler.
     if result.type in [rrg_os_pb2.Type.LINUX, rrg_os_pb2.Type.WINDOWS]:
       self.CallFlowProto(
           cloud.CollectCloudVMMetadata.__name__,
           next_state=self._ProcessCollectCloudVMMetadata.__name__,
       )
 
-    # We replicate behaviour of Python-based agents: once the operating system
-    # is known, we can start the knowledgebase initialization flow.
-    if self.store.client_snapshot.knowledge_base.os:
-      args = flows_pb2.KnowledgeBaseInitializationArgs()
-      args.require_complete = False  # Not all dependencies are known yet.
-      args.lightweight = (
-          self.proto_args.lightweight
-          if self.proto_args.HasField("lightweight")
-          else True
-      )
+    args = flows_pb2.KnowledgeBaseInitializationArgs()
+    args.require_complete = False  # Not all dependencies are known yet.
+    args.lightweight = (
+        self.proto_args.lightweight
+        if self.proto_args.HasField("lightweight")
+        else True
+    )
 
-      self.CallFlowProto(
-          flow_name=artifact.KnowledgeBaseInitializationFlow.__name__,
-          flow_args=args,
-          next_state=self.ProcessKnowledgeBase.__name__,
-      )
+    self.CallFlowProto(
+        flow_name=artifact.KnowledgeBaseInitializationFlow.__name__,
+        flow_args=args,
+        next_state=self.ProcessKnowledgeBase.__name__,
+    )
 
   @flow_base.UseProto2AnyResponses
   def HandleRRGListInterfaces(
@@ -238,7 +231,8 @@ class Interrogate(
       self.Log("Failed to list interfaces: %s", responses.status)
       return
 
-    self.store.client_snapshot.ClearField("interfaces")
+    # TODO: Replace with `clear()` once upgraded.
+    del self.store.client_snapshot.interfaces[:]
 
     for response in responses:
       result = rrg_list_interfaces_pb2.Result()
@@ -271,7 +265,8 @@ class Interrogate(
       self.Log("Failed to list mounts: %s", responses.status)
       return
 
-    self.store.client_snapshot.ClearField("filesystems")
+    # TODO: Replace with `clear()` once upgraded.
+    del self.store.client_snapshot.filesystems[:]
 
     for response in responses:
       result = rrg_list_mounts_pb2.Result()
@@ -280,10 +275,18 @@ class Interrogate(
       filesystem = self.store.client_snapshot.filesystems.add()
       filesystem.device = result.mount.name
       filesystem.type = result.mount.fs_type
-      filesystem.mount_point = result.mount.path.raw_bytes.decode(
-          "utf-8",
-          errors="backslashreplace",
-      )
+
+      if self.rrg_version >= (0, 0, 4):
+        filesystem.mount_point = str(
+            rrg_path.PurePath.For(self.rrg_os_type, result.mount.path)
+        )
+      else:
+        # TODO: https://github.com/google/rrg/issues/133 - Remove once we no
+        # longer support version <0.0.4.
+        filesystem.mount_point = result.mount.path.raw_bytes.decode(
+            "utf-8",
+            errors="replace",
+        )
 
   @flow_base.UseProto2AnyResponses
   def _ProcessCollectCloudVMMetadata(
@@ -312,15 +315,10 @@ class Interrogate(
     if not responses.success or not list(responses):
       return
 
-    # `GetMemorySize` ClientAction returns an `rdfvalue.ByteSize` (primitive).
-    # This is then packed into a wrapper `config_pb2.Int64Value` in
-    # `FlowResponseForLegacyResponse`.
-    # TODO: Remove this workaround for the uint64 mapping when
-    # no more ClientActions return RDFPrimitives.
-    size = config_pb2.Int64Value()
-    list(responses)[0].Unpack(size)
+    response = flows_pb2.GetMemorySizeResult()
+    response.ParseFromString(list(responses)[0].value)
 
-    self.store.client_snapshot.memory_size = size.value
+    self.store.client_snapshot.memory_size = response.total_bytes
 
   @flow_base.UseProto2AnyResponses
   def Platform(self, responses: flow_responses.Responses[any_pb2.Any]):
@@ -453,6 +451,9 @@ class Interrogate(
     if (
         config.CONFIG["Interrogate.collect_passwd_cache_users"]
         and kb.os == "Linux"
+        # RRG agents always collect `passwd.cache` users as part of their
+        # knowledgebase initialization flow.
+        and self.python_agent_support
     ):
       condition = flows_pb2.FileFinderCondition()
       condition.condition_type = (
@@ -477,7 +478,13 @@ class Interrogate(
         next_state=self.ProcessHardwareInfo.__name__,
     )
 
-    if kb.os == "Linux" or kb.os == "Darwin":
+    if (
+        (kb.os == "Linux" or kb.os == "Darwin")
+        # TODO: In RRG-based installations, this call should not be
+        # necessary as this information should be collected as part of the mount
+        # listing routine.
+        and self.python_agent_support
+    ):
       self.CallClientProto(
           server_stubs.StatFS,
           jobs_pb2.StatFSRequest(
@@ -486,16 +493,27 @@ class Interrogate(
           next_state=self.ProcessRootStatFS.__name__,
       )
     elif kb.os == "Windows":
-      self.CallClientProto(
-          server_stubs.WmiQuery,
-          jobs_pb2.WMIRequest(
-              query="""
-              SELECT *
-                FROM Win32_LogicalDisk
-              """.strip(),
-          ),
-          next_state=self.ProcessWin32LogicalDisk.__name__,
-      )
+      if self.rrg_support:
+        action = rrg_stubs.QueryWmi()
+        action.args.query = """
+        SELECT
+          VolumeName, VolumeSerialNumber, DeviceID, FileSystem,
+          Size, FreeSpace
+        FROM
+          Win32_LogicalDisk
+        """
+        action.Call(self.ProcessRRGWin32LogicalDisk)
+      else:
+        self.CallClientProto(
+            server_stubs.WmiQuery,
+            jobs_pb2.WMIRequest(
+                query="""
+                SELECT *
+                  FROM Win32_LogicalDisk
+                """.strip(),
+            ),
+            next_state=self.ProcessWin32LogicalDisk.__name__,
+        )
 
     try:
       # Update the client index for the rdf_objects.ClientSnapshot.
@@ -532,6 +550,63 @@ class Interrogate(
       volume = sysinfo_pb2.Volume()
       response.Unpack(volume)
       self.store.client_snapshot.volumes.append(volume)
+
+  @flow_base.UseProto2AnyResponses
+  def ProcessRRGWin32LogicalDisk(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to collect `Win32_LogicalDisk`: %s", responses.status)
+      return
+
+    for response_any in responses:
+      response = rrg_query_wmi_pb2.Result()
+      response.ParseFromString(response_any.value)
+
+      volume = self.store.client_snapshot.volumes.add()
+
+      if "VolumeName" in response.row:
+        volume.name = response.row["VolumeName"].string
+
+      if "VolumeSerialNumber" in response.row:
+        volume.serial_number = response.row["VolumeSerialNumber"].string
+
+      if "DeviceID" in response.row:
+        volume.windowsvolume.drive_letter = response.row["DeviceID"].string
+
+      if "FileSystem" in response.row:
+        volume.file_system_type = response.row["FileSystem"].string
+
+      if "Size" in response.row:
+        try:
+          value = int(response.row["Size"].string)
+        except (ValueError, TypeError) as error:
+          self.Log(
+              "Invalid Windows volume size: %s (%s)",
+              response.row["Size"],
+              error,
+          )
+        else:
+          volume.total_allocation_units = value
+
+      if "FreeSpace" in response.row:
+        try:
+          value = int(response.row["FreeSpace"].string)
+        except (ValueError, TypeError) as error:
+          self.Log(
+              "Invalid Windows volume space: %s (%s)",
+              response.row["FreeSpace"],
+              error,
+          )
+        else:
+          volume.actual_available_allocation_units = value
+
+      # WMI gives us size and free space in bytes and does not give us sector
+      # sizes, we use 1 for these. It is not clear how correct doing it is but
+      # this is what the original parser did, so we replicate the behaviour.
+      volume.bytes_per_sector = 1
+      volume.sectors_per_allocation_unit = 1
 
   @flow_base.UseProto2AnyResponses
   def ProcessWin32LogicalDisk(
@@ -602,7 +677,8 @@ class Interrogate(
       interfaces.append(network_interface)
     interfaces.sort(key=lambda i: i.ifname)
 
-    self.store.client_snapshot.ClearField("interfaces")
+    # TODO: Replace with `clear()` once upgraded.
+    del self.store.client_snapshot.interfaces[:]
     self.store.client_snapshot.interfaces.extend(interfaces)
 
   @flow_base.UseProto2AnyResponses
@@ -620,7 +696,8 @@ class Interrogate(
       filesystem = sysinfo_pb2.Filesystem()
       response.Unpack(filesystem)
       proto_filesystems.append(filesystem)
-    self.store.client_snapshot.ClearField("filesystems")
+
+    del self.store.client_snapshot.filesystems[:]
     self.store.client_snapshot.filesystems.extend(proto_filesystems)
 
   def _ValidateLabel(self, label):
@@ -650,7 +727,8 @@ class Interrogate(
     # the client.
     fleetspeak_labels = fleetspeak_utils.GetLabelsFromFleetspeak(self.client_id)
     if fleetspeak_labels:
-      client_info.ClearField("labels")
+      # TODO: Replace with `clear()` once upgraded.
+      del client_info.labels[:]
       client_info.labels.extend(fleetspeak_labels)
       data_store.REL_DB.AddClientLabels(
           client_id=self.client_id, owner="GRR", labels=fleetspeak_labels
@@ -669,7 +747,8 @@ class Interrogate(
       except ValueError:
         self.Log("Got invalid label: %s", label)
 
-    client_info.ClearField("labels")
+    # TODO: Replace with `clear()` once upgraded.
+    del client_info.labels[:]
     client_info.labels.extend(sanitized_labels)
 
     self.store.client_snapshot.startup_info.client_info.CopyFrom(client_info)
@@ -841,11 +920,17 @@ class Interrogate(
     rdf_summary.client_id = self.client_id
     rdf_summary.timestamp = rdfvalue.RDFDatetime.Now()
     rdf_summary.last_ping = rdf_summary.timestamp
+    # Note that we do not use `self.rrg_version` as this one can include flow-
+    # specific overrides (e.g. when RRG support is disabled) and so is less
+    # reliable to use as a source for metadata.
+    rdf_summary.rrg_version_major = self.rrg_startup.metadata.version.major
+    rdf_summary.rrg_version_minor = self.rrg_startup.metadata.version.minor
+    rdf_summary.rrg_version_patch = self.rrg_startup.metadata.version.patch
+    rdf_summary.rrg_version_pre = self.rrg_startup.metadata.version.pre
 
     events.Events.PublishEvent("Discovery", rdf_summary, username=self.creator)
 
-    proto_summary = mig_client.ToProtoClientSummary(rdf_summary)
-    self.SendReplyProto(proto_summary)
+    self.SendReplyProto(self.store.client_snapshot)
 
     index = client_index.ClientIndex()
     index.AddClient(mig_objects.ToRDFClientSnapshot(self.store.client_snapshot))
@@ -860,17 +945,3 @@ class Interrogate(
         self.client_id,
         last_foreman=data_store.REL_DB.MinTimestamp(),
     )
-
-
-class EnrolmentInterrogateEvent(events.EventListener):
-  """An event handler which will schedule interrogation on client enrollment."""
-
-  EVENTS = ["ClientEnrollment"]
-
-  def ProcessEvents(self, msgs=None, publisher_username=None):
-    for msg in msgs:
-      flow.StartFlow(
-          client_id=msg.Basename(),
-          flow_cls=Interrogate,
-          creator=publisher_username,
-      )

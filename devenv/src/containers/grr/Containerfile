@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
   python3-yaml \
   pkg-config \
   libmysqlclient-dev \
-  openjdk-19-jre
+  openjdk-21-jre
 
 RUN cd /grr/persist \
   && python -m venv --system-site-packages venv \

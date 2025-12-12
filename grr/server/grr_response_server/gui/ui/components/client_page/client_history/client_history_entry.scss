@@ -1,0 +1,34 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: block;
+  margin: 10px;
+}
+
+table {
+  border-collapse: collapse;
+  border-left: 2px solid var(--mat-sys-outline-variant);
+  border-bottom: 2px solid var(--mat-sys-outline-variant);
+}
+
+td {
+  // First colum is as wide as the largest content.
+  width: 1%;
+  white-space: nowrap;
+  min-width: 200px;
+
+  padding: 8px;
+}
+
+// Last column is as large as possible.
+td:last-child {
+  width: 100%;
+}
+
+.history-button {
+  @include mat.icon-button-overrides(
+    (
+      icon-color: var(--mat-sys-primary),
+    )
+  );
+}

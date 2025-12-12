@@ -1,0 +1,13 @@
+<div class="overview-container">
+  <div class="overview-left">
+    <div>
+      {{flowStore.countLoadedResults()}} of {{flowStore.countTotalResults() ?? "?"}}
+      results loaded
+    </div>
+  </div>
+  <div class="overview-right">
+    <flow-results-download-button [flow]="flowStore.flow()" />
+  </div>
+</div>
+
+<collection-results [collectionResultsByType]="flowStore.flowResultsByPayloadType()" />

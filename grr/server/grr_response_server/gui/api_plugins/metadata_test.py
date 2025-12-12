@@ -2,143 +2,93 @@
 """This module contains tests for metadata API handlers."""
 
 import json
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib import registry
+from grr_response_proto import jobs_pb2
 from grr_response_proto import tests_pb2
+from grr_response_server import flow_base
+from grr_response_server import output_plugin
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import metadata as metadata_plugin
+from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import test_lib
 
 
-class MetadataSimpleMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataSimpleMessage
+class TestMetadataFlow(flow_base.FlowBase):
+  """A test flow for API metadata tests."""
 
+  proto_args_type = tests_pb2.BadArgsFlow1Args
+  proto_result_types = (tests_pb2.SendingFlowArgs,)
+  proto_store_type = tests_pb2.DummyFlowStore
+  proto_progress_type = tests_pb2.DummyFlowProgress
 
-class MetadataPrimitiveTypesMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataPrimitiveTypesMessage
-
-
-class MetadataRepeatedFieldMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataRepeatedFieldMessage
-
-
-class MetadataEnumFieldMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataEnumFieldMessage
-
-
-class MetadataTypesHierarchyRoot(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataTypesHierarchyRoot
-  rdf_deps = [
-      "MetadataTypesHierarchyCyclic",
-      "MetadataTypesHierarchyLeaf",
-  ]
-
-
-class MetadataTypesHierarchyCyclic(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataTypesHierarchyCyclic
-  rdf_deps = [
-      MetadataTypesHierarchyRoot,
-      "MetadataTypesHierarchyLeaf",
-  ]
-
-
-class MetadataTypesHierarchyLeaf(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataTypesHierarchyLeaf
-
-
-class MetadataOneofMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataOneofMessage
-  rdf_deps = [
-      MetadataSimpleMessage,
-  ]
-
-
-class MetadataMapMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataMapMessage
-  rdf_deps = [
-      "FieldMapEntry",
-  ]
-
-
-class MetadataSemTypeMessage(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.MetadataSemTypeMessage
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-      rdfvalue.RDFDatetimeSeconds,
-      rdfvalue.Duration,
-      rdfvalue.DurationSeconds,
-      rdfvalue.RDFBytes,
-      rdfvalue.HashDigest,
-      rdf_paths.GlobExpression,
-      rdfvalue.ByteSize,
-      rdfvalue.RDFURN,
-      rdfvalue.SessionID,
-  ]
+  def Start(self):
+    self.Log("Starting test flow.")
 
 
 class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy `ApiCallRouter` implementation used for Metadata testing."""
 
-  @api_call_router.ArgsType(MetadataSimpleMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method1/<metadata_id>")
   @api_call_router.Http("HEAD", "/metadata_test/method1/<metadata_id>")
   @api_call_router.Http("POST", "/metadata_test/method1/<metadata_id>")
   def Method1WithArgsType(self, args, context=None):
     """Method 1 description."""
 
-  @api_call_router.ResultType(MetadataSimpleMessage)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method2")
   @api_call_router.Http("HEAD", "/metadata_test/method2")
   @api_call_router.Http("POST", "/metadata_test/method2")
   def Method2WithResultType(self, args, context=None):
     """Method 2 description."""
 
-  @api_call_router.ArgsType(MetadataPrimitiveTypesMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataPrimitiveTypesMessage)
   @api_call_router.ResultBinaryStream()
   @api_call_router.Http("GET", "/metadata_test/method3")
   def Method3PrimitiveTypes(self, args, context=None):
     """Method 3 description."""
 
-  @api_call_router.ArgsType(MetadataRepeatedFieldMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataRepeatedFieldMessage)
   @api_call_router.Http("GET", "/metadata_test/method4")
   @api_call_router.Http("POST", "/metadata_test/method4")
   def Method4RepeatedField(self, args, context=None):
     """Method 4 description."""
 
-  @api_call_router.ArgsType(MetadataEnumFieldMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataEnumFieldMessage)
   @api_call_router.Http("GET", "/metadata_test/method5")
   @api_call_router.Http("POST", "/metadata_test/method5")
   def Method5EnumField(self, args, context=None):
     """Method 5 description."""
 
-  @api_call_router.ArgsType(MetadataTypesHierarchyRoot)
-  @api_call_router.ResultType(MetadataTypesHierarchyLeaf)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataTypesHierarchyRoot)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataTypesHierarchyLeaf)
   @api_call_router.Http("GET", "/metadata_test/method6")
   def Method6TypeReferences(self, args, context=None):
     """Method 6 description."""
 
-  @api_call_router.ArgsType(MetadataOneofMessage)
-  @api_call_router.ResultType(MetadataOneofMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataOneofMessage)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataOneofMessage)
   @api_call_router.Http("GET", "/metadata_test/method7")
   @api_call_router.Http("POST", "/metadata_test/method7")
   def Method7ProtobufOneof(self, args, context=None):
     """Method 7 description."""
 
-  @api_call_router.ArgsType(MetadataMapMessage)
-  @api_call_router.ResultType(MetadataMapMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataMapMessage)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataMapMessage)
   @api_call_router.Http("GET", "/metadata_test/method8")
   @api_call_router.Http("POST", "/metadata_test/method8")
   def Method8ProtobufMap(self, args, context=None):
     """Method 8 description."""
 
-  @api_call_router.ArgsType(MetadataSimpleMessage)
-  @api_call_router.ResultType(MetadataSimpleMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataSimpleMessage)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method9")
   @api_call_router.Http("GET", "/metadata_test/method9/<metadata_id>")
   @api_call_router.Http(
@@ -160,12 +110,64 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   def Method9OptionalPathArgs(self, args, context=None):
     """Method 9 description."""
 
-  @api_call_router.ArgsType(MetadataSemTypeMessage)
-  @api_call_router.ResultType(MetadataSemTypeMessage)
+  @api_call_router.ProtoArgsType(tests_pb2.MetadataSemTypeMessage)
+  @api_call_router.ProtoResultType(tests_pb2.MetadataSemTypeMessage)
   @api_call_router.Http("GET", "/metadata_test/method10")
   @api_call_router.Http("POST", "/metadata_test/method10")
   def Method10SemTypeProtobufOption(self, args, context=None):
     """Method 10 description."""
+
+
+class TestRouterHasNoMethods(api_call_router.ApiCallRouter):
+  pass
+
+
+class TestOutputPlugin(
+    output_plugin.OutputPluginProto[tests_pb2.MetadataSimpleMessage]
+):
+  """A test output plugin for API metadata tests."""
+
+  args_type = tests_pb2.MetadataSimpleMessage
+
+
+class CreateOutputPluginSchemasTest(absltest.TestCase):
+  """Test for `_CreateOutputPluginSchemas`."""
+
+  @test_plugins.WithOutputPluginProto(TestOutputPlugin)
+  def testOutputPluginProtosAreCorrectlyDescribed(self):
+    self.handler = metadata_plugin.ApiGetOpenApiDescriptionHandler(
+        TestRouterHasNoMethods()
+    )
+    with mock.patch.object(
+        registry.FlowRegistry,
+        "FLOW_REGISTRY",
+        {},
+    ):
+      result = self.handler.Handle(
+          None, context=api_call_context.ApiCallContext("api_test_user")
+      )
+
+    openapi_desc_dict = json.loads(result.openapi_description)
+    schemas = openapi_desc_dict["components"]["schemas"]
+
+    self.assertIn(tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name, schemas)
+    self.assertEqual(
+        {
+            "type": "object",
+            "properties": {
+                "metadataId": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+                },
+                "metadataArg1": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+                },
+                "metadataArg2": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
+                },
+            },
+        },
+        schemas[tests_pb2.MetadataSimpleMessage.DESCRIPTOR.full_name],
+    )
 
 
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -178,7 +180,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler = metadata_plugin.ApiGetOpenApiDescriptionHandler(self.router)
 
-    result = self.handler.Handle(None, context=self.context)
+    with mock.patch.object(
+        registry.FlowRegistry,
+        "FLOW_REGISTRY",
+        {TestMetadataFlow.__name__: TestMetadataFlow},
+    ):
+      result = self.handler.Handle(None, context=self.context)
+
     self.openapi_desc = result.openapi_description
     self.openapi_desc_dict = json.loads(self.openapi_desc)
 
@@ -1718,6 +1726,72 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             "description": "an rdfvalue object that represents a session_id",
         },
         component_schemas["SessionID"],
+    )
+
+  def testFlowsAreCorrectlyDescribedInOpenApiDescription(self):
+    # Flow args, result, store and progress should be described.
+    component_schemas = self.openapi_desc_dict["components"]["schemas"]
+
+    self.assertIn(
+        tests_pb2.BadArgsFlow1Args.DESCRIPTOR.full_name, component_schemas
+    )
+    self.assertEqual(
+        {
+            "type": "object",
+            "properties": {
+                "arg1": {
+                    "$ref": (
+                        f"#/components/schemas/{jobs_pb2.PathSpec.DESCRIPTOR.full_name}"
+                    ),
+                },
+            },
+        },
+        component_schemas[tests_pb2.BadArgsFlow1Args.DESCRIPTOR.full_name],
+    )
+
+    self.assertIn(
+        tests_pb2.SendingFlowArgs.DESCRIPTOR.full_name, component_schemas
+    )
+    self.assertEqual(
+        {
+            "type": "object",
+            "properties": {
+                "messageCount": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_UINT64",
+                },
+            },
+        },
+        component_schemas[tests_pb2.SendingFlowArgs.DESCRIPTOR.full_name],
+    )
+
+    self.assertIn(
+        tests_pb2.DummyFlowStore.DESCRIPTOR.full_name, component_schemas
+    )
+    self.assertEqual(
+        {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+                },
+            },
+        },
+        component_schemas[tests_pb2.DummyFlowStore.DESCRIPTOR.full_name],
+    )
+
+    self.assertIn(
+        tests_pb2.DummyFlowProgress.DESCRIPTOR.full_name, component_schemas
+    )
+    self.assertEqual(
+        {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+                },
+            },
+        },
+        component_schemas[tests_pb2.DummyFlowProgress.DESCRIPTOR.full_name],
     )
 
 

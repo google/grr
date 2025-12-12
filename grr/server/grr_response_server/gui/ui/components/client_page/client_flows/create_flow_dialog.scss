@@ -1,0 +1,37 @@
+@use '@angular/material' as mat;
+
+.create-flow-dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1em;
+}
+
+.search-flow-type {
+  margin: 5px;
+  width: 100%;
+}
+
+mat-option {
+  padding: 0.5rem;
+
+  .flow-type-item-title {
+    margin: 5px;
+  }
+
+  .flow-type-item-description {
+    margin: 0 15px;
+    font: var(--mat-sys-body-small);
+  }
+}
+
+.popular-flows-container {
+  display: flex;
+  gap: 10px;
+
+  margin-bottom: 1em;
+}
+
+.flow-type-item {
+  margin-left: 3em;
+}

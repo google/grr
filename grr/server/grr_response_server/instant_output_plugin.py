@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 """Instant output plugins used by the API for on-the-fly conversion."""
 
+import abc
 import functools
+import logging
 import re
+from typing import Callable, Iterable, Iterator, Optional, Sequence
 
+from google.protobuf import message
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.registry import MetaclassRegistry
-from grr_response_core.lib.util import collection
-from grr_response_server import data_store
+from grr_response_proto import export_pb2
+from grr_response_proto import flows_pb2
 from grr_response_server import export
 from grr_response_server import export_converters_registry
-from grr_response_server.export_converters import base
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.databases import db_utils
 
 
-class InstantOutputPlugin(metaclass=MetaclassRegistry):
+class InstantOutputPluginProto:
   """The base class for instant output plugins.
 
   Instant output plugins do on-the-fly data conversion and are used in
@@ -28,15 +30,7 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
   description = None
   output_file_extension = ""
 
-  @classmethod
-  def GetPluginClassByPluginName(cls, name):
-    for plugin_cls in cls.classes.values():
-      if plugin_cls.plugin_name == name:
-        return plugin_cls
-
-    raise KeyError("No plugin with name attribute '%s'." % name)
-
-  def __init__(self, source_urn=None):
+  def __init__(self, source_urn: Optional[rdfvalue.RDFURN] = None):
     """OutputPlugin constructor.
 
     Args:
@@ -53,32 +47,39 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
     self.source_urn = source_urn
 
   @property
-  def output_file_name(self):
+  def output_file_name(self) -> str:
     """Name of the file where plugin's output should be written to."""
 
     safe_path = re.sub(r":|/", "_", self.source_urn.Path().lstrip("/"))
     return "results_%s%s" % (safe_path, self.output_file_extension)
 
-  def Start(self):
+  def Start(self) -> Iterable[bytes]:
     """Start method is called in the beginning of the export.
 
     Yields:
       Chunks of bytes.
     """
 
-  def ProcessValues(self, value_cls, values_generator_fn):
+  def ProcessValuesOfType(
+      self,
+      type_url: str,
+      type_url_results_generator_fn: Callable[
+          [], Iterable[flows_pb2.FlowResult]
+      ],
+  ) -> Iterator[bytes]:
     """Processes a batch of values with the same type.
 
-    ProcessValues is called *once per value type* for each value type in
-    the flow/hunt results collection.
+    ProcessValuesOfType is called *once per value type_url* for each value
+    type in the flow/hunt results collection. type_url_results_generator_fn
+    yields FlowResults of type type_url.
 
     Args:
-      value_cls: Class identifying type of the values to be processed.
-      values_generator_fn: Function returning an iterable with values. Each
-        value is a GRRMessage wrapping a value of a value_cls type.
-        values_generator_fn may be called multiple times within 1
-        ProcessValues() call - for example, when multiple passes over the data
-        are required.
+      type_url: Type URL identifying the type of the values to be processed.
+      type_url_results_generator_fn: Function returning an iterable with values.
+        Each value is a FlowResult wrapping a value of a type_url type.
+        type_url_results_generator_fn may be called multiple times within 1
+        ProcessValuesOfType() call - for example, when multiple passes over the
+        data are required.
     """
     raise NotImplementedError()
 
@@ -90,7 +91,7 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
     """
 
 
-class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
+class InstantOutputPluginWithExportConversionProto(InstantOutputPluginProto):
   """Instant output plugin that flattens data before exporting."""
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -101,58 +102,24 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     super().__init__(*args, **kwargs)
     self._cached_metadata = {}
 
-  def _GetMetadataForClients(self, client_urns):
-    """Fetches metadata for a given list of clients."""
-
-    result = {}
-    metadata_to_fetch = set()
-
-    for urn in client_urns:
-      try:
-        result[urn] = self._cached_metadata[urn]
-      except KeyError:
-        metadata_to_fetch.add(urn)
-
-    if metadata_to_fetch:
-      client_ids = set(urn.Basename() for urn in metadata_to_fetch)
-      infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
-
-      fetched_metadata = [
-          export.GetMetadata(client_id, mig_objects.ToRDFClientFullInfo(info))
-          for client_id, info in infos.items()
-      ]
-
-      for metadata in fetched_metadata:
-        metadata.source_urn = self.source_urn
-
-        self._cached_metadata[metadata.client_urn] = metadata
-        result[metadata.client_urn] = metadata
-        metadata_to_fetch.remove(metadata.client_urn)
-
-      for urn in metadata_to_fetch:
-        default_mdata = base.ExportedMetadata(source_urn=self.source_urn)
-        result[urn] = default_mdata
-        self._cached_metadata[urn] = default_mdata
-
-    return [result[urn] for urn in client_urns]
-
-  def GetExportOptions(self):
-    """Rerturns export options to be used by export converter."""
-    return base.ExportOptions()
-
-  def ProcessSingleTypeExportedValues(self, original_type, exported_values):
-    """Processes exported values of the same type.
+  @abc.abstractmethod
+  def ProcessUniqueOriginalExportedTypePair(
+      self, original_type_name: str, exported_values: Iterable[message.Message]
+  ) -> Iterator[bytes]:
+    """Processes a unique pair of original type and exported type.
 
     Exported_values are guaranteed to have the same type. Consequently, this
-    function may be called multiple times with the same original_type
+    function may be called multiple times with the same original_type_name
     argument. Typical example: when export converters generate multiple
     kinds of exported values for a given source value (for example,
     Process is converted to ExportedProcess and ExportedNetworkConnection
     values).
 
     Args:
-      original_type: Class of the original set of values that were converted to
-        exported_values.
+      original_type_name: Name of the original set of values that were converted
+        to exported_values. This name is only used for naming files and tracking
+        conversion statistics. It is important that it is a unique identifier of
+        the original type.
       exported_values: An iterator with exported value. All values are
         guaranteed to have the same class.
 
@@ -161,21 +128,61 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
     """
     raise NotImplementedError()
 
-  def _GenerateSingleTypeIteration(
-      self, next_types, processed_types, converted_responses
+  def ProcessValuesOfType(
+      self,
+      type_url: str,
+      type_url_results_generator_fn: Callable[
+          [], Iterable[flows_pb2.FlowResult]
+      ],
+  ) -> Iterator[bytes]:
+    converter_classes = export_converters_registry.GetConvertersByTypeUrl(
+        type_url
+    )
+    if not converter_classes:
+      logging.warning("No export converters found for type url: %s", type_url)
+      return
+
+    original_rdf_type_name = db_utils.TypeURLToRDFTypeName(type_url)
+    next_types = set()
+    processed_types = set()
+    while True:
+      converted_responses = export.FetchMetadataAndConvertFlowResults(
+          source_urn=self.source_urn,
+          options=export_pb2.ExportOptions(),
+          flow_results=type_url_results_generator_fn(),
+          cached_metadata=self._cached_metadata,
+      )
+
+      generator = self._GenerateSingleExportedTypeIteration(
+          next_types, processed_types, converted_responses
+      )
+
+      for chunk in self.ProcessUniqueOriginalExportedTypePair(
+          original_rdf_type_name, generator
+      ):
+        yield chunk
+
+      if not next_types:
+        break
+
+  def _GenerateSingleExportedTypeIteration(
+      self,
+      next_types: set[type[message.Message]],
+      processed_types: set[type[message.Message]],
+      converted_responses: Iterable[message.Message],
   ):
     """Yields responses of a given type only.
 
-    _GenerateSingleTypeIteration iterates through converted_responses and
-    only yields responses of the same type. The type is either popped from
+    _GenerateSingleExportedTypeIteration iterates through converted_responses
+    and only yields responses of the same type. The type is either popped from
     next_types or inferred from the first item of converted_responses.
     The type is added to a set of processed_types.
 
-    Along the way _GenerateSingleTypeIteration updates next_types set.
+    Along the way _GenerateSingleExportedTypeIteration updates next_types set.
     All newly encountered and not previously processed types are added to
     next_types set.
 
-    Calling _GenerateSingleTypeIteration multiple times allows doing
+    Calling _GenerateSingleExportedTypeIteration multiple times allows doing
     multiple passes on converted responses and emitting converted responses
     of the same type continuously (so that they can be written into
     the same file by the plugin).
@@ -209,103 +216,22 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
 
       yield converted_response
 
-  def _GenerateConvertedValues(self, converter, grr_messages):
-    """Generates converted values using given converter from given messages.
 
-    Groups values in batches of BATCH_SIZE size and applies the converter
-    to each batch.
-
-    Args:
-      converter: ExportConverter instance.
-      grr_messages: An iterable (a generator is assumed) with GRRMessage values.
-
-    Yields:
-      Values generated by the converter.
-
-    Raises:
-      ValueError: if any of the GrrMessage objects doesn't have "source" set.
-    """
-    for batch in collection.Batch(grr_messages, self.BATCH_SIZE):
-      metadata_items = self._GetMetadataForClients([gm.source for gm in batch])
-      batch_with_metadata = zip(metadata_items, [gm.payload for gm in batch])
-
-      for result in converter.BatchConvert(batch_with_metadata):
-        yield result
-
-  def ProcessValues(self, value_type, values_generator_fn):
-    converter_classes = export_converters_registry.GetConvertersByClass(
-        value_type
-    )
-    if not converter_classes:
-      return
-    converters = [cls(self.GetExportOptions()) for cls in converter_classes]
-
-    next_types = set()
-    processed_types = set()
-    while True:
-      converted_responses = collection.Flatten(
-          self._GenerateConvertedValues(converter, values_generator_fn())
-          for converter in converters
-      )
-
-      generator = self._GenerateSingleTypeIteration(
-          next_types, processed_types, converted_responses
-      )
-
-      for chunk in self.ProcessSingleTypeExportedValues(value_type, generator):
-        yield chunk
-
-      if not next_types:
-        break
-
-
-def ApplyPluginToMultiTypeCollection(
-    plugin, output_collection, source_urn=None
-):
-  """Applies instant output plugin to a multi-type collection.
-
-  Args:
-    plugin: InstantOutputPlugin instance.
-    output_collection: MultiTypeCollection instance.
-    source_urn: If not None, override source_urn for collection items. This has
-      to be used when exporting flow results - their GrrMessages don't have
-      "source" attribute set.
-
-  Yields:
-    Bytes chunks, as generated by the plugin.
-  """
-  for chunk in plugin.Start():
-    yield chunk
-
-  for stored_type_name in sorted(output_collection.ListStoredTypes()):
-    stored_cls = rdfvalue.RDFValue.classes[stored_type_name]
-
-    # pylint: disable=cell-var-from-loop
-    def GetValues():
-      for timestamp, value in output_collection.ScanByType(stored_type_name):
-        _ = timestamp
-        if source_urn:
-          value.source = source_urn
-        yield value
-
-    # pylint: enable=cell-var-from-loop
-
-    for chunk in plugin.ProcessValues(stored_cls, GetValues):
-      yield chunk
-
-  for chunk in plugin.Finish():
-    yield chunk
-
-
-def ApplyPluginToTypedCollection(plugin, type_names, fetch_fn):
+def GetExportedFlowResults(
+    plugin: InstantOutputPluginProto,
+    type_urls: Sequence[str],
+    fetch_flow_results_by_type_url_fn: Callable[
+        [str], Iterator[flows_pb2.FlowResult]
+    ],
+) -> Iterator[bytes]:
   """Applies instant output plugin to a collection of results.
 
   Args:
     plugin: InstantOutputPlugin instance.
-    type_names: List of type names (strings) to be processed.
-    fetch_fn: Function that takes a type name as an argument and returns
-      available items (FlowResult) corresponding to this type. Items are
-      returned as a generator
+    type_urls: List of type URLs (strings) to be processed.
+    fetch_flow_results_by_type_url_fn: Function that takes a type URL as an
+      argument and returns available items (FlowResult) corresponding to this
+      type. Items are returned as a generator
 
   Yields:
     Bytes chunks, as generated by the plugin.
@@ -313,15 +239,13 @@ def ApplyPluginToTypedCollection(plugin, type_names, fetch_fn):
   for chunk in plugin.Start():
     yield chunk
 
-  def GetValues(tn):
-    for v in fetch_fn(tn):
-      yield v
+  def GetFlowResultsOfType(type_url):
+    for flow_result in fetch_flow_results_by_type_url_fn(type_url):
+      yield flow_result
 
-  for type_name in sorted(type_names):
-    stored_cls = rdfvalue.RDFValue.classes[type_name]
-
-    for chunk in plugin.ProcessValues(
-        stored_cls, functools.partial(GetValues, type_name)
+  for type_url in sorted(type_urls):
+    for chunk in plugin.ProcessValuesOfType(
+        type_url, functools.partial(GetFlowResultsOfType, type_url)
     ):
       yield chunk
 

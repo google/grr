@@ -1,0 +1,37 @@
+
+.mat-tree-node {
+  min-height: 0;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+span {
+  margin: 0 0.1em;
+}
+
+.text-pid {
+  padding: 0.3em;
+  border-radius: 0.6em;
+  background-color: var(--mat-sys-tertiary);
+  color: var(--mat-sys-on-tertiary);
+}
+
+.text-cmdline {
+  padding: 0.3em;
+  border-radius: 0.2em;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-family: monospace;
+  text-overflow: ellipsis;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.text-user {
+  color: var(--mat-sys-primary)
+}
+
+.text-ctime {
+  color: var(--mat-sys-secondary);
+}

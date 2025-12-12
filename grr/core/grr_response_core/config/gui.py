@@ -32,6 +32,12 @@ config_lib.DEFINE_string(
 )
 
 config_lib.DEFINE_string(
+    "AdminUI.css_font_override",
+    "",
+    "The main path to the fonts CSS files.",
+)
+
+config_lib.DEFINE_string(
     "AdminUI.webauth_manager",
     "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.",
@@ -81,6 +87,12 @@ config_lib.DEFINE_string(
     "CHANGE_ME",
     "This is a secret key that should be set in the server "
     "config. It is used in CSRF protection.",
+)
+
+config_lib.DEFINE_string(
+    "AdminUI.csrf_token_generator",
+    "RawKeyCSRFTokenGenerator",
+    "The class name of the CSRF token generator to use.",
 )
 
 config_lib.DEFINE_bool(

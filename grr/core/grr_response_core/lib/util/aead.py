@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """A module with utilities for AEAD streams."""
 
+from collections.abc import Iterator
 import io
 import itertools
 import os
 import struct
 from typing import IO
-from typing import Iterator
 
 from cryptography.hazmat.primitives.ciphers import aead
 

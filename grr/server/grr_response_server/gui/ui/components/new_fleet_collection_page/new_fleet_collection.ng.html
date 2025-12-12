@@ -1,0 +1,111 @@
+@if (
+  !newFleetCollectionStore.originalFleetCollectionRef() &&
+  !newFleetCollectionStore.originalFlowRef()
+) {
+  <error-message
+    message="The fleet collection MUST be created from an existing fleet collection or flow. Specify the origin fleet collection or flow using the URL parameters." />
+} @else if (hasAccessToFlowType() === false) {
+  <error-message
+    message='No permission to create this fleet collection. Admin privileges are required to create a fleet collection with this flow type ({{friendlyFlowName()}}).' />
+} @else {
+  <div class="title-section">
+    <a [routerLink]="['/fleet-collections']" >
+      <mat-icon>list_alt</mat-icon>
+    </a>
+    <mat-icon>chevron_right</mat-icon>
+    <form>
+      <mat-form-field appearance="outline" class="mt-1" subscriptSizing="dynamic">
+      <mat-label>Name your fleet collection</mat-label>
+        <input
+          matInput
+          [formControl]="controls.title"
+          aria-label="Name your fleet collection"
+          autocomplete="off"
+          autofocus
+        />
+        <mat-error><form-errors [validationErrors]="controls.title.errors" /></mat-error>
+      </mat-form-field>
+    </form>
+  </div>
+
+  <collapsible-container>
+    <collapsible-title>
+      <h4>Source configuration</h4>
+    </collapsible-title>
+    <collapsible-content>
+      <div class="source-section">
+        @if (newFleetCollectionStore.originalFleetCollectionRef()?.huntId) {
+          Copy from Fleet Collection:
+          <a mat-button
+            [routerLink]="[
+              '/fleet-collections',
+              newFleetCollectionStore.originalFleetCollectionRef()?.huntId
+            ]"
+          >
+            <span class="source-ref">
+              {{ newFleetCollectionStore.originalFleetCollectionRef()?.huntId }}
+              @if (newFleetCollectionStore.originalFleetCollection(); as fleetCollection) {
+                -
+                <fleet-collection-state-chip
+                  [fleetCollectionState]="fleetCollection.state"
+                  [fleetCollectionStateReason]="fleetCollection.stateReason"
+                  [fleetCollectionStateComment]="fleetCollection.stateComment"
+                  [resultsCount]="fleetCollection.clientsWithResultsCount" />
+              }
+            </span>
+          </a>
+        }
+        @if (newFleetCollectionStore.originalFlowRef()?.flowId) {
+          Created from flow:
+          <a mat-button
+          [routerLink]="[
+            '/clients',
+            newFleetCollectionStore.originalFlowRef()?.clientId,
+            'flows',
+            newFleetCollectionStore.originalFlowRef()?.flowId
+          ]"
+          >
+            <span class="source-ref">
+              {{ newFleetCollectionStore.originalFlowRef()?.flowId }}
+              @if (newFleetCollectionStore.originalFlow(); as flow) {
+                - <flow-state-icon [flow]="flow" />
+              }
+            </span>
+          </a>
+        }
+
+        @let flowArgs = newFleetCollectionStore.flowArgs();
+        @let flowType = newFleetCollectionStore.flowType();
+        @if (flowArgs && flowType) {
+          <h4>Flow arguments</h4>
+          <flow-args-form
+            [flowType]="flowType"
+            [flowArgs]="flowArgs"
+            [editable]="false"
+          />
+        }
+      </div>
+    </collapsible-content>
+  </collapsible-container>
+
+  <h4>Fleet collection configuration</h4>
+  @let safetyLimits = initialSafetyLimits();
+  @let outputPlugins = initialOutputPlugins();
+  @let clientRules = initialClientRules();
+  @if (safetyLimits && outputPlugins && clientRules) {
+    <div class="form-section">
+      <clients-form [initialRules]="clientRules" />
+      <rollout-form [initialSafetyLimits]="safetyLimits" />
+      <output-plugins-form [initialOutputPlugins]="outputPlugins" />
+    </div>
+  }
+
+  <div class="button-section">
+    <button mat-flat-button
+      (click)="createFleetCollection()"
+      [disabled]="controls.title.errors || createdFleetCollection"
+    >
+      Create Fleet Collection
+    </button>
+  </div>
+}

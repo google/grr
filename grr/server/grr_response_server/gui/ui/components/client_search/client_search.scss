@@ -1,31 +1,52 @@
+@use '@angular/material' as mat;
+
 :host {
-  background: #fff;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+}
+
+.search-box-container {
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding: 50px 50px 0;
+  align-items: center;
+
+  height: 15em;
+  width: 100%;
+  padding: 0 10vw;
+}
+
+table {
+  padding: 0 2em;
 }
 
 .mat-mdc-row:hover {
   cursor: pointer;
-  background: #f0f0f0;
 }
 
-td mat-chip-set {
+td {
+  max-width: 20vw;
+}
+
+mat-chip-set {
   display: inline-block;
-  /* When clicking on a label/online-indicator, do not intercept the click but
-     pass it through to the row, which links to the client. */
+  // When clicking on a label/online-indicator, do not intercept the click but
+  // pass it through to the row, which links to the client.
   pointer-events: none;
   white-space: nowrap;
 }
 
-table {
-  td {
-    width: 0;
-    padding-right: 2em;
-  }
+.label-chip {
+  margin: 0 2px;
 
-  td:last-of-type {
-    width: auto;
-  }
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: var(--mat-sys-primary-container),
+      label-text-color: var(--mat-sys-on-primary-container),
+    )
+  );
+}
+
+.recent-approvals-container {
+  padding: 2em;
 }

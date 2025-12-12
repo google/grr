@@ -7,10 +7,12 @@ import functools
 import logging
 import re
 import traceback
+import types
 from typing import Any, Callable, Collection, Dict, Generic, Iterator, List, Mapping, NamedTuple, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from google.protobuf import any_pb2
 from google.protobuf import message as pb_message
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -33,16 +35,21 @@ from grr_response_server import flow_responses
 from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
 from grr_response_server import output_plugin as output_plugin_lib
+from grr_response_server import output_plugin_registry
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.models import clients as models_clients
+from grr_response_server.models import protodicts as models_protodicts
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_flow_runner
 from grr_response_server.rdfvalues import mig_hunt_objects
+from grr_response_server.rdfvalues import mig_output_plugin
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
 FLOW_ERRORS = metrics.Counter(
@@ -58,23 +65,33 @@ HUNT_RESULTS_RAN_THROUGH_PLUGIN = metrics.Counter(
     "hunt_results_ran_through_plugin", fields=[("plugin", str)]
 )
 
+# We keep this set to avoid increasing the streamz cardinality too much.
+_REPORTED_EXCEPTION_NAMES = set()
+_MAX_EXCEPTION_NAMES = 100
 _METRICS_UNKNOWN_EXCEPTION = "Unknown"
+_METRICS_DISCARDED_EXCEPTION = "Discarded"
 # Captures the possible exception name (only group). String must have a
 # capitalized letter (only letters) followed by an opening parens.
-# Should match: "SomeWord(" (captures "SomeWord"), "A(" (captures "A")
-# Should NOT match: "(", "Sep arate(", "startsWithLower(", "HasNum9("
-_LOOKS_LIKE_EXCEPTION = re.compile(r"([A-Z][A-Za-z]*)\(.*")
+# Should match:
+#   * "raise SomeWord("              -> "SomeWord"
+#   * "raise package.is_ignored.A("  -> "A"
+#   * "raise A(...) raise B(...)"    -> "B"
+# Should NOT match:
+#   * "raise (", "raise Sep arate(", "raise startsWithLower(", "raise HasNum9("
+_LOOKS_LIKE_EXCEPTION = re.compile(
+    r"raise\s(?:[a-z0-9_]+\.)*([A-Z][A-Za-z]*)\("
+)
 
 
-def _ExtractExceptionName(error_message: Optional[str]) -> str:
-  if not error_message:
+def _ExtractExceptionName(text: str) -> str:
+  if not text:
     return _METRICS_UNKNOWN_EXCEPTION
 
-  match = _LOOKS_LIKE_EXCEPTION.match(error_message)
-  if match is None:
+  matches = _LOOKS_LIKE_EXCEPTION.findall(text)
+  if not matches:
     return _METRICS_UNKNOWN_EXCEPTION
 
-  return match.groups()[0]
+  return matches[-1]
 
 
 class Error(Exception):
@@ -87,6 +104,14 @@ class FlowError(Error):
 
 class RRGUnsupportedError(Error):
   """Raised when a RRG action was invoked on a client without RRG support."""
+
+
+class RRGVersion(NamedTuple):
+  """Tuple representing a RRG version."""
+
+  major: int
+  minor: int
+  patch: int
 
 
 # TODO(hanuszczak): Consider refactoring the interface of this class.
@@ -162,8 +187,12 @@ _ProtoArgsT = TypeVar("_ProtoArgsT", bound=pb_message.Message)
 # `default=flows_pb2.DefaultFlowStore`
 _ProtoStoreT = TypeVar("_ProtoStoreT", bound=pb_message.Message)
 
+_ProtoProgressT = TypeVar("_ProtoProgressT", bound=pb_message.Message)
 
-class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
+
+class FlowBase(
+    Generic[_ProtoArgsT, _ProtoStoreT, _ProtoProgressT], metaclass=FlowRegistry
+):
   """The base class for new style flow objects."""
 
   # Alternatively we can specify a single semantic protobuf that will be used to
@@ -185,8 +214,8 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
   # structured way. Can be overridden and has to match GetProgress's
   # return type.
   progress_type = rdf_flow_objects.DefaultFlowProgress
-  proto_progress_type = flows_pb2.DefaultFlowProgress
-  _progress: Optional[pb_message.Message]
+  proto_progress_type: Type[_ProtoProgressT] = flows_pb2.DefaultFlowProgress
+  _progress: Optional[_ProtoProgressT]
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -240,9 +269,10 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         None
     )
     self._client_info: Optional[rdf_client.ClientInformation] = None
+    self._client_labels: Optional[set[str]] = None
 
     self._python_agent_support: Optional[bool] = None
-    self._rrg_support: Optional[bool] = None
+    self._rrg_startup: Optional[rrg_startup_pb2.Startup] = None
 
     self._num_replies_per_type_tag = collections.Counter()
     if rdf_flow.HasField("result_metadata"):
@@ -332,6 +362,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       next_state: str = "",
       start_time: Optional[rdfvalue.RDFDatetime] = None,
       responses: Optional[Sequence[pb_message.Message]] = None,
+      request_data: Optional[dict[str, Any]] = None,
   ):
     """This method is used to schedule a new state on a different worker.
 
@@ -344,6 +375,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
          flow processing into the future. Note that the flow may still be
          processed earlier if there are client responses waiting.
        responses: If specified, responses to be passed to the next state.
+       request_data: Supplementary data to be passed to the next state.
 
     Raises:
       ValueError: The next state specified does not exist.
@@ -386,6 +418,8 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         nr_responses_expected=nr_responses_expected,
         needs_processing=True,
     )
+    if request_data is not None:
+      flow_request.request_data.CopyFrom(models_protodicts.Dict(request_data))
     if start_time is not None:
       flow_request.start_time = int(start_time)
     self.proto_flow_requests.append(flow_request)
@@ -450,16 +484,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
 
     method = getattr(self, next_state)
 
-    # Raise if the method is not annotated with `@UseProto2AnyResponses`.
-    # This means it still expects RDFValues, we should use `CallStateInline`.
-    if (
-        not hasattr(method, "_proto2_any_responses")
-        or not method._proto2_any_responses  # pylint: disable=protected-access
-    ):
-      raise ValueError(
-          f"Method {method.__name__} is not annotated with"
-          " `@UseProto2AnyResponses`. Please use `CallStateInline` instead."
-      )
+    self._CheckMethodExpectsProtos(method, "CallStateInline")
 
     # Method expects Responses[any_pb2.Any].
     if responses is not None:
@@ -489,16 +514,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
 
     method = getattr(self, next_state)
 
-    # Raise if the method is not annotated with `@UseProto2AnyResponses`.
-    # This means it still expects RDFValues, we should use `CallStateInline`.
-    if (
-        not hasattr(method, "_proto2_any_responses")
-        or not method._proto2_any_responses  # pylint: disable=protected-access
-    ):
-      raise ValueError(
-          f"Method {method.__name__} is not annotated with"
-          " `@UseProto2AnyResponses`. Please use `CallStateInline` instead."
-      )
+    self._CheckMethodExpectsProtos(method, "CallStateInline")
 
     # Use `messages` and make sure they're packed into `any_pb2.Any`s.
     any_msgs: list[any_pb2.Any] = []
@@ -523,6 +539,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       # TODO: Use more pythonic filter wrappers.
       filters: Collection[rrg_pb2.Filter] = (),
       next_state: Optional[str] = None,
+      context: Optional[dict[str, str]] = None,
   ) -> None:
     """Invokes a RRG action.
 
@@ -535,6 +552,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       args: Arguments to invoke the action with.
       filters: Filters to apply to action results.
       next_state: A flow state method to call with action results.
+      context: Dictionary to pass extra data for the state method.
 
     Raises:
       RRGUnsupportedError: If the target client does not support RRG.
@@ -542,13 +560,23 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     if not self.rrg_support:
       raise RRGUnsupportedError()
 
+    if context is None:
+      context = {}
+
     request_id = self.GetNextOutboundId()
 
-    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request = flows_pb2.FlowRequest()
     flow_request.client_id = self.rdf_flow.client_id
     flow_request.flow_id = self.rdf_flow.flow_id
     flow_request.request_id = request_id
-    flow_request.next_state = next_state
+
+    if next_state:
+      flow_request.next_state = next_state
+
+    for key, value in context.items():
+      kv = flow_request.request_data.dat.add()
+      kv.k.string = key
+      kv.v.string = value
 
     rrg_request = rrg_pb2.Request()
     rrg_request.flow_id = int(self.rdf_flow.flow_id, 16)
@@ -561,7 +589,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
 
     # TODO: Add support for limits.
 
-    self.flow_requests.append(flow_request)
+    self.proto_flow_requests.append(flow_request)
     self.rrg_requests.append(rrg_request)
 
   @dataclasses.dataclass
@@ -581,7 +609,11 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     """
     cpu_limit_ms = None
     network_bytes_limit = None
-    runtime_limit_us = self.rdf_flow.runtime_limit_us
+    runtime_limit_us = (
+        self.rdf_flow.runtime_limit_us.SerializeToWireFormat()
+        if self.rdf_flow.HasField("runtime_limit_us")
+        else None
+    )
 
     if self.rdf_flow.cpu_limit:
       cpu_usage = self.rdf_flow.cpu_time_used
@@ -611,9 +643,10 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
             )
         )
 
-    if runtime_limit_us and self.rdf_flow.runtime_us:
-      if self.rdf_flow.runtime_us < runtime_limit_us:
-        runtime_limit_us -= self.rdf_flow.runtime_us
+    if self.rdf_flow.runtime_limit_us and self.rdf_flow.runtime_us:
+      if self.rdf_flow.runtime_us < self.rdf_flow.runtime_limit_us:
+        rdf_duration = self.rdf_flow.runtime_limit_us - self.rdf_flow.runtime_us
+        runtime_limit_us = rdf_duration.SerializeToWireFormat()
       else:
         raise flow.FlowResourcesExceededError(
             "Runtime limit exceeded for {} {}.".format(
@@ -668,7 +701,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     try:
       action_identifier = action_registry.ID_BY_ACTION_STUB[action_cls]
     except KeyError:
-      raise ValueError("Action class %s not known." % action_cls)
+      raise ValueError("Action class %s not known." % action_cls) from None
 
     if action_cls.in_rdfvalue is None:
       if request:
@@ -790,8 +823,11 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         name=action_cls.__name__,
         request_id=outbound_id,
         network_bytes_limit=limits.network_bytes_limit,
-        runtime_limit_us=limits.runtime_limit_us,
     )
+    if limits.cpu_limit_ms is not None:
+      client_action_request.cpu_limit = limits.cpu_limit_ms / 1000.0
+    if limits.runtime_limit_us is not None:
+      client_action_request.runtime_limit_us = limits.runtime_limit_us
 
     if action_args:
       # We rely on the fact that the in_proto and in_rdfvalue fields in the stub
@@ -869,6 +905,8 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         parent=flow.FlowParent.FromFlow(self),
         output_plugins=output_plugins,
         flow_args=flow_args,
+        start_at=None,  # Start immediately in this worker.
+        disable_rrg_support=self.rdf_flow.disable_rrg_support,
     )
 
   def CallFlowProto(
@@ -943,6 +981,8 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         parent=flow.FlowParent.FromFlow(self),
         output_plugins=output_plugins,
         flow_args=rdf_flow_args,
+        start_at=None,  # Start immediately in this worker.
+        disable_rrg_support=self.rdf_flow.disable_rrg_support,
     )
 
   def SendReply(
@@ -1147,13 +1187,32 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       self,
       error_message: Optional[str] = None,
       backtrace: Optional[str] = None,
-      status: Optional[rdf_structs.EnumNamedValue] = None,
   ) -> None:
     """Terminates this flow with an error."""
     flow_name = self.__class__.__name__
     is_child = bool(self.rdf_flow.parent_flow_id)
-    exception_name = _ExtractExceptionName(error_message)
-    FLOW_ERRORS.Increment(fields=[flow_name, is_child, exception_name])
+    exception_name = _ExtractExceptionName(
+        f"{error_message or ''}{backtrace or ''}"
+    )
+
+    if (
+        exception_name not in _REPORTED_EXCEPTION_NAMES
+        and len(_REPORTED_EXCEPTION_NAMES) > _MAX_EXCEPTION_NAMES
+    ):
+      # We're already over the limit, discard the exception name.
+      logging.info(
+          "Skipping streamz reporting for %s (is_child=%s): %s",
+          flow_name,
+          is_child,
+          exception_name,
+      )
+      FLOW_ERRORS.Increment(
+          fields=[flow_name, is_child, _METRICS_DISCARDED_EXCEPTION]
+      )
+    else:
+      # Either it's already reported or we're still within the limit.
+      _REPORTED_EXCEPTION_NAMES.add(exception_name)
+      FLOW_ERRORS.Increment(fields=[flow_name, is_child, exception_name])
 
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
@@ -1177,6 +1236,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
 
     if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:
       status_msg = rdf_flow_objects.FlowStatus(
+          status=rdf_flow_objects.FlowStatus.Status.ERROR,
           client_id=client_id,
           request_id=self.rdf_flow.parent_request_id,
           response_id=self.GetNextResponseId(),
@@ -1187,11 +1247,6 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
           flow_id=self.rdf_flow.parent_flow_id,
           backtrace=backtrace,
       )
-
-      if status is not None:
-        status_msg.status = status
-      else:
-        status_msg.status = rdf_flow_objects.FlowStatus.Status.ERROR
 
       if self.rdf_flow.parent_flow_id:
         self.flow_responses.append(status_msg)
@@ -1375,9 +1430,20 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         ) from None
 
       # Prepare a responses object for the state method to use:
+      # If a method is annotated with both `_proto2_any_responses` and
+      # `_proto2_any_responses_callback`, the latter takes precedence,
+      # treating the `status` message as optional. This way, a state method can
+      # be used both for incremental and non-incremental request processing.
       if responses is not None and (
-          hasattr(method, "_proto2_any_responses")
-          and method._proto2_any_responses  # pylint: disable=protected-access
+          self._IsAnnotatedWithProto2AnyResponsesCallback(method)
+      ):
+        responses = (
+            flow_responses.Responses.FromResponsesProto2AnyWithOptionalStatus(
+                responses, request
+            )
+        )
+      elif responses is not None and (
+          self._IsAnnotatedWithProto2AnyResponses(method)
       ):
         responses = flow_responses.Responses.FromResponsesProto2Any(
             responses, request
@@ -1400,8 +1466,9 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       else:
         method(responses)
 
-      # TODO: Refactor output plugins to be internally proto-based.
       if self.proto_replies_to_process:
+        self._ProcessRepliesWithOutputPluginProto(self.proto_replies_to_process)
+        # TODO: Remove when no more RDF-based output plugins exist.
         rdf_replies = [
             mig_flow_objects.ToRDFFlowResult(r)
             for r in self.proto_replies_to_process
@@ -1409,6 +1476,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         self.replies_to_process.extend(rdf_replies)
         self.proto_replies_to_process = []
 
+      # TODO: Remove when no more RDF-based output plugins exist.
       if self.replies_to_process:
         if self.rdf_flow.parent_hunt_id and not self.rdf_flow.parent_flow_id:
           self._ProcessRepliesWithHuntOutputPlugins(self.replies_to_process)
@@ -1613,7 +1681,11 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     if self.client_action_requests:
       client_id = self.rdf_flow.client_id
       for request in self.client_action_requests:
-        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, request)
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(
+            client_id,
+            request,
+            self.client_labels,
+        )
 
       self.client_action_requests = []
 
@@ -1621,12 +1693,18 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
       client_id = self.rdf_flow.client_id
       for request in self.proto_client_action_requests:
         fleetspeak_utils.SendGrrMessageProtoThroughFleetspeak(
-            client_id, request
+            client_id,
+            request,
+            self.client_labels,
         )
       self.proto_client_action_requests = []
 
     for request in self.rrg_requests:
-      fleetspeak_utils.SendRrgRequest(self.rdf_flow.client_id, request)
+      fleetspeak_utils.SendRrgRequest(
+          self.rdf_flow.client_id,
+          request,
+          self.client_labels,
+      )
 
     self.rrg_requests = []
 
@@ -1644,6 +1722,115 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
         hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
       self.proto_replies_to_write = []
       self.replies_to_write = []
+
+  def _ProcessRepliesWithOutputPluginProto(
+      self, replies: Sequence[flows_pb2.FlowResult]
+  ) -> None:
+    """Processes flow replies using configured proto-based output plugins.
+
+    This method iterates through the flow's configured output plugins. For each
+    plugin that is proto-based, it instantiates the plugin and calls its
+    `ProcessResults` method with the provided replies. Any logs generated by
+    the plugin are written to the datastore. Exceptions during plugin
+    processing are caught and logged as errors.
+
+    Args:
+      replies: A sequence of `flows_pb2.FlowResult` to be processed.
+    """
+    proto_plugin_descriptors = []
+    for idx, p in enumerate(self.rdf_flow.output_plugins):
+      try:
+        output_plugin_registry.GetPluginClassByName(p.plugin_name)
+        proto_plugin_descriptors.append(
+            (idx, mig_output_plugin.ToProtoOutputPluginDescriptor(p))
+        )
+      except KeyError:
+        # This is an RDF-based plugin, we'll process it separately.
+        pass
+
+    logging.info(
+        "Processing %d replies with %d proto-based output plugins.",
+        len(replies),
+        len(proto_plugin_descriptors),
+    )
+
+    for plugin_id, plugin_descriptor in proto_plugin_descriptors:
+      plugin_cls = output_plugin_registry.GetPluginClassByName(
+          plugin_descriptor.plugin_name
+      )
+      if plugin_cls.args_type is not None:  # pytype: disable=unbound-type-param
+        # `plugin_descriptor.args` is an instance of `any_pb2.Any`.
+        pl_args = plugin_cls.args_type.FromString(plugin_descriptor.args.value)
+      else:
+        pl_args = None
+
+      plugin = plugin_cls(source_urn=self.rdf_flow.long_flow_id, args=pl_args)
+
+      try:
+        plugin.ProcessResults(replies)
+        plugin.Flush()
+        self.Log(
+            "Plugin <<%s>> (id: %s) successfully processed %d flow replies.",
+            plugin_descriptor,
+            plugin_id,
+            len(replies),
+        )
+        # TODO: Remove once migration is complete.
+        # For now this serves as compatibility with logging for RDF-based
+        # plugins (the other branch adds an equivalent log entry).
+        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.rdf_flow.client_id,
+                flow_id=self.rdf_flow.flow_id,
+                hunt_id=self.rdf_flow.parent_hunt_id,
+                output_plugin_id=str(plugin_id),
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message=f"Processed {len(replies)} replies.",
+            )
+        )
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception(
+            "Plugin %s failed to process %d replies.",
+            plugin_descriptor,
+            len(replies),
+        )
+        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.rdf_flow.client_id,
+                flow_id=self.rdf_flow.flow_id,
+                hunt_id=self.rdf_flow.parent_hunt_id,
+                output_plugin_id=str(plugin_id),
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+                message=(
+                    "Error while processing "
+                    f"{len(self.proto_replies_to_process)} replies: {str(e)}"
+                ),
+            )
+        )
+        self.Log(
+            "Plugin %s failed to process %d replies due to: %s",
+            plugin_descriptor.plugin_name,
+            len(self.proto_replies_to_process),
+            e,
+        )
+
+      logs_to_write: list[flows_pb2.FlowOutputPluginLogEntry] = []
+      for log_type, log_message in plugin.GetLogs():
+        logs_to_write.append(
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.rdf_flow.client_id,
+                flow_id=self.rdf_flow.flow_id,
+                hunt_id=self.rdf_flow.parent_hunt_id,
+                output_plugin_id=str(plugin_id),
+                log_entry_type=log_type,
+                message=log_message,
+            )
+        )
+      logging.info(
+          "Writing %d logs for plugin %s", len(logs_to_write), plugin_id
+      )
+      if logs_to_write:
+        data_store.REL_DB.WriteMultipleFlowOutputPluginLogEntries(logs_to_write)
 
   def _ProcessRepliesWithHuntOutputPlugins(
       self, replies: Sequence[rdf_flow_objects.FlowResult]
@@ -1702,10 +1889,8 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
   ) -> Sequence[Optional[output_plugin_lib.OutputPlugin]]:
     """Processes replies with output plugins."""
     created_output_plugins = []
-    for index, output_plugin_state in enumerate(
-        self.rdf_flow.output_plugins_states
-    ):
-      plugin_descriptor = output_plugin_state.plugin_descriptor
+    for output_plugin_state in self.rdf_flow.output_plugins_states:  # pytype: disable=attribute-error
+      plugin_descriptor = output_plugin_state.plugin_descriptor  # pytype: disable=attribute-error
       output_plugin_cls = plugin_descriptor.GetPluginClass()
       args = plugin_descriptor.args
       output_plugin = output_plugin_cls(
@@ -1725,15 +1910,16 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
                 hunt_id=self.rdf_flow.parent_hunt_id,
-                output_plugin_id="%d" % index,
+                output_plugin_id=output_plugin_state.plugin_id,
                 log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
                 message="Processed %d replies." % len(replies),
             )
         )
 
         self.Log(
-            "Plugin %s successfully processed %d flow replies.",
-            plugin_descriptor,
+            "Plugin %s (id: %s) successfully processed %d flow replies.",
+            plugin_descriptor.plugin_name,
+            output_plugin_state.plugin_id,
             len(replies),
         )
 
@@ -1751,7 +1937,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
                 hunt_id=self.rdf_flow.parent_hunt_id,
-                output_plugin_id="%d" % index,
+                output_plugin_id=output_plugin_state.plugin_id,
                 log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
                 message="Error while processing %d replies: %s"
                 % (len(replies), str(e)),
@@ -1844,7 +2030,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     return self._state
 
   @property
-  def progress(self) -> pb_message.Message:
+  def progress(self) -> _ProtoProgressT:
     if self._progress is None:
       if self.rdf_flow.HasField("progress"):
         packed_any: any_pb2.Any = self.rdf_flow.progress.AsPrimitiveProto()
@@ -1856,7 +2042,7 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     return self._progress
 
   @progress.setter
-  def progress(self, value: pb_message.Message) -> None:
+  def progress(self, value: _ProtoProgressT) -> None:
     self._progress = value
 
   @property
@@ -1990,20 +2176,92 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
     return client_info
 
   @property
+  def client_labels(self) -> Collection[str]:
+    if self._client_labels is None:
+      self._client_labels = set()
+      for label in data_store.REL_DB.ReadClientLabels(self.client_id):
+        self._client_labels.add(label.name)
+
+    return self._client_labels
+
+  @property
   def python_agent_support(self) -> bool:
+    """Returns whether the endpoint supports the Python agent."""
     if self._python_agent_support is None:
       startup = data_store.REL_DB.ReadClientStartupInfo(self.client_id)
-      self._python_agent_support = startup is not None
+      # Unlike with RRG startup records, in case of the Python agent it is not
+      # enough to verify that a record exists because we write them also when
+      # writing snapshots (even if they are empty as the agent never started!).
+      # Thus, we also verify that the version is set to some non-zero value.
+      self._python_agent_support = (
+          startup is not None and startup.client_info.client_version > 0
+      )
 
     return self._python_agent_support
 
   @property
-  def rrg_support(self) -> bool:
-    if self._rrg_support is None:
+  def rrg_startup(self) -> rrg_startup_pb2.Startup:
+    """Returns latest startup record of RRG running on the endpoint."""
+    if self._rrg_startup is None:
       rrg_startup = data_store.REL_DB.ReadClientRRGStartup(self.client_id)
-      self._rrg_support = rrg_startup is not None
 
-    return self._rrg_support
+      if rrg_startup is not None:
+        self._rrg_startup = rrg_startup
+      else:
+        # We don't want a new database roundtrip each time if it keeps returning
+        # `None`, so we set it to empty value to make "initialized".
+        self._rrg_startup = rrg_startup_pb2.Startup()
+
+    return self._rrg_startup
+
+  @property
+  def rrg_version(self) -> RRGVersion:
+    """Returns version of the RRG agent running on the endpoint."""
+    if (
+        config.CONFIG["Server.disable_rrg_support"]
+        or self.rdf_flow.disable_rrg_support
+    ):
+      return RRGVersion(major=0, minor=0, patch=0)
+
+    return RRGVersion(
+        major=self.rrg_startup.metadata.version.major,
+        minor=self.rrg_startup.metadata.version.minor,
+        patch=self.rrg_startup.metadata.version.patch,
+    )
+
+  @property
+  def rrg_support(self) -> bool:
+    return self.rrg_version > (0, 0, 0)
+
+  @property
+  def rrg_os_type(self) -> rrg_os_pb2.Type:
+    """Returns operating system type of the endpoint running the RRG agent."""
+    if self.rrg_version >= (0, 0, 4):
+      return self.rrg_startup.os_type
+
+    # TODO: https://github.com/google/rrg/issues/133 - Remove once we no longer
+    # support version <0.0.4.
+    if self.client_os == "Linux":
+      return rrg_os_pb2.LINUX
+    if self.client_os == "Darwin":
+      return rrg_os_pb2.MACOS
+    if self.client_os == "Windows":
+      return rrg_os_pb2.WINDOWS
+
+    raise RuntimeError(f"Unexpected operating system: {self.client_os}")
+
+  @property
+  def default_exclude_labels(self) -> Collection[str]:
+    hunt_config = config.CONFIG["AdminUI.hunt_config"]
+    if not hunt_config:
+      return []
+
+    hunt_config = hunt_config.AsPrimitiveProto()
+    return hunt_config.default_exclude_labels
+
+  @property
+  def client_has_exclude_labels(self) -> bool:
+    return bool(set(self.default_exclude_labels) & set(self.client_labels))
 
   @property
   def creator(self) -> str:
@@ -2022,6 +2280,43 @@ class FlowBase(Generic[_ProtoArgsT, _ProtoStoreT], metaclass=FlowRegistry):
   @classmethod
   def CanUseViaAPI(cls) -> bool:
     return bool(cls.category)
+
+  def _CheckMethodExpectsProtos(
+      self, method: types.MethodType, rdf_alternative: str
+  ) -> None:
+    """Checks if a given method expects proto responses.
+
+    Args:
+      method: A method to check.
+      rdf_alternative: Name of the RDF-based alternative to suggest.
+
+    Raises:
+      ValueError: if the method is not annotated with `@UseProto2AnyResponses`.
+    """
+    if not self._IsAnnotatedWithProto2AnyResponses(
+        method
+    ) and not self._IsAnnotatedWithProto2AnyResponsesCallback(method):
+      raise ValueError(
+          f"Method {method.__name__} is not annotated with"
+          " `@UseProto2AnyResponses` or `@UseProto2AnyResponsesCallback`."
+          f" Please use `{rdf_alternative}` instead."
+      )
+
+  def _IsAnnotatedWithProto2AnyResponses(
+      self, method: types.MethodType
+  ) -> bool:
+    return (
+        hasattr(method, "_proto2_any_responses")
+        and method._proto2_any_responses  # pylint: disable=protected-access
+    )
+
+  def _IsAnnotatedWithProto2AnyResponsesCallback(
+      self, method: types.MethodType
+  ) -> bool:
+    return (
+        hasattr(method, "_proto2_any_responses_callback")
+        and method._proto2_any_responses_callback  # pylint: disable=protected-access
+    )
 
 
 def FindIncrementalRequestsToProcess(
@@ -2199,6 +2494,32 @@ def UseProto2AnyResponses(
     return state_method(self, responses)
 
   Wrapper._proto2_any_responses = True  # pylint: disable=protected-access
+
+  return Wrapper
+
+
+def UseProto2AnyResponsesCallback(
+    callback_state_method: Callable[
+        [FlowBase, flow_responses.Responses[any_pb2.Any]], None
+    ],
+) -> Callable[[FlowBase, flow_responses.Responses[any_pb2.Any]], None]:
+  """Instructs flow execution not to use RDF magic for unpacking responses.
+
+  Unlike `UseProto2AnyResponses`, this method allows for partial responses
+  to be further processed, thus being suitable for callback states.
+
+  Args:
+    callback_state_method: A flow state method to annotate.
+
+  Returns:
+    A flow callback state method that will work with partial responses.
+  """
+
+  @functools.wraps(callback_state_method)
+  def Wrapper(self, responses: flow_responses.Responses) -> None:
+    return callback_state_method(self, responses)
+
+  Wrapper._proto2_any_responses_callback = True  # pylint: disable=protected-access
 
   return Wrapper
 

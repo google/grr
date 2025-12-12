@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR discovery flows."""
 
+from grr_response_proto import objects_pb2
 from grr_response_test.end_to_end_tests import test_base
 
 
@@ -12,14 +13,23 @@ class TestClientInterrogate(test_base.EndToEndTest):
   # Intentionally excluded:
   # userdomain: too slow to collect, not in lightweight interrogate
   user_win_kb_attributes = [
-      "sid", "userprofile", "appdata", "localappdata", "internet_cache",
-      "cookies", "recent", "personal", "startup", "localappdata_low"
+      "sid",
+      "userprofile",
+      "appdata",
+      "localappdata",
+      "internet_cache",
+      "cookies",
+      "recent",
+      "personal",
+      "startup",
+      "localappdata_low",
   ]
 
   def _IsCompleteWindowsUser(self, u):
     return all(
         getattr(u, attribute)
-        for attribute in self.__class__.user_win_kb_attributes)
+        for attribute in self.__class__.user_win_kb_attributes
+    )
 
   def _CheckUser(self, u):
     if self.platform == test_base.EndToEndTest.Platform.WINDOWS:
@@ -42,10 +52,13 @@ class TestClientInterrogate(test_base.EndToEndTest):
     results = list(f.ListResults())
     self.assertLen(results, 1)
 
-    csummary = results[0].payload
-    for u in csummary.users:
+    snapshot: objects_pb2.ClientSnapshot = results[0].payload
+    for u in snapshot.knowledge_base.users:
       self.assertTrue(u.username, "username is empty for user: %s" % u)
 
     self.assertTrue(
-        any(self._CheckUser(u) for u in csummary.users),
-        "No users with complete user attributes: {!r}".format(csummary.users))
+        any(self._CheckUser(u) for u in snapshot.knowledge_base.users),
+        "No users with complete user attributes: {!r}".format(
+            snapshot.knowledge_base.users
+        ),
+    )

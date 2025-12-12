@@ -4,10 +4,11 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server import foreman_rules
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
@@ -15,7 +16,6 @@ from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr.test_lib import test_lib
 
 
@@ -65,7 +65,7 @@ class ApiListCronJobsHandlerRegressionTest(
 
     self.Check(
         "ListCronJobs",
-        args=cron_plugin.ApiListCronJobsArgs(),
+        args=api_cron_pb2.ApiListCronJobsArgs(),
         replace={
             cron_id_1: "FileFinder",
             cron_id_2: "ClientFileFinder",
@@ -114,21 +114,21 @@ class ApiCreateCronJobHandlerRegressionTest(
       return {jobs[0]: "CreateAndRunGenericHuntFlow_1234"}
 
     flow_name = file_finder.FileFinder.__name__
-    flow_args = rdf_file_finder.FileFinderArgs(
+    flow_args = flows_pb2.FileFinderArgs(
         paths=["c:\\windows\\system32\\notepad.*"]
     )
 
-    hunt_runner_args = rdf_hunts.HuntRunnerArgs()
+    hunt_runner_args = flows_pb2.HuntRunnerArgs()
     hunt_runner_args.client_rule_set.rules = [
-        foreman_rules.ForemanClientRule(
-            os=foreman_rules.ForemanOsClientRule(os_windows=True)
+        jobs_pb2.ForemanClientRule(
+            os=jobs_pb2.ForemanOsClientRule(os_windows=True)
         )
     ]
     hunt_runner_args.description = "Foobar! (cron)"
 
     self.Check(
         "CreateCronJob",
-        args=cron_plugin.ApiCreateCronJobArgs(
+        args=api_cron_pb2.ApiCreateCronJobArgs(
             description="Foobar!",
             flow_name=flow_name,
             flow_args=flow_args,
@@ -156,7 +156,7 @@ class ApiListCronJobRunsHandlerRegressionTest(
 
     self.Check(
         "ListCronJobRuns",
-        args=cron_plugin.ApiListCronJobRunsArgs(cron_job_id=cron_job_id),
+        args=api_cron_pb2.ApiListCronJobRunsArgs(cron_job_id=cron_job_id),
         replace={
             run_id: "F:ABCDEF11",
             cron_job_id: "InterrogateClientsCronJob",
@@ -180,7 +180,7 @@ class ApiGetCronJobRunHandlerRegressionTest(
 
     self.Check(
         "GetCronJobRun",
-        args=cron_plugin.ApiGetCronJobRunArgs(
+        args=api_cron_pb2.ApiGetCronJobRunArgs(
             cron_job_id=cron_job_id, run_id=run_id
         ),
         replace={
@@ -205,7 +205,7 @@ class ApiForceRunCronJobRegressionTest(
 
     self.Check(
         "ForceRunCronJob",
-        args=cron_plugin.ApiForceRunCronJobArgs(cron_job_id=cron_job_id),
+        args=api_cron_pb2.ApiForceRunCronJobArgs(cron_job_id=cron_job_id),
         replace={cron_job_id: "FileFinder"},
     )
 
@@ -230,14 +230,14 @@ class ApiModifyCronJobRegressionTest(
 
     self.Check(
         "ModifyCronJob",
-        args=cron_plugin.ApiModifyCronJobArgs(
+        args=api_cron_pb2.ApiModifyCronJobArgs(
             cron_job_id=cron_job_id1, enabled=True
         ),
         replace={cron_job_id1: "FileFinder", cron_job_id2: "ClientFileFinder"},
     )
     self.Check(
         "ModifyCronJob",
-        args=cron_plugin.ApiModifyCronJobArgs(
+        args=api_cron_pb2.ApiModifyCronJobArgs(
             cron_job_id=cron_job_id2, enabled=False
         ),
         replace={cron_job_id1: "FileFinder", cron_job_id2: "ClientFileFinder"},

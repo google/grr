@@ -3,8 +3,8 @@
 
 import collections
 from collections import abc
+from collections.abc import Sized
 import re
-from typing import Sized, Text
 
 
 def AssertType(value, expected_type):
@@ -91,7 +91,7 @@ def AssertNotEmpty(typename, value):
 
 
 def _ValidateStringId(typename, value):
-  AssertType(value, Text)
+  AssertType(value, str)
   AssertNotEmpty(typename, value)
 
 

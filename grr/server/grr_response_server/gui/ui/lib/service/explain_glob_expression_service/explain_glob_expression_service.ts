@@ -1,9 +1,9 @@
-import {Injectable} from '@angular/core';
+import {Injectable, inject} from '@angular/core';
 import {Observable, ReplaySubject} from 'rxjs';
 import {concatMap, debounceTime} from 'rxjs/operators';
 
-import {GlobComponentExplanation} from '../../api/api_interfaces';
-import {HttpApiService} from '../../api/http_api_service';
+import {HttpApiWithTranslationService} from '../../api/http_api_with_translation_service';
+import {GlobComponentExplanation} from '../../models/glob_expression';
 
 interface ClientGlobExpression {
   clientId: string;
@@ -16,6 +16,8 @@ interface ClientGlobExpression {
  */
 @Injectable()
 export class ExplainGlobExpressionService {
+  private readonly apiService = inject(HttpApiWithTranslationService);
+
   private readonly input$ = new ReplaySubject<ClientGlobExpression>(1);
 
   readonly explanation$: Observable<readonly GlobComponentExplanation[]> =
@@ -27,8 +29,6 @@ export class ExplainGlobExpressionService {
         }),
       ),
     );
-
-  constructor(private readonly apiService: HttpApiService) {}
 
   explain(clientId: string, globExpression: string) {
     this.input$.next({clientId, globExpression});

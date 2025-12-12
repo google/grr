@@ -9,8 +9,8 @@ package rrg.action.get_file_contents;
 import "grr_response_proto/rrg/fs.proto";
 
 message Args {
-  // Absolute path to the file to get the contents of.
-  rrg.fs.Path path = 1;
+  // Absolute paths to the file to get the contents of.
+  repeated rrg.fs.Path paths = 1;
 
   // Byte offset from which the content should be retrieved.
   //
@@ -24,12 +24,24 @@ message Args {
 }
 
 message Result {
+  // Path to the file this result corresponds to.
+  rrg.fs.Path path = 4;
+
   // A byte offset of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
   uint64 offset = 1;
 
   // A number of bytes of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
   uint64 length = 2;
 
   // A SHA-256 hash of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
   bytes blob_sha256 = 3;
+
+  // Error message set if something went wrong when processing the file.
+  string error = 5;
 }

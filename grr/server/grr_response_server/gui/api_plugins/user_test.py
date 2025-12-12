@@ -355,10 +355,6 @@ class ApiCreateApprovalHandlerTestMixin(
     self.assertEqual(send_fn.call_args[1]["cc_addresses"], "test@example.com")
 
     message = send_fn.call_args[1]["message"]
-    self.assertIn(
-        f"http://localhost:8000/#/users/{self.context.username}/approvals/",
-        message,
-    )
     self.assertIn(self.context.username, message)
     self.assertIn("Running tests", message)  # Request reason.
 
@@ -556,20 +552,12 @@ class ApiCreateClientApprovalHandlerTest(
     message = send_fn.call_args[1]["message"]
     self.assertIn(
         (
-            f"http://localhost:8000/v2/clients/{self.client_id}/users/"
-            f"{self.context.username}/approvals/{approval_id}"
+            f"http://localhost:8000/v2/clients/{self.client_id}/approvals/"
+            f"{approval_id}/users/{self.context.username}"
         ),
         message,
     )
-    # Check for correct link to legacy UI.
-    # TODO: Remove once new UI is stable.
-    self.assertIn(
-        (
-            f"http://localhost:8000/#/users/{self.context.username}/approvals/"
-            f"client/{self.client_id}/{approval_id}"
-        ),
-        message,
-    )
+
     self.assertIn(self.context.username, message)
     self.assertIn("Running tests", message)  # Request reason.
     self.assertIn(self.client_id, message)
@@ -756,6 +744,36 @@ class ApiListClientApprovalsHandlerTest(
     # However, we do not have any invalid approvals for the client.
     self.assertEmpty(result.items)
 
+  def testFiltersApprovalsByStateWithOffsetAndCount(self):
+    approval_ids = self._RequestClientApprovals()
+
+    # Grant approval to certain clients.
+    self.GrantClientApproval(
+        self.client_ids[0],
+        requestor=self.context.username,
+        approval_id=approval_ids[0],
+    )
+    self.GrantClientApproval(
+        self.client_ids[1],
+        requestor=self.context.username,
+        approval_id=approval_ids[1],
+    )
+    self.GrantClientApproval(
+        self.client_ids[2],
+        requestor=self.context.username,
+        approval_id=approval_ids[2],
+    )
+
+    args = api_user_pb2.ApiListClientApprovalsArgs(
+        state=api_user_pb2.ApiListClientApprovalsArgs.State.VALID,
+        offset=1,
+        count=1,
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.items, 1)
+    self.assertEqual(result.items[0].subject.client_id, self.client_ids[1])
+
   def testFilterConsidersOffsetAndCount(self):
     client_id = self.client_ids[0]
 
@@ -922,22 +940,6 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(result.settings.mode, user_pb2.GUISettings.UIMode.ADVANCED)
     self.assertEqual(result.settings.canary_mode, True)
 
-  def testRendersTraitsPassedInConstructor(self):
-    result = self.handler.Handle(
-        None, context=api_call_context.ApiCallContext(username="foo")
-    )
-    self.assertFalse(result.interface_traits.create_hunt_action_enabled)
-
-    handler = user_plugin.ApiGetOwnGrrUserHandler(
-        interface_traits=api_user_pb2.ApiGrrUserInterfaceTraits(
-            create_hunt_action_enabled=True
-        )
-    )
-    result = handler.Handle(
-        None, context=api_call_context.ApiCallContext(username="foo")
-    )
-    self.assertTrue(result.interface_traits.create_hunt_action_enabled)
-
 
 class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiUpdateUserSettingsHandler."""
@@ -954,15 +956,6 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
       )
 
     user = api_user_pb2.ApiGrrUser(username="bar")
-    with self.assertRaises(ValueError):
-      self.handler.Handle(
-          user, context=api_call_context.ApiCallContext(username="foo")
-      )
-
-  def testRaisesIfTraitsSetInRequest(self):
-    user = api_user_pb2.ApiGrrUser(
-        interface_traits=api_user_pb2.ApiGrrUserInterfaceTraits()
-    )
     with self.assertRaises(ValueError):
       self.handler.Handle(
           user, context=api_call_context.ApiCallContext(username="foo")
@@ -1186,11 +1179,6 @@ class ApiGrantClientApprovalHandlerTest(
     self.assertIn(
         f'href="http://localhost:8000/v2/clients/{self.client_id}"', message
     )
-    # Check for correct link to legacy UI.
-    # TODO: Remove once new UI is stable.
-    self.assertIn(
-        f'href="http://localhost:8000/#/clients/{self.client_id}"', message
-    )
     self.assertIn(self.context.username, message)
     self.assertIn("requestreason", message)
     self.assertIn(self.client_id, message)
@@ -1228,12 +1216,8 @@ class ApiGrantHuntApprovalHandlerTest(
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
     self.assertIn(
-        f'href="http://localhost:8000/v2/hunts/{self.hunt_id}"', message
-    )
-    # Check for correct link to legacy UI.
-    # TODO: Remove once new UI is stable.
-    self.assertIn(
-        f'href="http://localhost:8000/#/hunts/{self.hunt_id}"', message
+        f'href="http://localhost:8000/v2/fleet-collections/{self.hunt_id}"',
+        message,
     )
     self.assertIn(self.context.username, message)
     self.assertIn("requestreason", message)

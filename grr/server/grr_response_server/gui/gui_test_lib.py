@@ -15,6 +15,7 @@ import portpicker
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
+from selenium.webdriver.common import by
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
 
@@ -368,7 +369,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         % (
             condition_cb.__name__,
             args,
-            self.driver.find_element_by_tag_name("body").text,
+            self.driver.find_element(by.By.TAG_NAME, "body").text,
         )
     )
 
@@ -403,26 +404,28 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         return elems[0]
 
     elif selector_type == "link":
-      links = self.driver.find_elements_by_partial_link_text(effective_selector)
+      links = self.driver.find_elements(
+          by.By.PARTIAL_LINK_TEXT, effective_selector
+      )
       for l in links:
         if l.text.strip() == effective_selector:
           return l
       raise exceptions.NoSuchElementException()
 
     elif selector_type == "xpath":
-      return self.driver.find_element_by_xpath(effective_selector)
+      return self.driver.find_element(by.By.XPATH, effective_selector)
 
     elif selector_type == "id":
-      return self.driver.find_element_by_id(effective_selector)
+      return self.driver.find_element(by.By.ID, effective_selector)
 
     elif selector_type == "name":
-      return self.driver.find_element_by_name(effective_selector)
+      return self.driver.find_element(by.By.NAME, effective_selector)
 
     elif selector_type is None:
       if effective_selector.startswith("//"):
-        return self.driver.find_element_by_xpath(effective_selector)
+        return self.driver.find_element(by.By.XPATH, effective_selector)
       else:
-        return self.driver.find_element_by_id(effective_selector)
+        return self.driver.find_element(by.By.ID, effective_selector)
     else:
       raise ValueError("unknown selector type %s" % selector_type)
 
@@ -513,7 +516,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     return self.AllTextsPresent([text])
 
   def AllTextsPresent(self, texts):
-    body = self.driver.find_element_by_tag_name("body").text
+    body = self.driver.find_element(by.By.TAG_NAME, "body").text
     for text in texts:
       if utils.SmartUnicode(text) not in body:
         return False

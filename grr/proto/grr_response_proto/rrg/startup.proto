@@ -8,6 +8,7 @@ package rrg.startup;
 
 import "google/protobuf/timestamp.proto";
 import "grr_response_proto/rrg/fs.proto";
+import "grr_response_proto/rrg/os.proto";
 
 // Information about the agent startup.
 //
@@ -24,6 +25,8 @@ message Startup {
   google.protobuf.Timestamp agent_startup_time = 3;
   // Time at which the operating system booted.
   google.protobuf.Timestamp os_boot_time = 4;
+  // Type of the operating system.
+  rrg.os.Type os_type = 6;
 }
 
 // Metadata about the RRG agent.

@@ -1,25 +1,35 @@
 #!/usr/bin/env python
 """A module that defines the timeline flow."""
 
-from typing import Iterator
+from collections.abc import Iterator
 from typing import Optional
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_timeline
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import timeline
+from grr_response_proto import flows_pb2
 from grr_response_proto import timeline_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
+from grr_response_server import rrg_path
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
 
-class TimelineFlow(flow_base.FlowBase):
+class TimelineFlow(
+    flow_base.FlowBase[
+        timeline_pb2.TimelineArgs,
+        flows_pb2.DefaultFlowStore,
+        timeline_pb2.TimelineProgress,
+    ]
+):
   """A flow recursively collecting stat information under the given directory.
 
   The timeline flow collects stat information for every file under the given
@@ -45,50 +55,64 @@ class TimelineFlow(flow_base.FlowBase):
   progress_type = rdf_timeline.TimelineProgress
   result_types = (rdf_timeline.TimelineResult,)
 
+  proto_args_type = timeline_pb2.TimelineArgs
+  proto_progress_type = timeline_pb2.TimelineProgress
+  proto_result_types = (timeline_pb2.TimelineResult,)
+
+  only_protos_allowed = True
+
   def Start(self) -> None:
     super().Start()
 
-    if not self.args.root:
+    if not self.proto_args.root:
       raise ValueError("The timeline root directory not specified")
 
     if not self.client_info.timeline_btime_support:
       self.Log("Collecting file birth time is not supported on this client.")
 
-    self.state.progress = rdf_timeline.TimelineProgress()
+    self.progress = timeline_pb2.TimelineProgress()
 
     if self.rrg_support:
-      args = rrg_get_filesystem_timeline_pb2.Args()
-      args.root.raw_bytes = self.args.root
+      root = rrg_fs_pb2.Path()
+      root.raw_bytes = self.proto_args.root
 
-      self.CallRRG(
-          action=rrg_pb2.Action.GET_FILESYSTEM_TIMELINE,
-          args=args,
-          next_state=self.HandleRRGGetFilesystemTimeline.__name__,
-      )
+      if not rrg_path.PurePath.For(self.rrg_os_type, root).is_absolute():
+        raise ValueError(f"Non-absolute path: {root.raw_bytes.decode()}")
+
+      action = rrg_stubs.GetFilesystemTimeline()
+      action.args.root.CopyFrom(root)
+      action.Call(self.HandleRRGGetFilesystemTimeline)
     else:
-      self.CallClient(
+      self.CallClientProto(
           action_cls=server_stubs.Timeline,
-          request=self.args,
+          action_args=self.proto_args,
           next_state=self.Process.__name__,
       )
 
+  @flow_base.UseProto2AnyResponses
   def Process(
       self,
-      responses: flow_responses.Responses[rdf_timeline.TimelineResult],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
+    unpacked_responses: list[timeline_pb2.TimelineResult] = []
+    for response_any in responses:
+      response = timeline_pb2.TimelineResult()
+      response.ParseFromString(response_any.value)
+      unpacked_responses.append(response)
+
     blob_ids = []
-    for response in responses:
+    for response in unpacked_responses:
       for blob_id in response.entry_batch_blob_ids:
         blob_ids.append(models_blobs.BlobID(blob_id))
 
     data_store.BLOBS.WaitForBlobs(blob_ids, timeout=_BLOB_STORE_TIMEOUT)
 
-    for response in responses:
-      self.SendReply(response)
-      self.state.progress.total_entry_count += response.entry_count
+    for response in unpacked_responses:
+      self.SendReplyProto(response)
+      self.progress.total_entry_count += response.entry_count
 
   @flow_base.UseProto2AnyResponses
   def HandleRRGGetFilesystemTimeline(
@@ -100,7 +124,7 @@ class TimelineFlow(flow_base.FlowBase):
       raise flow_base.FlowError(message)
 
     blob_ids: list[models_blobs.BlobID] = []
-    flow_results: list[rdf_timeline.TimelineResult] = []
+    flow_results: list[timeline_pb2.TimelineResult] = []
 
     # TODO: Add support for streaming responses in RRG.
     for response in responses:
@@ -109,22 +133,24 @@ class TimelineFlow(flow_base.FlowBase):
 
       blob_ids.append(models_blobs.BlobID(result.blob_sha256))
 
-      flow_result = rdf_timeline.TimelineResult()
-      flow_result.entry_batch_blob_ids = [result.blob_sha256]
+      flow_result = timeline_pb2.TimelineResult()
+      flow_result.entry_batch_blob_ids.append(result.blob_sha256)
       flow_result.entry_count = result.entry_count
       flow_results.append(flow_result)
 
-      self.state.progress.total_entry_count += result.entry_count
+      self.progress.total_entry_count += result.entry_count
 
     data_store.BLOBS.WaitForBlobs(blob_ids, timeout=_BLOB_STORE_TIMEOUT)
 
     for flow_result in flow_results:
-      self.SendReply(flow_result)
+      self.SendReplyProto(flow_result)
 
+  # TODO: Remove this method.
   def GetProgress(self) -> rdf_timeline.TimelineProgress:
-    if hasattr(self.state, "progress"):
-      return self.state.progress
-    return rdf_timeline.TimelineProgress()
+    return mig_timeline.ToRDFTimelineProgress(self.progress)
+
+  def GetProgressProto(self) -> timeline_pb2.TimelineProgress:
+    return self.progress
 
 
 def ProtoEntries(

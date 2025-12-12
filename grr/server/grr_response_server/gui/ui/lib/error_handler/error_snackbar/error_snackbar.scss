@@ -1,0 +1,18 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: flex;
+  align-items: center;
+
+  .copy-error-button {
+    flex: 1;
+    height: fit-content;
+    word-break: break-word;
+
+    @include mat.button-overrides(
+      (
+        outlined-label-text-color: var(--mat-sys-on-secondary),
+      )
+    );
+  }
+}

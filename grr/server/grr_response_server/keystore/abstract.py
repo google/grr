@@ -18,6 +18,17 @@ class Keystore(metaclass=abc.ABCMeta):
       A crypter instance.
     """
 
+  @abc.abstractmethod
+  def MAC(self, name: str) -> "MAC":
+    """Creates a MAC for the given key to sign and verify data.
+
+    Args:
+      name: A name of the key to create the MAC for.
+
+    Returns:
+      A MAC instance.
+    """
+
 
 class Crypter(metaclass=abc.ABCMeta):
   """A crypter interface."""
@@ -50,6 +61,33 @@ class Crypter(metaclass=abc.ABCMeta):
     """
 
 
+class MAC(metaclass=abc.ABCMeta):
+  """A message authentication code interface."""
+
+  @abc.abstractmethod
+  def ComputeMAC(self, data: bytes) -> bytes:
+    """Computes the message authentication code (MAC) for data.
+
+    Args:
+      data: bytes, the input data.
+
+    Returns:
+      The resulting MAC as bytes.
+    """
+
+  @abc.abstractmethod
+  def VerifyMAC(self, mac_value: bytes, data: bytes) -> None:
+    """Verifies if mac is a correct authentication code (MAC) for data.
+
+    Args:
+      mac_value: bytes. The mac to be checked.
+      data: bytes. The data to be checked.
+
+    Raises:
+      MACVerificationError: If the MAC is not valid.
+    """
+
+
 class UnknownKeyError(Exception):
   """An error class for situations when a key is not know."""
 
@@ -60,3 +98,7 @@ class UnknownKeyError(Exception):
 
 class DecryptionError(Exception):
   """An error class for situation when decryption failed."""
+
+
+class MACVerificationError(Exception):
+  """An error class for situation when MAC verification failed."""

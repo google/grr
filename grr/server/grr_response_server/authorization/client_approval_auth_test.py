@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.server.authorization.client_approval_auth."""
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base

@@ -8,6 +8,7 @@ import pkg_resources
 
 from grr_api_client import api as grr_api
 from grr_api_client import errors
+from grr_response_proto.api import metadata_pb2 as api_metadata_pb2
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.gui.api_plugins import metadata
@@ -60,7 +61,7 @@ class VersionValidationTest(api_integration_test_lib.ApiIntegrationTest):
         self,
         args: None,
         context: Optional[api_call_context.ApiCallContext] = None,
-    ) -> metadata.ApiGetGrrVersionResult:
+    ) -> api_metadata_pb2.ApiGetGrrVersionResult:
       result = this._original_handler_handle(self, args, context=context)
       result.release += 1
       return result

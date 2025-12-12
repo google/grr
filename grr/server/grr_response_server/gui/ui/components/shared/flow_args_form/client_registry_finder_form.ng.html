@@ -1,0 +1,124 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.CLIENT_REGISTRY_FINDER, flowArgs())">
+  <div class="conditions">
+    @for (control of controls.keysPaths.controls; track control; let i = $index) {
+      <glob-expression-input
+        [client]="client() ?? null"
+        [formControl]="controls.keysPaths.controls[i]"
+      >
+        <button mat-icon-button
+          matSuffix
+          type="button"
+          href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/flows/specifying-file-paths.html"
+          target="_blank"
+          matTooltip="Click for more details on glob expressions and interpolation."
+        >
+          <mat-icon>help_outline</mat-icon>
+        </button>
+        <button mat-icon-button
+          matSuffix
+          type="button"
+          (click)="removeKeysPathExpression(i)"
+          aria-label="Remove path expression"
+        >
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </glob-expression-input>
+      <div class="windows-path-warning">
+        <form-warnings [validationWarnings]="controls.keysPaths.controls[i].warnings()" />
+      </div>
+    }
+    <mat-error>
+      <form-errors [validationErrors]="controls.keysPaths.errors" />
+    </mat-error>
+
+    <button
+      mat-button="filled"
+      type="button"
+      aria-label="Add path expression"
+      (click)="addKeysPathExpression()"
+    >
+      <mat-icon>add</mat-icon> Add path expression
+    </button>
+  </div>
+
+  <div class="conditions">
+    <h4>Filter by file content</h4>
+    <div class="condition" [ngClass]="controls.valueLiteralMatches.length > 0 ? 'outline': ''">
+      @for (control of controls.valueLiteralMatches.controls; track control; let i = $index) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove literal match filter"
+            (click)="removeLiteralMatchCondition(i)">
+          <mat-icon>delete</mat-icon> Remove literal match filter
+        </button>
+        <literal-match-subform [formGroup]="control"/>
+      }
+      <button mat-button="tonal"
+          type="button"
+          aria-label="Add literal match filter"
+          (click)="addLiteralMatchCondition()">
+        <mat-icon>add</mat-icon> Add literal match filter
+      </button>
+    </div>
+    <div class="condition" [ngClass]="controls.valueRegexMatches.length > 0 ? 'outline': ''">
+      @for (control of controls.valueRegexMatches.controls; track control; let i = $index) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove regex match filter"
+            (click)="removeRegexMatchCondition(i)">
+          <mat-icon>delete</mat-icon> Remove regex match filter
+        </button>
+        <regex-match-subform [formGroup]="control" />
+      }
+      <button mat-button="tonal"
+          type="button"
+          aria-label="Add regex match filter"
+          (click)="addRegexMatchCondition()">
+        <mat-icon>add</mat-icon> Add regex match filter
+      </button>
+    </div>
+  </div>
+
+  <div class="conditions">
+    <h4>Filter by file attributes</h4>
+    <div class="condition" [ngClass]="controls.modificationTimes.length > 0 ? 'outline': ''">
+      @for (control of controls.modificationTimes.controls; track control; let i = $index) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove modification time filter"
+            (click)="removeModificationTimeCondition(i)">
+          <mat-icon>delete</mat-icon> Remove modification time filter
+        </button>
+        <time-range-subform class="modification-time-subform" [formGroup]="control" />
+      }
+      <button mat-button="tonal"
+          type="button"
+          aria-label="Add modification time filter"
+          (click)="addModificationTimeCondition()">
+        <mat-icon>add</mat-icon> Add modification time filter
+      </button>
+    </div>
+
+    <div class="condition" [ngClass]="controls.sizes.length > 0 ? 'outline': ''">
+      @for (control of controls.sizes.controls; track control; let i = $index) {
+        <button mat-button="tonal"
+            type="button"
+            aria-label="Remove file size filter"
+            (click)="removeSizeCondition(i)">
+          <mat-icon>delete</mat-icon> Remove file size filter
+        </button>
+        <file-size-range-subform [formGroup]="control" />
+      }
+      <button mat-button="tonal"
+          type="button"
+          aria-label="Add file size filter"
+          (click)="addSizeCondition()">
+        <mat-icon>add</mat-icon> Add file size filter
+      </button>
+    </div>
+
+  </div>
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

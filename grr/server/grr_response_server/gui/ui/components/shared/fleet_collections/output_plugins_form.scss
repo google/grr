@@ -1,0 +1,28 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plugin-container {
+  display: flex;
+  gap: 5em;
+
+  .plugin {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    min-width: 15em;
+  }
+
+  .form-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+  }
+}
+
+fieldset {
+  border: none;
+}

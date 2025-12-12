@@ -17,7 +17,7 @@ CONFIG["net.admin_ui_port"] = 4280
 CONFIG["net.mysql_port"] = 4236
 CONFIG["ui.admin_user"] = "admin"
 CONFIG["ui.admin_password"] = "admin"
-CONFIG["build.nodejs_version"] = "16.13.0"
+CONFIG["build.nodejs_version"] = "22.14.0"
 CONFIG["cli.container_detach_keys"] = "ctrl-p,ctrl-d"
 
 

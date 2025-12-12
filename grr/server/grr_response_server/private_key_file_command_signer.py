@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from grr_response_core import config
 from grr_response_server import command_signer
-from grr_response_proto.rrg.action import execute_signed_command_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 
 
 class PrivateKeyFileCommandSigner(command_signer.AbstractCommandSigner):
@@ -22,11 +22,11 @@ class PrivateKeyFileCommandSigner(command_signer.AbstractCommandSigner):
     self._private_key = ed25519.Ed25519PrivateKey.from_private_bytes(key)
     self._public_key = self._private_key.public_key()
 
-  def Sign(self, command: execute_signed_command_pb2.Command) -> bytes:
+  def Sign(self, command: rrg_execute_signed_command_pb2.Command) -> bytes:
     return self._private_key.sign(command.SerializeToString())
 
   def Verify(
-      self, signature: bytes, command: execute_signed_command_pb2.Command
+      self, signature: bytes, command: rrg_execute_signed_command_pb2.Command
   ) -> None:
     try:
       self._public_key.verify(signature, command.SerializeToString())

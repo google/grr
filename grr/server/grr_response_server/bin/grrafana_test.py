@@ -4,12 +4,13 @@
 import copy
 from unittest import mock
 
-from absl import app
 from absl.testing import absltest
 from werkzeug import test as werkzeug_test
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import timestamp_pb2
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import fleetspeak_connector
 from grr_response_server.bin import grrafana
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -120,6 +121,20 @@ def _MockConnReturningRecords(client_ruds):
 class GrrafanaTest(absltest.TestCase):
   """Test the GRRafana HTTP server."""
 
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+
+    # TODO: Remove once the "default" instance is actually default.
+    try:
+      instance = stats_collector_instance.Get()
+      cls.addClassCleanup(lambda: stats_collector_instance.Set(instance))
+    except stats_collector_instance.StatsNotInitializedError:
+      pass
+    stats_collector_instance.Set(
+        default_stats_collector.DefaultStatsCollector()
+    )
+
   def setUp(self):
     super().setUp()
     self.client = werkzeug_test.Client(
@@ -199,9 +214,5 @@ class TimeToProtoTimestampTest(absltest.TestCase):
     )
 
 
-def main(argv):
-  absltest.main(argv)
-
-
 if __name__ == "__main__":
-  app.run(main)
+  absltest.main()

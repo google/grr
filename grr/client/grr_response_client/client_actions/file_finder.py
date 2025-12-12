@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
+from collections.abc import Callable, Iterator
 import io
 import logging
-from typing import Callable, Iterator, List, Text
 
 from grr_response_client import actions
 from grr_response_client.client_actions.file_finder_utils import conditions
@@ -78,8 +78,8 @@ class FileFinderOS(actions.ActionPlugin):
       raise _SkipFileException() from e
 
   def _Validate(
-      self, args: rdf_file_finder.FileFinderArgs, filepath: Text
-  ) -> List[rdf_client.BufferReference]:
+      self, args: rdf_file_finder.FileFinderArgs, filepath: str
+  ) -> list[rdf_client.BufferReference]:
     matches = []
     stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))
     self._ValidateRegularity(stat, args, filepath)
@@ -145,7 +145,7 @@ class FileFinderOS(actions.ActionPlugin):
 def GetExpandedPaths(
     args: rdf_file_finder.FileFinderArgs,
     heartbeat_cb: Callable[[], None] = _NoOp,
-) -> Iterator[Text]:
+) -> Iterator[str]:
   """Expands given path patterns.
 
   Args:

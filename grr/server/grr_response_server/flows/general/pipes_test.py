@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from typing import Iterable
-from typing import Iterator
-from typing import Sequence
+from collections.abc import Iterable, Iterator, Sequence
 
 from absl.testing import absltest
 

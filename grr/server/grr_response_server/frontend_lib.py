@@ -12,6 +12,7 @@ from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers
@@ -67,7 +68,7 @@ class FrontEndServer(object):
       self,
       client_id: str,
       fleetspeak_validation_tags: Mapping[str, str],
-  ) -> Optional[rdf_objects.ClientMetadata]:
+  ) -> Optional[objects_pb2.ClientMetadata]:
     """Enrols a Fleetspeak-enabled client for use with GRR.
 
     Args:
@@ -79,12 +80,9 @@ class FrontEndServer(object):
       is a no-op if the client already exists (in which case the existing
       client metadata is returned).
     """
-    client_urn = rdf_client.ClientURN(client_id)
     # If already enrolled, return.
     try:
-      return mig_objects.ToRDFClientMetadata(
-          data_store.REL_DB.ReadClientMetadata(client_id)
-      )
+      return data_store.REL_DB.ReadClientMetadata(client_id)
     except db.UnknownClientError:
       pass
 
@@ -98,10 +96,6 @@ class FrontEndServer(object):
         fleetspeak_validation_info=fleetspeak_validation_tags,
     )
 
-    # Publish the client enrollment message.
-    events.Events.PublishEvent(
-        "ClientEnrollment", client_urn, username=FRONTEND_USERNAME
-    )
     return None
 
   legacy_well_known_session_ids = set([

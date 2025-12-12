@@ -1,0 +1,60 @@
+<h4><mat-icon>approval</mat-icon> New access request </h4>
+  <form
+    [formGroup]="form"
+    (submit)="submit()"
+  >
+    <mat-form-field appearance="outline">
+      <mat-label>Reason for approval</mat-label>
+      <input matInput autocomplete="off" [formControl]="controls.reason" />
+      <mat-error><form-errors [validationErrors]="controls.reason.errors" /></mat-error>
+    </mat-form-field>
+
+    <approver-suggestion-subform [formGroup]="controls.approversForm" />
+
+    @if(globalStore.approvalConfig()?.optionalCcEmail) {
+      <mat-checkbox [formControl]="controls.ccEnabled">
+        CC: {{globalStore.approvalConfig()?.optionalCcEmail}}
+      </mat-checkbox>
+    }
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Access duration
+          @let maxAccessDurationSeconds = globalStore.uiConfig()?.maxAccessDurationSeconds;
+          @if(maxAccessDurationSeconds) {
+            (max {{ maxAccessDurationSeconds | humanReadableDuration }})
+          }
+        </mat-label>
+        <input
+            matInput
+            durationInput
+            [formControl]="controls.accessDuration"
+            autocomplete="off"
+          />
+        <mat-icon matSuffix matTooltip="week (w), day (d), hour (h), minute (m), second (s)">
+          info_outline
+        </mat-icon>
+        <mat-hint name="durationHint">
+          Expires in {{ controls.accessDuration.value | humanReadableDuration }}.
+        </mat-hint>
+        <mat-error><form-errors [validationErrors]="controls.accessDuration.errors" /></mat-error>
+      </mat-form-field>
+      <p>
+        @let defaultAccessDurationSeconds = globalStore.uiConfig()?.defaultAccessDurationSeconds;
+        (Default access duration:  {{ defaultAccessDurationSeconds | humanReadableDuration }})
+      </p>
+    </div>
+
+    <button mat-flat-button
+        type="submit"
+        [disabled]="form.status !== 'VALID' || submitted"
+        [matTooltip]="'CTRL/⌘ + ENTER'"
+    >
+      @if (submitted) {
+        Request sent
+      } @else {
+        Request access
+      }
+    </button>
+
+  </form>

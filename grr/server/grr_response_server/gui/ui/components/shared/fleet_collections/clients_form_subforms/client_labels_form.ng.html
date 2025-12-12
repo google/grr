@@ -1,0 +1,42 @@
+<h5>Labels</h5>
+<form>
+  <mat-form-field appearance="outline" class="match-mode">
+    <mat-label>Match Mode</mat-label>
+    <mat-select [formControl]="labelsData().controls.labelMatchMode">
+      <mat-option [value]="MatchMode.MATCH_ALL">Match all</mat-option>
+      <mat-option [value]="MatchMode.MATCH_ANY">Match any</mat-option>
+      <mat-option [value]="MatchMode.DOES_NOT_MATCH_ALL">Doesn't match all</mat-option>
+      <mat-option [value]="MatchMode.DOES_NOT_MATCH_ANY">Doesn't match any</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <div class="label-forms">
+    @for (labelName of labelsData().controls.labelNames.controls; track $index) {
+      <mat-form-field appearance="outline">
+        <mat-label>Label name</mat-label>
+        <input matInput [formControl]="labelName" [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete">
+          @for (label of globalStore.allLabels(); track label) {
+            <mat-option [value]="label"> {{label}}</mat-option>
+          }
+        </mat-autocomplete>
+        <button mat-icon-button
+          matSuffix
+          (click)="labelsData().removeLabelName($index)"
+          type="button"
+          [attr.aria-label]="'Remove label name ' + labelName.value"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+    }
+    <button mat-button
+      (click)="labelsData().addLabelName()"
+      type="button"
+      aria-label="Add label"
+    >
+      <mat-icon>add</mat-icon> Add another label
+    </button>
+  </div>
+
+</form>

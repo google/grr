@@ -1,0 +1,20 @@
+
+@for (collectionResult of collectionResults(); track collectionResult) {
+  @if (isHuntResult(collectionResult)) {
+    <p class="client-id">Client ID: <copy-button>{{collectionResult.clientId}}</copy-button></p>
+  }
+  @let result = collectLargeFileFlowResultsFromCollectionResult(collectionResult);
+  <table>
+    <tr>
+      <td class="min-w20">Session URI: </td>
+      <td>{{ result.sessionUri }}</td>
+    </tr>
+    <tr>
+      <td class="min-w20">File size: </td>
+      <td>{{ result.totalBytesSent | humanReadableByteSize }}</td>
+    </tr>
+ </table>
+}
+<div>
+  See <a class="text-link" href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/collect-large-file.html" target="blank">Collect Large File documentation</a> for further details.
+</div>

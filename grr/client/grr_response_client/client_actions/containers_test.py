@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr_response_client.client_actions.containers."""
-
 from unittest import mock
 
 from absl import app

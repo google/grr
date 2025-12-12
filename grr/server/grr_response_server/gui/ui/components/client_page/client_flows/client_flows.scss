@@ -1,0 +1,91 @@
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+:host {
+  display: flex;
+
+  // The client flows is rendered in the router-outlet of the client page. We
+  // want it to fill the remaining space, so we set height: 100% and
+  // overflow: auto. To see the full client-history and snapshot content, there
+  // are scrollbars on each element.
+  height: 100%;
+  overflow: auto;
+  width: 100vw;
+}
+
+.flows-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+}
+
+.flow-list-container {
+  flex-grow: 1;
+  overflow-y: scroll;
+}
+
+.flow-list-menu {
+  display: flex;
+  justify-content: space-between;
+
+  button {
+    margin: 10px;
+  }
+}
+
+.more-flows-button {
+  display: flex;
+  justify-content: end;
+  gap: 10px;
+}
+
+mat-form-field {
+  padding: 4px;
+}
+
+a.mat-mdc-list-item {
+  display: flex;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  @include mat.list-overrides(
+    (
+      active-indicator-shape: 0,
+    )
+  );
+}
+
+.active-icon {
+  @include mat.icon-overrides(
+    (
+      color: var(--mat-sys-primary),
+    )
+  );
+}
+
+.flow-details {
+  flex: 1;
+  height: 100%;
+  overflow: scroll;
+}
+
+.flow-pending-approval-icon {
+  color: c.$color-danger;
+}
+
+.nested-flow {
+  @include mat.list-overrides(
+    (
+      list-item-container-color: var(--mat-sys-surface-container),
+    )
+  );
+}

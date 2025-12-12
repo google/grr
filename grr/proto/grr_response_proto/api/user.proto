@@ -174,45 +174,13 @@ message ApiClientApproval {
   }];
 }
 
-// These traits are used by the AdminUI Angular app to disable certain UI
-// elements.
-message ApiGrrUserInterfaceTraits {
-  optional bool cron_jobs_nav_item_enabled = 1;
-  optional bool create_cron_job_action_enabled = 2;
-
-  optional bool hunt_manager_nav_item_enabled = 3;
-  optional bool create_hunt_action_enabled = 4;
-
-  optional bool show_statistics_nav_item_enabled = 5;
-
-  optional bool server_load_nav_item_enabled = 7;
-
-  optional bool manage_binaries_nav_item_enabled = 9;
-  optional bool upload_binary_action_enabled = 10;
-
-  optional bool settings_nav_item_enabled = 11;
-
-  optional bool artifact_manager_nav_item_enabled = 12;
-  optional bool upload_artifact_action_enabled = 13;
-
-  optional bool search_clients_action_enabled = 14;
-  optional bool browse_virtual_file_system_nav_item_enabled = 15;
-  optional bool start_client_flow_nav_item_enabled = 16;
-  optional bool manage_client_flows_nav_item_enabled = 17;
-  optional bool modify_client_labels_action_enabled = 18;
-
-  optional bool hunt_approval_required = 19;
-}
-
 message ApiGrrUser {
+  reserved 3;
+
   optional string username = 1
       [(sem_type) = { description: "The name of the user." }];
   optional GUISettings settings = 2
       [(sem_type) = { description: "User UI settings." }];
-  optional ApiGrrUserInterfaceTraits interface_traits = 3 [(sem_type) = {
-    description: "User's interface traits (what they can and can't do "
-                 "in the UI)."
-  }];
 
   enum UserType {
     USER_TYPE_NONE = 0;

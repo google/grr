@@ -11,17 +11,35 @@ import "google/protobuf/duration.proto";
 import "grr_response_proto/rrg/fs.proto";
 
 message Command {
+
+  message Arg {
+    oneof arg {
+      // Fixed argument to pass to the executed command.
+      string signed = 1;
+
+      // Whether to allow execution of arbitrary argument passed in the request
+      // without it being pre-signed.
+      bool unsigned_allowed = 2;
+    }
+  }
+
   // Path to the executable file to execute.
   rrg.fs.Path path = 1;
 
   // Arguments to pass to the command.
-  repeated string args = 2;
+  repeated string args_signed = 2; // TODO: Deprecate this field.
+
+  // Arguments to pass to the command.
+  repeated Arg args = 6;
 
   // Environment in which to invoke the command.
   //
   // Note that environment variables are not inherited from the RRG process
   // and are empty if not specified.
-  map<string, string> env = 3;
+  map<string, string> env_signed = 3;
+
+  // Environment variables that can be specified outside of the command.
+  repeated string env_unsigned_allowed = 7;
 
   oneof stdin {
     // Fixed standard input to pass to the executed command.
@@ -33,6 +51,16 @@ message Command {
   }
 }
 
+// TODO: https://github.com/google/rrg/issues/137
+//
+// This exists solely to support reading preverified commands from a file. Once
+// the mechanism of preverified commands is no longer needed, this should be
+// deleted.
+message CommandList {
+  // Serialized `Command` messages.
+  repeated bytes commands = 1;
+}
+
 message Args {
   // Serialized `Command` message to execute.
   bytes command = 1;
@@ -42,6 +70,18 @@ message Args {
   // For this option to work, the command that has been signed has to allow
   // arbitrary standard input by having the `unsigned_stdin_allowed` flag set.
   bytes unsigned_stdin = 2;
+
+  // Arguments to pass to the executed command.
+  //
+  // i-th argument specified here will be provided to the i-th argument of the
+  // signed command that has `unsigned_arg_allowed` flag set.
+  repeated string unsigned_args = 5;
+
+  // Environment variables to invoke the executed command with.
+  //
+  // For this option to work, the command that has been signed has to have each
+  // key from this map be present in `env_unsigned_allowed`.
+  map<string, string> unsigned_env = 6;
 
   // An [Ed25519][1] signature of the command.
   //

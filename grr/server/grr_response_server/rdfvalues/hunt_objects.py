@@ -50,20 +50,6 @@ class HuntArguments(rdf_structs.RDFProtoStruct):
       HuntArgumentsVariable,
   ]
 
-  @classmethod
-  def Standard(cls, *args, **kwargs):
-    return cls(
-        hunt_type=cls.HuntType.STANDARD,
-        standard=HuntArgumentsStandard(*args, **kwargs),
-    )
-
-  @classmethod
-  def Variable(cls, *args, **kwargs):
-    return cls(
-        hunt_type=cls.HuntType.VARIABLE,
-        variable=HuntArgumentsVariable(*args, **kwargs),
-    )
-
 
 class Hunt(rdf_structs.RDFProtoStruct):
   """Hunt object."""

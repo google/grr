@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the FileFinder flow."""
 
+from collections.abc import Sequence
 import glob
 import hashlib
 import io
@@ -9,7 +10,7 @@ import shutil
 import stat
 import struct
 import time
-from typing import Any, List, Optional, Sequence
+from typing import Any, Iterable, Optional
 from unittest import mock
 
 from absl import app
@@ -20,9 +21,11 @@ from grr_response_client.client_actions.file_finder_utils import uploading
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
@@ -31,13 +34,17 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
+from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 
 # pylint:mode=test
 
@@ -202,8 +209,8 @@ class TestFileFinderFlow(
 
   def RunFlow(
       self,
-      paths: Optional[List[str]] = None,
-      conditions: Optional[List[rdf_file_finder.FileFinderCondition]] = None,
+      paths: Optional[list[str]] = None,
+      conditions: Optional[list[rdf_file_finder.FileFinderCondition]] = None,
       action: Optional[rdf_file_finder.FileFinderAction] = None,
   ) -> Sequence[Any]:
     self.last_session_id = flow_test_lib.StartAndRunFlow(
@@ -1952,6 +1959,1291 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       progress = flows_pb2.FileFinderProgress()
       flow_obj.progress.Unpack(progress)
       self.assertEqual(progress.files_found, 1)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEmpty(result.hash_entry.md5)
+    self.assertEmpty(result.hash_entry.sha1)
+    self.assertEmpty(result.hash_entry.sha256)
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEmpty(path_info.hash_entry.md5)
+    self.assertEmpty(path_info.hash_entry.sha1)
+    self.assertEmpty(path_info.hash_entry.sha256)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat_Windows(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("X:\\Foo\\Bar Baz")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar Baz": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.pathspec.path, "X:/Foo/Bar Baz")
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEmpty(result.hash_entry.md5)
+    self.assertEmpty(result.hash_entry.sha1)
+    self.assertEmpty(result.hash_entry.sha256)
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("X:", "Foo", "Bar Baz"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEmpty(path_info.hash_entry.md5)
+    self.assertEmpty(path_info.hash_entry.sha1)
+    self.assertEmpty(path_info.hash_entry.sha256)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat_Condition_Size(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+    args.paths.append("/foo/baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = flows_pb2.FileFinderCondition.SIZE
+    condition.size.min_file_size = len(b"Lorem ipsum.")
+    condition.size.max_file_size = len(b"Lorem ipsum.")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+            "/foo/baz": b"Dolor sit amet.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    results_by_path = {}
+
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/foo/bar", results_by_path)
+    self.assertNotIn("/foo/baz", results_by_path)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat_Condition_Time(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+    args.paths.append("/foo/baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = flows_pb2.FileFinderCondition.MODIFICATION_TIME
+    condition.modification_time.min_last_modified_time = int(
+        rdfvalue.RDFDatetime.Now(),
+    )
+    condition.modification_time.max_last_modified_time = int(
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS),
+    )
+
+    condition = args.conditions.add()
+    condition.condition_type = flows_pb2.FileFinderCondition.ACCESS_TIME
+    condition.access_time.min_last_access_time = int(
+        rdfvalue.RDFDatetime.Now(),
+    )
+    condition.access_time.max_last_access_time = int(
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS),
+    )
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+    self.assertEqual(result.stat_entry.pathspec.path, "/foo/bar")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat_Condition_ContentsLiteral(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo")
+    args.paths.append("/bar")
+    args.paths.append("/baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = (
+        flows_pb2.FileFinderCondition.CONTENTS_LITERAL_MATCH
+    )
+    condition.contents_literal_match.literal = b"FOO"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": b"== FOO ==",
+            "/bar": b"== BAR ==",
+            "/baz": b"== BAZ ==",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    results_by_path = {}
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/foo", results_by_path)
+    self.assertNotIn("/bar", results_by_path)
+    self.assertNotIn("/baz", results_by_path)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Stat_Condition_ContentsRegex(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo")
+    args.paths.append("/bar")
+    args.paths.append("/baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = (
+        flows_pb2.FileFinderCondition.CONTENTS_REGEX_MATCH
+    )
+    condition.contents_regex_match.regex = b"BA[RZ]"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": b"== FOO ==",
+            "/bar": b"== BAR ==",
+            "/baz": b"== BAZ ==",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    results_by_path = {}
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/bar", results_by_path)
+    self.assertIn("/baz", results_by_path)
+    self.assertNotIn("/foo", results_by_path)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Hash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.HASH
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        path_info.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Hash_Windows(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.HASH
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("X:\\Foo\\Bar Baz")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar Baz": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.pathspec.path, "X:/Foo/Bar Baz")
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("X:", "Foo", "Bar Baz"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        path_info.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Hash_Condition(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.HASH
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+    args.paths.append("/foo/baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = flows_pb2.FileFinderCondition.SIZE
+    condition.size.min_file_size = len(b"Lorem ipsum.")
+    condition.size.max_file_size = len(b"Lorem ipsum.")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+            "/foo/baz": b"Dolor sit amet.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    results_by_path = {}
+
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/foo/bar", results_by_path)
+    self.assertNotIn("/foo/baz", results_by_path)
+
+    self.assertEqual(
+        results_by_path["/foo/bar"].hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        results_by_path["/foo/bar"].hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        results_by_path["/foo/bar"].hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Hash_Condition_Windows(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.HASH
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("X:\\Foo\\Bar")
+    args.paths.append("X:\\Foo\\Baz")
+
+    condition = args.conditions.add()
+    condition.condition_type = flows_pb2.FileFinderCondition.SIZE
+    condition.size.min_file_size = len(b"Lorem ipsum.")
+    condition.size.max_file_size = len(b"Lorem ipsum.")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar": b"Lorem ipsum.",
+            "X:\\Foo\\Baz": b"Dolor sit amet.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    results_by_path = {}
+
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("X:/Foo/Bar", results_by_path)
+    self.assertNotIn("X:/Foo/Baz", results_by_path)
+
+    self.assertEqual(
+        results_by_path["X:/Foo/Bar"].hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        results_by_path["X:/Foo/Bar"].hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        results_by_path["X:/Foo/Bar"].hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Windows(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("X:\\Foo\\Bar Baz")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar Baz": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.pathspec.path, "X:/Foo/Bar Baz")
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("X:", "Foo", "Bar Baz"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("X:", "Foo", "Bar Baz"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Large(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+    content = os.urandom(13371337)
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": content,
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, 13371337)
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(content).digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(content).digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(content).digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, 13371337)
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(content).digest(),
+    )
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar"),
+        ),
+    )
+    # We need to explicitly pass length to `read` as otherwise it fails with
+    # oversized read error. Oversized reads are not enforced if the length is
+    # specifiad manually.
+    self.assertEqual(file.read(13371337), content)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Multiple(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/quux/foo")
+    args.paths.append("/quux/bar")
+    args.paths.append("/quux/baz")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/quux/foo": b"Lorem ipsum.",
+            "/quux/bar": b"Dolor sit amet.",
+            "/quux/baz": b"Consectetur adipiscing elit.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 3)
+
+    results_by_path: dict[str, flows_pb2.FileFinderResult] = {}
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    result_foo = results_by_path["/quux/foo"]
+    self.assertTrue(stat.S_ISREG(result_foo.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        result_foo.stat_entry.st_size,
+        len(b"Lorem ipsum."),
+    )
+    self.assertEqual(
+        result_foo.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result_foo.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result_foo.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    result_bar = results_by_path["/quux/bar"]
+    self.assertTrue(stat.S_ISREG(result_bar.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        result_bar.stat_entry.st_size,
+        len(b"Dolor sit amet."),
+    )
+    self.assertEqual(
+        result_bar.hash_entry.md5,
+        hashlib.md5(b"Dolor sit amet.").digest(),
+    )
+    self.assertEqual(
+        result_bar.hash_entry.sha1,
+        hashlib.sha1(b"Dolor sit amet.").digest(),
+    )
+    self.assertEqual(
+        result_bar.hash_entry.sha256,
+        hashlib.sha256(b"Dolor sit amet.").digest(),
+    )
+
+    result_baz = results_by_path["/quux/baz"]
+    self.assertTrue(stat.S_ISREG(result_baz.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        result_baz.stat_entry.st_size,
+        len(b"Consectetur adipiscing elit."),
+    )
+    self.assertEqual(
+        result_baz.hash_entry.md5,
+        hashlib.md5(b"Consectetur adipiscing elit.").digest(),
+    )
+    self.assertEqual(
+        result_baz.hash_entry.sha1,
+        hashlib.sha1(b"Consectetur adipiscing elit.").digest(),
+    )
+    self.assertEqual(
+        result_baz.hash_entry.sha256,
+        hashlib.sha256(b"Consectetur adipiscing elit.").digest(),
+    )
+
+    path_info_foo = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("quux", "foo"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info_foo.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        path_info_foo.stat_entry.st_size,
+        len(b"Lorem ipsum."),
+    )
+    self.assertEqual(
+        path_info_foo.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info_bar = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("quux", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info_bar.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        path_info_bar.stat_entry.st_size,
+        len(b"Dolor sit amet."),
+    )
+    self.assertEqual(
+        path_info_bar.hash_entry.sha256,
+        hashlib.sha256(b"Dolor sit amet.").digest(),
+    )
+
+    path_info_baz = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("quux", "baz"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info_baz.stat_entry.st_mode))
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        path_info_baz.stat_entry.st_size,
+        len(b"Consectetur adipiscing elit."),
+    )
+    self.assertEqual(
+        path_info_baz.hash_entry.sha256,
+        hashlib.sha256(b"Consectetur adipiscing elit.").digest(),
+    )
+
+    file_foo = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "foo"),
+        ),
+    )
+    self.assertEqual(file_foo.read(), b"Lorem ipsum.")
+
+    file_bar = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "bar"),
+        ),
+    )
+    self.assertEqual(file_bar.read(), b"Dolor sit amet.")
+
+    file_baz = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "baz"),
+        ),
+    )
+    self.assertEqual(file_baz.read(), b"Consectetur adipiscing elit.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Duplicate(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+    args.paths.append("/foo/bar")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Delayed(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/foo/bar")
+
+    check_blobs_exist_orig = data_store.BLOBS.CheckBlobsExist
+    check_blobs_exist_count = 0
+
+    def CheckBlobsExistDelayed(
+        blob_ids: Iterable[models_blobs.BlobID],
+    ) -> dict[models_blobs.BlobID, bool]:
+      nonlocal check_blobs_exist_count
+      check_blobs_exist_count += 1
+
+      if check_blobs_exist_count <= 2:
+        return {blob_id: False for blob_id in blob_ids}
+
+      return check_blobs_exist_orig(blob_ids)
+
+    self.enter_context(
+        mock.patch.object(
+            data_store.BLOBS,
+            "CheckBlobsExist",
+            CheckBlobsExistDelayed,
+        )
+    )
+    self.enter_context(
+        mock.patch.object(
+            file_finder.ClientFileFinder,
+            "BLOB_CHECK_DELAY",
+            rdfvalue.Duration(0),
+        )
+    )
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = flows_pb2.FileFinderResult()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertTrue(stat.S_ISREG(result.stat_entry.st_mode))
+    self.assertEqual(result.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        result.hash_entry.md5,
+        hashlib.md5(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha1,
+        hashlib.sha1(b"Lorem ipsum.").digest(),
+    )
+    self.assertEqual(
+        result.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    path_info = rel_db.ReadPathInfo(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo", "bar"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+    self.assertEqual(path_info.stat_entry.st_size, len(b"Lorem ipsum."))  # pylint: disable=g-generic-assert
+    self.assertEqual(
+        path_info.hash_entry.sha256,
+        hashlib.sha256(b"Lorem ipsum.").digest(),
+    )
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_Glob(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/quux/*")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/quux/foo": b"Lorem ipsum.",
+            "/quux/bar": b"Dolor sit amet.",
+            "/quux/baz": b"Consectetur adipiscing elit.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    file_foo = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "foo"),
+        ),
+    )
+    self.assertEqual(file_foo.read(), b"Lorem ipsum.")
+
+    file_bar = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "bar"),
+        ),
+    )
+    self.assertEqual(file_bar.read(), b"Dolor sit amet.")
+
+    file_baz = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("quux", "baz"),
+        ),
+    )
+    self.assertEqual(file_baz.read(), b"Consectetur adipiscing elit.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Download_RecursiveGlob(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.DOWNLOAD
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/**2")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": b"Lorem ipsum.",
+            "/bar/quux": b"Dolor sit amet.",
+            "/bar/norf": b"Consectetur adipiscing elit.",
+            "/bar/thud/blargh": b"Sed do eiusmod.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    file_foo = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo",),
+        ),
+    )
+    self.assertEqual(file_foo.read(), b"Lorem ipsum.")
+
+    file_bar_quux = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("bar", "quux"),
+        ),
+    )
+    self.assertEqual(file_bar_quux.read(), b"Dolor sit amet.")
+
+    file_bar_norf = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("bar", "norf"),
+        ),
+    )
+    self.assertEqual(file_bar_norf.read(), b"Consectetur adipiscing elit.")
+
+    # This file is too deep, it should not be collected.
+    with self.assertRaises(file_store.FileNotFoundError):
+      file_store.OpenFile(
+          db.ClientPath.OS(
+              client_id=client_id,
+              components=("bar", "thud", "blargh"),
+          ),
+      )
+
+  @db_test_lib.WithDatabase
+  def testRRG_PathsExcessive(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/*/*.txt")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar.txt": b"",
+            "/foo/bar.bin": b"",
+            "/foo/baz.txt": b"",
+            "/foo/baz.bin": b"",
+            "/quux/norf.txt": b"",
+            "/quux/thud.bin": b"",
+            "/quux/blargh.txt": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 4)
+
+    results_by_path: dict[str, flows_pb2.FileFinderResult] = {}
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/foo/bar.txt", results_by_path)
+    self.assertIn("/foo/baz.txt", results_by_path)
+    self.assertIn("/quux/norf.txt", results_by_path)
+    self.assertIn("/quux/blargh.txt", results_by_path)
+
+    self.assertNotIn("/foo/bar.bin", results_by_path)
+    self.assertNotIn("/foo/baz.bin", results_by_path)
+    self.assertNotIn("/quux/thud.bin", results_by_path)
+
+  @db_test_lib.WithDatabase
+  def testRRG_PathsMixed(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.FileFinderArgs()
+    args.action.action_type = flows_pb2.FileFinderAction.STAT
+    args.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.paths.append("/*/*.txt")
+    args.paths.append("/quux/thud.bin")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=file_finder.ClientFileFinder,
+        flow_args=mig_file_finder.ToRDFFileFinderArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar.txt": b"",
+            "/foo/bar.bin": b"",
+            "/foo/baz.txt": b"",
+            "/foo/baz.bin": b"",
+            "/quux/norf.txt": b"",
+            "/quux/thud.bin": b"",
+            "/quux/blargh.txt": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    # self.assertLen(flow_results, 5)
+
+    results_by_path: dict[str, flows_pb2.FileFinderResult] = {}
+    for flow_result in flow_results:
+      result = flows_pb2.FileFinderResult()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.stat_entry.pathspec.path] = result
+
+    self.assertIn("/foo/bar.txt", results_by_path)
+    self.assertIn("/foo/baz.txt", results_by_path)
+    self.assertIn("/quux/norf.txt", results_by_path)
+    self.assertIn("/quux/blargh.txt", results_by_path)
+    self.assertIn("/quux/thud.bin", results_by_path)
+
+    self.assertNotIn("/foo/bar.bin", results_by_path)
+    self.assertNotIn("/foo/baz.bin", results_by_path)
 
 
 def main(argv):

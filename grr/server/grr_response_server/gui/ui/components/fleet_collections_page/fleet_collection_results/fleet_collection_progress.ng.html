@@ -1,0 +1,67 @@
+@let fleetCollection = fleetCollectionStore.fleetCollection();
+@if (fleetCollection) {
+  <div class="summary-container">
+    <div class="summary" matTooltip="All clients (scheduled & completed).">
+      <span class="title">Total</span>
+      <span class="raw">{{ fleetCollection.allClientsCount }} clients</span>
+    </div>
+    <div class="summary" matTooltip="Clients that have finished the collection.">
+      <span class="title">Complete</span>
+      <span class="relative">{{ getPercentage(fleetCollection.completedClientsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.completedClientsCount }} clients</span>
+    </div>
+    <div class="summary" matTooltip="Scheduled clients (collection running).">
+      <span class="title">In progress</span>
+      <span class="relative">{{ getPercentage(fleetCollection.remainingClientsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.remainingClientsCount }} clients</span>
+    </div>
+    <div class="summary" matTooltip="Clients that finished with no result.">
+      <span class="title">Without results</span>
+      <span class="relative">{{ getPercentage(fleetCollection.completedClientsCount - fleetCollection.clientsWithResultsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.completedClientsCount! - fleetCollection.clientsWithResultsCount }} clients</span>
+    </div>
+    <div class="summary" matTooltip="Clients that finished with results.">
+      <span class="title">With results</span>
+      <span class="relative">{{ getPercentage(fleetCollection.clientsWithResultsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.clientsWithResultsCount }} clients</span>
+    </div>
+
+    <div class="summary error" matTooltip="Clients that had errors in the collection.">
+      <span class="title">Errors</span>
+      <span class="relative">{{ getPercentage(fleetCollection.failedClientsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.failedClientsCount }} clients</span>
+    </div>
+    <div class="summary error" matTooltip="Clients that crashed during the collection.">
+      <span class="title">Crashes</span>
+      <span class="relative">{{ getPercentage(fleetCollection.crashedClientsCount, fleetCollection.allClientsCount) }} %</span>
+      <span class="raw">{{ fleetCollection.crashedClientsCount }} clients</span>
+    </div>
+  </div>
+}
+
+<mat-divider />
+
+@let progress = fleetCollectionStore.fleetCollectionProgress();
+@if (progress) {
+  <collapsible-container>
+    <collapsible-title><h5>Collection Progress Chart</h5></collapsible-title>
+    <collapsible-content>
+      <fleet-collection-progress-chart [collectionProgressData]="progress" />
+    </collapsible-content>
+  </collapsible-container>
+
+  <mat-divider />
+
+  <collapsible-container [state]="CollapsibleState.COLLAPSED">
+    <collapsible-title><h5>Collection Progress Table</h5></collapsible-title>
+    <collapsible-content>
+      <fleet-collection-progress-table
+        [collectionProgressData]="progress"
+        [totalClients]="fleetCollection?.allClientsCount" />
+    </collapsible-content>
+  </collapsible-container>
+} @else {
+  <div class="no-progress-data">There is no fleet collection progress data to show.</div>
+}
+
+

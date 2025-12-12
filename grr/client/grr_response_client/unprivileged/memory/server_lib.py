@@ -111,18 +111,6 @@ class UploadSignatureHandler(
     return request.upload_signature_request
 
 
-def _YaraStringMatchToProto(
-    offset: int, value: tuple[int, str, bytes], context: bytes
-) -> memory_pb2.StringMatch:
-  return memory_pb2.StringMatch(
-      chunk_offset=offset,
-      offset=offset + value[0],
-      string_id=value[1],
-      data=value[2],
-      context=context,
-  )
-
-
 def _YaraMatchToProto(
     offset: int, value: "yara.Match", data: bytes, context_window: int
 ) -> memory_pb2.RuleMatch:
@@ -139,14 +127,21 @@ def _YaraMatchToProto(
   """
   result = memory_pb2.RuleMatch(rule_name=value.rule)
   for yara_string_match in value.strings:
-    context = b""
-    if context_window:
-      match_offset = yara_string_match[0]
-      context = data[
-          match_offset - context_window : match_offset + context_window
-      ]
-    match = _YaraStringMatchToProto(offset, yara_string_match, context)
-    result.string_matches.append(match)
+    for sm_instance in yara_string_match.instances:
+      context = b""
+      if context_window:
+        match_offset = sm_instance.offset
+        context = data[
+            match_offset - context_window : match_offset + context_window
+        ]
+      match = memory_pb2.StringMatch(
+          chunk_offset=offset,
+          offset=offset + sm_instance.offset,
+          string_id=yara_string_match.identifier,
+          data=sm_instance.plaintext(),
+          context=context,
+      )
+      result.string_matches.append(match)
   return result
 
 

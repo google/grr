@@ -5,8 +5,8 @@ This file contains non-GRR specific pieces of artifact processing and is
 intended to end up as an independent library.
 """
 
+from collections.abc import Sequence
 import re
-from typing import Sequence
 
 from grr_response_proto import knowledge_base_pb2
 
@@ -32,68 +32,6 @@ class KnowledgeBaseAttributesMissingError(Error):
 
 
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
-
-
-def GetWindowsEnvironmentVariablesMap(knowledge_base):
-  """Return a dictionary of environment variables and their values.
-
-  Implementation maps variables mentioned in
-  https://en.wikipedia.org/wiki/Environment_variable#Windows to known
-  KB definitions.
-
-  Args:
-    knowledge_base: A knowledgebase object.
-
-  Returns:
-    A dictionary built from a given knowledgebase object where keys are
-    variables names and values are their values.
-  """
-
-  environ_vars = {}
-
-  if knowledge_base.environ_path:
-    environ_vars["path"] = knowledge_base.environ_path
-
-  if knowledge_base.environ_temp:
-    environ_vars["temp"] = knowledge_base.environ_temp
-
-  if knowledge_base.environ_systemroot:
-    environ_vars["systemroot"] = knowledge_base.environ_systemroot
-
-  if knowledge_base.environ_windir:
-    environ_vars["windir"] = knowledge_base.environ_windir
-
-  if knowledge_base.environ_programfiles:
-    environ_vars["programfiles"] = knowledge_base.environ_programfiles
-    environ_vars["programw6432"] = knowledge_base.environ_programfiles
-
-  if knowledge_base.environ_programfilesx86:
-    environ_vars["programfiles(x86)"] = knowledge_base.environ_programfilesx86
-
-  if knowledge_base.environ_systemdrive:
-    environ_vars["systemdrive"] = knowledge_base.environ_systemdrive
-
-  if knowledge_base.environ_allusersprofile:
-    environ_vars["allusersprofile"] = knowledge_base.environ_allusersprofile
-    environ_vars["programdata"] = knowledge_base.environ_allusersprofile
-
-  if knowledge_base.environ_allusersappdata:
-    environ_vars["allusersappdata"] = knowledge_base.environ_allusersappdata
-
-  for user in knowledge_base.users:
-    if user.appdata:
-      environ_vars.setdefault("appdata", []).append(user.appdata)
-
-    if user.localappdata:
-      environ_vars.setdefault("localappdata", []).append(user.localappdata)
-
-    if user.userdomain:
-      environ_vars.setdefault("userdomain", []).append(user.userdomain)
-
-    if user.userprofile:
-      environ_vars.setdefault("userprofile", []).append(user.userprofile)
-
-  return environ_vars
 
 
 def ExpandKnowledgebaseWindowsEnvVars(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for foreman rule handling."""
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

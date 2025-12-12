@@ -1,0 +1,22 @@
+<h4><mat-icon>approval</mat-icon> Approved access request </h4>
+
+<table>
+  <tr>
+    <td>
+      Request approved by:
+    </td>
+    <td>
+      @for(approver of approval().approvers; track approver) {
+        <user [username]="approver" [withName]="true" size="16px" />{{!$last ? ',' : ''}}
+      }
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Request reason:
+    </td>
+    <td>
+      <div class="reason">{{ approval().reason }}</div>
+    </td>
+  </tr>
+</table>

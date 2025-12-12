@@ -105,7 +105,7 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
         name="TestClientAction",
         request_id=1,
     )
-    fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message)
+    fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message, [])
     mock_conn.outgoing.InsertMessage.assert_called_once()
     insert_args, _ = mock_conn.outgoing.InsertMessage.call_args
     fs_message = insert_args[0]
@@ -130,7 +130,7 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
         request_id=1,
     )
     fleetspeak_utils.SendGrrMessageProtoThroughFleetspeak(
-        client_id, grr_message
+        client_id, grr_message, []
     )
     mock_conn.outgoing.InsertMessage.assert_called_once()
     insert_args, _ = mock_conn.outgoing.InsertMessage.call_args

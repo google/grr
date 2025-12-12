@@ -3,12 +3,10 @@
 
 The module contains classes that Colab users will use to interact with GRR API.
 """
+from collections.abc import Sequence
 import datetime
 import io
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Union
+from typing import Optional, Union
 
 from IPython.lib import pretty
 
@@ -27,6 +25,7 @@ from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto import osquery_pb2
 from grr_response_proto import sysinfo_pb2
 
@@ -103,7 +102,7 @@ class Client(object):
 
   def __init__(self, client_: client.Client) -> None:
     self._client = client_
-    self._summary: jobs_pb2.ClientSummary = None
+    self._snapshot: objects_pb2.ClientSnapshot = None
 
   @classmethod
   def with_id(cls, client_id: str) -> 'Client':
@@ -128,7 +127,7 @@ class Client(object):
       mac: Optional[str] = None,
       host: Optional[str] = None,
       version: Optional[int] = None,
-      labels: Optional[List[str]] = None,
+      labels: Optional[list[str]] = None,
       user: Optional[str] = None,
   ) -> Sequence['Client']:
     """Searches for clients specified with keywords.
@@ -173,14 +172,14 @@ class Client(object):
 
   @property
   def hostname(self) -> str:
-    if self._summary is not None:
-      return self._summary.system_info.fqdn
+    if self._snapshot is not None:
+      return self._snapshot.knowledge_base.fqdn
     return self.knowledgebase.fqdn
 
   @property
   def ifaces(self) -> Sequence[jobs_pb2.Interface]:
-    if self._summary is not None:
-      return representer.InterfaceList(self._summary.interfaces)
+    if self._snapshot is not None:
+      return representer.InterfaceList(self._snapshot.interfaces)
     return representer.InterfaceList(self._client.data.interfaces)
 
   @property
@@ -189,14 +188,14 @@ class Client(object):
 
   @property
   def arch(self) -> str:
-    if self._summary is not None:
-      return self._summary.system_info.machine
+    if self._snapshot is not None:
+      return self._snapshot.arch
     return self._client.data.os_info.machine
 
   @property
   def kernel(self) -> str:
-    if self._summary is not None:
-      return self._summary.system_info.kernel
+    if self._snapshot is not None:
+      return self._snapshot.kernel
     return self._client.data.os_info.kernel
 
   @property
@@ -231,7 +230,7 @@ class Client(object):
   def cached(self) -> vfs.VFS:
     return self.os.cached
 
-  def request_approval(self, approvers: List[str], reason: str) -> None:
+  def request_approval(self, approvers: list[str], reason: str) -> None:
     """Sends approval request to the client for the current user.
 
     Args:
@@ -249,7 +248,7 @@ class Client(object):
     self._client.CreateApproval(reason=reason, notified_users=approvers)
 
   def request_approval_and_wait(
-      self, approvers: List[str], reason: str
+      self, approvers: list[str], reason: str
   ) -> None:
     """Sends approval request and waits until it's granted.
 
@@ -269,11 +268,11 @@ class Client(object):
         reason=reason, notified_users=approvers)
     approval.WaitUntilValid()
 
-  def interrogate(self) -> jobs_pb2.ClientSummary:
+  def interrogate(self) -> objects_pb2.ClientSnapshot:
     """Grabs fresh metadata about the client.
 
     Returns:
-      A client summary.
+      A client snapshot.
     """
     try:
       interrogate = self._client.CreateFlow(name='Interrogate')
@@ -283,11 +282,11 @@ class Client(object):
     _timeout.await_flow(interrogate)
 
     result = list(interrogate.ListResults())[0].payload
-    if not isinstance(result, jobs_pb2.ClientSummary):
+    if not isinstance(result, objects_pb2.ClientSnapshot):
       raise TypeError(f'Unexpected flow result type: {type(result)!r}')
 
-    self._summary = result
-    return self._summary
+    self._snapshot = result
+    return self._snapshot
 
   def ps(self) -> Sequence[sysinfo_pb2.Process]:
     """Returns a list of processes running on the client."""

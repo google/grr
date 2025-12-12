@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 """Helpers for testing RRG-related code."""
 
+from collections.abc import Mapping
 import contextlib
 import hashlib
-from typing import Callable, Mapping, Type
+import logging
+import pathlib
+import re
+import stat
+import traceback
+from typing import Any, Callable, Sequence, Union
 from unittest import mock
 
 from google.protobuf import any_pb2
+from google.protobuf import timestamp_pb2
+from google.protobuf import descriptor as descriptor_pb2
 from google.protobuf import message as message_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -23,7 +31,14 @@ from grr_response_server.databases import mem as db_mem
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import blob_pb2 as rrg_blob_pb2
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
+from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
+from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
+from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
+from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
 
 
 class Session:
@@ -33,21 +48,35 @@ class Session:
 
   replies: list[message_pb2.Message]
 
-  def __init__(self, args: any_pb2.Any) -> None:
-    self.args = args
+  def __init__(self, request: rrg_pb2.Request) -> None:
+    self.args = request.args
     self.replies = list()
     self.parcels = dict()
 
+    self.filters: Sequence[rrg_pb2.Filter] = request.filters
+    self.filtered_out_count = 0
+
   def Reply(self, item: message_pb2.Message):
-    self.replies.append(item)
+    for item_filter in self.filters:
+      if not _EvalFilter(item_filter, item):
+        self.filtered_out_count += 1
+        return
+
+    # We use a copy to avoid callers mutating the items afterwards.
+    item_copy = item.__class__()
+    item_copy.CopyFrom(item)
+    self.replies.append(item_copy)
 
   def Send(self, sink: rrg_pb2.Sink, item: message_pb2.Message):
-    self.parcels.setdefault(sink, []).append(item)
+    # We use a copy to avoid callers mutating the items afterwards.
+    item_copy = item.__class__()
+    item_copy.CopyFrom(item)
+    self.parcels.setdefault(sink, []).append(item_copy)
 
 
 def ExecuteFlow(
     client_id: str,
-    flow_cls: Type[flow_base.FlowBase],
+    flow_cls: type[flow_base.FlowBase],
     flow_args: rdf_structs.RDFProtoStruct,
     handlers: Mapping["rrg_pb2.Action", Callable[[Session], None]],
 ) -> str:
@@ -156,13 +185,19 @@ def ExecuteFlow(
         flow_status.flow_id = db_utils.IntToFlowID(request.flow_id)
         flow_status.request_id = request.request_id
 
-        session = Session(request.args)
+        session = Session(request)
 
         try:
           handler(session)
         except Exception as error:  # pylint: disable=broad-exception-caught
           flow_status.status = flows_pb2.FlowStatus.ERROR
-          flow_status.error_message = str(error)
+          if isinstance(error, AssertionError) and not str(error):
+            # We treat `AssertionError` separately as stringifying it yields an
+            # empty string if no custom message was attached. So for them, we
+            # use the `traceback` module to get messy but more helpful error.
+            flow_status.error_message = traceback.format_exc()
+          else:
+            flow_status.error_message = str(error)
         else:
           flow_status.status = flows_pb2.FlowStatus.OK
 
@@ -220,41 +255,419 @@ def ExecuteFlow(
   return flow_id
 
 
-def GetFileContentsHandler(
-    filesystem: dict[str, bytes],
-) -> Callable[[Session], None]:
-  """Handler for the `GET_FILE_CONTENTS` action that emulates given filesystem.
+def FakePosixFileHandlers(
+    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given POSIX file hierarchy.
 
   Args:
     filesystem: A mapping from paths to file contents to use.
 
   Returns:
-    A handler that can be supplied to the `ExecuteFlow` helper.
+    A handlers that can be supplied to the `ExecuteFlow` helper.
   """
+  # We need lambda as otherwise pytype sees it as type, not callable.
+  path_cls = lambda path: pathlib.PurePosixPath(path)  # pylint: disable=unnecessary-lambda
+  return FakeFileHandlers(path_cls, filesystem)
 
-  def Wrapper(session: Session) -> None:
+
+def FakeWindowsFileHandlers(
+    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given Windows file hierarchy.
+
+  Args:
+    filesystem: A mapping from paths to file contents to use.
+
+  Returns:
+    A handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+  # We need lambda as otherwise pytype sees it as type, not callable.
+  path_cls = lambda path: pathlib.PureWindowsPath(path)  # pylint: disable=unnecessary-lambda
+  return FakeFileHandlers(path_cls, filesystem)
+
+
+def FakeFileHandlers(
+    path_cls: Callable[[str], pathlib.Path],
+    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given file hierarchy.
+
+  Args:
+    path_cls: Path type to use (POSIX or Windows).
+    filesystem: A mapping from paths to file contents to use.
+
+  Returns:
+    A handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+  trie = {}
+
+  for path, content in filesystem.items():
+    path = path_cls(path)
+    if not path.is_absolute():
+      raise ValueError(f"Relative path: '{path}'")
+
+    trie_node = trie
+    for part in path.parent.parts:
+      if part not in trie_node:
+        trie_node[part] = dict()
+      if not isinstance(trie_node[part], dict):
+        raise ValueError(f"'{part}' of '{path}' not a directory")
+
+      trie_node = trie_node[part]
+
+    trie_node[path.name] = content
+
+  timestamp = timestamp_pb2.Timestamp()
+  timestamp.GetCurrentTime()
+
+  def GetFileMetadataHandler(session: Session) -> None:
+    args = rrg_get_file_metadata_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    def Walk(trie_node: Any, path: pathlib.PurePath, depth: int) -> None:
+      result = rrg_get_file_metadata_pb2.Result()
+      result.path.raw_bytes = str(path).encode("utf-8")
+      result.metadata.unix_ino = id(trie_node)
+
+      if depth > args.max_depth:
+        return
+      if not re.search(args.path_pruning_regex, str(path)):
+        return
+
+      if isinstance(trie_node, bytes):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.FILE
+        result.metadata.size = len(trie_node)
+        result.metadata.unix_mode |= stat.S_IFREG
+
+        if args.md5:
+          result.md5 = hashlib.md5(trie_node).digest()
+        if args.sha1:
+          result.sha1 = hashlib.sha1(trie_node).digest()
+        if args.sha256:
+          result.sha256 = hashlib.sha256(trie_node).digest()
+
+      elif isinstance(trie_node, str):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.SYMLINK
+        result.metadata.size = len(trie_node)
+        result.metadata.unix_mode |= stat.S_IFLNK
+        result.symlink.raw_bytes = trie_node.encode("utf-8")
+
+      elif isinstance(trie_node, dict):
+        result.metadata.type = rrg_fs_pb2.FileMetadata.DIR
+        result.metadata.unix_mode |= stat.S_IFDIR
+
+        for part in trie_node:
+          Walk(trie_node=trie_node[part], path=path / part, depth=depth + 1)
+
+      else:
+        # We verified content type above.
+        raise AssertionError(f"Impossible trie node type: {type(trie_node)}")
+
+      result.metadata.access_time.CopyFrom(timestamp)
+      result.metadata.modification_time.CopyFrom(timestamp)
+      result.metadata.creation_time.CopyFrom(timestamp)
+
+      if args.contents_regex:
+        if not isinstance(trie_node, bytes):
+          return
+        if re.search(args.contents_regex.encode(), trie_node) is None:
+          return
+
+      session.Reply(result)
+
+    for path in args.paths:
+      path = path_cls(path.raw_bytes.decode("utf-8"))
+
+      trie_node = trie
+      try:
+        for part in path.parts:
+          trie_node = trie_node[part]
+      except KeyError:
+        logging.error("File does not exist: %r", path)
+        continue
+
+      Walk(trie_node, path, depth=0)
+
+  def GetFileContentsHandler(session: Session) -> None:
     args = rrg_get_file_contents_pb2.Args()
     if not session.args.Unpack(args):
       raise RuntimeError(f"Invalid session arguments: {session.args}")
 
-    path = args.path.raw_bytes.decode("utf-8")
+    for path in args.paths:
+      result = rrg_get_file_contents_pb2.Result()
+      result.path.CopyFrom(path)
 
-    try:
-      content = filesystem[path]
-    except KeyError as error:
-      raise RuntimeError(f"Unknown path: {path!r}") from error
+      try:
+        content = filesystem[path.raw_bytes.decode("utf-8")]
+        if isinstance(content, str):
+          content = filesystem[content]
+          # TODO: Add support for non-absolute symlinks.
+          # TODO: Add support for recursive symlinks.
+          assert isinstance(content, bytes)
+      except KeyError:
+        result.error = "open failed"
+        session.Reply(result)
+        return
 
-    blob = rrg_blob_pb2.Blob()
+      offset = args.offset
+      if args.length:
+        content = content[offset : offset + args.length]
+      else:
+        content = content[offset:]
+
+      while content:
+        blob = rrg_blob_pb2.Blob()
+        blob.data = content[:_MAX_BLOB_LEN]
+        session.Send(rrg_pb2.Sink.BLOB, blob)
+
+        result.offset = offset
+        result.length = len(blob.data)
+        result.blob_sha256 = hashlib.sha256(blob.data).digest()
+        session.Reply(result)
+
+        offset += _MAX_BLOB_LEN
+        content = content[_MAX_BLOB_LEN:]
+
+  def GetFileSha256Handler(session: Session) -> None:
+    args = rrg_get_file_sha256_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    content = filesystem[args.path.raw_bytes.decode("utf-8")]
+    if isinstance(content, str):
+      content = filesystem[content]
+      # TODO: Add support for non-absolute symlinks.
+      # TODO: Add support for recursive symlinks.
+      assert isinstance(content, bytes)
+
     if args.length:
-      blob.data = content[args.offset : args.offset + args.length]
+      content = content[args.offset : args.offset + args.length]
     else:
-      blob.data = content[args.offset :]
-    session.Send(rrg_pb2.Sink.BLOB, blob)
+      content = content[args.offset :]
 
-    result = rrg_get_file_contents_pb2.Result()
+    result = rrg_get_file_sha256_pb2.Result()
+    result.path.CopyFrom(args.path)
     result.offset = args.offset
-    result.length = len(blob.data)
-    result.blob_sha256 = hashlib.sha256(blob.data).digest()
+    result.length = len(content)
+    result.sha256 = hashlib.sha256(content).digest()
     session.Reply(result)
 
-  return Wrapper
+  return {
+      rrg_pb2.Action.GET_FILE_METADATA: GetFileMetadataHandler,
+      rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
+      rrg_pb2.Action.GET_FILE_SHA256: GetFileSha256Handler,
+  }
+
+
+def FakeWinregHandlers(
+    winreg: dict["rrg_winreg_pb2.PredefinedKey", dict[str, Any]],
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given Windows Registry structure.
+
+  Args:
+    winreg: A trie representing Windows Registry contents.
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def Value(value: Any) -> rrg_winreg_pb2.Value:
+    result = rrg_winreg_pb2.Value()
+
+    if isinstance(value, str):
+      result.string = value
+    elif isinstance(value, bytes):
+      result.bytes = value
+    elif isinstance(value, int):
+      result.uint32 = value
+    else:
+      raise ValueError(f"Unexpected value type: {type(value)}")
+
+    return result
+
+  def GetWinregValueHandler(session: Session) -> None:
+    args = rrg_get_winreg_value_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    key = winreg[args.root]
+    for key_part in args.key.split("\\"):
+      key = key[key_part]
+
+    result = rrg_get_winreg_value_pb2.Result()
+    result.root = args.root
+    result.key = args.key
+    result.value.name = args.name
+
+    if args.name in key:
+      result.value.MergeFrom(Value(key[args.name]))
+    elif not args.name:
+      # Windows always has a default empty string (if not set otherwise) as key
+      # default value, so we provide it as well.
+      result.value.MergeFrom(Value(""))
+
+    session.Reply(result)
+
+  def ListWinregValuesHandler(session: Session) -> None:
+    args = rrg_list_winreg_values_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    key = winreg[args.root]
+    for key_part in args.key.split("\\"):
+      key = key[key_part]
+
+    if not isinstance(key, dict):
+      raise RuntimeError(f"Invalid registry key: {args.key}")
+
+    def Walk(trie_node: Any, key: str, depth: int) -> None:
+      if depth > args.max_depth:
+        return
+
+      # Windows always has a default empty string (if not set otherwise) as key
+      # default value, so we use such a singleton dict as a base.
+      for name, content in ({"": ""} | trie_node).items():
+        if isinstance(content, dict):
+          Walk(trie_node=content, key=f"{key}\\{name}", depth=depth + 1)
+          continue
+
+        result = rrg_list_winreg_values_pb2.Result()
+        result.root = args.root
+        result.key = key
+        result.value.name = name
+        result.value.MergeFrom(Value(content))
+
+        session.Reply(result)
+
+    Walk(key, args.key, depth=0)
+
+  def ListWinregKeysHandler(session: Session) -> None:
+    args = rrg_list_winreg_keys_pb2.Args()
+    if not session.args.Unpack(args):
+      raise RuntimeError(f"Invalid session arguments: {session.args}")
+
+    key = winreg[args.root]
+    for key_part in args.key.split("\\"):
+      key = key[key_part]
+
+    if not isinstance(key, dict):
+      raise RuntimeError(f"Invalid registry key: {args.key}")
+
+    def Walk(trie_node: Any, subkey: list[str]) -> None:
+      # We still want to return direct entries if `args.max_depth` is not set,
+      # so we `or 1`.
+      if len(subkey) + 1 > (args.max_depth or 1):
+        return
+
+      for name, content in trie_node.items():
+        if not isinstance(content, dict):
+          continue
+
+        result = rrg_list_winreg_keys_pb2.Result()
+        result.root = args.root
+        result.key = args.key
+        result.subkey = "\\".join(subkey + [name])
+
+        session.Reply(result)
+
+        Walk(trie_node=content, subkey=subkey + [name])
+
+    Walk(key, [])
+
+  return {
+      rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
+      rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
+      rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
+  }
+
+
+def _EvalFilter(
+    item_filter: rrg_pb2.Filter,
+    item: message_pb2.Message,
+) -> bool:
+  """Evaluates RRG filter for the given message."""
+  for item_cond in item_filter.conditions:
+    if _EvalCondition(item_cond, item):
+      return True
+
+  return False
+
+
+def _EvalCondition(
+    item_cond: rrg_pb2.Condition,
+    item: message_pb2.Message,
+) -> bool:
+  """Evaluates RRG condition for the given message."""
+  if not item_cond.field:
+    raise RuntimeError("No field")
+
+  field_value = item
+  field_desc: descriptor_pb2.FieldDescriptor
+
+  for field in item_cond.field:
+    field_desc = field_value.DESCRIPTOR.fields_by_number[field]
+    field_value = getattr(field_value, field_desc.name)
+
+  result: bool
+
+  if item_cond.HasField("bool_equal"):
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BOOL
+    assert isinstance(field_value, bool)
+    result = field_value == item_cond.bool_equal
+  elif item_cond.HasField("string_equal"):
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
+    assert isinstance(field_value, str)
+    result = field_value == item_cond.string_equal
+  elif item_cond.HasField("string_match"):
+    assert isinstance(field_value, str)
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_STRING
+    result = re.match(item_cond.string_match, field_value) is not None
+  elif item_cond.HasField("bytes_equal"):
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
+    assert isinstance(field_value, bytes)
+    result = field_value == item_cond.bytes_equal
+  elif item_cond.HasField("bytes_match"):
+    assert field_desc.type == descriptor_pb2.FieldDescriptor.TYPE_BYTES
+    assert isinstance(field_value, bytes)
+    result = re.match(item_cond.bytes_match.encode(), field_value) is not None
+  elif item_cond.HasField("uint64_equal"):
+    assert field_desc.type in [
+        descriptor_pb2.FieldDescriptor.TYPE_UINT32,
+        descriptor_pb2.FieldDescriptor.TYPE_UINT64,
+    ]
+    assert isinstance(field_value, int)
+    result = field_value == item_cond.uint64_equal
+  elif item_cond.HasField("uint64_less"):
+    assert field_desc.type in [
+        descriptor_pb2.FieldDescriptor.TYPE_UINT32,
+        descriptor_pb2.FieldDescriptor.TYPE_UINT64,
+    ]
+    assert isinstance(field_value, int)
+    result = field_value < item_cond.uint64_less
+  elif item_cond.HasField("int64_equal"):
+    assert field_desc.type in [
+        descriptor_pb2.FieldDescriptor.TYPE_INT32,
+        descriptor_pb2.FieldDescriptor.TYPE_INT64,
+    ]
+    assert isinstance(field_value, int)
+    result = field_value == item_cond.int64_equal
+  elif item_cond.HasField("int64_less"):
+    assert field_desc.type in [
+        descriptor_pb2.FieldDescriptor.TYPE_INT32,
+        descriptor_pb2.FieldDescriptor.TYPE_INT64,
+    ]
+    assert isinstance(field_value, int)
+    result = field_value < item_cond.int64_less
+  else:
+    raise RuntimeError("No condition operator")
+
+  if item_cond.negated:
+    result = not result
+
+  return result
+
+
+# Value used by RRG.
+_MAX_BLOB_LEN = 2 * 1024 * 1024

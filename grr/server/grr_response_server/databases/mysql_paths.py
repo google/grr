@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for path handling."""
-
-from typing import Collection
-from typing import Dict
-from typing import Iterable
+from collections.abc import Collection, Iterable, Sequence
 from typing import Optional
-from typing import Sequence
 
 import MySQLdb
 
@@ -543,7 +539,7 @@ class MySQLDBPathMixin(object):
       components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
+  ) -> dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""
     assert cursor is not None
 
@@ -658,7 +654,7 @@ class MySQLDBPathMixin(object):
       client_paths: Collection[db.ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
+  ) -> dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
     """Returns PathInfos that have corresponding HashBlobReferences."""
     assert cursor is not None
     path_infos = {client_path: None for client_path in client_paths}

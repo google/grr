@@ -1,0 +1,34 @@
+<div class="controls-top">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-icon matPrefix>filter_list</mat-icon>
+    <input matInput
+      [formControl]="searchStringControl"
+      placeholder="Ex. /some/file/path, size in bytes, date in seconds since epoch / UTC RFC 7231 format"
+      autocomplete="off"
+      aria-label="Filter results"
+    />
+  </mat-form-field>
+  <mat-paginator
+    #topPaginator
+    showFirstLastButtons
+    class="top-paginator"
+    [length]="dataLength()"
+    [pageSize]="pageSize"
+    (page)="handleTopPageEvent($event)"
+    [pageSizeOptions]="pageSizeOptions"
+    aria-label="Select page."
+  ></mat-paginator>
+</div>
+
+<ng-content></ng-content>
+
+<mat-paginator
+  #bottomPaginator
+  showFirstLastButtons
+  class="bottom-paginator"
+  [length]="dataLength()"
+  [pageSize]="pageSize"
+  [pageSizeOptions]="topPaginator.pageSizeOptions"
+  (page)="handleBottomPageEvent($event)"
+  aria-label="Select page."
+></mat-paginator>

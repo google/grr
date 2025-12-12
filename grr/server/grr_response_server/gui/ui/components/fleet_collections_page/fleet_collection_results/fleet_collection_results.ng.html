@@ -1,0 +1,98 @@
+<fleet-collection-progress [fleetCollectionId]="fleetCollectionId()" />
+
+<mat-divider />
+
+<div class="overview-container">
+  <div class="overview-left">
+    @let countResultsLoaded = fleetCollectionStore.fleetCollectionResults().length;
+    {{ countResultsLoaded }} of {{ fleetCollectionStore.totalResultsCount() }} results loaded
+    @if (fleetCollectionStore.totalResultsCount() > countResultsLoaded) {
+      <button mat-flat-button (click)="loadMore(100)">Load 100 more</button>
+    }
+  </div>
+  <div class="overview-right">
+    @let id = fleetCollectionId();
+    @if (id) {
+      <fleet-collection-download-button [fleetCollectionId]="id" />
+    }
+  </div>
+</div>
+
+<table mat-table
+  matSort
+  multiTemplateDataRows
+  [dataSource]="dataSource"
+>
+
+  <ng-container matColumnDef="client-icon">
+    <th mat-header-cell *matHeaderCellDef></th>
+    <td mat-cell *matCellDef="let r">
+      <button mat-icon-button
+          [attr.aria-label]="'View flow for client ' + r.clientId"
+          [routerLink]="['/clients/', r.clientId, 'flows', fleetCollectionId()]">
+        <mat-icon>computer</mat-icon>
+      </button>
+    </td>
+  </ng-container>
+
+
+  <ng-container matColumnDef="clientId">
+    <th mat-header-cell *matHeaderCellDef>Client ID</th>
+    <td mat-cell *matCellDef="let r">
+      <copy-button>{{ r.clientId }}</copy-button>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="resultType">
+    <th mat-header-cell *matHeaderCellDef>Result Type</th>
+    <td mat-cell *matCellDef="let r">{{ r.resultType }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="resultCount">
+    <th mat-header-cell
+        *matHeaderCellDef
+        matTooltip="Number of results currently loaded in the UI, the number of collected results from the client can be higher, open the details view to see the actual count.">
+      Result Count
+    </th>
+    <td mat-cell *matCellDef="let r">&GreaterEqual; {{ r.results.length }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="details">
+    <th mat-header-cell *matHeaderCellDef>Details</th>
+    <td mat-cell *matCellDef="let r">
+      <button
+        mat-icon-button
+        [attr.aria-label]="'Show results for client ' + r.clientId"
+        (click)="toggleExpandedRow(r); $event.stopPropagation()"
+        [class.toggle-button-expanded]="isRowExpanded(r)">
+        <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="expanded">
+    <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length">
+      <div class="detail-wrapper" [class.detail-wrapper-expanded]="isRowExpanded(element)">
+        <div class="element-detail">
+        @if (isRowExpanded(element)) {
+          @let id = fleetCollectionId();
+          @if (id) {
+            <fleet-collection-client-results
+              [fleetCollectionId]="id"
+              [clientId]="element.clientId"
+              [resultType]="element.resultType" />
+          }
+        }
+        </div>
+      </div>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="columns"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns" class="row"></tr>
+  <tr mat-row *matRowDef="let row; columns: ['expanded']" class="detail-row"></tr>
+
+  <tr *matNoDataRow>
+    <td [attr.colspan]="columns.length">No data</td>
+  </tr>
+</table>

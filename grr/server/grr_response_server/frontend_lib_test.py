@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
+
 import random
 import sys
 from unittest import mock
@@ -14,7 +15,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
-from grr_response_server import fleetspeak_connector
 from grr_response_server import frontend_lib
 from grr_response_server import sinks
 from grr_response_server.databases import db as abstract_db
@@ -190,21 +190,6 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(received[0][1][1].cpu_time_used.deprecated_user_cpu_time)
     self.assertAlmostEqual(received[0][1][1].cpu_time_used.system_cpu_time, 2.2)
     self.assertFalse(received[0][1][1].cpu_time_used.deprecated_system_cpu_time)
-
-
-class FleetspeakFrontendTests(flow_test_lib.FlowTestsBaseclass):
-
-  def testFleetspeakEnrolment(self):
-    client_id = "C.0000000000000000"
-    server = TestServer()
-    # An Enrolment flow should start inline and attempt to send at least
-    # message through fleetspeak as part of the resulting interrogate flow.
-    with mock.patch.object(fleetspeak_connector, "CONN") as mock_conn:
-      server.EnrollFleetspeakClientIfNeeded(
-          client_id,
-          fleetspeak_validation_tags={},
-      )
-      mock_conn.outgoing.InsertMessage.assert_called()
 
 
 class FrontEndServerTest(absltest.TestCase):

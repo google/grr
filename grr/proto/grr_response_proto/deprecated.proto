@@ -10,7 +10,9 @@ syntax = "proto2";
 import "google/protobuf/any.proto";
 import "grr_response_proto/api/client.proto";
 import "grr_response_proto/api/flow.proto";
+import "grr_response_proto/api/reflection.proto";
 import "grr_response_proto/artifact.proto";
+import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/output_plugin.proto";
@@ -1597,4 +1599,244 @@ message ApiCreatePerClientFileCollectionHuntArgs {
     description: "Maximum amount of time the hunt is allowed to run."
   }];
   repeated PerClientFileCollectionArgs per_client_args = 3;
+}
+
+message ArtifactFilesDownloaderFlowArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+    type: "ArtifactName",
+    description: "A list of Artifact class names.",
+  }];
+
+  optional bool use_raw_filesystem_access = 10 [
+    (sem_type) = {
+      description: "Whether raw filesystem access should be used.",
+    },
+    default = false
+  ];
+
+  optional uint64 max_file_size = 9 [
+    (sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+                   " 5 GiB by default.",
+      label: ADVANCED
+    },
+    default = 5368709120
+  ];
+
+  optional PathSpec.ImplementationType implementation_type = 11 [(sem_type) = {
+    label: ADVANCED,
+    description: "Force use of an implementation."
+  }];
+}
+
+message ArtifactFilesDownloaderResult {
+  optional string original_result_type = 1 [(sem_type) = {
+    description: "Type of the result returned by the artifacts collector."
+  }];
+  optional bytes original_result = 2 [(sem_type) = {
+    dynamic_type: "GetOriginalResultType"
+    description: "Original result returned by the artifacts collector."
+  }];
+
+  optional PathSpec found_pathspec = 3 [
+    (sem_type) = { description: "Pathspecs found in the collected artifacts." }
+  ];
+  optional StatEntry downloaded_file = 4 [(sem_type) = {
+    description: "Files that were successfully downloaded using found "
+                 "pathspecs."
+  }];
+}
+
+message GetFileArgs {
+  optional PathSpec pathspec = 1
+      [(sem_type) = { description: "The pathspec for the file to retrieve." }];
+
+  optional uint64 read_length = 2 [
+    (sem_type) = {
+      description: "The amount of data to read from the file. If 0 we use "
+                   "the value from a stat call.",
+      label: ADVANCED
+    },
+    default = 0
+  ];
+
+  optional bool ignore_stat_failure = 3 [(sem_type) = {
+    description: "Ignore stat failures and try to read anyway. "
+                 "Disable for windows devices.",
+    label: ADVANCED,
+  }];
+}
+
+message ClientLabelStats {
+  optional uint64 export_timestamp = 1 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Timestamp: identifies each export cron job run.",
+  }];
+
+  optional string labels_set = 9;
+
+  optional string client_system = 3;
+  optional uint32 client_version = 4;
+
+  optional uint64 num_clients = 5;
+  optional uint64 num_1day_active_clients = 6;
+  optional uint64 num_7day_active_clients = 7;
+  optional uint64 num_30day_active_clients = 8;
+}
+
+message ApiListKnownEncodingsResult {
+  repeated string encodings = 1
+      [(sem_type) = { description: "The list of file encodings." }];
+}
+
+message ApiGetRDFValueDescriptorArgs {
+  optional string type = 1
+      [(sem_type) = { description: "RDFValue type name." }];
+}
+
+message ApiListRDFValueDescriptorsResult {
+  repeated ApiRDFValueDescriptor items = 1;
+}
+
+message ApiGetReportArgs {
+  optional string name = 1 [(sem_type) = {
+    description: "Identifier in the report hierarchy. Also the name of the "
+                 "corresponding class in report_plugins.py. "
+                 "Eg 'ClientsActivityReportPlugin'."
+  }];
+
+  optional uint64 start_time = 2 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Earliest timestamp of data points to consider. "
+                 "Ignored by reports with requires_time_range set to false."
+  }];
+
+  optional uint64 duration = 3 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "Length of the time range to consider. "
+                 "Ignored by reports with requires_time_range set to false."
+  }];
+
+  optional string client_label = 4 [(sem_type) = {
+    description: "Client label used by label-specific reports. Optional."
+  }];
+}
+
+message ApiListReportsResult {
+  repeated ApiReport reports = 1
+      [(sem_type) = { description: "The report list." }];
+}
+
+message ApiReportDescriptor {
+  enum ReportType {
+    CLIENT = 0 [(description) = "Client"];
+    FILE_STORE = 1 [(description) = "File store"];
+    SERVER = 2 [(description) = "Server"];
+  }
+
+  optional ReportType type = 1 [(sem_type) = {
+    description: "Top-level identifier in the report hierarchy."
+  }];
+
+  optional string name = 2 [(sem_type) = {
+    description: "Second-level identifier in the report hierarchy. "
+                 "Also the name of the corresponding class in report_plugins.py. "
+                 "Eg 'ClientsActivityReportPlugin'."
+  }];
+
+  optional string title = 3
+      [(sem_type) = { description: "UI-friendly displayed title." }];
+
+  optional string summary = 4 [(sem_type) = {
+    description: "UI-friendly displayed summary of what the report reports."
+  }];
+
+  optional bool requires_time_range = 5 [(sem_type) = {
+    description: "Indicates whether the report needs a time range."
+  }];
+}
+
+message ApiReport {
+  optional ApiReportDescriptor desc = 1;
+  optional ApiReportData data = 2;
+}
+
+message ApiReportData {
+  option (semantic) = {
+    union_field: "representation_type"
+  };
+
+  enum RepresentationType {
+    UNDEFINED = 0 [(description) = "Undefined"];
+    reserved 1;
+    reserved 2;
+    // TODO: deprecate audit charts and the whole reporting
+    // subsystem.
+    AUDIT_CHART = 3 [(description) = "Audit chart"];
+  }
+
+  optional RepresentationType representation_type = 1;
+
+  reserved 2;
+  reserved 3;
+  reserved 4;
+  optional ApiAuditChartReportData audit_chart = 5;
+}
+
+message ApiAuditChartReportData {
+  repeated string used_fields = 1 [(sem_type) = {
+    description: "Names of the AuditEvent fields used by the report."
+  }];
+
+  repeated AuditEvent rows = 2
+      [(sem_type) = { description: "Data to be shown in the chart." }];
+}
+
+message BigQueryOutputPluginArgs {
+  optional ExportOptions export_options = 2
+      [(sem_type) = { description: "Export options.", label: ADVANCED }];
+  optional bool convert_values = 3 [
+    (sem_type) = {
+      description: "If true, convert values for export-friendly format.",
+      label: HIDDEN
+    },
+    default = true
+  ];
+  // Whether to export fields of type `bytes` using base64-encoding.
+  //
+  // By default, all binary data is omitted in the export results to avoid
+  // issues with UTF-8 encoding. If this option is enabled, the binary data is
+  // going to be exported as a base64-encoded string value.
+  optional bool base64_bytes_export = 4;
+}
+
+// These traits are used by the AdminUI Angular app to disable certain UI
+// elements.
+message ApiGrrUserInterfaceTraits {
+  optional bool cron_jobs_nav_item_enabled = 1;
+  optional bool create_cron_job_action_enabled = 2;
+
+  optional bool hunt_manager_nav_item_enabled = 3;
+  optional bool create_hunt_action_enabled = 4;
+
+  optional bool show_statistics_nav_item_enabled = 5;
+
+  optional bool server_load_nav_item_enabled = 7;
+
+  optional bool manage_binaries_nav_item_enabled = 9;
+  optional bool upload_binary_action_enabled = 10;
+
+  optional bool settings_nav_item_enabled = 11;
+
+  optional bool artifact_manager_nav_item_enabled = 12;
+  optional bool upload_artifact_action_enabled = 13;
+
+  optional bool search_clients_action_enabled = 14;
+  optional bool browse_virtual_file_system_nav_item_enabled = 15;
+  optional bool start_client_flow_nav_item_enabled = 16;
+  optional bool manage_client_flows_nav_item_enabled = 17;
+  optional bool modify_client_labels_action_enabled = 18;
+
+  optional bool hunt_approval_required = 19;
 }

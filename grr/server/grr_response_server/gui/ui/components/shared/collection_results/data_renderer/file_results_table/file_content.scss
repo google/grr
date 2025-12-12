@@ -1,0 +1,15 @@
+:host {
+  width: 100%;
+}
+
+
+.file-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px;
+}
+
+.load-more-button {
+  margin: 10px;
+}

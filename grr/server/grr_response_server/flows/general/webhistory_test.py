@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """Test the webhistory flows."""
 
-import os
 from unittest import mock
 
 from absl import app
 
-from grr_response_client import client_utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_server import flow_base
 from grr_response_server.databases import db
@@ -20,26 +18,6 @@ from grr.test_lib import test_lib
 
 
 class TestWebHistoryWithArtifacts(flow_test_lib.FlowTestsBaseclass):
-
-  def MockClientRawDevWithImage(self):
-    """Mock the client to run off a test image.
-
-    Returns:
-        A context manager which ensures that client actions are served off the
-        test image.
-    """
-
-    def MockGetRawdevice(path):
-      return (
-          rdf_paths.PathSpec(
-              pathtype=rdf_paths.PathSpec.PathType.OS,
-              path=os.path.join(self.base_path, "test_img.dd"),
-              mount_point="/",
-          ),
-          path,
-      )
-
-    return mock.patch.object(client_utils, "GetRawDevice", MockGetRawdevice)
 
   def setUp(self):
     super().setUp()
@@ -121,7 +99,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(progress.browsers, 1)
     self.assertEqual(progress.browsers[0].browser, browser)
     self.assertEqual(
-        progress.browsers[0].status, webhistory.BrowserProgress.Status.SUCCESS
+        progress.browsers[0].status, flows_pb2.BrowserProgress.Status.SUCCESS
     )
 
   def testCollectsChromeArtifacts(self):
@@ -129,15 +107,15 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         collectors, "ArtifactCollectorFlow", MockArtifactCollectorFlow
     ):
       flow_id, results, progress = self._RunCollectBrowserHistory(
-          browsers=[webhistory.Browser.CHROMIUM_BASED_BROWSERS]
+          browsers=[flows_pb2.Browser.CHROMIUM_BASED_BROWSERS]
       )
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].browser, webhistory.Browser.CHROMIUM_BASED_BROWSERS
+        results[0].browser, flows_pb2.Browser.CHROMIUM_BASED_BROWSERS
     )
     self.assertEqual(
-        ["/home/foo/ChromiumBasedBrowsersHistory"],
+        ["/home/foo/ChromiumBasedBrowsersHistoryDatabaseFile"],
         [r.stat_entry.pathspec.path for r in results],
     )
     self.assertEqual(
@@ -147,10 +125,10 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertLen(progress.browsers, 1)
     self.assertEqual(
-        progress.browsers[0].browser, webhistory.Browser.CHROMIUM_BASED_BROWSERS
+        progress.browsers[0].browser, flows_pb2.Browser.CHROMIUM_BASED_BROWSERS
     )
     self.assertEqual(
-        progress.browsers[0].status, webhistory.BrowserProgress.Status.SUCCESS
+        progress.browsers[0].status, flows_pb2.BrowserProgress.Status.SUCCESS
     )
     self.assertEqual(progress.browsers[0].num_collected_files, 1)
 
@@ -160,9 +138,9 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     ):
       flow_id, results, progress = self._RunCollectBrowserHistory(
           browsers=[
-              webhistory.Browser.CHROMIUM_BASED_BROWSERS,
-              webhistory.Browser.INTERNET_EXPLORER,
-              webhistory.Browser.SAFARI,
+              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+              flows_pb2.Browser.INTERNET_EXPLORER,
+              flows_pb2.Browser.SAFARI,
           ]
       )
 
@@ -173,7 +151,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     pathspecs = [r.stat_entry.pathspec for r in results]
     self.assertCountEqual(
         [
-            "ChromiumBasedBrowsersHistory",
+            "ChromiumBasedBrowsersHistoryDatabaseFile",
             "InternetExplorerHistory",
             "SafariHistory",
         ],
@@ -188,14 +166,14 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(progress.browsers, 3)
     self.assertCountEqual(
         [
-            webhistory.Browser.CHROMIUM_BASED_BROWSERS,
-            webhistory.Browser.INTERNET_EXPLORER,
-            webhistory.Browser.SAFARI,
+            flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+            flows_pb2.Browser.INTERNET_EXPLORER,
+            flows_pb2.Browser.SAFARI,
         ],
         [bp.browser for bp in progress.browsers],
     )
     for bp in progress.browsers:
-      self.assertEqual(bp.status, webhistory.BrowserProgress.Status.SUCCESS)
+      self.assertEqual(bp.status, flows_pb2.BrowserProgress.Status.SUCCESS)
       self.assertEqual(bp.num_collected_files, 1)
 
   def testCorrectlyGeneratesArchiveMappings(self):
@@ -204,8 +182,8 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     ):
       flow_id, _, _ = self._RunCollectBrowserHistory(
           browsers=[
-              webhistory.Browser.CHROMIUM_BASED_BROWSERS,
-              webhistory.Browser.SAFARI,
+              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+              flows_pb2.Browser.SAFARI,
           ]
       )
       flow = flow_base.FlowBase.CreateFlowInstance(
@@ -221,9 +199,9 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
             flow_base.ClientPathArchiveMapping(
                 db.ClientPath.OS(
                     self.client_id,
-                    ("home", "foo", "ChromiumBasedBrowsersHistory"),
+                    ("home", "foo", "ChromiumBasedBrowsersHistoryDatabaseFile"),
                 ),
-                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistory",
+                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistoryDatabaseFile",
             ),
             flow_base.ClientPathArchiveMapping(
                 db.ClientPath.OS(
@@ -242,7 +220,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     ):
       flow_id, _, _ = self._RunCollectBrowserHistory(
           browsers=[
-              webhistory.Browser.CHROMIUM_BASED_BROWSERS,
+              flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
           ]
       )
       flow = flow_base.FlowBase.CreateFlowInstance(
@@ -258,16 +236,24 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
             flow_base.ClientPathArchiveMapping(
                 db.ClientPath.OS(
                     self.client_id,
-                    ("home", "foo", "ChromiumBasedBrowsersHistory.tmp"),
+                    (
+                        "home",
+                        "foo",
+                        "ChromiumBasedBrowsersHistoryDatabaseFile.tmp",
+                    ),
                 ),
-                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistory.tmp",
+                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistoryDatabaseFile.tmp",
             ),
             flow_base.ClientPathArchiveMapping(
                 db.ClientPath.OS(
                     self.client_id,
-                    ("home", "foo", "ChromiumBasedBrowsersHistory.tmp"),
+                    (
+                        "home",
+                        "foo",
+                        "ChromiumBasedBrowsersHistoryDatabaseFile.tmp",
+                    ),
                 ),
-                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistory_1.tmp",
+                "chromium_based_browsers/home_foo_ChromiumBasedBrowsersHistoryDatabaseFile_1.tmp",
             ),
         ],
     )

@@ -1,0 +1,17 @@
+<div class="header">
+  <button mat-icon-button (click)="toggleState()">
+    <mat-icon>
+      @if (state() === CollapsibleState.COLLAPSED) {
+        unfold_more
+      } @else {
+        unfold_less
+      }
+    </mat-icon>
+  </button>
+  <ng-content select="collapsible-title"/>
+</div>
+@if (state() === CollapsibleState.EXPANDED) {
+  <span class="content">
+    <ng-content select="collapsible-content"/>
+  </span>
+}

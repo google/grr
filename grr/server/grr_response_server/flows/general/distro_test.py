@@ -23,7 +23,6 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rrg_test_lib
 from grr.test_lib import testing_startup
-from grr_response_proto import rrg_pb2
 
 
 class CollectDistroInfoTest(flow_test_lib.FlowTestsBaseclass):
@@ -145,15 +144,14 @@ UBUNTU_CODENAME=jammy
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
         flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.GET_FILE_CONTENTS: rrg_test_lib.GetFileContentsHandler({
-                "/etc/lsb-release": """\
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/etc/lsb-release": """\
 DISTRIB_ID=Ubuntu
 DISTRIB_RELEASE=22.04
 DISTRIB_CODENAME=jammy
 DISTRIB_DESCRIPTION="Ubuntu 22.04.4 LTS"
-                    """.encode("utf-8"),
-                "/usr/lib/os-release": """\
+            """.encode("utf-8"),
+            "/usr/lib/os-release": """\
 PRETTY_NAME="Ubuntu 22.04.4 LTS"
 NAME="Ubuntu"
 VERSION_ID="22.04"
@@ -166,9 +164,8 @@ SUPPORT_URL="https://help.ubuntu.com/"
 BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
 PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
 UBUNTU_CODENAME=jammy
-                    """.encode("utf-8"),
-            }),
-        },
+            """.encode("utf-8"),
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -304,18 +301,17 @@ VARIANT_ID=container
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
         flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.GET_FILE_CONTENTS: rrg_test_lib.GetFileContentsHandler({
-                "/etc/fedora-release": """\
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/etc/fedora-release": """\
 Fedora release 39 (Thirty Nine)
-                    """.encode("utf-8"),
-                "/etc/redhat-release": """\
+            """.encode("utf-8"),
+            "/etc/redhat-release": """\
 Fedora release 39 (Thirty Nine)
-                    """.encode("utf-8"),
-                "/etc/system-release": """\
+            """.encode("utf-8"),
+            "/etc/system-release": """\
 Fedora release 39 (Thirty Nine)
-                  """.encode("utf-8"),
-                "/usr/lib/os-release": """\
+            """.encode("utf-8"),
+            "/usr/lib/os-release": """\
 NAME="Fedora Linux"
 VERSION="39 (Container Image)"
 ID=fedora
@@ -338,9 +334,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION=39
 SUPPORT_END=2024-11-12
 VARIANT="Container Image"
 VARIANT_ID=container
-                    """.encode("utf-8"),
-            }),
-        },
+            """.encode("utf-8"),
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -466,9 +461,8 @@ GOOGLE_TRACK=stable
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
         flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.GET_FILE_CONTENTS: rrg_test_lib.GetFileContentsHandler({
-                "/etc/os-release": """\
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/etc/os-release": """\
 PRETTY_NAME="Debian GNU/Linux foobar"
 NAME="Debian GNU/Linux foobar"
 VERSION_CODENAME=foobar
@@ -476,8 +470,8 @@ ID=debian
 HOME_URL="https://example.com/"
 SUPPORT_URL="https://example.com/support"
 BUG_REPORT_URL="https://example.com/issues"
-                    """.encode("utf-8"),
-                "/etc/lsb-release": """\
+            """.encode("utf-8"),
+            "/etc/lsb-release": """\
 # $Id: //depot/foo/bar/templates/lsb-release.erb#42 $
 DISTRIB_CODENAME=foobar
 DISTRIB_DESCRIPTION="Debian GNU/Linux foobar"
@@ -488,9 +482,8 @@ GOOGLE_ID=Foobuntu
 GOOGLE_RELEASE="foobar 20220121.05.00RD"
 GOOGLE_ROLE=desktop
 GOOGLE_TRACK=stable
-                    """.encode("utf-8"),
-            }),
-        },
+            """.encode("utf-8"),
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -608,9 +601,8 @@ Amazon Linux AMI release 2018.03
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
         flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.GET_FILE_CONTENTS: rrg_test_lib.GetFileContentsHandler({
-                "/etc/os-release": """\
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/etc/os-release": """\
 NAME="Amazon Linux AMI"
 VERSION="2018.03"
 ID="amzn"
@@ -620,12 +612,11 @@ PRETTY_NAME="Amazon Linux AMI 2018.03"
 ANSI_COLOR="0;33"
 CPE_NAME="cpe:/o:amazon:linux:2018.03:ga"
 HOME_URL="http://aws.amazon.com/amazon-linux-ami/"
-                    """.encode("utf-8"),
-                "/etc/system-release": """\
+            """.encode("utf-8"),
+            "/etc/system-release": """\
 Amazon Linux AMI release 2018.03
-                    """.encode("utf-8"),
-            }),
-        },
+            """.encode("utf-8"),
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -745,9 +736,8 @@ Amazon Linux release 2 (Karoo)
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
         flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.GET_FILE_CONTENTS: rrg_test_lib.GetFileContentsHandler({
-                "/etc/os-release": """\
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/etc/os-release": """\
 NAME="Amazon Linux"
 VERSION="2"
 ID="amzn"
@@ -758,12 +748,11 @@ ANSI_COLOR="0;33"
 CPE_NAME="cpe:2.3:o:amazon:amazon_linux:2"
 HOME_URL="https://amazonlinux.com/"
 SUPPORT_END="2025-06-30"
-                    """.encode("utf-8"),
-                "/etc/system-release": """\
+            """.encode("utf-8"),
+            "/etc/system-release": """\
 Amazon Linux release 2 (Karoo)
-                    """.encode("utf-8"),
-            }),
-        },
+            """.encode("utf-8"),
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)

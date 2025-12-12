@@ -1,0 +1,67 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.EXECUTE_PYTHON_HACK, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Python Hack path</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="controls.hackName"
+      [matAutocomplete]="auto"
+      placeholder="Search for a Python Hack path"
+    />
+    @if (globalStore.pythonHacks() == null) {
+      <mat-progress-spinner
+        matSuffix
+        mode="indeterminate"
+        diameter="20"
+        strokeWidth="1"
+        matTooltip="Loading Python Hack suggestions…"
+      />
+    }
+
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="selectHack($event.option.value)"
+      [autoActiveFirstOption]="true"
+    >
+      @for (hack of filteredHacks(); track hack.path) {
+        <mat-option [value]="hack.path">
+          {{ hack.path }}
+        </mat-option>
+      }
+    </mat-autocomplete>
+    @if (form.controls.hackName.invalid) {
+      <mat-error>No Python Hack selected</mat-error>
+    }
+  </mat-form-field>
+
+  @for (formGroup of controls.pyArgs.controls; track formGroup; let i = $index) {
+    <div
+      class="key-value-group"
+      [formGroup]="formGroup"
+    >
+      <mat-form-field appearance="outline" class="key-input">
+        <mat-label>Key</mat-label>
+        <input matInput label="args_key" [formControl]="formGroup.controls.key" />
+      </mat-form-field>
+      =
+      <mat-form-field appearance="outline" class="value-input">
+        <mat-label>Value</mat-label>
+        <input matInput label="args_value" [formControl]="formGroup.controls.value" />
+        <button mat-icon-button
+          matSuffix
+          type="button"
+          (click)="removeKeyValueFormControl(i)"
+          aria-label="Remove key-value argument"
+          [matTooltip]="'Remove argument'"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+  }
+  <button mat-stroked-button type="button" (click)="addKeyValueFormControl()">Add argument</button>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

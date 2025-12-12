@@ -1,0 +1,5 @@
+@if (collectionResults().length > 0) {
+  <file-results-table [results]="flowFileResults()" [isHuntResult]="isHuntResult()" />
+} @else {
+  <p>No results found.</p>
+}

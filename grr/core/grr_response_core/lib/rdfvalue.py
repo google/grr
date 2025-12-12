@@ -17,7 +17,7 @@ import logging
 import posixpath
 import re
 import time
-from typing import Any, Optional, Text, Union, cast
+from typing import Any, Optional, Union, cast
 import zlib
 
 import dateutil
@@ -179,7 +179,7 @@ class RDFPrimitive(RDFValue):
     return self._primitive_value
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
+  def FromHumanReadable(cls, string: str):
     """Returns a new instance from a human-readable string.
 
     Args:
@@ -218,8 +218,8 @@ class RDFBytes(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(string.encode("utf-8"))
 
   def AsBytes(self):
@@ -228,7 +228,7 @@ class RDFBytes(RDFPrimitive):
   def SerializeToBytes(self):
     return self.AsBytes()
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return text.Hexify(self.AsBytes())
 
   def __hash__(self):
@@ -274,7 +274,7 @@ class RDFString(RDFPrimitive):
       super().__init__(str(initializer))
     elif isinstance(initializer, bytes):
       super().__init__(initializer.decode("utf-8"))
-    elif isinstance(initializer, Text):
+    elif isinstance(initializer, str):
       super().__init__(initializer)
     elif initializer is not None:
       message = "Unexpected initializer `%s` of type `%s`"
@@ -287,7 +287,7 @@ class RDFString(RDFPrimitive):
   def split(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.split(*args, **kwargs)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self._value
 
   def __hash__(self):
@@ -303,7 +303,7 @@ class RDFString(RDFPrimitive):
     if isinstance(other, RDFString):
       return self._value == other._value  # pylint: disable=protected-access
 
-    if isinstance(other, Text):
+    if isinstance(other, str):
       return self._value == other
 
     # TODO(hanuszczak): Comparing `RDFString` and `bytes` should result in type
@@ -318,7 +318,7 @@ class RDFString(RDFPrimitive):
     if isinstance(other, RDFString):
       return self._value < other._value  # pylint: disable=protected-access
 
-    if isinstance(other, Text):
+    if isinstance(other, str):
       return self._value < other
 
     # TODO(hanuszczak): Comparing `RDFString` and `bytes` should result in type
@@ -339,8 +339,8 @@ class RDFString(RDFPrimitive):
     return cls.FromHumanReadable(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(string)
 
   def SerializeToBytes(self):
@@ -358,10 +358,10 @@ class HashDigest(RDFBytes):
 
   protobuf_type = "bytes"
 
-  def HexDigest(self) -> Text:
+  def HexDigest(self) -> str:
     return text.Hexify(self._value)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return self.HexDigest()
 
   def __hash__(self):
@@ -373,7 +373,7 @@ class HashDigest(RDFBytes):
       return self._value == other._value  # pylint: disable=protected-access
     if isinstance(other, bytes):
       return self._value == other
-    if isinstance(other, Text):
+    if isinstance(other, str):
       return str(self) == other
     return NotImplemented
 
@@ -410,11 +410,11 @@ class RDFInteger(RDFPrimitive):
       return cls(0)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(int(string))
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return str(self._value)
 
   @classmethod
@@ -531,14 +531,14 @@ class RDFDatetime(RDFPrimitive):
   def Now(cls):
     return cls(int(time.time() * cls.converter))
 
-  def Format(self, fmt: Text) -> Text:
+  def Format(self, fmt: str) -> str:
     """Return the value as a string formatted as per strftime semantics."""
-    precondition.AssertType(fmt, Text)
+    precondition.AssertType(fmt, str)
 
     stime = time.gmtime(self._value / self.converter)
     return time.strftime(fmt, stime)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     """Return the date in human readable (UTC)."""
     # TODO: Display microseconds if applicable.
     return self.Format("%Y-%m-%d %H:%M:%S")
@@ -667,7 +667,7 @@ class RDFDatetime(RDFPrimitive):
     return NotImplemented
 
   @classmethod
-  def FromHumanReadable(cls, string: Text, eoy=False):
+  def FromHumanReadable(cls, string: str, eoy=False):
     """Parses a human readable string of a timestamp (in local time).
 
     Args:
@@ -796,7 +796,7 @@ class Duration(RDFPrimitive):
       if int(initializer) < 0:
         raise ValueError("Negative Duration (%s s)" % initializer)
       super().__init__(int(initializer))
-    elif isinstance(initializer, Text):
+    elif isinstance(initializer, str):
       super().__init__(self._ParseText(initializer, default_unit=None))
     elif initializer is None:
       super().__init__(0)
@@ -857,7 +857,7 @@ class Duration(RDFPrimitive):
   def __repr__(self):
     return "<{} {}>".format(type(self).__name__, self)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     if self._value == 0:
       return "0 us"
     for label, divider in self._DIVIDERS.items():
@@ -962,14 +962,14 @@ class Duration(RDFPrimitive):
     return self._value
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
+  def FromHumanReadable(cls, string: str):
     """See base class."""
     return cls(cls._ParseText(string, default_unit=None))
 
   @classmethod
-  def _ParseText(cls, string: Text, default_unit: Optional[Text]) -> int:
+  def _ParseText(cls, string: str, default_unit: Optional[str]) -> int:
     """Parses a textual representation of a duration."""
-    precondition.AssertType(string, Text)
+    precondition.AssertType(string, str)
 
     if not string:
       return 0
@@ -1011,7 +1011,7 @@ class DurationSeconds(Duration):
   def __init__(self, initializer: Any = None):
     if isinstance(initializer, (int, RDFInteger)):
       initializer = int(initializer) * SECONDS
-    elif isinstance(initializer, Text):
+    elif isinstance(initializer, str):
       initializer = self._ParseText(initializer, default_unit="s")
     super().__init__(initializer)
 
@@ -1024,11 +1024,11 @@ class DurationSeconds(Duration):
     return self.ToInt(SECONDS)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(string)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     if self.microseconds == 0:
       return "0 s"
     return super().__str__()
@@ -1093,11 +1093,11 @@ class ByteSize(RDFInteger):
     return "{value:.1f} {unit}".format(value=value, unit=unit)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
+  def FromHumanReadable(cls, string: str):
     return cls(cls._ParseText(string))
 
   @classmethod
-  def _ParseText(cls, string: Text) -> int:
+  def _ParseText(cls, string: str) -> int:
     """Parses a textual representation of the number of bytes."""
     if not string:
       return 0
@@ -1152,7 +1152,7 @@ class RDFURN(RDFPrimitive):
       super().__init__(cast(RDFURN, initializer).Path())
       return
 
-    precondition.AssertType(initializer, (bytes, Text))
+    precondition.AssertType(initializer, (bytes, str))
 
     if isinstance(initializer, bytes):
       initializer = initializer.decode("utf-8")
@@ -1179,14 +1179,14 @@ class RDFURN(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string: Text):
-    precondition.AssertType(string, Text)
+  def FromHumanReadable(cls, string: str):
+    precondition.AssertType(string, str)
     return cls(string)
 
   def SerializeToBytes(self) -> bytes:
     return str(self).encode("utf-8")
 
-  def SerializeToWireFormat(self) -> Text:
+  def SerializeToWireFormat(self) -> str:
     return str(self)
 
   def Dirname(self):
@@ -1215,7 +1215,7 @@ class RDFURN(RDFPrimitive):
       )
     return self.__class__(utils.JoinPath(self._value, path))
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return "aff4:%s" % self._value
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.

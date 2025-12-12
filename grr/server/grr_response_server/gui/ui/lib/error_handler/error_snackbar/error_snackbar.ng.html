@@ -1,0 +1,16 @@
+<button mat-stroked-button
+    (click)="copyError()"
+    aria-label="copy error message"
+    class="copy-error-button">
+  {{ error }}
+  @if (copied) {
+    <mat-icon>check</mat-icon>
+  } @else {
+    <mat-icon>content_copy</mat-icon>
+  }
+</button>
+<span matSnackBarActions>
+  <button mat-button matSnackBarAction (click)="reload()" aria-label="reload">Reload</button>
+  <button mat-button matSnackBarAction (click)="ignore()" aria-label="ignore">Ignore</button>
+</span>
+

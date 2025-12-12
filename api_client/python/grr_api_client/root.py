@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Root (i.e. administrative) actions support in GRR API client library."""
 
+from collections.abc import Callable
 import hashlib
-from typing import Callable
-from typing import IO
-from typing import Optional
+from typing import IO, Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding

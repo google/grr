@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A module defining timeline-related utility functions."""
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from grr_response_core.lib.util import gzchunked
 from grr_response_proto import timeline_pb2

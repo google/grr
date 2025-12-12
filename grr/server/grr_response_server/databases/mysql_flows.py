@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """The MySQL database methods for flow handling."""
 
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 import logging
 import threading
 import time
-from typing import AbstractSet, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Type, Union
+from typing import Optional, Union
 
 import MySQLdb
 from MySQLdb import cursors
@@ -407,7 +408,7 @@ class MySQLDBFlowMixin:
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     """Returns all flow objects."""
     assert cursor is not None
 
@@ -825,9 +826,9 @@ class MySQLDBFlowMixin:
 
   def _ReadFlowResponseCounts(
       self,
-      request_keys: Set[Tuple[str, str, int]],
+      request_keys: set[tuple[str, str, int]],
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Mapping[Tuple[str, str, str], int]:
+  ) -> Mapping[tuple[str, str, str], int]:
     """Reads counts of responses for the given requests."""
     assert cursor is not None
 
@@ -873,9 +874,9 @@ class MySQLDBFlowMixin:
 
   def _ReadAndLockNextRequestsToProcess(
       self,
-      flow_keys: AbstractSet[Tuple[str, str]],
+      flow_keys: set[tuple[str, str]],
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Mapping[Tuple[str, str], str]:
+  ) -> Mapping[tuple[str, str], str]:
     """Reads and locks the next_request_to_process for a number of flows."""
     assert cursor is not None
 
@@ -910,10 +911,10 @@ class MySQLDBFlowMixin:
 
   def _ReadLockAndUpdateAffectedRequests(
       self,
-      request_keys: Set[Tuple[str, str, int]],
-      response_counts: Mapping[Tuple[str, str, str], int],
+      request_keys: set[tuple[str, str, int]],
+      response_counts: Mapping[tuple[str, str, str], int],
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Mapping[Tuple[str, str, str], flows_pb2.FlowRequest]:
+  ) -> Mapping[tuple[str, str, str], flows_pb2.FlowRequest]:
     """Reads, locks, and updates completed requests."""
     assert cursor is not None
 
@@ -1126,9 +1127,9 @@ class MySQLDBFlowMixin:
       flow_id: str,
       cursor: Optional[cursors.Cursor] = None,
   ) -> Iterable[
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
-          Dict[
+          dict[
               int,
               Union[
                   flows_pb2.FlowResponse,
@@ -1222,9 +1223,9 @@ class MySQLDBFlowMixin:
       client_id: str,
       flow_id: str,
       cursor: Optional[cursors.Cursor] = None,
-  ) -> Dict[
+  ) -> dict[
       int,
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
           Sequence[
               Union[
@@ -1619,7 +1620,7 @@ class MySQLDBFlowMixin:
   def _ReadFlowResultsOrErrors(
       self,
       table_name: str,
-      result_cls: Union[Type[flows_pb2.FlowResult], Type[flows_pb2.FlowError]],
+      result_cls: Union[type[flows_pb2.FlowResult], type[flows_pb2.FlowError]],
       client_id: str,
       flow_id: str,
       offset: int,
@@ -1709,9 +1710,13 @@ class MySQLDBFlowMixin:
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
   ) -> Sequence[flows_pb2.FlowResult]:
     """Reads flow results of a given flow using given query options."""
+    if with_proto_type_url is not None:
+      with_type = db_utils.TypeURLToRDFTypeName(with_proto_type_url)
+
     return self._ReadFlowResultsOrErrors(
         "flow_results",
         flows_pb2.FlowResult,
@@ -1806,6 +1811,19 @@ class MySQLDBFlowMixin:
     return self._CountFlowResultsOrErrorsByType(
         "flow_results", client_id, flow_id
     )
+
+  def CountFlowResultsByProtoTypeUrl(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
+    """Returns counts of flow results grouped by proto result type."""
+    rdf_counts = self._CountFlowResultsOrErrorsByType(
+        "flow_results", client_id, flow_id
+    )
+    proto_counts = {}
+    for rdf_type, count in rdf_counts.items():
+      proto_type = db_utils.RDFTypeNameToTypeURL(rdf_type)
+      proto_counts[proto_type] = count
+    return proto_counts
 
   def WriteFlowErrors(self, errors: Sequence[flows_pb2.FlowError]) -> None:
     """Writes flow errors for a given flow."""
@@ -2080,34 +2098,48 @@ class MySQLDBFlowMixin:
       cursor: Optional[cursors.Cursor] = None,
   ) -> None:
     """Writes a single output plugin log entry to the database."""
+    self.WriteMultipleFlowOutputPluginLogEntries([entry], cursor=cursor)
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction()
+  def WriteMultipleFlowOutputPluginLogEntries(
+      self,
+      entries: Sequence[flows_pb2.FlowOutputPluginLogEntry],
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> None:
+    """Writes multiple output plugin log entries to the database."""
+    if not entries:
+      return
+
     assert cursor is not None
 
     query = """
     INSERT INTO flow_output_plugin_log_entries
                 (client_id, flow_id, hunt_id, output_plugin_id,
                  log_entry_type, message)
-         VALUES (%(client_id)s, %(flow_id)s, %(hunt_id)s, %(output_plugin_id)s,
-                 %(type)s, %(message)s)
-    """
-    args = {
-        "client_id": db_utils.ClientIDToInt(entry.client_id),
-        "flow_id": db_utils.FlowIDToInt(entry.flow_id),
-        "output_plugin_id": db_utils.OutputPluginIDToInt(
-            entry.output_plugin_id
-        ),
-        "type": int(entry.log_entry_type),
-        "message": entry.message,
-    }
+         VALUES """
 
-    if entry.hunt_id:
-      args["hunt_id"] = db_utils.HuntIDToInt(entry.hunt_id)
-    else:
-      args["hunt_id"] = None
+    args = []
+    templates = []
+    for entry in entries:
+      templates.append("(%s, %s, %s, %s, %s, %s)")
+      args.extend([
+          db_utils.ClientIDToInt(entry.client_id),
+          db_utils.FlowIDToInt(entry.flow_id),
+          db_utils.HuntIDToInt(entry.hunt_id) if entry.hunt_id else None,
+          db_utils.OutputPluginIDToInt(entry.output_plugin_id),
+          int(entry.log_entry_type),
+          entry.message,
+      ])
 
+    query += ", ".join(templates)
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError as error:
-      raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
+      raise db.AtLeastOneUnknownFlowError(
+          [(e.client_id, e.flow_id) for e in entries], cause=error
+      ) from error
 
   @db_utils.CallLogged
   @db_utils.CallAccounted
@@ -2169,6 +2201,69 @@ class MySQLDBFlowMixin:
   @db_utils.CallLogged
   @db_utils.CallAccounted
   @mysql_utils.WithTransaction(readonly=True)
+  def ReadAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
+    """Reads flow output plugin log entries for all plugins of a given flow."""
+    assert cursor is not None
+
+    query = (
+        "SELECT output_plugin_id, hunt_id, log_entry_type, message, "
+        "UNIX_TIMESTAMP(timestamp) "
+        "FROM flow_output_plugin_log_entries "
+        "FORCE INDEX (flow_output_plugin_log_entries_by_flow) "
+        "WHERE client_id = %s AND flow_id = %s "
+    )
+    args = [
+        db_utils.ClientIDToInt(client_id),
+        db_utils.FlowIDToInt(flow_id),
+    ]
+
+    if with_type is not None:
+      query += "AND log_entry_type = %s "
+      args.append(int(with_type))
+
+    query += "ORDER BY log_id ASC LIMIT %s OFFSET %s"
+    args.append(count)
+    args.append(offset)
+
+    cursor.execute(query, args)
+
+    ret = []
+    for (
+        output_plugin_id,
+        hunt_id,
+        log_entry_type,
+        message,
+        timestamp,
+    ) in cursor.fetchall():
+      ret.append(
+          flows_pb2.FlowOutputPluginLogEntry(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=db_utils.IntToHuntID(hunt_id) if hunt_id else None,
+              output_plugin_id=db_utils.IntToOutputPluginID(output_plugin_id),
+              log_entry_type=log_entry_type,
+              message=message,
+              timestamp=mysql_utils.TimestampToMicrosecondsSinceEpoch(
+                  timestamp
+              ),
+          )
+      )
+
+    return ret
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
   def CountFlowOutputPluginLogEntries(
       self,
       client_id: str,
@@ -2192,6 +2287,39 @@ class MySQLDBFlowMixin:
         db_utils.ClientIDToInt(client_id),
         db_utils.FlowIDToInt(flow_id),
         output_plugin_id,
+    ]
+
+    if with_type is not None:
+      query += "AND log_entry_type = %s"
+      args.append(int(with_type))
+
+    cursor.execute(query, args)
+    return cursor.fetchone()[0]
+
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> int:
+    """Returns number of flow output plugin log entries of a given flow."""
+    assert cursor is not None
+
+    query = (
+        "SELECT COUNT(*) "
+        "FROM flow_output_plugin_log_entries "
+        "FORCE INDEX (flow_output_plugin_log_entries_by_flow) "
+        "WHERE client_id = %s AND flow_id = %s "
+    )
+    args = [
+        db_utils.ClientIDToInt(client_id),
+        db_utils.FlowIDToInt(flow_id),
     ]
 
     if with_type is not None:

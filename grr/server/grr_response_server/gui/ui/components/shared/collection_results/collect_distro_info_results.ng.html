@@ -1,0 +1,21 @@
+
+@for (collectionResult of collectionResults(); track collectionResult) {
+  @if (isHuntResult(collectionResult)) {
+    <p class="client-id">Client ID: <copy-button>{{collectionResult.clientId}}</copy-button></p>
+  }
+  @let result = collectDistroInfoResultFromCollectionResult(collectionResult);
+  <table>
+    <tr>
+      <th>Distro name:</th>
+      <td>{{result.name}}</td>
+    </tr>
+    <tr>
+      <th>Release:</th>
+      <td>{{result.release}}</td>
+    </tr>
+    <tr>
+      <th>Version:</th>
+      <td>{{result.versionMajor}} {{result.versionMinor}}</td>
+    </tr>
+  </table>
+}

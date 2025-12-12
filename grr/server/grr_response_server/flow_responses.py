@@ -69,6 +69,47 @@ class Responses(Iterable[T]):
 
     Returns:
       Wrapped flow responses.
+
+    Raises:
+      ValueError: If the responses do not contain a status message.
+    """
+    result = cls.FromResponsesProto2AnyWithOptionalStatus(responses, request)
+
+    if result.status is None:
+      raise ValueError("Missing status response")
+
+    return result
+
+  @classmethod
+  # pytype: disable=name-error
+  def FromResponsesProto2AnyWithOptionalStatus(
+      cls,
+      responses: Sequence[
+          Union[
+              rdf_flow_objects.FlowResponse,
+              rdf_flow_objects.FlowStatus,
+              rdf_flow_objects.FlowIterator,
+          ],
+      ],
+      request: Optional[rdf_flow_objects.FlowRequest] = None,
+  ) -> "Responses[any_pb2.Any]":
+    # pytype: enable=name-error
+    """Creates a `Response` object from raw flow responses.
+
+    Unlike the `Responses.FromResponses` method, this method does not use any
+    RDF-value magic to deserialize `Any` messages on the fly. Instead, it just
+    passes raw `Any` message as it is stored in the `any_payload` field of the
+    `FlowResponse` message.
+
+    Unlike `FromResponsesProto2Any`, this method DOES NOT raise an error if the
+    responses do not contain a status message.
+
+    Args:
+      responses: Flow responses from which to construct this object.
+      request: Flow request to which these responses belong.
+
+    Returns:
+      Wrapped flow responses.
     """
     result = Responses()
 
@@ -93,9 +134,6 @@ class Responses(Iterable[T]):
         # should no longer be used and new state methods (that are expected to
         # trigger this code path) should not rely on it.
         raise TypeError(f"Unexpected response: {response}")
-
-    if result.status is None:
-      raise ValueError("Missing status response")
 
     return result
 

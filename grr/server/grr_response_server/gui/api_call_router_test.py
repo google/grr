@@ -13,11 +13,21 @@ from grr.test_lib import test_lib
 class SingleMethodDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy ApiCallRouter implementation overriding just a single method."""
 
-  @api_call_router.Http("GET", "/api/foo/bar")
+  @api_call_router.Http("GET", "/api/v2/foo/bar")
   def SomeRandomMethod(self, args, context=None):
     pass
 
   def CreateFlow(self, args, context=None):
+    pass
+
+
+class DummyRouterWithTypedMethods(api_call_router.ApiCallRouter):
+  """Dummy ApiCallRouter implementation overriding just a single method."""
+
+  @api_call_router.ProtoArgsType(tests_pb2.SampleGetHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SampleGetHandlerResult)
+  @api_call_router.Http("GET", "/api/path/<path:path>")
+  def GetWithProtoTypes(self, args, context=None):
     pass
 
 
@@ -53,26 +63,51 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
         SingleMethodDummyApiCallRouterChild.GetAnnotatedMethods(),
     )
 
+  def testGetAnnotatedMethodsReturnsProtoTypeInformation(self):
+    methods = DummyRouterWithTypedMethods.GetAnnotatedMethods()
+    self.assertIn("GetWithProtoTypes", methods)
+    metadata = methods["GetWithProtoTypes"]
+
+    self.assertEqual(
+        metadata.proto_args_type,
+        tests_pb2.SampleGetHandlerArgs,
+    )
+    self.assertEqual(
+        metadata.args_type_url,
+        "type.googleapis.com/grr.SampleGetHandlerArgs",
+    )
+    self.assertEqual(
+        metadata.proto_result_type,
+        tests_pb2.SampleGetHandlerResult,
+    )
+    self.assertEqual(
+        metadata.result_type_url,
+        "type.googleapis.com/grr.SampleGetHandlerResult",
+    )
+
   def testHttpUrlParametersMatchArgs(self):
-    """Tests that URL params are actual fields of ArgsType in HTTP routes."""
+    """Tests that URL params are actual fields of ProtoArgsType in HTTP routes."""
 
     # Example:
-    # @ArgsType(api_client.ApiGetClientArgs)
-    # @Http("GET", "/api/clients/<client_id>")
+    # @ProtoArgsType(api_client_pb2.ApiGetClientArgs)
+    # @Http("GET", "/api/v2/clients/<client_id>")
 
     methods = api_call_router.ApiCallRouterStub.GetAnnotatedMethods()
     for method in methods.values():
-      if method.args_type is None:
+      if method.proto_args_type is None:
         continue  # Skip methods like ListOutputPluginDescriptors.
 
-      valid_parameters = method.args_type.type_infos.descriptor_names
+      valid_parameters = method.proto_args_type.DESCRIPTOR.fields_by_name.keys()
       for name in method.GetQueryParamsNames():
         self.assertIn(
             name,
             valid_parameters,
             "Parameter {} in route {} is not found in {}. "
             "Valid parameters are {}.".format(
-                name, method.name, method.args_type.__name__, valid_parameters
+                name,
+                method.name,
+                method.proto_args_type.__name__,
+                valid_parameters,
             ),
         )
 
@@ -110,23 +145,23 @@ class RouterMethodMetadataTest(test_lib.GRRBaseTest):
 
   def testGetQueryParamsNamesReturnsMandaotryParamsCorrectly(self):
     m = api_call_router.RouterMethodMetadata(
-        "SomeMethod", http_methods=[("GET", "/a/<arg>/<bar:zoo>", {})]
+        "SomeMethod", http_methods=[("GET", "/a/<arg>/<bar:zoo>")]
     )
     self.assertEqual(m.GetQueryParamsNames(), ["arg", "zoo"])
 
   def testGetQueryParamsNamesReturnsOptionalParamsForGET(self):
     m = api_call_router.RouterMethodMetadata(
         "SomeMethod",
-        args_type=ApiSingleStringArgument,
-        http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})],
+        proto_args_type=tests_pb2.ApiSingleStringArgument,
+        http_methods=[("GET", "/a/<foo>/<bar:zoo>")],
     )
     self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo", "arg"])
 
   def testGetQueryParamsNamesReturnsNoOptionalParamsForPOST(self):
     m = api_call_router.RouterMethodMetadata(
         "SomeMethod",
-        args_type=ApiSingleStringArgument,
-        http_methods=[("POST", "/a/<foo>/<bar:zoo>", {})],
+        proto_args_type=tests_pb2.ApiSingleStringArgument,
+        http_methods=[("POST", "/a/<foo>/<bar:zoo>")],
     )
     self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo"])
 

@@ -12,6 +12,7 @@ from grr_response_proto import objects_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import client_approval_auth
+from grr_response_server.flows import local as flows_local
 from grr_response_server.flows.general import administrative
 from grr_response_server.gui import api_call_context
 
@@ -24,6 +25,8 @@ RESTRICTED_FLOWS = [
     administrative.LaunchBinary,
     administrative.UpdateClient,
 ]
+
+MITIGATION_FLOWS = [] + flows_local.MITIGATION_FLOWS
 
 
 class AdminAccessChecker:
@@ -55,6 +58,33 @@ class AdminAccessChecker:
       except access_control.UnauthorizedAccess as e:
         raise access_control.UnauthorizedAccess(
             f"Not enough permissions to access restricted flow {flow_name}"
+        ) from e
+
+
+class MitigationFlowsAccessChecker:
+  """Checks if a user has permission to run mitigation flows based on the router params."""
+
+  def CheckIfHasAccessToMitigationFlows(self, username: str) -> None:
+    """Checks whether a given user has access to mitigation flows."""
+    raise access_control.UnauthorizedAccess(
+        f"No access to mitigation flows for {username}."
+    )
+
+  def CheckIfHasAccessToFlow(self, username: str, flow_name: str) -> None:
+    """Checks whether a given user has access to mitigation flows."""
+
+    flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
+    if flow_cls is None:
+      raise access_control.UnauthorizedAccess(
+          f"Flow {flow_name} can't be started."
+      )
+
+    if flow_cls in MITIGATION_FLOWS:
+      try:
+        self.CheckIfHasAccessToMitigationFlows(username)
+      except access_control.UnauthorizedAccess as e:
+        raise access_control.UnauthorizedAccess(
+            f"Not enough permissions to access mitigation flow {flow_name}."
         ) from e
 
 
