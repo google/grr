@@ -28,20 +28,23 @@ jobs:
           done
           [[ $OK = true ]]
 
+
   test-ubuntu:
     runs-on: ubuntu-22.04
-    env:
-      CHROME_DEB: google-chrome-stable_current_amd64.deb
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
       - name: Install
         run: |
           free -hmw
           lscpu
           sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
-          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
-            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
-          fi
           python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
       - name: Test
@@ -52,8 +55,10 @@ jobs:
           # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
           # which happen when tests stall.
           pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
-          # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
-          if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/ui/ && npm test); fi
+      - name: Install dependencies
+        run: cd grr/server/grr_response_server/gui/ui && npm ci && cd -
+      - name: Run tests
+        run: cd  grr/server/grr_response_server/gui/ui && npm test && cd -
 
   build-openapi:
     runs-on: ubuntu-22.04
