@@ -40,14 +40,14 @@ jobs:
         uses: browser-actions/setup-chrome@v1
         with:
           chrome-version: stable
-      - name: Install
+      - name: Install server
         run: |
           free -hmw
           lscpu
           sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
           python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
-      - name: Test
+      - name: Run server tests
         run: |
           source "${HOME}/INSTALL/bin/activate"
           pip install pytest-xdist==2.2.1 pytest==6.2.5
@@ -55,9 +55,9 @@ jobs:
           # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
           # which happen when tests stall.
           pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
-      - name: Install dependencies
+      - name: Install UI dependencies
         run: cd grr/server/grr_response_server/gui/ui && npm ci && cd -
-      - name: Run tests
+      - name: Run UI tests
         run: cd  grr/server/grr_response_server/gui/ui && npm test && cd -
 
   build-openapi:
