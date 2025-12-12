@@ -2,18 +2,15 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import {TestBed, fakeAsync, tick} from '@angular/core/testing';
-import {MatSnackBar} from '@angular/material/snack-bar';
+import {fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {lastValueFrom} from 'rxjs';
 
-import {ErrorSnackBar} from '../../components/helpers/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../testing';
-
+import {newSafetyLimits} from '../models/model_test_util';
+import {OutputPluginType} from '../models/output_plugin';
 import {
   ApiBrowseFilesystemResult,
-  ApiClientApproval,
   ApiCountHuntResultsByTypeResult,
-  ApiFlow,
   ApiFlowResult,
   ApiGetFileDetailsResult,
   ApiGetHuntClientCompletionStatsResult,
@@ -21,18 +18,18 @@ import {
   ApiGetVfsFileContentUpdateStateResultState,
   ApiGetVfsRefreshOperationStateResult,
   ApiGetVfsRefreshOperationStateResultState,
-  ApiHuntResult,
-  ApiListClientApprovalsResult,
   ApiListFlowDescriptorsResult,
   ApiListFlowResultsResult,
-  ApiListFlowsResult,
   ApiListHuntResultsResult,
-  ApiListScheduledFlowsResult,
-  ApiScheduledFlow,
+  ApiListOutputPluginDescriptorsResult,
   ApiUpdateVfsFileContentResult,
   PathSpecPathType,
 } from './api_interfaces';
-import {HttpApiService, URL_PREFIX} from './http_api_service';
+import {
+  DEFAULT_POLLING_INTERVAL,
+  HttpApiService,
+  URL_PREFIX,
+} from './http_api_service';
 import {ApiModule} from './module';
 
 initTestEnvironment();
@@ -40,14 +37,10 @@ initTestEnvironment();
 describe('HttpApiService', () => {
   let httpApiService: HttpApiService;
   let httpMock: HttpTestingController;
-  let snackbar: Partial<MatSnackBar>;
 
   beforeEach(() => {
-    snackbar = jasmine.createSpyObj('MatSnackBar', ['openFromComponent']);
-
     TestBed.configureTestingModule({
       imports: [ApiModule, HttpClientTestingModule],
-      providers: [{provide: MatSnackBar, useFactory: () => snackbar}],
       teardown: {destroyAfterEach: false},
     });
 
@@ -56,11 +49,11 @@ describe('HttpApiService', () => {
   });
 
   it('updateVfsFileContent posts, then polls, then gets VFS data', fakeAsync(async () => {
-    const observable = httpApiService.updateVfsFileContent(
-      'C.1234',
-      PathSpecPathType.OS,
-      '/foo/bar',
-    );
+    const observable = httpApiService.updateVfsFileContent({
+      clientId: 'C.1234',
+      pathType: PathSpecPathType.OS,
+      path: '/foo/bar',
+    });
 
     // Create Promise to register a subscription, which activates the
     // Observable computation.
@@ -89,7 +82,7 @@ describe('HttpApiService', () => {
 
     // Then, check that the recollection polls again, now indicating it has
     // been completed.
-    tick(httpApiService.POLLING_INTERVAL);
+    tick(DEFAULT_POLLING_INTERVAL);
     // Validate that the reloading of the details is not started while
     // vfs-update still reports FINISHED.
     httpMock.expectNone(
@@ -112,15 +105,15 @@ describe('HttpApiService', () => {
     const resp4: ApiGetFileDetailsResult = {file: {name: 'BAR'}};
     req4.flush(resp4);
 
-    expect(await valuePromise).toEqual({name: 'BAR'});
+    expect(await valuePromise).toEqual({file: {name: 'BAR'}});
   }));
 
   it('refreshVfsFolder posts, then polls, then gets VFS data', fakeAsync(async () => {
-    const observable = httpApiService.refreshVfsFolder(
-      'C.1234',
-      PathSpecPathType.OS,
-      '/C:/bar',
-    );
+    const observable = httpApiService.refreshVfsFolder({
+      clientId: 'C.1234',
+      pathType: PathSpecPathType.OS,
+      path: '/C:/bar',
+    });
 
     // Create Promise to register a subscription, which activates the
     // Observable computation.
@@ -149,7 +142,7 @@ describe('HttpApiService', () => {
 
     // Then, check that the recollection polls again, now indicating it has
     // been completed.
-    tick(httpApiService.POLLING_INTERVAL);
+    tick(DEFAULT_POLLING_INTERVAL);
     // Validate that the reloading of the details is not started while
     // vfs-refresh-operations still reports FINISHED.
     httpMock.expectNone(
@@ -170,25 +163,80 @@ describe('HttpApiService', () => {
       url: `${URL_PREFIX}/clients/C.1234/filesystem/C%3A/bar?include_directory_tree=false`,
     });
     const resp4: ApiBrowseFilesystemResult = {
-      items: [{path: '/C:/bar', children: [{name: 'BAR'}]}],
+      rootEntry: {
+        file: {name: 'BAR', isDirectory: false, path: 'fs/os/bar'},
+        children: [],
+      },
     };
     req4.flush(resp4);
 
-    expect(await valuePromise).toEqual({
-      items: [{path: '/C:/bar', children: [{name: 'BAR'}]}],
-    });
+    expect(await valuePromise).toEqual(resp4);
   }));
 
-  it('subscribeToResultsForFlow polls listResultsForFlow', fakeAsync(() => {
+  describe('startFlow', () => {
+    it('sends a POST request to the correct endpoint', fakeAsync(() => {
+      const request = httpApiService
+        .startFlow(
+          'C.1234',
+          'FileFinder',
+          {
+            'foo': 'bar',
+          },
+          true,
+        )
+        .subscribe();
+
+      const descriptorReq = httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/flows/descriptors`,
+      });
+
+      const descriptorResp: ApiListFlowDescriptorsResult = {
+        items: [
+          {
+            name: 'FileFinder',
+            friendlyName: 'Client Side File Finder',
+            category: 'b',
+            defaultArgs: {
+              '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
+            },
+          },
+        ],
+      };
+      descriptorReq.flush(descriptorResp);
+      tick();
+
+      const huntReq = httpMock.expectOne({
+        method: 'POST',
+        url: `${URL_PREFIX}/clients/C.1234/flows`,
+      });
+      expect(huntReq.request.body.clientId).toBe('C.1234');
+      expect(huntReq.request.body.flow.name).toBe('FileFinder');
+      expect(huntReq.request.body.flow.args).toEqual({
+        '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
+        'foo': 'bar',
+      });
+      expect(huntReq.request.body.flow.runnerArgs).toEqual({
+        'disableRrgSupport': true,
+      });
+
+      request.unsubscribe();
+    }));
+  });
+
+  it('listResultsForFlow polls if requested', fakeAsync(() => {
     const values: Array<readonly ApiFlowResult[]> = [];
     const sub = httpApiService
-      .subscribeToResultsForFlow({
-        clientId: 'C.1234',
-        flowId: '5678',
-        count: 10,
-      })
+      .listResultsForFlow(
+        {
+          clientId: 'C.1234',
+          flowId: '5678',
+          count: 10,
+        },
+        DEFAULT_POLLING_INTERVAL,
+      )
       .subscribe((result) => {
-        values.push(result);
+        values.push(result.items ?? []);
       });
 
     tick();
@@ -203,7 +251,7 @@ describe('HttpApiService', () => {
     expect(values.length).toEqual(1);
     expect(values).toEqual([[{tag: 'foo'}]]);
 
-    tick(httpApiService.POLLING_INTERVAL);
+    tick(DEFAULT_POLLING_INTERVAL);
 
     const req2 = httpMock.expectOne({
       method: 'GET',
@@ -217,20 +265,23 @@ describe('HttpApiService', () => {
 
     sub.unsubscribe();
 
-    tick(httpApiService.POLLING_INTERVAL * 2);
+    tick(DEFAULT_POLLING_INTERVAL * 2);
     // afterEach() verifies that no further request was launched.
   }));
 
-  it('subscribeToResultsForFlow waits for result before re-polling', fakeAsync(() => {
+  it('listResultsForFlow waits for result before re-polling', fakeAsync(() => {
     const values: Array<readonly ApiFlowResult[]> = [];
     const sub = httpApiService
-      .subscribeToResultsForFlow({
-        clientId: 'C.1234',
-        flowId: '5678',
-        count: 10,
-      })
+      .listResultsForFlow(
+        {
+          clientId: 'C.1234',
+          flowId: '5678',
+          count: 10,
+        },
+        DEFAULT_POLLING_INTERVAL,
+      )
       .subscribe((result) => {
-        values.push(result);
+        values.push(result.items ?? []);
       });
 
     tick();
@@ -240,7 +291,7 @@ describe('HttpApiService', () => {
       url: `${URL_PREFIX}/clients/C.1234/flows/5678/results?offset=0&count=10`,
     });
 
-    tick(httpApiService.POLLING_INTERVAL * 2);
+    tick(DEFAULT_POLLING_INTERVAL * 2);
 
     httpMock.verify();
 
@@ -252,10 +303,13 @@ describe('HttpApiService', () => {
     sub.unsubscribe();
   }));
 
-  it('subscribeToResultsForHunt polls listResultsForHunt', fakeAsync(() => {
-    const values: Array<readonly ApiHuntResult[]> = [];
+  it('listResultsForHunt polls if requested', fakeAsync(() => {
+    const values: ApiListHuntResultsResult[] = [];
     const sub = httpApiService
-      .subscribeToResultsForHunt({huntId: '1234', count: '10'})
+      .listResultsForHunt(
+        {huntId: '1234', count: '10'},
+        DEFAULT_POLLING_INTERVAL,
+      )
       .subscribe((result) => {
         values.push(result);
       });
@@ -267,37 +321,42 @@ describe('HttpApiService', () => {
       url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`,
     });
     const resp1: ApiListHuntResultsResult = {
+      totalCount: '1',
       items: [{clientId: 'C.1'}],
     };
     req1.flush(resp1);
 
     expect(values.length).toEqual(1);
-    expect(values).toEqual([[{clientId: 'C.1'}]]);
+    expect(values).toEqual([{totalCount: '1', items: [{clientId: 'C.1'}]}]);
 
-    tick(httpApiService.POLLING_INTERVAL);
+    tick(DEFAULT_POLLING_INTERVAL);
 
     const req2 = httpMock.expectOne({
       method: 'GET',
       url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`,
     });
     const resp2: ApiListHuntResultsResult = {
+      totalCount: '2',
       items: [{clientId: 'C.2'}],
     };
     req2.flush(resp2);
 
     expect(values.length).toEqual(2);
-    expect(values[1]).toEqual([{clientId: 'C.2'}]);
+    expect(values[1]).toEqual({totalCount: '2', items: [{clientId: 'C.2'}]});
 
     sub.unsubscribe();
 
-    tick(httpApiService.POLLING_INTERVAL * 2);
+    tick(DEFAULT_POLLING_INTERVAL * 2);
     // afterEach() verifies that no further request was launched.
   }));
 
-  it('subscribeToResultsForHunt waits for result before re-polling', fakeAsync(() => {
-    const values: Array<readonly ApiHuntResult[]> = [];
+  it('listResultsForHunt waits for result before re-polling', fakeAsync(() => {
+    const values: ApiListHuntResultsResult[] = [];
     const sub = httpApiService
-      .subscribeToResultsForHunt({huntId: '1234', count: '10'})
+      .listResultsForHunt(
+        {huntId: '1234', count: '10'},
+        DEFAULT_POLLING_INTERVAL,
+      )
       .subscribe((result) => {
         values.push(result);
       });
@@ -309,7 +368,7 @@ describe('HttpApiService', () => {
       url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`,
     });
 
-    tick(httpApiService.POLLING_INTERVAL * 2);
+    tick(DEFAULT_POLLING_INTERVAL * 2);
 
     httpMock.verify();
 
@@ -318,253 +377,35 @@ describe('HttpApiService', () => {
     };
     req1.flush(resp1);
     expect(values.length).toEqual(1);
-    expect(values).toEqual([[{clientId: 'C.1'}]]);
+    expect(values).toEqual([{items: [{clientId: 'C.1'}]}]);
 
     sub.unsubscribe();
   }));
 
-  it('subscribeToScheduledFlowsForClient re-polls after scheduleFlow()', fakeAsync(() => {
-    let lastFlows: readonly ApiScheduledFlow[] = [];
-    const sub = httpApiService
-      .subscribeToScheduledFlowsForClient('C.1234', 'testuser')
-      .subscribe((flows) => {
-        lastFlows = flows;
-      });
-
-    tick();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
-      })
-      .flush({});
-
-    httpApiService.scheduleFlow('C.1234', 'TestFlow', {}).subscribe();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/flows/descriptors`,
-      })
-      .flush({
-        items: [{category: 'Test', name: 'TestFlow', defaultArgs: {}}],
-      } as ApiListFlowDescriptorsResult);
-
-    httpMock
-      .expectOne({
-        method: 'POST',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows`,
-      })
-      .flush({});
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
-      })
-      .flush({
-        scheduledFlows: [{scheduledFlowId: '123'}],
-      } as ApiListScheduledFlowsResult);
-
-    expect(lastFlows).toEqual([{scheduledFlowId: '123'}]);
-    httpMock.verify();
-    sub.unsubscribe();
-  }));
-
-  it('subscribeToFlowsForClient re-polls after startFlow()', fakeAsync(() => {
-    let lastFlows: readonly ApiFlow[] = [];
-    const sub = httpApiService
-      .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
-      .subscribe((flows) => {
-        lastFlows = flows;
-      });
-
-    tick();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/flows?count=10`,
-      })
-      .flush({});
-
-    httpApiService.startFlow('C.1234', 'TestFlow', {}).subscribe();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/flows/descriptors`,
-      })
-      .flush({
-        items: [{category: 'Test', name: 'TestFlow', defaultArgs: {}}],
-      } as ApiListFlowDescriptorsResult);
-
-    httpMock
-      .expectOne({
-        method: 'POST',
-        url: `${URL_PREFIX}/clients/C.1234/flows`,
-      })
-      .flush({});
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/flows?count=10`,
-      })
-      .flush({items: [{flowId: '123'}]} as ApiListFlowsResult);
-
-    expect(lastFlows).toEqual([{flowId: '123'}]);
-    httpMock.verify();
-    sub.unsubscribe();
-  }));
-
-  it('subscribeToFlowsForClient re-polls after cancelFlow()', fakeAsync(() => {
-    let lastFlows: readonly ApiFlow[] = [];
-    const sub = httpApiService
-      .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
-      .subscribe((flows) => {
-        lastFlows = flows;
-      });
-
-    tick();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/flows?count=10`,
-      })
-      .flush({});
-
-    httpApiService.cancelFlow('C.1234', '123').subscribe();
-
-    httpMock
-      .expectOne({
-        method: 'POST',
-        url: `${URL_PREFIX}/clients/C.1234/flows/123/actions/cancel`,
-      })
-      .flush({});
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/flows?count=10`,
-      })
-      .flush({items: [{flowId: '456'}]} as ApiListFlowsResult);
-
-    expect(lastFlows).toEqual([{flowId: '456'}]);
-    httpMock.verify();
-    sub.unsubscribe();
-  }));
-
-  it('subscribeToScheduledFlowsForClient re-polls after unscheduleFlow()', fakeAsync(() => {
-    let lastFlows: readonly ApiScheduledFlow[] = [];
-    const sub = httpApiService
-      .subscribeToScheduledFlowsForClient('C.1234', 'testuser')
-      .subscribe((flows) => {
-        lastFlows = flows;
-      });
-
-    tick();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
-      })
-      .flush({});
-
-    httpApiService.unscheduleFlow('C.1234', '123').subscribe();
-
-    httpMock
-      .expectOne({
-        method: 'DELETE',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/123`,
-      })
-      .flush({});
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/clients/C.1234/scheduled-flows/testuser`,
-      })
-      .flush({
-        scheduledFlows: [{scheduledFlowId: '456'}],
-      } as ApiListScheduledFlowsResult);
-
-    expect(lastFlows).toEqual([{scheduledFlowId: '456'}]);
-    httpMock.verify();
-    sub.unsubscribe();
-  }));
-
-  it('subscribeToListApprovals re-polls after requestApproval()', fakeAsync(() => {
-    let lastApprovals: readonly ApiClientApproval[] = [];
-    const sub = httpApiService
-      .subscribeToListClientApprovals('C.1234')
-      .subscribe((approvals) => {
-        lastApprovals = approvals;
-      });
-
-    tick();
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/users/me/approvals/client/C.1234`,
-      })
-      .flush({});
-
+  it('getFileAccess calls the correct endpoint', fakeAsync(() => {
     httpApiService
-      .requestClientApproval({
-        approvers: [],
-        cc: [],
+      .getFileAccess({
         clientId: 'C.1234',
-        reason: '',
+        pathType: PathSpecPathType.OS,
+        path: '/foo/bar',
       })
       .subscribe();
 
-    httpMock
-      .expectOne({
-        method: 'POST',
-        url: `${URL_PREFIX}/users/me/approvals/client/C.1234`,
-      })
-      .flush({});
-
-    httpMock
-      .expectOne({
-        method: 'GET',
-        url: `${URL_PREFIX}/users/me/approvals/client/C.1234`,
-      })
-      .flush({items: [{id: '456'}]} as ApiListClientApprovalsResult);
-
-    expect(lastApprovals).toEqual([{id: '456'}]);
-    httpMock.verify();
-    sub.unsubscribe();
-  }));
-
-  it('shows a snackbar with the error message on HTTP errors', async () => {
-    httpApiService.cancelFlow('C.1234', '5678').subscribe({
-      error: () => {},
+    const req = httpMock.expectOne({
+      method: 'HEAD',
+      url: `${URL_PREFIX}/clients/C.1234/vfs-details/fs/os/foo/bar`,
     });
-
-    httpMock
-      .expectOne({
-        url: `${URL_PREFIX}/clients/C.1234/flows/5678/actions/cancel`,
-        method: 'POST',
-      })
-      .flush({message: 'testerror'}, {status: 500, statusText: 'Error'});
-
-    expect(snackbar.openFromComponent).toHaveBeenCalledOnceWith(
-      ErrorSnackBar,
-      jasmine.objectContaining({
-        data: jasmine.stringMatching('testerror'),
-      }),
-    );
-  });
+    expect(req).toBeTruthy();
+    req.flush({});
+  }));
 
   it('getFileDetails handles Windows paths correctly', fakeAsync(() => {
     httpApiService
-      .getFileDetails('C.1234', PathSpecPathType.TSK, 'C:/Windows/foo')
+      .getFileDetails({
+        clientId: 'C.1234',
+        pathType: PathSpecPathType.TSK,
+        path: 'C:/Windows/foo',
+      })
       .subscribe();
 
     const req = httpMock.expectOne({
@@ -579,7 +420,11 @@ describe('HttpApiService', () => {
 
   it('getFileDetails handles root', fakeAsync(() => {
     httpApiService
-      .getFileDetails('C.1234', PathSpecPathType.OS, '/')
+      .getFileDetails({
+        clientId: 'C.1234',
+        pathType: PathSpecPathType.OS,
+        path: '/',
+      })
       .subscribe();
 
     const req = httpMock.expectOne({
@@ -594,7 +439,11 @@ describe('HttpApiService', () => {
 
   it('getFileDetails handles unix paths correctly root', fakeAsync(() => {
     httpApiService
-      .getFileDetails('C.1234', PathSpecPathType.OS, '/foo/bar')
+      .getFileDetails({
+        clientId: 'C.1234',
+        pathType: PathSpecPathType.OS,
+        path: '/foo/bar',
+      })
       .subscribe();
 
     const req = httpMock.expectOne({
@@ -633,10 +482,123 @@ describe('HttpApiService', () => {
     req.flush({});
   }));
 
-  describe('subscribeToHuntClientCompletionStats', () => {
+  describe('createHunt', () => {
+    it('sends a POST request to the correct endpoint', fakeAsync(() => {
+      const request = httpApiService
+        .createHunt(
+          'description',
+          'FileFinder',
+          {
+            'foo': 'bar',
+          },
+          {clientId: 'C.1234', flowId: '5678'},
+          undefined,
+          newSafetyLimits({
+            clientRate: 111,
+            clientLimit: BigInt(222),
+            crashLimit: BigInt(333),
+            expiryTime: BigInt(444),
+            avgResultsPerClientLimit: BigInt(555),
+            avgCpuSecondsPerClientLimit: BigInt(666),
+            avgNetworkBytesPerClientLimit: BigInt(777),
+            perClientCpuLimit: BigInt(888),
+            perClientNetworkBytesLimit: BigInt(999),
+          }),
+          {rules: []},
+          [
+            {
+              pluginType: OutputPluginType.EMAIL,
+              args: {
+                emailAddress: 'test@example.com',
+              },
+            },
+          ],
+        )
+        .subscribe();
+
+      const descriptorReq = httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/flows/descriptors`,
+      });
+
+      const descriptorResp: ApiListFlowDescriptorsResult = {
+        items: [
+          {
+            name: 'FileFinder',
+            friendlyName: 'Client Side File Finder',
+            category: 'b',
+            defaultArgs: {
+              '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
+            },
+          },
+        ],
+      };
+      descriptorReq.flush(descriptorResp);
+      tick();
+
+      const outputPluginReq = httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/output-plugins/all`,
+      });
+
+      const outputPluginResp: ApiListOutputPluginDescriptorsResult = {
+        items: [
+          {
+            name: 'EmailOutputPlugin',
+            friendlyName: 'Email Output Plugin',
+            description: 'Email output plugin description',
+            argsType: 'type.googleapis.com/foo.bar.EmailOutputPluginArgs',
+          },
+        ],
+      };
+      outputPluginReq.flush(outputPluginResp);
+      tick();
+
+      const huntReq = httpMock.expectOne({
+        method: 'POST',
+        url: `${URL_PREFIX}/hunts`,
+      });
+      expect(huntReq.request.body.flowName).toBe('FileFinder');
+      expect(huntReq.request.body.flowArgs).toEqual({
+        '@type': 'type.googleapis.com/foo.bar.FileFinderArgs',
+        'foo': 'bar',
+      });
+      expect(huntReq.request.body.originalFlow).toEqual({
+        clientId: 'C.1234',
+        flowId: '5678',
+      });
+      expect(huntReq.request.body.originalHunt).toBeUndefined();
+      expect(huntReq.request.body.huntRunnerArgs).toEqual({
+        description: 'description',
+        clientRate: 111,
+        clientLimit: '222',
+        crashLimit: '333',
+        expiryTime: '444',
+        avgResultsPerClientLimit: '555',
+        avgCpuSecondsPerClientLimit: '666',
+        avgNetworkBytesPerClientLimit: '777',
+        perClientCpuLimit: '888',
+        perClientNetworkLimitBytes: '999',
+        clientRuleSet: {rules: []},
+        outputPlugins: [
+          {
+            pluginName: 'EmailOutputPlugin',
+            args: {
+              '@type': 'type.googleapis.com/foo.bar.EmailOutputPluginArgs',
+              emailAddress: 'test@example.com',
+            },
+          },
+        ],
+      });
+
+      request.unsubscribe();
+    }));
+  });
+
+  describe('getHuntClientCompletionStats', () => {
     it(`Doesn't send a "size" HTTPParam if not specified`, fakeAsync(() => {
       const sub = httpApiService
-        .subscribeToHuntClientCompletionStats({huntId: '1234', size: undefined})
+        .getHuntClientCompletionStats({huntId: '1234', size: undefined})
         .subscribe();
 
       tick();
@@ -652,7 +614,10 @@ describe('HttpApiService', () => {
     it('polls getHuntClientCompletionStats', fakeAsync(() => {
       const values: ApiGetHuntClientCompletionStatsResult[] = [];
       const sub = httpApiService
-        .subscribeToHuntClientCompletionStats({huntId: '1234', size: '10'})
+        .getHuntClientCompletionStats(
+          {huntId: '1234', size: '10'},
+          DEFAULT_POLLING_INTERVAL,
+        )
         .subscribe((result) => {
           values.push(result);
         });
@@ -674,7 +639,7 @@ describe('HttpApiService', () => {
       expect(values.length).toEqual(1);
       expect(values).toEqual([resp1]);
 
-      tick(httpApiService.POLLING_INTERVAL);
+      tick(DEFAULT_POLLING_INTERVAL);
 
       const req2 = httpMock.expectOne({
         method: 'GET',
@@ -693,14 +658,17 @@ describe('HttpApiService', () => {
 
       sub.unsubscribe();
 
-      tick(httpApiService.POLLING_INTERVAL * 2);
+      tick(DEFAULT_POLLING_INTERVAL * 2);
       // afterEach() verifies that no further request was launched.
     }));
 
     it('Waits for result before re-polling', fakeAsync(() => {
       const values: ApiGetHuntClientCompletionStatsResult[] = [];
       const sub = httpApiService
-        .subscribeToHuntClientCompletionStats({huntId: '1234', size: '10'})
+        .getHuntClientCompletionStats(
+          {huntId: '1234', size: '10'},
+          DEFAULT_POLLING_INTERVAL,
+        )
         .subscribe((result) => {
           values.push(result);
         });
@@ -712,7 +680,7 @@ describe('HttpApiService', () => {
         url: `${URL_PREFIX}/hunts/1234/client-completion-stats?size=10`,
       });
 
-      tick(httpApiService.POLLING_INTERVAL * 2);
+      tick(DEFAULT_POLLING_INTERVAL * 2);
 
       httpMock.verify();
 
@@ -729,12 +697,12 @@ describe('HttpApiService', () => {
     }));
   });
 
-  describe('subscribeToHuntResultsCountByType', () => {
-    it('polls getHuntResultsByType', fakeAsync(() => {
+  describe('getHuntResultsByType', () => {
+    it('polls if requestț', fakeAsync(() => {
       const huntId = '1234';
       let resultsByType: ApiCountHuntResultsByTypeResult = {};
       const sub = httpApiService
-        .subscribeToHuntResultsCountByType(huntId)
+        .getHuntResultsByType(huntId, DEFAULT_POLLING_INTERVAL)
         .subscribe((result) => {
           resultsByType = result;
         });
@@ -760,7 +728,7 @@ describe('HttpApiService', () => {
       expect(resultsByType?.items?.length).toEqual(1);
       expect(resultsByType).toEqual(resp1);
 
-      tick(httpApiService.POLLING_INTERVAL);
+      tick(DEFAULT_POLLING_INTERVAL);
 
       const req2 = httpMock.expectOne({
         method: 'GET',
@@ -787,7 +755,7 @@ describe('HttpApiService', () => {
 
       sub.unsubscribe();
 
-      tick(httpApiService.POLLING_INTERVAL * 2);
+      tick(DEFAULT_POLLING_INTERVAL * 2);
       // afterEach() verifies that no further request was launched.
     }));
 
@@ -795,12 +763,12 @@ describe('HttpApiService', () => {
       const huntId = '1234';
       let resultsByType: ApiCountHuntResultsByTypeResult = {};
       const sub = httpApiService
-        .subscribeToHuntResultsCountByType(huntId)
+        .getHuntResultsByType(huntId, DEFAULT_POLLING_INTERVAL)
         .subscribe((result) => {
           resultsByType = result;
         });
 
-      tick(httpApiService.POLLING_INTERVAL * 2);
+      tick(DEFAULT_POLLING_INTERVAL * 2);
 
       const req1 = httpMock.expectOne({
         method: 'GET',
@@ -977,6 +945,33 @@ describe('HttpApiService', () => {
           'Expected value to be non-nullable, but got undefined of type undefined.',
         ),
       );
+    });
+  });
+
+  describe('fetchHuntLogs', () => {
+    it('calls http service with correct url', () => {
+      const huntId = '1234';
+      httpApiService.fetchHuntLogs(huntId).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/log`,
+      });
+    });
+  });
+
+  describe('fetchClientStartupInfos', () => {
+    it('calls http service with correct url and params', () => {
+      const clientId = 'C.1234';
+      const start = new Date('2024-01-01T00:00:00Z');
+      const end = new Date('2024-01-02T00:00:00Z');
+
+      httpApiService.fetchClientStartupInfos(clientId, start, end).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/clients/${clientId}/startup-infos?start=${start.getTime() * 1000}&end=${end.getTime() * 1000}&exclude_snapshot_collections=true`,
+      });
     });
   });
 

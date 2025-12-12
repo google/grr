@@ -1,0 +1,26 @@
+<h2 mat-dialog-title>Snapshot entry history</h2>
+<mat-dialog-content>
+  <table mat-table [dataSource]="dialogData.snapshots">
+    <ng-container matColumnDef="timestamp">
+      <th mat-header-cell *matHeaderCellDef>Snapshot timestamp</th>
+      <td mat-cell *matCellDef="let snapshot"><timestamp [date]="snapshot.timestamp" /></td>
+    </ng-container>
+    <ng-container matColumnDef="value">
+      <th mat-header-cell *matHeaderCellDef>Value</th>
+      <td mat-cell *matCellDef="let snapshot" class="field-summary">
+        <a
+          [routerLink]="[
+            'clients',
+            snapshot.clientId,
+            'history',
+            `${snapshot.timestamp.getTime()}`
+          ]"
+          [matTooltip]="'View snapshot entry'">
+          {{dialogData.entryAccessor(snapshot)}}
+        </a>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let snapshot; columns: displayedColumns;"></tr>
+  </table>
+</mat-dialog-content>

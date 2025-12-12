@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
 
+from collections.abc import Iterable
 import os
 import time
-from typing import Iterable, Tuple
 from unittest import mock
 
 from absl.testing import absltest
@@ -602,7 +602,7 @@ def CreateDirectory(client_path):
 
 def GenerateBlobRefs(
     blob_size: int, contents: bytes
-) -> Tuple[Iterable[bytes], Iterable[rdf_objects.BlobReference]]:
+) -> tuple[Iterable[bytes], Iterable[rdf_objects.BlobReference]]:
   """Generates a series of blob data and references.
 
   Args:

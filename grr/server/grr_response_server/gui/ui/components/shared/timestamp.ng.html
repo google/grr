@@ -1,0 +1,18 @@
+@if (date()) {
+  <span
+    class="timestamp"
+    [matTooltip]="relativeTimestampString()"
+    [matTooltipDisabled]="relativeTimestamp() !== 'tooltip'">
+
+    <copy-button
+      [multiline]="multiline()"
+      [tooltip]="relativeTimestamp() === 'tooltip' ? relativeTimestampString() : undefined"
+    >{{date() | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}</copy-button>
+
+    @if (relativeTimestamp() === 'visible') {
+      <span>
+        {{relativeTimestampString()}}
+      </span>
+    }
+  </span>
+}

@@ -1,0 +1,106 @@
+<table class="section-content">
+  @if (cloudInstance()?.cloudType) {
+    <tr>
+      <td>Type</td>
+      <td>
+        <mat-chip-set role="list">
+          <mat-chip disableRipple role="listitem">
+            {{cloudInstance()?.cloudType}}
+          </mat-chip>
+        </mat-chip-set>
+      </td>
+    </tr>
+  }
+  @if (cloudInstance()?.cloudType === CloudInstanceInstanceType.GOOGLE) {
+    @if (cloudInstance()?.google?.uniqueId) {
+      <tr>
+        <td>Unique ID</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.google?.uniqueId }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.google?.zone) {
+      <tr>
+        <td>Zone</td>
+        <td>
+          {{ cloudInstance()?.google?.zone }}
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.google?.projectId) {
+      <tr>
+        <td>Project</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.google?.projectId }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.google?.instanceId) {
+      <tr>
+        <td>Instance</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.google?.instanceId }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.google?.hostname) {
+      <tr>
+        <td>Hostname</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.google?.hostname }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.google?.machineType) {
+      <tr>
+        <td>Machine Type</td>
+        <td>
+          {{ cloudInstance()?.google?.machineType }}
+        </td>
+      </tr>
+    }
+  }
+  @if (cloudInstance()?.cloudType === CloudInstanceInstanceType.AMAZON) {
+    @if (cloudInstance()?.amazon?.instanceId) {
+      <tr>
+        <td>Instance</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.amazon?.instanceId }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.amazon?.hostname) {
+      <tr>
+        <td>Hostname</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.amazon?.hostname }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.amazon?.publicHostname) {
+      <tr>
+        <td>Public Hostname</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.amazon?.publicHostname }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.amazon?.amiId) {
+      <tr>
+        <td>AMI</td>
+        <td>
+          <copy-button>{{ cloudInstance()?.amazon?.amiId }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (cloudInstance()?.amazon?.instanceType) {
+      <tr>
+        <td>Instance Type</td>
+        <td>
+          {{ cloudInstance()?.amazon?.instanceType }}
+        </td>
+      </tr>
+    }
+  }
+</table>

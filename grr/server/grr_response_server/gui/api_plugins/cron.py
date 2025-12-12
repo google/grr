@@ -3,10 +3,7 @@
 
 from typing import Optional
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import mig_protodict
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import cron_pb2
 from grr_response_server import cronjobs
@@ -16,8 +13,6 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import mig_api_call_handler_utils
 from grr_response_server.models import protobuf_utils as models_utils
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import mig_cronjobs
 
 
@@ -58,45 +53,30 @@ def InitApiCronJobFromCronJob(
   return api_cron_job
 
 
+def CreateCronJobArgsFromApiCreateCronJobArgs(
+    api_create: cron_pb2.ApiCreateCronJobArgs,
+) -> flows_pb2.CreateCronJobArgs:
+  """Creates a CreateCronJobArgs from an ApiCronJob."""
+  create_args = flows_pb2.CreateCronJobArgs()
+  models_utils.CopyAttr(api_create, create_args, "flow_name")
+  if api_create.HasField("flow_args"):
+    create_args.flow_args.CopyFrom(api_create.flow_args)
+  if api_create.HasField("hunt_runner_args"):
+    create_args.hunt_runner_args.CopyFrom(api_create.hunt_runner_args)
+  models_utils.CopyAttr(api_create, create_args, "description")
+  models_utils.CopyAttr(api_create, create_args, "periodicity", "frequency")
+  models_utils.CopyAttr(api_create, create_args, "lifetime")
+  models_utils.CopyAttr(api_create, create_args, "allow_overruns")
+
+  return create_args
+
+
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a cron job could not be found."""
 
 
 class CronJobRunNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a cron job run could not be found."""
-
-
-class ApiCronJobId(rdfvalue.RDFString):
-  """Class encapsulating cron job ids."""
-
-
-class ApiCronJobRunId(rdfvalue.RDFString):
-  """Class encapsulating cron job run ids."""
-
-
-class ApiCronJob(rdf_structs.RDFProtoStruct):
-  """ApiCronJob is used when rendering responses.
-
-  ApiCronJob is meant to be more lightweight than automatically generated AFF4
-  representation. It's also meant to contain only the information needed by
-  the UI and to not expose implementation details.
-  """
-
-  protobuf = cron_pb2.ApiCronJob
-  rdf_deps = [
-      ApiCronJobId,
-      api_call_handler_utils.ApiDataObject,
-      rdf_cronjobs.CronJobAction,
-      rdfvalue.DurationSeconds,
-      rdfvalue.RDFDatetime,
-  ]
-
-  def GetArgsClass(self):
-    if self.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
 
 
 def InitApiCronJobRunFromRunObject(
@@ -113,33 +93,9 @@ def InitApiCronJobRunFromRunObject(
   return api_run_job
 
 
-class ApiCronJobRun(rdf_structs.RDFProtoStruct):
-  """ApiCronJobRun represents individual cron job runs."""
-
-  protobuf = cron_pb2.ApiCronJobRun
-  rdf_deps = [
-      ApiCronJobId,
-      ApiCronJobRunId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiListCronJobsArgs
-
-
-class ApiListCronJobsResult(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiListCronJobsResult
-  rdf_deps = [
-      ApiCronJob,
-  ]
-
-
 class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
-  args_type = ApiListCronJobsArgs
-  result_type = ApiListCronJobsResult
   proto_args_type = cron_pb2.ApiListCronJobsArgs
   proto_result_type = cron_pb2.ApiListCronJobsResult
 
@@ -168,18 +124,9 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiGetCronJobArgs
-  rdf_deps = [
-      ApiCronJobId,
-  ]
-
-
 class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves a specific cron job."""
 
-  args_type = ApiGetCronJobArgs
-  result_type = ApiCronJob
   proto_args_type = cron_pb2.ApiGetCronJobArgs
   proto_result_type = cron_pb2.ApiCronJob
 
@@ -198,25 +145,9 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
       ) from e
 
 
-class ApiListCronJobRunsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiListCronJobRunsArgs
-  rdf_deps = [
-      ApiCronJobId,
-  ]
-
-
-class ApiListCronJobRunsResult(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiListCronJobRunsResult
-  rdf_deps = [
-      ApiCronJobRun,
-  ]
-
-
 class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the given cron job's runs."""
 
-  args_type = ApiListCronJobRunsArgs
-  result_type = ApiListCronJobRunsResult
   proto_args_type = cron_pb2.ApiListCronJobRunsArgs
   proto_result_type = cron_pb2.ApiListCronJobRunsResult
 
@@ -237,19 +168,9 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetCronJobRunArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiGetCronJobRunArgs
-  rdf_deps = [
-      ApiCronJobId,
-      ApiCronJobRunId,
-  ]
-
-
 class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
   """Renders given cron run."""
 
-  args_type = ApiGetCronJobRunArgs
-  result_type = ApiCronJobRun
   proto_args_type = cron_pb2.ApiGetCronJobRunArgs
   proto_result_type = cron_pb2.ApiCronJobRun
 
@@ -267,28 +188,9 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
     return InitApiCronJobRunFromRunObject(run)
 
 
-class ApiCreateCronJobArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for CreateCronJob API call."""
-
-  protobuf = cron_pb2.ApiCreateCronJobArgs
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-      rdf_hunts.HuntRunnerArgs,
-  ]
-
-  def GetFlowArgsClass(self):
-    if self.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
-
-
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new cron job."""
 
-  args_type = ApiCreateCronJobArgs
-  result_type = ApiCronJob
   proto_args_type = cron_pb2.ApiCreateCronJobArgs
   proto_result_type = cron_pb2.ApiCronJob
 
@@ -300,25 +202,11 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
     # Make sure we don't modify source arguments.
     args = cron_pb2.ApiCreateCronJobArgs()
     args.CopyFrom(source_args)
-
-    # Clear all fields marked with HIDDEN.
-    args = ToRDFApiCreateCronJobArgs(args)
-    args.flow_args.ClearFieldsWithLabel(
-        rdf_structs.SemanticDescriptor.Labels.HIDDEN
-    )
-    # Clear all fields marked with HIDDEN, except for output_plugins - they are
-    # marked HIDDEN, because we have a separate UI for them, not because they
-    # shouldn't be shown to the user at all.
-    #
-    # TODO(user): Refactor the code to remove the HIDDEN label from
-    # FlowRunnerArgs.output_plugins.
-    args.hunt_runner_args.ClearFieldsWithLabel(
-        rdf_structs.SemanticDescriptor.Labels.HIDDEN,
-        exceptions="output_plugins",
-    )
+    args.hunt_runner_args.ClearField("original_object")
 
     cron_manager = cronjobs.CronManager()
-    cron_args = rdf_cronjobs.CreateCronJobArgs.FromApiCreateCronJobArgs(args)
+    cron_args = CreateCronJobArgsFromApiCreateCronJobArgs(args)
+    cron_args = mig_cronjobs.ToRDFCreateCronJobArgs(cron_args)
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args, enabled=False)
 
     cron_obj = cron_manager.ReadJob(cron_job_id)
@@ -326,17 +214,9 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
     return InitApiCronJobFromCronJob(cron_obj)
 
 
-class ApiForceRunCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiForceRunCronJobArgs
-  rdf_deps = [
-      ApiCronJobId,
-  ]
-
-
 class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Force-runs a given cron job."""
 
-  args_type = ApiForceRunCronJobArgs
   proto_args_type = cron_pb2.ApiForceRunCronJobArgs
 
   def Handle(
@@ -347,18 +227,9 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
     cronjobs.CronManager().RequestForcedRun(args.cron_job_id)
 
 
-class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiModifyCronJobArgs
-  rdf_deps = [
-      ApiCronJobId,
-  ]
-
-
 class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Enables or disables a given cron job."""
 
-  args_type = ApiModifyCronJobArgs
-  result_type = ApiCronJob
   proto_args_type = cron_pb2.ApiModifyCronJobArgs
   proto_result_type = cron_pb2.ApiCronJob
 
@@ -378,17 +249,9 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
     return InitApiCronJobFromCronJob(cron_job_obj)
 
 
-class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = cron_pb2.ApiDeleteCronJobArgs
-  rdf_deps = [
-      ApiCronJobId,
-  ]
-
-
 class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Deletes a given cron job."""
 
-  args_type = ApiDeleteCronJobArgs
   proto_args_type = cron_pb2.ApiDeleteCronJobArgs
 
   def Handle(
@@ -397,10 +260,3 @@ class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> None:
     cronjobs.CronManager().DeleteJob(args.cron_job_id)
-
-
-# Copy of migration function to avoid circular dependency.
-def ToRDFApiCreateCronJobArgs(
-    proto: cron_pb2.ApiCreateCronJobArgs,
-) -> ApiCreateCronJobArgs:
-  return ApiCreateCronJobArgs.FromSerializedBytes(proto.SerializeToString())

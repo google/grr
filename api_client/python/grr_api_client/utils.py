@@ -1,18 +1,12 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
 
+from collections.abc import Callable, Iterator
 import io
 import itertools
 import struct
 import time
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import IO
-from typing import Iterator
-from typing import Tuple
-from typing import TypeVar
-from typing import Union
+from typing import Any, IO, TypeVar, Union
 
 from cryptography.hazmat.primitives.ciphers import aead
 
@@ -43,7 +37,6 @@ from grr_response_proto.api import metadata_pb2
 from grr_response_proto.api import output_plugin_pb2
 from grr_response_proto.api import reflection_pb2
 from grr_response_proto.api import signed_commands_pb2
-from grr_response_proto.api import stats_pb2
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api import yara_pb2
@@ -268,7 +261,7 @@ def UnpackAny(
 def MessageToFlatDict(
     msg: message.Message,
     transform: Callable[[descriptor.FieldDescriptor, Any], Any],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
   """Converts the given Protocol Buffers message to a flat dictionary.
 
   Fields of nested messages will be represented through keys of a path with
@@ -295,7 +288,7 @@ def MessageToFlatDict(
   # Using ordered dictionary guarantees stable order of fields in the result.
   result = dict()
 
-  def Recurse(msg: message.Message, prev: Tuple[str, ...]) -> None:
+  def Recurse(msg: message.Message, prev: tuple[str, ...]) -> None:
     fields = sorted(msg.ListFields(), key=lambda field: field[0].name)
     for field, value in fields:
       curr = prev + (field.name,)
@@ -431,7 +424,6 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(read_low_level_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(signed_commands_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)

@@ -1,0 +1,19 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.TIMELINE_FLOW, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Root directory</mat-label>
+    <input
+      matInput
+      placeholder="/"
+      [formControl]="controls.root"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-hint>
+      <form-warnings [validationWarnings]="controls.root.warnings()" />
+    </mat-hint>
+  </mat-form-field>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

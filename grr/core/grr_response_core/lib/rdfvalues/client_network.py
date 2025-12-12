@@ -7,7 +7,6 @@ import logging
 from typing import Optional, Union
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
@@ -26,12 +25,6 @@ class NetworkConnection(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       NetworkEndpoint,
   ]
-
-
-class Connections(rdf_protodict.RDFValueArray):
-  """A list of connections on the host."""
-
-  rdf_type = NetworkConnection
 
 
 IPAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
@@ -134,7 +127,6 @@ class Interface(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       MacAddress,
       NetworkAddress,
-      rdfvalue.RDFDatetime,
   ]
 
   def GetIPAddresses(self):
@@ -145,17 +137,4 @@ class Interface(rdf_structs.RDFProtoStruct):
       if human_readable_address is not None:
         results.append(human_readable_address)
 
-    return results
-
-
-class Interfaces(rdf_protodict.RDFValueArray):
-  """The list of interfaces on a host."""
-
-  rdf_type = Interface
-
-  def GetIPAddresses(self):
-    """Return the list of IP addresses."""
-    results = []
-    for interface in self:
-      results += interface.GetIPAddresses()
     return results

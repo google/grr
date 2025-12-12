@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """A module with utility decorators for skipping tests."""
 
+from collections.abc import Callable
 import functools
 import types
+from typing import Any, Union
 import unittest
-
-from typing import Any
-from typing import Callable
-from typing import Union
 
 
 def If(condition: Union[Any, Callable[[], Any]], reason: str):

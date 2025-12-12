@@ -1,0 +1,22 @@
+pre {
+  counter-reset: line;
+  display: flex;
+  flex-direction: column;
+}
+
+span {
+  display: inline-flex;
+}
+
+span::before {
+  border-right: 1px solid var(--mat-sys-primary);
+  color: var(--mat-sys-primary);
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  margin-right: 0.5em;
+  min-width: 4ch;
+  padding: 0 0.5em 0 0;
+  text-align: end;
+  user-select: none;
+}

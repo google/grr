@@ -5,14 +5,14 @@ import {DomSanitizer, SafeValue} from '@angular/platform-browser';
  * Pipe which sanitizes stringified DOM elements. By default it assumes the
  * context is set to HTML.
  */
-@Pipe({standalone: false, name: 'sanitize'})
+@Pipe({name: 'sanitize'})
 export class SanitizerPipe implements PipeTransform {
   constructor(private readonly sanitizer: DomSanitizer) {}
 
   transform(
-    value: string | SafeValue | null,
+    value: string | SafeValue | null | undefined,
     context: SecurityContext = SecurityContext.HTML,
   ): string | null {
-    return this.sanitizer.sanitize(context, value);
+    return this.sanitizer.sanitize(context, value ?? null);
   }
 }

@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 """Main file of GRR API client library."""
 
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Any, Optional
 
 from google.protobuf import message
 from grr_api_client import artifact
@@ -120,7 +117,7 @@ class GrrApi(object):
   def username(self) -> str:
     return self._context.username
 
-  def GetOpenApiDescription(self) -> Dict[str, Any]:
+  def GetOpenApiDescription(self) -> dict[str, Any]:
     """Returns the OpenAPI description of the GRR API as a dictionary."""
     return metadata.GetOpenApiDescription(context=self._context)
 
@@ -128,8 +125,8 @@ class GrrApi(object):
 def InitHttp(
     api_endpoint: str,
     page_size: Optional[int] = None,
-    auth: Optional[Tuple[str, str]] = None,
-    proxies: Optional[Dict[str, str]] = None,
+    auth: Optional[tuple[str, str]] = None,
+    proxies: Optional[dict[str, str]] = None,
     verify: Optional[bool] = None,
     cert: Optional[bytes] = None,
     trust_env: Optional[bool] = None,

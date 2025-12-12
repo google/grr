@@ -1,0 +1,5 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.INTERROGATE, flowArgs())">
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

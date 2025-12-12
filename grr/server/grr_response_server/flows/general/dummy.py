@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Flow that sends a message to the client and back as example."""
 
-from grr_response_core.lib.rdfvalues import dummy as rdf_dummy
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import dummy_pb2
+from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
@@ -23,7 +24,13 @@ class DummyFlowResult(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
 
-class Dummy(flow_base.FlowBase):
+class Dummy(
+    flow_base.FlowBase[
+        dummy_pb2.DummyArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
+):
   """A mechanism to send a string to the client and back.
 
   Returns to parent flow:
@@ -37,16 +44,20 @@ class Dummy(flow_base.FlowBase):
   args_type = DummyArgs
   result_types = (DummyFlowResult,)
 
+  proto_args_type = dummy_pb2.DummyArgs
+  proto_result_types = (dummy_pb2.DummyFlowResult,)
+  only_protos_allowed = True
+
   def Start(self):
     """Schedules the action in the client (Dummy ClientAction)."""
 
-    if not self.args.flow_input:
-      raise ValueError("args.flow_input is empty, cannot proceed!")
+    if not self.proto_args.flow_input:
+      raise ValueError("proto_args.flow_input is empty, cannot proceed!")
 
-    request = rdf_dummy.DummyRequest(
-        action_input=f"args.flow_input: '{self.args.flow_input}'"
+    request = dummy_pb2.DummyRequest(
+        action_input=f"proto_args.flow_input: '{self.proto_args.flow_input}'"
     )
-    self.CallClient(
+    self.CallClientProto(
         server_stubs.Dummy,
         request,
         next_state=self.ReceiveActionOutput.__name__,
@@ -54,9 +65,10 @@ class Dummy(flow_base.FlowBase):
 
     self.Log("Finished Start.")
 
+  @flow_base.UseProto2AnyResponses
   def ReceiveActionOutput(
-      self, responses: flow_responses.Responses[rdf_dummy.DummyResult]
-  ):
+      self, responses: flow_responses.Responses[any_pb2.Any]
+  ) -> None:
     """Receives the action output and processes it."""
     # Checks the "Status" of the action, attaching information to the flow.A
     if not responses.success:
@@ -68,11 +80,18 @@ class Dummy(flow_base.FlowBase):
           f" got {list(responses)}"
       )
 
-    result = DummyFlowResult(
-        flow_output=(
-            f"responses.action_output: '{list(responses)[0].action_output}'"
-        )
+    response_any: any_pb2.Any = list(responses)[0]
+    if not response_any.Is(dummy_pb2.DummyResult.DESCRIPTOR):
+      raise flow_base.FlowError(
+          f"Unexpected response type: '{response_any.type_url}'"
+      )
+
+    response = dummy_pb2.DummyResult()
+    response.ParseFromString(response_any.value)
+
+    result = dummy_pb2.DummyFlowResult(
+        flow_output=f"responses.action_output: '{response.action_output}'"
     )
-    self.SendReply(result)
+    self.SendReplyProto(result)
 
     self.Log("Finished ReceiveActionOutput.")

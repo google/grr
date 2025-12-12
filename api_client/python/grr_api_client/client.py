@@ -2,8 +2,8 @@
 """Clients-related part of GRR API client library."""
 
 from collections import abc
+from collections.abc import Sequence
 import time
-from typing import Sequence
 
 from grr_api_client import flow
 from grr_api_client import utils

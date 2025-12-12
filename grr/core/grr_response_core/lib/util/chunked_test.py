@@ -97,12 +97,6 @@ class ReadAllTest(absltest.TestCase):
     buf.seek(0, io.SEEK_SET)
     self.assertEqual(list(chunked.ReadAll(buf)), [b"foo", b"bar", b"quux"])
 
-  def testMalformedInputWithMaxChunkSizeSet(self):
-    buf = io.BytesIO(b"\xff" * 1024)
-
-    with self.assertRaises(chunked.ChunkSizeTooBigError):
-      list(chunked.ReadAll(buf, max_chunk_size=1024))
-
 
 class EncodeTest(absltest.TestCase):
 

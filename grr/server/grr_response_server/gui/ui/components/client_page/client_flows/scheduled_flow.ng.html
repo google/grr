@@ -1,0 +1,10 @@
+
+
+<h2>The flow is only scheduled</h2>
+<p>
+  You might need to request approval for the client to run this flow.
+</p>
+
+<button mat-flat-button [routerLink]="['/clients', clientStore.clientId(), 'approvals']">
+  Request approval
+</button>

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Classes for exporting rdf dict data."""
 
-from typing import Any, Dict, Iterator, List, Tuple
+from collections.abc import Iterator
+from typing import Any
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -20,8 +21,8 @@ class DictToExportedDictItemsConverter(base.ExportConverter):
   input_rdf_type = rdf_protodict.Dict
 
   def _IterateDict(
-      self, d: Dict[str, Any], key: str = ""
-  ) -> Iterator[Tuple[str, Any]]:
+      self, d: dict[str, Any], key: str = ""
+  ) -> Iterator[tuple[str, Any]]:
     """Performs a deeply-nested iteration of a given dictionary."""
     if isinstance(d, (list, tuple)):
       for i, v in enumerate(d):
@@ -50,7 +51,7 @@ class DictToExportedDictItemsConverter(base.ExportConverter):
 
   def Convert(
       self, metadata: base.ExportedMetadata, data: rdf_protodict.Dict
-  ) -> List[ExportedDictItem]:
+  ) -> list[ExportedDictItem]:
     result = []
     d = data.ToDict()
     for k, v in self._IterateDict(d):

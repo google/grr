@@ -4,7 +4,6 @@
 syntax = "proto2";
 
 import "google/protobuf/any.proto";
-import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -26,6 +25,7 @@ message OutputPluginDescriptor {
 message OutputPluginState {
   optional OutputPluginDescriptor plugin_descriptor = 1;
   optional AttributedDict plugin_state = 2;
+  optional string plugin_id = 3;
 }
 
 // Next id: 7
@@ -57,77 +57,10 @@ message OutputPluginBatchProcessingStatus {
 }
 
 message EmailOutputPluginArgs {
+  reserved 2;
+
   optional string email_address = 1 [(sem_type) = {
     type: "DomainEmailAddress",
     description: "The email address that messages will be sent to.",
-  }];
-  optional uint64 emails_limit = 2 [default = 100];
-}
-
-message BigQueryOutputPluginArgs {
-  optional ExportOptions export_options = 2
-      [(sem_type) = { description: "Export options.", label: ADVANCED }];
-  optional bool convert_values = 3 [
-    (sem_type) = {
-      description: "If true, convert values for export-friendly format.",
-      label: HIDDEN
-    },
-    default = true
-  ];
-  // Whether to export fields of type `bytes` using base64-encoding.
-  //
-  // By default, all binary data is omitted in the export results to avoid
-  // issues with UTF-8 encoding. If this option is enabled, the binary data is
-  // going to be exported as a base64-encoded string value.
-  optional bool base64_bytes_export = 4;
-}
-
-message SplunkOutputPluginArgs {
-  repeated string annotations = 1 [(sem_type) = {
-    description: "Annotations to add to exported data. This field can be "
-                 "used to differentiate sets of exported data inside a "
-                 "particular exported type. e.g. data collected by users "
-                 "vs. data collected by cronjob."
-  }];
-  optional string index = 2
-      [(sem_type) = { description: "The Splunk Index to assign to events." }];
-}
-
-message ElasticsearchOutputPluginArgs {
-  repeated string tags = 1 [(sem_type) = {
-    description: "Tags to add to exported data. This field can be "
-                 "used to differentiate sets of exported data inside a "
-                 "particular exported type. e.g. data collected by users "
-                 "vs. data collected by cronjob."
-  }];
-  optional string index = 2 [(sem_type) = {
-    description: "The Elasticsearch index to place the events in"
-  }];
-}
-
-message GcsOutputPluginArgs {
-  optional string gcs_bucket = 1 [(sem_type) = {
-    description: "The GCS bucket to which objects will be stored.",
-  }];
-  optional string project_id = 2 [(sem_type) = {
-    description: "The Project ID with the GCS bucket.",
-  }];
-}
-
-message WebhookOutputPluginArgs {
-  optional string url = 1
-      [(sem_type) = { description: "The HTTP Webhook to send the events to." }];
-  optional bool verify_https = 2 [
-    (sem_type) = {
-      description: "If true, verifies that HTTPS is configured.",
-      label: HIDDEN
-    },
-    default = false
-  ];
-  repeated string annotations = 3 [(sem_type) = {
-    description: "Annotations to add to exported data. This field can be "
-                 "used to differentiate sets of exported data inside a "
-                 "particular exported type. e.g. data collected by users "
-                 "vs. data collected by cronjob."
   }];
 }

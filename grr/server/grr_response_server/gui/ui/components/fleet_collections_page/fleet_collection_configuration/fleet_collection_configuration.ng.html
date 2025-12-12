@@ -1,0 +1,175 @@
+<div class="overview-container">
+  <div>
+    @if( fleetCollectionStore.fleetCollection(); as fleetCollection) {
+      <fleet-collection-state-chip
+        [fleetCollectionState]="fleetCollection.state"
+        [fleetCollectionStateReason]="fleetCollection.stateReason"
+        [fleetCollectionStateComment]="fleetCollection.stateComment"
+        [resultsCount]="undefined" />
+    }
+  </div>
+  <div class="actions-container">
+
+    <div class="access-container"
+      [matTooltip]="!fleetCollectionStore.hasAccess()
+        ? 'Get approval to change the configuration of this Fleet Collection.'
+        : ''"
+    >
+      <div
+        class="start-fleet-collection-container"
+        [matTooltip]="(
+          fleetCollectionStore.fleetCollection()?.state !== HuntState.NOT_STARTED
+        ) ? 'Can only start a Fleet Collection from paused state.' : ''"
+      >
+        <button mat-flat-button
+          (click)="fleetCollectionStore.startFleetCollection()"
+          [disabled]="
+            !fleetCollectionStore.hasAccess() ||
+            fleetCollectionStore.fleetCollection()?.state !== HuntState.NOT_STARTED
+          "
+        >
+          Start Fleet Collection
+        </button>
+      </div>
+
+
+      <div
+        class="cancel-fleet-collection-container"
+        [matTooltip]="(
+          fleetCollectionStore.fleetCollection()?.state === HuntState.REACHED_TIME_LIMIT ||
+          fleetCollectionStore.fleetCollection()?.state === HuntState.CANCELLED
+        ) ? 'Can only cancel a Fleet Collection an ongoing Fleet Collection.' : ''"
+      >
+      <button mat-stroked-button
+      (click)="fleetCollectionStore.cancelFleetCollection()"
+          [disabled]="
+            !fleetCollectionStore.hasAccess() ||
+            fleetCollectionStore.fleetCollection()?.state === HuntState.REACHED_TIME_LIMIT ||
+            fleetCollectionStore.fleetCollection()?.state === HuntState.CANCELLED
+          "
+        >
+        Cancel Fleet Collection
+        </button>
+      </div>
+    </div>
+
+    <div class="modify-fleet-collection-container"
+      [matTooltip]="(
+        fleetCollectionStore.fleetCollection()?.state === HuntState.REACHED_TIME_LIMIT ||
+        fleetCollectionStore.fleetCollection()?.state === HuntState.CANCELLED
+      ) ? 'Can only modify rollout parameters of an ongoing Fleet Collection.' : ''"
+    >
+      <button mat-stroked-button
+        [disabled]="
+          !fleetCollectionStore.fleetCollection() ||
+          fleetCollectionStore.fleetCollection()?.state === HuntState.REACHED_TIME_LIMIT ||
+          fleetCollectionStore.fleetCollection()?.state === HuntState.CANCELLED
+        "
+        (click)="openModifyFleetCollectionDialog()"
+      >
+        Modify Rollout Parameters
+      </button>
+    </div>
+  </div>
+</div>
+
+<mat-divider />
+
+<h4>General</h4>
+
+<table>
+  <tr>
+    <td>Description</td>
+    <td>{{fleetCollectionStore.fleetCollection()?.description ?? 'No description'}}</td>
+  </tr>
+  <tr>
+    <td>Flow Type</td>
+    <td>{{fleetCollectionStore.fleetCollection()?.flowType | friendlyFlowName}}</td>
+  </tr>
+  <tr>
+    <td>Creator</td>
+    <td>
+      @if (fleetCollectionStore.fleetCollection()?.isRobot) {
+        <p><mat-icon>smart_toy</mat-icon> Robot</p>
+      } @else {
+        <p><user [username]="fleetCollectionStore.fleetCollection()?.creator" [withName]="true" /></p>
+      }
+    </td>
+  </tr>
+  <tr>
+    <td>Created</td>
+    <td><timestamp [date]="fleetCollectionStore.fleetCollection()?.created" /></td>
+  </tr>
+  <tr>
+    <td>Initial start time</td>
+    <td><timestamp [date]="fleetCollectionStore.fleetCollection()?.initStartTime" /></td>
+  </tr>
+  <tr>
+    <td>Last started</td>
+    <td><timestamp [date]="fleetCollectionStore.fleetCollection()?.lastStartTime" /></td>
+  </tr>
+  @if (fleetCollectionStore.fleetCollection()?.huntReference?.huntId) {
+    <tr>
+      Copied from Fleet Collection
+      <td>
+        <a mat-button
+            class="fleet-collection-link"
+            [routerLink]="['/fleet-collections', fleetCollectionStore.fleetCollection()?.huntReference?.huntId]"
+        >{{fleetCollectionStore.fleetCollection()?.huntReference?.huntId}}</a>
+      </td>
+    </tr>
+  }
+  @if (fleetCollectionStore.fleetCollection()?.flowReference?.flowId) {
+    <tr>
+      <td>Source Flow</td>
+      <td>
+        <a mat-button
+            class="flow-link"
+            [routerLink]="[
+              '/clients',
+              fleetCollectionStore.fleetCollection()?.flowReference?.clientId,
+              'flows',
+              fleetCollectionStore.fleetCollection()?.flowReference?.flowId
+            ]"
+        >{{fleetCollectionStore.fleetCollection()?.flowReference?.flowId}}</a>
+
+      </td>
+    </tr>
+  }
+</table>
+
+<mat-divider />
+
+<collapsible-container>
+  <collapsible-title>
+    <h4>Flow Arguments</h4>
+  </collapsible-title>
+  <collapsible-content>
+    @let flowType = fleetCollectionStore.fleetCollection()?.flowType;
+    @let flowArgs = fleetCollectionStore.fleetCollection()?.flowArgs;
+    @if (flowType && flowArgs) {
+      <flow-args-form
+          [flowType]="flowType"
+          [flowArgs]="flowArgs"
+          [editable]="false"
+        />
+    }
+  </collapsible-content>
+</collapsible-container>
+
+<mat-divider />
+
+<collapsible-container>
+  <collapsible-title>
+    <h4>Fleet Collection Arguments</h4>
+  </collapsible-title>
+  <collapsible-content>
+    @let collection = fleetCollectionStore.fleetCollection();
+    @if (collection) {
+      <fleet-collection-arguments [fleetCollection]="collection" />
+    }
+  </collapsible-content>
+</collapsible-container>
+
+
+<mat-divider />

@@ -1,0 +1,45 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.COLLECT_FILES_BY_KNOWN_PATH, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute paths</mat-label>
+    <textarea matInput
+        placeholder="/some/path # - Linux, Mac &#10;C:\some\path # - Windows"
+        [formControl]="controls.paths"
+        class="monospace tall w100"
+        name="paths"
+        autocomplete="off">
+    </textarea>
+    <mat-error>
+      <form-errors [validationErrors]="controls.paths.errors" />
+    </mat-error>
+    <mat-hint>
+      <form-warnings [validationWarnings]="controls.paths.warnings()" />
+    </mat-hint>
+  </mat-form-field>
+
+  @if (showAdvancedParams || !editable()) {
+    <mat-radio-group
+        aria-label="Collection level"
+        name="collection-level-radio-group"
+        [formControl]="controls.collectionLevel"
+    >
+      @for (collectionLevel of COLLECTION_LEVELS; track collectionLevel) {
+        <mat-radio-button name="collection-level-radio-button" [value]="collectionLevel.value">
+          {{collectionLevel.label}}
+        </mat-radio-button>
+      }
+    </mat-radio-group>
+  }
+
+  @if (editable()) {
+    <button mat-button
+        type="button"
+        class="advanced-params-button"
+        (click)="showAdvancedParams = !showAdvancedParams"
+        aria-label="View/hide advanced params">
+      <mat-icon>{{showAdvancedParams ? 'expand_less' : 'expand_more'}}</mat-icon>
+        {{showAdvancedParams ? 'Hide settings' : 'View settings'}}
+    </button>
+
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

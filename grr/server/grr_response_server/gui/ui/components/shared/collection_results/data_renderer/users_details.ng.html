@@ -1,0 +1,48 @@
+@for (user of users(); track user.uid) {
+  <table>
+    @if (user.username) {
+      <tr>
+        <td>Username</td>
+        <td><copy-button>{{ user.username }}</copy-button></td>
+      </tr>
+    }
+    @if (user.fullName) {
+      <tr>
+        <td>Full name</td>
+        <td><copy-button>{{ user.fullName }}</copy-button></td>
+      </tr>
+    }
+    @if (user.lastLogon) {
+      <tr>
+        <td>Last logon</td>
+        <td><timestamp [date]="user.lastLogon" /></td>
+      </tr>
+    }
+    @if (user.homedir) {
+      <tr>
+        <td>Home directory</td>
+        <td><copy-button>{{ user.homedir }}</copy-button></td>
+      </tr>
+    }
+    @if (user.uid) {
+      <tr>
+        <td>UID</td>
+        <td><copy-button>{{ `${user.uid}` }}</copy-button></td>
+      </tr>
+    }
+    @if (user.gid) {
+      <tr>
+        <td>GID</td>
+        <td><copy-button>{{ `${user.gid}` }}</copy-button></td>
+      </tr>
+    }
+    @if (user.shell) {
+      <tr>
+        <td>Shell</td>
+        <td><copy-button>{{ user.shell }}</copy-button></td>
+      </tr>
+    }
+  </table>
+} @empty {
+  <div>None.</div>
+}

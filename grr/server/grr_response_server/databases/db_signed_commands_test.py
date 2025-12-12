@@ -15,7 +15,7 @@ def create_signed_command(
     args: Optional[list[str]] = None,
     unsigned_stdin_allowed: bool = False,
     signed_stdin: Optional[bytes] = None,
-    env_vars: Optional[list[signed_commands_pb2.Command.EnvVar]] = None,
+    env_vars: Optional[dict[str, str]] = None,
 ) -> signed_commands_pb2.SignedCommand:
   """Creates a signed command for testing."""
   signed_command = signed_commands_pb2.SignedCommand()
@@ -30,10 +30,9 @@ def create_signed_command(
   signed_command.ed25519_signature = signature
 
   if args:
-    command.args.extend(args)
-  if env_vars:
-    for env_var in env_vars:
-      command.env[env_var.name] = env_var.value
+    command.args_signed.extend(args)
+  for name, value in (env_vars or {}).items():
+    command.env_signed[name] = value
 
   command.unsigned_stdin_allowed = unsigned_stdin_allowed
   if signed_stdin:
@@ -54,9 +53,9 @@ class DatabaseTestSignedCommandsMixin:
 
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "test_path".encode("utf-8")
-    command.args.extend(["args1", "args2"])
-    command.env["env_var_1"] = "env_var_1_value"
-    command.env["env_var_2"] = "env_var_2_value"
+    command.args_signed.extend(["args1", "args2"])
+    command.env_signed["env_var_1"] = "env_var_1_value"
+    command.env_signed["env_var_2"] = "env_var_2_value"
     command.signed_stdin = b"signed_stdin"
     command.unsigned_stdin_allowed = False
 
@@ -106,16 +105,16 @@ class DatabaseTestSignedCommandsMixin:
     )
     command = rrg_execute_signed_command_pb2.Command()
     command.ParseFromString(read_command.command)
-    self.assertEqual(command.args, ["arg1", "arg2", "arg3"])
+    self.assertEqual(command.args_signed, ["arg1", "arg2", "arg3"])
 
   def testWriteReadSignedCommands_testEnvVars(self):
     signed_command = create_signed_command(
         "command",
         signed_commands_pb2.SignedCommand.OS.LINUX,
-        env_vars=[
-            signed_commands_pb2.Command.EnvVar(name="name_1", value="value_1"),
-            signed_commands_pb2.Command.EnvVar(name="name_2", value="value_2"),
-        ],
+        env_vars={
+            "name_1": "value_1",
+            "name_2": "value_2",
+        },
     )
     self.db.WriteSignedCommand(signed_command)
 
@@ -125,7 +124,7 @@ class DatabaseTestSignedCommandsMixin:
     command = rrg_execute_signed_command_pb2.Command()
     command.ParseFromString(read_command.command)
     self.assertEqual(
-        command.env,
+        command.env_signed,
         {
             "name_2": "value_2",
             "name_1": "value_1",
@@ -217,6 +216,285 @@ class DatabaseTestSignedCommandsMixin:
     self.assertCountEqual(
         read_signed_commands, [signed_command_1, signed_command_2]
     )
+
+  def testReadSignedCommand_UnknownCommand(self):
+    with self.assertRaises(db.UnknownSignedCommandError) as context:
+      self.db.ReadSignedCommand(
+          "i_do_not_exist",
+          signed_commands_pb2.SignedCommand.OS.LINUX,
+      )
+
+    self.assertEqual(
+        context.exception.command_id,
+        "i_do_not_exist",
+    )
+    self.assertEqual(
+        context.exception.operating_system,
+        signed_commands_pb2.SignedCommand.OS.LINUX,
+    )
+
+  def testReadSignedCommand_Source(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/true".encode("utf-8")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "true"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+    command.source_path = "/home/quux/mycommands.textproto"
+
+    self.db.WriteSignedCommand(command)
+
+    command = self.db.ReadSignedCommand(
+        "true",
+        operating_system=signed_commands_pb2.SignedCommand.LINUX,
+    )
+    self.assertEqual(command.source_path, "/home/quux/mycommands.textproto")
+
+  def testLookupSignedCommand_Match(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    result = self.db.LookupSignedCommand(
+        operating_system=signed_commands_pb2.SignedCommand.LINUX,
+        path="/usr/bin/foo",
+        args=["--bar", "--baz"],
+    )
+    self.assertEqual(result.id, "foo")
+
+  def testLookupSignedCommand_Match_Args(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args.add().signed = "--bar"
+    rrg_command.args.add().signed = "--baz"
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    result = self.db.LookupSignedCommand(
+        operating_system=signed_commands_pb2.SignedCommand.LINUX,
+        path="/usr/bin/foo",
+        args=["--bar", "--baz"],
+    )
+    self.assertEqual(result.id, "foo")
+
+  def testLookupSignedCommand_Match_ArgsMixed(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args.add().signed = "--baz"
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    result = self.db.LookupSignedCommand(
+        operating_system=signed_commands_pb2.SignedCommand.LINUX,
+        path="/usr/bin/foo",
+        args=["--bar", "--baz"],
+    )
+    self.assertEqual(result.id, "foo")
+
+  def testLookupSignedCommand_Mismatch_OperatingSystem(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.MACOS,
+          path="/usr/bin/foo",
+          args=["--bar", "--baz"],
+      )
+
+  def testLookupSignedCommand_Mismatch_Path(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.MACOS,
+          path="/usr/bin/bar",
+          args=["--bar", "--baz"],
+      )
+
+  def testLookupSignedCommand_Mismatch_ArgsOrder(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.MACOS,
+          path="/usr/bin/bar",
+          args=["--baz", "--bar"],
+      )
+
+  def testLookupSignedCommand_Mismatch_ArgsUnsigned(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args.add().signed = "--bar"
+    rrg_command.args.add().unsigned_allowed = True
+    rrg_command.args.add().signed = "--baz"
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.MACOS,
+          path="/usr/bin/bar",
+          args=["--baz", "--quux", "--bar"],
+      )
+
+  def testLookupSignedCommand_Mismatch_Env(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+    rrg_command.env_signed["quux"] = "blargh"
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.LINUX,
+          path="/usr/bin/foo",
+          args=["--baz", "--bar"],
+      )
+
+  def testLookupSignedCommand_Mismatch_EnvUnsigned(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.env_unsigned_allowed.append("bar")
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.LINUX,
+          path="/usr/bin/foo",
+          args=[],
+      )
+
+  def testLookupSignedCommand_Mismatch_SignedStdin(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+    rrg_command.signed_stdin = b"lorem ipsum dolor sit amet"
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.LINUX,
+          path="/usr/bin/foo",
+          args=["--baz", "--bar"],
+      )
+
+  def testLookupSignedCommand_Mismatch_UnsignedStdinAllowed(self):
+    rrg_command = rrg_execute_signed_command_pb2.Command()
+    rrg_command.path.raw_bytes = "/usr/bin/foo".encode("utf-8")
+    rrg_command.args_signed.append("--bar")
+    rrg_command.args_signed.append("--baz")
+    rrg_command.unsigned_stdin_allowed = True
+
+    command = signed_commands_pb2.SignedCommand()
+    command.id = "foo"
+    command.operating_system = signed_commands_pb2.SignedCommand.LINUX
+    command.ed25519_signature = os.urandom(64)
+    command.command = rrg_command.SerializeToString()
+
+    self.db.WriteSignedCommand(command)
+
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.LINUX,
+          path="/usr/bin/foo",
+          args=["--baz", "--bar"],
+      )
+
+  def testLookupSignedCommand_NoCommands(self):
+    with self.assertRaises(db.NoMatchingSignedCommandError):
+      self.db.LookupSignedCommand(
+          operating_system=signed_commands_pb2.SignedCommand.MACOS,
+          path="/usr/bin/bar",
+          args=["--baz", "--bar"],
+      )
 
   def testDeleteAllSignedCommands(self):
     signed_command_1 = create_signed_command(

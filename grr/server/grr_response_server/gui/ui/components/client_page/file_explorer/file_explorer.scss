@@ -1,0 +1,71 @@
+:host {
+  width: 100vw;
+  height: 100%;
+
+  overflow: auto;
+}
+
+split-panel {
+  height: 100%;
+  width: 100%;
+}
+
+.panel {
+  height: 100%;
+  overflow-y: scroll;
+}
+
+.overview-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+}
+
+.overview-left {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+
+  padding: 10px;
+}
+
+.overview-right {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+mat-form-field {
+  width: 100%;
+  padding: 8px;
+}
+
+.folder-name {
+  display: inline-flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.folder-name-button {
+  white-space: nowrap;
+}
+
+.folder-container {
+  display: block;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.selected-folder {
+  background-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}

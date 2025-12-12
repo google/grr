@@ -2,10 +2,11 @@
 """API handlers for dealing with flows."""
 
 import collections
+from collections.abc import Callable, Iterable, Iterator, Sequence
 import itertools
 import logging
 import re
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -29,8 +30,8 @@ from grr_response_server import data_store_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import instant_output_plugin
+from grr_response_server import instant_output_plugin_registry
 from grr_response_server import notification
-from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
@@ -38,7 +39,6 @@ from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
 from grr_response_server.gui import mig_api_call_handler_utils
 from grr_response_server.gui.api_plugins import client
-from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -52,6 +52,12 @@ class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
 
 class OutputPluginNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when an output plugin is not found."""
+
+
+class InstantOutputPluginNotFoundError(
+    api_call_handler_base.ResourceNotFoundError
+):
+  """Raised when an instant output plugin is not found."""
 
 
 def GetFlowContextStateFromFlowObject(
@@ -134,6 +140,9 @@ def InitRunnerArgsFromFlowObject(
   models_utils.CopyAttr(flow_obj, runner_args, "cpu_limit")
   models_utils.CopyAttr(flow_obj, runner_args, "network_bytes_limit")
 
+  if flow_obj.disable_rrg_support:
+    runner_args.disable_rrg_support = flow_obj.disable_rrg_support
+
   if flow_obj.output_plugins:
     runner_args.output_plugins.extend(flow_obj.output_plugins)
 
@@ -142,7 +151,6 @@ def InitRunnerArgsFromFlowObject(
 
 def InitApiFlowFromFlowObject(
     flow_obj: flows_pb2.Flow,
-    with_args: bool = True,
     with_progress: bool = False,
     with_state_and_context: bool = False,
 ) -> flow_pb2.ApiFlow:
@@ -189,8 +197,7 @@ def InitApiFlowFromFlowObject(
   if with_state_and_context:
     api_flow.context.CopyFrom(InitFlowContextFromFlowObject(flow_obj))
 
-  if with_args:
-    api_flow.args.CopyFrom(flow_obj.args)
+  api_flow.args.CopyFrom(flow_obj.args)
 
   if with_progress:
     # TODO: Once all `Progress` is reported with a proto, start
@@ -232,7 +239,7 @@ def InitApiFlowLogFromFlowLogEntry(
 
 
 def InitApiFlowDescriptorFromFlowClass(
-    flow_cls: Type[flow_base.FlowBase],
+    flow_cls: type[flow_base.FlowBase],
     context: api_call_context.ApiCallContext,
 ) -> flow_pb2.ApiFlowDescriptor:
   """Creates an ApiFlowDescriptor from a flow class."""
@@ -254,7 +261,7 @@ def InitApiFlowDescriptorFromFlowClass(
     flow_args = ", ".join(flow_args + prototypes)
     return "".join(["flow.StartFlow(", flow_args, ")"])
 
-  def _GetFlowArgsHelpAsString(flow_cls: Type[flow_base.FlowBase]) -> str:
+  def _GetFlowArgsHelpAsString(flow_cls: type[flow_base.FlowBase]) -> str:
     """Get a string description of the calling prototype for this flow."""
     output = []
     output.append("  Call Spec:")
@@ -278,9 +285,9 @@ def InitApiFlowDescriptorFromFlowClass(
 
   def _GetArgsDescription(
       args_type: rdf_flows.EmptyFlowArgs,
-  ) -> Dict[str, Dict[str, Any]]:
+  ) -> dict[str, dict[str, Any]]:
     """Get a simplified description of the args_type for a flow."""
-    args: Dict[str, Dict[str, Any]] = {}
+    args: dict[str, dict[str, Any]] = {}
     if args_type:
       for type_descriptor in args_type.type_infos:
         if not type_descriptor.hidden:
@@ -293,7 +300,7 @@ def InitApiFlowDescriptorFromFlowClass(
           }
     return args
 
-  def GetFlowDocumentation(flow_cls: Type[flow_base.FlowBase]) -> str:
+  def GetFlowDocumentation(flow_cls: type[flow_base.FlowBase]) -> str:
     """Get a string description of the flow documentation."""
     return (
         f"{getattr(flow_cls, '__doc__', '')}\n\n"
@@ -334,7 +341,7 @@ def InitApiScheduledFlowFromScheduledFlow(
 
 def _GetFlowClass(
     api_flow: flow_pb2.ApiFlow,
-) -> Optional[Type[flow_base.FlowBase]]:
+) -> Optional[type[flow_base.FlowBase]]:
   flow_name = api_flow.name
   if not flow_name:
     flow_name = api_flow.runner_args.flow_name
@@ -381,12 +388,6 @@ class ApiFlowId(rdfvalue.RDFString):
     return self._value.split("/")
 
 
-class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
-  """Descriptor containing information about a flow class."""
-
-  protobuf = flow_pb2.ApiFlowDescriptor
-
-
 class ApiFlowReference(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowReference
   rdf_deps = [
@@ -422,7 +423,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       rdfvalue.SessionID,
   ]
 
-  def _GetFlowClass(self) -> Optional[Type[flow_base.FlowBase]]:
+  def _GetFlowClass(self) -> Optional[type[flow_base.FlowBase]]:
     flow_name = self.name
     if not flow_name:
       flow_name = self.runner_args.flow_name
@@ -433,43 +434,15 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       except ValueError as e:
         logging.warning("Failed to get flow class for %s: %s", flow_name, e)
 
-  def GetArgsClass(self) -> Optional[Type[rdf_structs.RDFProtoStruct]]:
+  def GetArgsClass(self) -> Optional[type[rdf_structs.RDFProtoStruct]]:
     cls = self._GetFlowClass()
     if cls is not None:
       return cls.args_type
 
-  def GetProgressClass(self) -> Optional[Type[rdf_structs.RDFProtoStruct]]:
+  def GetProgressClass(self) -> Optional[type[rdf_structs.RDFProtoStruct]]:
     cls = self._GetFlowClass()
     if cls is not None:
       return cls.progress_type
-
-
-class ApiFlowRequest(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiFlowRequest
-  rdf_deps = [
-      rdf_flows.GrrMessage,
-      rdf_flow_runner.RequestState,
-  ]
-
-
-class ApiFlowResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiFlowResult
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiFlowLog(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiFlowLog
-  rdf_deps = [ApiFlowId, rdfvalue.RDFDatetime]
-
-
-class ApiGetFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetFlowArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
 
 
 class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -478,8 +451,6 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   Only top-level flows can be targeted.
   """
 
-  args_type = ApiGetFlowArgs
-  result_type = ApiFlow
   proto_args_type = flow_pb2.ApiGetFlowArgs
   proto_result_type = flow_pb2.ApiFlow
 
@@ -495,26 +466,9 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiListFlowRequestsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowRequestsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowRequestsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowRequestsResult
-  rdf_deps = [
-      ApiFlowRequest,
-  ]
-
-
 class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   """Renders list of requests of a given flow."""
 
-  args_type = ApiListFlowRequestsArgs
-  result_type = ApiListFlowRequestsResult
   proto_args_type = flow_pb2.ApiListFlowRequestsArgs
   proto_result_type = flow_pb2.ApiListFlowRequestsResult
 
@@ -574,26 +528,9 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
     return result
 
 
-class ApiListFlowResultsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowResultsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowResultsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowResultsResult
-  rdf_deps = [
-      ApiFlowResult,
-  ]
-
-
 class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a given flow."""
 
-  args_type = ApiListFlowResultsArgs
-  result_type = ApiListFlowResultsResult
   proto_args_type = flow_pb2.ApiListFlowResultsArgs
   proto_result_type = flow_pb2.ApiListFlowResultsResult
 
@@ -635,24 +572,9 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowLogsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowLogsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowLogsResult
-  rdf_deps = [ApiFlowLog]
-
-
 class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of logs for the current client and flow."""
 
-  args_type = ApiListFlowLogsArgs
-  result_type = ApiListFlowLogsResult
   proto_args_type = flow_pb2.ApiListFlowLogsArgs
   proto_result_type = flow_pb2.ApiListFlowLogsResult
 
@@ -677,25 +599,11 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetFlowResultsExportCommandArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiGetFlowResultsExportCommandResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetFlowResultsExportCommandResult
-
-
 class ApiGetFlowResultsExportCommandHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Renders GRR export tool command line that exports flow results."""
 
-  args_type = ApiGetFlowResultsExportCommandArgs
-  result_type = ApiGetFlowResultsExportCommandResult
   proto_args_type = flow_pb2.ApiGetFlowResultsExportCommandArgs
   proto_result_type = flow_pb2.ApiGetFlowResultsExportCommandResult
 
@@ -723,6 +631,7 @@ class ApiGetFlowResultsExportCommandHandler(
     )
 
 
+# TODO: Check further usages and remove this RDFValue.
 class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowFilesArchiveArgs
   rdf_deps = [
@@ -734,7 +643,6 @@ class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
 class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in flow's results."""
 
-  args_type = ApiGetFlowFilesArchiveArgs
   proto_args_type = flow_pb2.ApiGetFlowFilesArchiveArgs
 
   def __init__(
@@ -783,7 +691,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   def _WrapContentGenerator(
       self,
       generator: archive_generator.CollectionArchiveGenerator,
-      flow_results: List[flows_pb2.FlowResult],
+      flow_results: list[flows_pb2.FlowResult],
       args: ApiGetFlowFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> Iterator[flows_pb2.FlowResult]:
@@ -891,29 +799,23 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     return Predicate
 
-  def _GetFlow(
-      self, args: flow_pb2.ApiGetFlowFilesArchiveArgs
-  ) -> Tuple[flows_pb2.Flow, List[flows_pb2.FlowResult]]:
-    flow_obj = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
-    flow_results = data_store.REL_DB.ReadFlowResults(
-        args.client_id, args.flow_id, 0, db.MAX_COUNT
-    )
-
-    return flow_obj, flow_results
-
   def Handle(
       self,
       args: flow_pb2.ApiGetFlowFilesArchiveArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
-    flow_object, flow_results = self._GetFlow(args)
-    flow_api_object = InitApiFlowFromFlowObject(flow_object)
-    flow_api_object = ToRDFApiFlow(flow_api_object)
+    flow_object = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
+    flow_results = data_store.REL_DB.ReadFlowResults(
+        args.client_id, args.flow_id, 0, db.MAX_COUNT
+    )
     flow_instance = flow_base.FlowBase.CreateFlowInstance(
         mig_flow_objects.ToRDFFlow(flow_object)
     )
     try:
-      mappings = flow_instance.GetFilesArchiveMappings(flow_results)
+      mappings = flow_instance.GetFilesArchiveMappings(
+          mig_flow_objects.ToRDFFlowResult(flow_result)
+          for flow_result in flow_results
+      )
     except NotImplementedError:
       mappings = None
 
@@ -921,18 +823,18 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         "Files downloaded by flow %s (%s) that ran on client %s by "
         "user %s on %s"
         % (
-            flow_api_object.name,
+            flow_object.flow_class_name,
             args.flow_id,
             args.client_id,
-            flow_api_object.creator,
-            flow_api_object.started_at,
+            flow_object.creator,
+            flow_object.create_time,
         )
     )
 
     target_file_prefix = "%s_flow_%s_%s" % (
         args.client_id,
-        flow_api_object.name,
-        str(flow_api_object.flow_id).replace(":", "_"),
+        flow_object.flow_class_name,
+        flow_object.flow_id,
     )
 
     if (
@@ -975,26 +877,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiListFlowOutputPluginsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowOutputPluginsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginsResult
-  rdf_deps = [
-      api_output_plugin.ApiOutputPlugin,
-  ]
-
-
 class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders output plugins descriptors and states for a given flow."""
 
-  args_type = ApiListFlowOutputPluginsArgs
-  result_type = ApiListFlowOutputPluginsResult
   proto_args_type = flow_pb2.ApiListFlowOutputPluginsArgs
   proto_result_type = flow_pb2.ApiListFlowOutputPluginsResult
 
@@ -1005,7 +890,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   ) -> flow_pb2.ApiListFlowOutputPluginsResult:
     flow_obj = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
 
-    plugin_results: List[api_output_plugin_pb2.ApiOutputPlugin] = []
+    plugin_results: list[api_output_plugin_pb2.ApiOutputPlugin] = []
 
     type_indices = {}
     for output_plugin_state in flow_obj.output_plugins_states:
@@ -1115,21 +1000,6 @@ class ApiListFlowOutputPluginLogsHandlerBase(
     )
 
 
-class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginLogsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginLogsResult
-  rdf_deps = [
-      output_plugin.OutputPluginBatchProcessingStatus,
-  ]
-
-
 class ApiListFlowOutputPluginLogsHandler(
     ApiListFlowOutputPluginLogsHandlerBase
 ):
@@ -1137,25 +1007,8 @@ class ApiListFlowOutputPluginLogsHandler(
 
   log_entry_type = flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG
 
-  args_type = ApiListFlowOutputPluginLogsArgs
-  result_type = ApiListFlowOutputPluginLogsResult
   proto_args_type = flow_pb2.ApiListFlowOutputPluginLogsArgs
   proto_result_type = flow_pb2.ApiListFlowOutputPluginLogsResult
-
-
-class ApiListFlowOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginErrorsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
-class ApiListFlowOutputPluginErrorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowOutputPluginErrorsResult
-  rdf_deps = [
-      output_plugin.OutputPluginBatchProcessingStatus,
-  ]
 
 
 class ApiListFlowOutputPluginErrorsHandler(
@@ -1165,32 +1018,43 @@ class ApiListFlowOutputPluginErrorsHandler(
 
   log_entry_type = flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR
 
-  args_type = ApiListFlowOutputPluginErrorsArgs
-  result_type = ApiListFlowOutputPluginErrorsResult
   proto_args_type = flow_pb2.ApiListFlowOutputPluginErrorsArgs
   proto_result_type = flow_pb2.ApiListFlowOutputPluginErrorsResult
 
 
-class ApiListFlowsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
+class ApiListAllFlowOutputPluginLogsHandler(
+    api_call_handler_base.ApiCallHandler
+):
+  """Renders flow's output plugin's logs for all plugins."""
 
+  proto_args_type = flow_pb2.ApiListAllFlowOutputPluginLogsArgs
+  proto_result_type = flow_pb2.ApiListAllFlowOutputPluginLogsResult
 
-class ApiListFlowsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowsResult
-  rdf_deps = [
-      ApiFlow,
-  ]
+  def Handle(
+      self,
+      args: flow_pb2.ApiListAllFlowOutputPluginLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> flow_pb2.ApiListAllFlowOutputPluginLogsResult:
+    logs = data_store.REL_DB.ReadAllFlowOutputPluginLogEntries(
+        args.client_id,
+        args.flow_id,
+        args.offset,
+        args.count or db.MAX_COUNT,
+    )
+    total_count = data_store.REL_DB.CountAllFlowOutputPluginLogEntries(
+        args.client_id,
+        args.flow_id,
+    )
+
+    return self.proto_result_type(
+        total_count=total_count,
+        items=logs,
+    )
 
 
 class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
-  args_type = ApiListFlowsArgs
-  result_type = ApiListFlowsResult
   proto_args_type = flow_pb2.ApiListFlowsArgs
   proto_result_type = flow_pb2.ApiListFlowsResult
 
@@ -1219,7 +1083,6 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     result = [
         InitApiFlowFromFlowObject(
             f_data,
-            with_args=True,
             with_progress=True,
         )
         for f_data in top_flows
@@ -1256,12 +1119,12 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         else None,
     )
 
-    root_flows: List[flow_pb2.ApiFlow] = []
-    parent_to_children_map: dict[str, List[flow_pb2.ApiFlow]] = (
+    root_flows: list[flow_pb2.ApiFlow] = []
+    parent_to_children_map: dict[str, list[flow_pb2.ApiFlow]] = (
         collections.defaultdict(list)
     )
     for f in all_flows:
-      api_flow = InitApiFlowFromFlowObject(f, with_args=False)
+      api_flow = InitApiFlowFromFlowObject(f, with_progress=True)
       if not f.parent_flow_id:
         root_flows.append(api_flow)
       else:
@@ -1295,18 +1158,9 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       return self._HandleAllFlows(args)
 
 
-class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiCreateFlowArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlow,
-      ApiFlowReference,
-  ]
-
-
 def _SanitizeApiCreateFlowArgs(
     args: flow_pb2.ApiCreateFlowArgs,
-) -> Tuple[Type[flow_base.FlowBase], flows_pb2.FlowRunnerArgs]:
+) -> tuple[type[flow_base.FlowBase], flows_pb2.FlowRunnerArgs]:
   """Validates and sanitizes args for flow scheduling and starting."""
 
   if not args.client_id:
@@ -1344,8 +1198,6 @@ def _SanitizeApiCreateFlowArgs(
 class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """Starts a flow on a given client with given parameters."""
 
-  args_type = ApiCreateFlowArgs
-  result_type = ApiFlow
   proto_args_type = flow_pb2.ApiCreateFlowArgs
   proto_result_type = flow_pb2.ApiFlow
 
@@ -1375,6 +1227,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         network_bytes_limit=network_bytes_limit,
         original_flow=rdf_runner_args.original_flow,
         output_plugins=rdf_runner_args.output_plugins,
+        disable_rrg_support=runner_args.disable_rrg_support,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
 
@@ -1383,19 +1236,9 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     return res
 
 
-class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiCancelFlowArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
 class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   """Cancels given flow on a given client."""
 
-  args_type = ApiCancelFlowArgs
-  result_type = ApiFlow
   proto_args_type = flow_pb2.ApiCancelFlowArgs
   proto_result_type = flow_pb2.ApiFlow
 
@@ -1411,17 +1254,9 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
     return InitApiFlowFromFlowObject(flow_obj)
 
 
-class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowDescriptorsResult
-  rdf_deps = [
-      ApiFlowDescriptor,
-  ]
-
-
 class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available flows descriptors."""
 
-  result_type = ApiListFlowDescriptorsResult
   proto_result_type = flow_pb2.ApiListFlowDescriptorsResult
 
   def __init__(
@@ -1439,7 +1274,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     """Renders list of descriptors for all the flows."""
     assert context is not None
 
-    result: List[flow_pb2.ApiFlowDescriptor] = []
+    result: list[flow_pb2.ApiFlowDescriptor] = []
     for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
 
       # Skip if it is not visible to GUI/API.
@@ -1458,37 +1293,38 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     return flow_pb2.ApiListFlowDescriptorsResult(items=result)
 
 
-class ApiGetExportedFlowResultsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetExportedFlowResultsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-
 class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   """Exports results of a given flow with an instant output plugin."""
 
-  args_type = ApiGetExportedFlowResultsArgs
+  proto_args_type = flow_pb2.ApiGetExportedFlowResultsArgs
 
   _RESULTS_PAGE_SIZE = 1000
 
-  def Handle(self, args, context=None):
-    iop_cls = instant_output_plugin.InstantOutputPlugin
-    plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
+  def Handle(
+      self,
+      args: flow_pb2.ApiGetExportedFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
+    try:
+      plugin_cls = instant_output_plugin_registry.GetPluginClassByNameProto(
+          args.plugin_name
+      )
+    except KeyError as e:
+      raise InstantOutputPluginNotFoundError(
+          f"Can't find instant output plugin {args.plugin_name}."
+      ) from e
 
-    # TODO(user): Instant output plugins shouldn't depend on contexts
-    # and URNs.
-    flow_urn = rdfvalue.RDFURN(
-        "{}/flows/{}".format(args.client_id, args.flow_id)
-    )
+    client_id = args.client_id
+    flow_id = args.flow_id
+    flow_urn = rdfvalue.RDFURN("{}/flows/{}".format(client_id, flow_id))
     plugin = plugin_cls(source_urn=flow_urn)
+    type_url_counts = data_store.REL_DB.CountFlowResultsByProtoTypeUrl(
+        client_id, flow_id
+    )
 
-    client_id = str(args.client_id)
-    flow_id = str(args.flow_id)
-    types = data_store.REL_DB.CountFlowResultsByType(client_id, flow_id)
-
-    def FetchFn(type_name):
+    def FetchFlowResultsByTypeUrl(
+        type_url: str,
+    ) -> Iterator[flows_pb2.FlowResult]:
       """Fetches all flow results of a given type."""
       offset = 0
       while True:
@@ -1497,22 +1333,19 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
             flow_id,
             offset=offset,
             count=self._RESULTS_PAGE_SIZE,
-            with_type=type_name,
+            with_proto_type_url=type_url,
         )
-        results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
         if not results:
           break
 
         for r in results:
-          msg = r.AsLegacyGrrMessage()
-          msg.source = client_id
-          yield msg
+          yield r
 
         offset += self._RESULTS_PAGE_SIZE
 
-    content_generator = instant_output_plugin.ApplyPluginToTypedCollection(
-        plugin, types, FetchFn
+    content_generator = instant_output_plugin.GetExportedFlowResults(
+        plugin, list(type_url_counts.keys()), FetchFlowResultsByTypeUrl
     )
 
     return api_call_handler_base.ApiBinaryStream(
@@ -1520,29 +1353,9 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiExplainGlobExpressionArgs(rdf_structs.RDFProtoStruct):
-  """Args for ApiExplainGlobExpressionHandler."""
-
-  protobuf = flow_pb2.ApiExplainGlobExpressionArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiExplainGlobExpressionResult(rdf_structs.RDFProtoStruct):
-  """Results of ApiExplainGlobExpressionHandler."""
-
-  protobuf = flow_pb2.ApiExplainGlobExpressionResult
-  rdf_deps = [
-      rdf_paths.GlobComponentExplanation,
-  ]
-
-
 class ApiExplainGlobExpressionHandler(api_call_handler_base.ApiCallHandler):
   """Gives examples for the components of a GlobExpression."""
 
-  args_type = ApiExplainGlobExpressionArgs
-  result_type = ApiExplainGlobExpressionResult
   proto_args_type = flow_pb2.ApiExplainGlobExpressionArgs
   proto_result_type = flow_pb2.ApiExplainGlobExpressionResult
 
@@ -1560,21 +1373,11 @@ class ApiExplainGlobExpressionHandler(api_call_handler_base.ApiCallHandler):
     return flow_pb2.ApiExplainGlobExpressionResult(components=components)
 
 
-class ApiScheduledFlow(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiScheduledFlow
-  rdf_deps = [
-      rdf_flow_runner.FlowRunnerArgs,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiScheduleFlowHandler(api_call_handler_base.ApiCallHandler):
   """Schedules a flow on a client, to be started upon approval grant."""
 
-  args_type = ApiCreateFlowArgs
-  result_type = ApiScheduledFlow
   proto_args_type = flow_pb2.ApiCreateFlowArgs
-  protoresult_type = flow_pb2.ApiScheduledFlow
+  proto_result_type = flow_pb2.ApiScheduledFlow
 
   def Handle(
       self,
@@ -1597,25 +1400,9 @@ class ApiScheduleFlowHandler(api_call_handler_base.ApiCallHandler):
     return InitApiScheduledFlowFromScheduledFlow(scheduled_flow)
 
 
-class ApiListScheduledFlowsArgs(rdf_structs.RDFProtoStruct):
-  """Args for ApiListScheduledFlowsHandler."""
-
-  protobuf = flow_pb2.ApiListScheduledFlowsArgs
-  rdf_deps = []
-
-
-class ApiListScheduledFlowsResult(rdf_structs.RDFProtoStruct):
-  """Results of ApiListScheduledFlowsHandler."""
-
-  protobuf = flow_pb2.ApiListScheduledFlowsResult
-  rdf_deps = [ApiScheduledFlow]
-
-
 class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all scheduled flows from a user on a client."""
 
-  args_type = ApiListScheduledFlowsArgs
-  result_type = ApiListScheduledFlowsResult
   proto_args_type = flow_pb2.ApiListScheduledFlowsArgs
   proto_result_type = flow_pb2.ApiListScheduledFlowsResult
 
@@ -1633,25 +1420,9 @@ class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
     return flow_pb2.ApiListScheduledFlowsResult(scheduled_flows=results)
 
 
-class ApiUnscheduleFlowArgs(rdf_structs.RDFProtoStruct):
-  """Args for ApiUnscheduleFlowHandler."""
-
-  protobuf = flow_pb2.ApiUnscheduleFlowArgs
-  rdf_deps = []
-
-
-class ApiUnscheduleFlowResult(rdf_structs.RDFProtoStruct):
-  """Results of ApiUnscheduleFlowHandler."""
-
-  protobuf = flow_pb2.ApiUnscheduleFlowResult
-  rdf_deps = []
-
-
 class ApiUnscheduleFlowHandler(api_call_handler_base.ApiCallHandler):
   """Unschedules and deletes a previously scheduled flow."""
 
-  args_type = ApiUnscheduleFlowArgs
-  result_type = ApiUnscheduleFlowResult
   proto_args_type = flow_pb2.ApiUnscheduleFlowArgs
   proto_result_type = flow_pb2.ApiUnscheduleFlowResult
 
@@ -1668,11 +1439,3 @@ class ApiUnscheduleFlowHandler(api_call_handler_base.ApiCallHandler):
         scheduled_flow_id=args.scheduled_flow_id,
     )
     return flow_pb2.ApiUnscheduleFlowResult()
-
-
-_TAG_ARTIFACT_NAME = re.compile(r"artifact:(?P<name>\w+)")
-
-
-# Copy of the migration function in mig_flow to avoid circular import.
-def ToRDFApiFlow(proto: flow_pb2.ApiFlow) -> ApiFlow:
-  return ApiFlow.FromSerializedBytes(proto.SerializeToString())

@@ -8,6 +8,11 @@
       },
       {
         "type": "STRING",
+        "description": "Client ID of a client that contains this entry.",
+        "name": "client_id"
+      },
+      {
+        "type": "STRING",
         "description": "Client hostname.",
         "name": "hostname"
       },

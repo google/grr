@@ -58,18 +58,6 @@ def ToRDFFlowNotification(
   )
 
 
-def ToProtoBlobArray(rdf: rdf_flows.NotificationList) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFNotificationList(
-    proto: jobs_pb2.BlobArray,
-) -> rdf_flows.NotificationList:
-  return rdf_flows.NotificationList.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoPackedMessageList(
     rdf: rdf_flows.PackedMessageList,
 ) -> jobs_pb2.PackedMessageList:

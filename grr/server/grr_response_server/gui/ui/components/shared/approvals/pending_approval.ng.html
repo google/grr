@@ -1,0 +1,32 @@
+<h4><mat-icon>hourglass_top</mat-icon> Pending access request </h4>
+
+<table>
+  <tr>
+    <td>
+      Request sent to:
+    </td>
+    <td>
+      @for(approver of approval().requestedApprovers; track approver) {
+        <user [username]="approver" [withName]="true" size="16px" />{{!$last ? ',' : ''}}
+      }
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Request reason:
+    </td>
+    <td class="reason">
+      {{ approval().reason }}
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Approval URL:
+    </td>
+    <td>
+      @if(approvalUrl()) {
+        <copy-button>{{ approvalUrl() }}</copy-button>
+      }
+    </td>
+  </tr>
+</table>

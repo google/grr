@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """A module with YARA-related methods of the in-memory database."""
 
-from typing import Dict
-
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.models import blobs as models_blobs
@@ -13,8 +11,8 @@ class InMemoryDBYaraMixin(object):
 
   def __init__(self):
     super().__init__()
-    self.yara: Dict[models_blobs.BlobID, str] = {}
-    self.users: Dict[str, objects_pb2.GRRUser] = {}
+    self.yara: dict[models_blobs.BlobID, str] = {}
+    self.users: dict[str, objects_pb2.GRRUser] = {}
 
   def WriteYaraSignatureReference(
       self,

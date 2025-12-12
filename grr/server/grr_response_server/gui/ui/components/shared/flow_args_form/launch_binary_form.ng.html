@@ -1,0 +1,49 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.LAUNCH_BINARY, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Binary</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="controls.binary"
+      [matAutocomplete]="auto"
+      placeholder="Search for a binary..."
+    />
+    @if (globalStore.binaries() == null) {
+      <mat-progress-spinner
+        matSuffix
+        mode="indeterminate"
+        diameter="20"
+        strokeWidth="1"
+        matTooltip="Loading binary suggestions…"
+      />
+    }
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="selectBinary($event.option.value)"
+      [autoActiveFirstOption]="true"
+    >
+      @for (binary of filteredBinaries(); track binary.path) {
+        <mat-option [value]="binary.path">
+          {{ binary.path }}
+        </mat-option>
+    }
+    </mat-autocomplete>
+    @if (form.controls.binary.invalid) {
+      <mat-error>No binary selected</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w100 command-line-form-field">
+    <mat-label>Command line arguments</mat-label>
+    <input
+      matInput
+      [formControl]="controls.commandLine"
+      class="monospace"
+      autocomplete="off"
+    />
+  </mat-form-field>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

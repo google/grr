@@ -1,0 +1,94 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.dump_process_memory;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // PIDs of the processes whose memory we are interested in.
+  repeated uint32 pids = 1;
+
+  // Maximum amount of process memory to dump. Applies across all processes 
+  // specified in `pids`. The first memory region that exceeds the limit
+  // will be dumped partially.
+  optional uint64 total_size_limit = 2;
+
+  // Memory offsets to prioritize when the process memory size is greater than
+  // the limit specified in `total_size_limit`. First, memory pages containing
+  // the offsets will be dumped up to size_limit. If not reached, the 
+  // remaining memory pages will be dumped up to size_limit.
+  repeated uint64 priority_offsets = 3;
+
+  // Set this flag to avoid dumping mapped files.
+  bool skip_mapped_files = 4;
+  // Set this flag to avoid dumping shared memory regions. Applies to Linux only.
+  bool skip_shared_regions = 5;
+  // Set this flag to avoid dumping regions marked as executable.
+  bool skip_executable_regions = 6;
+  // Set this flag to avoid dumping regions marked as readable and not writable or executable.
+  bool skip_readonly_regions = 7;
+}
+
+// Set of OS-level permissions associated with a memory region.
+message Permissions {
+  // Indicates the region of memory can be read.
+  bool read = 1;
+  // Indicates the region of memory can be written to.
+  bool write = 2;
+  // Indicates the region of memory contains executable data.
+  bool execute = 3;
+  // Indicates a region of memory that was mapped in shared mode. 
+  // Applies to Linux only.
+  bool shared = 4;
+  // Indicates a region of memory that was mapped in private mode. 
+  bool private = 5;
+}
+
+// The result of the dump_process_memory action.
+// Represents one chunk of a single memory region of a running process.
+// The chunk can be smaller than the memory region if the size of the region
+// exceeds the maximum blob size of the blob sink. In that case, multiple
+// `Result`s will be returned, each with a different `offset` and `size`.
+message Result {
+  // PID of the process this region belongs to.
+  uint32 pid = 1;
+
+  // Start offset of the memory region in the process' address space.
+  uint64 region_start = 2;
+  // End offset of the memory region in the process' address space.
+  uint64 region_end = 3;
+
+  // A SHA-256 hash of the chunk of memory contents sent to the blob sink.
+  //
+  // Set only if `error` is not set.
+  bytes blob_sha256 = 4;
+
+  // Offset relative to `region_start` that this chunk starts at.
+  //
+  // Set only if `error` is not set.
+  uint64 offset = 5;
+
+  // Size of the chunk of memory that was sent to the blob sink.
+  // Will be <= `region_end - region_start`
+  //
+  // Set only if `error` is not set.
+  uint64 size = 6;
+
+  // Permissions associated with this region of memory.
+  //
+  // Set only if `error` is not set.
+  Permissions permissions = 7;
+
+  // Set if this region of memory is mapped to a file on disk.
+  // Contains the absolute path to the file in question.
+  //
+  // Set only if `error` is not set.
+  rrg.fs.Path file_path = 8;
+
+  // Error message set if something went wrong when processing the region.
+  string error = 9;
+}

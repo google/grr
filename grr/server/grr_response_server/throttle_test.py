@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.throttle."""
-
 from absl import app
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_proto import flows_pb2
 from grr_response_server import throttle
 from grr_response_server.flows.general import file_finder
 from grr.test_lib import flow_test_lib
@@ -87,6 +87,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
     throttler = throttle.FlowThrottler(
         daily_req_limit=0,
         dup_interval=rdfvalue.Duration.From(1200, rdfvalue.SECONDS),
+        flow_args_type=flows_pb2.FileFinderArgs,
     )
 
     # Running the same flow immediately should fail
@@ -139,14 +140,16 @@ class ThrottleTest(test_lib.GRRBaseTest):
     args = rdf_file_finder.FileFinderArgs(
         paths=["/tmp/1", "/tmp/2"],
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-    )
+    ).AsPrimitiveProto()
+    packed_args = any_pb2.Any()
+    packed_args.Pack(args)
 
     with test_lib.FakeTime(self.BASE_TIME):
       throttler.EnforceLimits(
           self.client_id,
           self.test_username,
           file_finder.FileFinder.__name__,
-          args,
+          packed_args,
       )
 
       new_args = rdf_file_finder.FileFinderArgs(
@@ -166,20 +169,21 @@ class ThrottleTest(test_lib.GRRBaseTest):
             self.client_id,
             self.test_username,
             file_finder.FileFinder.__name__,
-            args,
+            packed_args,
         )
 
       # Different args should succeed.
       args = rdf_file_finder.FileFinderArgs(
           paths=["/tmp/1", "/tmp/3"],
           action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-      )
+      ).AsPrimitiveProto()
+      packed_args.Pack(args)
 
       throttler.EnforceLimits(
           self.client_id,
           self.test_username,
           file_finder.FileFinder.__name__,
-          args,
+          packed_args,
       )
 
 

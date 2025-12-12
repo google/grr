@@ -8,7 +8,19 @@ ExportConverters convert various complex RDFValues to simple RDFValues
 easily be written to a relational database or just to a set of files.
 """
 
+import logging
+from typing import Iterable, Iterator, Optional
+
+from google.protobuf import any_pb2
+from google.protobuf import message
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import text
+from grr_response_proto import export_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
+from grr_response_server import data_store
 from grr_response_server import export_converters_registry
 from grr_response_server.export_converters import base
 
@@ -35,6 +47,7 @@ def GetMetadata(client_id, client_full_info):
     last_snapshot = client_full_info.last_snapshot
 
   metadata.client_urn = client_id
+  metadata.client_id = rdf_client.ClientURN(client_id).Basename()
   metadata.client_age = client_full_info.metadata.first_seen
 
   if last_snapshot is not None:
@@ -61,6 +74,98 @@ def GetMetadata(client_id, client_full_info):
         metadata.cloud_instance_id = ci.amazon.instance_id
       elif ci.cloud_type == ci.InstanceType.GOOGLE:
         metadata.cloud_instance_type = metadata.CloudInstanceType.GOOGLE
+        metadata.cloud_instance_id = ci.google.unique_id
+
+  system_labels = set()
+  user_labels = set()
+  for l in client_full_info.labels:
+    if l.owner == "GRR":
+      system_labels.add(l.name)
+    else:
+      user_labels.add(l.name)
+
+  metadata.labels = ",".join(sorted(system_labels | user_labels))
+  metadata.system_labels = ",".join(sorted(system_labels))
+  metadata.user_labels = ",".join(sorted(user_labels))
+
+  return metadata
+
+
+def HumanReadableMacAddress(mac_address: bytes) -> str:
+  """Returns a human readable MAC address from a binary MAC address.
+
+  For values previously stored as an RDFBytes MacAddress.
+
+  Args:
+    mac_address: A binary MAC address.
+
+  Returns:
+    A human readable MAC address.
+  """
+  return text.Hexify(mac_address)
+
+
+def GetMacAddressesFromSnapshot(
+    snapshot: objects_pb2.ClientSnapshot,
+) -> list[str]:
+  """Returns a list of MAC addresses from a snapshot, excluding null addresses."""
+  result = set()
+  for interface in snapshot.interfaces:
+    # We exlclude null addresses.
+    if interface.mac_address and interface.mac_address != b"\x00" * len(
+        interface.mac_address
+    ):
+      result.add(HumanReadableMacAddress(interface.mac_address))
+  return sorted(result)
+
+
+def GetExportedMetadataProto(
+    client_id: str, client_full_info: objects_pb2.ClientFullInfo
+) -> export_pb2.ExportedMetadata:
+  """Builds ExportedMetadata object for a given client id and ClientFullInfo."""
+
+  metadata = export_pb2.ExportedMetadata()
+
+  last_snapshot = None
+  if client_full_info.HasField("last_snapshot"):
+    last_snapshot = client_full_info.last_snapshot
+
+  metadata.client_urn = rdf_client.ClientURN(client_id).SerializeToWireFormat()
+  metadata.client_id = client_id
+  metadata.client_age = client_full_info.metadata.first_seen
+
+  if last_snapshot is not None:
+    kb = client_full_info.last_snapshot.knowledge_base
+    os_release = last_snapshot.os_release
+    os_version = last_snapshot.os_version
+
+    metadata.hostname = kb.fqdn
+    metadata.os = kb.os
+    if os_release:
+      metadata.os_release = os_release
+    if os_version:
+      metadata.os_version = os_version
+    metadata.usernames = ",".join(user.username for user in kb.users)
+
+    addresses = GetMacAddressesFromSnapshot(last_snapshot)
+    if addresses:
+      metadata.mac_address = "\n".join(addresses)
+    if last_snapshot.HasField("hardware_info"):
+      metadata.hardware_info.CopyFrom(last_snapshot.hardware_info)
+    if last_snapshot.kernel:
+      metadata.kernel_version = last_snapshot.kernel
+
+    ci = last_snapshot.cloud_instance
+    if ci is not None:
+      if ci.cloud_type == ci.InstanceType.AMAZON:
+        metadata.cloud_instance_type = (
+            export_pb2.ExportedMetadata.CloudInstanceType.AMAZON
+        )
+        metadata.cloud_instance_id = ci.amazon.instance_id
+      elif ci.cloud_type == ci.InstanceType.GOOGLE:
+        metadata.cloud_instance_type = (
+            export_pb2.ExportedMetadata.CloudInstanceType.GOOGLE
+        )
         metadata.cloud_instance_id = ci.google.unique_id
 
   system_labels = set()
@@ -122,6 +227,123 @@ def ConvertValuesWithMetadata(metadata_value_pairs, options=None):
 
   if no_converter_found_error is not None:
     raise NoConverterFound(no_converter_found_error)
+
+
+def FetchMetadataAndConvertFlowResults(
+    source_urn: rdfvalue.RDFURN,
+    options: export_pb2.ExportOptions,
+    flow_results: Iterable[flows_pb2.FlowResult],
+    cached_metadata: Optional[dict[str, export_pb2.ExportedMetadata]] = None,
+) -> Iterator[message.Message]:
+  """Fetches client metadata and converts FlowResults to export-friendly protos.
+
+  Args:
+    source_urn: URN identifying the source of the data (hunt or flow).
+    options: ExportOptions instance.
+    flow_results: Iterable of FlowResult protos.
+    cached_metadata: Optional dict for caching metadata.
+
+  Yields:
+    Converted messages.
+  """
+  if cached_metadata is None:
+    cached_metadata = {}
+
+  def _GetMetadataForClients(
+      client_ids: list[str],
+  ) -> list[export_pb2.ExportedMetadata]:
+    """Fetches metadata for a given list of clients."""
+
+    # Maps client_id to ExportedMetadata.
+    result: dict[str, export_pb2.ExportedMetadata] = {}
+    metadata_to_fetch = set()
+
+    for client_id in client_ids:
+      try:
+        result[client_id] = cached_metadata[client_id]
+      except KeyError:
+        metadata_to_fetch.add(client_id)
+
+    if metadata_to_fetch:
+      # Copy `client_ids` to avoid mutating `metadata_to_fetch`.
+      unique_client_ids = set(metadata_to_fetch)
+      fetched_infos = data_store.REL_DB.MultiReadClientFullInfo(
+          unique_client_ids
+      )
+
+      fetched_exported_metadatas = [
+          GetExportedMetadataProto(client_id, info)
+          for client_id, info in fetched_infos.items()
+      ]
+
+      timestamp_to_add = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+      annotations_to_add = ",".join(options.annotations)
+      for metadata in fetched_exported_metadatas:
+        metadata.source_urn = source_urn.SerializeToWireFormat()
+        if not metadata.timestamp:
+          metadata.timestamp = timestamp_to_add
+        if not metadata.annotations:
+          metadata.annotations = annotations_to_add
+        else:
+          metadata.annotations = f"{metadata.annotations},{annotations_to_add}"
+
+        cached_metadata[metadata.client_id] = metadata
+        result[metadata.client_id] = metadata
+        metadata_to_fetch.remove(metadata.client_id)
+
+      for client_id in metadata_to_fetch:
+        default_mdata = export_pb2.ExportedMetadata(
+            client_id=client_id,
+            source_urn=source_urn.SerializeToWireFormat(),
+            timestamp=timestamp_to_add,
+            annotations=annotations_to_add,
+        )
+        result[client_id] = default_mdata
+        cached_metadata[client_id] = default_mdata
+
+    return [result[client_id] for client_id in client_ids]
+
+  def _TryUnpackingPayload(
+      payload: any_pb2.Any, proto_type: type[message.Message]
+  ) -> message.Message:
+    """Tries to unpack payload into a proto of the given type."""
+    res = proto_type()
+    if not payload.Is(proto_type.DESCRIPTOR):
+      raise TypeError(
+          "There's a mismatch between the flow result payload type"
+          f" {payload.type_url} and the selected export converter's input type:"
+          f" {proto_type.DESCRIPTOR.full_name}"
+      )
+    res.ParseFromString(payload.value)
+    return res
+
+  for batch in collection.Batch(flow_results, 5000):
+    # Group results by type URL
+    results_by_type = collection.Group(batch, lambda r: r.payload.type_url)
+
+    for type_url, results in results_by_type.items():
+      converter_classes = export_converters_registry.GetConvertersByTypeUrl(
+          type_url
+      )
+      if not converter_classes:
+        logging.warning("No export converters found for type url: %s", type_url)
+        continue
+
+      for converter_cls in converter_classes:
+        converter = converter_cls(options=options)
+        unpacked_payloads = [
+            _TryUnpackingPayload(result.payload, converter.input_proto_type)
+            for result in results
+        ]
+        current_metadata_items = _GetMetadataForClients(
+            [result.client_id for result in results]
+        )
+        batch_with_metadata = zip(
+            current_metadata_items,
+            unpacked_payloads,
+        )
+
+        yield from converter.BatchConvert(batch_with_metadata)
 
 
 def ConvertValues(default_metadata, values, options=None):

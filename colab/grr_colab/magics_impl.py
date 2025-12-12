@@ -3,7 +3,7 @@
 import binascii
 import ipaddress
 import os
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -91,7 +91,7 @@ def grr_search_clients_impl(
     host: Optional[str] = None,
     user: Optional[str] = None,
     version: Optional[str] = None,
-    labels: Optional[List[str]] = None,
+    labels: Optional[list[str]] = None,
 ) -> pd.DataFrame:
   """Searches for clients with specified keywords.
 
@@ -133,7 +133,7 @@ def grr_search_online_clients_impl(
     host: Optional[str] = None,
     user: Optional[str] = None,
     version: Optional[str] = None,
-    labels: Optional[List[str]] = None,
+    labels: Optional[list[str]] = None,
 ) -> pd.DataFrame:
   """Searches for online clients with specified keywords.
 
@@ -176,7 +176,7 @@ def grr_set_client_impl(
 
 
 def grr_request_approval_impl(
-    reason: str, approvers: List[str], wait: bool = False
+    reason: str, approvers: list[str], wait: bool = False
 ) -> None:
   """Sends approval request to the selected client for the current user.
 
@@ -529,7 +529,7 @@ def grr_collect_impl(artifact: str) -> pd.DataFrame:
 
 def grr_yara_impl(
     signature: str,
-    pids: Optional[List[int]] = None,
+    pids: Optional[list[int]] = None,
     regex: Optional[str] = None,
 ) -> pd.DataFrame:
   """Scans processes using provided YARA rule.

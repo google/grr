@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-"""Tests for artifacts."""
-
 import io
 import os
-from typing import Iterator, Optional
+import re
+from typing import Iterable, Iterator, Optional
 
 from absl import app
 
@@ -44,9 +43,10 @@ from grr.test_lib import rrg_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr_response_proto import rrg_pb2
-from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
+from grr_response_proto.rrg.action import grep_file_contents_pb2 as rrg_grep_file_contents_pb2
+from grr_response_proto.rrg.action import list_utmp_users_pb2 as rrg_list_utmp_users_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
@@ -138,8 +138,8 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
 
   def RunCollectorAndGetResults(
       self,
-      artifact_list: Iterator[str],
-      client_mock: Optional[MockClient] = None,
+      artifact_list: Iterable[str],
+      client_mock: Optional[action_mocks.ActionMock] = None,
       client_id: Optional[str] = None,
       error_on_no_results: bool = False,
       split_output_by_artifact: bool = False,
@@ -813,14 +813,149 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
     )
     self.assertEqual(results[0].users[0].userdomain, "TestDomain")
 
+  def testRRGLinux(self):
+    assert data_store.REL_DB is not None
+    rel_db: db.Database = data_store.REL_DB
+
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Linux"
+    rel_db.WriteClientSnapshot(snapshot)
+
+    def GetFileContentsHandler(session: rrg_test_lib.Session) -> None:
+      del session  # Unused.
+
+      # This action is needed by hardware information subflow, we do not care
+      # about that data here.
+      raise NotImplementedError()
+
+    def ListUtmpUsersHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_list_utmp_users_pb2.Args()
+      assert session.args.Unpack(args)
+
+      if args.path.raw_bytes.decode("utf-8") != "/var/log/wtmp":
+        raise RuntimeError(f"Unknown path: {args.path!r}")
+
+      result_foo = rrg_list_utmp_users_pb2.Result()
+      result_foo.username = "foo".encode("utf-8")
+      session.Reply(result_foo)
+
+      result_quux = rrg_list_utmp_users_pb2.Result()
+      result_quux.username = "quux".encode("utf-8")
+      session.Reply(result_quux)
+
+    def GrepFileContentHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_grep_file_contents_pb2.Args()
+      assert session.args.Unpack(args)
+
+      if args.path.raw_bytes.decode("utf-8") == "/etc/passwd":
+        content = """\
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+sshd:x:114:65534::/var/run/sshd:/usr/sbin/nologin
+"""
+      elif args.path.raw_bytes.decode("utf-8") == "/etc/passwd.cache":
+        content = """\
+foo:x:1337:42:Jan Fóbarski:/home/foo:/bin/bash
+bar:x:1338:42:Basia Barbarska:/home/bar:/bin/bash
+quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
+"""
+      else:
+        raise RuntimeError(f"Unknown path: {args.path!r}")
+
+      for line in content.splitlines():
+        for match in re.finditer(args.regex, line):
+          result = rrg_grep_file_contents_pb2.Result()
+          result.offset = match.start()
+          result.content = match[0]
+          session.Reply(result)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=artifact.KnowledgeBaseInitializationFlow,
+        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        handlers={
+            rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
+            rrg_pb2.Action.GREP_FILE_CONTENTS: GrepFileContentHandler,
+            rrg_pb2.Action.LIST_UTMP_USERS: ListUtmpUsersHandler,
+        },
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
+    self.assertLen(results, 1)
+
+    kb = knowledge_base_pb2.KnowledgeBase()
+    self.assertTrue(results[0].payload.Unpack(kb))
+
+    users_by_username = {user.username: user for user in kb.users}
+    self.assertLen(users_by_username, 2)
+
+    user_foo = users_by_username["foo"]
+    self.assertEqual(user_foo.uid, 1337)
+    self.assertEqual(user_foo.gid, 42)
+    self.assertEqual(user_foo.full_name, "Jan Fóbarski")
+    self.assertEqual(user_foo.homedir, "/home/foo")
+    self.assertEqual(user_foo.shell, "/bin/bash")
+
+    user_quux = users_by_username["quux"]
+    self.assertEqual(user_quux.uid, 1339)
+    self.assertEqual(user_quux.gid, 41)
+    self.assertEqual(user_quux.full_name, "Mirosław Kwudzyniak")
+    self.assertEqual(user_quux.homedir, "/home/quux")
+    self.assertEqual(user_quux.shell, "/bin/bash")
+
+  def testRRGMacos(self):
+    assert data_store.REL_DB is not None
+    rel_db: db.Database = data_store.REL_DB
+
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Darwin"
+    rel_db.WriteClientSnapshot(snapshot)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=artifact.KnowledgeBaseInitializationFlow,
+        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/Users/foo": {},
+            "/Users/bar": {},
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
+    self.assertLen(results, 1)
+
+    kb = knowledge_base_pb2.KnowledgeBase()
+    self.assertTrue(results[0].payload.Unpack(kb))
+
+    users_by_username = {user.username: user for user in kb.users}
+    self.assertLen(users_by_username, 2)
+
+    user_foo = users_by_username["foo"]
+    self.assertEqual(user_foo.homedir, "/Users/foo")
+
+    user_bar = users_by_username["bar"]
+    self.assertEqual(user_bar.homedir, "/Users/bar")
+
   def testRRGWindows(self):
     assert data_store.REL_DB is not None
     rel_db: db.Database = data_store.REL_DB
 
-    client_id = db_test_utils.InitializeClient(rel_db)
-
-    startup = rrg_startup_pb2.Startup()
-    rel_db.WriteClientRRGStartup(client_id, startup)
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
 
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
@@ -997,7 +1132,15 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
             rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        }
+        | rrg_test_lib.FakeWindowsFileHandlers({
+            "C:\\Users\\All Users": "C:\\ProgramData",
+            "C:\\Users\\Default": {},
+            "C:\\Users\\Default User": "C:\\Users\\quux",
+            "C:\\Users\\desktop.ini": b"",
+            "C:\\Users\\quux": {},
+            "C:\\Users\\Public": {},
+        }),
     )
 
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
@@ -1083,7 +1226,8 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     users_by_username = {user.username: user for user in kb.users}
-    self.assertIn("foobar", users_by_username)
+    self.assertIn("foobar", users_by_username)  # From registry.
+    self.assertIn("quux", users_by_username)  # From `Users` folder.
 
     self.assertEqual(
         users_by_username["foobar"].temp,
@@ -1148,14 +1292,133 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
         r"C:\Users\foobar",
     )
 
+    self.assertEqual(
+        users_by_username["quux"].homedir,
+        "C:\\Users\\quux",
+    )
+
+  def testRRGWindowsUserFallbackDedup(self):
+    assert data_store.REL_DB is not None
+    rel_db: db.Database = data_store.REL_DB
+
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
+
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.os = "Windows"
+    rel_db.WriteClientSnapshot(snapshot)
+
+    def GetWinregValueHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_get_winreg_value_pb2.Args()
+      assert session.args.Unpack(args)
+
+      # pylint: disable=line-too-long
+      # fmt: off
+      value = {
+          rrg_winreg_pb2.LOCAL_MACHINE: {
+              r"SOFTWARE\Microsoft\Windows NT\CurrentVersion": {
+                  "SystemRoot": rrg_winreg_pb2.Value(
+                      string=r"C:\Windows",
+                  ),
+              },
+              r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\S-1-5-21-11112222-3333344444-555556666-777888": {
+                  "ProfileImagePath": rrg_winreg_pb2.Value(
+                      expand_string=r"C:\Users\foobar",
+                  ),
+              },
+          },
+          rrg_winreg_pb2.USERS: {
+              r"S-1-5-21-11112222-3333344444-555556666-777888\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders": {
+                  "Desktop": rrg_winreg_pb2.Value(
+                      string=r"C:\Users\foobar\Desktop",
+                  ),
+              },
+              r"S-1-5-21-11112222-3333344444-555556666-777888\Environment": {
+                  "TEMP": rrg_winreg_pb2.Value(
+                      expand_string=r"%USERPROFILE%\AppData\Local\Temp",
+                  ),
+              },
+              r"S-1-5-21-11112222-3333344444-555556666-777888\Volatile Environment": {
+                  "USERDOMAIN": rrg_winreg_pb2.Value(
+                      string=r"GOOGLE",
+                  ),
+              },
+          },
+      }[args.root][args.key][args.name]
+      # pylint: enable=line-too-long
+      # fmt: on
+
+      result = rrg_get_winreg_value_pb2.Result()
+      result.root = args.root
+      result.key = args.key
+      result.value.name = args.name
+      result.value.MergeFrom(value)
+      session.Reply(result)
+
+    def ListWinregKeysHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_list_winreg_keys_pb2.Args()
+      assert session.args.Unpack(args)
+
+      subkeys = {
+          rrg_winreg_pb2.LOCAL_MACHINE: {
+              r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList": [
+                  "S-1-5-21-11112222-3333344444-555556666-777888",
+              ],
+          },
+      }[args.root][args.key]
+
+      for subkey in subkeys:
+        result = rrg_list_winreg_keys_pb2.Result()
+        result.root = args.root
+        result.key = args.key
+        result.subkey = subkey
+        session.Reply(result)
+
+    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
+      del session  # Unused.
+
+      raise NotImplementedError()
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=artifact.KnowledgeBaseInitializationFlow,
+        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        handlers={
+            rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
+            rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
+            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
+        }
+        | rrg_test_lib.FakeWindowsFileHandlers({
+            "C:\\Users\\foobar": {},
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=1024)
+    self.assertLen(results, 1)
+
+    kb = knowledge_base_pb2.KnowledgeBase()
+    self.assertTrue(results[0].payload.Unpack(kb))
+
+    self.assertLen(kb.users, 1)
+
+    user = kb.users[0]
+    self.assertEqual(user.username, "foobar")
+    self.assertEqual(user.sid, "S-1-5-21-11112222-3333344444-555556666-777888")
+    self.assertEqual(user.userdomain, "GOOGLE")
+    self.assertEqual(user.userprofile, r"C:\Users\foobar")
+    self.assertEqual(user.homedir, r"C:\Users\foobar")
+    self.assertEqual(user.desktop, r"C:\Users\foobar\Desktop")
+
   def testRRGWindowsTimeZoneStandardNameFallback(self):
     assert data_store.REL_DB is not None
     rel_db: db.Database = data_store.REL_DB
 
-    client_id = db_test_utils.InitializeClient(rel_db)
-
-    startup = rrg_startup_pb2.Startup()
-    rel_db.WriteClientRRGStartup(client_id, startup)
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
 
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
@@ -1219,10 +1482,7 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
     assert data_store.REL_DB is not None
     rel_db: db.Database = data_store.REL_DB
 
-    client_id = db_test_utils.InitializeClient(rel_db)
-
-    startup = rrg_startup_pb2.Startup()
-    rel_db.WriteClientRRGStartup(client_id, startup)
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
 
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id

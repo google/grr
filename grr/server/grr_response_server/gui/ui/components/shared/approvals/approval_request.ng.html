@@ -1,0 +1,114 @@
+@let a = approval();
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title><mat-icon>key</mat-icon> Approval request</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <table>
+      <tr>
+        <td>Requested by:</td>
+        <td>
+          <user [username]="a.requestor" size="16px" [withName]="true" />
+        </td>
+      </tr>
+      <tr>
+        <td>Sent to:</td>
+        <td>
+          @for (approver of a.requestedApprovers; track approver; let isLast = $last) {
+            <span>
+              <user [username]="approver" size="16px" [withName]="true" />{{isLast ? "" : ","}}
+            </span>
+          }
+        </td>
+      </tr>
+      <tr>
+        <td>Reason:</td>
+        <td>{{ a.reason }}</td>
+      </tr>
+      @if (isClientApproval(a)) {
+        <tr>
+          <td>Client:</td>
+          <td>{{a.subject.knowledgeBase.fqdn}} ({{a.subject.clientId}})</td>
+        </tr>
+        <tr>
+          <td>Expiration:</td>
+          <td>
+            <timestamp [date]="a.expirationTime" relativeTimestamp="visible"/>
+            @if (longExpiration()) {
+              <mat-chip class="yellow-chip">
+                <mat-icon class="status-icon">warning</mat-icon>
+                This duration is longer than the default of
+                {{ globalStore.uiConfig()?.defaultAccessDurationSeconds | humanReadableDuration }}.
+              </mat-chip>
+            }
+          </td>
+        </tr>
+      }
+      @if (isHuntApproval(a)) {
+        <tr>
+          <td>Fleet collection:</td>
+          <td>{{a.subject.huntId}}</td>
+        </tr>
+        @if (a.subject.flowReference) {
+          <tr>
+            <td>Source Flow:</td>
+            <td>
+              <a
+                [routerLink]="[
+                  '/clients',
+                  a.subject.flowReference.clientId,
+                  'flows',
+                  a.subject.flowReference.flowId
+                ]">
+                {{ a.subject.flowReference.flowId }} on {{ a.subject.flowReference.clientId }}
+              </a>
+            </td>
+          </tr>
+        } @else if (a.subject.huntReference) {
+          <tr>
+            <td>Source Fleet Collection:</td>
+            <td>
+              <a
+                [routerLink]="[
+                  '/fleet-collections',
+                  a.subject.huntReference.huntId
+                ]">
+                {{ a.subject.huntReference.huntId }}
+              </a>
+            </td>
+          </tr>
+        }
+      }
+      <tr>
+        <td>Status:</td>
+        <td>{{a.status.type}}</td>
+      </tr>
+      @if (a.approvers.length > 0) {
+        <tr>
+          <td>Granted by:</td>
+          <td>
+            @for (approver of a.approvers; track approver; let isLast = $last) {
+              <span>
+                <user [username]="approver" size="16px" [withName]="true" />{{isLast ? "" : ","}}
+              </span>
+            }
+          </td>
+        </tr>
+      }
+    </table>
+  </mat-card-content>
+  <mat-card-actions>
+    <button
+      mat-flat-button
+      [disabled]="!canGrant()"
+      (click)="grantApproval.emit()"
+      class="grant-button progress-spinner-button"
+    >
+      Grant full access
+    </button>
+    <div class="grant-warning">
+      This will grant rights to run flows, collect arbitrary data, and view
+      all previously executed flows.
+    </div>
+  </mat-card-actions>
+</mat-card>

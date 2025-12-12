@@ -1,0 +1,137 @@
+
+<form [formGroup]="form" class="column" (ngSubmit)="onSubmit()(FlowType.OS_QUERY_FLOW, flowArgs())">
+  <div class="query-section">
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>SQL query</mat-label>
+      <textarea matInput
+        class="monospace w100"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="15"
+        [formControl]="controls.query"></textarea>
+      <button
+        mat-button="outlined"
+        type="button"
+        (click)="browseTablesClicked()"
+      >
+        Browse available tables and template queries
+      </button>
+      <mat-error>
+        <form-errors [validationErrors]="controls.query.errors" />
+      </mat-error>
+    </mat-form-field>
+  </div>
+
+  <button mat-button
+    type="button"
+    (click)="fileCollectionSettingsShown = !fileCollectionSettingsShown"
+  >
+  <mat-icon>
+    {{ !fileCollectionSettingsShown ? "keyboard_arrow_down" : "keyboard_arrow_up" }}
+  </mat-icon>
+  {{ !fileCollectionSettingsShown
+        ? "Show file collection settings"
+        : "Hide file collection settings" }}
+
+  </button>
+
+  @if (fileCollectionSettingsShown) {
+    <mat-form-field appearance="outline">
+      <mat-label>Columns for file collection</mat-label>
+      <mat-chip-grid
+        #chipList
+        aria-label="Columns for file collection"
+        [formControl]="controls.fileCollectionColumns"
+      >
+        @for (columnName of controls.fileCollectionColumns.value; track columnName) {
+          <mat-chip-row
+            (removed)="removeFileCollectionColumn(columnName)"
+          >
+            {{ columnName }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip-row>
+        }
+        <input
+        placeholder="Specify table columns to collect files from"
+        [matChipInputFor]="chipList"
+        [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+        [matChipInputAddOnBlur]="true"
+        (matChipInputTokenEnd)="addFileCollectionColumn($event)"
+        />
+      </mat-chip-grid>
+    </mat-form-field>
+  }
+
+  <button mat-button
+    type="button"
+    (click)="lowLevelSettingsShown = !lowLevelSettingsShown"
+    >
+    <mat-icon>
+      {{ !lowLevelSettingsShown ? "keyboard_arrow_down" : "keyboard_arrow_up" }}
+    </mat-icon>
+    {{ !lowLevelSettingsShown
+          ? "Show low-level settings"
+          : "Hide low-level settings" }}
+
+  </button>
+  @if (lowLevelSettingsShown) {
+    <mat-form-field appearance="outline">
+      <mat-label>Timeout</mat-label>
+      <input matInput
+        type="number"
+        [formControl]="controls.timeoutMillis"
+        autocomplete="off"
+      />
+      <span matTextSuffix>ms</span>
+      <mat-error>
+        <form-errors [validationErrors]="controls.timeoutMillis.errors" />
+      </mat-error>
+    </mat-form-field>
+
+    <mat-checkbox
+        [formControl]="controls.ignoreStderrErrors"
+        name="ignore_stderr"
+      >Ignore stderr errors</mat-checkbox>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Configuration Path</mat-label>
+      <input matInput
+        type="text"
+        placeholder="/var/osquery/osquery.conf"
+        [formControl]="controls.configurationPath"
+        autocomplete="off"
+      />
+      <mat-hint>
+        <form-warnings [validationWarnings]="controls.configurationPath.warnings()" />
+      </mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Configuration content</mat-label>
+      <textarea matInput
+        [formControl]="controls.configurationContent"
+        class="monospace"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="6"
+        autocomplete="off"></textarea>
+
+      <button matIconButton
+        type="button"
+        (click)="openLinkInNewTab('https://osquery.readthedocs.io/en/stable/deployment/configuration/#configuration-specification')"
+        matTooltip="Osquery configuration documentation"
+      >
+        <mat-icon>help_outline</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <!-- TODO: This is currently only displaying an error but not blocking the submit. -->
+    @if (controls.configurationContent.value && controls.configurationPath.value) {
+      <mat-error>
+        Only one of configuration content or configuration path can be set
+      </mat-error>
+    }
+  }
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

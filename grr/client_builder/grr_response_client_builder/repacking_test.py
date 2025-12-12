@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.repacking."""
-
-
 import glob
 import os
 import shutil

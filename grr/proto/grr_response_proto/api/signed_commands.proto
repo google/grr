@@ -2,6 +2,16 @@ syntax = "proto2";
 
 package grr;
 
+message ApiArg {
+  oneof arg {
+    // Fixed argument to pass to the executed command.
+    string signed = 1;
+    // Whether to allow execution of arbitrary argument passed in the request
+    // without it being pre-signed.
+    bool unsigned_allowed = 2;
+  }
+}
+
 message ApiEnvVar {
   optional string name = 1;
   optional string value = 2;
@@ -15,10 +25,16 @@ message ApiCommand {
 
   // Path to the executable file to execute.
   optional string path = 3;
+
   // The arguments passed to the command.
-  repeated string args = 4;
+  reserved 4;
+  repeated ApiArg args = 10;
+
   // The environment variables set for the command.
   repeated ApiEnvVar env_vars = 5;
+
+  // Environment variables that can be specified outside of the command.
+  repeated string env_vars_unsigned_allowed = 11;
 
   oneof stdin {
     // Fixed standard input to pass to the executed command.
@@ -31,7 +47,7 @@ message ApiCommand {
 }
 
 message ApiCommands {
-  repeated ApiCommands commands = 1;
+  repeated ApiCommand commands = 1;
 }
 
 message ApiSignedCommands {
@@ -42,8 +58,8 @@ message ApiSignedCommand {
   enum OS {
     UNSET = 0;
     LINUX = 1;
-    WINDOWS = 2;
-    MACOS = 3;
+    MACOS = 2;
+    WINDOWS = 3;
   }
   // An arbitrary, but unique per operating system, name of the command.
   optional string id = 1;
@@ -54,6 +70,9 @@ message ApiSignedCommand {
   optional bytes command = 5;
   // The ed25519 signature of the serialized command.
   optional bytes ed25519_signature = 4;
+
+  // Path to the file the command was defined in.
+  optional string source_path = 6;
 }
 
 message ApiCreateSignedCommandsArgs {

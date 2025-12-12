@@ -7,23 +7,11 @@ a logical relational database model.
 
 import abc
 import collections
+from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence, Set
 import dataclasses
 import enum
 import re
-from typing import AbstractSet
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Literal, Union
-from typing import Mapping
-from typing import NamedTuple
-from typing import Optional
-from typing import Protocol
-from typing import Sequence
-from typing import Tuple
+from typing import Literal, NamedTuple, Optional, Protocol, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -268,6 +256,44 @@ class UnknownSignedBinaryError(NotFoundError):
     self.message = "Signed binary of type %s and path %s was not found" % (
         self.binary_id.binary_type,
         self.binary_id.path,
+    )
+
+
+class UnknownSignedCommandError(NotFoundError):
+  """Exception raised when a signed command cannot be found in the database."""
+
+  def __init__(
+      self,
+      command_id: str,
+      operating_system: "signed_commands_pb2.SignedCommand.OS",
+  ) -> None:
+    super().__init__()
+
+    self.command_id = command_id
+    self.operating_system = operating_system
+
+    self.message = (
+        f"Signed command {command_id!r} for {operating_system!r} does not exist"
+    )
+
+
+class NoMatchingSignedCommandError(NotFoundError):
+  """Exception raised when a matching signed command cannot be found."""
+
+  def __init__(
+      self,
+      operating_system: signed_commands_pb2.SignedCommand.OS,
+      path: str,
+      args: Sequence[str],
+  ) -> None:
+    super().__init__()
+
+    self.operating_system = operating_system
+    self.path = path
+    self.args = list(args)
+
+    self.message = (
+        f"Signed command for path {path!r} and arguments {args!r} not found"
     )
 
 
@@ -931,7 +957,7 @@ class Database(metaclass=abc.ABCMeta):
       self,
       client_id: str,
       timerange: Optional[
-          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
       ] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client.
@@ -947,6 +973,33 @@ class Database(metaclass=abc.ABCMeta):
 
     Returns:
       A list of client snapshots, newest snapshot first.
+    """
+
+  @abc.abstractmethod
+  def ReadClientStartupInfoHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+      exclude_snapshot_collections: bool = False,
+  ) -> Sequence[jobs_pb2.StartupInfo]:
+    """Reads the full StartupInfo history for a particular client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      timerange: Should be either a tuple of (from, to) or None. "from" and to"
+        should be rdfvalue.RDFDatetime or None values (from==None means "all
+        record up to 'to'", to==None means all records from 'from'). If both
+        "to" and "from" are None or the timerange itself is None, all history
+        items are fetched. Note: "from" and "to" are inclusive: i.e. a from <=
+        time <= to condition is applied.
+      exclude_snapshot_collections: If true, startup info that was collected as
+        part of the snapshot (based on the snapshot timestamp) will not be
+        returned.
+
+    Returns:
+      A list of client startup infos, newest startup info first.
     """
 
   @abc.abstractmethod
@@ -1497,7 +1550,7 @@ class Database(metaclass=abc.ABCMeta):
       path_type: objects_pb2.PathInfo.PathType,
       components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
+  ) -> dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths.
 
     Args:
@@ -1547,7 +1600,7 @@ class Database(metaclass=abc.ABCMeta):
       self,
       client_paths: Collection[ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[ClientPath, Optional[objects_pb2.PathInfo]]:
+  ) -> dict[ClientPath, Optional[objects_pb2.PathInfo]]:
     """Returns PathInfos that have corresponding HashBlobReferences.
 
     Args:
@@ -1582,7 +1635,7 @@ class Database(metaclass=abc.ABCMeta):
       username: str,
       state: Optional["objects_pb2.UserNotification.State"] = None,
       timerange: Optional[
-          Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+          tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
       ] = None,
   ) -> Sequence[objects_pb2.UserNotification]:
     """Reads notifications scheduled for a user within a given timerange.
@@ -1621,10 +1674,10 @@ class Database(metaclass=abc.ABCMeta):
   def ReadAPIAuditEntries(
       self,
       username: Optional[str] = None,
-      router_method_names: Optional[List[str]] = None,
+      router_method_names: Optional[list[str]] = None,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> List[objects_pb2.APIAuditEntry]:
+  ) -> list[objects_pb2.APIAuditEntry]:
     """Returns audit entries stored in the database.
 
     The event log is sorted according to their timestamp (with the oldest
@@ -1645,7 +1698,7 @@ class Database(metaclass=abc.ABCMeta):
       self,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[Tuple[str, rdfvalue.RDFDatetime], int]:
+  ) -> dict[tuple[str, rdfvalue.RDFDatetime], int]:
     """Returns audit entry counts grouped by user and calendar day.
 
     Examples:
@@ -2008,7 +2061,7 @@ class Database(metaclass=abc.ABCMeta):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     """Returns all flow objects.
 
     Args:
@@ -2026,7 +2079,7 @@ class Database(metaclass=abc.ABCMeta):
 
   def ReadChildFlowObjects(
       self, client_id: str, flow_id: str
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     """Reads flow objects that were started by a given flow from the database.
 
     Args:
@@ -2189,9 +2242,9 @@ class Database(metaclass=abc.ABCMeta):
       client_id: str,
       flow_id: str,
   ) -> Iterable[
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
-          Dict[
+          dict[
               int,
               Sequence[
                   Union[
@@ -2232,9 +2285,9 @@ class Database(metaclass=abc.ABCMeta):
       self,
       client_id: str,
       flow_id: str,
-  ) -> Dict[
+  ) -> dict[
       int,
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
           Sequence[
               Union[
@@ -2330,6 +2383,7 @@ class Database(metaclass=abc.ABCMeta):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
   ) -> Sequence[flows_pb2.FlowResult]:
     """Reads flow results of a given flow using given query options.
@@ -2349,6 +2403,8 @@ class Database(metaclass=abc.ABCMeta):
         having specified tag will be returned.
       with_type: (Optional) When specified, should be a string. Only results of
         a specified type will be returned.
+      with_proto_type_url: (Optional) When specified, should be a string. Only
+        results of a specified proto type url will be returned.
       with_substring: (Optional) When specified, should be a string. Only
         results having the specified string as a substring in their serialized
         form will be returned.
@@ -2387,6 +2443,20 @@ class Database(metaclass=abc.ABCMeta):
       self, client_id: str, flow_id: str
   ) -> Mapping[str, int]:
     """Returns counts of flow results grouped by result type.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count results for.
+
+    Returns:
+      A dictionary of "type name" => <number of items>.
+    """
+
+  @abc.abstractmethod
+  def CountFlowResultsByProtoTypeUrl(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
+    """Returns counts of flow results grouped by proto result type.
 
     Args:
       client_id: The client id on which the flow is running.
@@ -2582,6 +2652,17 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
+  def WriteMultipleFlowOutputPluginLogEntries(
+      self,
+      entries: Sequence[flows_pb2.FlowOutputPluginLogEntry],
+  ) -> None:
+    """Writes multiple output plugin log entries to the database.
+
+    Args:
+      entries: A list of output plugin flow entries to write.
+    """
+
+  @abc.abstractmethod
   def ReadFlowOutputPluginLogEntries(
       self,
       client_id: str,
@@ -2599,6 +2680,36 @@ class Database(metaclass=abc.ABCMeta):
       client_id: The client id on which the flow is running.
       flow_id: The id of the flow to read log entries for.
       output_plugin_id: The id of an output plugin with logs to be read.
+      offset: An integer specifying an offset to be used when reading log
+        entries. "offset" is applied after the with_type filter is applied (if
+        specified).
+      count: Number of log entries to read. "count" is applied after the
+        with_type filter is applied (if specified).
+      with_type: (Optional) When specified, should have a
+        FlowOutputPluginLogEntry.LogEntryType value. Output will be limited to
+        entries with a given type.
+
+    Returns:
+      A list of FlowOutputPluginLogEntry values sorted by timestamp in ascending
+      order.
+    """
+
+  @abc.abstractmethod
+  def ReadAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
+    """Reads flow output plugin log entries for all plugins of a given flow.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to read log entries for.
       offset: An integer specifying an offset to be used when reading log
         entries. "offset" is applied after the with_type filter is applied (if
         specified).
@@ -2640,6 +2751,17 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       Number of output log entries.
     """
+
+  @abc.abstractmethod
+  def CountAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+  ) -> int:
+    """Returns the total number of flow output plugin log entries."""
 
   @abc.abstractmethod
   def ReadHuntOutputPluginLogEntries(
@@ -2747,7 +2869,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadHuntOutputPluginsStates(
       self, hunt_id: str
-  ) -> List[output_plugin_pb2.OutputPluginState]:
+  ) -> list[output_plugin_pb2.OutputPluginState]:
     """Reads all hunt output plugins states of a given hunt.
 
     Args:
@@ -2786,7 +2908,7 @@ class Database(metaclass=abc.ABCMeta):
           [jobs_pb2.AttributedDict],
           jobs_pb2.AttributedDict,
       ],
-  ) -> jobs_pb2.AttributedDict:
+  ) -> None:
     """Updates hunt output plugin state for a given output plugin.
 
     Args:
@@ -2797,10 +2919,6 @@ class Database(metaclass=abc.ABCMeta):
         descriptor is OutputPluginDescriptor and state is an AttributedDict. The
         function is expected to return a modified state (it's ok to modify it
         in-place).
-
-    Returns:
-      An updated AttributedDict object corresponding to an update plugin state
-      (result of the update_fn function call).
 
     Raises:
       UnknownHuntError: if a hunt with a given hunt id does not exit.
@@ -2838,12 +2956,12 @@ class Database(metaclass=abc.ABCMeta):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
-  ) -> List[hunts_pb2.Hunt]:
+  ) -> list[hunts_pb2.Hunt]:
     """Reads hunt objects from the database.
 
     Args:
@@ -2880,12 +2998,12 @@ class Database(metaclass=abc.ABCMeta):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
-  ) -> List[hunts_pb2.HuntMetadata]:
+  ) -> list[hunts_pb2.HuntMetadata]:
     """Reads metadata for hunt objects from the database.
 
     Args:
@@ -2958,9 +3076,10 @@ class Database(metaclass=abc.ABCMeta):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
       with_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Iterable[flows_pb2.FlowResult]:
+  ) -> Sequence[flows_pb2.FlowResult]:
     """Reads hunt results of a given hunt using given query options.
 
     If both with_tag and with_type and/or with_substring arguments are provided,
@@ -2977,6 +3096,8 @@ class Database(metaclass=abc.ABCMeta):
         having specified tag will be returned.
       with_type: (Optional) When specified, should be a string. Only results of
         a specified type will be returned.
+      with_proto_type_url: (Optional) When specified, should be a string. Only
+        results of a specified proto type url will be returned.
       with_substring: (Optional) When specified, should be a string. Only
         results having the specified string as a substring in their serialized
         form will be returned.
@@ -2993,6 +3114,7 @@ class Database(metaclass=abc.ABCMeta):
       hunt_id: str,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
   ) -> int:
     """Counts hunt results of a given hunt using given query options.
 
@@ -3005,6 +3127,8 @@ class Database(metaclass=abc.ABCMeta):
         having specified tag will be accounted for.
       with_type: (Optional) When specified, should be a string. Only results of
         a specified type will be accounted for.
+      with_proto_type_url: (Optional) When specified, should be a string. Only
+        results of a specified proto type will be accounted for.
 
     Returns:
       A number of hunt results of a given hunt matching given query options.
@@ -3019,6 +3143,17 @@ class Database(metaclass=abc.ABCMeta):
 
     Returns:
       A dictionary of "type name" => <number of items>.
+    """
+
+  @abc.abstractmethod
+  def CountHuntResultsByProtoTypeUrl(self, hunt_id: str) -> Mapping[str, int]:
+    """Returns counts of hunt results grouped by proto result type.
+
+    Args:
+      hunt_id: The id of the hunt to count results for.
+
+    Returns:
+      A dictionary of "type url" => <number of items>.
     """
 
   @abc.abstractmethod
@@ -3177,7 +3312,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadSignedBinaryReferences(
       self, binary_id: objects_pb2.SignedBinaryID
-  ) -> Tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
+  ) -> tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
     """Reads blob references for the signed binary with the given id.
 
     Args:
@@ -3277,7 +3412,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[models_blobs.BlobID, str],
+      key_names: dict[models_blobs.BlobID, str],
   ) -> None:
     """Associates the specified blobs with the given encryption keys.
 
@@ -3289,7 +3424,7 @@ class Database(metaclass=abc.ABCMeta):
   def ReadBlobEncryptionKeys(
       self,
       blob_ids: Collection[models_blobs.BlobID],
-  ) -> Dict[models_blobs.BlobID, Optional[str]]:
+  ) -> dict[models_blobs.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs.
 
     Args:
@@ -3355,6 +3490,58 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       All signed commands.
     """
+
+  def LookupSignedCommand(
+      self,
+      operating_system: signed_commands_pb2.SignedCommand.OS,
+      path: str,
+      args: Sequence[str],
+  ) -> signed_commands_pb2.SignedCommand:
+    """Lookups a signed command matching the given system, path and arguments.
+
+    A command matching the path and arguments is returned only if it has no
+    environment variables, stdin specified or unsigned parts.
+
+    Args:
+      operating_system: System the signed command is supposed to run on.
+      path: Path of the signed command.
+      args: Arguments of the signed command.
+
+    Returns:
+      Signed command instance that matches the given path and arguments.
+
+    Raises:
+      NoMatchingSignedCommandError: If a matching command cannot be found.
+    """
+    path_raw_bytes = path.encode("utf-8")
+
+    for command in self.ReadSignedCommands():
+      rrg_command = rrg_execute_signed_command_pb2.Command()
+      rrg_command.ParseFromString(command.command)
+
+      if any(arg.unsigned_allowed for arg in rrg_command.args):
+        continue
+
+      args_signed = []
+      args_signed.extend(rrg_command.args_signed)
+      args_signed.extend(arg.signed for arg in rrg_command.args)
+
+      if (
+          command.operating_system == operating_system
+          and rrg_command.path.raw_bytes == path_raw_bytes
+          and args_signed == args
+          and not rrg_command.env_signed
+          and not rrg_command.env_unsigned_allowed
+          and not rrg_command.signed_stdin
+          and not rrg_command.unsigned_stdin_allowed
+      ):
+        return command
+
+    raise NoMatchingSignedCommandError(
+        operating_system=operating_system,
+        path=path,
+        args=args,
+    )
 
   @abc.abstractmethod
   def DeleteAllSignedCommands(
@@ -3487,7 +3674,7 @@ class DatabaseValidationWrapper(Database):
       self,
       client_id: str,
       timerange: Optional[
-          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
       ] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     precondition.ValidateClientId(client_id)
@@ -3496,6 +3683,24 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadClientSnapshotHistory(
         client_id, timerange=timerange
+    )
+
+  def ReadClientStartupInfoHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+      exclude_snapshot_collections: bool = False,
+  ) -> Sequence[jobs_pb2.StartupInfo]:
+    precondition.ValidateClientId(client_id)
+    if timerange is not None:
+      self._ValidateTimeRange(timerange)
+
+    return self.delegate.ReadClientStartupInfoHistory(
+        client_id,
+        timerange=timerange,
+        exclude_snapshot_collections=exclude_snapshot_collections,
     )
 
   def WriteClientStartupInfo(
@@ -3630,7 +3835,7 @@ class DatabaseValidationWrapper(Database):
   ) -> Mapping[str, Sequence[objects_pb2.ClientLabel]]:
     _ValidateClientIds(client_ids)
     result = self.delegate.MultiReadClientLabels(client_ids)
-    precondition.AssertDictType(result, str, List)
+    precondition.AssertDictType(result, str, list)
     for value in result.values():
       precondition.AssertIterableType(value, objects_pb2.ClientLabel)
     return result
@@ -3857,7 +4062,7 @@ class DatabaseValidationWrapper(Database):
       username: str,
       state: Optional["objects_pb2.UserNotification.State"] = None,
       timerange: Optional[
-          Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+          tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
       ] = None,
   ) -> Sequence[objects_pb2.UserNotification]:
     _ValidateUsername(username)
@@ -3876,7 +4081,7 @@ class DatabaseValidationWrapper(Database):
       path_type: objects_pb2.PathInfo.PathType,
       components_list: Iterable[Sequence[str]],
       cutoff: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
+  ) -> dict[tuple[str, ...], Sequence[objects_pb2.PathInfo]]:
     precondition.ValidateClientId(client_id)
     _ValidateProtoEnumType(path_type, objects_pb2.PathInfo.PathType)
     precondition.AssertType(components_list, list)
@@ -3895,7 +4100,7 @@ class DatabaseValidationWrapper(Database):
       self,
       client_paths: Collection[ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[ClientPath, Optional[objects_pb2.PathInfo]]:
+  ) -> dict[ClientPath, Optional[objects_pb2.PathInfo]]:
     precondition.AssertIterableType(client_paths, ClientPath)
     precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.ReadLatestPathInfosWithHashBlobReferences(
@@ -3918,10 +4123,10 @@ class DatabaseValidationWrapper(Database):
   def ReadAPIAuditEntries(
       self,
       username: Optional[str] = None,
-      router_method_names: Optional[List[str]] = None,
+      router_method_names: Optional[list[str]] = None,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> List[objects_pb2.APIAuditEntry]:
+  ) -> list[objects_pb2.APIAuditEntry]:
     return self.delegate.ReadAPIAuditEntries(
         username=username,
         router_method_names=router_method_names,
@@ -3933,7 +4138,7 @@ class DatabaseValidationWrapper(Database):
       self,
       min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[Tuple[str, rdfvalue.RDFDatetime], int]:
+  ) -> dict[tuple[str, rdfvalue.RDFDatetime], int]:
     precondition.AssertOptionalType(min_timestamp, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.CountAPIAuditEntriesByUserAndDay(
@@ -4129,7 +4334,7 @@ class DatabaseValidationWrapper(Database):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     if client_id is not None:
       precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(min_create_time, rdfvalue.RDFDatetime)
@@ -4156,7 +4361,7 @@ class DatabaseValidationWrapper(Database):
       self,
       client_id: str,
       flow_id: str,
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
     return self.delegate.ReadChildFlowObjects(client_id, flow_id)
@@ -4279,9 +4484,9 @@ class DatabaseValidationWrapper(Database):
       client_id: str,
       flow_id: str,
   ) -> Iterable[
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
-          Dict[
+          dict[
               int,
               Sequence[
                   Union[
@@ -4310,9 +4515,9 @@ class DatabaseValidationWrapper(Database):
       self,
       client_id: str,
       flow_id: str,
-  ) -> Dict[
+  ) -> dict[
       int,
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
           Sequence[
               Union[
@@ -4378,12 +4583,18 @@ class DatabaseValidationWrapper(Database):
       count,
       with_tag=None,
       with_type=None,
+      with_proto_type_url=None,
       with_substring=None,
   ):
     precondition.ValidateClientId(client_id)
     precondition.ValidateFlowId(flow_id)
     precondition.AssertOptionalType(with_tag, str)
     precondition.AssertOptionalType(with_type, str)
+    precondition.AssertOptionalType(with_proto_type_url, str)
+    if with_type and with_proto_type_url:
+      raise ValueError(
+          "Only one of `with_type` and `with_proto_type_url` can be set."
+      )
     precondition.AssertOptionalType(with_substring, str)
 
     return self.delegate.ReadFlowResults(
@@ -4393,6 +4604,7 @@ class DatabaseValidationWrapper(Database):
         count,
         with_tag=with_tag,
         with_type=with_type,
+        with_proto_type_url=with_proto_type_url,
         with_substring=with_substring,
     )
 
@@ -4421,6 +4633,16 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateFlowId(flow_id)
 
     return self.delegate.CountFlowResultsByType(client_id, flow_id)
+
+  def CountFlowResultsByProtoTypeUrl(
+      self,
+      client_id: str,
+      flow_id: str,
+  ) -> Mapping[str, int]:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+
+    return self.delegate.CountFlowResultsByProtoTypeUrl(client_id, flow_id)
 
   def CountFlowErrorsByType(
       self, client_id: str, flow_id: str
@@ -4558,6 +4780,19 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.WriteFlowOutputPluginLogEntry(entry)
 
+  def WriteMultipleFlowOutputPluginLogEntries(
+      self,
+      entries: Sequence[flows_pb2.FlowOutputPluginLogEntry],
+  ) -> None:
+    """Writes multiple output plugin log entries to the database."""
+    for entry in entries:
+      precondition.AssertType(entry, flows_pb2.FlowOutputPluginLogEntry)
+      precondition.ValidateClientId(entry.client_id)
+      precondition.ValidateFlowId(entry.flow_id)
+      if entry.hunt_id:
+        _ValidateHuntId(entry.hunt_id)
+    return self.delegate.WriteMultipleFlowOutputPluginLogEntries(entries)
+
   def ReadFlowOutputPluginLogEntries(
       self,
       client_id: str,
@@ -4582,6 +4817,27 @@ class DatabaseValidationWrapper(Database):
         client_id, flow_id, output_plugin_id, offset, count, with_type=with_type
     )
 
+  def ReadAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+    if with_type is not None:
+      _ValidateProtoEnumType(
+          with_type, flows_pb2.FlowOutputPluginLogEntry.LogEntryType
+      )
+
+    return self.delegate.ReadAllFlowOutputPluginLogEntries(
+        client_id, flow_id, offset, count, with_type=with_type
+    )
+
   def CountFlowOutputPluginLogEntries(
       self,
       client_id: str,
@@ -4597,6 +4853,24 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.CountFlowOutputPluginLogEntries(
         client_id, flow_id, output_plugin_id, with_type=with_type
+    )
+
+  def CountAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+  ) -> int:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+    if with_type is not None:
+      _ValidateProtoEnumType(
+          with_type, flows_pb2.FlowOutputPluginLogEntry.LogEntryType
+      )
+    return self.delegate.CountAllFlowOutputPluginLogEntries(
+        client_id, flow_id, with_type=with_type
     )
 
   def ReadHuntOutputPluginLogEntries(
@@ -4678,7 +4952,7 @@ class DatabaseValidationWrapper(Database):
   def ReadHuntOutputPluginsStates(
       self,
       hunt_id: str,
-  ) -> List[output_plugin_pb2.OutputPluginState]:
+  ) -> list[output_plugin_pb2.OutputPluginState]:
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntOutputPluginsStates(hunt_id)
 
@@ -4703,7 +4977,7 @@ class DatabaseValidationWrapper(Database):
           [jobs_pb2.AttributedDict],
           jobs_pb2.AttributedDict,
       ],
-  ) -> jobs_pb2.AttributedDict:
+  ) -> None:
     _ValidateHuntId(hunt_id)
     precondition.AssertType(state_index, int)
     return self.delegate.UpdateHuntOutputPluginState(
@@ -4725,12 +4999,12 @@ class DatabaseValidationWrapper(Database):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
-  ) -> List[hunts_pb2.Hunt]:
+  ) -> list[hunts_pb2.Hunt]:
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
     precondition.AssertOptionalType(with_creator, str)
@@ -4762,8 +5036,8 @@ class DatabaseValidationWrapper(Database):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
@@ -4817,12 +5091,19 @@ class DatabaseValidationWrapper(Database):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
       with_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Iterable[flows_pb2.FlowResult]:
+  ) -> Sequence[flows_pb2.FlowResult]:
+    """Reads hunt results of a given hunt using given query options."""
     _ValidateHuntId(hunt_id)
     precondition.AssertOptionalType(with_tag, str)
     precondition.AssertOptionalType(with_type, str)
+    precondition.AssertOptionalType(with_proto_type_url, str)
+    if with_type and with_proto_type_url:
+      raise ValueError(
+          "Only one of `with_type` and `with_proto_type_url` can be set."
+      )
     precondition.AssertOptionalType(with_substring, str)
     precondition.AssertOptionalType(with_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.ReadHuntResults(
@@ -4831,21 +5112,40 @@ class DatabaseValidationWrapper(Database):
         count,
         with_tag=with_tag,
         with_type=with_type,
+        with_proto_type_url=with_proto_type_url,
         with_substring=with_substring,
         with_timestamp=with_timestamp,
     )
 
-  def CountHuntResults(self, hunt_id, with_tag=None, with_type=None):
+  def CountHuntResults(
+      self,
+      hunt_id: str,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
+  ):
     _ValidateHuntId(hunt_id)
     precondition.AssertOptionalType(with_tag, str)
     precondition.AssertOptionalType(with_type, str)
+    precondition.AssertOptionalType(with_proto_type_url, str)
+    if with_type and with_proto_type_url:
+      raise ValueError(
+          "Only one of `with_type` and `with_proto_type_url` can be set."
+      )
     return self.delegate.CountHuntResults(
-        hunt_id, with_tag=with_tag, with_type=with_type
+        hunt_id,
+        with_tag=with_tag,
+        with_type=with_type,
+        with_proto_type_url=with_proto_type_url,
     )
 
   def CountHuntResultsByType(self, hunt_id: str) -> Mapping[str, int]:
     _ValidateHuntId(hunt_id)
     return self.delegate.CountHuntResultsByType(hunt_id)
+
+  def CountHuntResultsByProtoTypeUrl(self, hunt_id: str) -> Mapping[str, int]:
+    _ValidateHuntId(hunt_id)
+    return self.delegate.CountHuntResultsByProtoTypeUrl(hunt_id)
 
   def ReadHuntFlows(
       self,
@@ -4910,7 +5210,7 @@ class DatabaseValidationWrapper(Database):
 
   def ReadSignedBinaryReferences(
       self, binary_id: objects_pb2.SignedBinaryID
-  ) -> Tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
+  ) -> tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
     precondition.AssertType(binary_id, objects_pb2.SignedBinaryID)
     return self.delegate.ReadSignedBinaryReferences(binary_id)
 
@@ -4968,7 +5268,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[models_blobs.BlobID, str],
+      key_names: dict[models_blobs.BlobID, str],
   ) -> None:
     for blob_id in key_names.keys():
       _ValidateBlobID(blob_id)
@@ -4978,7 +5278,7 @@ class DatabaseValidationWrapper(Database):
   def ReadBlobEncryptionKeys(
       self,
       blob_ids: Collection[models_blobs.BlobID],
-  ) -> Dict[models_blobs.BlobID, Optional[str]]:
+  ) -> dict[models_blobs.BlobID, Optional[str]]:
     for blob_id in blob_ids:
       _ValidateBlobID(blob_id)
 
@@ -5028,7 +5328,7 @@ class DatabaseValidationWrapper(Database):
   # Minimal allowed timestamp is DB-specific. Thus the validation code for
   # timestamps is DB-specific as well.
   def _ValidateTimeRange(
-      self, timerange: Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+      self, timerange: tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
   ):
     """Parses a timerange argument and always returns non-None timerange."""
     if len(timerange) != 2:

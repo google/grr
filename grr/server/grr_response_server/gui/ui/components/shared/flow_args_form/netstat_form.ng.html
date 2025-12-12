@@ -1,0 +1,7 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.NETSTAT, flowArgs())">
+  <mat-checkbox [formControl]="controls.listeningOnly">Listening only</mat-checkbox>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

@@ -5,109 +5,115 @@ from grr_response_test.end_to_end_tests import test_base
 
 
 class TestTransferLinux(test_base.AbstractFileTransferTest):
-  """Test GetFile on Linux."""
+  """Test MultiGetFile on Linux."""
 
   platforms = [test_base.EndToEndTest.Platform.LINUX]
 
-  def testGetFileOS(self):
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "/bin/ls"
-    args.pathspec.pathtype = args.pathspec.OS
+  def testMultiGetFileOS(self):
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "/bin/ls"
+    pathspec.pathtype = pathspec.OS
 
     path = "fs/os/bin/ls"
     with self.WaitForFileCollection(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckELFMagic(path)
 
-  def testGetFileTSK(self):
+  def testMultiGetFileTSK(self):
     if self.os_release == "CentOS Linux":
       self.skipTest(
           "TSK is not supported on CentOS due to an xfs root filesystem.")
 
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "/usr/bin/diff"
-    args.pathspec.pathtype = args.pathspec.TSK
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "/usr/bin/diff"
+    pathspec.pathtype = pathspec.TSK
 
-    f = self.RunFlowAndWait("GetFile", args=args)
+    f = self.RunFlowAndWait("MultiGetFile", args=args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
     path = self.TSKPathspecToVFSPath(stat_entry.pathspec)
 
-    # Run GetFile again to make sure the path gets updated.
+    # Run MultiGetFile again to make sure the path gets updated.
     with self.WaitForFileRefresh(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckELFMagic(path)
 
 
 class TestTransferDarwin(test_base.AbstractFileTransferTest):
-  """Test GetFile on Darwin."""
+  """Test MultiGetFile on Darwin."""
 
   platforms = [test_base.EndToEndTest.Platform.DARWIN]
 
-  def testGetFileOS(self):
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "/bin/ls"
-    args.pathspec.pathtype = args.pathspec.OS
+  def testMultiGetFileOS(self):
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "/bin/ls"
+    pathspec.pathtype = pathspec.OS
 
     path = "fs/os/bin/ls"
     with self.WaitForFileCollection(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckMacMagic(path)
 
 
 class TestTransferWindows(test_base.AbstractFileTransferTest):
-  """Test GetFile on Windows."""
+  """Test MultiGetFile on Windows."""
 
   platforms = [test_base.EndToEndTest.Platform.WINDOWS]
 
-  def testGetFileOS(self):
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "C:\\Windows\\regedit.exe"
-    args.pathspec.pathtype = args.pathspec.OS
+  def testMultiGetFileOS(self):
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "C:\\Windows\\regedit.exe"
+    pathspec.pathtype = pathspec.OS
 
     path = "fs/os/C:/Windows/regedit.exe"
     with self.WaitForFileCollection(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckPEMagic(path)
 
-  def testGetFileTSK(self):
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "C:\\Windows\\regedit.exe"
-    args.pathspec.pathtype = args.pathspec.TSK
+  def testMultiGetFileTSK(self):
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "C:\\Windows\\regedit.exe"
+    pathspec.pathtype = pathspec.TSK
 
-    f = self.RunFlowAndWait("GetFile", args=args)
+    f = self.RunFlowAndWait("MultiGetFile", args=args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
     path = self.TSKPathspecToVFSPath(stat_entry.pathspec)
 
-    # Run GetFile again to make sure the path gets updated.
+    # Run MultiGetFile again to make sure the path gets updated.
     with self.WaitForFileRefresh(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckPEMagic(path)
 
-  def testGetFileNTFS(self):
-    args = self.grr_api.types.CreateFlowArgs("GetFile")
-    args.pathspec.path = "C:\\Windows\\regedit.exe"
-    args.pathspec.pathtype = args.pathspec.NTFS
+  def testMultiGetFileNTFS(self):
+    args = self.grr_api.types.CreateFlowArgs("MultiGetFile")
+    pathspec = args.pathspecs.add()
+    pathspec.path = "C:\\Windows\\regedit.exe"
+    pathspec.pathtype = pathspec.NTFS
 
-    f = self.RunFlowAndWait("GetFile", args=args)
+    f = self.RunFlowAndWait("MultiGetFile", args=args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
     stat_entry = results[0].payload
     path = self.NTFSPathspecToVFSPath(stat_entry.pathspec)
 
-    # Run GetFile again to make sure the path gets updated.
+    # Run MultiGetFile again to make sure the path gets updated.
     with self.WaitForFileRefresh(path):
-      self.RunFlowAndWait("GetFile", args=args)
+      self.RunFlowAndWait("MultiGetFile", args=args)
 
     self.CheckPEMagic(path)

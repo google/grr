@@ -1,67 +1,59 @@
-<mat-toolbar color="blank" class="toolbar mat-typography">
+<mat-toolbar class="toolbar">
   <mat-toolbar-row>
-    <a mat-button class="brand" routerLink="/">
-      <div class="brand-wrapper">
-        <div class="logo">
-          <img src="/static/images/grr_logo_notification.png" alt="GRR logo" />
+    <a mat-button routerLink="/">
+      <div class="brand">
+        <img src="/static/images/v2/favicon.ico" alt="GRR logo" />
+        <div class="title">
+          GRR
+          @if (globalStore.uiConfig()?.heading; as heading) {
+            <span >– {{ heading }}</span>
+          }
         </div>
-        <div class="title">GRR <span *ngIf="heading$ | async as heading">– {{ heading }}</span></div>
-        <div class="badge">{{ (canaryMode$ | async) ? 'canary' : 'beta' }}</div>
+        <div class="badge">{{ globalStore.currentUser()?.canaryMode ? 'canary' : 'beta' }}</div>
       </div>
     </a>
 
-    <nav mat-tab-nav-bar [disablePagination]="true" class="app-navigation" [tabPanel]="tabPanel">
+    <nav mat-tab-nav-bar [disablePagination]="true" [tabPanel]="tabPanel">
       <a mat-tab-link
-        routerLink="/"
+        routerLink="/clients"
         [routerLinkActiveOptions]="{ exact: true }"
-        routerLinkActive #rla="routerLinkActive"
-        [active]="rla.isActive || (isClientsPath$ | async)">Collect from client</a>
+        routerLinkActive
+        #clientLink="routerLinkActive"
+        [active]="clientLink.isActive">Collect from client</a>
       <a mat-tab-link
-        routerLink="/hunts"
-        routerLinkActive #rla2="routerLinkActive"
-        [active]="rla2.isActive || (isNewHuntPath$ | async)">Collect from fleet</a>
+        routerLink="/fleet-collections"
+        routerLinkActive
+        #fleetCollectionLink="routerLinkActive"
+        [active]="fleetCollectionLink.isActive || isNewFleetCollectionPath()"
+        matTooltip="Preview to the refactored fleet collection page, this will replace the current
+        fleet collection page in the future. (Not all features are supported yet)"
+        >Collect from fleet</a>
     </nav>
 
     <span class="spacer"></span>
 
-    <a
-      id="fallback-link"
-      mat-button
-      color="primary"
-      href="{{fallbackLink$ | async}}"
-      (click)="registerRedirect()"
-    >
-      <mat-icon>launch</mat-icon>
-      Use the old UI
-    </a>
+    @if (globalStore.uiConfig()?.reportUrl; as reportUrl) {
+      <a
+        mat-icon-button
+        href="{{reportUrl}}"
+        matTooltip="Report a problem"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <mat-icon>feedback</mat-icon>
+      </a>
+    }
 
-    <a
-      *ngIf="(uiConfig$ | async)?.reportUrl as reportUrl"
-      mat-icon-button
-      color="primary"
-      href="{{reportUrl}}"
-      matTooltip="Report a problem"
-      target="_blank"
-      rel="noreferrer"
-    >
-      <mat-icon>feedback</mat-icon>
-    </a>
-
-    <user-menu></user-menu>
+    <user-menu />
 
   </mat-toolbar-row>
 </mat-toolbar>
 
-<mat-drawer-container
-  class="container mat-typography"
-  [class.noscroll]="drawer.opened"
->
-  <mat-drawer #drawer position="end">
-    <router-outlet name="drawer"></router-outlet>
-  </mat-drawer>
+<mat-progress-bar
+    mode="indeterminate"
+    [style.visibility]="loadingService.isLoading() ? 'visible' : 'hidden'" />
 
-  <mat-tab-nav-panel #tabPanel>
-    <router-outlet></router-outlet>
-  </mat-tab-nav-panel>
 
-</mat-drawer-container>
+<mat-tab-nav-panel #tabPanel>
+  <router-outlet></router-outlet>
+</mat-tab-nav-panel>

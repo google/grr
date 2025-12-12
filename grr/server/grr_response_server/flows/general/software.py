@@ -5,12 +5,9 @@ import datetime
 import plistlib
 import re
 
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_client
-from grr_response_core.lib.rdfvalues import mig_file_finder
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
@@ -27,7 +24,9 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
-  return_types = (rdf_client.SoftwarePackages,)
+  result_types = (rdf_client.SoftwarePackages,)
+  proto_result_types = (sysinfo_pb2.SoftwarePackages,)
+  only_protos_allowed = True
 
   # TODO: Add `result_types` declaration once we migrate away from
   # the artifact collector in this flow and the types are known.
@@ -37,17 +36,17 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       # TODO: Remove branching once updated agent is rolled out to
       # a reasonable portion of the fleet.
       if self.client_version <= 3478:
-        dpkg_args = rdf_client_action.ExecuteRequest()
+        dpkg_args = jobs_pb2.ExecuteRequest()
         dpkg_args.cmd = "/usr/bin/dpkg"
         dpkg_args.args.append("--list")
 
-        self.CallClient(
+        self.CallClientProto(
             server_stubs.ExecuteCommand,
             dpkg_args,
             next_state=self._ProcessDpkgResults.__name__,
         )
       else:
-        dpkg_query_args = rdf_client_action.ExecuteRequest()
+        dpkg_query_args = jobs_pb2.ExecuteRequest()
         dpkg_query_args.cmd = "/usr/bin/dpkg-query"
         dpkg_query_args.args.append("--show")
         dpkg_query_args.args.append("--showformat")
@@ -57,13 +56,13 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         # pylint: enable=line-too-long
         # fmt: on
 
-        self.CallClient(
+        self.CallClientProto(
             server_stubs.ExecuteCommand,
             dpkg_query_args,
             next_state=self._ProcessDpkgQueryResults.__name__,
         )
 
-      rpm_args = rdf_client_action.ExecuteRequest()
+      rpm_args = jobs_pb2.ExecuteRequest()
       rpm_args.cmd = "/bin/rpm"
 
       # TODO: Remove branching once updated agent is rolled out to
@@ -80,26 +79,26 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         # pylint: enable=line-too-long
         # fmt: on
 
-      self.CallClient(
+      self.CallClientProto(
           server_stubs.ExecuteCommand,
           rpm_args,
           next_state=self._ProcessRpmResults.__name__,
       )
 
     if self.client_os == "Windows":
-      win32_product_args = rdf_client_action.WMIRequest()
+      win32_product_args = jobs_pb2.WMIRequest()
       win32_product_args.query = """
       SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version
         FROM Win32_Product
       """.strip()
 
-      self.CallClient(
+      self.CallClientProto(
           server_stubs.WmiQuery,
           win32_product_args,
           next_state=self._ProcessWin32ProductResults.__name__,
       )
 
-      win32_quick_fix_engineering_args = rdf_client_action.WMIRequest()
+      win32_quick_fix_engineering_args = jobs_pb2.WMIRequest()
       # TODO: Query only columns that we explicitly care about.
       #
       # So far the artifact used wildcard and so for the time being we simply
@@ -110,7 +109,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         FROM Win32_QuickFixEngineering
       """.strip()
 
-      self.CallClient(
+      self.CallClientProto(
           server_stubs.WmiQuery,
           win32_quick_fix_engineering_args,
           next_state=self._ProcessWin32QuickFixEngineeringResults.__name__,
@@ -122,28 +121,30 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       ff_args.paths.append("/Library/Receipts/InstallHistory.plist")
       ff_args.action.action_type = flows_pb2.FileFinderAction.Action.DOWNLOAD
 
-      self.CallClient(
+      self.CallClientProto(
           server_stubs.FileFinderOS,
-          mig_file_finder.ToRDFFileFinderArgs(ff_args),
+          ff_args,
           next_state=self._ProcessInstallHistoryPlist.__name__,
       )
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessDpkgResults(
       self,
-      responses: flow_responses.Responses[rdf_client_action.ExecuteResponse],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       self.Log("Failed to collect Debian package list: %s", responses.status)
       return
-
-    result = sysinfo_pb2.SoftwarePackages()
 
     if len(responses) != 1:
       raise flow_base.FlowError(
           f"Unexpected number of responses: {len(responses)}",
       )
 
-    response = list(responses)[0]
+    response = jobs_pb2.ExecuteResponse()
+    response.ParseFromString(list(responses)[0].value)
+
+    result = sysinfo_pb2.SoftwarePackages()
 
     if response.exit_status != 0:
       self.Log(
@@ -190,22 +191,23 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         package.install_state = sysinfo_pb2.SoftwarePackage.INSTALLED
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessDpkgQueryResults(
       self,
-      responses: flow_responses.Responses[rdf_client_action.ExecuteResponse],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
 
     def CallDpkgList():
       # Maybe `dpkg-query` is not available or is too old to use the format
       # we specified. We try using `dpkg --list` which is less complete but
       # is more likely to work.
-      dpkg_args = rdf_client_action.ExecuteRequest()
+      dpkg_args = jobs_pb2.ExecuteRequest()
       dpkg_args.cmd = "/usr/bin/dpkg"
       dpkg_args.args.append("--list")
 
-      self.CallClient(
+      self.CallClientProto(
           server_stubs.ExecuteCommand,
           dpkg_args,
           next_state=self._ProcessDpkgResults.__name__,
@@ -221,7 +223,8 @@ class CollectInstalledSoftware(flow_base.FlowBase):
           f"Unexpected number of responses: {len(responses)}",
       )
 
-    response = list(responses)[0]
+    response = jobs_pb2.ExecuteResponse()
+    response.ParseFromString(list(responses)[0].value)
 
     if response.exit_status != 0:
       self.Log(
@@ -258,24 +261,26 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       package.description = description
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessRpmResults(
       self,
-      responses: flow_responses.Responses[rdf_client_action.ExecuteResponse],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       self.Log("Failed to collect RPM package list: %s", responses.status)
       return
-
-    result = sysinfo_pb2.SoftwarePackages()
 
     if len(responses) != 1:
       raise flow_base.FlowError(
           f"Unexpected number of responses: {len(responses)}",
       )
 
-    response = list(responses)[0]
+    response = jobs_pb2.ExecuteResponse()
+    response.ParseFromString(list(responses)[0].value)
+
+    result = sysinfo_pb2.SoftwarePackages()
 
     if response.exit_status != 0:
       self.Log(
@@ -351,11 +356,12 @@ class CollectInstalledSoftware(flow_base.FlowBase):
           package.source_rpm = source_rpm
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32ProductResults(
       self,
-      responses: flow_responses.Responses[rdf_protodict.Dict],
+      responses: flow_responses.Responses[any_pb2.Any],
   ):
     if not responses.success:
       self.Log("Failed to collect `Win32_Product`: %s", responses.status)
@@ -363,7 +369,11 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
     result = sysinfo_pb2.SoftwarePackages()
 
-    for response in responses:
+    for response_any in responses:
+      response_proto = jobs_pb2.Dict()
+      response_proto.ParseFromString(response_any.value)
+      response = mig_protodict.ToRDFDict(response_proto)
+
       package = result.packages.add()
       package.install_state = sysinfo_pb2.SoftwarePackage.INSTALLED
 
@@ -387,11 +397,12 @@ class CollectInstalledSoftware(flow_base.FlowBase):
           self.Log("Invalid product installation date: %s", install_date)
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessWin32QuickFixEngineeringResults(
       self,
-      responses: flow_responses.Responses[rdf_protodict.Dict],
+      responses: flow_responses.Responses[any_pb2.Any],
   ):
     if not responses.success:
       status = responses.status
@@ -400,7 +411,11 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
     result = sysinfo_pb2.SoftwarePackages()
 
-    for response in responses:
+    for response_any in responses:
+      response_proto = jobs_pb2.Dict()
+      response_proto.ParseFromString(response_any.value)
+      response = mig_protodict.ToRDFDict(response_proto)
+
       package = result.packages.add()
 
       if hot_fix_id := response.get("HotFixID"):
@@ -428,11 +443,12 @@ class CollectInstalledSoftware(flow_base.FlowBase):
           self.Log("Invalid hotfix installation date: %s", installed_on)
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
+  @flow_base.UseProto2AnyResponses
   def _ProcessInstallHistoryPlist(
       self,
-      responses: flow_responses.Responses[rdf_file_finder.FileFinderResult],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       message = f"Failed to collect install history plist: {responses.status}"
@@ -442,7 +458,8 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       message = f"Unexpected number of flow responses: {len(responses)}"
       raise flow_base.FlowError(message)
 
-    response = mig_file_finder.ToProtoFileFinderResult(list(responses)[0])
+    response = flows_pb2.FileFinderResult()
+    response.ParseFromString(list(responses)[0].value)
 
     blob_ids = [
         models_blobs.BlobID(chunk.digest)
@@ -482,7 +499,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
         package.installed_on = int(date.timestamp() * 1_000_000)
 
     if result.packages:
-      self.SendReply(mig_client.ToRDFSoftwarePackages(result))
+      self.SendReplyProto(result)
 
 
 _RPM_PACKAGE_REGEX = re.compile(

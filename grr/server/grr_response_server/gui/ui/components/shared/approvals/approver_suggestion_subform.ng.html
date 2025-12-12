@@ -1,0 +1,30 @@
+<mat-form-field appearance="outline">
+  <mat-label>Approvers</mat-label>
+  <mat-chip-grid #chipList aria-label="Select approvers">
+    @for(username of formGroup.controls.approvers.value; track username) {
+      <mat-chip-row [removable]="true" (removed)="removeRequestedApprover(username)" >
+        <user [username]="username" [withName]="true" size="16px" />
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip-row>
+    }
+    <input
+      #approverInput
+      placeholder="Approvers..."
+      [formControl]="formGroup.controls.input"
+      [matAutocomplete]="auto"
+      [matChipInputFor]="chipList"
+      [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+      (matChipInputTokenEnd)="tryAddRequestedApprover($event.value, approverInput)"
+    />
+  </mat-chip-grid>
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    (optionSelected)="addRequestedApprover($event.option.value); approverInput.value = ''"
+  >
+    @for(username of approverSuggestions(); track username) {
+      <mat-option [value]="username">
+        <user [username]="username" [withName]="true" size="16px" />
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

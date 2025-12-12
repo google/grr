@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A module with action for large file collection."""
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from grr_response_client import actions
 from grr_response_client import gcs

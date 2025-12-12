@@ -1,0 +1,314 @@
+<ng-template #dataRow
+  let-label="label"
+  let-value="value"
+  let-fieldType="fieldType"
+  let-historyAccessor="historyAccessor"
+  >
+  <tr>
+    <td>{{ label }}
+      @if (historyAccessor) {
+        <button
+            mat-icon-button
+            class="history-button"
+            [attr.aria-label]="'View ' + label + ' history'"
+            aria-hidden="false"
+            (click)="openSnapshotEntryHistoryDialog(historyAccessor)"
+          >
+            <mat-icon>history</mat-icon>
+          </button>
+        }
+    </td>
+    <td>
+      @if (fieldType === 'timestamp') {
+        <timestamp [date]="value" />
+      } @else if (fieldType === 'human-readable-size') {
+        {{ value | humanReadableByteSize }}
+      } @else {
+        <copy-button>{{ value }}</copy-button>
+      }
+    </td>
+  </tr>
+</ng-template>
+
+@if (clientSnapshot()) {
+  <table>
+    <tr class="section" name="snapshot-section">
+      <td>
+        <h3>
+          Snapshot
+        </h3>
+      </td>
+      <td>
+        <table class="section-content">
+          <tr>
+            <td>
+              Client
+            </td>
+            <td>
+              {{ clientSnapshot()?.knowledgeBase?.fqdn || clientStore.clientId() }}
+            </td>
+          </tr>
+          @if (clientSnapshot()?.sourceFlowId) {
+            <tr>
+              <td>Source Flow</td>
+              <td>
+                <a
+                  [routerLink]="['/clients', clientStore.clientId(), 'flows', clientSnapshot()?.sourceFlowId]"
+                  class="text-link"
+                >
+                  {{ clientSnapshot()?.sourceFlowId }}
+                </a>
+              </td>
+            </tr>
+          }
+          @if (clientSnapshot()?.timestamp) {
+            <tr>
+              <td>Collected at</td>
+              <td>
+                <timestamp [date]="clientSnapshot()?.timestamp" />
+              </td>
+            </tr>
+          }
+        </table>
+      </td>
+    </tr>
+
+    <tr class="section" name="os-section">
+      <td>
+        <h3>Operating System</h3>
+      </td>
+      <td>
+        <table class="section-content">
+          <tr>
+            <td>Knowledge Base
+              <button
+                mat-icon-button
+                class="history-button"
+                aria-label="View Knowledge Base history"
+                (click)="openSnapshotEntryHistoryDialog(knowledgeBaseAccessor)">
+              <mat-icon>history</mat-icon>
+            </button>
+            </td>
+            <td>
+              <knowledge-base-details [knowledgeBase]="clientSnapshot()?.knowledgeBase" />
+            </td>
+          </tr>
+          @if (clientSnapshot()?.osVersion) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'Version',
+              value: clientSnapshot()?.osVersion,
+              historyAccessor: osVersionAccessor
+            }"></ng-container>
+          }
+          @if (clientSnapshot()?.osRelease) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'Release',
+              value: clientSnapshot()?.osRelease,
+              historyAccessor: osReleaseAccessor
+            }"></ng-container>
+          }
+          @if (clientSnapshot()?.kernel) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'Kernel',
+              value: clientSnapshot()?.kernel,
+              historyAccessor: osKernelAccessor
+            }"></ng-container>
+          }
+          @if (clientSnapshot()?.installTime) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'Install Date',
+              fieldType: 'timestamp',
+              value: clientSnapshot()?.installTime,
+              historyAccessor: osInstallDateAccessor
+            }"></ng-container>
+          }
+        </table>
+      </td>
+    </tr>
+    <tr class="section" name="users-section">
+      <td>
+        <h3>
+          Users
+          <button
+              mat-icon-button
+              class="history-button"
+              aria-label="View Users history"
+              (click)="openSnapshotEntryHistoryDialog(usersAccessor)">
+            <mat-icon>history</mat-icon>
+          </button>
+        </h3>
+      </td>
+      <td>
+        <users-details [users]="clientSnapshot()?.users?.slice(0, currentNumUsersShown) ?? []" />
+        @let numReportedUsers = clientSnapshot()?.users?.length ?? 0;
+        @if (currentNumUsersShown < numReportedUsers) {
+          <button
+            mat-button
+            (click)="currentNumUsersShown = numReportedUsers"
+            name="toggle-users-details"
+          >
+            Show {{numReportedUsers - currentNumUsersShown}} more
+            <mat-icon>keyboard_arrow_down</mat-icon>
+          </button>
+        }
+        @if (currentNumUsersShown > INITIAL_NUM_USERS_SHOWN) {
+          <button
+            mat-button
+            (click)="currentNumUsersShown = INITIAL_NUM_USERS_SHOWN"
+            name="toggle-users-details"
+          >
+            Show less
+          </button>
+        }
+      </td>
+    </tr>
+    @if (clientSnapshot()?.cloudInstance) {
+      <tr class="section" name="cloud-section">
+        <td>
+          <h3>Cloud Instance
+            <button
+              mat-icon-button
+              class="history-button"
+              aria-label="View Cloud Instance history"
+              (click)="openSnapshotEntryHistoryDialog(cloudInstanceAccessor)">
+              <mat-icon>history</mat-icon>
+            </button>
+          </h3>
+        </td>
+        <td>
+          <cloud-instance-details [cloudInstance]="clientSnapshot()?.cloudInstance" />
+        </td>
+      </tr>
+    }
+    <tr class="section" name="agent-section">
+      <td>
+        <h3>Startup Info
+          <button
+            mat-icon-button
+            class="history-button"
+            aria-label="View Startup Info history"
+            (click)="openSnapshotEntryHistoryDialog(startupInfoAccessor)">
+            <mat-icon>history</mat-icon>
+          </button>
+        </h3>
+      </td>
+      <td>
+        <startup-info-details [startupInfo]="clientSnapshot()?.startupInfo" />
+      </td>
+    </tr>
+    <tr class="section" name="hardware-section">
+      <td>
+        <h3>Hardware</h3>
+      </td>
+      <td>
+        <table class="section-content">
+          @if (clientSnapshot()?.arch) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'CPU Architecture',
+              value: clientSnapshot()?.arch,
+              historyAccessor: archAccessor
+            }"></ng-container>
+          }
+          @if (clientSnapshot()?.memorySize) {
+            <ng-container *ngTemplateOutlet="dataRow; context: {
+              label: 'Memory Size',
+              fieldType: 'human-readable-size',
+              value: clientSnapshot()?.memorySize,
+              historyAccessor: memorySizeAccessor
+            }"></ng-container>
+          }
+          <tr>
+            <td>Hardware Info
+              <button
+                mat-icon-button
+                class="history-button"
+                aria-label="View Hardware Info history"
+                (click)="openSnapshotEntryHistoryDialog(hardwareInfoAccessor)">
+              <mat-icon>history</mat-icon>
+            </button>
+            </td>
+            <td>
+              <hardware-info-details [hardwareInfo]="clientSnapshot()?.hardwareInfo" />
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr class="section" name="volumes-section">
+      <td>
+        <h3>
+          Storage Volumes
+          <button
+              mat-icon-button
+              class="history-button"
+              aria-label="View Storage Volumes history"
+              (click)="openSnapshotEntryHistoryDialog(volumesAccessor)">
+            <mat-icon>history</mat-icon>
+          </button>
+        </h3>
+      </td>
+      <td>
+        <volumes-details [volumes]="clientSnapshot()?.volumes?.slice(0, currentNumVolumesShown) ?? []"/>
+        @let numReportedVolumes = clientSnapshot()?.volumes?.length ?? 0;
+        @if (currentNumVolumesShown < numReportedVolumes) {
+          <button mat-button (click)="currentNumVolumesShown = numReportedVolumes">
+            Show {{numReportedVolumes- currentNumVolumesShown}} more
+            <mat-icon>keyboard_arrow_down</mat-icon>
+          </button>
+        }
+        @if (currentNumVolumesShown > INITIAL_NUM_VOLUMES_SHOWN) {
+          <button mat-button (click)="currentNumVolumesShown = INITIAL_NUM_VOLUMES_SHOWN">
+            Show less<mat-icon>keyboard_arrow_up</mat-icon>
+          </button>
+        }
+      </td>
+    </tr>
+    <tr class="section" name="network-section">
+      <td>
+        <h3>
+          Network Interfaces
+          <button
+              mat-icon-button
+              class="history-button"
+              aria-label="View Network Interfaces history"
+              (click)="openSnapshotEntryHistoryDialog(networkInterfacesAccessor)">
+            <mat-icon>history</mat-icon>
+          </button>
+        </h3>
+      </td>
+      <td>
+        <network-interfaces-details
+            [interfaces]="clientSnapshot()?.networkInterfaces?.slice(0, currentNumInterfacesShown) ?? []"
+        />
+        @let numReportedInterfaces = clientSnapshot()?.networkInterfaces?.length ?? 0;
+        @if (currentNumInterfacesShown < numReportedInterfaces) {
+          <button
+            mat-button
+            (click)="currentNumInterfacesShown = numReportedInterfaces"
+          >
+            Show {{numReportedInterfaces - currentNumInterfacesShown}} more
+            <mat-icon>keyboard_arrow_down</mat-icon>
+          </button>
+        }
+        @if (currentNumInterfacesShown > INITIAL_NUM_INTERFACES_SHOWN) {
+          <button mat-button (click)="currentNumInterfacesShown = INITIAL_NUM_INTERFACES_SHOWN">
+            Show less <mat-icon>keyboard_arrow_up</mat-icon>
+          </button>
+        }
+      </td>
+    </tr>
+  </table>
+}
+
+@if (startupInfo()) {
+  <table>
+     <tr class="section" class="startup-info-section">
+      <td>
+        <h3>Startup Info</h3>
+      </td>
+      <td>
+        <startup-info-details [startupInfo]="startupInfo()" />
+      </td>
+    </tr>
+  </table>
+}

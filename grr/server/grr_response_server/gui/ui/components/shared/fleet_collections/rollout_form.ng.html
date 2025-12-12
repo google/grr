@@ -1,0 +1,296 @@
+<collapsible-container>
+  <collapsible-title>
+    <h4>Rollout parameters</h4>
+  </collapsible-title>
+  <collapsible-content>
+    <form>
+      <h5>Pause collection after running on</h5>
+      <div class="width-50">
+        <div class="row">
+          <mat-button-toggle-group class="client-limit-option" appearance="standard">
+            <mat-button-toggle
+              matTooltip="GRR will schedule as many clients as possible. The fleet collection will pause when this threshold is reached. You can edit this limit and restart the collection."
+              (click)="setFixedSampleSize(SAMPLE_SIZE_UNLIMITED)"
+              [checked]="!customSampleSize() && SAMPLE_SIZE_UNLIMITED === controls.clientLimit.value"
+            >
+              All matching clients
+            </mat-button-toggle>
+            <mat-button-toggle
+              [matTooltip]="'Will run on '+ SAMPLE_SIZE_SMALL + ' matching clients.'"
+              (click)="setFixedSampleSize(SAMPLE_SIZE_SMALL)"
+              [checked]="!customSampleSize() && SAMPLE_SIZE_SMALL === controls.clientLimit.value"
+            >
+              Small client sample
+            </mat-button-toggle>
+            <mat-button-toggle (click)="customSampleSize.set(true)" [checked]="customSampleSize()">
+              Custom
+            </mat-button-toggle
+          >
+          </mat-button-toggle-group>
+          @if (customSampleSize()) {
+            <mat-form-field appearance="outline" class="fill-width">
+              <mat-label>Number of clients</mat-label>
+              <input
+                matInput
+                [formControl]="controls.clientLimit"
+                name="customClientLimit"
+                type="number"
+                autocomplete="off"
+              />
+              <mat-icon
+                matSuffix
+                [matTooltip]="'GRR will try to schedule around' + controls.clientLimit.value + ' clients per minute to run this collection - at most, around ' + controls.clientLimit.value + ' will be running the collection at the same time. Precision is not guaranteed.'">
+                info_outline
+              </mat-icon>
+            </mat-form-field>
+          }
+        </div>
+      </div>
+
+      <h5>Rollout speed</h5>
+      <div class="width-50">
+        <div class="row">
+          <mat-button-toggle-group class="rollout-speed-option" appearance="standard">
+            <mat-button-toggle
+              matTooltip="GRR will schedule as many clients as possible per minute. Select only if you are expecting a total traffic of 10MB or below per client or less than 1000 results per client"
+              (click)="setFixedRolloutSpeed(ROLLOUT_SPEED_UNLIMITED)"
+              [checked]="!customRolloutSpeed() && ROLLOUT_SPEED_UNLIMITED === controls.clientRate.value"
+            >
+              Unlimited
+            </mat-button-toggle>
+            <mat-button-toggle
+              [matTooltip]="'GRR will schedule '+ ROLLOUT_SPEED_STANDARD + ' clients per minute. Select if you are expecting a total traffic of 10MB or above per client or more than 1000 results per client'"
+              (click)="setFixedRolloutSpeed(ROLLOUT_SPEED_STANDARD)"
+              [checked]="!customRolloutSpeed() && ROLLOUT_SPEED_STANDARD === controls.clientRate.value"
+            >
+              Standard
+            </mat-button-toggle>
+            <mat-button-toggle
+              matTooltip="Set your own rollout speed"
+              (click)="customRolloutSpeed.set(true)"
+              [checked]="customRolloutSpeed()"
+            >
+              Custom
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+          @if (customRolloutSpeed()) {
+            <mat-form-field appearance="outline" class="fill-width">
+              <mat-label>Client rate</mat-label>
+              <input matInput [formControl]="controls.clientRate" type="number" autocomplete="off" />
+              <mat-icon
+                matSuffix
+                [matTooltip]="'GRR will try to schedule around ' + controls.clientRate.value + ' clients per minute to run this collection - at most, around ' + controls.clientRate.value + ' will be running the collection at the same time. Precision is not guaranteed.'"
+              >
+                info_outline
+              </mat-icon>
+            </mat-form-field>
+          }
+        </div>
+      </div>
+
+      @if (advancedParams()) {
+        <div class="width-50">
+          <h5>Collection duration</h5>
+          <mat-form-field name="expiryTimeFormField" appearance="outline" class="mb-2 mt-1">
+            <mat-label>Active for</mat-label>
+            <input matInput
+              durationInput
+              [formControl]="controls.expiryTime"
+              autocomplete="off"
+            />
+            <mat-error><form-errors [validationErrors]="controls.expiryTime.errors" /></mat-error>
+            <mat-hint>
+              Will expire in {{ controls.expiryTime.value | humanReadableDuration }}
+            </mat-hint>
+          </mat-form-field>
+          <mat-icon matSuffix matTooltip="week (w), day (d), hour (h), minute (m), second (s)">
+            info_outline
+          </mat-icon>
+        </div>
+
+        <collapsible-container class="safety-limits-container" [state]="CollapsibleState.COLLAPSED">
+          <collapsible-title>
+            <h5>
+              Safety Limits
+            </h5>
+          </collapsible-title>
+          <collapsible-content>
+            <h5>Cancel fleet collection if…</h5>
+            <div class="row">
+              <div class="width-50">
+                <mat-form-field appearance="outline" class="width-80">
+                  <mat-label>Crash limit</mat-label>
+                  <input matInput
+                    type="number"
+                    [formControl]="controls.crashLimit"
+                    autocomplete="off"
+                  />
+                  <span matTextSuffix>clients</span>
+                </mat-form-field>
+                <mat-icon matTooltip="Stop the fleet collection when this threshold is reached">
+                  info_outline
+                </mat-icon>
+              </div>
+              <div class="width-50">
+                <mat-form-field appearance="outline" class="width-80">
+                  <mat-label>Average results per client</mat-label>
+                  <input matInput
+                    type="number"
+                    [formControl]="controls.avgResultsPerClientLimit"
+                    autocomplete="off"
+                  />
+                  <span matTextSuffix>results collected</span>
+                  <mat-hint align="start">Applicable after 1000 clients</mat-hint>
+                </mat-form-field>
+                <mat-icon
+                  matTooltip="After the fleet collection excecuted on 1000 clients
+                                    we get an average number of results / client. If this average value
+                                    exceeds the defined threshold, the collection stops. This is not a
+                                    hard limit applied to every client."
+                >
+                  info_outline
+                </mat-icon>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="width-50">
+                <mat-form-field appearance="outline" class="width-80">
+                  <mat-label>Average CPU (per client)</mat-label>
+                  <input matInput
+                    durationInput
+                    [formControl]="controls.avgCpuSecondsPerClientLimit"
+                    autocomplete="off"/>
+                  <mat-error>
+                    <form-errors [validationErrors]="controls.avgCpuSecondsPerClientLimit.errors" />
+                  </mat-error>
+                  <mat-hint>
+                    Applicable after 1000 clients. Aborts after
+                    {{ controls.avgCpuSecondsPerClientLimit.value | humanReadableDuration }} CPU seconds.
+                  </mat-hint>
+                </mat-form-field>
+                <mat-icon
+                  matTooltip="After the fleet collection excecuted on 1000 clients we get an average
+                                      CPU / client. If this average value exceeds the defined threshold,
+                                      the collection stops. This is not a hard limit applied to every client.
+                                      X CPU seconds means the flow consumed the equivalent of X seconds of
+                                      one core processing time in the client."
+                >
+                  info_outline
+                </mat-icon>
+              </div>
+
+              <div class="width-50">
+                <mat-form-field appearance="outline" class="width-80">
+                  <mat-label>Average network usage (per client)</mat-label>
+                  <input matInput
+                    byteInput
+                    [formControl]="controls.avgNetworkBytesPerClientLimit"
+                    autocomplete="off" />
+                  <mat-error>
+                    <form-errors [validationErrors]="controls.avgNetworkBytesPerClientLimit.errors" />
+                  </mat-error>
+                  <mat-hint>
+                    Applicable after 1000 clients. Aborts after
+                    {{ controls.avgNetworkBytesPerClientLimit.value | humanReadableByteSize }} network bytes.
+                  </mat-hint>
+                </mat-form-field>
+                <mat-icon
+                  matTooltip="After the fleet collection excecuted on 1000 clients we get an average number
+                    of bytes sent back / client. If this average value exceeds the defined threshold, the collection stops. This is not a hard limit applied to every client."
+                >
+                  info_outline
+                </mat-icon>
+              </div>
+            </div>
+
+            <h5>Cancel individual client collection (flow) if…</h5>
+            <div class="row">
+              <div class="width-50">
+                <div>CPU time limit per client</div>
+                <div class="row">
+                  <mat-button-toggle-group appearance="standard" class="cpu-time-limit-option">
+                    <mat-button-toggle
+                      (click)="setUnlimitedCpuTimeLimitPerClient()"
+                      [checked]="!customCpuTimeLimitPerClient()"
+                    >
+                      Unlimited
+                    </mat-button-toggle>
+                    <mat-button-toggle
+                      (click)="customCpuTimeLimitPerClient.set(true)"
+                      [checked]="customCpuTimeLimitPerClient()"
+                    >
+                      Custom
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
+                  @if (customCpuTimeLimitPerClient()) {
+                    <mat-form-field appearance="outline" class="fill-width">
+                      <mat-label>Custom CPU time limit per client</mat-label>
+                      <input matInput
+                        durationInput
+                        [formControl]="controls.perClientCpuLimit"
+                        autocomplete="off"
+                      />
+                      <mat-error><form-errors [validationErrors]="controls.perClientCpuLimit.errors" /></mat-error>
+                    </mat-form-field>
+                    <mat-icon
+                      matTooltip="Stop file collection on client if this threshold is exceeded. If this
+                        threshold is met, the client collection stops, but the fleet collection continues.
+                        (week (w), day (d), hour (h), minute (m), second (s))"
+                    >
+                      info_outline
+                    </mat-icon>
+                  }
+                </div>
+              </div>
+
+              <div class="width-50">
+                <div>Network limit per client</div>
+                <div class="row">
+                  <mat-button-toggle-group appearance="standard" class="network-bytes-limit-option">
+                    <mat-button-toggle
+                      (click)="setUnlimitedNetworkBytesLimitPerClient()"
+                      [checked]="!customNetworkBytesLimitPerClient()"
+                    >
+                      Unlimited
+                    </mat-button-toggle>
+                    <mat-button-toggle
+                      (click)="customNetworkBytesLimitPerClient.set(true)"
+                      [checked]="customNetworkBytesLimitPerClient()"
+                    >
+                      Custom
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
+                  @if (customNetworkBytesLimitPerClient()) {
+                    <mat-form-field appearance="outline" class="fill-width">
+                      <mat-label>Custom network limit per client</mat-label>
+                      <input matInput
+                        byteInput
+                        [formControl]="controls.perClientNetworkBytesLimit"
+                        autocomplete="off"
+                      />
+                      <mat-error>
+                        <form-errors [validationErrors]="controls.perClientNetworkBytesLimit.errors" />
+                      </mat-error>
+                      <mat-hint>
+                        Aborts after
+                        {{ controls.perClientNetworkBytesLimit.value | humanReadableByteSize }} network bytes.
+                      </mat-hint>
+                    </mat-form-field>
+                    <mat-icon
+                      matTooltip="Stop file collection on client if this threshold is exceeded. If this
+                        threshold is met, the client collection stops, but the fleet collection continues."
+                    >
+                      info_outline
+                    </mat-icon>
+                  }
+                </div>
+              </div>
+            </div>
+          </collapsible-content>
+        </collapsible-container>
+      }
+    </form>
+  </collapsible-content>
+</collapsible-container>
+

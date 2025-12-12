@@ -1,7 +1,0 @@
-<span *ngFor="let token of textTokens">
-  <a *ngIf="isLink(token); else plainText"
-    class="text-link" [href]="token" target="_blank">{{ token }}</a
-  >
-
-  <ng-template #plainText>{{ token }}</ng-template>
-</span>

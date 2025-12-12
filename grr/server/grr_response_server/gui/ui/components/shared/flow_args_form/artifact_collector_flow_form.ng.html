@@ -1,0 +1,118 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.ARTIFACT_COLLECTOR_FLOW, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Artifact</mat-label>
+    <input matInput
+      type="text"
+      [formControl]="controls.artifactName"
+      [matAutocomplete]="auto"
+      placeholder="Search for artifacts by name, filename, registry key, …"
+    />
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="selectArtifact($event.option.value)"
+    >
+      @for (artifact of filteredArtifactDescriptors(); track artifact.name) {
+        <mat-option
+          [value]="artifact.name"
+          class="artifact-option"
+          [disabled]="!artifact.availableOnClient"
+        >
+          <div class="artifact-name">{{ artifact.name }}</div>
+          <div class="artifact-doc">
+            @if (!artifact.availableOnClient) {
+              <span>Only available on </span>
+              @for(supportedOs of  artifact.supportedOs; track supportedOs; let last = $last) {
+                <span>{{supportedOs | humanReadableOs}}</span>
+                @if (!last) {
+                  <span>, </span>
+                }
+              }
+            }
+            @if (artifact.doc) {
+              <div>{{artifact.doc}}</div>
+            }
+            @if (artifact.numSources > 0) {
+                <div>
+                  <span class="monospace">{{artifact.firstArtifactCollection}}</span>
+                  @if (artifact.numSources > 1) {
+                    <span> and {{artifact.numSources - 1}} more</span>
+                  }
+                </div>
+            }
+            </div>
+        </mat-option>
+      }
+    </mat-autocomplete>
+    @if (form.controls.artifactName.invalid) {
+      <mat-error>No artifact selected</mat-error>
+    }
+  </mat-form-field>
+
+
+  <ng-template #artifactDetails let-artifact="artifact">
+    <button mat-icon-button disabled type="button" aria-hidden="true"></button>
+    <p class="artifact-descriptions">
+      {{artifact.name}}
+      @if (artifact.sourceDescriptions!! && artifact.sourceDescriptions.length > 0) {
+        <ul>
+          @for (source of artifact.sourceDescriptions; track source) {
+            <li> {{source.type | FriendlyArtifactType}}
+              <ul >
+                @for (collection of source.collections; track collection) {
+                  <li>
+                    @if (source.type === SourceType.FILE) {
+                      <glob-expression-explanation
+                          [globExpression]="collection"
+                          [clientId]="clientId()"
+                          [explanationMode]="GlobExplanationMode.ONLY_GLOB_VISIBLE"
+                        />
+                    } @else {
+                      {{collection}}
+                    }
+                  </li>
+                }
+              </ul>
+            <li>
+          }
+        </ul>
+      }
+    </p>
+  </ng-template>
+
+  @let artifact = selectedArtifact();
+  @if (artifact) {
+    <mat-tree #tree [dataSource]="[artifact]" [childrenAccessor]="childrenAccessor">
+      <!-- Leaf-node -->
+      <mat-tree-node *matTreeNodeDef="let artifactNode">
+        <button mat-icon-button disabled type="button" aria-hidden="true"></button>
+        <ng-container *ngTemplateOutlet="artifactDetails; context: {artifact: artifactNode}">
+        </ng-container>
+      </mat-tree-node>
+      <!-- Expandable nodes. -->
+      <mat-tree-node
+          *matTreeNodeDef="let nestedArtifact; when: hasChildren"
+          [cdkTreeNodeTypeaheadLabel]="nestedArtifact.name">
+        <button
+            mat-icon-button
+            matTreeNodeToggle
+            type="button"
+            [matTreeNodeToggleRecursive]="true"
+            aria-label="Toggle nested artifact"
+        >
+          <mat-icon>{{tree.isExpanded(nestedArtifact) ? 'expand_more' : 'chevron_right'}}</mat-icon>
+        </button>
+        <ng-container *ngTemplateOutlet="artifactDetails; context: {artifact: nestedArtifact}">
+        </ng-container>
+      </mat-tree-node>
+    </mat-tree>
+
+    <p class="links">
+      @for (url of artifact.urls; track url) {
+        <a [href]="url" target="_blank">{{url}}</a>
+      }
+    </p>
+  }
+  @if (editable()) {
+    <submit-button [enabled]="isValid()"/>
+  }
+</form>

@@ -1,8 +1,0 @@
-<h1>Recent activity</h1>
-<div class="recent-client-flows-list">
-  <app-recent-client-flows
-    *ngFor="let approval of recentClientApprovals$ | async; trackBy: trackClient"
-    [approval]="approval"
-  >
-  </app-recent-client-flows>
-</div>

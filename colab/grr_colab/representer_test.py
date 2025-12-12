@@ -511,7 +511,7 @@ class ClientListTest(absltest.TestCase):
         self.data = client_pb2.ApiClient()
 
     def __init__(self, client_id='', hostname='', last_seen_at=0):
-      self._summary = None
+      self._snapshot = None
       self._client = ClientListTest._MockClient.MockInnerClient()
       self._client.data.client_id = client_id
       self._client.client_id = client_id

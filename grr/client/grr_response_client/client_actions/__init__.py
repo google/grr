@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """Client actions root module."""
 
-from typing import Dict, Text, Type
-
 from grr_response_client import actions
 
-REGISTRY: Dict[Text, Type[actions.ActionPlugin]] = {}
+REGISTRY: dict[str, type[actions.ActionPlugin]] = {}
 
 
-def Register(name: Text, cls: Type[actions.ActionPlugin]) -> None:
+def Register(name: str, cls: type[actions.ActionPlugin]) -> None:
   """Registers a client action, optionally overriding its name.
 
   Args:

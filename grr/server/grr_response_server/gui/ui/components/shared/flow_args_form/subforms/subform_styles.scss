@@ -1,0 +1,30 @@
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+mat-form-field {
+  padding: 4px;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
+.w100 {
+  width: 100%;
+}
+
+.w50 {
+  width: 50%;
+}
+
+.w33 {
+  width: 33%;
+}

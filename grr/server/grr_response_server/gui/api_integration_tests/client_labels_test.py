@@ -28,10 +28,9 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
       client_ref.AddLabels([42])
 
   def testAddLabels(self):
-    client_ref = self.api.Client(client_id=self.client_id)
-    self.assertEqual(list(client_ref.Get().data.labels), [])
-
     with test_lib.FakeTime(42):
+      client_ref = self.api.Client(client_id=self.client_id)
+      self.assertEqual(list(client_ref.Get().data.labels), [])
       client_ref.AddLabels(["foo", "bar"])
 
     self.assertCountEqual(
@@ -43,14 +42,14 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
     )
 
   def testAddLabelsWithGeneratorArg(self):
-    client_ref = self.api.Client(client_id=self.client_id)
-    self.assertEqual(list(client_ref.Get().data.labels), [])
-
-    def Gen():
-      yield "foo"
-      yield "bar"
-
     with test_lib.FakeTime(42):
+      client_ref = self.api.Client(client_id=self.client_id)
+      self.assertEqual(list(client_ref.Get().data.labels), [])
+
+      def Gen():
+        yield "foo"
+        yield "bar"
+
       client_ref.AddLabels(Gen())
 
     self.assertCountEqual(

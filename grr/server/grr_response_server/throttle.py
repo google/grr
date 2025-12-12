@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """Throttle user calls to flows."""
 
+from typing import Iterable, Optional
+
+from google.protobuf import any_pb2
+from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import mig_flow_objects
 
 
 class Error(Exception):
@@ -29,18 +32,25 @@ class DuplicateFlowError(Error):
 class FlowThrottler(object):
   """Checks for excessive or repetitive flow requests."""
 
-  def __init__(self, daily_req_limit=0, dup_interval=rdfvalue.Duration(0)):
+  def __init__(
+      self,
+      daily_req_limit=0,
+      dup_interval=rdfvalue.Duration(0),
+      flow_args_type: type[pb_message.Message] = flows_pb2.EmptyFlowArgs,
+  ):
     """Create flow throttler object.
 
     Args:
       daily_req_limit: Number of flows allow per user per client. Integer.
       dup_interval: rdfvalue.Duration time during which duplicate flows will be
         blocked.
+      flow_args_type: The type of the expected flow args.
     """
     self.daily_req_limit = daily_req_limit
     self.dup_interval = dup_interval
+    self.flow_args_type = flow_args_type
 
-  def _LoadFlows(self, client_id, min_create_time):
+  def _LoadFlows(self, client_id, min_create_time) -> Iterable[flows_pb2.Flow]:
     """Yields all flows for the given client_id and time range.
 
     Args:
@@ -54,11 +64,37 @@ class FlowThrottler(object):
         min_create_time=min_create_time,
         include_child_flows=False,
     )
-    flow_list = [mig_flow_objects.ToRDFFlow(flow) for flow in flow_list]
     for flow_obj in flow_list:
       yield flow_obj
 
-  def EnforceLimits(self, client_id, user, flow_name, flow_args=None):
+  def _HasSameArguments(
+      self,
+      loaded_flow_obj: flows_pb2.Flow,
+      packed_flow_args: Optional[any_pb2.Any] = None,
+  ):
+    """Checks if the flow args are the same as the flow args in the flow object."""
+    if not loaded_flow_obj.args and not packed_flow_args:
+      return True
+
+    flow_obj_args = self.flow_args_type()
+    loaded_flow_obj.args.Unpack(flow_obj_args)
+
+    new_flow_args = self.flow_args_type()
+    if packed_flow_args:
+      packed_flow_args.Unpack(new_flow_args)
+
+    if flow_obj_args and new_flow_args:
+      return flow_obj_args == new_flow_args
+
+    return False
+
+  def EnforceLimits(
+      self,
+      client_id: str,
+      user: str,
+      flow_name: str,
+      packed_flow_args: Optional[any_pb2.Any] = None,
+  ):
     """Enforce DailyFlowRequestLimit and FlowDuplicateInterval.
 
     Look at the flows that have run on this client recently and check
@@ -69,7 +105,7 @@ class FlowThrottler(object):
       client_id: client URN
       user: username string
       flow_name: name of the Flow. Only used for FlowDuplicateInterval.
-      flow_args: flow args rdfvalue for the flow being launched
+      packed_flow_args: flow args rdfvalue for the flow being launched
 
     Raises:
       DailyFlowRequestLimitExceededError: if the user has already run
@@ -88,14 +124,11 @@ class FlowThrottler(object):
     flow_count = 0
     flow_objs = self._LoadFlows(client_id, min_create_time)
 
-    if flow_args is None:
-      flow_args = rdf_flows.EmptyFlowArgs()
-
     for flow_obj in flow_objs:
       if (
-          flow_obj.create_time > dup_boundary
+          flow_obj.create_time > dup_boundary.AsMicrosecondsSinceEpoch()
           and flow_obj.flow_class_name == flow_name
-          and flow_obj.args == flow_args
+          and self._HasSameArguments(flow_obj, packed_flow_args)
       ):
         raise DuplicateFlowError(
             "Identical %s already run on %s at %s"

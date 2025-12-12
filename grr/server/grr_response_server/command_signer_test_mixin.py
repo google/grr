@@ -2,7 +2,7 @@
 """Mixin class to be used in tests for CommandSigner implementations."""
 
 from grr_response_server import command_signer
-from grr_response_proto.rrg.action import execute_signed_command_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 
 
 class CommandSignerTestMixin:
@@ -11,10 +11,10 @@ class CommandSignerTestMixin:
   signer: command_signer.AbstractCommandSigner
 
   def testVerifySignatureCanSignAndVerify(self):  # pylint: disable=invalid-name
-    command = execute_signed_command_pb2.Command()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = b"/bin/ls"
-    command.args.append("-l")
-    command.env["PATH"] = "/usr/bin"
+    command.args_signed.append("-l")
+    command.env_signed["PATH"] = "/usr/bin"
     command.unsigned_stdin_allowed = True
 
     signature = self.signer.Sign(command)
@@ -23,7 +23,7 @@ class CommandSignerTestMixin:
     self.signer.Verify(signature, command)
 
   def testVerifySignatureRaisesWhenSignatureIsInvalid(self):  # pylint: disable=invalid-name
-    command = execute_signed_command_pb2.Command()
+    command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = b"/bin/ls"
 
     signature = b"invalid signature"

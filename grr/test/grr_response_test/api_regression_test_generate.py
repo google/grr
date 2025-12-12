@@ -13,8 +13,6 @@ from grr_response_server.gui.api_plugins import cron_regression_test
 from grr_response_server.gui.api_plugins import flow_regression_test
 from grr_response_server.gui.api_plugins import hunt_regression_test
 from grr_response_server.gui.api_plugins import output_plugin_regression_test
-from grr_response_server.gui.api_plugins import reflection_regression_test
-from grr_response_server.gui.api_plugins import stats_regression_test
 from grr_response_server.gui.api_plugins import user_regression_test
 from grr_response_server.gui.api_plugins import vfs_regression_test
 

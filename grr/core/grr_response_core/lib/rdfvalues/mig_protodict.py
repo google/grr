@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Provides conversion functions to be used during RDFProtoStruct migration."""
 
-from typing import Any, Dict
+from typing import Any
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import jobs_pb2
@@ -45,12 +45,12 @@ def ToRDFDict(proto: jobs_pb2.Dict) -> rdf_protodict.Dict:
   return rdf_protodict.Dict.FromSerializedBytes(proto.SerializeToString())
 
 
-def FromProtoDictToNativeDict(proto: jobs_pb2.Dict) -> Dict[Any, Any]:
+def FromProtoDictToNativeDict(proto: jobs_pb2.Dict) -> dict[Any, Any]:
   rdf_dict = ToRDFDict(proto)
   return rdf_dict.ToDict()
 
 
-def FromNativeDictToProtoDict(dictionary: Dict[Any, Any]) -> jobs_pb2.Dict:
+def FromNativeDictToProtoDict(dictionary: dict[Any, Any]) -> jobs_pb2.Dict:
   rdf_dict = rdf_protodict.Dict().FromDict(dictionary)
   return ToProtoDict(rdf_dict)
 
@@ -71,13 +71,13 @@ def ToRDFAttributedDict(
 
 def FromProtoAttributedDictToNativeDict(
     proto: jobs_pb2.AttributedDict,
-) -> Dict[Any, Any]:
+) -> dict[Any, Any]:
   rdf_dict = ToRDFAttributedDict(proto)
   return rdf_dict.ToDict()
 
 
 def FromNativeDictToProtoAttributedDict(
-    dictionary: Dict[Any, Any],
+    dictionary: dict[Any, Any],
 ) -> jobs_pb2.AttributedDict:
   rdf_dict = rdf_protodict.AttributedDict().FromDict(dictionary)
   return ToProtoAttributedDict(rdf_dict)
@@ -91,17 +91,3 @@ def ToProtoBlobArrayFromBlobArray(
 
 def ToRDFBlobArray(proto: jobs_pb2.BlobArray) -> rdf_protodict.BlobArray:
   return rdf_protodict.BlobArray.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoBlobArrayFromRDFValueArray(
-    rdf: rdf_protodict.RDFValueArray,
-) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFRDFValueArray(
-    proto: jobs_pb2.BlobArray,
-) -> rdf_protodict.RDFValueArray:
-  return rdf_protodict.RDFValueArray.FromSerializedBytes(
-      proto.SerializeToString()
-  )

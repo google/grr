@@ -3,6 +3,7 @@ syntax = "proto2";
 import "google/protobuf/any.proto";
 import "grr_response_proto/config.proto";
 import "grr_response_proto/flows.proto";
+import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
 package grr;
@@ -96,6 +97,10 @@ message ApiListGrrBinariesResult {
   repeated ApiGrrBinary items = 1;
 }
 
+message ApiListGrrBinariesArgs {
+  optional bool include_metadata = 1;
+}
+
 message ApiGetGrrBinaryArgs {
   optional ApiGrrBinary.Type type = 1
       [(sem_type) = { description: "Binary type." }];
@@ -108,7 +113,7 @@ message ApiGetGrrBinaryBlobArgs {
   optional string path = 2 [(sem_type) = { description: "Binary path." }];
 }
 
-// Next: 11
+// Next: 12
 message ApiUiConfig {
   optional string heading = 1;
   optional string report_url = 2;
@@ -117,6 +122,7 @@ message ApiUiConfig {
   optional string profile_image_url = 5;
   optional HuntRunnerArgs default_hunt_runner_args = 6;
   optional AdminUIHuntConfig hunt_config = 10;
+  repeated OutputPluginDescriptor default_output_plugins = 11;
   optional AdminUIClientWarningsConfigOption client_warnings = 7;
   optional uint64 default_access_duration_seconds = 8;
   optional uint64 max_access_duration_seconds = 9;

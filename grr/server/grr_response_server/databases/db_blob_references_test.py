@@ -11,6 +11,14 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 class DatabaseTestBlobReferencesMixin(object):
   """A mixin that provides tests for hash blob references."""
 
+  def testWriteHashBlobReferences_Empty(self):
+    self.db.WriteHashBlobReferences({
+        rdf_objects.SHA256HashID.FromData(b""): [],
+    })
+
+  def testWriteHashblobReferences_None(self):
+    self.db.WriteHashBlobReferences({})
+
   def testHashBlobReferenceCanBeWrittenAndReadBack(self):
     blob_ref = objects_pb2.BlobReference(
         offset=0, size=42, blob_id=(b"01234567" * 4)

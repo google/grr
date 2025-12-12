@@ -178,6 +178,7 @@ VERBOSE_LOG_LEVELS = {
 
 
 def SetLogLevels():
+  """Initializes logging levels."""
   logger = logging.getLogger()
 
   if config.CONFIG["Logging.verbose"] or _VERBOSE.value:
@@ -186,9 +187,11 @@ def SetLogLevels():
   else:
     levels = BASE_LOG_LEVELS
 
+  logging.info("Root logging level set to %s", logging.root.level)
+
   for handler in logger.handlers:
     handler.setLevel(levels[handler.__class__.__name__])
-
+    logging.info("Logging handler %s level set to %s", handler, handler.level)
 
 LOG_FORMAT = (
     "%(levelname)s:%(asctime)s %(process)d "

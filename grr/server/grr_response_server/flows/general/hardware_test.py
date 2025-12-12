@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from typing import Iterator
+from collections.abc import Iterator
 
 from absl.testing import absltest
 
@@ -8,6 +8,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import signed_commands_pb2
 from grr_response_server import data_store
@@ -21,6 +22,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import rrg_test_lib
 from grr.test_lib import testing_startup
 from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
@@ -38,7 +40,7 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
-    command.args.append("-q")
+    command.args_signed.append("-q")
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = "dmidecode_q"
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
@@ -46,12 +48,10 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
     signed_command.ed25519_signature = b"\x00" * 64
     db.WriteSignedCommand(signed_command)
 
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Linux"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.LINUX,
+    )
 
     def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_execute_signed_command_pb2.Args()
@@ -63,8 +63,8 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
       if command.path.raw_bytes != "/usr/sbin/dmidecode".encode("utf-8"):
         raise RuntimeError(f"Unexpected command path: {command.path}")
 
-      if command.args != ["-q"]:
-        raise RuntimeError(f"Unexpected command args: {command.args}")
+      if command.args_signed != ["-q"]:
+        raise RuntimeError(f"Unexpected command args: {command.args_signed}")
 
       result = rrg_execute_signed_command_pb2.Result()
       result.exit_code = 0
@@ -139,6 +139,46 @@ System Boot Information
     self.assertEqual(result.bios_release_date, "01/25/2024")
     self.assertEqual(result.bios_rom_size, "64 kB")
     self.assertEqual(result.bios_revision, "1.0")
+
+  @db_test_lib.WithDatabase
+  def testRRGLinux_NonZeroExitSignal(self, db: abstract_db.Database) -> None:
+    # TODO: Load signed commands from the `.textproto` file to
+    # ensure integrity.
+    command = rrg_execute_signed_command_pb2.Command()
+    command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
+    command.args_signed.append("-q")
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "dmidecode_q"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = b"\x00" * 64
+    db.WriteSignedCommand(signed_command)
+
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_execute_signed_command_pb2.Args()
+      assert session.args.Unpack(args)
+
+      result = rrg_execute_signed_command_pb2.Result()
+      result.exit_signal = 42
+      session.Reply(result)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=hardware.CollectHardwareInfo,
+        flow_args=rdf_flows.EmptyFlowArgs(),
+        handlers={
+            rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
+        },
+    )
+
+    flow_obj = db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertIn("signal: 42", flow_obj.error_message)
 
   def testLinux(self):
     assert data_store.REL_DB is not None
@@ -229,8 +269,8 @@ System Boot Information
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/system_profiler".encode("utf-8")
-    command.args.append("-xml")
-    command.args.append("SPHardwareDataType")
+    command.args_signed.append("-xml")
+    command.args_signed.append("SPHardwareDataType")
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = "system_profiler_xml_sphardware"
     signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.MACOS
@@ -238,16 +278,17 @@ System Boot Information
     signed_command.ed25519_signature = b"\x00" * 64
     db.WriteSignedCommand(signed_command)
 
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Darwin"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.MACOS,
+    )
 
     def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_execute_signed_command_pb2.Args()
       assert session.args.Unpack(args)
+
+      if not args.timeout.ToNanoseconds() > 0:
+        raise RuntimeError(f"No command timeout: {args.timeout}")
 
       command = rrg_execute_signed_command_pb2.Command()
       command.ParseFromString(args.command)
@@ -255,8 +296,8 @@ System Boot Information
       if command.path.raw_bytes != "/usr/sbin/system_profiler".encode("utf-8"):
         raise RuntimeError(f"Unexpected command path: {command.path}")
 
-      if command.args != ["-xml", "SPHardwareDataType"]:
-        raise RuntimeError(f"Unexpected command args: {command.args}")
+      if command.args_signed != ["-xml", "SPHardwareDataType"]:
+        raise RuntimeError(f"Unexpected command args: {command.args_signed}")
 
       result = rrg_execute_signed_command_pb2.Result()
       result.exit_code = 0
@@ -347,6 +388,47 @@ System Boot Information
     self.assertEqual(result.system_product_name, "MacBookPro18,3")
     self.assertEqual(result.system_uuid, "48F1516D-23AB-4242-BB81-6F32D193D3F2")
     self.assertEqual(result.bios_version, "10151.101.3")
+
+  @db_test_lib.WithDatabase
+  def testRRGMacos_NonZeroExitSignal(self, db: abstract_db.Database) -> None:
+    # TODO: Load signed commands from the `.textproto` file to
+    # ensure integrity.
+    command = rrg_execute_signed_command_pb2.Command()
+    command.path.raw_bytes = "/usr/sbin/system_profiler".encode("utf-8")
+    command.args_signed.append("-xml")
+    command.args_signed.append("SPHardwareDataType")
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "system_profiler_xml_sphardware"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.MACOS
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = b"\x00" * 64
+    db.WriteSignedCommand(signed_command)
+
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.MACOS,
+    )
+
+    def ExecuteSignedCommandHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_execute_signed_command_pb2.Args()
+      assert session.args.Unpack(args)
+
+      result = rrg_execute_signed_command_pb2.Result()
+      result.exit_signal = 42
+      session.Reply(result)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=hardware.CollectHardwareInfo,
+        flow_args=rdf_flows.EmptyFlowArgs(),
+        handlers={
+            rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
+        },
+    )
+
+    flow_obj = db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertIn("signal: 42", flow_obj.error_message)
 
   def testMacos(self):
     assert data_store.REL_DB is not None
@@ -450,12 +532,10 @@ System Boot Information
 
   @db_test_lib.WithDatabase
   def testRRGWindows(self, db: abstract_db.Database) -> None:
-    client_id = db_test_utils.InitializeRRGClient(db)
-
-    snapshot = objects_pb2.ClientSnapshot()
-    snapshot.client_id = client_id
-    snapshot.knowledge_base.os = "Windows"
-    db.WriteClientSnapshot(snapshot)
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
 
     def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
       args = rrg_query_wmi_pb2.Args()

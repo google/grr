@@ -1,0 +1,24 @@
+<h5>Operating System</h5>
+<form>
+  <div class="os-checkboxes">
+    <mat-checkbox [formControl]="osData().controls.windows">
+      Windows
+    </mat-checkbox>
+    <mat-checkbox [formControl]="osData().controls.darwin">
+      Darwin
+    </mat-checkbox>
+    <mat-checkbox [formControl]="osData().controls.linux">
+      Linux
+    </mat-checkbox>
+  </div>
+
+  @if (
+    !osData().controls.windows.value &&
+    !osData().controls.darwin.value &&
+    !osData().controls.linux.value
+  ) {
+    <mat-error>
+      No clients will match, select at least one OS.
+    </mat-error>
+  }
+</form>

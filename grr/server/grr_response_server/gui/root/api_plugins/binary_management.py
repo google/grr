@@ -53,7 +53,6 @@ def _GetBinaryRootUrn(
 class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Uploads GRR binary to a given path."""
 
-  args_type = ApiUploadGrrBinaryArgs
   proto_args_type = binary_management_pb2.ApiUploadGrrBinaryArgs
 
   def Handle(
@@ -84,7 +83,6 @@ class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Deletes GRR binary with a given type and path."""
 
-  args_type = ApiDeleteGrrBinaryArgs
   proto_args_type = binary_management_pb2.ApiDeleteGrrBinaryArgs
 
   def Handle(

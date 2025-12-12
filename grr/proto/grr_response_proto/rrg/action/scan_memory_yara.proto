@@ -1,0 +1,72 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+
+package rrg.action.scan_memory_yara;
+
+message Args {
+  // PIDs of the processes whose memory we are interested in.
+  repeated uint32 pids = 1;
+
+  // YARA signature source to use for scanning.
+  string signature = 2;
+
+  // Maximum time spent scanning a single process.
+  google.protobuf.Duration timeout = 3;
+
+  // Set this flag to avoid scanning mapped files.
+  bool skip_mapped_files = 4;
+  // Set this flag to avoid scanning shared memory regions. Applies to Linux only.
+  bool skip_shared_regions = 5;
+  // Set this flag to avoid scanning regions marked as executable.
+  bool skip_executable_regions = 6;
+  // Set this flag to avoid scanning regions marked as readable and not writable or executable.
+  bool skip_readonly_regions = 7;
+
+  // Length of the chunks used to read large memory regions, in bytes.
+  // Will use a reasonable default value if unset.
+  optional uint64 chunk_size = 8;
+  // Overlap across chunks, in bytes. A larger overlap decreases
+  // the chance of missing a string that would otherwise match,
+  // but is located across chunk boundaries.
+  // Will use a reasonable default value if unset.
+  optional uint64 chunk_overlap = 9;
+}
+
+message Match {
+  // Offset of the matching string into the process' address space.
+  uint64 offset = 2;
+  // A SHA-256 hash of the blob of matching data, which was sent to the blob sink.
+  bytes data_sha256 = 4;
+}
+
+message Pattern {
+  // The name of this pattern.
+  string identifier = 1;
+  // Matching occurrences of this pattern.
+  repeated Match matches = 2;
+}
+
+message Rule {
+  // The name of this rule.
+  string identifier = 1;
+  // Patterns which this rule searches for.
+  repeated Pattern patterns = 2;
+}
+
+// Result of scanning memory for one single process.
+message Result {
+  // PID of the process this result refers to.
+  uint32 pid = 1;
+
+  // Yara rules which matched when scanning this process, if any.
+  // Only set if `error` is unset.
+  repeated Rule matching_rules = 2;
+  
+  // Error message set if something went wrong when scanning this process' memory.
+  string error = 9;
+}

@@ -140,7 +140,7 @@ setup_args = dict(
         "pytz==2022.7.1",
         "PyYAML==6.0.1",
         "requests==2.25.1",
-        "yara-python==4.2.3",
+        "yara-python==4.5.1",
     ],
     # Data files used by GRR. Access these via the config_lib "resource" filter.
     data_files=data_files,

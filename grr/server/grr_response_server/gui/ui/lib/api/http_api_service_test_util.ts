@@ -10,7 +10,11 @@ import {HttpApiService} from './http_api_service';
 
 type Func = (...args: any[]) => any;
 
-type MockService<T> = {
+/**
+ * A service with Spy properties and mocked Observable return
+ * values.
+ */
+export type MockService<T> = {
   [K in keyof T]: T[K] extends Function ? jasmine.Spy & T[K] : T[K];
 } & {
   readonly mockedObservables: {
@@ -35,13 +39,8 @@ export function mockHttpApiService(): HttpApiServiceMock {
     get: jasmine.createSpy('get').and.callFake(() => new Subject()),
     post: jasmine.createSpy('post').and.callFake(() => new Subject()),
   };
-  const mockSnackBar = {
-    openFromComponent: jasmine.createSpy('openFromComponent'),
-  };
-  const service: any = new HttpApiService(
-    mockHttpClient as any,
-    mockSnackBar as any,
-  );
+
+  const service: any = new HttpApiService(mockHttpClient as any);
   const mockedObservables: any = {};
 
   const properties = Object.getOwnPropertyNames(

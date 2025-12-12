@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """A module with RDF value wrappers for timeline protobufs."""
 
+from collections.abc import Iterable, Iterator
 import os
-from typing import Iterable, Iterator
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import gzchunked

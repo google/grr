@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Classes for exporting rdf primitives data."""
 
-from typing import List
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import export_pb2
@@ -30,7 +28,7 @@ class RDFBytesToExportedBytesConverter(base.ExportConverter):
 
   def Convert(
       self, metadata: base.ExportedMetadata, data: rdfvalue.RDFBytes
-  ) -> List[ExportedBytes]:
+  ) -> list[ExportedBytes]:
     """Converts a RDFBytes into a ExportedNetworkConnection.
 
     Args:
@@ -54,7 +52,7 @@ class RDFStringToExportedStringConverter(base.ExportConverter):
 
   def Convert(
       self, metadata: base.ExportedMetadata, data: rdfvalue.RDFString
-  ) -> List[ExportedString]:
+  ) -> list[ExportedString]:
     """Converts a RDFString into a ExportedString.
 
     Args:

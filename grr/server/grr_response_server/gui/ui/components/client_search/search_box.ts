@@ -1,143 +1,144 @@
+import {CommonModule} from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  computed,
+  effect,
   ElementRef,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
+  inject,
+  signal,
   ViewChild,
 } from '@angular/core';
-import {FormControl} from '@angular/forms';
-import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
-import {Subject, combineLatest} from 'rxjs';
+import {toSignal} from '@angular/core/rxjs-interop';
+import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  map,
-  startWith,
-  takeUntil,
-  withLatestFrom,
-} from 'rxjs/operators';
+  MatAutocompleteModule,
+  MatAutocompleteTrigger,
+} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {ActivatedRoute, Router, RouterModule} from '@angular/router';
+import {debounceTime, distinctUntilChanged} from 'rxjs/operators';
 
-import {Client} from '../../lib/models/client';
-import {observeOnDestroy} from '../../lib/reactive';
-import {ClientSearchLocalStore} from '../../store/client_search_local_store';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-
-const LABEL_IDENTIFIER = 'label';
+import {isClientId} from '../../lib/models/client';
+import {ClientSearchStore} from '../../store/client_search_store';
+import {GlobalStore} from '../../store/global_store';
+import {SubmitOnMetaEnterDirective} from '../shared/form/submit_on_meta_enter/submit_on_meta_enter_directive';
+import {OnlineChip} from '../shared/online_chip';
 
 /**
  * Search box component.
  */
 @Component({
-  standalone: false,
-  selector: 'app-search-box',
+  selector: 'search-box',
   templateUrl: './search_box.ng.html',
   styleUrls: ['./search_box.scss'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatAutocompleteModule,
+    MatAutocompleteTrigger,
+    MatButtonModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatTooltipModule,
+    OnlineChip,
+    ReactiveFormsModule,
+    SubmitOnMetaEnterDirective,
+    RouterModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ClientSearchLocalStore],
 })
-export class SearchBox implements AfterViewInit, OnDestroy {
-  constructor(
-    private readonly configGlobalStore: ConfigGlobalStore,
-    private readonly clientSearchLocalStore: ClientSearchLocalStore,
-  ) {
-    this.clients$ = this.clientSearchLocalStore.clients$;
-    this.searchQuery$ = this.inputFormControl.valueChanges.pipe(
-      takeUntil(this.ngOnDestroy.triggered$),
-      startWith(''),
-    );
-    this.debouncedSearchQuery$ = this.searchQuery$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-    );
-    this.formattedClientsLabels$ = this.configGlobalStore.clientsLabels$.pipe(
-      map((labels) => labels.map((label) => `${LABEL_IDENTIFIER}:${label}`)),
-    );
-    this.labels$ = combineLatest([
-      this.searchQuery$,
-      this.formattedClientsLabels$,
-    ]).pipe(map(([query, allLabels]) => this.filterLabels(query, allLabels)));
-  }
+export class SearchBox implements AfterViewInit {
+  private readonly globalStore = inject(GlobalStore);
+  protected readonly clientSearchStore = inject(ClientSearchStore);
+  @ViewChild('input') input!: ElementRef<HTMLInputElement>;
 
-  protected readonly inputFormControl = new FormControl('', {
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly queryParams = toSignal(this.route.queryParams);
+
+  protected readonly approvalReason = signal<string | undefined>(undefined);
+
+  readonly searchFormControl = new FormControl('', {
     nonNullable: true,
   });
 
-  protected readonly formSubmitted$ = new Subject<void>();
+  private readonly debouncedSearchValue = toSignal(
+    this.searchFormControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+    ),
+    {initialValue: ''},
+  );
 
-  @ViewChild('input') input!: ElementRef<HTMLInputElement>;
-
-  @Input() value?: string;
-
-  /**
-   * An event that is triggered every time when a user presses Enter. Emits the
-   * query that's typed into the input element.
-   */
-  @Output() querySubmitted = new EventEmitter<string>();
-
-  @Input() autofocus: boolean = false;
-
-  readonly ngOnDestroy = observeOnDestroy(this, () => {
-    this.querySubmitted.complete();
-  });
-
-  protected readonly clients$;
-
-  private readonly searchQuery$;
-
-  private readonly debouncedSearchQuery$;
-
-  private readonly formattedClientsLabels$;
-
-  protected readonly labels$;
-
-  @ViewChild(MatAutocompleteTrigger) autocomplete!: MatAutocompleteTrigger;
-
-  ngAfterViewInit() {
-    this.inputFormControl.setValue(this.value ?? '');
-
-    this.formSubmitted$
-      .pipe(
-        takeUntil(this.ngOnDestroy.triggered$),
-        withLatestFrom(this.searchQuery$),
-        map(([, query]) => query),
-        filter((query) => query !== ''),
-      )
-      .subscribe((query) => {
-        this.querySubmitted.emit(query);
-        this.autocomplete.closePanel();
-      });
-
-    this.debouncedSearchQuery$.subscribe((query) => {
-      this.clientSearchLocalStore.searchClients(query);
-    });
-
-    if (this.autofocus) {
-      this.input.nativeElement.focus();
-    }
-  }
-
-  private filterLabels(query: string, allLabels: string[]) {
-    const trimmedQuery = query.trim();
-    if (trimmedQuery.length < 3) {
+  protected readonly filteredLabels = computed(() => {
+    const query = this.debouncedSearchValue();
+    if (!query || !query.startsWith('label:')) {
       return [];
     }
-
-    return allLabels
+    const labelQuery = query.substring('label:'.length);
+    const trimmedQuery = labelQuery.trim();
+    return this.globalStore
+      .allLabels()
       .filter((label) => label.startsWith(trimmedQuery))
       .slice(0, 8);
+  });
+
+  constructor() {
+    this.clientSearchStore.searchClients(this.debouncedSearchValue);
+
+    effect(() => {
+      const query = this.queryParams()?.['q'] ?? null;
+      if (query) {
+        this.searchFormControl.patchValue(query);
+      }
+    });
+
+    effect(() => {
+      this.approvalReason.set(this.queryParams()?.['reason'] ?? undefined);
+    });
   }
 
-  protected selectClient(clientId: string) {
-    this.querySubmitted.emit(clientId);
-    this.autocomplete.closePanel();
+  ngAfterViewInit() {
+    this.input.nativeElement.focus();
   }
 
-  protected trackClient(index: number, client: Client) {
-    return client.clientId;
+  protected search() {
+    const searchQuery = this.searchFormControl.value.trim();
+    if (!searchQuery) {
+      return;
+    }
+    this.clientSearchStore.searchClients(searchQuery);
+
+    this.router.navigate(['/clients'], {
+      queryParams: {'q': searchQuery},
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  protected selectOption(option: string) {
+    if (isClientId(option)) {
+      if (this.approvalReason() !== undefined) {
+        this.router.navigate(['/clients', option, 'approvals'], {
+          queryParams: {'reason': this.approvalReason()},
+          queryParamsHandling: 'replace',
+        });
+      } else {
+        this.router.navigate(['/clients', option]);
+      }
+    } else {
+      this.router.navigate(['/clients'], {
+        queryParams: {'q': option},
+        queryParamsHandling: 'merge',
+      });
+    }
   }
 }

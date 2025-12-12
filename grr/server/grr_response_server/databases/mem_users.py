@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """The in memory database methods for GRR users and approval handling."""
 
+from collections.abc import Sequence
 import os
-from typing import Optional, Sequence, Tuple
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -88,7 +89,8 @@ class InMemoryDBUsersMixin(object):
       for approval in approvals.values():
         grants = [g for g in approval.grants if g.grantor_username != username]
         if len(grants) != len(approval.grants):
-          approval.ClearField("grants")
+          # TODO: Replace with `clear()` once upgraded.
+          del approval.grants[:]
           for g in grants:
             approval.grants.add().CopyFrom(g)
 
@@ -211,7 +213,7 @@ class InMemoryDBUsersMixin(object):
       username: str,
       state: Optional["objects_pb2.UserNotification.State"] = None,
       timerange: Optional[
-          Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+          tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
       ] = None,
   ) -> Sequence[objects_pb2.UserNotification]:
     """Reads notifications scheduled for a user within a given timerange."""

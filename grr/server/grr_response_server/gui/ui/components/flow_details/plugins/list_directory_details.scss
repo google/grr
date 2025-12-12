@@ -1,6 +1,0 @@
-@use '@angular/material' as mat;
-@use '../../../material-theme' as c;
-
-.num-files {
-  color: mat.get-color-from-palette(c.$foreground, text-light);
-}

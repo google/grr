@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """This module contains tests for flows-related API handlers."""
 
+import csv
 import io
 import os
 import random
 import tarfile
+from typing import Callable, Iterable, Iterator
 from unittest import mock
 import zipfile
 
@@ -12,21 +14,26 @@ from absl import app
 from absl.testing import absltest
 import yaml
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import tests_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import instant_output_plugin
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
+from grr_response_server.export_converters import log_message
 from grr_response_server.flows import file
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
@@ -35,10 +42,12 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.gui.api_plugins import mig_flow
+from grr_response_server.instant_output_plugins import csv_instant_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
+from grr.test_lib import export_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -67,7 +76,9 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   def testInitializesClientIdForClientBasedFlows(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=processes.ListProcesses
+        client_id=client_id,
+        flow_cls=processes.ListProcesses,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
@@ -79,7 +90,9 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   def testFlowWithoutFlowProgressTypeReportsDefaultFlowProgress(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=flow_test_lib.DummyFlow
+        client_id=client_id,
+        flow_cls=flow_test_lib.DummyFlow,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
@@ -93,7 +106,9 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   def testFlowWithoutResultsCorrectlyReportsEmptyResultMetadata(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=flow_test_lib.DummyFlow
+        client_id=client_id,
+        flow_cls=flow_test_lib.DummyFlow,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
@@ -105,7 +120,9 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   def testWithFlowProgressTypeReportsProgressCorrectly(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=flow_test_lib.DummyFlowWithProgress
+        client_id=client_id,
+        flow_cls=flow_test_lib.DummyFlowWithProgress,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
@@ -140,7 +157,9 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   def testUnknownFlowNameReturnsBestEffortApiFlow(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
-        client_id=client_id, flow_cls=flow_test_lib.DummyFlow
+        client_id=client_id,
+        flow_cls=flow_test_lib.DummyFlow,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     flow_obj.flow_class_name = "UnknownFlow"
@@ -407,6 +426,41 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEmpty(manifest["missing_files"])
 
 
+class TestInstantOutputPluginProto(
+    instant_output_plugin.InstantOutputPluginProto,
+):
+  """Test plugin."""
+
+  plugin_name = "test"
+  friendly_name = "test plugin"
+  description = "test plugin description"
+
+  def Start(self):
+    yield f"Start: {self.source_urn}"
+
+  def ProcessValuesOfType(
+      self,
+      type_url: str,
+      type_url_results_generator_fn: Callable[
+          [], Iterable[flows_pb2.FlowResult]
+      ],
+  ) -> Iterator[bytes]:
+    yield f"Values of type: {type_url}"
+    for flow_result in type_url_results_generator_fn():
+      yield (
+          "First pass:"
+          f" {flow_result.payload} (client_id={flow_result.client_id})"
+      )
+    for flow_result in type_url_results_generator_fn():
+      yield (
+          "Second pass:"
+          f" {flow_result.payload} (client_id={flow_result.client_id})"
+      )
+
+  def Finish(self):
+    yield f"Finish: {self.source_urn}"
+
+
 class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiGetExportedFlowResultsHandler."""
 
@@ -417,34 +471,122 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClient(0)
     self.context = api_call_context.ApiCallContext("test")
 
-  def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
-    with test_lib.FakeTime(42):
-      sid = flow_test_lib.StartAndRunFlow(
-          flow_test_lib.DummyFlowWithSingleReply,
-          client_id=self.client_id,
-          creator=self.test_username,
-      )
+  @test_plugins.WithInstantOutputPluginProto(TestInstantOutputPluginProto)
+  def testWorksCorrectlyWithProtoPlugin(
+      self,
+  ):
+    input_str = "golden"
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        flow_test_lib.EchoLogFlowProto,
+        flow_args=rdf_client.LogMessage(data=input_str),
+        client_id=self.client_id,
+        creator=self.test_username,
+    )
 
     result = self.handler.Handle(
-        flow_plugin.ApiGetExportedFlowResultsArgs(
+        flow_pb2.ApiGetExportedFlowResultsArgs(
             client_id=self.client_id,
-            flow_id=sid,
-            plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name,
+            flow_id=flow_id,
+            plugin_name=TestInstantOutputPluginProto.plugin_name,
         ),
         context=self.context,
     )
 
     chunks = list(result.GenerateContent())
 
+    # The flow is expected to return an echo of the input log message
+    flow_result = jobs_pb2.LogMessage(data=f"echo('{input_str}')")
+    # The InstantOutputPluginProto should received the FlowResult with a
+    # payload packed into Any proto and print that.
+    packed_flow_result = any_pb2.Any()
+    packed_flow_result.Pack(flow_result)
+
     self.assertListEqual(
         chunks,
         [
-            "Start: aff4:/%s/flows/%s" % (self.client_id, sid),
-            "Values of type: RDFString",
-            "First pass: oh (source=aff4:/%s)" % self.client_id,
-            "Second pass: oh (source=aff4:/%s)" % self.client_id,
-            "Finish: aff4:/%s/flows/%s" % (self.client_id, sid),
+            f"Start: aff4:/{self.client_id}/flows/{flow_id}",
+            (
+                "Values of type:"
+                f" type.googleapis.com/{jobs_pb2.LogMessage.DESCRIPTOR.full_name}"
+            ),
+            f"First pass: {packed_flow_result} (client_id={self.client_id})",
+            f"Second pass: {packed_flow_result} (client_id={self.client_id})",
+            f"Finish: aff4:/{self.client_id}/flows/{flow_id}",
         ],
+    )
+
+  def testComplainsAboutMissingPlugin(
+      self,
+  ):
+    with self.assertRaises(flow_plugin.InstantOutputPluginNotFoundError):
+      self.handler.Handle(
+          flow_pb2.ApiGetExportedFlowResultsArgs(
+              client_id=self.client_id,
+              flow_id="shouldn't be relevant",
+              plugin_name="non-existing",
+          ),
+          context=self.context,
+      )
+
+  @test_plugins.WithInstantOutputPluginProto(
+      csv_instant_plugin.CSVInstantOutputPluginProto
+  )
+  @export_test_lib.WithExportConverterProto(
+      log_message.LogMessageToExportedStringConverter
+  )
+  def testIntegrationWithCSVAndExportConverter(
+      self,
+  ):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        flow_test_lib.EchoLogFlowProto,
+        flow_args=rdf_client.LogMessage(data="soda pop"),
+        client_id=self.client_id,
+        creator=self.test_username,
+    )
+
+    result = self.handler.Handle(
+        flow_pb2.ApiGetExportedFlowResultsArgs(
+            client_id=self.client_id,
+            flow_id=flow_id,
+            plugin_name=csv_instant_plugin.CSVInstantOutputPluginProto.plugin_name,
+        ),
+        context=self.context,
+    )
+
+    chunks = list(result.GenerateContent())
+
+    fd_path = os.path.join(self.temp_dir, "csv_result.zip")
+    with open(fd_path, "wb") as fd:
+      for chunk in chunks:
+        fd.write(chunk)
+    zip_fd = zipfile.ZipFile(fd_path)
+    filename_prefix = f"results_{self.client_id}_flows_{flow_id}"
+
+    self.assertEqual(
+        set(zip_fd.namelist()),
+        set([
+            f"{filename_prefix}/MANIFEST",
+            f"{filename_prefix}/ExportedString/from_LogMessage.csv",
+        ]),
+    )
+
+    parsed_manifest = yaml.safe_load(zip_fd.read(f"{filename_prefix}/MANIFEST"))
+    self.assertEqual(
+        parsed_manifest, {"export_stats": {"LogMessage": {"ExportedString": 1}}}
+    )
+
+    with zip_fd.open(
+        f"{filename_prefix}/ExportedString/from_LogMessage.csv"
+    ) as filedesc:
+      content = filedesc.read().decode("utf-8")
+
+    parsed_output = list(csv.DictReader(io.StringIO(content)))
+
+    self.assertLen(parsed_output, 1)
+    self.assertEqual(
+        parsed_output[0]["data"],
+        "echo('soda pop')",
     )
 
 
@@ -557,6 +699,57 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     self.assertEmpty(result.items)
 
 
+class ApiListAllFlowOutputPluginLogsHandlerTest(
+    api_test_lib.ApiCallHandlerTest
+):
+  """Tests for ApiListAllFlowOutputPluginLogsHandler."""
+
+  def setUp(self):
+    super().setUp()
+    self.handler = flow_plugin.ApiListAllFlowOutputPluginLogsHandler()
+    self.client_id = self.SetupClient(0)
+    self.flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=self.client_id
+    )
+
+  def testReturnsCorrectData(self):
+    entry1 = flows_pb2.FlowOutputPluginLogEntry(
+        client_id=self.client_id,
+        flow_id=self.flow_id,
+        output_plugin_id="plugin1",
+        log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+        message="foo",
+    )
+    entry2 = flows_pb2.FlowOutputPluginLogEntry(
+        client_id=self.client_id,
+        flow_id=self.flow_id,
+        output_plugin_id="plugin2",
+        log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+        message="bar",
+    )
+    data_store.REL_DB.WriteMultipleFlowOutputPluginLogEntries([entry1, entry2])
+
+    args = flow_pb2.ApiListAllFlowOutputPluginLogsArgs(
+        client_id=self.client_id, flow_id=self.flow_id
+    )
+    result = self.handler.Handle(args, context=self.context)
+
+    self.assertEqual(result.total_count, 2)
+    self.assertLen(result.items, 2)
+    self.assertEqual(result.items[0].message, "foo")
+    self.assertEqual(result.items[0].output_plugin_id, "plugin1")
+    self.assertEqual(
+        result.items[0].log_entry_type,
+        flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
+    self.assertEqual(result.items[1].message, "bar")
+    self.assertEqual(result.items[1].output_plugin_id, "plugin2")
+    self.assertEqual(
+        result.items[1].log_entry_type,
+        flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
+
+
 def _CreateContext(db: abstract_db.Database) -> api_call_context.ApiCallContext:
   username = "".join(random.choice("abcdef") for _ in range(8))
   db.WriteGRRUser(username)
@@ -591,6 +784,26 @@ class ApiExplainGlobExpressionHandlerTest(absltest.TestCase):
             flows_pb2.GlobComponentExplanation(glob_expression="/foo"),
         ],
     )
+
+
+class ApiCreateFlowTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testDisableRRGSupport(self, db: abstract_db.Database):
+    handler = flow_plugin.ApiCreateFlowHandler()
+
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    args = flow_pb2.ApiCreateFlowArgs()
+    args.client_id = client_id
+    args.flow.name = processes.ListProcesses.__name__
+    args.flow.runner_args.disable_rrg_support = True
+
+    result = handler.Handle(args, context=_CreateContext(db))
+    self.assertTrue(result.runner_args.disable_rrg_support)
+
+    flow_obj = db.ReadFlowObject(client_id, result.flow_id)
+    self.assertTrue(flow_obj.disable_rrg_support)
 
 
 class ApiScheduleFlowsTest(absltest.TestCase):

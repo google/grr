@@ -1,0 +1,125 @@
+<collapsible-container>
+  <collapsible-title>
+    <h4>Select client</h4>
+  </collapsible-title>
+  <collapsible-content>
+    <form>
+      @if (ruleForms().length > 1) {
+        <mat-form-field appearance="outline">
+          <mat-label>Match Mode</mat-label>
+          <mat-select [formControl]="rulesMatchModeControl">
+            <mat-option [value]="MatchMode.MATCH_ALL">Match All (and)</mat-option>
+            <mat-option [value]="MatchMode.MATCH_ANY">Match Any (or)</mat-option>
+          </mat-select>
+        </mat-form-field>
+      }
+      @for(ruleForm of ruleForms(); track $index) {
+        <div class="rule-form">
+          @if (isClientOsFormData(ruleForm)) {
+            <client-os-form [osData]="ruleForm" />
+          } @else if (isClientLabelsFormData(ruleForm)) {
+            <client-labels-form [labelsData]="ruleForm" />
+          } @else if (isClientRegexFormData(ruleForm)) {
+            <client-regex-form [regexData]="ruleForm" />
+          } @else if (isClientIntegerFormData(ruleForm)) {
+            <client-integer-form [integerData]="ruleForm" />
+          }
+          <button mat-icon-button
+            class="remove-rule-button"
+            (click)="removeRule($index)"
+            type="button"
+            aria-label="remove rule"
+            >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <mat-divider />
+      }
+
+      <div class="action-buttons">
+        <button mat-flat-button type="button" [matMenuTriggerFor]="addConditionMenu">
+          Add Condition
+          <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+        </button>
+
+        <mat-menu #addConditionMenu="matMenu">
+
+          <div>Most common</div>
+          <button mat-menu-item type="button" (click)="addNewIntegerRule({field: IntegerField.CLIENT_VERSION})">
+            {{IntegerField.CLIENT_VERSION | friendlyForemanIntegerClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewLabelRule({})">
+            Labels
+          </button>
+          <button mat-menu-item type="button" (click)="addNewOsRule({})">
+            Operating System
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.OS_VERSION})">
+            {{StringField.OS_VERSION | friendlyForemanStringClientRule}}
+          </button>
+
+          <div>Other</div>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.CLIENT_DESCRIPTION})">
+            {{StringField.CLIENT_DESCRIPTION | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.CLIENT_ID})">
+            {{StringField.CLIENT_ID | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.CLIENT_LABELS})">
+            {{StringField.CLIENT_LABELS | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.CLIENT_NAME})">
+            {{StringField.CLIENT_NAME | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.FQDN})">
+            {{StringField.FQDN | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.HOST_IPS})">
+            {{StringField.HOST_IPS | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewIntegerRule({field: IntegerField.INSTALL_TIME})">
+            {{IntegerField.INSTALL_TIME | friendlyForemanIntegerClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.KERNEL_VERSION})">
+            {{StringField.KERNEL_VERSION | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewIntegerRule({field: IntegerField.LAST_BOOT_TIME})">
+            {{IntegerField.LAST_BOOT_TIME | friendlyForemanIntegerClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.MAC_ADDRESSES})">
+            {{StringField.MAC_ADDRESSES | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.OS_RELEASE})">
+            {{StringField.OS_RELEASE | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.SYSTEM})">
+            {{StringField.SYSTEM | friendlyForemanStringClientRule}}
+          </button>
+          <button mat-menu-item type="button" (click)="addNewRegexRule({field: StringField.USERNAMES})">
+            {{StringField.USERNAMES | friendlyForemanStringClientRule}}
+          </button>
+        </mat-menu>
+
+        <button mat-button type="button" (click)="resetInitialRules()" >
+          Reset initial rules
+        </button>
+      </div>
+    </form>
+  </collapsible-content>
+</collapsible-container>
+
+@if (presubmitFailed() ) {
+    <mat-card class="warning">
+      <mat-card-header>
+        <mat-icon>info</mat-icon> WARNING!
+      </mat-card-header>
+      <mat-card-content>
+        @if (warningMessage(); as message) {
+          <div [innerHTML]="message | markdown | sanitize"></div>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button type="button" (click)="fixPresubmit()">Fix</button>
+      </mat-card-actions>
+    </mat-card>
+  }
