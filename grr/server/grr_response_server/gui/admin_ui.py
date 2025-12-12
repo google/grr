@@ -41,15 +41,6 @@ def main(_):
 
   fleetspeak_connector.Init()
 
-  if not config.CONFIG["AdminUI.headless"] and (not os.path.exists(
-      os.path.join(config.CONFIG["AdminUI.document_root"],
-                   "dist/grr-ui.bundle.js")) or not os.path.exists(
-                       os.path.join(config.CONFIG["AdminUI.document_root"],
-                                    "dist/grr-ui.bundle.css"))):
-    raise RuntimeError("Can't find compiled JS/CSS bundles. "
-                       "Please reinstall the PIP package using "
-                       "\"pip install -e .\" to rebuild the bundles.")
-
   server = wsgiapp.MakeServer(multi_threaded=True)
   server_startup.DropPrivileges()
 
