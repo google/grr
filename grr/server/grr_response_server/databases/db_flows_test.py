@@ -2270,7 +2270,8 @@ class DatabaseTestFlowMixin(object):
     sample_result = flows_pb2.FlowResult(client_id=client_id, flow_id=flow_id)
     sample_result.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
-    with test_lib.FakeTime(42):
+    current_time = rdfvalue.RDFDatetime.Now()
+    with test_lib.FakeTime(current_time):
       self.db.WriteFlowResults([sample_result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
@@ -2278,7 +2279,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].payload, sample_result.payload)
     self.assertEqual(
         rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(results[0].timestamp),
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        current_time,
     )
 
   def testWritesAndReadsRDFStringFlowResult(self):
@@ -2335,7 +2336,8 @@ class DatabaseTestFlowMixin(object):
     )
     sample_result.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
-    with test_lib.FakeTime(42):
+    current_time = rdfvalue.RDFDatetime.Now()
+    with test_lib.FakeTime(current_time):
       self.db.WriteFlowResults([sample_result])
 
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
@@ -2346,7 +2348,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].payload, sample_result.payload)
     self.assertEqual(
         rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(results[0].timestamp),
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        current_time,
     )
 
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
@@ -2743,7 +2745,8 @@ class DatabaseTestFlowMixin(object):
     sample_error = flows_pb2.FlowError(client_id=client_id, flow_id=flow_id)
     sample_error.payload.Pack(jobs_pb2.ClientSummary(client_id=client_id))
 
-    with test_lib.FakeTime(42):
+    current_time = rdfvalue.RDFDatetime.Now()
+    with test_lib.FakeTime(current_time):
       self.db.WriteFlowErrors([sample_error])
 
     errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
@@ -2751,9 +2754,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(errors[0].payload, sample_error.payload)
     self.assertEqual(
         errors[0].timestamp,
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-            42
-        ).AsMicrosecondsSinceEpoch(),
+        current_time.AsMicrosecondsSinceEpoch(),
     )
 
   def testWritesAndReadsMultipleFlowErrorsOfSingleType(self):

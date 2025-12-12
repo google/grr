@@ -1,0 +1,11 @@
+CREATE TABLE `Table`(
+  `Key` STRING(MAX) NOT NULL,
+  `Column` STRING(MAX),
+  `Time` TIMESTAMP OPTIONS (allow_commit_timestamp = true)
+) PRIMARY KEY (`Key`);
+
+CREATE TABLE `Subtable`(
+  `Key` STRING(MAX) NOT NULL,
+  `Subkey` STRING(MAX),
+) PRIMARY KEY (`Key`, `Subkey`),
+  INTERLEAVE IN PARENT `Table` ON DELETE CASCADE;

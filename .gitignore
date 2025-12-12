@@ -36,3 +36,6 @@ grr/server/grr_response_server/gui/ui/.angular/
 docker_config_files/*.pem
 compose.watch.yaml
 Dockerfile.client
+
+grr/server/grr_response_server/databases/spanner_grr.pb
+spanner-setup.txt

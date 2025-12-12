@@ -121,3 +121,33 @@ config_lib.DEFINE_string(
         "Only used when Blobstore.implementation is GCSBlobStore."
     ),
 )
+
+# Spanner configuration.
+config_lib.DEFINE_string(
+    "Spanner.project",
+    default=None,
+    help=(
+        "GCP Project where the Spanner Instance is located."
+    ),
+)
+config_lib.DEFINE_string(
+    "Spanner.instance",
+    default="grr-instance",
+    help="The Spanner Instance for GRR.")
+
+config_lib.DEFINE_string(
+    "Spanner.database",
+    default="grr-database",
+    help="The Spanner Database for GRR.")
+
+config_lib.DEFINE_integer(
+    "Spanner.flow_processing_threads_min",
+    default=1,
+    help="The minimum number of flow-processing worker threads.",
+)
+
+config_lib.DEFINE_integer(
+    "Spanner.flow_processing_threads_max",
+    default=20,
+    help="The maximum number of flow-processing worker threads.",
+)

@@ -1,0 +1,673 @@
+CREATE PROTO BUNDLE (
+  `google.protobuf.Any`,
+  `google.protobuf.Timestamp`,
+  `grr.ApprovalRequest`,
+  `grr.ApprovalRequest.ApprovalType`,
+  `grr.ClientLabel`,
+  `grr.GRRUser`,
+  `grr.GRRUser.UserType`,
+  `grr.GUISettings`,
+  `grr.GUISettings.UIMode`,
+  `grr.FleetspeakValidationInfo`,
+  `grr.FleetspeakValidationInfoTag`,
+  `grr.Password`,
+  `grr.PathInfo`,
+  `grr.PathInfo.PathType`,
+  `grr.UserNotification`,
+  `grr.UserNotification.State`,
+  `grr.UserNotification.Type`,
+  `grr.AttributedDict`,
+  `grr.BlobArray`,
+  `grr.Dict`,
+  `grr.DataBlob`,
+  `grr.DataBlob.CompressionType`,
+  `grr.EmbeddedRDFValue`,
+  `grr.KeyValue`,
+  `grr.AmazonCloudInstance`,
+  `grr.ClientInformation`,
+  `grr.ClientCrash`,
+  `grr.ClientSnapshot`,
+  `grr.CloudInstance`,
+  `grr.CloudInstance.InstanceType`,
+  `grr.EdrAgent`,
+  `grr.Filesystem`,
+  `grr.GoogleCloudInstance`,
+  `grr.HardwareInfo`,
+  `grr.Interface`,
+  `grr.KnowledgeBase`,
+  `grr.NetworkAddress`,
+  `grr.NetworkAddress.Family`,
+  `grr.StartupInfo`,
+  `grr.StringMapEntry`,
+  `grr.UnixVolume`,
+  `grr.User`,
+  `grr.Volume`,
+  `grr.Volume.VolumeFileSystemFlagEnum`,
+  `grr.WindowsVolume`,
+  `grr.WindowsVolume.WindowsDriveTypeEnum`,
+  `grr.WindowsVolume.WindowsVolumeAttributeEnum`,
+  `grr.ApprovalRequestReference`,
+  `grr.ClientReference`,
+  `grr.CronJobReference`,
+  `grr.FlowLikeObjectReference`,
+  `grr.FlowLikeObjectReference.ObjectType`,
+  `grr.FlowReference`,
+  `grr.HuntReference`,
+  `grr.ObjectReference`,
+  `grr.ObjectReference.Type`,
+  `grr.VfsFileReference`,
+  `grr.CpuSeconds`,
+  `grr.Flow`,
+  `grr.Flow.FlowState`,
+  `grr.FlowIterator`,
+  `grr.FlowOutputPluginLogEntry`,
+  `grr.FlowOutputPluginLogEntry.LogEntryType`,
+  `grr.FlowProcessingRequest`,
+  `grr.FlowRequest`,
+  `grr.FlowResponse`,
+  `grr.FlowResultCount`,
+  `grr.FlowResultMetadata`,
+  `grr.FlowRunnerArgs`,
+  `grr.FlowStatus`,
+  `grr.FlowStatus.Status`,
+  `grr.GrrMessage`,
+  `grr.GrrMessage.AuthorizationState`,
+  `grr.GrrMessage.Type`,
+  `grr.GrrStatus`,
+  `grr.GrrStatus.ReturnedStatus`,
+  `grr.OutputPluginDescriptor`,
+  `grr.OutputPluginState`,
+  `grr.RequestState`,
+  `grr.APIAuditEntry`,
+  `grr.APIAuditEntry.Code`,
+  `grr.AuthenticodeSignedData`,
+  `grr.BlobImageChunkDescriptor`,
+  `grr.BlobImageDescriptor`,
+  `grr.BufferReference`,
+  `grr.Hash`,
+  `grr.FileFinderResult`,
+  `grr.PathSpec`,
+  `grr.PathSpec.ImplementationType`,
+  `grr.PathSpec.Options`,
+  `grr.PathSpec.PathType`,
+  `grr.PathSpec.tsk_fs_attr_type`,
+  `grr.StatEntry`,
+  `grr.StatEntry.ExtAttr`,
+  `grr.StatEntry.RegistryType`,
+  `grr.ForemanClientRule`,
+  `grr.ForemanClientRule.Type`,
+  `grr.ForemanClientRuleSet`,
+  `grr.ForemanClientRuleSet.MatchMode`,
+  `grr.ForemanCondition`,
+  `grr.ForemanIntegerClientRule`,
+  `grr.ForemanIntegerClientRule.ForemanIntegerField`,
+  `grr.ForemanIntegerClientRule.Operator`,
+  `grr.ForemanLabelClientRule`,
+  `grr.ForemanLabelClientRule.MatchMode`,
+  `grr.ForemanOsClientRule`,
+  `grr.ForemanRegexClientRule`,
+  `grr.ForemanRegexClientRule.ForemanStringField`,
+  `grr.ForemanRule`,
+  `grr.ForemanRuleAction`,
+  `grr.Artifact`,
+  `grr.ArtifactSource`,
+  `grr.ArtifactSource.SourceType`,
+  `grr.ArtifactDescriptor`,
+  `grr.ClientActionResult`,
+  `grr.Hunt`,
+  `grr.Hunt.HuntState`,
+  `grr.Hunt.HuntStateReason`,
+  `grr.HuntArguments`,
+  `grr.HuntArguments.HuntType`,
+  `grr.HuntArgumentsStandard`,
+  `grr.HuntArgumentsVariable`,
+  `grr.VariableHuntFlowGroup`,
+  `grr.BlobReference`,
+  `grr.BlobReferences`,
+  `grr.SignedBinaryID`,
+  `grr.SignedBinaryID.BinaryType`,
+  `grr.CronJob`,
+  `grr.CronJobAction`,
+  `grr.CronJobAction.ActionType`,
+  `grr.CronJobRun`,
+  `grr.CronJobRun.CronJobRunStatus`,
+  `grr.SystemCronAction`,
+  `grr.HuntCronAction`,
+  `grr.HuntRunnerArgs`,
+  `grr.MessageHandlerRequest`,
+  `grr.Command`,
+  `grr.Command.EnvVar`,
+  `grr.SignedCommand`,
+  `grr.SignedCommand.OS`,
+  `rrg.Log`,
+  `rrg.Log.Level`,
+  `rrg.fs.Path`,
+  `rrg.startup.Metadata`,
+  `rrg.startup.Startup`,
+  `rrg.startup.Version`,
+  `rrg.action.execute_signed_command.Command`,
+);
+
+CREATE TABLE Labels (
+  Label STRING(128) NOT NULL,
+) PRIMARY KEY (Label);
+
+CREATE TABLE Clients (
+  ClientId STRING(18) NOT NULL,
+  LastSnapshotTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  LastStartupTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  LastRRGStartupTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  LastCrashTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  FirstSeenTime TIMESTAMP,
+  LastPingTime TIMESTAMP,
+  LastForemanTime TIMESTAMP,
+  Certificate BYTES(MAX),
+  FleetspeakEnabled BOOL,
+  FleetspeakValidationInfo `grr.FleetspeakValidationInfo`,
+) PRIMARY KEY (ClientId);
+
+CREATE TABLE ClientSnapshots(
+  ClientId STRING(18) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Snapshot `grr.ClientSnapshot` NOT NULL,
+) PRIMARY KEY (ClientId, CreationTime),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE TABLE ClientStartups(
+  ClientId STRING(18) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Startup `grr.StartupInfo` NOT NULL,
+) PRIMARY KEY (ClientId, CreationTime),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE TABLE ClientRRGStartups(
+  ClientId STRING(18) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Startup `rrg.startup.Startup` NOT NULL,
+) PRIMARY KEY (ClientId, CreationTime),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE TABLE ClientCrashes(
+  ClientId STRING(18) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Crash `grr.ClientCrash` NOT NULL,
+) PRIMARY KEY (ClientId, CreationTime),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE TABLE Users (
+  Username STRING(256) NOT NULL,
+  Email STRING(256),
+  Password `grr.Password`,
+  Type `grr.GRRUser.UserType`,
+  CanaryMode BOOL,
+  UiMode `grr.GUISettings.UIMode`,
+) PRIMARY KEY (Username);
+
+CREATE TABLE UserNotifications(
+  Username STRING(256) NOT NULL,
+  NotificationId STRING(36) NOT NULL,
+  Type `grr.UserNotification.Type` NOT NULL,
+  State `grr.UserNotification.State` NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Message STRING(MAX),
+  Reference `grr.ObjectReference` NOT NULL,
+) PRIMARY KEY (Username, NotificationId),
+  INTERLEAVE IN PARENT Users ON DELETE CASCADE;
+
+CREATE TABLE ApprovalRequests(
+  Requestor STRING(256) NOT NULL,
+  ApprovalId STRING(36) NOT NULL,
+  SubjectClientId STRING(18),
+  SubjectHuntId STRING(8),
+  SubjectCronJobId STRING(100),
+  Reason STRING(MAX) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  ExpirationTime TIMESTAMP NOT NULL,
+  NotifiedUsers ARRAY<STRING(256)> NOT NULL,
+  CcEmails ARRAY<STRING(256)> NOT NULL,
+  CONSTRAINT fk_approval_request_requestor_username
+    FOREIGN KEY (Requestor)
+    REFERENCES Users(Username),
+
+  CONSTRAINT ck_subject_id_valid
+       CHECK ((IF(SubjectClientId IS NOT NULL, 1, 0) +
+               IF(SubjectHuntId IS NOT NULL, 1, 0) +
+               IF(SubjectCronJobId IS NOT NULL, 1, 0)) = 1),
+) PRIMARY KEY (Requestor, ApprovalId);
+
+CREATE INDEX ApprovalRequestsByRequestor
+  ON ApprovalRequests(Requestor);
+
+CREATE INDEX ApprovalRequestsByRequestorSubjectClientId
+  ON ApprovalRequests(Requestor, SubjectClientId);
+
+CREATE INDEX ApprovalRequestsByRequestorSubjectHuntId
+  ON ApprovalRequests(Requestor, SubjectHuntId);
+
+CREATE INDEX ApprovalRequestsByRequestorSubjectCronJobId
+  ON ApprovalRequests(Requestor, SubjectCronJobId);
+
+CREATE TABLE ApprovalGrants(
+  Requestor STRING(256) NOT NULL,
+  ApprovalId STRING(36) NOT NULL,
+  Grantor STRING(256) NOT NULL,
+  GrantId STRING(36) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+
+  CONSTRAINT fk_approval_grant_grantor_username
+    FOREIGN KEY (Grantor)
+    REFERENCES Users(Username) ON DELETE CASCADE,
+) PRIMARY KEY (Requestor, ApprovalId, Grantor, GrantId),
+  INTERLEAVE IN PARENT ApprovalRequests ON DELETE CASCADE;
+
+CREATE INDEX ApprovalGrantsByGrantor
+  ON ApprovalGrants(Grantor);
+
+CREATE TABLE ClientLabels(
+  ClientId STRING(18) NOT NULL,
+  Owner STRING(256) NOT NULL,
+  Label STRING(128) NOT NULL,
+
+  CONSTRAINT fk_client_label_owner_username
+    FOREIGN KEY (Owner)
+    REFERENCES Users(Username),
+
+  CONSTRAINT fk_client_label_label_label
+    FOREIGN KEY (Label)
+    REFERENCES Labels(Label),
+) PRIMARY KEY (ClientId, Owner, Label),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE TABLE ClientKeywords(
+  ClientId STRING(18) NOT NULL,
+  Keyword STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+
+  CONSTRAINT ck_client_keyword_not_empty
+       CHECK (Keyword <> ''),
+) PRIMARY KEY (ClientId, Keyword),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE INDEX ClientKeywordsByKeywordCreationTime
+  ON ClientKeywords(Keyword, CreationTime);
+
+CREATE TABLE Flows(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  ParentFlowId STRING(16),
+  ParentHuntId STRING(16),
+  LongFlowId STRING(256) NOT NULL,
+  Creator STRING(256) NOT NULL,
+  Name STRING(256) NOT NULL,
+  State `grr.Flow.FlowState` NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  UpdateTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Crash `grr.ClientCrash`,
+  NextRequestToProcess STRING(16),
+  ProcessingWorker STRING(MAX),
+  ProcessingStartTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  ProcessingEndTime TIMESTAMP,
+  Flow `grr.Flow` NOT NULL,
+  ReplyCount INT64 NOT NULL,
+  NetworkBytesSent INT64 NOT NULL,
+  UserCpuTimeUsed FLOAT64 NOT NULL,
+  SystemCpuTimeUsed FLOAT64 NOT NULL,
+
+  CONSTRAINT fk_flow_client_id_parent_id_flow
+    FOREIGN KEY (ClientId, ParentFlowId)
+    REFERENCES Flows(ClientId, FlowId),
+) PRIMARY KEY (ClientId, FlowId),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE INDEX FlowsByParentHuntIdFlowIdUpdateTime
+  ON Flows(ParentHuntId, FlowId, UpdateTime)
+  STORING (State);
+
+CREATE INDEX FlowsByParentHuntIdFlowIdState
+  ON Flows(ParentHuntId, FlowId, State)
+  STORING (ReplyCount, NetworkBytesSent, UserCpuTimeUsed, SystemCpuTimeUsed);
+
+CREATE TABLE FlowResults(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  HuntId STRING(16),
+  CreationTime TIMESTAMP NOT NULL,
+  Payload `google.protobuf.Any`,
+  RdfType STRING(MAX),
+  Tag STRING(MAX),
+) PRIMARY KEY (ClientId, FlowId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowResultsByHuntIdCreationTime
+  ON FlowResults(HuntId, CreationTime);
+CREATE INDEX FlowResultsByHuntIdFlowIdCreationTime
+  ON FlowResults(HuntId, FlowId, CreationTime);
+CREATE INDEX FlowResultsByHuntIdFlowIdRdfTypeTagCreationTime
+  ON FlowResults(HuntId, FlowId, RdfType, Tag, CreationTime);
+
+CREATE TABLE FlowErrors(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  HuntId STRING(16) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL,
+  Payload `google.protobuf.Any`,
+  RdfType STRING(MAX),
+  Tag STRING(MAX),
+) PRIMARY KEY (ClientId, FlowId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowErrorsByHuntIdFlowIdCreationTime
+  ON FlowErrors(HuntId, FlowId, CreationTime);
+CREATE INDEX FlowErrorsByHuntIdFlowIdRdfTypeTagCreationTime
+  ON FlowErrors(HuntId, FlowId, RdfType, Tag, CreationTime);
+
+CREATE TABLE FlowRequests(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  RequestId STRING(16) NOT NULL,
+  NeedsProcessing BOOL,
+  ExpectedResponseCount INT64,
+  NextResponseId STRING(16),
+  CallbackState STRING(256),
+  Payload `grr.FlowRequest` NOT NULL,
+  StartTime TIMESTAMP,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY (ClientId, FlowId, RequestId),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE,
+  ROW DELETION POLICY (OLDER_THAN(CreationTime, INTERVAL 84 DAY));
+
+CREATE TABLE FlowResponses(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  RequestId STRING(16) NOT NULL,
+  ResponseId STRING(16) NOT NULL,
+  Response `grr.FlowResponse`,
+  Status `grr.FlowStatus`,
+  Iterator `grr.FlowIterator`,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+
+  CONSTRAINT ck_flow_response_has_payload
+       CHECK ((IF(Response IS NOT NULL, 1, 0) +
+               IF(Status IS NOT NULL, 1, 0) +
+               IF(Iterator IS NOT NULL, 1, 0)) = 1),
+) PRIMARY KEY (ClientId, FlowId, RequestId, ResponseId),
+  INTERLEAVE IN PARENT FlowRequests ON DELETE CASCADE;
+
+CREATE TABLE FlowLogEntries(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  HuntId STRING(16),
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Message STRING(MAX) NOT NULL,
+) PRIMARY KEY (ClientId, FlowId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowLogEntriesByHuntIdCreationTime
+  ON FlowLogEntries(HuntId, CreationTime);
+
+CREATE TABLE FlowRRGLogs(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  RequestId STRING(16) NOT NULL,
+  ResponseId STRING(16) NOT NULL,
+  LogLevel `rrg.Log.Level` NOT NULL,
+  LogTime TIMESTAMP NOT NULL,
+  LogMessage STRING(MAX) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY (ClientId, FlowId, RequestId, ResponseId),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE TABLE FlowOutputPluginLogEntries(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  OutputPluginId STRING(16) NOT NULL,
+  HuntId STRING(16),
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Type `grr.FlowOutputPluginLogEntry.LogEntryType` NOT NULL,
+  Message STRING(MAX) NOT NULL,
+) PRIMARY KEY (ClientId, FlowId, OutputPluginId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowOutputPluginLogEntriesByHuntIdCreationTime
+  ON FlowOutputPluginLogEntries(HuntId, CreationTime);
+
+CREATE TABLE ScheduledFlows(
+  ClientId STRING(18) NOT NULL,
+  Creator STRING(256) NOT NULL,
+  ScheduledFlowId STRING(16) NOT NULL,
+  FlowName STRING(256) NOT NULL,
+  FlowArgs `google.protobuf.Any` NOT NULL,
+  RunnerArgs `grr.FlowRunnerArgs` NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Error STRING(MAX),
+
+  CONSTRAINT fk_creator_users_username
+    FOREIGN KEY (Creator)
+    REFERENCES Users(Username) ON DELETE CASCADE,
+) PRIMARY KEY (ClientId, Creator, ScheduledFlowId),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE INDEX ScheduledFlowsByCreator
+  ON ScheduledFlows(Creator);
+
+CREATE TABLE Paths(
+  ClientId STRING(18) NOT NULL,
+  Type `grr.PathInfo.PathType` NOT NULL,
+  Path BYTES(MAX) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  LastFileStatTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  LastFileHashTime TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  IsDir BOOL NOT NULL,
+  Depth INT64 NOT NULL,
+) PRIMARY KEY (ClientId, Type, Path),
+  INTERLEAVE IN PARENT Clients ON DELETE CASCADE;
+
+CREATE INDEX PathsByClientIdTypePathDepth
+  ON Paths(ClientId, Type, Path, Depth);
+
+CREATE TABLE PathFileStats(
+  ClientId STRING(18) NOT NULL,
+  Type `grr.PathInfo.PathType` NOT NULL,
+  Path BYTES(MAX) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Stat `grr.StatEntry` NOT NULL,
+) PRIMARY KEY (ClientId, Type, Path, CreationTime),
+  INTERLEAVE IN PARENT Paths ON DELETE CASCADE;
+
+CREATE TABLE PathFileHashes(
+  ClientId STRING(18) NOT NULL,
+  Type `grr.PathInfo.PathType` NOT NULL,
+  Path BYTES(MAX) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  FileHash `grr.Hash` NOT NULL,
+) PRIMARY KEY (ClientId, Type, Path, CreationTime),
+  INTERLEAVE IN PARENT Paths ON DELETE CASCADE;
+
+CREATE TABLE HashBlobReferences(
+  HashId BYTES(32) NOT NULL,
+  Offset INT64 NOT NULL,
+  BlobId BYTES(32) NOT NULL,
+  Size INT64 NOT NULL,
+
+  CONSTRAINT ck_hash_id_valid CHECK (BYTE_LENGTH(HashId) = 32),
+  CONSTRAINT ck_blob_id_valid CHECK (BYTE_LENGTH(BlobId) = 32),
+) PRIMARY KEY (HashId, Offset);
+
+CREATE TABLE ApiAuditEntry (
+  Username STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  HttpRequestPath STRING(MAX) NOT NULL,
+  RouterMethodName STRING(256) NOT NULL,
+  ResponseCode `grr.APIAuditEntry.Code` NOT NULL,
+) PRIMARY KEY (Username, CreationTime);
+
+CREATE TABLE Artifacts (
+  Name STRING(256) NOT NULL,
+  Platforms ARRAY<STRING(128)> NOT NULL,
+  Payload `grr.Artifact` NOT NULL,
+) PRIMARY KEY (Name);
+
+CREATE TABLE YaraSignatureReferences(
+  BlobId BYTES(32) NOT NULL,
+  Creator STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+
+  CONSTRAINT ck_yara_signature_reference_blob_id_valid
+    CHECK (BYTE_LENGTH(BlobId) = 32),
+  CONSTRAINT fk_yara_signature_reference_creator_username
+    FOREIGN KEY (Creator)
+    REFERENCES Users(Username)
+) PRIMARY KEY (BlobId);
+
+CREATE TABLE Hunts(
+  HuntId STRING(16) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  LastUpdateTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Creator STRING(256) NOT NULL,
+  DurationMicros INT64 NOT NULL,
+  Description STRING(MAX) NOT NULL,
+  ClientRate FLOAT64 NOT NULL,
+  ClientLimit INT64 NOT NULL,
+  State `grr.Hunt.HuntState` NOT NULL,
+  StateReason `grr.Hunt.HuntStateReason` NOT NULL,
+  StateComment STRING(MAX) NOT NULL,
+  InitStartTime TIMESTAMP,
+  LastStartTime TIMESTAMP,
+  ClientCountAtStartTime INT64 NOT NULL,
+  Hunt `grr.Hunt` NOT NULL,
+
+  CONSTRAINT fk_hunt_creator_username
+    FOREIGN KEY (Creator)
+    REFERENCES Users(Username),
+) PRIMARY KEY (HuntId);
+
+ALTER TABLE FlowLogEntries ADD CONSTRAINT fk_flow_log_entry_hunt_id_hunt
+    FOREIGN KEY (HuntId)
+    REFERENCES Hunts(HuntId);
+ALTER TABLE FlowOutputPluginLogEntries ADD CONSTRAINT fk_flow_output_plugin_log_entry_hunt_id_hunt
+    FOREIGN KEY (HuntId)
+    REFERENCES Hunts(HuntId);
+ALTER TABLE Flows ADD CONSTRAINT fk_flow_parent_hunt_id_hunt
+    FOREIGN KEY (ParentHuntId)
+    REFERENCES Hunts(HuntId);
+
+CREATE INDEX HuntsByCreationTime
+  ON Hunts(CreationTime DESC);
+
+CREATE INDEX HuntsByCreator ON Hunts(Creator);
+
+CREATE TABLE HuntOutputPlugins(
+  HuntId STRING(16) NOT NULL,
+  OutputPluginId INT64 NOT NULL,
+  Name STRING(256) NOT NULL,
+  Args `google.protobuf.Any`,
+  State `google.protobuf.Any` NOT NULL,
+) PRIMARY KEY (HuntId, OutputPluginId),
+  INTERLEAVE IN PARENT Hunts ON DELETE CASCADE;
+
+CREATE TABLE ForemanRules(
+  HuntId STRING(16) NOT NULL,
+  ExpirationTime TIMESTAMP NOT NULL,
+  Payload `grr.ForemanCondition`,
+
+  CONSTRAINT fk_foreman_rule_hunt_id_hunt
+    FOREIGN KEY (HuntId)
+    REFERENCES Hunts(HuntId),
+) PRIMARY KEY (HuntId);
+
+CREATE INDEX ForemanRulesByExpirationTime
+  ON ForemanRules(ExpirationTime);
+
+CREATE TABLE SignedBinaries (
+  Type `grr.SignedBinaryID.BinaryType` NOT NULL,
+  Path STRING(MAX) NOT NULL,
+  BlobReferences `grr.BlobReferences` NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY (Type, Path);
+
+CREATE TABLE CronJobs (
+  JobId STRING(256) NOT NULL,
+  Job `grr.CronJob` NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Enabled BOOL NOT NULL,
+  CurrentRunId STRING(256),
+  ForcedRunRequested BOOL,
+  LastRunStatus `grr.CronJobRun.CronJobRunStatus`,
+  LastRunTime TIMESTAMP,
+  State  `grr.AttributedDict`,
+  LeaseEndTime TIMESTAMP,
+  LeaseOwner STRING(256),
+) PRIMARY KEY (JobId);
+
+CREATE TABLE CronJobRuns (
+  JobId STRING(256) NOT NULL,
+  RunId STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  FinishTime TIMESTAMP,
+  Status `grr.CronJobRun.CronJobRunStatus` NOT NULL,
+  LogMessage STRING(MAX),
+  Backtrace STRING(MAX),
+  Payload `grr.CronJobRun` NOT NULL,
+) PRIMARY KEY (JobId, RunId),
+  INTERLEAVE IN PARENT CronJobs ON DELETE CASCADE;
+
+ALTER TABLE CronJobs ADD CONSTRAINT fk_cron_job_run_job_id_current_run_id_cron_job_run
+    FOREIGN KEY (JobId, CurrentRunId)
+    REFERENCES CronJobRuns(JobId, RunId);
+
+ALTER TABLE ApprovalRequests
+  ADD CONSTRAINT fk_approval_request_subject_client_id_client
+    FOREIGN KEY (SubjectClientId)
+    REFERENCES Clients(ClientId);
+
+ALTER TABLE ApprovalRequests
+  ADD CONSTRAINT fk_approval_request_subject_hunt_id_hunt
+    FOREIGN KEY (SubjectHuntId)
+    REFERENCES Hunts(HuntId)
+    ON DELETE CASCADE;
+
+ALTER TABLE ApprovalRequests
+  ADD CONSTRAINT fk_approval_request_subject_cron_job_id_cron_job
+    FOREIGN KEY (SubjectCronJobId)
+    REFERENCES CronJobs(JobId)
+    ON DELETE CASCADE;
+
+CREATE TABLE BlobEncryptionKeys(
+  BlobId BYTES(32) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  KeyName STRING(256) NOT NULL,
+) PRIMARY KEY (BlobId, CreationTime);
+
+CREATE TABLE SignedCommands(
+  Id STRING(128) NOT NULL,
+  OperatingSystem `grr.SignedCommand.OS` NOT NULL,
+  Ed25519Signature BYTES(64) NOT NULL,
+  Command BYTES(MAX) NOT NULL,
+) PRIMARY KEY (Id, OperatingSystem);
+
+CREATE TABLE MessageHandlerRequests(
+  RequestId STRING(16) NOT NULL,
+  HandlerName STRING(256) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  LeasedUntil TIMESTAMP,
+  LeasedBy STRING(128),
+  Payload `grr.MessageHandlerRequest` NOT NULL,
+) PRIMARY KEY (RequestId);
+
+CREATE INDEX MessageHandlerRequestsByLease
+  ON MessageHandlerRequests(LeasedUntil, LeasedBy);
+
+CREATE TABLE FlowProcessingRequests(
+  ClientId STRING(18) NOT NULL,
+  FlowId STRING(16) NOT NULL,
+  CreationTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  RequestId STRING(36) NOT NULL,
+  DeliveryTime TIMESTAMP,
+  LeasedUntil TIMESTAMP,
+  LeasedBy STRING(128),
+  Payload `grr.FlowProcessingRequest` NOT NULL,
+) PRIMARY KEY (ClientId, FlowId, CreationTime),
+  INTERLEAVE IN PARENT Flows ON DELETE CASCADE;
+
+CREATE INDEX FlowProcessingRequestsIds
+  ON FlowProcessingRequests(RequestId);
