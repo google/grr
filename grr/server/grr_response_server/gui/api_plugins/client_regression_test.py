@@ -4,6 +4,7 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto.api import client_pb2 as api_client_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
@@ -26,7 +27,7 @@ class ApiSearchClientsHandlerRegressionTest(
 
       self.Check(
           "SearchClients",
-          args=client_plugin.ApiSearchClientsArgs(query=client_id),
+          args=api_client_pb2.ApiSearchClientsArgs(query=client_id),
       )
 
 
@@ -43,15 +44,13 @@ class ApiGetClientHandlerRegressionTest(
       client_id = self.SetupClient(0, memory_size=4294967296)
 
     self.Check(
-        "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id)
+        "GetClient", args=api_client_pb2.ApiGetClientArgs(client_id=client_id)
     )
 
 
 class ApiGetClientVersionsRegressionTest(
     api_regression_test_lib.ApiRegressionTest
 ):
-
-  mode = "FULL"
 
   api_method = "GetClientVersions"
   handler = client_plugin.ApiGetClientVersionsHandler
@@ -73,25 +72,143 @@ class ApiGetClientVersionsRegressionTest(
     with test_lib.FakeTime(47):
       self.Check(
           "GetClientVersions",
-          args=client_plugin.ApiGetClientVersionsArgs(
-              client_id=client_id, mode=self.mode
+          args=api_client_pb2.ApiGetClientVersionsArgs(
+              client_id=client_id,
+              mode=api_client_pb2.ApiGetClientVersionsArgs.Mode.FULL,
           ),
       )
       self.Check(
           "GetClientVersions",
-          args=client_plugin.ApiGetClientVersionsArgs(
+          args=api_client_pb2.ApiGetClientVersionsArgs(
               client_id=client_id,
-              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
-              mode=self.mode,
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+              mode=api_client_pb2.ApiGetClientVersionsArgs.Mode.FULL,
           ),
       )
       self.Check(
           "GetClientVersions",
-          args=client_plugin.ApiGetClientVersionsArgs(
+          args=api_client_pb2.ApiGetClientVersionsArgs(
               client_id=client_id,
-              start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
-              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(46),
-              mode=self.mode,
+              start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  46
+              ).AsMicrosecondsSinceEpoch(),
+              mode=api_client_pb2.ApiGetClientVersionsArgs.Mode.FULL,
+          ),
+      )
+
+
+class ApiGetClientSnapshotsRegressionTest(
+    api_regression_test_lib.ApiRegressionTest
+):
+
+  mode = "FULL"
+
+  api_method = "GetClientSnapshots"
+  handler = client_plugin.ApiGetClientSnapshotsHandler
+
+  def _SetupTestClient(self):
+    with test_lib.FakeTime(42):
+      client_id = self.SetupClient(0, memory_size=4294967296)
+
+    with test_lib.FakeTime(45):
+      self.SetupClient(
+          0, fqdn="some-other-hostname.org", memory_size=4294967296
+      )
+
+    return client_id
+
+  def Run(self):
+    client_id = self._SetupTestClient()
+
+    with test_lib.FakeTime(47):
+      self.Check(
+          "GetClientSnapshots",
+          args=api_client_pb2.ApiGetClientSnapshotsArgs(client_id=client_id),
+      )
+      self.Check(
+          "GetClientSnapshots",
+          args=api_client_pb2.ApiGetClientSnapshotsArgs(
+              client_id=client_id,
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+          ),
+      )
+      self.Check(
+          "GetClientSnapshots",
+          args=api_client_pb2.ApiGetClientSnapshotsArgs(
+              client_id=client_id,
+              start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  46
+              ).AsMicrosecondsSinceEpoch(),
+          ),
+      )
+
+
+class ApiGetClientStartupInfosRegressionTest(
+    api_regression_test_lib.ApiRegressionTest
+):
+
+  mode = "FULL"
+
+  api_method = "GetClientStartupInfos"
+  handler = client_plugin.ApiGetClientStartupInfosHandler
+
+  def _SetupTestClientStartupInfos(self):
+    with test_lib.FakeTime(42):
+      client_id = self.SetupClient(0, memory_size=4294967296)
+
+    with test_lib.FakeTime(45):
+      self.SetupClientStartupInfo(0, boot_time=1)
+
+    with test_lib.FakeTime(46):
+      # A client startup is written as part of the Client Snapshot.
+      self.SetupClient(0, last_boot_time=2)
+
+    return client_id
+
+  def Run(self):
+    client_id = self._SetupTestClientStartupInfos()
+
+    with test_lib.FakeTime(47):
+      self.Check(
+          "GetClientStartupInfos",
+          args=api_client_pb2.ApiGetClientStartupInfosArgs(client_id=client_id),
+      )
+      self.Check(
+          "GetClientStartupInfos",
+          args=api_client_pb2.ApiGetClientStartupInfosArgs(
+              client_id=client_id,
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+          ),
+      )
+      self.Check(
+          "GetClientStartupInfos",
+          args=api_client_pb2.ApiGetClientStartupInfosArgs(
+              client_id=client_id,
+              start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  44
+              ).AsMicrosecondsSinceEpoch(),
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                  46
+              ).AsMicrosecondsSinceEpoch(),
+          ),
+      )
+      self.Check(
+          "GetClientStartupInfos",
+          args=api_client_pb2.ApiGetClientStartupInfosArgs(
+              client_id=client_id,
+              exclude_snapshot_collections=True,
           ),
       )
 
@@ -110,7 +227,7 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
 
     self.Check(
         "GetLastClientIPAddress",
-        args=client_plugin.ApiGetLastClientIPAddressArgs(client_id=client_id),
+        args=api_client_pb2.ApiGetLastClientIPAddressArgs(client_id=client_id),
     )
 
 
@@ -167,19 +284,19 @@ class ApiListClientCrashesHandlerRegressionTest(
 
     self.Check(
         "ListClientCrashes",
-        args=client_plugin.ApiListClientCrashesArgs(client_id=client_id),
+        args=api_client_pb2.ApiListClientCrashesArgs(client_id=client_id),
         replace=replace,
     )
     self.Check(
         "ListClientCrashes",
-        args=client_plugin.ApiListClientCrashesArgs(
+        args=api_client_pb2.ApiListClientCrashesArgs(
             client_id=client_id, count=1
         ),
         replace=replace,
     )
     self.Check(
         "ListClientCrashes",
-        args=client_plugin.ApiListClientCrashesArgs(
+        args=api_client_pb2.ApiListClientCrashesArgs(
             client_id=client_id, offset=1, count=1
         ),
         replace=replace,

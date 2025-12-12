@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 """Classes for exporting StatEntry."""
 
-import hashlib
 import logging
 import time
+from typing import Iterable, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import export_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import export
-from grr_response_server import file_store
-from grr_response_server.databases import db
 from grr_response_server.export_converters import base
-from grr_response_server.flows.general import collectors as flow_collectors
+from grr_response_server.export_converters import buffer_reference
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -204,39 +205,8 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
     """Convert given batch of metadata value pairs."""
     filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
     for fp_batch in collection.Batch(filtered_pairs, self._BATCH_SIZE):
-
-      if self.options.export_files_contents:
-        client_paths = set()
-
-        for metadata, stat_entry in fp_batch:
-          # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
-          # client_id (to be added).
-          client_paths.add(
-              db.ClientPath.FromPathSpec(
-                  metadata.client_urn.Basename(), stat_entry.pathspec
-              )
-          )
-
-        data_by_path = {}
-        for chunk in file_store.StreamFilesChunks(
-            client_paths, max_size=self.MAX_CONTENT_SIZE
-        ):
-          data_by_path.setdefault(chunk.client_path, []).append(chunk.data)
-
       for metadata, stat_entry in fp_batch:
         result = self._CreateExportedFile(metadata, stat_entry)
-        clientpath = db.ClientPath.FromPathSpec(
-            metadata.client_urn.Basename(), stat_entry.pathspec
-        )
-
-        if self.options.export_files_contents:
-          try:
-            data = data_by_path[clientpath]
-            result.content = b"".join(data)[: self.MAX_CONTENT_SIZE]
-            result.content_sha256 = hashlib.sha256(result.content).hexdigest()
-          except KeyError:
-            pass
-
         yield result
 
   def BatchConvert(self, metadata_value_pairs):
@@ -255,6 +225,111 @@ class StatEntryToExportedFileConverter(base.ExportConverter):
 
     for r in result_generator:
       yield r
+
+
+class StatEntryToExportedFileConverterProto(
+    base.ExportConverterProto[jobs_pb2.StatEntry]
+):
+  """Converts StatEntry protos to ExportedFile protos."""
+
+  input_proto_type = jobs_pb2.StatEntry
+  output_proto_types = (export_pb2.ExportedFile,)
+
+  _BATCH_SIZE = 5000
+
+  def BatchConvert(
+      self,
+      metadata_value_pairs: Iterable[
+          tuple[export_pb2.ExportedMetadata, jobs_pb2.StatEntry]
+      ],
+  ) -> Iterable[export_pb2.ExportedFile]:
+    """Converts a batch of StatEntry protos to ExportedFile protos.
+
+    Args:
+      metadata_value_pairs: An iterable of tuples (metadata, value), where
+        metadata is ExportedMetadata to be used for conversion and value is a
+        StatEntry to be converted.
+
+    Yields:
+      Resulting ExportedFile values.
+    """
+    for metadata, stat_entry_proto in metadata_value_pairs:
+      # Ignore registry keys.
+      if (
+          stat_entry_proto.pathspec.pathtype
+          != jobs_pb2.PathSpec.PathType.REGISTRY
+      ):
+        yield GetExportedFileFromStatEntry(metadata, stat_entry_proto)
+
+  def Convert(
+      self,
+      metadata: export_pb2.ExportedMetadata,
+      stat_entry_proto: jobs_pb2.StatEntry,
+  ) -> Iterable[export_pb2.ExportedFile]:
+    return self.BatchConvert([(metadata, stat_entry_proto)])
+
+
+def GetExportedFileFromStatEntry(
+    metadata: export_pb2.ExportedMetadata,
+    stat_entry_proto: jobs_pb2.StatEntry,
+) -> export_pb2.ExportedFile:
+  """Creates an ExportedFile proto from a StatEntry proto.
+
+  Args:
+    metadata: ExportedMetadata to be added to the ExportedFile proto.
+    stat_entry_proto: The StatEntry proto to convert.
+
+  Returns:
+    An ExportedFile proto.
+  """
+  rdf_pathspec = mig_paths.ToRDFPathSpec(stat_entry_proto.pathspec)
+  client_urn = rdfvalue.RDFURN(metadata.client_urn)
+  path_urn = rdf_pathspec.AFF4Path(client_urn)
+
+  exported_file = export_pb2.ExportedFile(
+      metadata=metadata,
+      urn=path_urn.SerializeToWireFormat(),
+      basename=rdf_pathspec.Basename(),
+      st_mode=stat_entry_proto.st_mode,
+      st_ino=stat_entry_proto.st_ino,
+      st_dev=stat_entry_proto.st_dev,
+      st_nlink=stat_entry_proto.st_nlink,
+      st_uid=stat_entry_proto.st_uid,
+      st_gid=stat_entry_proto.st_gid,
+      st_size=stat_entry_proto.st_size,
+      # TODO: Add human-friendly timestamp fields to the exported
+      # proto.
+      st_atime=stat_entry_proto.st_atime,
+      st_mtime=stat_entry_proto.st_mtime,
+      st_ctime=stat_entry_proto.st_ctime,
+      st_btime=stat_entry_proto.st_btime,
+      st_blocks=stat_entry_proto.st_blocks,
+      st_blksize=stat_entry_proto.st_blksize,
+      st_rdev=stat_entry_proto.st_rdev,
+      symlink=stat_entry_proto.symlink,
+  )
+
+  return exported_file
+
+
+def AddHashToExportedFile(
+    hash_obj: jobs_pb2.Hash, result: export_pb2.ExportedFile
+) -> None:
+  """Parses Hash proto into ExportedFile's fields."""
+  if hash_obj.md5:
+    result.hash_md5 = hash_obj.md5.hex()
+
+  if hash_obj.sha1:
+    result.hash_sha1 = hash_obj.sha1.hex()
+
+  if hash_obj.sha256:
+    result.hash_sha256 = hash_obj.sha256.hex()
+
+  if hash_obj.pecoff_md5:
+    result.pecoff_hash_md5 = hash_obj.pecoff_md5.hex()
+
+  if hash_obj.pecoff_sha1:
+    result.pecoff_hash_sha1 = hash_obj.pecoff_sha1.hex()
 
 
 class StatEntryToExportedRegistryKeyConverter(base.ExportConverter):
@@ -302,16 +377,55 @@ class StatEntryToExportedRegistryKeyConverter(base.ExportConverter):
     return [result]
 
 
+class StatEntryToExportedRegistryKeyConverterProto(
+    base.ExportConverterProto[jobs_pb2.StatEntry]
+):
+  """Converts StatEntry protos to ExportedRegistryKey protos."""
+
+  input_proto_type = jobs_pb2.StatEntry
+  output_proto_types = (export_pb2.ExportedRegistryKey,)
+
+  def Convert(
+      self,
+      metadata: export_pb2.ExportedMetadata,
+      stat_entry: jobs_pb2.StatEntry,
+  ) -> Iterable[export_pb2.ExportedRegistryKey]:
+    """Converts StatEntry to ExportedRegistryKey.
+
+    Args:
+      metadata: ExportedMetadata to be used for conversion.
+      stat_entry: StatEntry to be converted.
+
+    Returns:
+      List or generator with resulting RDFValues. Empty list if StatEntry
+      corresponds to a file and not to a registry entry.
+    """
+    if stat_entry.pathspec.pathtype != jobs_pb2.PathSpec.PathType.REGISTRY:
+      return []
+
+    rdf_pathspec = mig_paths.ToRDFPathSpec(stat_entry.pathspec)
+    client_urn = rdfvalue.RDFURN(metadata.client_urn)
+    path_urn = rdf_pathspec.AFF4Path(client_urn)
+
+    result = export_pb2.ExportedRegistryKey(
+        metadata=metadata,
+        urn=path_urn.SerializeToWireFormat(),
+        last_modified=stat_entry.st_mtime,
+    )
+
+    if stat_entry.HasField("registry_type") and stat_entry.HasField(
+        "registry_data"
+    ):
+      result.type = stat_entry.registry_type
+      result.data = stat_entry.registry_data.data
+
+    return [result]
+
+
 class FileFinderResultConverter(StatEntryToExportedFileConverter):
   """Export converter for FileFinderResult instances."""
 
   input_rdf_type = rdf_file_finder.FileFinderResult
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    # We only need to open the file if we're going to export the contents, we
-    # already have the hash in the FileFinderResult
-    self.open_file_for_read = self.options.export_files_contents
 
   def _SeparateTypes(self, metadata_value_pairs):
     """Separate files, registry keys, grep matches."""
@@ -365,26 +479,6 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
         metadata_value_pairs
     )
     for fp_batch in collection.Batch(file_pairs, self._BATCH_SIZE):
-
-      if self.options.export_files_contents:
-        pathspec_by_client_path = {}
-        for metadata, ff_result in fp_batch:
-          # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
-          # client_id (to be added).
-          client_path = db.ClientPath.FromPathSpec(
-              metadata.client_urn.Basename(), ff_result.stat_entry.pathspec
-          )
-          pathspec_by_client_path[client_path] = ff_result.stat_entry.pathspec
-
-        data_by_pathspec = {}
-        for chunk in file_store.StreamFilesChunks(
-            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE
-        ):
-          pathspec = pathspec_by_client_path[chunk.client_path]
-          data_by_pathspec.setdefault(pathspec.CollapsePath(), []).append(
-              chunk.data
-          )
-
       for metadata, ff_result in fp_batch:
         result = self._CreateExportedFile(metadata, ff_result.stat_entry)
 
@@ -392,17 +486,6 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
         # passed to ConvertValuesWithMetadata call. We have to process these
         # explicitly here.
         self.ParseFileHash(ff_result.hash_entry, result)
-
-        if self.options.export_files_contents:
-          try:
-            data = data_by_pathspec[
-                ff_result.stat_entry.pathspec.CollapsePath()
-            ]
-            result.content = b"".join(data)[: self.MAX_CONTENT_SIZE]
-            result.content_sha256 = hashlib.sha256(result.content).hexdigest()
-          except KeyError:
-            pass
-
         yield result
 
     # Now export the registry keys
@@ -421,122 +504,127 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     return self.BatchConvert([(metadata, result)])
 
 
-class ArtifactFilesDownloaderResultConverter(base.ExportConverter):
-  """Converts ArtifactFilesDownloaderResult to its exported version."""
+class FileFinderResultConverterProto(
+    base.ExportConverterProto[flows_pb2.FileFinderResult]
+):
+  """Export converter for FileFinderResult protos."""
 
-  input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult
+  input_proto_type = flows_pb2.FileFinderResult
+  output_proto_types = (
+      export_pb2.ExportedFile,
+      export_pb2.ExportedRegistryKey,
+      export_pb2.ExportedMatch,
+  )
 
-  def GetExportedResult(self, original_result, converter, metadata=None):
-    """Converts original result via given converter.."""
+  def Convert(
+      self,
+      metadata: export_pb2.ExportedMetadata,
+      result: flows_pb2.FileFinderResult,
+  ) -> Iterable[
+      Union[
+          export_pb2.ExportedFile,
+          export_pb2.ExportedRegistryKey,
+          export_pb2.ExportedMatch,
+      ]
+  ]:
+    """Converts a FileFinderResult.
 
-    exported_results = list(
-        converter.Convert(metadata or base.ExportedMetadata(), original_result)
-    )
+    Args:
+      metadata: ExportedMetadata to be used for conversion.
+      result: FileFinderResult to be converted.
 
-    if not exported_results:
-      raise export.ExportError(
-          "Got 0 exported result when a single one was expected."
-      )
-
-    if len(exported_results) > 1:
-      raise export.ExportError(
-          "Got > 1 exported results when a single "
-          "one was expected, seems like a logical bug."
-      )
-
-    return exported_results[0]
-
-  def IsRegistryStatEntry(self, original_result):
-    """Checks if given RDFValue is a registry StatEntry."""
-    return (
-        original_result.pathspec.pathtype
-        == rdf_paths.PathSpec.PathType.REGISTRY
-    )
-
-  def IsFileStatEntry(self, original_result):
-    """Checks if given RDFValue is a file StatEntry."""
-    return original_result.pathspec.pathtype in [
-        rdf_paths.PathSpec.PathType.OS,
-        rdf_paths.PathSpec.PathType.TSK,
-        rdf_paths.PathSpec.PathType.NTFS,
-    ]
-
-  def BatchConvert(self, metadata_value_pairs):
-    metadata_value_pairs = list(metadata_value_pairs)
-
-    results = []
-    for metadata, value in metadata_value_pairs:
-      original_result = value.original_result
-
-      if not isinstance(original_result, rdf_client_fs.StatEntry):
-        continue
-
-      if self.IsRegistryStatEntry(original_result):
-        exported_registry_key = self.GetExportedResult(
-            original_result,
-            StatEntryToExportedRegistryKeyConverter(),
-            metadata=metadata,
-        )
-        result = ExportedArtifactFilesDownloaderResult(
-            metadata=metadata, original_registry_key=exported_registry_key
-        )
-      elif self.IsFileStatEntry(original_result):
-        exported_file = self.GetExportedResult(
-            original_result,
-            StatEntryToExportedFileConverter(),
-            metadata=metadata,
-        )
-        result = ExportedArtifactFilesDownloaderResult(
-            metadata=metadata, original_file=exported_file
-        )
-      else:
-        # TODO(user): if original_result is not a registry key or a file,
-        # we should still somehow export the data, otherwise the user will get
-        # an impression that there was nothing to export at all.
-        continue
-
-      if value.HasField("found_pathspec"):
-        result.found_path = value.found_pathspec.CollapsePath()
-
-      downloaded_file = None
-      if value.HasField("downloaded_file"):
-        downloaded_file = value.downloaded_file
-
-      results.append((result, downloaded_file))
-
-    files_batch = [(r.metadata, f) for r, f in results if f is not None]
-    files_converter = StatEntryToExportedFileConverter(options=self.options)
-    converted_files = files_converter.BatchConvert(files_batch)
-    converted_files_map = dict((f.urn, f) for f in converted_files)
-
-    for result, downloaded_file in results:
-      if downloaded_file:
-        aff4path = downloaded_file.AFF4Path(result.metadata.client_urn)
-        if aff4path in converted_files_map:
-          result.downloaded_file = converted_files_map[aff4path]
-
-      yield result
-
-    # Feed all original results into the export pipeline. There are 2 good
-    # reasons to do this:
-    # * Export output of ArtifactFilesDownloader flow will be similar to export
-    #   output of other file-related flows. I.e. it will produce
-    #   ExportedFile entries and ExportedRegistryKey entries and what not, but
-    #   in addition it will also generate ExportedArtifactFilesDownloaderResult
-    #   entries, that one can use to understand how and where file paths
-    #   were detected and how file paths detection algorithm can be possibly
-    #   improved.
-    # * ExportedArtifactFilesDownloaderResult can only be generated if original
-    #   value is a StatEntry. However, original value may be anything, and no
-    #   matter what type it has, we want it in the export output.
-    original_pairs = [(m, v.original_result) for m, v in metadata_value_pairs]
-    for result in export.ConvertValuesWithMetadata(
-        original_pairs, options=None
+    Yields:
+      ExportedFile, ExportedRegistryKey, or ExportedMatch values.
+    """
+    if (
+        result.stat_entry.pathspec.pathtype
+        == jobs_pb2.PathSpec.PathType.REGISTRY
     ):
-      yield result
+      registry_converter = StatEntryToExportedRegistryKeyConverterProto()
+      yield from registry_converter.Convert(metadata, result.stat_entry)
+    else:
+      exported_file = GetExportedFileFromStatEntry(metadata, result.stat_entry)
 
-  def Convert(self, metadata, value):
-    """Converts a single ArtifactFilesDownloaderResult."""
+      # FileFinderResult has hashes in "hash_entry" attribute which is not
+      # passed to GetExportedFileFromStatEntry call. We have to process these
+      # explicitly here.
+      AddHashToExportedFile(result.hash_entry, exported_file)
+      yield exported_file
 
-    for r in self.BatchConvert([(metadata, value)]):
-      yield r
+    # Now export the grep matches.
+    match_converter = (
+        buffer_reference.BufferReferenceToExportedMatchConverterProto()
+    )
+    for buffer_ref in result.matches:
+      if buffer_ref.HasField("pathspec"):
+        match_buffer = buffer_ref
+      else:
+        match_buffer = jobs_pb2.BufferReference()
+        match_buffer.CopyFrom(buffer_ref)
+        match_buffer.pathspec.CopyFrom(result.stat_entry.pathspec)
+
+      yield from match_converter.Convert(metadata, match_buffer)
+
+
+class CollectMultipleFilesResultToExportedFileConverterProto(
+    base.ExportConverterProto[flows_pb2.CollectMultipleFilesResult]
+):
+  """Export converter for CollectMultipleFilesResult protos."""
+
+  input_proto_type = flows_pb2.CollectMultipleFilesResult
+  output_proto_types = (export_pb2.ExportedFile,)
+
+  def Convert(
+      self,
+      metadata: export_pb2.ExportedMetadata,
+      result: flows_pb2.CollectMultipleFilesResult,
+  ) -> Iterable[export_pb2.ExportedFile]:
+    """Converts a CollectMultipleFilesResult.
+
+    Args:
+      metadata: ExportedMetadata to be used for conversion.
+      result: CollectMultipleFilesResult to be converted.
+
+    Yields:
+      ExportedFile values.
+    """
+    # CollectMultipleFiles flows do not support registry keys, so this if should
+    # never trigger.
+    if result.stat.pathspec.pathtype == jobs_pb2.PathSpec.PathType.REGISTRY:
+      return
+
+    exported_file = GetExportedFileFromStatEntry(metadata, result.stat)
+    AddHashToExportedFile(result.hash, exported_file)
+    yield exported_file
+
+
+class CollectFilesByKnownPathResultToExportedFileConverterProto(
+    base.ExportConverterProto[flows_pb2.CollectFilesByKnownPathResult]
+):
+  """Export converter for CollectFilesByKnownPathResult protos."""
+
+  input_proto_type = flows_pb2.CollectFilesByKnownPathResult
+  output_proto_types = (export_pb2.ExportedFile,)
+
+  def Convert(
+      self,
+      metadata: export_pb2.ExportedMetadata,
+      result: flows_pb2.CollectFilesByKnownPathResult,
+  ) -> Iterable[export_pb2.ExportedFile]:
+    """Converts a CollectFilesByKnownPathResult.
+
+    Args:
+      metadata: ExportedMetadata to be used for conversion.
+      result: CollectFilesByKnownPathResult to be converted.
+
+    Yields:
+      ExportedFile values.
+    """
+    # CollectFilesByKnownPath flow does not support registry keys, so this if
+    # should never trigger.
+    if result.stat.pathspec.pathtype == jobs_pb2.PathSpec.PathType.REGISTRY:
+      return
+
+    exported_file = GetExportedFileFromStatEntry(metadata, result.stat)
+    AddHashToExportedFile(result.hash, exported_file)
+    yield exported_file

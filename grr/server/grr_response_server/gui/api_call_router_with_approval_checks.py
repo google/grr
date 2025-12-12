@@ -3,10 +3,20 @@
 
 from typing import Optional
 
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
+from grr_response_proto import hunts_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
+from grr_response_proto.api import client_pb2 as api_client_pb2
+from grr_response_proto.api import config_pb2 as api_config_pb2
+from grr_response_proto.api import cron_pb2 as api_cron_pb2
+from grr_response_proto.api import flow_pb2 as api_flow_pb2
+from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
+from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
+from grr_response_proto.api import timeline_pb2 as api_timeline_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
+from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
+from grr_response_proto.api import yara_pb2 as api_yara_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import groups
@@ -21,15 +31,10 @@ from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import metadata as api_metadata
-from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
-from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
-from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
 
 
 class ApprovalCheckParamsAdminAccessChecker(
@@ -75,14 +80,47 @@ class ApprovalCheckParamsAdminAccessChecker(
     )
 
 
-class ApiCallRouterWithApprovalCheckParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
+class ApprovalCheckParamsMitigationFlowsAccessChecker(
+    access_controller.MitigationFlowsAccessChecker
+):
+  """Checks if a user has permission to run mitigation flows based on the router params."""
+
+  _AUTH_SUBJECT = "mitigation-flows-access"
+
+  def __init__(
+      self,
+      params: api_call_router_pb2.ApiCallRouterWithApprovalCheckParams,
+  ) -> None:
+    self._params = params
+
+    self._admin_groups_manager = groups.CreateGroupAccessManager()
+    for g in params.mitigation_flows_groups:
+      self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
+
+  # TODO: Add the `@override` annotation [1] once we can use
+  # Python 3.12 features.
+  #
+  # [1]: https://peps.python.org/pep-0698/
+  def CheckIfHasAccessToMitigationFlows(self, username: str) -> None:
+    """Checks whether a given user has access to mitigation flows."""
+
+    if username in self._params.mitigation_flows_users:
+      return
+
+    if self._admin_groups_manager.MemberOfAuthorizedGroup(
+        username, self._AUTH_SUBJECT
+    ):
+      return
+
+    raise access_control.UnauthorizedAccess(
+        f"No access to mitigation flows for {username}."
+    )
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   """Router that uses approvals-based ACL checks."""
 
-  params_type = ApiCallRouterWithApprovalCheckParams
+  proto_params_type = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
 
   cached_admin_access_checker = None
   cached_approval_checker = None
@@ -106,35 +144,38 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return cls.cached_approval_checker
 
-  def _CheckFlowOrClientAccess(self, args, context=None):
+  def _CheckFlowOrClientAccess(
+      self, client_id: str, flow_id: str, context=None
+  ):
     try:
-      flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.flow_id)
-      )
+      flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     except db.UnknownFlowError as e:
       raise api_call_handler_base.ResourceNotFoundError(
           "Flow with client id %s and flow id %s could not be found"
-          % (args.client_id, args.flow_id)
+          % (client_id, flow_id)
       ) from e
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     # Only top-level hunt flows are allowed, which is what any user can see
     # as "hunt results" (child flows results are not available for anyone).
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, str(args.client_id))
+      self.approval_checker.CheckClientAccess(context, client_id)
 
   def __init__(
       self,
-      params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
+      params: Optional[
+          api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
+      ] = None,
       approval_checker: Optional[access_controller.ApprovalChecker] = None,
       admin_access_checker: Optional[
           ApprovalCheckParamsAdminAccessChecker
       ] = None,
+      mitigation_flows_access_checker: Optional[
+          ApprovalCheckParamsMitigationFlowsAccessChecker
+      ] = None,
       delegate: Optional[api_call_router.ApiCallRouter] = None,
   ):
     super().__init__(params=params)
-
-    params = ToProtoApiCallRouterWithApprovalCheckParams(params)
 
     if not admin_access_checker:
       admin_access_checker = ApprovalCheckParamsAdminAccessChecker(params)
@@ -144,6 +185,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       approval_checker = self._GetApprovalChecker(self.admin_access_checker)
     self.approval_checker = approval_checker
 
+    if not mitigation_flows_access_checker:
+      mitigation_flows_access_checker = (
+          ApprovalCheckParamsMitigationFlowsAccessChecker(params)
+      )
+    self.mitigation_flows_access_checker = mitigation_flows_access_checker
+
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
     self.delegate = delegate
@@ -152,17 +199,29 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # =================
   #
   # pytype: disable=attribute-error
-  def ListArtifacts(self, args, context=None):
+  def ListArtifacts(
+      self,
+      args: api_artifact_pb2.ApiListArtifactsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to list artifacts.
 
     return self.delegate.ListArtifacts(args, context=context)
 
-  def UploadArtifact(self, args, context=None):
+  def UploadArtifact(
+      self,
+      args: api_artifact_pb2.ApiUploadArtifactArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to upload artifacts.
 
     return self.delegate.UploadArtifact(args, context=context)
 
-  def DeleteArtifacts(self, args, context=None):
+  def DeleteArtifacts(
+      self,
+      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to delete artifacts.
 
     return self.delegate.DeleteArtifacts(args, context=context)
@@ -170,166 +229,262 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Clients methods.
   # ===============
   #
-  def SearchClients(self, args, context=None):
+  def SearchClients(
+      self,
+      args: api_client_pb2.ApiSearchClientsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to search clients.
 
     return self.delegate.SearchClients(args, context=context)
 
-  def VerifyAccess(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def VerifyAccess(
+      self,
+      args: api_client_pb2.ApiVerifyAccessArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.VerifyAccess(args, context=context)
 
-  def GetClient(self, args, context=None):
+  def GetClient(
+      self,
+      args: api_client_pb2.ApiGetClientArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to get information about a particular client.
 
     return self.delegate.GetClient(args, context=context)
 
-  def GetClientVersions(self, args, context=None):
+  def GetClientVersions(
+      self,
+      args: api_client_pb2.ApiGetClientVersionsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to get historical information about a client.
 
     return self.delegate.GetClientVersions(args, context=context)
 
-  def GetClientVersionTimes(self, args, context=None):
+  def GetClientVersionTimes(
+      self,
+      args: api_client_pb2.ApiGetClientVersionTimesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to get the versions of a particular client.
 
     return self.delegate.GetClientVersionTimes(args, context=context)
 
-  def InterrogateClient(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetClientSnapshots(
+      self,
+      args: api_client_pb2.ApiGetClientSnapshotsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    # Everybody is allowed to get historical information about a client.
+
+    return self.delegate.GetClientSnapshots(args, context=context)
+
+  def GetClientStartupInfos(
+      self,
+      args: api_client_pb2.ApiGetClientStartupInfosArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_client.ApiGetClientStartupInfosHandler:
+    # Everybody is allowed to get historical information about a client.
+
+    return self.delegate.GetClientStartupInfos(args, context=context)
+
+  def InterrogateClient(
+      self,
+      args: api_client_pb2.ApiInterrogateClientArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.InterrogateClient(args, context=context)
 
-  def GetInterrogateOperationState(self, args, context=None):
-    # No ACL checks are required here, since the user can only check
-    # operations started by themselves.
-
-    return self.delegate.GetInterrogateOperationState(args, context=context)
-
-  def GetLastClientIPAddress(self, args, context=None):
+  def GetLastClientIPAddress(
+      self,
+      args: api_client_pb2.ApiGetLastClientIPAddressArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to get the last ip address of a particular client.
 
     return self.delegate.GetLastClientIPAddress(args, context=context)
 
-  def ListClientCrashes(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListClientCrashes(
+      self,
+      args: api_client_pb2.ApiListClientCrashesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListClientCrashes(args, context=context)
 
   def KillFleetspeak(
       self,
-      args: api_client.ApiKillFleetspeakArgs,
+      args: api_client_pb2.ApiKillFleetspeakArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiKillFleetspeakHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.KillFleetspeak(args, context=context)
 
   def RestartFleetspeakGrrService(
       self,
-      args: api_client.ApiRestartFleetspeakGrrServiceArgs,
+      args: api_client_pb2.ApiRestartFleetspeakGrrServiceArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.RestartFleetspeakGrrService(args, context=context)
 
   def DeleteFleetspeakPendingMessages(
       self,
-      args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
+      args: api_client_pb2.ApiDeleteFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
 
   def GetFleetspeakPendingMessages(
       self,
-      args: api_client.ApiGetFleetspeakPendingMessagesArgs,
+      args: api_client_pb2.ApiGetFleetspeakPendingMessagesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.GetFleetspeakPendingMessages(args, context=context)
 
   def GetFleetspeakPendingMessageCount(
       self,
-      args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
+      args: api_client_pb2.ApiGetFleetspeakPendingMessageCountArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)
 
   # Virtual file system methods.
   # ============================
   #
-  def ListFiles(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFiles(
+      self,
+      args: api_vfs_pb2.ApiListFilesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFiles(args, context=context)
 
   def BrowseFilesystem(
       self,
-      args: api_vfs.ApiBrowseFilesystemArgs,
+      args: api_vfs_pb2.ApiBrowseFilesystemArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_vfs.ApiBrowseFilesystemHandler:
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.BrowseFilesystem(args, context=context)
 
-  def GetVfsFilesArchive(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetVfsFilesArchive(
+      self,
+      args: api_vfs_pb2.ApiGetVfsFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetVfsFilesArchive(args, context=context)
 
-  def GetFileDetails(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetFileDetails(
+      self,
+      args: api_vfs_pb2.ApiGetFileDetailsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetFileDetails(args, context=context)
 
-  def GetFileText(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetFileText(
+      self,
+      args: api_vfs_pb2.ApiGetFileTextArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetFileText(args, context=context)
 
-  def GetFileBlob(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetFileBlob(
+      self,
+      args: api_vfs_pb2.ApiGetFileBlobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetFileBlob(args, context=context)
 
-  def GetFileVersionTimes(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetFileVersionTimes(
+      self,
+      args: api_vfs_pb2.ApiGetFileVersionTimesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetFileVersionTimes(args, context=context)
 
-  def GetFileDownloadCommand(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetFileDownloadCommand(
+      self,
+      args: api_vfs_pb2.ApiGetFileDownloadCommandArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetFileDownloadCommand(args, context=context)
 
-  def CreateVfsRefreshOperation(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def CreateVfsRefreshOperation(
+      self,
+      args: api_vfs_pb2.ApiCreateVfsRefreshOperationArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.CreateVfsRefreshOperation(args, context=context)
 
-  def GetVfsRefreshOperationState(self, args, context=None):
+  def GetVfsRefreshOperationState(
+      self,
+      args: api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # No ACL checks are required here, since the user can only check
     # operations started by themselves.
 
     return self.delegate.GetVfsRefreshOperationState(args, context=context)
 
-  def GetVfsTimeline(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetVfsTimeline(
+      self,
+      args: api_vfs_pb2.ApiGetVfsTimelineArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetVfsTimeline(args, context=context)
 
-  def GetVfsTimelineAsCsv(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def GetVfsTimelineAsCsv(
+      self,
+      args: api_vfs_pb2.ApiGetVfsTimelineAsCsvArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetVfsTimelineAsCsv(args, context=context)
 
-  def UpdateVfsFileContent(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def UpdateVfsFileContent(
+      self,
+      args: api_vfs_pb2.ApiUpdateVfsFileContentArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.UpdateVfsFileContent(args, context=context)
 
-  def GetVfsFileContentUpdateState(self, args, context=None):
+  def GetVfsFileContentUpdateState(
+      self,
+      args: api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # No ACL checks are required here, since the user can only check
     # operations started by themselves.
 
@@ -343,13 +498,21 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListClientsLabels(args, context=context)
 
-  def AddClientsLabels(self, args, context=None):
+  def AddClientsLabels(
+      self,
+      args: api_client_pb2.ApiAddClientsLabelsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to add labels. Labels owner will be attributed to
     # the current user.
 
     return self.delegate.AddClientsLabels(args, context=context)
 
-  def RemoveClientsLabels(self, args, context=None):
+  def RemoveClientsLabels(
+      self,
+      args: api_client_pb2.ApiRemoveClientsLabelsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody is allowed to remove labels. ApiRemoveClientsLabelsHandler is
     # written in such a way, so that it will only delete user's own labels.
 
@@ -358,79 +521,147 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Clients flows methods.
   # =====================
   #
-  def ListFlows(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFlows(
+      self,
+      args: api_flow_pb2.ApiListFlowsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlows(args, context=context)
 
-  def GetFlow(self, args, context=None):
-    self._CheckFlowOrClientAccess(args, context)
+  def GetFlow(
+      self,
+      args: api_flow_pb2.ApiGetFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
     return self.delegate.GetFlow(args, context=context)
 
-  def CreateFlow(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def CreateFlow(
+      self,
+      args: api_flow_pb2.ApiCreateFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     self.admin_access_checker.CheckIfCanStartFlow(
+        context.username, args.flow.name or args.flow.runner_args.flow_name
+    )
+    self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
         context.username, args.flow.name or args.flow.runner_args.flow_name
     )
 
     return self.delegate.CreateFlow(args, context=context)
 
-  def CancelFlow(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def CancelFlow(
+      self,
+      args: api_flow_pb2.ApiCancelFlowArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.CancelFlow(args, context=context)
 
-  def ListFlowRequests(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFlowRequests(
+      self,
+      args: api_flow_pb2.ApiListFlowRequestsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlowRequests(args, context=context)
 
-  def ListFlowResults(self, args, context=None):
-    self._CheckFlowOrClientAccess(args, context)
+  def ListFlowResults(
+      self,
+      args: api_flow_pb2.ApiListFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListFlowResultsHandler:
+    self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
     return self.delegate.ListFlowResults(args, context=context)
 
-  def GetExportedFlowResults(self, args, context=None):
-    self._CheckFlowOrClientAccess(args, context)
+  def GetExportedFlowResults(
+      self,
+      args: api_flow_pb2.ApiGetExportedFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
     return self.delegate.GetExportedFlowResults(args, context=context)
 
-  def GetFlowResultsExportCommand(self, args, context=None):
-    self._CheckFlowOrClientAccess(args, context)
+  def GetFlowResultsExportCommand(
+      self,
+      args: api_flow_pb2.ApiGetFlowResultsExportCommandArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self._CheckFlowOrClientAccess(args.client_id, args.flow_id, context)
 
     return self.delegate.GetFlowResultsExportCommand(args, context=context)
 
-  def GetFlowFilesArchive(self, args, context=None):
-    self._CheckFlowOrClientAccess(args, context)
+  def GetFlowFilesArchive(
+      self,
+      args: api_flow_pb2.ApiGetFlowFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiGetFlowFilesArchiveHandler:
+    self._CheckFlowOrClientAccess(
+        str(args.client_id), str(args.flow_id), context
+    )
 
     return self.delegate.GetFlowFilesArchive(args, context=context)
 
-  def ListFlowOutputPlugins(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFlowOutputPlugins(
+      self,
+      args: api_flow_pb2.ApiListFlowOutputPluginsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlowOutputPlugins(args, context=context)
 
-  def ListFlowOutputPluginLogs(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFlowOutputPluginLogs(
+      self,
+      args: api_flow_pb2.ApiListFlowOutputPluginLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlowOutputPluginLogs(args, context=context)
 
-  def ListFlowOutputPluginErrors(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListFlowOutputPluginErrors(
+      self,
+      args: api_flow_pb2.ApiListFlowOutputPluginErrorsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlowOutputPluginErrors(args, context=context)
 
-  def ListFlowLogs(self, args, context=None):
-    self.approval_checker.CheckClientAccess(context, str(args.client_id))
+  def ListAllFlowOutputPluginLogs(
+      self,
+      args: api_flow_pb2.ApiListAllFlowOutputPluginLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
+
+    return self.delegate.ListAllFlowOutputPluginLogs(args, context=context)
+
+  def ListFlowLogs(
+      self,
+      args: api_flow_pb2.ApiListFlowLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFlowLogs(args, context=context)
 
-  def GetCollectedTimeline(self, args, context=None):
+  def GetCollectedTimeline(
+      self,
+      args: api_timeline_pb2.ApiGetCollectedTimelineArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     try:
-      flow = data_store.REL_DB.ReadFlowObject(
-          str(args.client_id), str(args.flow_id)
-      )
+      flow = data_store.REL_DB.ReadFlowObject(args.client_id, args.flow_id)
     except db.UnknownFlowError:
       raise api_call_handler_base.ResourceNotFoundError(
           "Flow with client id %s and flow id %s could not be found"
@@ -442,20 +673,20 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Check for client access if this flow was not scheduled as part of a hunt.
     if flow.parent_hunt_id != flow.flow_id:
-      self.approval_checker.CheckClientAccess(context, str(args.client_id))
+      self.approval_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetCollectedTimeline(args, context=context)
 
   def UploadYaraSignature(
       self,
-      args: api_yara.ApiUploadYaraSignatureArgs,
+      args: api_yara_pb2.ApiUploadYaraSignatureArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_yara.ApiUploadYaraSignatureHandler:
     return self.delegate.UploadYaraSignature(args, context=context)
 
   def ExplainGlobExpression(
       self,
-      args: api_flow.ApiExplainGlobExpressionArgs,
+      args: api_flow_pb2.ApiExplainGlobExpressionArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiExplainGlobExpressionHandler:
     # ExplainGlobExpression only exposes the KnowledgeBase, which does not need
@@ -464,28 +695,32 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def ScheduleFlow(
       self,
-      args: api_flow.ApiCreateFlowArgs,
+      args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiScheduleFlowHandler:
+    self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
+        context.username, args.flow.name or args.flow.runner_args.flow_name
+    )
+
     return self.delegate.ScheduleFlow(args, context=context)
 
   def ListScheduledFlows(
       self,
-      args: api_flow.ApiListScheduledFlowsArgs,
+      args: api_flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiListScheduledFlowsHandler:
     return self.delegate.ListScheduledFlows(args, context=context)
 
   def UnscheduleFlow(
       self,
-      args: api_flow.ApiUnscheduleFlowArgs,
+      args: api_flow_pb2.ApiUnscheduleFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
     return self.delegate.UnscheduleFlow(args, context=context)
 
   def GetOsqueryResults(
       self,
-      args: api_osquery.ApiGetOsqueryResultsArgs,
+      args: api_osquery_pb2.ApiGetOsqueryResultsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     try:
@@ -522,42 +757,74 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Cron jobs methods.
   # =================
   #
-  def ListCronJobs(self, args, context=None):
+  def ListCronJobs(
+      self,
+      args: api_cron_pb2.ApiListCronJobsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list cron jobs.
 
     return self.delegate.ListCronJobs(args, context=context)
 
-  def CreateCronJob(self, args, context=None):
+  def CreateCronJob(
+      self,
+      args: api_cron_pb2.ApiCreateCronJobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can create a cron job.
 
     return self.delegate.CreateCronJob(args, context=context)
 
-  def GetCronJob(self, args, context=None):
+  def GetCronJob(
+      self,
+      args: api_cron_pb2.ApiGetCronJobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can retrieve a cron job.
 
     return self.delegate.GetCronJob(args, context=context)
 
-  def ForceRunCronJob(self, args, context=None):
+  def ForceRunCronJob(
+      self,
+      args: api_cron_pb2.ApiForceRunCronJobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.ForceRunCronJob(args, context=context)
 
-  def ModifyCronJob(self, args, context=None):
+  def ModifyCronJob(
+      self,
+      args: api_cron_pb2.ApiModifyCronJobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.ModifyCronJob(args, context=context)
 
-  def ListCronJobRuns(self, args, context=None):
+  def ListCronJobRuns(
+      self,
+      args: api_cron_pb2.ApiListCronJobRunsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list cron jobs' runs.
 
     return self.delegate.ListCronJobRuns(args, context=context)
 
-  def GetCronJobRun(self, args, context=None):
+  def GetCronJobRun(
+      self,
+      args: api_cron_pb2.ApiGetCronJobRunArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get cron runs.
 
     return self.delegate.GetCronJobRun(args, context=context)
 
-  def DeleteCronJob(self, args, context=None):
+  def DeleteCronJob(
+      self,
+      args: api_cron_pb2.ApiDeleteCronJobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckCronJobAccess(context, str(args.cron_job_id))
 
     return self.delegate.DeleteCronJob(args, context=context)
@@ -565,92 +832,164 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Hunts methods.
   # =============
   #
-  def ListHunts(self, args, context=None):
+  def ListHunts(
+      self,
+      args: api_hunt_pb2.ApiListHuntsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list hunts.
 
     return self.delegate.ListHunts(args, context=context)
 
-  def VerifyHuntAccess(self, args, context=None):
+  def VerifyHuntAccess(
+      self,
+      args: api_hunt_pb2.ApiVerifyHuntAccessArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.VerifyHuntAccess(args, context=context)
 
-  def GetHunt(self, args, context=None):
+  def GetHunt(
+      self,
+      args: api_hunt_pb2.ApiGetHuntArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's information.
 
     return self.delegate.GetHunt(args, context=context)
 
-  def ListHuntErrors(self, args, context=None):
+  def ListHuntErrors(
+      self,
+      args: api_hunt_pb2.ApiListHuntErrorsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt errors list.
 
     return self.delegate.ListHuntErrors(args, context=context)
 
-  def ListHuntLogs(self, args, context=None):
+  def ListHuntLogs(
+      self,
+      args: api_hunt_pb2.ApiListHuntLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can look into hunt's logs.
 
     return self.delegate.ListHuntLogs(args, context=context)
 
-  def ListHuntResults(self, args, context=None):
+  def ListHuntResults(
+      self,
+      args: api_hunt_pb2.ApiListHuntResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can look into hunt's results.
 
     return self.delegate.ListHuntResults(args, context=context)
 
-  def CountHuntResultsByType(self, args, context=None):
+  def CountHuntResultsByType(
+      self,
+      args: api_hunt_pb2.ApiCountHuntResultsByTypeArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can look into hunt's results.
 
     return self.delegate.CountHuntResultsByType(args, context=context)
 
-  def GetExportedHuntResults(self, args, context=None):
+  def GetExportedHuntResults(
+      self,
+      args: api_hunt_pb2.ApiGetExportedHuntResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can export hunt's results.
 
     return self.delegate.GetExportedHuntResults(args, context=context)
 
-  def GetHuntResultsExportCommand(self, args, context=None):
+  def GetHuntResultsExportCommand(
+      self,
+      args: api_hunt_pb2.ApiGetHuntResultsExportCommandArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's export command.
 
     return self.delegate.GetHuntResultsExportCommand(args, context=context)
 
-  def ListHuntOutputPlugins(self, args, context=None):
+  def ListHuntOutputPlugins(
+      self,
+      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list hunt output plugins.
 
     return self.delegate.ListHuntOutputPlugins(args, context=context)
 
-  def ListHuntOutputPluginLogs(self, args, context=None):
+  def ListHuntOutputPluginLogs(
+      self,
+      args: api_hunt_pb2.ApiListHuntOutputPluginLogsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list hunt output plugins logs.
 
     return self.delegate.ListHuntOutputPluginLogs(args, context=context)
 
-  def ListHuntOutputPluginErrors(self, args, context=None):
+  def ListHuntOutputPluginErrors(
+      self,
+      args: api_hunt_pb2.ApiListHuntOutputPluginErrorsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list hunt output plugin errors.
 
     return self.delegate.ListHuntOutputPluginErrors(args, context=context)
 
-  def ListHuntCrashes(self, args, context=None):
+  def ListHuntCrashes(
+      self,
+      args: api_hunt_pb2.ApiListHuntCrashesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list hunt's crashes.
 
     return self.delegate.ListHuntCrashes(args, context=context)
 
-  def GetHuntClientCompletionStats(self, args, context=None):
+  def GetHuntClientCompletionStats(
+      self,
+      args: api_hunt_pb2.ApiGetHuntClientCompletionStatsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's client completion stats.
 
     return self.delegate.GetHuntClientCompletionStats(args, context=context)
 
-  def GetHuntStats(self, args, context=None):
+  def GetHuntStats(
+      self,
+      args: api_hunt_pb2.ApiGetHuntStatsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's stats.
 
     return self.delegate.GetHuntStats(args, context=context)
 
-  def ListHuntClients(self, args, context=None):
+  def ListHuntClients(
+      self,
+      args: api_hunt_pb2.ApiListHuntClientsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's clients.
 
     return self.delegate.ListHuntClients(args, context=context)
 
-  def GetHuntContext(self, args, context=None):
+  def GetHuntContext(
+      self,
+      args: api_hunt_pb2.ApiGetHuntContextArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get hunt's context.
 
     return self.delegate.GetHuntContext(args, context=context)
 
-  def CreateHunt(self, args, context=None):
+  def CreateHunt(
+      self,
+      args: api_hunt_pb2.ApiCreateHuntArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # One can create a hunt if one can create a flow of the same type.
     #
     # If the user doesn't have access to restricted flows, the user
@@ -662,27 +1001,36 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.admin_access_checker.CheckIfCanStartFlow(
         context.username, args.flow_name
     )
+    self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
+        context.username, args.flow_name
+    )
 
     return self.delegate.CreateHunt(args, context=context)
 
-  def ModifyHunt(self, args, context=None):
+  def ModifyHunt(
+      self,
+      args: api_hunt_pb2.ApiModifyHuntArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Starting/stopping hunt or modifying its attributes requires an approval.
     self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.ModifyHunt(args, context=context)
 
-  def _GetHuntObj(self, hunt_id, context=None) -> rdf_hunt_objects.Hunt:
+  def _GetHuntObj(self, hunt_id: str) -> hunts_pb2.Hunt:
     try:
-      hunt_obj = data_store.REL_DB.ReadHuntObject(str(hunt_id))
-      hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
-      return hunt_obj
+      return data_store.REL_DB.ReadHuntObject(hunt_id)
     except db.UnknownHuntError:
       raise api_call_handler_base.ResourceNotFoundError(
           "Hunt with id %s could not be found" % hunt_id
       )
 
-  def DeleteHunt(self, args, context=None):
-    hunt_obj = self._GetHuntObj(args.hunt_id, context=context)
+  def DeleteHunt(
+      self,
+      args: api_hunt_pb2.ApiDeleteHuntArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    hunt_obj = self._GetHuntObj(args.hunt_id)
 
     # Hunt's creator is allowed to delete the hunt.
     if context.username != hunt_obj.creator:
@@ -690,60 +1038,58 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.DeleteHunt(args, context=context)
 
-  def GetHuntFilesArchive(self, args, context=None):
+  def GetHuntFilesArchive(
+      self,
+      args: api_hunt_pb2.ApiGetHuntFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.GetHuntFilesArchive(args, context=context)
 
-  def GetHuntFile(self, args, context=None):
+  def GetHuntFile(
+      self,
+      args: api_hunt_pb2.ApiGetHuntFileArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.approval_checker.CheckHuntAccess(context, str(args.hunt_id))
 
     return self.delegate.GetHuntFile(args, context=context)
 
   def GetCollectedHuntTimelines(
       self,
-      args: api_timeline.ApiGetCollectedHuntTimelinesArgs,
+      args: api_timeline_pb2.ApiGetCollectedHuntTimelinesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     # Everybody can export collected hunt timelines.
     return self.delegate.GetCollectedHuntTimelines(args, context=context)
 
-  # Stats metrics methods.
-  # =====================
-  #
-  def ListReports(self, args, context=None):
-    # Everybody can list the reports.
-
-    return self.delegate.ListReports(args, context=context)
-
-  def GetReport(self, args, context=None):
-    # Everybody can get report data.
-
-    return self.delegate.GetReport(args, context=context)
-
-  def IncrementCounterMetric(
-      self,
-      args: api_stats.ApiIncrementCounterMetricArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_stats.ApiIncrementCounterMetricHandler:
-    # Everybody can increase metrics.
-
-    return self.delegate.IncrementCounterMetric(args, context=context)
-
   # Approvals methods.
   # =================
   #
-  def CreateClientApproval(self, args, context=None):
+  def CreateClientApproval(
+      self,
+      args: api_user_pb2.ApiCreateClientApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can create a user client approval.
     return api_user.ApiCreateClientApprovalHandler(self.approval_checker)
 
-  def GetClientApproval(self, args, context=None):
+  def GetClientApproval(
+      self,
+      args: api_user_pb2.ApiGetClientApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can have access to everybody's client approvals, provided
     # they know: a client id, a username of the requester and an approval id.
 
     return api_user.ApiGetClientApprovalHandler(self.approval_checker)
 
-  def GrantClientApproval(self, args, context=None):
+  def GrantClientApproval(
+      self,
+      args: api_user_pb2.ApiGrantClientApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can grant everybody's client approvals, provided
     # they know: a client id, a username of the requester and an approval id.
     #
@@ -756,23 +1102,39 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return api_user.ApiGrantClientApprovalHandler(self.approval_checker)
 
-  def ListClientApprovals(self, args, context=None):
+  def ListClientApprovals(
+      self,
+      args: api_user_pb2.ApiListClientApprovalsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list their own user client approvals.
 
     return api_user.ApiListClientApprovalsHandler(self.approval_checker)
 
-  def CreateHuntApproval(self, args, context=None):
+  def CreateHuntApproval(
+      self,
+      args: api_user_pb2.ApiCreateHuntApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can request a hunt approval.
 
     return api_user.ApiCreateHuntApprovalHandler(self.approval_checker)
 
-  def GetHuntApproval(self, args, context=None):
+  def GetHuntApproval(
+      self,
+      args: api_user_pb2.ApiGetHuntApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can have access to everybody's hunts approvals, provided
     # they know: a hunt id, a username of the requester and an approval id.
 
     return api_user.ApiGetHuntApprovalHandler(self.approval_checker)
 
-  def GrantHuntApproval(self, args, context=None):
+  def GrantHuntApproval(
+      self,
+      args: api_user_pb2.ApiGrantHuntApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can grant everybody's hunts approvals, provided
     # they know: a hunt id, a username of the requester and an approval id.
     #
@@ -785,23 +1147,39 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return api_user.ApiGrantHuntApprovalHandler(self.approval_checker)
 
-  def ListHuntApprovals(self, args, context=None):
+  def ListHuntApprovals(
+      self,
+      args: api_user_pb2.ApiListHuntApprovalsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list their own user hunt approvals.
 
     return api_user.ApiListHuntApprovalsHandler(self.approval_checker)
 
-  def CreateCronJobApproval(self, args, context=None):
+  def CreateCronJobApproval(
+      self,
+      args: api_user_pb2.ApiCreateCronJobApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can request a cron job approval.
 
     return api_user.ApiCreateCronJobApprovalHandler(self.approval_checker)
 
-  def GetCronJobApproval(self, args, context=None):
+  def GetCronJobApproval(
+      self,
+      args: api_user_pb2.ApiGetCronJobApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can have access to everybody's crons approvals, provided
     # they know: a cron job id, a username of the requester and an approval id.
 
     return api_user.ApiGetCronJobApprovalHandler(self.approval_checker)
 
-  def GrantCronJobApproval(self, args, context=None):
+  def GrantCronJobApproval(
+      self,
+      args: api_user_pb2.ApiGrantCronJobApprovalArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can have access to everybody's crons approvals, provided
     # they know: a cron job id, a username of the requester and an approval id.
     #
@@ -814,12 +1192,20 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return api_user.ApiGrantCronJobApprovalHandler(self.approval_checker)
 
-  def ListCronJobApprovals(self, args, context=None):
+  def ListCronJobApprovals(
+      self,
+      args: api_user_pb2.ApiListCronJobApprovalsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list their own user cron approvals.
 
     return api_user.ApiListCronJobApprovalsHandler(self.approval_checker)
 
-  def ListApproverSuggestions(self, args, context=None):
+  def ListApproverSuggestions(
+      self,
+      args: api_user_pb2.ApiListApproverSuggestionsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can list suggestions for approver usernames.
 
     return self.delegate.ListApproverSuggestions(args, context=context)
@@ -827,58 +1213,65 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # User settings methods.
   # =====================
   #
-  def GetPendingUserNotificationsCount(self, args, context=None):
+  def GetPendingUserNotificationsCount(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get their own pending notifications count.
 
     return self.delegate.GetPendingUserNotificationsCount(args, context=context)
 
-  def ListPendingUserNotifications(self, args, context=None):
+  def ListPendingUserNotifications(
+      self,
+      args: api_user_pb2.ApiListPendingUserNotificationsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get their own pending notifications count.
 
     return self.delegate.ListPendingUserNotifications(args, context=context)
 
-  def DeletePendingUserNotification(self, args, context=None):
+  def DeletePendingUserNotification(
+      self,
+      args: api_user_pb2.ApiDeletePendingUserNotificationArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get their own pending notifications count.
 
     return self.delegate.DeletePendingUserNotification(args, context=context)
 
-  def ListAndResetUserNotifications(self, args, context=None):
+  def ListAndResetUserNotifications(
+      self,
+      args: api_user_pb2.ApiListAndResetUserNotificationsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get their own user notifications.
 
     return self.delegate.ListAndResetUserNotifications(args, context=context)
 
-  def GetGrrUser(self, args, context=None):
+  def GetGrrUser(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can get their own user settings.
 
-    interface_traits = api_user_pb2.ApiGrrUserInterfaceTraits(
-        cron_jobs_nav_item_enabled=True,
-        create_cron_job_action_enabled=True,
-        hunt_manager_nav_item_enabled=True,
-        create_hunt_action_enabled=True,
-        show_statistics_nav_item_enabled=True,
-        server_load_nav_item_enabled=True,
-        manage_binaries_nav_item_enabled=True,
-        upload_binary_action_enabled=True,
-        settings_nav_item_enabled=True,
-        artifact_manager_nav_item_enabled=True,
-        upload_artifact_action_enabled=True,
-        search_clients_action_enabled=True,
-        browse_virtual_file_system_nav_item_enabled=True,
-        start_client_flow_nav_item_enabled=True,
-        manage_client_flows_nav_item_enabled=True,
-        modify_client_labels_action_enabled=True,
-        hunt_approval_required=True,
-    )
+    is_admin = False
     try:
       # Without access to restricted flows, one can not launch Python hacks and
       # binaries. Hence, we don't display the "Manage binaries" page.
       self.admin_access_checker.CheckIfHasAdminAccess(context.username)
+      is_admin = True
     except access_control.UnauthorizedAccess:
-      interface_traits.manage_binaries_nav_item_enabled = False
+      pass
 
-    return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
+    return api_user.ApiGetOwnGrrUserHandler(is_admin=is_admin)
 
-  def UpdateGrrUser(self, args, context=None):
+  def UpdateGrrUser(
+      self,
+      args: api_user_pb2.ApiGrrUser,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can update their own user settings.
 
     return self.delegate.UpdateGrrUser(args, context=context)
@@ -891,22 +1284,38 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.GetConfig(args, context=context)
 
-  def GetConfigOption(self, args, context=None):
+  def GetConfigOption(
+      self,
+      args: api_config_pb2.ApiGetConfigOptionArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     # Everybody can read selected config options.
 
     return self.delegate.GetConfigOption(args, context=context)
 
-  def ListGrrBinaries(self, args, context=None):
+  def ListGrrBinaries(
+      self,
+      args: api_config_pb2.ApiListGrrBinariesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.ListGrrBinaries(args, context=context)
 
-  def GetGrrBinary(self, args, context=None):
+  def GetGrrBinary(
+      self,
+      args: api_config_pb2.ApiGetGrrBinaryArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.GetGrrBinary(args, context=context)
 
-  def GetGrrBinaryBlob(self, args, context=None):
+  def GetGrrBinaryBlob(
+      self,
+      args: api_config_pb2.ApiGetGrrBinaryBlobArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
     self.admin_access_checker.CheckIfHasAdminAccess(context.username)
 
     return self.delegate.GetGrrBinaryBlob(args, context=context)
@@ -930,25 +1339,10 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
         self.admin_access_checker.CheckIfCanStartFlow
     )
 
-  def GetRDFValueDescriptor(self, args, context=None):
-    # Everybody can get rdfvalue descriptors.
-
-    return self.delegate.GetRDFValueDescriptor(args, context=context)
-
-  def ListRDFValuesDescriptors(self, args, context=None):
-    # Everybody can list rdfvalue descriptors.
-
-    return self.delegate.ListRDFValuesDescriptors(args, context=context)
-
   def ListOutputPluginDescriptors(self, args, context=None):
     # Everybody can list output plugin descriptors.
 
     return self.delegate.ListOutputPluginDescriptors(args, context=context)
-
-  def ListKnownEncodings(self, args, context=None):
-    # Everybody can list file encodings.
-
-    return self.delegate.ListKnownEncodings(args, context=context)
 
   def ListApiMethods(self, args, context=None):
     # Everybody can get the docs.
@@ -973,10 +1367,3 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetOpenApiDescription(args, context=context)
 
   # pytype: enable=attribute-error
-
-
-# TODO: Copy of migration function to avoid circular dependency.
-def ToProtoApiCallRouterWithApprovalCheckParams(
-    rdf: ApiCallRouterWithApprovalCheckParams,
-) -> api_call_router_pb2.ApiCallRouterWithApprovalCheckParams:
-  return rdf.AsPrimitiveProto()

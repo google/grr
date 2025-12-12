@@ -2,25 +2,21 @@
   #form
   [appSubmitOnMetaEnter]="true"
   [appSubmitOnEnter]="true"
-  (ngSubmit)="formSubmitted$.next()"
+  (ngSubmit)="search()"
 >
   <mat-form-field
     hideRequiredMarker="true"
     appearance="outline"
-    color="primary"
   >
     <mat-label>Search for a client...</mat-label>
     <mat-icon matPrefix>search</mat-icon>
 
-    <a
-      mat-icon-button
-      matSuffix
-      type="button"
-      href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/searching-for-client.html"
-      target="_blank"
-      matTooltip="Matches on FQDN, users, IP , labels, serial number, OS and serial number.
-    Click for more details"
-    >
+    <a mat-icon-button
+        matSuffix
+        href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/searching-for-client.html"
+        target="_blank"
+        matTooltip="Matches on FQDN, users, IP , labels, serial number, OS and serial number. Only
+        clients that were online within the last 6 months are returned. Click for more details">
       <mat-icon>help_outline</mat-icon>
     </a>
 
@@ -29,29 +25,28 @@
       placeholder="Search for a client..."
       name="clientSearchBox"
       matInput
-      [formControl]="inputFormControl"
+      [formControl]="searchFormControl"
       [matAutocomplete]="auto"
       autocomplete="off"
     />
     <mat-autocomplete
       #auto="matAutocomplete"
-      (optionSelected)="selectClient($event.option.value)"
+      (optionSelected)="selectOption($event.option.value)"
     >
       <div class="search-results">
-        <mat-option
-          *ngFor="let client of clients$ | async; trackBy: trackClient"
-          [value]="client.clientId"
-        >
-          <div class="result-row">
-            <span>{{ client.knowledgeBase.fqdn }} ({{ client.clientId }})</span>
-            <mat-chip-set role="list">
+        @for (client of clientSearchStore.clients(); track client.clientId) {
+          <mat-option [value]="client.clientId">
+            <div class="client-option">
+              {{ client.knowledgeBase.fqdn }} ({{ client.clientId }})
               <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-            </mat-chip-set>
-          </div>
-        </mat-option>
-        <mat-option *ngFor="let label of labels$ | async" [value]="label">
-          <span>{{ label }}</span>
-        </mat-option>
+            </div>
+          </mat-option>
+        }
+        @for (label of filteredLabels(); track label) {
+          <mat-option [value]="'label:' + label">
+            <span>label:{{ label }}</span>
+          </mat-option>
+        }
       </div>
     </mat-autocomplete>
   </mat-form-field>

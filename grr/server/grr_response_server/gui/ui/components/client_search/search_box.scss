@@ -1,26 +1,14 @@
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
-
 :host {
-  display: block;
-
-  .mat-mdc-form-field {
-    width: 100%;
-
-    mat-icon {
-      margin-right: 0.5em;
-      color: mat.get-color-from-palette(c.$foreground, text-light);
-    }
-  }
+  width: 100%;
 }
 
-.result-row {
+mat-form-field {
+  width: 100%;
+}
+
+
+.client-option {
   display: flex;
   align-items: center;
-
-  online-chip {
-    margin-left: 0.5em;
-    /** Prevent online chip from changing cursor and hover effect. */
-    pointer-events: none;
-  }
+  gap: 16px;
 }

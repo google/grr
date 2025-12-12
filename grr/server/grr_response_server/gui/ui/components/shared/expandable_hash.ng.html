@@ -1,0 +1,22 @@
+@if (numHashes() > 0) {
+  <button
+    [matMenuTriggerFor]="menu"
+    mat-button>
+    {{firstHashName()}}{{ numHashes() > 1 ? ' + '  + (numHashes() - 1) : ''}}
+  </button>
+
+  <mat-menu #menu="matMenu" class="big-width-expandable-hash-class">
+    @for (entry of hashes(); track entry.name) {
+      <button mat-menu-item
+        [cdkCopyToClipboard]="entry.hash">
+        <mat-icon>content_copy</mat-icon>
+        <span>{{ entry.name }}: {{ entry.hash }}</span>
+      </button>
+    }
+    <button mat-menu-item
+      [cdkCopyToClipboard]="completeHashInformation()">
+      <mat-icon>content_copy</mat-icon>
+      <span>All hash information</span>
+    </button>
+  </mat-menu>
+}

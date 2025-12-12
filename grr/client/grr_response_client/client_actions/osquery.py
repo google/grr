@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """A module with client action for talking with osquery."""
 
+from collections.abc import Iterator
 import json
 import logging
 import os
 import subprocess
-from typing import Any, Iterator, List, Optional, Text
+from typing import Any, Optional
 
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
@@ -17,7 +18,7 @@ from grr_response_core.lib.util import precondition
 class Error(Exception):
   """A class for all osquery-related exceptions."""
 
-  def __init__(self, message: Text, cause: Optional[Exception] = None):
+  def __init__(self, message: str, cause: Optional[Exception] = None):
     if cause is not None:
       message = "{message}: {cause}".format(message=message, cause=cause)
 
@@ -162,7 +163,7 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """
   precondition.AssertIterableType(table, dict)
 
-  prototype: List[str] = None
+  prototype: list[str] = None
 
   for row in table:
     columns = list(row.keys())

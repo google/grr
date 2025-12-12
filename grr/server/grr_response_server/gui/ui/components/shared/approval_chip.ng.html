@@ -1,0 +1,16 @@
+@if (status() === 'pending') {
+  <mat-chip class="gray-chip">
+    <mat-icon matChipAvatar>schedule</mat-icon>
+    Request sent, waiting
+  </mat-chip>
+} @else if (status() === 'valid') {
+  <mat-chip class="green-chip">
+    <mat-icon matChipAvatar>vpn_key</mat-icon>
+    Access granted {{ timeUntilExpiry() }}
+  </mat-chip>
+} @else {
+  <mat-chip class="red-chip">
+    <mat-icon matChipAvatar>lock_outline</mat-icon>
+    No access
+  </mat-chip>
+}

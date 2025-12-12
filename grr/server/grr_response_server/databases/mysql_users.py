@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for GRR users and approval handling."""
 
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Optional
 
 import MySQLdb
 
@@ -406,7 +407,7 @@ class MySQLDBUsersMixin(object):
       username: str,
       state: Optional["objects_pb2.UserNotification.State"] = None,
       timerange: Optional[
-          Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+          tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
       ] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[objects_pb2.UserNotification]:

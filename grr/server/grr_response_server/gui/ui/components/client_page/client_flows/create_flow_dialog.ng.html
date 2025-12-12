@@ -1,0 +1,117 @@
+<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h2 mat-dialog-title class="create-flow-dialog-title">
+    @if (selectedFlowType(); as flowType) {
+      <button mat-icon-button (click)="resetSelectedFlowType()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      Create Flow - <samp>{{ flowType | friendlyFlowName }}</samp>
+    } @else {
+      Create Flow
+      <a mat-icon-button
+        href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/flows/index.html"
+        target="_blank"
+        matTooltip="Click for more details on GRR flows."
+      >
+        <mat-icon>help_outline</mat-icon>
+      </a>
+    }
+  </h2>
+</div>
+<mat-dialog-content>
+ @if (selectedFlowType(); as flowType) {
+    <mat-checkbox [formControl]="disableRrgSupportControl">Disable RRG support</mat-checkbox>
+    <flow-args-form
+      [flowType]="flowType"
+      [flowArgs]="dialogData.flowArgs"
+      [editable]="true"
+      [onSubmit]="onSubmitFn"
+      [client]="dialogData.client"
+      />
+  } @else {
+    <mat-form-field appearance="outline" class="search-flow-type">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Search for a Flow Type or select one below</mat-label>
+      <input matInput
+        type="text"
+        [formControl]="searchFlowType"
+        [matAutocomplete]="auto"
+        placeholder="Search for flows by name or category"
+      />
+      @if (searchFlowType.value) {
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          aria-label="Clear"
+          (click)="searchFlowType.reset()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+      <mat-autocomplete
+        #auto="matAutocomplete"
+        (optionSelected)="selectFlowType($event.option.value)"
+      >
+        @for (flowDetails of FLOW_DETAILS_BY_TYPE.values(); track flowDetails.type) {
+          @if (!flowDetails.hidden) {
+            @if (!searchFlowType.value || matchesInput(flowDetails, searchFlowType.value)) {
+              <mat-option
+                [value]="flowDetails.type"
+                [disabled]="flowDetails.restricted && !globalStore.currentUser()?.isAdmin"
+                [matTooltipDisabled]="flowDetails.restricted && !globalStore.currentUser()?.isAdmin"
+                matTooltip="Restricted flow, only available to admins"
+              >
+                <h5 class="flow-type-item-title">{{ flowDetails.friendlyName }}</h5>
+                <p class="flow-type-item-description">{{ flowDetails.description }}</p>
+              </mat-option>
+            }
+          }
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <div class="popular-flows-container">
+      @for (flowDetails of FLOW_DETAILS_BY_TYPE.values(); track flowDetails.type) {
+        @if (!flowDetails.hidden && flowDetails.favorite) {
+          <button mat-stroked-button
+              type="button"
+              matTooltipPosition="right"
+              [matTooltip]="flowDetails.description"
+              (click)="selectFlowType(flowDetails.type)"
+          >
+            {{ flowDetails.friendlyName }}
+          </button>
+        }
+      }
+    </div>
+
+    @for (category of flowCategories; track category) {
+      <collapsible-container [state]="CollapsibleState.COLLAPSED">
+        <collapsible-title>
+          <div>{{category}}</div>
+        </collapsible-title>
+        <collapsible-content>
+          @for (flowDetails of FLOW_DETAILS_BY_TYPE.values(); track flowDetails.type) {
+            @if (!flowDetails.hidden) {
+              @if (category === flowDetails.category) {
+                <div class="flow-type-item">
+                  <button mat-button
+                      type="button"
+                      matTooltipPosition="right"
+                      [matTooltip]="flowDetails.description"
+                      (click)="selectFlowType(flowDetails.type)"
+                      [disabled]="flowDetails.restricted && !globalStore.currentUser()?.isAdmin"
+                      [matTooltipDisabled]="flowDetails.restricted && !globalStore.currentUser()?.isAdmin"
+                      matTooltip="Restricted flow, only available to admins"
+                  >
+                    {{ flowDetails.friendlyName }}
+                  </button>
+                </div>
+              }
+            }
+          }
+        </collapsible-content>
+      </collapsible-container>
+    }
+  }
+</mat-dialog-content>

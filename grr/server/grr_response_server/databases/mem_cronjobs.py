@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The in memory database methods for cron job handling."""
 
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -16,9 +17,9 @@ class InMemoryDBCronJobMixin(object):
   # Maps cron_job_id to cron_job
   cronjobs: dict[str, flows_pb2.CronJob]
   # Maps cron_job_id to (leased_until_ms, leased_by)
-  cronjob_leases: dict[str, Tuple[int, str]]
+  cronjob_leases: dict[str, tuple[int, str]]
   # Maps (cron_job_id, run_id) to cron_job_run
-  cronjob_runs: dict[Tuple[str, str], flows_pb2.CronJobRun]
+  cronjob_runs: dict[tuple[str, str], flows_pb2.CronJobRun]
   approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]]
 
   @utils.Synchronized

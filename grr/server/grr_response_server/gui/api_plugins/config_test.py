@@ -332,22 +332,46 @@ class ApiListGrrBinariesHandlerTest(
 
   def testListsBinaries(self):
     self.SetUpBinaries()
-    result = config_plugin.ApiListGrrBinariesHandler().Handle(None)
+    result = config_plugin.ApiListGrrBinariesHandler().Handle(
+        api_config_pb2.ApiListGrrBinariesArgs(include_metadata=True)
+    )
     self.assertLen(result.items, 2)
     self.assertEqual(result.items[0].path, "windows/test.exe")
     self.assertEqual(
-        result.items[0].type, config_plugin.ApiGrrBinary.Type.EXECUTABLE
+        result.items[0].type, api_config_pb2.ApiGrrBinary.Type.EXECUTABLE
     )
     self.assertEqual(result.items[0].size, 18)
     self.assertEqual(int(result.items[0].timestamp), 42_000_000)
     self.assertTrue(result.items[0].has_valid_signature)
     self.assertEqual(result.items[1].path, "test")
     self.assertEqual(
-        result.items[1].type, config_plugin.ApiGrrBinary.Type.PYTHON_HACK
+        result.items[1].type, api_config_pb2.ApiGrrBinary.Type.PYTHON_HACK
     )
     self.assertEqual(result.items[1].size, 17)
     self.assertEqual(int(result.items[1].timestamp), 43_000_000)
     self.assertTrue(result.items[1].has_valid_signature)
+
+  def testListBinariesWithoutMetadata(self):
+    self.SetUpBinaries()
+    result = config_plugin.ApiListGrrBinariesHandler().Handle(
+        api_config_pb2.ApiListGrrBinariesArgs(include_metadata=False)
+    )
+    self.assertLen(result.items, 2)
+    self.assertEqual(result.items[0].path, "windows/test.exe")
+    self.assertEqual(
+        result.items[0].type, api_config_pb2.ApiGrrBinary.Type.EXECUTABLE
+    )
+    self.assertFalse(result.items[0].HasField("size"))
+    self.assertFalse(result.items[0].HasField("timestamp"))
+    self.assertFalse(result.items[0].HasField("has_valid_signature"))
+
+    self.assertEqual(result.items[1].path, "test")
+    self.assertEqual(
+        result.items[1].type, api_config_pb2.ApiGrrBinary.Type.PYTHON_HACK
+    )
+    self.assertFalse(result.items[1].HasField("size"))
+    self.assertFalse(int(result.items[1].HasField("timestamp")))
+    self.assertFalse(result.items[1].HasField("has_valid_signature"))
 
 
 class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -362,6 +386,7 @@ class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
         "AdminUI.hunt_config": rdf_config.AdminUIHuntConfig(
             default_exclude_labels=["oh-oh"],
         ),
+        "AdminUI.new_hunt_wizard.default_output_plugins": "Dummy1,Dummy2",
         "Source.version_string": "1.2.3.4",
         "Hunt.default_client_rate": 123,
     }
@@ -382,7 +407,26 @@ class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
         ].label.label_names,
         ["oh-oh"],
     )
+    self.assertEqual(
+        result.default_output_plugins[0].plugin_name,
+        "Dummy1",
+    )
+    self.assertEqual(
+        result.default_output_plugins[1].plugin_name,
+        "Dummy2",
+    )
     self.assertEqual(result.hunt_config.default_exclude_labels, ["oh-oh"])
+
+  def testHandlesEmptyConfig(self):
+    with test_lib.ConfigOverrider({}):
+      request = mock.MagicMock()
+      result = config_plugin.ApiGetUiConfigHandler().Handle(request)
+
+    self.assertEqual(result.heading, "")
+    self.assertEqual(result.default_hunt_runner_args.client_rate, 20.0)
+    self.assertEmpty(result.default_hunt_runner_args.client_rule_set.rules)
+    self.assertEmpty(result.default_output_plugins)
+    self.assertEmpty(result.hunt_config.default_exclude_labels)
 
 
 def main(argv):

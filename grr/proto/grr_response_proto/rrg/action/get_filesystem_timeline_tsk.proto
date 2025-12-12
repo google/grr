@@ -1,0 +1,37 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_filesystem_timeline_tsk;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // Optional. Absolute path to the raw filesystem image to delve into. If
+  // unset, RRG will attempt to detect the path to the raw filesystem image
+  // based on system mountpoints.
+  rrg.fs.Path raw_fs = 1;
+  // Absolute path to the root directory in the image to get the timeline of.
+  rrg.fs.Path root = 2;
+}
+
+message Result {
+  // A SHA-256 hash of the timeline batch sent to the blob sink.
+  //
+  // Because the entire timeline can easily have millions of entries, it could
+  // quickly exceed the maximum allowed size for a message. This is why entries
+  // are batched, gzipped and then send as blobs to the blobstore.
+  bytes blob_sha256 = 1;
+
+  // The total number of entries in the chunk.
+  //
+  // This number includes only entries contained in the chunk corresponding to
+  // this result, not the total number of entries the action execution processed
+  // so far.
+  uint64 entry_count = 2;
+}
+
+// Note: this action produces timeline batches serialized with
+// rrg.action.get_filesystem_timeline.Entry

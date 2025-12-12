@@ -145,12 +145,14 @@ message ApiBrowseFilesystemArgs {
 }
 
 message ApiBrowseFilesystemResult {
-  repeated ApiBrowseFilesystemEntry items = 1;
+  reserved 1;
+  optional ApiBrowseFilesystemEntry root_entry = 2;
 }
 
 message ApiBrowseFilesystemEntry {
-  optional string path = 1;
-  repeated ApiFile children = 2;
+  reserved 1, 2;
+  optional ApiFile file = 3;
+  repeated ApiBrowseFilesystemEntry children = 4;
 }
 
 message ApiGetVfsFilesArchiveArgs {
@@ -367,9 +369,4 @@ message ApiGetVfsFileContentUpdateStateResult {
 
   optional State state = 1
       [(sem_type) = { description: "The state of the update operation." }];
-}
-
-message ApiListKnownEncodingsResult {
-  repeated string encodings = 1
-      [(sem_type) = { description: "The list of file encodings." }];
 }

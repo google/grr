@@ -13,8 +13,11 @@ class MemKeystoreTest(
     absltest.TestCase,
 ):
 
-  def CreateKeystore(self, key_names: Sequence[str]) -> abstract.Keystore:
-    return mem.MemKeystore(key_names)
+  def CreateKeystore(
+      self, aead_key_names: Sequence[str], mac_key_names: Sequence[str]
+  ) -> abstract.Keystore:
+    combined = list(aead_key_names) + list(mac_key_names)
+    return mem.MemKeystore(combined)
 
 
 if __name__ == "__main__":

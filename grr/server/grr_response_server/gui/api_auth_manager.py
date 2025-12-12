@@ -3,11 +3,13 @@
 
 import io
 import logging
-from typing import Iterable, Text, Type
+from typing import Any, Iterable, Optional, Text, Type
 
 import yaml
 
+from google.protobuf import json_format
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server.authorization import auth_manager
 from grr_response_server.gui import api_call_router
@@ -30,6 +32,19 @@ class ApiCallRouterDoesNotExpectParameters(Error):
   """Raised when params are passed to a router that doesn't expect them."""
 
 
+# This constructor should eventually move to a more common location, close to
+# other config and yaml parsing code. For now, we only use it for router
+# configuration, not for other configs, so we keep it here.
+def DurationSecondsYamlConstructor(
+    loader: yaml.SafeLoader, node: yaml.Node
+) -> int:
+  """Constructor for the `duration_seconds!` custom tag."""
+  del loader
+  return rdfvalue.DurationSeconds.FromHumanReadable(
+      node.value
+  ).SerializeToWireFormat()
+
+
 class APIAuthorization(object):
   """Authorization for users/groups to use an API handler."""
 
@@ -42,8 +57,10 @@ class APIAuthorization(object):
   @staticmethod
   def ParseYAMLAuthorizationsList(yaml_data):
     """Parses YAML data into a list of APIAuthorization objects."""
+    loader = yaml.SafeLoader
+    loader.add_constructor("!duration_seconds", DurationSecondsYamlConstructor)
     try:
-      raw_list = list(yaml.safe_load_all(yaml_data))
+      raw_list = list(yaml.load_all(yaml_data, Loader=loader))
     except (ValueError, yaml.YAMLError) as e:
       raise InvalidAPIAuthorization("Invalid YAML: %s" % e)
 
@@ -63,20 +80,40 @@ class APIAuthorization(object):
 class APIAuthorizationManager(object):
   """Manages loading API authorizations and enforcing them."""
 
-  def _CreateRouter(self, router_cls, params=None):
-    """Creates a router with a given name and params."""
-    if not router_cls.params_type and params:
+  def _CreateRouter(
+      self,
+      router_cls: type[api_call_router.ApiCallRouter],
+      params: Optional[dict[str, Any]] = None,
+  ) -> api_call_router.ApiCallRouter:
+    """Creates a router with a given name and params.
+
+    In case the router is configurable but no params are passed, the router
+    will be initialized with empty params (as opposed to `None`).
+    Params will only be `None` in case the router is not configurable.
+
+    Args:
+      router_cls: The class of the router to create.
+      params: The parameters to pass to the router.
+
+    Returns:
+      The created router.
+
+    Raises:
+      ApiCallRouterDoesNotExpectParameters: If the router is not configurable
+        but params are passed.
+    """
+    accepts_params = router_cls.proto_params_type
+    if not accepts_params and params:
       raise ApiCallRouterDoesNotExpectParameters(
           "%s is not configurable" % router_cls
       )
 
-    rdf_params = None
-    if router_cls.params_type:
-      rdf_params = router_cls.params_type()
-      if params:
-        rdf_params.FromDict(params)
+    if router_cls.proto_params_type:
+      proto_params = router_cls.proto_params_type()
+      json_format.ParseDict(params or {}, proto_params)
+      return router_cls(params=proto_params)
 
-    return router_cls(params=rdf_params)
+    return router_cls(params=None)
 
   def __init__(
       self,

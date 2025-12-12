@@ -8,16 +8,15 @@ from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import config_pb2
 from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.models import hunts as models_hunts
-from grr_response_server.rdfvalues import hunts as rdf_hunts
 # This import is needed to register RDF types used in config values which are
 # otherwise not directly imported by the code.
 # pylint: disable=unused-import
@@ -32,7 +31,6 @@ from grr_response_server.rdfvalues import wrappers as rdf_wrappers
 REDACTED_OPTIONS = [
     "AdminUI.django_secret_key",
     "AdminUI.csrf_secret_key",
-    "BigQuery.service_acct_json",
     "Mysql.password",
     "Mysql.database_password",
     "Worker.smtp_password",
@@ -63,13 +61,6 @@ def _IsSupportedValueType(value: Any) -> bool:
     return True
   else:
     return False
-
-
-class ApiConfigOption(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiConfigOption
-
-  def GetValueClass(self):
-    return rdfvalue.RDFValue.classes.get(self.type)
 
 
 def ApiConfigOptionFromOptionName(name: str) -> config_pb2.ApiConfigOption:
@@ -143,24 +134,9 @@ def ApiConfigOptionFromOptionName(name: str) -> config_pb2.ApiConfigOption:
   return res
 
 
-class ApiConfigSection(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiConfigSection
-  rdf_deps = [
-      ApiConfigOption,
-  ]
-
-
-class ApiGetConfigResult(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiGetConfigResult
-  rdf_deps = [
-      ApiConfigSection,
-  ]
-
-
 class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   """Renders GRR's server configuration."""
 
-  result_type = ApiGetConfigResult
   proto_result_type = config_pb2.ApiGetConfigResult
 
   def _ListParametersInSection(self, section):
@@ -187,7 +163,8 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       section = sections[section_name]
 
       api_section = config_pb2.ApiConfigSection(name=section_name)
-      api_section.ClearField("options")
+      # TODO: Replace with `clear()` once upgraded.
+      del api_section.options[:]
       for param_name in sorted(section):
         api_section.options.append(section[param_name])
       result.sections.append(api_section)
@@ -195,15 +172,9 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
     return result
 
 
-class ApiGetConfigOptionArgs(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiGetConfigOptionArgs
-
-
 class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
   """Renders single option from a GRR server's configuration."""
 
-  args_type = ApiGetConfigOptionArgs
-  result_type = ApiConfigOption
   proto_args_type = config_pb2.ApiGetConfigOptionArgs
   proto_result_type = config_pb2.ApiConfigOption
 
@@ -218,21 +189,6 @@ class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Name not specified.")
 
     return ApiConfigOptionFromOptionName(args.name)
-
-
-class ApiGrrBinary(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiGrrBinary
-  rdf_deps = [
-      rdfvalue.ByteSize,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiListGrrBinariesResult
-  rdf_deps = [
-      ApiGrrBinary,
-  ]
 
 
 def _GetSignedBlobsRoots() -> (
@@ -291,10 +247,12 @@ def _GetSignedBinaryMetadata(
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
   """Renders a list of available GRR binaries."""
 
-  result_type = ApiListGrrBinariesResult
+  proto_args_type = config_pb2.ApiListGrrBinariesArgs
   proto_result_type = config_pb2.ApiListGrrBinariesResult
 
-  def _ListSignedBlobs(self) -> list[config_pb2.ApiGrrBinary]:
+  def _ListBinaries(
+      self, include_metadata: bool
+  ) -> list[config_pb2.ApiGrrBinary]:
     roots = _GetSignedBlobsRoots()
     binary_urns = signed_binary_utils.FetchURNsForAllSignedBinaries()
     api_binaries = []
@@ -302,27 +260,31 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
       for binary_type, root in roots.items():
         relative_path = binary_urn.RelativeName(root)
         if relative_path:
-          api_binary = _GetSignedBinaryMetadata(binary_type, relative_path)
-          api_binaries.append(api_binary)
+          if include_metadata:
+            api_binary = _GetSignedBinaryMetadata(binary_type, relative_path)
+            api_binaries.append(api_binary)
+          else:
+            api_binaries.append(
+                config_pb2.ApiGrrBinary(
+                    path=relative_path,
+                    type=binary_type,
+                )
+            )
     return api_binaries
 
   def Handle(
       self,
-      unused_args: None,
+      args: config_pb2.ApiListGrrBinariesArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> config_pb2.ApiListGrrBinariesResult:
-    return config_pb2.ApiListGrrBinariesResult(items=self._ListSignedBlobs())
-
-
-class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiGetGrrBinaryArgs
+    return config_pb2.ApiListGrrBinariesResult(
+        items=self._ListBinaries(args.include_metadata)
+    )
 
 
 class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Fetches metadata for a given GRR binary."""
 
-  args_type = ApiGetGrrBinaryArgs
-  result_type = ApiGrrBinary
   proto_args_type = config_pb2.ApiGetGrrBinaryArgs
   proto_result_type = config_pb2.ApiGrrBinary
 
@@ -336,14 +298,9 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetGrrBinaryBlobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiGetGrrBinaryBlobArgs
-
-
 class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
   """Streams a given GRR binary."""
 
-  args_type = ApiGetGrrBinaryBlobArgs
   proto_args_type = config_pb2.ApiGetGrrBinaryBlobArgs
 
   CHUNK_SIZE = 1024 * 1024 * 4
@@ -369,19 +326,9 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiUiConfig(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.ApiUiConfig
-  rdf_deps = [
-      rdf_hunts.HuntRunnerArgs,
-      rdf_config.AdminUIClientWarningsConfigOption,
-      rdf_config.AdminUIHuntConfig,
-  ]
-
-
 class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
   """Returns config values for AdminUI (e.g. heading name, help url)."""
 
-  result_type = ApiUiConfig
   proto_result_type = config_pb2.ApiUiConfig
 
   def Handle(
@@ -424,6 +371,15 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
                 ),
             )
         )
+    default_output_plugins: list[output_plugin_pb2.OutputPluginDescriptor] = []
+    output_plugins_config = config.CONFIG[
+        "AdminUI.new_hunt_wizard.default_output_plugins"
+    ]
+    if output_plugins_config:
+      for plugin in output_plugins_config.split(","):
+        default_output_plugins.append(
+            output_plugin_pb2.OutputPluginDescriptor(plugin_name=plugin.strip())
+        )
 
     res = config_pb2.ApiUiConfig(
         heading=config.CONFIG["AdminUI.heading"],
@@ -432,6 +388,7 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
         grr_version=config.CONFIG["Source.version_string"],
         profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
         default_hunt_runner_args=default_hunt_runner_args,
+        default_output_plugins=default_output_plugins,
         default_access_duration_seconds=config.CONFIG["ACL.token_expiry"],
         max_access_duration_seconds=config.CONFIG["ACL.token_max_expiry"],
     )

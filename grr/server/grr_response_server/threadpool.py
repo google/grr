@@ -42,9 +42,6 @@ THREADPOOL_OUTSTANDING_TASKS = metrics.Gauge(
 THREADPOOL_THREADS = metrics.Gauge(
     "threadpool_threads", int, fields=[("pool_name", str)]
 )
-THREADPOOL_CPU_USE = metrics.Gauge(
-    "threadpool_cpu_use", float, fields=[("pool_name", str)]
-)
 THREADPOOL_TASK_EXCEPTIONS = metrics.Counter(
     "threadpool_task_exceptions", fields=[("pool_name", str)]
 )
@@ -292,7 +289,6 @@ class ThreadPool(object):
         self._queue.qsize, fields=[self.name]
     )
     THREADPOOL_THREADS.SetCallback(lambda: len(self), fields=[self.name])
-    THREADPOOL_CPU_USE.SetCallback(self.CPUUsage, fields=[self.name])
 
   def __del__(self):
     if self.started:

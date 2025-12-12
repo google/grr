@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr_response_server.flows.general.containers."""
-
 from absl import app
 
 from grr_response_client import actions
@@ -122,15 +120,17 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(got[0].created_at, 1719465569878299297)
     self.assertEqual(got[0].ports, [])
     self.assertEqual(got[0].names, ["test_name"])
+    self.assertLen(got[0].labels, 1)
     self.assertEqual(
-        got[0].labels,
-        [containers.ContainerLabel(label="test_label", value="test_value")],
+        got[0].labels[0],
+        containers_pb2.ContainerLabel(label="test_label", value="test_value"),
     )
     self.assertEqual(
         got[0].state, containers_pb2.ContainerDetails.CONTAINER_RUNNING
     )
     self.assertEqual(
-        got[0].runtime, containers_pb2.ContainerDetails.ContainerCli.CRICTL
+        got[0].container_cli,
+        containers_pb2.ContainerDetails.ContainerCli.CRICTL,
     )
 
     # Test docker
@@ -146,9 +146,10 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(got[0].created_at, 1717475899000000000)
     self.assertLen(got[0].ports, 2)
     self.assertEqual(got[0].names, ["test_name"])
+    self.assertLen(got[0].labels, 1)
     self.assertEqual(
-        got[0].labels,
-        [containers.ContainerLabel(label="TEST_LABEL", value="test_value")],
+        got[0].labels[0],
+        containers_pb2.ContainerLabel(label="TEST_LABEL", value="test_value"),
     )
     self.assertEqual(got[0].local_volumes, "0")
     self.assertEqual(got[0].mounts, ["/"])
@@ -158,7 +159,9 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
         got[0].state, containers_pb2.ContainerDetails.CONTAINER_RUNNING
     )
     self.assertEqual(got[0].status, "Up 3 weeks")
-    self.assertEqual(got[0].runtime, containers_pb2.ContainerDetails.DOCKER)
+    self.assertEqual(
+        got[0].container_cli, containers_pb2.ContainerDetails.DOCKER
+    )
 
     # Test empty crictl
     stdout = """

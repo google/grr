@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
-from typing import Callable, Iterator, Text
+from collections.abc import Callable, Iterator
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -94,7 +94,7 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
 def _GetExpandedPaths(
     args: rdf_file_finder.FileFinderArgs,
     heartbeat_cb: Callable[[], None] = _NoOp,
-) -> Iterator[Text]:
+) -> Iterator[str]:
   """Yields all possible expansions from given path patterns."""
   if args.HasField("implementation_type"):
     implementation_type = args.implementation_type
@@ -109,22 +109,3 @@ def _GetExpandedPaths(
   for path in args.paths:
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
       yield expanded_path
-
-
-# TODO: This is only used by artifact_collector. It should be
-# removed and artifact_collector should use VfsFileFinder or VFS directly.
-def RegistryKeyFromClient(args: rdf_file_finder.FileFinderArgs):
-  """This function expands paths from the args and returns registry keys.
-
-  Args:
-    args: An `rdf_file_finder.FileFinderArgs` object.
-
-  Yields:
-    `rdf_client_fs.StatEntry` instances.
-  """
-  for path in _GetExpandedPaths(args):
-    pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY
-    )
-    with vfs.VFSOpen(pathspec) as file_obj:
-      yield file_obj.Stat()

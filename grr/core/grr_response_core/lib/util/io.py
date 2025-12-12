@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """A module with utilities for working with I/O."""
 
+from collections.abc import Iterator
 import io
-from typing import IO, Iterator
+from typing import IO
 
 
 def Chunk(stream: IO[bytes], size: int) -> Iterator[bytes]:

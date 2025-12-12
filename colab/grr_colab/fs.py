@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Module that contains API to perform filesystem operations on a GRR client."""
+from collections.abc import Sequence
 import io
 import itertools
-from typing import Sequence, Text
 
 from google.protobuf import message
 from grr_api_client import client
@@ -30,14 +30,14 @@ class FileSystem(object):
     self._path_type = path_type
 
   @property
-  def id(self) -> Text:
+  def id(self) -> str:
     return self._client.client_id
 
   @property
   def cached(self) -> vfs.VFS:
     return vfs.VFS(self._client, self._path_type)
 
-  def ls(self, path: Text, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
+  def ls(self, path: str, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
     """Lists contents of a given directory.
 
     Args:
@@ -73,7 +73,7 @@ class FileSystem(object):
     _timeout.await_flow(ls)
     return representer.StatEntryList([_.payload for _ in ls.ListResults()])
 
-  def glob(self, path: Text) -> Sequence[jobs_pb2.StatEntry]:
+  def glob(self, path: str) -> Sequence[jobs_pb2.StatEntry]:
     """Globs for files on the given client.
 
     Args:
@@ -100,7 +100,7 @@ class FileSystem(object):
     return res
 
   def grep(
-      self, path: Text, pattern: bytes
+      self, path: str, pattern: bytes
   ) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
@@ -136,8 +136,9 @@ class FileSystem(object):
     )
     return representer.BufferReferenceList(results)
 
-  def fgrep(self, path: Text,
-            literal: bytes) -> Sequence[jobs_pb2.BufferReference]:
+  def fgrep(
+      self, path: str, literal: bytes
+  ) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -172,7 +173,7 @@ class FileSystem(object):
     )
     return representer.BufferReferenceList(results)
 
-  def wget(self, path: Text) -> Text:
+  def wget(self, path: str) -> str:
     """Downloads a file and returns a link to it.
 
     Args:
@@ -184,7 +185,7 @@ class FileSystem(object):
     self._collect_file(path)
     return self.cached.wget(path)
 
-  def open(self, path: Text) -> io.BufferedIOBase:
+  def open(self, path: str) -> io.BufferedIOBase:
     """Opens a file object corresponding to the given path on the client.
 
     The returned file object is read-only.
@@ -198,7 +199,7 @@ class FileSystem(object):
     self._collect_file(path)
     return self.cached.open(path)
 
-  def _collect_file(self, path: Text) -> None:
+  def _collect_file(self, path: str) -> None:
     """Save file from client to VFS.
 
     Args:

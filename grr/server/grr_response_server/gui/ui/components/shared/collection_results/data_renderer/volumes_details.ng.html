@@ -1,0 +1,86 @@
+@for (volume of volumes(); track volume) {
+  <table>
+    @if (volume.windowsDetails?.driveLetter) {
+      <tr>
+        <td class="description">Drive Letter</td>
+        <td class="value"><copy-button>{{ volume.windowsDetails?.driveLetter }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.windowsDetails?.attributes) {
+      <tr>
+        <td class="description">Drive Attributes</td>
+        <td class="value">
+          <div *ngFor="let attribute of volume.windowsDetails?.attributes">{{attribute}}</div>
+        </td>
+      </tr>
+    }
+    @if (volume.windowsDetails?.driveType) {
+      <tr>
+        <td class="description">Drive Type</td>
+        <td class="value"><copy-button>{{ volume.windowsDetails?.driveType }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.unixDetails?.mountPoint) {
+      <tr>
+        <td class="description">Mount Point</td>
+        <td class="value"><copy-button>{{ volume.unixDetails?.mountPoint }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.unixDetails?.mountOptions) {
+      <tr>
+        <td class="description">Mount Options</td>
+        <td class="value"><copy-button>{{ volume.unixDetails?.mountOptions }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.name) {
+      <tr>
+        <td class="description">Volume Name</td>
+        <td class="value"><copy-button>{{ volume.name }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.devicePath) {
+      <tr>
+        <td class="description">Device Path</td>
+        <td class="value"><copy-button>{{ volume.devicePath }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.fileSystemType) {
+      <tr>
+        <td class="description">Filesystem Type</td>
+        <td class="value"><copy-button>{{ volume.fileSystemType }}</copy-button></td>
+      </tr>
+    }
+    @if (volume.totalSize) {
+      <tr>
+        <td class="description">Total Size</td>
+        <td class="value">
+          <copy-button>{{ volume.totalSize | humanReadableByteSize }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (volume.freeSpace) {
+      <tr>
+        <td class="description">Free Space</td>
+        <td class="value">
+          <copy-button>{{ volume.freeSpace | humanReadableByteSize }}</copy-button>
+        </td>
+      </tr>
+    }
+    @if (volume.bytesPerSector) {
+      <tr>
+        <td class="description">Sector Size</td>
+        <td class="value">
+          <copy-button>{{ volume.bytesPerSector | humanReadableByteSize }}</copy-button>
+          </td>
+      </tr>
+    }
+    @if (volume.creationTime) {
+      <tr>
+        <td class="description">Creation Time</td>
+        <td class="value"><timestamp [date]="volume.creationTime" /></td>
+      </tr>
+    }
+  </table>
+} @empty {
+<div>None.</div>
+}

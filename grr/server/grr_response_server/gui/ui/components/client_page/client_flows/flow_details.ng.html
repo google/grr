@@ -1,0 +1,38 @@
+<nav
+    mat-tab-nav-bar
+    [tabPanel]="tabPanel"
+    [mat-stretch-tabs]="false"
+    [disablePagination]="true">
+  <a
+    mat-tab-link
+    [routerLink]="['configuration']"
+    routerLinkActive
+    #configurationActive="routerLinkActive"
+    [active]="configurationActive.isActive"
+  >
+    CONFIGURATION
+</a>
+  <a
+    mat-tab-link
+    [routerLink]="['results']"
+    routerLinkActive
+    #resultsActive="routerLinkActive"
+    [active]="resultsActive.isActive"
+    >
+    RESULTS
+  </a>
+  <a
+    name="debug-tab"
+    mat-tab-link
+    [routerLink]="['debug']"
+    routerLinkActive
+    #logsActive="routerLinkActive"
+    [active]="logsActive.isActive"
+  >
+    DEBUGGING
+  </a>
+</nav>
+
+<mat-tab-nav-panel #tabPanel>
+  <router-outlet />
+</mat-tab-nav-panel>

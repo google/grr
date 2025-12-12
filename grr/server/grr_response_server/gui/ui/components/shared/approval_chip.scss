@@ -1,0 +1,28 @@
+@use '@angular/material' as mat;
+
+.green-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: SpringGreen,
+      label-text-color: black,
+    )
+  );
+}
+
+.red-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: Crimson,
+      label-text-color: white,
+    )
+  );
+}
+
+.gray-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: DimGray,
+      label-text-color: white,
+    )
+  );
+}

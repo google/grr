@@ -11,10 +11,18 @@
     <link rel="shortcut icon" href="/static/images/favicon.ico" />
 
     <!-- Needed for Material icons -->
+    {% if googlefonts_override %}
+    <link rel="stylesheet" href="{{ googlefonts_override }}" />
+    {% else %}
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=block"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/css?family=Google+Sans+Text|Google+Sans&display=block"
+      rel="stylesheet"
+    />
+    {% endif %}
 
     {% if analytics_id %}
     <!-- Google tag (gtag.js) -->

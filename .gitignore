@@ -33,6 +33,3 @@ installers/
 GRRlog.txt
 grr/server/grr_response_server/gui/static/third-party/
 grr/server/grr_response_server/gui/ui/.angular/
-docker_config_files/*.pem
-compose.watch.yaml
-Dockerfile.client

@@ -80,29 +80,23 @@ class GRRWorker(object):
   """A GRR worker."""
 
   message_handler_lease_time = rdfvalue.Duration.From(600, rdfvalue.SECONDS)
-  # TODO: Temporarily added flag to prevent worker from picking up
-  # work.
-  disabled: bool
 
-  def __init__(self, disabled: bool = False):
+  def __init__(self):
     """Constructor."""
-    self.disabled = disabled
     logging.info("Started GRR worker.")
 
   def Shutdown(self) -> None:
-    if not self.disabled:
-      data_store.REL_DB.UnregisterMessageHandler()
-      data_store.REL_DB.UnregisterFlowProcessingHandler()
+    data_store.REL_DB.UnregisterMessageHandler()
+    data_store.REL_DB.UnregisterFlowProcessingHandler()
 
   def Run(self) -> None:
     """Event loop."""
-    if not self.disabled:
-      data_store.REL_DB.RegisterMessageHandler(
-          ProcessMessageHandlerRequests,
-          self.message_handler_lease_time,
-          limit=100,
-      )
-      data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
+    data_store.REL_DB.RegisterMessageHandler(
+        ProcessMessageHandlerRequests,
+        self.message_handler_lease_time,
+        limit=100,
+    )
+    data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
 
     try:
       # The main thread just keeps sleeping and listens to keyboard interrupt

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """The in memory database methods for hunt handling."""
 
-from collections.abc import Callable
+import collections
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence, Set
 import math
 import sys
-from typing import AbstractSet, Collection, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -87,13 +88,13 @@ def InitializeClientResourcesStats(
 class InMemoryDBHuntMixin(object):
   """Hunts-related DB methods implementation."""
 
-  hunts: Dict[str, hunts_pb2.Hunt]
-  flows: Dict[str, flows_pb2.Flow]
+  hunts: dict[str, hunts_pb2.Hunt]
+  flows: dict[str, flows_pb2.Flow]
   hunt_output_plugins_states: dict[str, list[bytes]]
   approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]]
   flow_results: dict[tuple[str, str], list[flows_pb2.FlowResult]]
 
-  def _GetHuntFlows(self, hunt_id: str) -> List[flows_pb2.Flow]:
+  def _GetHuntFlows(self, hunt_id: str) -> list[flows_pb2.Flow]:
     hunt_flows = [
         f
         for f in self.flows.values()
@@ -151,7 +152,7 @@ class InMemoryDBHuntMixin(object):
   def ReadHuntOutputPluginsStates(
       self,
       hunt_id: str,
-  ) -> List[output_plugin_pb2.OutputPluginState]:
+  ) -> list[output_plugin_pb2.OutputPluginState]:
     """Reads hunt output plugin states for a given hunt."""
     if hunt_id not in self.hunts:
       raise db.UnknownHuntError(hunt_id)
@@ -188,7 +189,7 @@ class InMemoryDBHuntMixin(object):
           [jobs_pb2.AttributedDict],
           jobs_pb2.AttributedDict,
       ],
-  ) -> jobs_pb2.AttributedDict:
+  ) -> None:
     """Updates hunt output plugin state for a given output plugin."""
     if hunt_id not in self.hunts:
       raise db.UnknownHuntError(hunt_id)
@@ -207,7 +208,6 @@ class InMemoryDBHuntMixin(object):
     self.hunt_output_plugins_states[hunt_id][
         state_index
     ] = state.SerializeToString()
-    return state.plugin_state
 
   @utils.Synchronized
   def DeleteHuntObject(self, hunt_id: str) -> None:
@@ -249,12 +249,12 @@ class InMemoryDBHuntMixin(object):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
-  ) -> List[hunts_pb2.Hunt]:
+  ) -> list[hunts_pb2.Hunt]:
     """Reads metadata for hunt objects from the database."""
     filter_fns = []
     if with_creator is not None:
@@ -288,12 +288,12 @@ class InMemoryDBHuntMixin(object):
       with_creator: Optional[str] = None,
       created_after: Optional[rdfvalue.RDFDatetime] = None,
       with_description_match: Optional[str] = None,
-      created_by: Optional[AbstractSet[str]] = None,
-      not_created_by: Optional[AbstractSet[str]] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
       with_states: Optional[
           Collection[hunts_pb2.Hunt.HuntState.ValueType]
       ] = None,
-  ) -> List[hunts_pb2.HuntMetadata]:
+  ) -> list[hunts_pb2.HuntMetadata]:
     """Reads all hunt objects from the database."""
     filter_fns = []
     if with_creator is not None:
@@ -367,9 +367,10 @@ class InMemoryDBHuntMixin(object):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
       with_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Iterable[flows_pb2.FlowResult]:
+  ) -> Sequence[flows_pb2.FlowResult]:
     """Reads hunt results of a given hunt using given query options."""
     all_results = []
     for flow_obj in self._GetHuntFlows(hunt_id):
@@ -382,6 +383,7 @@ class InMemoryDBHuntMixin(object):
           sys.maxsize,
           with_tag=with_tag,
           with_type=with_type,
+          with_proto_type_url=with_proto_type_url,
           with_substring=with_substring,
       ):
         # pytype: enable=attribute-error
@@ -408,11 +410,17 @@ class InMemoryDBHuntMixin(object):
       hunt_id: str,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
   ) -> int:
     """Counts hunt results of a given hunt using given query options."""
     return len(
         self.ReadHuntResults(
-            hunt_id, 0, sys.maxsize, with_tag=with_tag, with_type=with_type
+            hunt_id,
+            0,
+            sys.maxsize,
+            with_tag=with_tag,
+            with_type=with_type,
+            with_proto_type_url=with_proto_type_url,
         )
     )
 
@@ -424,6 +432,13 @@ class InMemoryDBHuntMixin(object):
       result[key] = result.setdefault(key, 0) + 1
 
     return result
+
+  @utils.Synchronized
+  def CountHuntResultsByProtoTypeUrl(self, hunt_id: str) -> Mapping[str, int]:
+    results_by_type_url = collections.Counter()
+    for flow_result in self.ReadHuntResults(hunt_id, 0, sys.maxsize):
+      results_by_type_url[flow_result.payload.type_url] += 1
+    return results_by_type_url
 
   @utils.Synchronized
   def ReadHuntFlows(

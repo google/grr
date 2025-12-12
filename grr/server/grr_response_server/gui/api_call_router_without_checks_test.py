@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for ApiCallRouterWithoutChecks."""
-
 from absl import app
 
 from grr_response_server.gui import api_call_handler_base

@@ -1,8 +1,0 @@
-<div ng-repeat="outputPlugin in controller.outputPlugins">
-  <grr-output-plugin-note output-plugin="outputPlugin"
-                          output-plugins-url="outputPluginsUrl">
-  </grr-output-plugin-note>
-</div>
-<div class="alert alert-error" ng-if="controller.error">
-  <em>Can't fetch output plugins list: {$ controller.error $}.</em>
-</div>

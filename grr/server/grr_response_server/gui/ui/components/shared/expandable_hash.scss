@@ -1,0 +1,8 @@
+// NOTE: Styles used here are effectively global because of
+// "encapsulation: ViewEncapsulation.None".
+// Make sure to narrow them enough, so that they don't bleed out
+// unintentionally.
+
+.mat-mdc-menu-panel.big-width-expandable-hash-class {
+  max-width: none;
+}

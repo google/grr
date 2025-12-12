@@ -49,10 +49,11 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     signed_command.ed25519_signature = b"test-signature" + 50 * b"-"  # 64 bytes
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/foo/bar".encode("utf-8")
-    command.args.extend(["--foo", "--bar"])
+    command.args_signed.extend(["--foo", "--bar"])
     command.signed_stdin = b"stdin"
-    command.env["FOO"] = "bar"
+    command.env_signed["FOO"] = "bar"
     signed_command.command = command.SerializeToString()
+    signed_command.source_path = "/home/quux/mycommands.textproto"
 
     args = api_signed_commands_pb2.ApiCreateSignedCommandsArgs()
     args.signed_commands.append(signed_command)
@@ -65,6 +66,7 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(wrote.id, signed_command.id)
     self.assertEqual(wrote.operating_system, signed_command.operating_system)
     self.assertEqual(wrote.command, command.SerializeToString())
+    self.assertEqual(wrote.source_path, "/home/quux/mycommands.textproto")
 
   def testCreateSignedCommands_MissingIdRaises(self):
     missing_id = create_signed_command("missing_id")
@@ -95,20 +97,6 @@ class ApiCreateSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     args = api_signed_commands_pb2.ApiCreateSignedCommandsArgs()
     args.signed_commands.append(missing_path)
     with self.assertRaises(ValueError, msg="path is required."):
-      self.handler.Handle(args)
-
-  def testCreateSignedCommands_MissingStdinRaises(self):
-    missing_stdin = create_signed_command("missing_stdin")
-    rrg_command = rrg_execute_signed_command_pb2.Command()
-    rrg_command.ParseFromString(missing_stdin.command)
-    rrg_command.ClearField("signed_stdin")
-    rrg_command.ClearField("unsigned_stdin_allowed")
-    missing_stdin.command = rrg_command.SerializeToString()
-
-    args = api_signed_commands_pb2.ApiCreateSignedCommandsArgs()
-    args.signed_commands.append(missing_stdin)
-
-    with self.assertRaises(ValueError, msg="stdin is required."):
       self.handler.Handle(args)
 
   def testCreateSignedCommands_MissingSignatureRaises(self):
@@ -179,7 +167,7 @@ class ApiDeleteAllSignedCommandsTest(api_test_lib.ApiCallHandlerTest):
     super().setUp()
     self.handler = api_signed_commands.ApiDeleteAllSignedCommandsHandler()
 
-  def testDeleteSignedCommands(self):
+  def testDeleteAllSignedCommands(self):
     signed_command_1 = create_signed_command("for_deletion_1")
     signed_command_2 = create_signed_command("for_deletion_2")
 

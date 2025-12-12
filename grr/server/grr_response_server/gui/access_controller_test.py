@@ -226,6 +226,16 @@ class AdminAccessCheckerTest(test_lib.GRRBaseTest):
     checker.CheckIfCanStartFlow("test_user", "MultiGetFile")
 
 
+class MitigationFlowsAccessCheckerTest(test_lib.GRRBaseTest):
+  """Tests for MitigationFlowsAccessChecker."""
+
+  def testCheckIfHasAccessToFlow_PassesForNonMitigationFlow(self):
+    username = "any_user"
+    checker = access_controller.MitigationFlowsAccessChecker()
+
+    checker.CheckIfHasAccessToFlow(username, "LaunchBinary")
+
+
 class ApprovalCheckerTest(test_lib.GRRBaseTest):
   """Tests for AccessChecker."""
 

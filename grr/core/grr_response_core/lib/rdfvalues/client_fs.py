@@ -27,27 +27,6 @@ class Filesystem(rdf_structs.RDFProtoStruct):
   ]
 
 
-class Filesystems(rdf_protodict.RDFValueArray):
-  """An array of client filesystems.
-
-  This is used to represent the list of valid filesystems on the client.
-  """
-
-  rdf_type = Filesystem
-
-
-class FolderInformation(rdf_structs.RDFProtoStruct):
-  """Representation of Window's special folders information for a User.
-
-  Windows maintains a list of "Special Folders" which are used to organize a
-  user's home directory. Knowledge about these is required in order to resolve
-  the location of user specific items, e.g. the Temporary folder, or the
-  Internet cache.
-  """
-
-  protobuf = jobs_pb2.FolderInformation
-
-
 class WindowsVolume(rdf_structs.RDFProtoStruct):
   """A disk volume on a windows client."""
 
@@ -106,12 +85,6 @@ class Volume(rdf_structs.RDFProtoStruct):
 
 class DiskUsage(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.DiskUsage
-
-
-class Volumes(rdf_protodict.RDFValueArray):
-  """A list of disk volumes on the client."""
-
-  rdf_type = Volume
 
 
 class StatMode(rdfvalue.RDFInteger):

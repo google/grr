@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import binascii
+from collections.abc import Iterator
 import datetime
 import ipaddress
 import os
 import platform
 import socket
-from typing import Iterator
 from unittest import mock
 
 from absl import app
@@ -46,14 +46,17 @@ from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 from grr_response_proto.rrg.action import list_interfaces_pb2 as rrg_list_interfaces_pb2
 from grr_response_proto.rrg.action import list_mounts_pb2 as rrg_list_mounts_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 class DiscoveryTestEventListener(events.EventListener):
@@ -228,6 +231,11 @@ class TestClientInterrogate(
 
     data_store.REL_DB.WriteClientMetadata(client_id)
 
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = "GRR"
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup)
+
     return client_id
 
   def testInterrogateCloudMetadataLinux(self):
@@ -277,6 +285,12 @@ class TestClientInterrogate(
   def testInterrogateLinux(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
+
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.client_info.client_name = "GRR"
+    startup_info.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+
     with vfs_test_lib.FakeTestDataVFSOverrider():
       client_mock = action_mocks.InterrogatedClient()
       client_mock.InitializeClient(version="14.4", release="Ubuntu")
@@ -318,6 +332,12 @@ class TestClientInterrogate(
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
     client_id = self._SetupMinimalClient()
+
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.client_info.client_name = "GRR"
+    startup_info.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+
     with vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY,
         vfs_test_lib.FakeRegistryVFSHandler,
@@ -369,6 +389,8 @@ class TestClientInterrogate(
     snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "Windows"
+    snapshot.startup_info.client_info.client_name = "GRR"
+    snapshot.startup_info.client_info.client_version = 4321
     db.WriteClientSnapshot(snapshot)
 
     class ActionMock(action_mocks.ActionMock):
@@ -431,6 +453,140 @@ class TestClientInterrogate(
     self.assertEqual(volume.windowsvolume.drive_letter, "C:")
     self.assertEqual(volume.windowsvolume.drive_type, 3)
 
+  def testClientSummary_RRG(self):
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    client_id = db_test_utils.InitializeClient(db)
+
+    startup = rrg_startup_pb2.Startup()
+    startup.metadata.version.major = 1
+    startup.metadata.version.minor = 2
+    startup.metadata.version.patch = 3
+    startup.metadata.version.pre = "foo"
+    startup.os_type = rrg_os_pb2.LINUX
+    db.WriteClientRRGStartup(client_id, startup)
+
+    def GetSystemMetadataHandler(session: rrg_test_lib.Session) -> None:
+      result = rrg_get_system_metadata_pb2.Result()
+      result.type = rrg_os_pb2.Type.LINUX
+      session.Reply(result)
+
+    def NotImplementedHandler(session: rrg_test_lib.Session) -> None:
+      del session  # Unused.
+      raise NotImplementedError()
+
+    summary = jobs_pb2.ClientSummary()
+
+    class TestClientSummaryEventListener(events.EventListener):
+
+      EVENTS = ["Discovery"]
+
+      def ProcessEvents(self, msgs=None, publisher_username=None):
+        del publisher_username  # Unused.
+
+        for msg in msgs or []:
+          summary.MergeFrom(msg.AsPrimitiveProto())
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=discovery.Interrogate,
+        flow_args=discovery.InterrogateArgs(),
+        handlers={
+            rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
+            # We don't care about these actions in this test — the flow should
+            # gracefully handle their failures anyway. We verify that the flow
+            # finished (and not crashed) below.
+            rrg_pb2.Action.QUERY_WMI: NotImplementedHandler,
+            rrg_pb2.Action.LIST_INTERFACES: NotImplementedHandler,
+            rrg_pb2.Action.LIST_MOUNTS: NotImplementedHandler,
+            rrg_pb2.Action.GREP_FILE_CONTENTS: NotImplementedHandler,
+        },
+    )
+
+    del TestClientSummaryEventListener
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    self.assertEqual(summary.rrg_version_major, 1)
+    self.assertEqual(summary.rrg_version_minor, 2)
+    self.assertEqual(summary.rrg_version_patch, 3)
+    self.assertEqual(summary.rrg_version_pre, "foo")
+
+  def testInterrogateVolumesWindows_RRG(self):
+    assert data_store.REL_DB is not None
+    db: abstract_db.Database = data_store.REL_DB
+
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    def GetSystemMetadataHandler(session: rrg_test_lib.Session) -> None:
+      result = rrg_get_system_metadata_pb2.Result()
+      result.type = rrg_os_pb2.Type.WINDOWS
+      session.Reply(result)
+
+    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
+      args = rrg_query_wmi_pb2.Args()
+      assert session.args.Unpack(args)
+
+      if args.query.split()[:1] != ["SELECT"]:
+        raise RuntimeError("Non-`SELECT` WMI query")
+
+      if "Win32_LogicalDisk" not in args.query:
+        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
+
+      result = rrg_query_wmi_pb2.Result()
+      result.row["FileSystem"].string = "NTFS"
+      result.row["DeviceID"].string = "C:"
+      result.row["FreeSpace"].string = "83074121728"
+      result.row["Size"].string = "160939618304"
+      result.row["VolumeName"].string = "Foo"
+      result.row["VolumeSerialNumber"].string = "BCF3E28E"
+      session.Reply(result)
+
+    def NotImplementedHandler(session: rrg_test_lib.Session) -> None:
+      del session  # Unused.
+      raise NotImplementedError()
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=discovery.Interrogate,
+        flow_args=discovery.InterrogateArgs(),
+        handlers={
+            rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
+            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
+            # We don't care about these actions in this test — the flow should
+            # gracefully handle their failures anyway. We verify that the flow
+            # finished (and not crashed) below.
+            rrg_pb2.Action.LIST_INTERFACES: NotImplementedHandler,
+            rrg_pb2.Action.LIST_MOUNTS: NotImplementedHandler,
+            rrg_pb2.Action.GET_WINREG_VALUE: NotImplementedHandler,
+            rrg_pb2.Action.LIST_WINREG_KEYS: NotImplementedHandler,
+        },
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertLen(snapshot.volumes, 1)
+
+    volume = snapshot.volumes[0]
+    self.assertEqual(volume.name, "Foo")
+    self.assertEqual(volume.serial_number, "BCF3E28E")
+    self.assertEqual(volume.file_system_type, "NTFS")
+    self.assertEqual(volume.windowsvolume.drive_letter, "C:")
+
+    self.assertEqual(volume.bytes_per_sector, 1)
+    self.assertEqual(volume.sectors_per_allocation_unit, 1)
+    self.assertEqual(volume.total_allocation_units, 160_939_618_304)
+    self.assertEqual(volume.actual_available_allocation_units, 83_074_121_728)
+
   def testInterrogateVolumesUnix(self):
     assert data_store.REL_DB is not None
     db: abstract_db.Database = data_store.REL_DB
@@ -442,6 +598,10 @@ class TestClientInterrogate(
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "Linux"
     db.WriteClientSnapshot(snapshot)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup)
 
     class ActionMock(action_mocks.ActionMock):
 
@@ -484,6 +644,12 @@ class TestClientInterrogate(
     data_store.REL_DB.WriteClientMetadata(
         client_id, fleetspeak_validation_info={"IP": "12.34.56.78"}
     )
+
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.client_info.client_name = "GRR"
+    startup_info.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
         fqdn="fleetspeak.test.com",
@@ -521,6 +687,12 @@ class TestClientInterrogate(
     mock_labels_fn.return_value = []
     client_id = "C.0000000000000001"
     data_store.REL_DB.WriteClientMetadata(client_id)
+
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.client_info.client_name = "GRR"
+    startup_info.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
         fqdn="fleetspeak.test.com",
@@ -555,6 +727,8 @@ class TestClientInterrogate(
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
     client_snapshot = objects_pb2.ClientSnapshot()
+    client_snapshot.startup_info.client_info.client_name = "GRR"
+    client_snapshot.startup_info.client_info.client_version = 4321
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Linux"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)
@@ -660,12 +834,6 @@ class TestClientInterrogate(
     )
     self.assertEqual(flow.store.client_snapshot.os_version, "1.2.3-alpha")
 
-    snapshot = db.ReadClientSnapshot(client_id)
-    self.assertEqual(snapshot.knowledge_base.os, "Linux")
-    self.assertEqual(snapshot.arch, "x86_64")
-    self.assertEqual(snapshot.knowledge_base.fqdn, "foo.example.com")
-    self.assertEqual(snapshot.os_version, "1.2.3-alpha")
-
   # TODO: https://github.com/google/rrg/issues/58 - Remove once FQDN collection
   # is working on all platforms.
   @db_test_lib.WithDatabase
@@ -704,10 +872,6 @@ class TestClientInterrogate(
 
     self.assertEqual(flow.store.client_snapshot.knowledge_base.os, "Darwin")
     self.assertEqual(flow.store.client_snapshot.knowledge_base.fqdn, "foobar")
-
-    snapshot = db.ReadClientSnapshot(client_id)
-    self.assertEqual(snapshot.knowledge_base.os, "Darwin")
-    self.assertEqual(snapshot.knowledge_base.fqdn, "foobar")
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetSystemMetadataCloudVMMetadataLinux(
@@ -859,7 +1023,7 @@ class TestClientInterrogate(
       self,
       db: abstract_db.Database,
   ):
-    client_id = db_test_utils.InitializeRRGClient(db)
+    client_id = db_test_utils.InitializeRRGClient(db, os_type=rrg_os_pb2.LINUX)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
     result_0 = rrg_list_mounts_pb2.Result()
@@ -946,6 +1110,11 @@ class TestClientInterrogate(
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.client_info.client_name = "GRR"
+    startup_info.client_info.client_version = 1337
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+
     flow_args = discovery.InterrogateArgs()
     flow_args.lightweight = False
 
@@ -993,6 +1162,10 @@ class TestClientInterrogate(
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_version = 4321
+    db.WriteClientStartupInfo(client_id, startup)
+
     rdf_flow = rdf_flow_objects.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
@@ -1022,6 +1195,11 @@ class TestClientInterrogate(
   ):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = "GRR"
+    startup.client_info.client_version = 4321
+    db.WriteClientStartupInfo(client_id, startup)
 
     rdf_flow = rdf_flow_objects.Flow()
     rdf_flow.client_id = client_id

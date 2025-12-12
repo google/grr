@@ -103,7 +103,7 @@ class ArtifactRegistry(object):
   """A global registry of artifacts."""
 
   def __init__(self):
-    self._artifacts = {}
+    self._artifacts: dict[str, rdf_artifacts.Artifact] = {}
     self._sources = ArtifactRegistrySources()
     self._dirty = False
     # Field required by the utils.Synchronized annotation.
@@ -408,7 +408,7 @@ class ArtifactRegistry(object):
 
   @utils.Synchronized
   def GetArtifact(self, name):
-    """Get artifact by name.
+    """Get artifact by name, or by alias.
 
     Args:
       name: artifact name string.
@@ -421,6 +421,9 @@ class ArtifactRegistry(object):
     self._CheckDirty()
     result = self._artifacts.get(name)
     if not result:
+      for artifact in self._artifacts.values():
+        if name in artifact.aliases:
+          return artifact
       raise rdf_artifacts.ArtifactNotRegisteredError(
           "Artifact %s missing from registry. You may need to sync the "
           "artifact repo by running make in the artifact directory." % name

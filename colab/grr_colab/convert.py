@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Module containing functions for converting messages to dataframe."""
 import collections
+from collections.abc import Sequence
 import datetime
 import stat
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -44,7 +45,7 @@ def from_object(obj: Any) -> pd.DataFrame:
 
 
 def from_message(
-    msg: message.Message, components: Optional[List[str]] = None
+    msg: message.Message, components: Optional[list[str]] = None
 ) -> pd.DataFrame:
   """Converts protobuf message to a dataframe.
 
@@ -87,8 +88,8 @@ def from_osquery_table(table: osquery_pb2.OsqueryTable) -> pd.DataFrame:
 
 
 def _get_pretty_value(
-    value: Any, desc: descriptor.FieldDescriptor, components: List[str]
-) -> Dict[str, List[Any]]:
+    value: Any, desc: descriptor.FieldDescriptor, components: list[str]
+) -> dict[str, list[Any]]:
   """Converts value to the object easier to work with or more representative.
 
   Args:
@@ -131,8 +132,8 @@ def _get_pretty_value(
 
 def reindex_dataframe(
     df: pd.DataFrame,
-    priority_columns: Optional[List[str]] = None,
-    ignore_columns: Optional[List[str]] = None,
+    priority_columns: Optional[list[str]] = None,
+    ignore_columns: Optional[list[str]] = None,
 ) -> pd.DataFrame:
   """Reorders and removes dataframe columns according to the given priorities.
 

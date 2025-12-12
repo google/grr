@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for mysql_pool.py."""
-
 from unittest import mock
 
 from absl import app

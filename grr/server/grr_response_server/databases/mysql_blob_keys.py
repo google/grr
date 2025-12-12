@@ -3,8 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Collection
-from typing import Dict
+from collections.abc import Collection
 from typing import Optional
 
 import MySQLdb
@@ -22,7 +21,7 @@ class MySQLDBBlobKeysMixin(object):
   @mysql_utils.WithTransaction()
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[models_blobs.BlobID, str],
+      key_names: dict[models_blobs.BlobID, str],
       cursor: MySQLdb.cursors.Cursor,
   ) -> None:
     """Associates the specified blobs with the given encryption keys."""
@@ -45,7 +44,7 @@ class MySQLDBBlobKeysMixin(object):
       self,
       blob_ids: Collection[models_blobs.BlobID],
       cursor: MySQLdb.cursors.Cursor,
-  ) -> Dict[models_blobs.BlobID, Optional[str]]:
+  ) -> dict[models_blobs.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs."""
     # A special case for empty list of blob identifiers to avoid syntax errors
     # in the query below.

@@ -1,0 +1,21 @@
+@use '@angular/material' as mat;
+
+:host {
+  @include mat.form-field-overrides(
+    (
+      outlined-outline-width: 0,
+      outlined-focus-outline-width: 0,
+    )
+  );
+}
+
+.controls-top {
+  display: flex;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  mat-form-field {
+    flex: 1;
+    border-right: 1px solid var(--mat-sys-outline-variant);
+  }
+}

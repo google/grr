@@ -1,0 +1,62 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_file_contents_kmx;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  oneof volume {
+    // Absolute path to the raw volume holding the files to get the contents of.
+    //
+    // For example, `\\?\Volume{f000f000-baa5-f000-baa5-f00ba5f00ba5}`.
+    rrg.fs.Path volume_path = 4;
+
+    // Absolute path to the point (e.g. a drive letter) where a volume holding
+    // the files to get the contents of is mounted.
+    //
+    // For example, `C:\`.
+    //
+    // This is supported only on Windows.
+    rrg.fs.Path volume_mount_path = 5;
+  }
+
+  // Paths (relative to the volume root) to the files to get the contents of.
+  repeated rrg.fs.Path paths = 1;
+
+  // Byte offset from which the content should be retrieved.
+  //
+  // If unset, starts from the beginning of the file.
+  uint64 offset = 2;
+
+  // Number of bytes to from the file from the given offset to fetch.
+  //
+  // If unset, collects the entire file (possibly in multible results).
+  uint64 length = 3;
+}
+
+message Result {
+  // Path to the file this result corresponds to.
+  rrg.fs.Path path = 4;
+
+  // A byte offset of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
+  uint64 offset = 1;
+
+  // A number of bytes of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
+  uint64 length = 2;
+
+  // A SHA-256 hash of the file part sent to the blob sink.
+  //
+  // Set only if `error` is not set.
+  bytes blob_sha256 = 3;
+
+  // Error message set if something went wrong when processing the file.
+  string error = 5;
+}

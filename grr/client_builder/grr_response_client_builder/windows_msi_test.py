@@ -257,9 +257,13 @@ class WindowsMsiTest(absltest.TestCase):
         "-p",
         "Client.name=bar",
         "-p",
-        ("ClientBuilder.signtool_signing_cmd=%{" + self._SignToolPath() +
-         " sign /v /f " + pfx_file +
-         " /tr \"http://timestamp.digicert.com\" }"),
+        (
+            "ClientBuilder.signtool_signing_cmd=%{"
+            + self._SignToolPath()
+            + " sign /v /f "
+            + pfx_file
+            + ' /t "http://timestamp.digicert.com" }'
+        ),
         "--output_dir",
         self._TmpPath(directory),
     ]

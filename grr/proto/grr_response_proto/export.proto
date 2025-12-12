@@ -9,6 +9,7 @@ import "grr_response_proto/sysinfo.proto";
 package grr;
 
 message ExportOptions {
+  // TODO: Remove this field.
   optional bool export_files_contents = 1 [
     default = false,
     (sem_type) = {
@@ -36,13 +37,14 @@ message ExportOptions {
   }];
 }
 
+// Next field ID: 23
 message ExportedMetadata {
-  // Next field ID: 22
-
   optional string client_urn = 1 [(sem_type) = {
     type: "ClientURN",
     description: "Client ID of a client that contains this entry."
   }];
+  optional string client_id = 22;
+
   optional string hostname = 2
       [(sem_type) = { description: "Client hostname." }];
   optional string os = 3 [(sem_type) = {
@@ -151,9 +153,9 @@ message ExportedFile {
     description: "A unix file permission mode."
   }];
 
-  optional uint32 st_ino = 5;
-  optional uint32 st_dev = 6;
-  optional uint32 st_nlink = 7;
+  optional uint64 st_ino = 5;
+  optional uint64 st_dev = 6;
+  optional uint64 st_nlink = 7;
   optional uint32 st_uid = 8;
   optional uint32 st_gid = 9;
   optional uint64 st_size = 10;
@@ -177,14 +179,16 @@ message ExportedFile {
     description: "File creation time."
   }];
 
-  optional uint32 st_blocks = 14;
-  optional uint32 st_blksize = 15;
-  optional uint32 st_rdev = 16;
+  optional uint64 st_blocks = 14;
+  optional uint64 st_blksize = 15;
+  optional uint64 st_rdev = 16;
   optional string symlink = 17;
 
+  // TODO: Remove this field.
   optional bytes content = 18 [
     (sem_type) = { description: "Actual content of the file if available." }
   ];
+  // TODO: Remove this field.
   optional string content_sha256 = 19
       [(sem_type) = { description: "SHA256 of content" }];
 
@@ -222,7 +226,7 @@ message ExportedRegistryKey {
 }
 
 message ExportedProcess {
-  reserved 22;
+  reserved 22, 26, 27;
 
   optional ExportedMetadata metadata = 1;
 
@@ -465,4 +469,21 @@ message ExportedExecuteResponse {
   optional bytes stdout = 5;
   optional bytes stderr = 6;
   optional uint64 time_used_us = 7;
+}
+
+message ExportedOsqueryValue {
+  // Standard metadata.
+  optional ExportedMetadata metadata = 1;
+
+  // The query that generated this result.
+  optional string query = 2;
+
+  // Index of the row this value belongs to.
+  optional uint64 row_number = 3;
+
+  // The name of the column.
+  optional string column_name = 4;
+
+  // The string representation of the value in the cell.
+  optional string value = 5;
 }

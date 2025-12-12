@@ -13,7 +13,6 @@ from grr_response_core.config import data_store
 from grr_response_core.config import gui
 from grr_response_core.config import local
 from grr_response_core.config import logging
-from grr_response_core.config import output_plugins
 from grr_response_core.config import server
 from grr_response_core.config import test
 # pylint: enable=unused-import

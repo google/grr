@@ -1,0 +1,7 @@
+
+@for (users of usersPerClientId() | keyvalue; track users.key) {
+  @if (isHuntResult()) {
+    <p class="client-id">Client ID: <copy-button>{{ users.key }}</copy-button></p>
+  }
+  <users-details [users]="users.value" />
+}

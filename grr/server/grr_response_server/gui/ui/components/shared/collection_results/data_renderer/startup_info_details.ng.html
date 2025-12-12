@@ -1,0 +1,89 @@
+<table>
+  @if (startupInfo()?.bootTime) {
+    <tr>
+      <td>Boot Time</td>
+      <td>
+        <timestamp [date]="startupInfo()?.bootTime" />
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.clientName) {
+    <tr>
+      <td>Client Name</td>
+      <td>
+        {{ startupInfo()?.clientInfo?.clientName }}
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.clientVersion) {
+    <tr>
+      <td>Client Version</td>
+      <td>
+        {{ startupInfo()?.clientInfo?.clientVersion }}
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.buildTime) {
+    <tr>
+      <td>Build Time</td>
+      <td>
+        <timestamp [date]="startupInfo()?.clientInfo?.buildTime" />
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.clientBinaryName) {
+    <tr>
+      <td>Binary Name</td>
+      <td>
+        {{ startupInfo()?.clientInfo?.clientBinaryName }}
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.clientDescription) {
+    <tr>
+      <td>Description</td>
+      <td>
+        {{ startupInfo()?.clientInfo?.clientDescription }}
+      </td>
+    </tr>
+  }
+  @if (startupInfo()?.clientInfo?.sandboxSupport != null || startupInfo()?.clientInfo?.timelineBtimeSupport != null) {
+    <tr>
+      <td>Capabilities</td>
+      <td>
+        <mat-chip-set role="list">
+          @if (startupInfo()?.clientInfo?.sandboxSupport === true) {
+            <mat-chip role="listitem"
+              class="green-chip"
+              [disableRipple]="true">
+              <mat-icon>check</mat-icon>
+              Sandboxing supported
+            </mat-chip>
+          } @else if (startupInfo()?.clientInfo?.sandboxSupport === false) {
+            <mat-chip role="listitem"
+              class="red-chip"
+              [disableRipple]="true">
+              <mat-icon>close</mat-icon>
+              Sandboxing not supported
+            </mat-chip>
+          }
+          @if (startupInfo()?.clientInfo?.timelineBtimeSupport === true) {
+            <mat-chip role="listitem"
+              class="green-chip"
+              [disableRipple]="true">
+              <mat-icon>check</mat-icon>
+              Btime field in Timeline flow supported
+            </mat-chip>
+          } @else if (startupInfo()?.clientInfo?.timelineBtimeSupport === false) {
+            <mat-chip role="listitem"
+              class="red-chip"
+              [disableRipple]="true">
+              <mat-icon>close</mat-icon>
+              Btime field in Timeline flow not supported
+            </mat-chip>
+          }
+        </mat-chip-set>
+      </td>
+    </tr>
+  }
+</table>

@@ -1,18 +1,21 @@
 #!/usr/bin/env python
+from collections.abc import Iterator
 import os
 import stat as stat_mode
-from typing import Iterator
 
 from absl.testing import absltest
 
 from grr_response_client.client_actions import timeline as timeline_action
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_timeline
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
+from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import timeline_pb2
 from grr_response_server import blob_store as abstract_bs
+from grr_response_server import data_store
 from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
@@ -23,7 +26,9 @@ from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import testing_startup
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
 
@@ -126,9 +131,9 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
           timeline_flow.TimelineFlow, client_id=client_id, flow_args=args
       )
 
-      progress = flow_test_lib.GetFlowProgress(
-          client_id=client_id, flow_id=flow_id
-      )
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      progress = timeline_pb2.TimelineProgress()
+      assert flow_obj.progress.Unpack(progress)
       self.assertEqual(progress.total_entry_count, 0)
 
       flow_test_lib.RunFlow(
@@ -137,9 +142,9 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
           client_mock=action_mocks.ActionMock(timeline_action.Timeline),
       )
 
-      progress = flow_test_lib.GetFlowProgress(
-          client_id=client_id, flow_id=flow_id
-      )
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      progress = timeline_pb2.TimelineProgress()
+      assert flow_obj.progress.Unpack(progress)
       self.assertEqual(progress.total_entry_count, 4)
 
   @db_test_lib.WithDatabase
@@ -197,8 +202,57 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     log_entries = db.ReadFlowLogEntries(client_id, flow_id, offset=0, count=1)
     self.assertEmpty(log_entries)
 
-  # TODO(hanuszczak): Add tests for symlinks.
-  # TODO(hanuszczak): Add tests for timestamps.
+  def testSymlink(self) -> None:
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      target_path = os.path.join(dirpath, "target")
+      filesystem_test_lib.CreateFile(target_path, content=b"target_content")
+
+      link_path = os.path.join(dirpath, "link")
+      os.symlink(target_path, link_path)
+
+      entries = list(self._Collect(dirpath.encode("utf-8")))
+      self.assertLen(entries, 3)
+
+      paths = [_.path.decode("utf-8") for _ in entries]
+      self.assertCountEqual(
+          paths,
+          [
+              dirpath,
+              target_path,
+              link_path,
+          ],
+      )
+
+      entries_by_path = {entry.path.decode("utf-8"): entry for entry in entries}
+
+      self.assertTrue(stat_mode.S_ISREG(entries_by_path[target_path].mode))
+      self.assertEqual(entries_by_path[target_path].size, 14)
+
+      self.assertTrue(stat_mode.S_ISLNK(entries_by_path[link_path].mode))
+      # Symlink size varies by platform, so we don't assert on it.
+
+  def testTimestamps(self) -> None:
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      filepath = os.path.join(dirpath, "foo")
+      filesystem_test_lib.CreateFile(filepath, content=b"foobar")
+
+      # Set specific timestamps to test against.
+      atime = 1234567890
+      mtime = 1234567891
+      os.utime(filepath, (atime, mtime))
+
+      # ctime and btime are harder to mock reliably across platforms,
+      # so we check for their presence and basic validity.
+
+      entries = list(self._Collect(dirpath.encode("utf-8")))
+      self.assertLen(entries, 2)
+
+      entries_by_path = {entry.path.decode("utf-8"): entry for entry in entries}
+      file_entry = entries_by_path[filepath]
+
+      self.assertEqual(file_entry.atime_ns / 1e9, atime)
+      self.assertEqual(file_entry.mtime_ns / 1e9, mtime)
+      self.assertGreater(file_entry.ctime_ns, 0)
 
   def _Collect(self, root: bytes) -> Iterator[timeline_pb2.TimelineEntry]:
     args = rdf_timeline.TimelineArgs(root=root)
@@ -253,7 +307,55 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     flow.Start()
     flow.HandleRRGGetFilesystemTimeline(responses)
 
-    self.assertEqual(flow.state.progress.total_entry_count, 1337)
+    self.assertEqual(flow.progress.total_entry_count, 1337)
+
+  @db_test_lib.WithDatabase
+  def testRRG_NonAbsolute_POSIX(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = timeline_pb2.TimelineArgs()
+    args.root = "foo/bar".encode("utf-8")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=timeline_flow.TimelineFlow,
+        flow_args=mig_timeline.ToRDFTimelineArgs(args),
+        handlers={},
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertEqual(flow_obj.error_message, "Non-absolute path: foo/bar")
+
+  @db_test_lib.WithDatabase
+  def testRRG_NonAbsolute_Windows(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(
+        db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = timeline_pb2.TimelineArgs()
+    args.root = "/".encode("utf-8")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=timeline_flow.TimelineFlow,
+        flow_args=mig_timeline.ToRDFTimelineArgs(args),
+        handlers={},
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertEqual(flow_obj.error_message, "Non-absolute path: /")
 
 
 class FilesystemTypeTest(absltest.TestCase):

@@ -1,5 +1,5 @@
 {
-  "/api": {
+  "/api/v2": {
     "target": "http://localhost:8000",
     "secure": false
   },

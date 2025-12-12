@@ -7,8 +7,7 @@ from unittest import mock
 from absl import app
 from absl.testing import absltest
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -17,24 +16,21 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_registry
-from grr_response_server.gui import api_test_lib
 from grr_response_server.gui import http_api
 from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class SampleGetHandlerResult(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetHandlerResult
-
-
 class SampleGetHandler(api_call_handler_base.ApiCallHandler):
 
-  args_type = api_test_lib.SampleGetHandlerArgs
-  result_type = SampleGetHandlerResult
+  proto_args_type = tests_pb2.SampleGetHandlerArgs
+  proto_result_type = tests_pb2.SampleGetHandlerResult
 
   def Handle(self, args, context=None):
-    return SampleGetHandlerResult(method="GET", path=args.path, foo=args.foo)
+    return tests_pb2.SampleGetHandlerResult(
+        method="GET", path=args.path, foo=args.foo
+    )
 
 
 class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
@@ -50,93 +46,81 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class SampleDeleteHandlerArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleDeleteHandlerArgs
-
-
-class SampleDeleteHandlerResult(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleDeleteHandlerResult
-
-
 class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
 
-  args_type = SampleDeleteHandlerArgs
-  result_type = SampleDeleteHandlerResult
+  proto_args_type = tests_pb2.SampleDeleteHandlerArgs
+  proto_result_type = tests_pb2.SampleDeleteHandlerResult
 
   def Handle(self, args, context=None):
-    return SampleDeleteHandlerResult(method="DELETE", resource=args.resource_id)
-
-
-class SamplePatchHandlerArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SamplePatchHandlerArgs
-
-
-class SamplePatchHandlerResult(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SamplePatchHandlerResult
+    return tests_pb2.SampleDeleteHandlerResult(
+        method="DELETE", resource=args.resource_id
+    )
 
 
 class SamplePatchHandler(api_call_handler_base.ApiCallHandler):
 
-  args_type = SamplePatchHandlerArgs
-  result_type = SamplePatchHandlerResult
+  proto_args_type = tests_pb2.SamplePatchHandlerArgs
+  proto_result_type = tests_pb2.SamplePatchHandlerResult
 
   def Handle(self, args, context=None):
-    return SamplePatchHandlerResult(method="PATCH", resource=args.resource_id)
+    return tests_pb2.SamplePatchHandlerResult(
+        method="PATCH", resource=args.resource_id
+    )
 
 
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
   """Test router with custom methods."""
 
-  @api_call_router.Http("GET", "/test_sample/<path:path>")
-  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
-  @api_call_router.ResultType(SampleGetHandlerResult)
+  @api_call_router.Http("GET", "/api/v2/test_sample/<path:path>")
+  @api_call_router.ProtoArgsType(tests_pb2.SampleGetHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SampleGetHandlerResult)
   def SampleGet(self, args, context=None):
     return SampleGetHandler()
 
-  @api_call_router.Http("GET", "/test_sample/raising/<path:path>")
-  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
-  @api_call_router.ResultType(SampleGetHandlerResult)
+  @api_call_router.Http("GET", "/api/v2/test_sample/raising/<path:path>")
+  @api_call_router.ProtoArgsType(tests_pb2.SampleGetHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SampleGetHandlerResult)
   def SampleRaisingGet(self, args, context=None):
     raise access_control.UnauthorizedAccess("oh no", subject="aff4:/foo/bar")
 
-  @api_call_router.Http("GET", "/test_sample/streaming")
+  @api_call_router.Http("GET", "/api/v2/test_sample/streaming")
   @api_call_router.ResultBinaryStream()
   def SampleStreamingGet(self, args, context=None):
     return SampleStreamingHandler()
 
-  @api_call_router.Http("DELETE", "/test_resource/<resource_id>")
-  @api_call_router.ArgsType(SampleDeleteHandlerArgs)
-  @api_call_router.ResultType(SampleDeleteHandlerResult)
+  @api_call_router.Http("DELETE", "/api/v2/test_resource/<resource_id>")
+  @api_call_router.ProtoArgsType(tests_pb2.SampleDeleteHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SampleDeleteHandlerResult)
   def SampleDelete(self, args, context=None):
     return SampleDeleteHandler()
 
-  @api_call_router.Http("PATCH", "/test_resource/<resource_id>")
-  @api_call_router.ArgsType(SamplePatchHandlerArgs)
-  @api_call_router.ResultType(SamplePatchHandlerResult)
+  @api_call_router.Http("PATCH", "/api/v2/test_resource/<resource_id>")
+  @api_call_router.ProtoArgsType(tests_pb2.SamplePatchHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SamplePatchHandlerResult)
   def SamplePatch(self, args, context=None):
     return SamplePatchHandler()
 
-  @api_call_router.Http("GET", "/failure/not-found")
+  @api_call_router.Http("GET", "/api/v2/failure/not-found")
   def FailureNotFound(self, args, context=None):
     raise api_call_handler_base.ResourceNotFoundError()
 
-  @api_call_router.Http("GET", "/failure/server-error")
+  @api_call_router.Http("GET", "/api/v2/failure/server-error")
   def FailureServerError(self, args, context=None):
     raise RuntimeError("Some error")
 
-  @api_call_router.Http("GET", "/failure/not-implemented")
+  @api_call_router.Http("GET", "/api/v2/failure/not-implemented")
   def FailureNotImplemented(self, args, context=None):
     raise NotImplementedError()
 
-  @api_call_router.Http("GET", "/failure/unauthorized")
+  @api_call_router.Http("GET", "/api/v2/failure/unauthorized")
   def FailureUnauthorized(self, args, context=None):
     raise access_control.UnauthorizedAccess("oh no")
 
-  @api_call_router.Http("GET", "/failure/resource-exhausted")
+  @api_call_router.Http("GET", "/api/v2/failure/resource-exhausted")
   def FailureResourceExhausted(self, args, context=None):
     raise api_call_handler_base.ResourceExhaustedError("exhausted")
 
-  @api_call_router.Http("GET", "/failure/invalid-argument")
+  @api_call_router.Http("GET", "/api/v2/failure/invalid-argument")
   def FailureInvalidArgument(self, args, context=None):
     raise ValueError("oh no")
 
@@ -190,29 +174,77 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     self.router_matcher = http_api.RouterMatcher()
 
   def testReturnsMethodMetadataMatchingUrlAndMethod(self):
-    router, method_metadata, router_args = self.router_matcher.MatchRouter(
-        self._CreateRequest("GET", "/test_sample/some/path")
+    _, method_metadata, _ = self.router_matcher.MatchRouter(
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
     )
-    _ = router
-    _ = router_args
 
     self.assertEqual(method_metadata.name, "SampleGet")
 
   def testPathParamsAreReturnedWithMatchingHandler(self):
-    router, method_metadata, router_args = self.router_matcher.MatchRouter(
-        self._CreateRequest("GET", "/test_sample/some/path")
+    _, _, proto_args = self.router_matcher.MatchRouter(
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
     )
-    _ = router
-    _ = method_metadata
     self.assertEqual(
-        router_args, api_test_lib.SampleGetHandlerArgs(path="some/path")
+        proto_args, tests_pb2.SampleGetHandlerArgs(path="some/path")
+    )
+
+  def testGetRequestHandlesFlattenedInnerParams(self):
+    _, _, proto_args = self.router_matcher.MatchRouter(
+        self._CreateRequest(
+            "GET",
+            "/api/v2/test_sample/some/path",
+            query_parameters={
+                "foo": "banana",
+                "inner.foo": "batata",
+                "inner.bar": "1234",
+                # TODO: Stop handling booleans as stringified
+                # numbers.
+                "inner.baz": "1",  # Booleans are sent as stringified number
+                "inner.fruits": [
+                    "0",  # Acerola
+                    "JABUTICABA",
+                ],
+            },
+        )
+    )
+    self.assertEqual(
+        proto_args,
+        tests_pb2.SampleGetHandlerArgs(
+            path="some/path",
+            foo="banana",
+            inner=tests_pb2.SampleInnerMessage(
+                foo="batata",
+                bar=1234,
+                baz=True,
+                fruits=[
+                    tests_pb2.SampleInnerMessage.ACEROLA,
+                    tests_pb2.SampleInnerMessage.JABUTICABA,
+                ],
+            ),
+        ),
     )
 
   def testRaisesIfNoHandlerMatchesUrl(self):
     self.assertRaises(
         http_api.ApiCallRouterNotFoundError,
         self.router_matcher.MatchRouter,
-        self._CreateRequest("GET", "/some/missing/path"),
+        self._CreateRequest("GET", "/api/v2/some/missing/path"),
+    )
+
+  # TODO: Stop messing with the routes and delete this test.
+  def testRaisesApiVersionHandling(self):
+    # `SampleGet` is annotated for `/api/test_sample/<path:path>`
+    # However, we have logic that overrides this route for routes starting
+    # with `/api/`, so that we only add and handle `/api/v2/`.
+    # Therefore, where `/api/v2/test_sample/some/path` should work,
+    # the plain `/api/test_sample/some/path` should not.
+    self.assertRaises(
+        http_api.ApiCallRouterNotFoundError,
+        self.router_matcher.MatchRouter,
+        self._CreateRequest("GET", "/api/test_sample/some/path"),
+    )
+    self.router_matcher.MatchRouter(
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
     )
 
 
@@ -282,13 +314,26 @@ class HttpRequestHandlerTest(
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path", username="GRR")
+        self._CreateRequest(
+            "GET", "/api/v2/test_sample/some/path", username="GRR"
+        )
     )
     self.assertEqual(response.status_code, 403)
 
   def testRendersGetHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path")
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
+    )
+
+    self.assertEqual(
+        self._GetResponseContent(response),
+        {"method": "GET", "path": "some/path", "foo": ""},
+    )
+    self.assertEqual(response.status_code, 200)
+
+  def testRendersGetHandlerProtoOnlyCorrectly(self):
+    response = self._RenderResponse(
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
     )
 
     self.assertEqual(
@@ -299,7 +344,7 @@ class HttpRequestHandlerTest(
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/some/path")
+        self._CreateRequest("HEAD", "/api/v2/test_sample/some/path")
     )
 
     self.assertEqual(self._GetResponseContent(response), {"status": "OK"})
@@ -307,7 +352,7 @@ class HttpRequestHandlerTest(
 
   def testHeadResponseHasSubjectAndReasonOnUnauthorizedAccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path")
+        self._CreateRequest("HEAD", "/api/v2/test_sample/raising/some/path")
     )
 
     self.assertEqual(
@@ -318,7 +363,7 @@ class HttpRequestHandlerTest(
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path")
+        self._CreateRequest("HEAD", "/api/v2/test_sample/raising/some/path")
     )
 
     self.assertEqual(
@@ -330,7 +375,7 @@ class HttpRequestHandlerTest(
 
   def testBinaryStreamIsCorrectlyStreamedViaGetMethod(self):
     response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/streaming")
+        self._CreateRequest("GET", "/api/v2/test_sample/streaming")
     )
 
     self.assertEqual(list(response.iter_encoded()), [b"foo", b"bar", b"blah"])
@@ -338,7 +383,7 @@ class HttpRequestHandlerTest(
 
   def testBinaryStreamReturnsContentLengthViaHeadMethod(self):
     response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/streaming")
+        self._CreateRequest("HEAD", "/api/v2/test_sample/streaming")
     )
 
     self.assertEqual(response.headers["Content-Length"], "1337")
@@ -346,7 +391,9 @@ class HttpRequestHandlerTest(
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}
+            "GET",
+            "/api/v2/test_sample/some/path",
+            query_parameters={"foo": "bar"},
         )
     )
     self.assertEqual(
@@ -357,7 +404,9 @@ class HttpRequestHandlerTest(
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={"path": "foobar"}
+            "GET",
+            "/api/v2/test_sample/some/path",
+            query_parameters={"path": "foobar"},
         )
     )
     self.assertEqual(
@@ -367,7 +416,7 @@ class HttpRequestHandlerTest(
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("DELETE", "/test_resource/R:123456")
+        self._CreateRequest("DELETE", "/api/v2/test_resource/R:123456")
     )
 
     self.assertEqual(
@@ -378,7 +427,7 @@ class HttpRequestHandlerTest(
 
   def testRendersPatchHandlerCorrectly(self):
     response = self._RenderResponse(
-        self._CreateRequest("PATCH", "/test_resource/R:123456")
+        self._CreateRequest("PATCH", "/api/v2/test_resource/R:123456")
     )
 
     self.assertEqual(
@@ -429,7 +478,7 @@ class HttpRequestHandlerTest(
       # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(
-          self._CreateRequest("HEAD", "/test_sample/some/path")
+          self._CreateRequest("HEAD", "/api/v2/test_sample/some/path")
       )
 
   def testStatsAreCorrectlyUpdatedOnGetRequests(self):
@@ -473,7 +522,9 @@ class HttpRequestHandlerTest(
     ):
       # pylint: enable=g-backslash-continuation
 
-      self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
+      self._RenderResponse(
+          self._CreateRequest("GET", "/api/v2/test_sample/some/path")
+      )
 
   def testOriginIsExtractedFromRequest(self):
     with self.assertStatsCounterDelta(
@@ -484,7 +535,7 @@ class HttpRequestHandlerTest(
       self._RenderResponse(
           self._CreateRequest(
               "GET",
-              "/test_sample/some/path",
+              "/api/v2/test_sample/some/path",
               headers={"X-User-Agent": "GRR-UI/1.0"},
           )
       )
@@ -497,7 +548,7 @@ class HttpRequestHandlerTest(
       self._RenderResponse(
           self._CreateRequest(
               "GET",
-              "/test_sample/some/path",
+              "/api/v2/test_sample/some/path",
               headers={"X-User-Agent": "GRR-UI/2.0"},
           )
       )
@@ -511,7 +562,7 @@ class HttpRequestHandlerTest(
       self._RenderResponse(
           self._CreateRequest(
               "GET",
-              "/test_sample/some/path",
+              "/api/v2/test_sample/some/path",
               headers={"X-User-Agent": "GRR-UI/invalid"},
           )
       )
@@ -523,7 +574,9 @@ class HttpRequestHandlerTest(
     ):
       self._RenderResponse(
           self._CreateRequest(
-              "GET", "/test_sample/some/path", headers={"X-User-Agent": ""}
+              "GET",
+              "/api/v2/test_sample/some/path",
+              headers={"X-User-Agent": ""},
           )
       )
 
@@ -533,7 +586,9 @@ class HttpRequestHandlerTest(
         fields=["SampleGet", "http", "SUCCESS", "unknown"],
     ):
       self._RenderResponse(
-          self._CreateRequest("GET", "/test_sample/some/path", headers={})
+          self._CreateRequest(
+              "GET", "/api/v2/test_sample/some/path", headers={}
+          )
       )
 
   def testStatsAreCorrectlyUpdatedOnVariousStatusCodes(self):
@@ -581,35 +636,43 @@ class HttpRequestHandlerTest(
 
         self._RenderResponse(self._CreateRequest("GET", url))
 
-    CheckMethod("/failure/not-found", "FailureNotFound", "NOT_FOUND")
-    CheckMethod("/failure/server-error", "FailureServerError", "SERVER_ERROR")
+    CheckMethod("/api/v2/failure/not-found", "FailureNotFound", "NOT_FOUND")
     CheckMethod(
-        "/failure/not-implemented", "FailureNotImplemented", "NOT_IMPLEMENTED"
+        "/api/v2/failure/server-error", "FailureServerError", "SERVER_ERROR"
     )
     CheckMethod(
-        "/failure/resource-exhausted",
+        "/api/v2/failure/not-implemented",
+        "FailureNotImplemented",
+        "NOT_IMPLEMENTED",
+    )
+    CheckMethod(
+        "/api/v2/failure/resource-exhausted",
         "FailureResourceExhausted",
         "RESOURCE_EXHAUSTED",
     )
-    CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
     CheckMethod(
-        "/failure/invalid-argument",
+        "/api/v2/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN"
+    )
+    CheckMethod(
+        "/api/v2/failure/invalid-argument",
         "FailureInvalidArgument",
         "INVALID_ARGUMENT",
     )
 
   def testGrrUserIsCreatedOnMethodCall(self):
-    request = self._CreateRequest("HEAD", "/test_sample/some/path")
+    request = self._CreateRequest("HEAD", "/api/v2/test_sample/some/path")
 
     with self.assertRaises(db.UnknownGRRUserError):
       data_store.REL_DB.ReadGRRUser(request.user)
 
-    self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
+    self._RenderResponse(
+        self._CreateRequest("GET", "/api/v2/test_sample/some/path")
+    )
 
     data_store.REL_DB.ReadGRRUser(request.user)
 
   def testGrrUserEmailIsSetOnMethodCall(self):
-    request = self._CreateRequest("HEAD", "/test_sample/some/path")
+    request = self._CreateRequest("HEAD", "/api/v2/test_sample/some/path")
     request.email = "foo@bar.org"
 
     with self.assertRaises(db.UnknownGRRUserError):
@@ -622,57 +685,133 @@ class HttpRequestHandlerTest(
     self.assertEqual(rdf_u.email, "foo@bar.org")
 
 
-class FlatDictToRDFValue(absltest.TestCase):
+class UnflattenDictTest(absltest.TestCase):
+
+  def testNothingNested(self):
+    result = http_api.UnflattenDict({
+        "a": "b",
+        "c": "d",
+    })
+    self.assertEqual(
+        result,
+        {
+            "a": "b",
+            "c": "d",
+        },
+    )
+
+  def testFlatMerged(self):
+    result = http_api.UnflattenDict({
+        "foo": "outer_foo",
+        "inner.foo": "inner_foo",
+        "has.more.levels": "1234",  # More than 2 levels
+        "inner.list": [  # Merged with `inner.foo`
+            "0",
+            "JABUTICABA",
+        ],
+    })
+    self.assertEqual(
+        result,
+        {
+            "foo": "outer_foo",
+            "inner": {
+                "foo": "inner_foo",
+                "list": ["0", "JABUTICABA"],
+            },
+            "has": {
+                "more": {
+                    "levels": "1234",
+                },
+            },
+        },
+    )
+
+
+class RecursivelyBuildProtoFromStringDictTest(absltest.TestCase):
+
+  def testSingleBool(self):
+    proto = tests_pb2.BoolMessage()
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "1"}, proto)
+    self.assertEqual(proto, tests_pb2.BoolMessage(foo=True))
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "true"}, proto)
+    self.assertEqual(proto, tests_pb2.BoolMessage(foo=True))
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "0"}, proto)
+    self.assertEqual(proto, tests_pb2.BoolMessage(foo=False))
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "false"}, proto)
+    self.assertEqual(proto, tests_pb2.BoolMessage(foo=False))
+
+  def testEnum(self):
+    proto = tests_pb2.EnumMessage()
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "0"}, proto)
+    self.assertEqual(
+        proto, tests_pb2.EnumMessage(foo=tests_pb2.EnumMessage.NestedEnum.NULL)
+    )
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "NULL"}, proto)
+    self.assertEqual(
+        proto, tests_pb2.EnumMessage(foo=tests_pb2.EnumMessage.NestedEnum.NULL)
+    )
+
+    http_api.RecursivelyBuildProtoFromStringDict({"foo": "1"}, proto)
+    self.assertEqual(
+        proto, tests_pb2.EnumMessage(foo=tests_pb2.EnumMessage.NestedEnum.ONE)
+    )
+
+    with self.assertRaises(ValueError):
+      http_api.RecursivelyBuildProtoFromStringDict({"foo": "null"}, proto)
+
+    with self.assertRaises(ValueError):
+      http_api.RecursivelyBuildProtoFromStringDict({"foo": "100"}, proto)
 
   def testSimple(self):
     dct = {
         "username": "foo",
         "uid": "42",
     }
+    proto = knowledge_base_pb2.User()
+    http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
-    user = http_api.FlatDictToRDFValue(dct, rdf_client.User)
-    self.assertEqual(user.username, "foo")
-    self.assertEqual(user.uid, 42)
+    self.assertEqual(proto.username, "foo")
+    self.assertEqual(proto.uid, 42)
 
-  def testNested(self):
+  def testFlatDictIsIgnored(self):
     dct = {
         "pw_entry.age": "1337",
     }
+    proto = knowledge_base_pb2.User()
+    http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
-    user = http_api.FlatDictToRDFValue(dct, rdf_client.User)
-    self.assertEqual(user.pw_entry.age, 1337)
+    self.assertEqual(proto, knowledge_base_pb2.User())
 
-  def testEnum(self):
+  def testNestedDict(self):
     dct = {
-        "hash_type": "MD5",
+        "pw_entry": {"age": "1337"},
     }
+    proto = knowledge_base_pb2.User()
+    http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
-    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
-    self.assertEqual(pw_entry.hash_type, rdf_client.PwEntry.PwHash.MD5)
+    self.assertEqual(proto.pw_entry.age, 1337)
 
-  def testNonExistingField(self):
+  def testNonExistingFieldIsIgnored(self):
     dct = {
-        "some_non_existing_field": "foobar",
+        "some_non_existing_field": "should_be_ignored",
     }
-
-    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
-    self.assertFalse(hasattr(pw_entry, "some_non_existing_field"))
+    proto = knowledge_base_pb2.User()
+    http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
+    self.assertEqual(proto, knowledge_base_pb2.User())
 
   def testWrongType(self):
     dct = {
         "uid": "foobar",
     }
+    proto = knowledge_base_pb2.User()
 
     with self.assertRaisesRegex(ValueError, "foobar"):
-      http_api.FlatDictToRDFValue(dct, rdf_client.User)
-
-  def testPythonSpecific(self):
-    dct = {
-        "__class__": "foobar",
-    }
-
-    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
-    self.assertEqual(pw_entry.__class__, rdf_client.PwEntry)
+      http_api.RecursivelyBuildProtoFromStringDict(dct, proto)
 
 
 def main(argv):

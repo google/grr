@@ -23,6 +23,8 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -36,6 +38,7 @@ from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
@@ -616,6 +619,28 @@ magic_return_str = "foo(%s)"
         new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
         self.assertIsNotNone(new_si)
         self.assertNotEqual(new_si.client_info, si.client_info)
+
+  def testStartupTriggersInterrogateForNewClient(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_version = 4321
+
+    request = objects_pb2.MessageHandlerRequest()
+    request.client_id = client_id
+    request.request.name = jobs_pb2.StartupInfo.__name__
+    request.request.data = startup.SerializeToString()
+
+    handler = administrative.ClientStartupHandler()
+    handler.ProcessMessages([mig_objects.ToRDFMessageHandlerRequest(request)])
+
+    interrogate_flow_objs = [
+        flow_obj
+        for flow_obj in data_store.REL_DB.ReadAllFlowObjects(client_id)
+        if flow_obj.flow_class_name == discovery.Interrogate.__name__
+    ]
+
+    self.assertLen(interrogate_flow_objs, 1)
 
   def testStartupTriggersInterrogateWhenVersionChanges(self):
     with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):

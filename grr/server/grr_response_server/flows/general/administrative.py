@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
 
+from collections.abc import Sequence
 import logging
 import shlex
 import time
-from typing import Optional, Sequence, Text, Tuple, Type
+from typing import Optional
 
 import jinja2
 
@@ -174,7 +175,7 @@ class RecursiveBlobUploadMixin:
 
   def GenerateUploadRequest(
       self, offset: int, file_size: int, blob: rdf_crypto.SignedBlob
-  ) -> Tuple[pb_message.Message, Type[server_stubs.ClientActionStub]]:
+  ) -> tuple[pb_message.Message, type[server_stubs.ClientActionStub]]:
     raise NotImplementedError()
 
   def StartBlobsUpload(
@@ -254,7 +255,9 @@ class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
 
 class DeleteGRRTempFiles(
     flow_base.FlowBase[
-        flows_pb2.DeleteGRRTempFilesArgs, flows_pb2.DefaultFlowStore
+        flows_pb2.DeleteGRRTempFilesArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
     ]
 ):
   """Delete all the GRR temp files in path.
@@ -323,7 +326,9 @@ class ExecutePythonHackResult(rdf_structs.RDFProtoStruct):
 
 class ExecutePythonHack(
     flow_base.FlowBase[
-        flows_pb2.ExecutePythonHackArgs, flows_pb2.DefaultFlowStore
+        flows_pb2.ExecutePythonHackArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
     ]
 ):
   """Execute a signed python hack on a client."""
@@ -395,7 +400,9 @@ class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
 
 class OnlineNotification(
     flow_base.FlowBase[
-        flows_pb2.OnlineNotificationArgs, flows_pb2.DefaultFlowStore
+        flows_pb2.OnlineNotificationArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
     ]
 ):
   """Notifies by email when a client comes online in GRR."""
@@ -482,7 +489,11 @@ class UpdateClientArgs(rdf_structs.RDFProtoStruct):
 
 class UpdateClient(
     RecursiveBlobUploadMixin,
-    flow_base.FlowBase[flows_pb2.UpdateClientArgs, flows_pb2.UpdateClientStore],
+    flow_base.FlowBase[
+        flows_pb2.UpdateClientArgs,
+        flows_pb2.UpdateClientStore,
+        flows_pb2.DefaultFlowProgress,
+    ],
 ):
   """Updates the GRR client to a new version replacing the current client.
 
@@ -508,7 +519,7 @@ class UpdateClient(
 
   def GenerateUploadRequest(
       self, offset: int, file_size: int, blob: rdf_crypto.SignedBlob
-  ) -> Tuple[pb_message.Message, Type[server_stubs.ClientActionStub]]:
+  ) -> tuple[pb_message.Message, type[server_stubs.ClientActionStub]]:
     request = mig_client_action.ToProtoExecuteBinaryRequest(
         rdf_client_action.ExecuteBinaryRequest(
             executable=blob,
@@ -699,11 +710,10 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     # updated or an interrogate was requested on the endpoint (by the user
     # creating a file in a predefined location).
     #
-    # Only start an Interrogate here if `current_si` is set, thus
-    # the client is not new. New clients are interrogated from a different
-    # handler.
+    # We also start interrogation for newly enrolled endpoints (when no prior
+    # startup record is available).
     if not current_si:
-      return False
+      return True
 
     if (
         current_si.client_info.client_version
@@ -743,7 +753,11 @@ class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
 
 class LaunchBinary(
     RecursiveBlobUploadMixin,
-    flow_base.FlowBase[flows_pb2.LaunchBinaryArgs, flows_pb2.LaunchBinaryStore],
+    flow_base.FlowBase[
+        flows_pb2.LaunchBinaryArgs,
+        flows_pb2.LaunchBinaryStore,
+        flows_pb2.DefaultFlowProgress,
+    ],
 ):
   """Launch a signed binary on a client."""
 
@@ -759,7 +773,7 @@ class LaunchBinary(
 
   def GenerateUploadRequest(
       self, offset: int, file_size: int, blob: rdf_crypto.SignedBlob
-  ) -> Tuple[pb_message.Message, Type[server_stubs.ClientActionStub]]:
+  ) -> tuple[pb_message.Message, type[server_stubs.ClientActionStub]]:
     # RecursiveBlobUploadMixin expected this function to be overridden.
     request = mig_client_action.ToProtoExecuteBinaryRequest(
         rdf_client_action.ExecuteBinaryRequest(
@@ -787,7 +801,7 @@ class LaunchBinary(
         self._ProcessBlobsUpload.__name__,
     )
 
-  def _SanitizeOutput(self, data: bytes) -> Text:
+  def _SanitizeOutput(self, data: bytes) -> str:
     if len(data) > 2000:
       result = data[:2000] + "... [truncated]".encode("utf-8")
     else:

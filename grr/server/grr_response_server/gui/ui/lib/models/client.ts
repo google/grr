@@ -3,7 +3,11 @@
  */
 
 import {DateTime, Duration} from '../../lib/date_time';
-import {KnowledgeBase} from '../api/api_interfaces';
+import {
+  CloudInstance,
+  CloudInstanceInstanceType,
+  KnowledgeBase,
+} from '../api/api_interfaces';
 import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
 
 import {Approval, ApprovalRequest} from './user';
@@ -128,14 +132,14 @@ export interface NetworkAddress {
  */
 export interface NetworkInterface {
   readonly macAddress?: string;
-  readonly interfaceName: string;
+  readonly interfaceName?: string;
   readonly addresses: readonly NetworkAddress[];
 }
 
 /**
  * Info about the agent running on the client.
  */
-export interface AgentInfo {
+export interface ClientInformation {
   readonly clientName?: string;
   readonly clientVersion?: number;
   readonly revision?: bigint;
@@ -144,6 +148,16 @@ export interface AgentInfo {
   readonly clientDescription?: string;
   readonly timelineBtimeSupport?: boolean;
   readonly sandboxSupport?: boolean;
+}
+
+/**
+ * Filesystem information.
+ */
+export interface Filesystem {
+  readonly device?: string;
+  readonly mountPoint?: string;
+  readonly type?: string;
+  readonly label?: string;
 }
 
 /**
@@ -162,39 +176,6 @@ export interface ClientWarning {
   isClosed: boolean;
 }
 
-/** GoogleCloudInstance proto mapping. */
-export declare interface GoogleCloudInstance {
-  readonly uniqueId?: string;
-  readonly zone?: string;
-  readonly projectId?: string;
-  readonly instanceId?: string;
-  readonly hostname?: string;
-  readonly machineType?: string;
-}
-
-/** AmazonCloudInstance proto mapping. */
-export declare interface AmazonCloudInstance {
-  readonly instanceId?: string;
-  readonly amiId?: string;
-  readonly hostname?: string;
-  readonly publicHostname?: string;
-  readonly instanceType?: string;
-}
-
-/** CloudInstance.InstanceType proto mapping. */
-export enum CloudInstanceInstanceType {
-  UNSET = 'UNSET',
-  AMAZON = 'AMAZON',
-  GOOGLE = 'GOOGLE',
-}
-
-/** CloudInstance proto mapping. */
-export declare interface CloudInstance {
-  readonly cloudType?: CloudInstanceInstanceType;
-  readonly google?: GoogleCloudInstance;
-  readonly amazon?: AmazonCloudInstance;
-}
-
 /** HardwareInfo proto mapping. */
 export declare interface HardwareInfo {
   readonly serialNumber?: string;
@@ -211,6 +192,35 @@ export declare interface HardwareInfo {
   readonly systemAssettag?: string;
 }
 
+/** StartupInfo proto mapping. */
+export interface StartupInfo {
+  readonly clientInfo?: ClientInformation;
+  readonly bootTime?: Date;
+  readonly interrogateRequested?: boolean;
+  readonly timestamp?: Date;
+}
+
+/** ClientSnapshot proto mapping. */
+export interface ClientSnapshot {
+  readonly clientId: string;
+  readonly sourceFlowId?: string;
+  readonly filesystems?: readonly Filesystem[];
+  readonly osRelease?: string;
+  readonly osVersion?: string;
+  readonly arch?: string;
+  readonly installTime?: Date;
+  readonly knowledgeBase: KnowledgeBase;
+  readonly users: readonly User[];
+  readonly kernel?: string;
+  readonly volumes: readonly StorageVolume[];
+  readonly networkInterfaces: readonly NetworkInterface[];
+  readonly hardwareInfo?: HardwareInfo;
+  readonly memorySize?: bigint;
+  readonly cloudInstance?: CloudInstance;
+  readonly startupInfo?: StartupInfo;
+  readonly timestamp?: Date;
+}
+
 /**
  * Client.
  */
@@ -218,7 +228,9 @@ export interface Client {
   /** Client id. */
   readonly clientId: string;
   /** Metadata about the GRR client */
-  readonly agentInfo: AgentInfo;
+  readonly agentInfo: ClientInformation;
+  /** Version of the RRG agent running on the client. */
+  readonly rrgVersion?: string;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
   /** Data about the system of the client */
@@ -265,6 +277,13 @@ export interface ClientApproval extends Approval {
   readonly subject: Client;
 }
 
+/** Returns true if the approval is a client approval. */
+export function isClientApproval(
+  approval: Approval,
+): approval is ClientApproval {
+  return (approval as ClientApproval).clientId !== undefined;
+}
+
 const ONLINE_THRESHOLD = Duration.fromObject({minutes: 15});
 
 /** Returns true if `lastSeen` is considered to be online. */
@@ -278,4 +297,189 @@ const CLIENT_ID_RE = /^[C]\.[0-9A-F]{16}$/i;
 /** Returns true if the string matches a client id like "C.1e0384f90ac7c7eb". */
 export function isClientId(str: string) {
   return str.match(CLIENT_ID_RE) !== null;
+}
+
+const MISSING_VALUE = '?';
+
+/**
+ * Accessor for the osRelease field.
+ */
+export function osReleaseAccessor(snapshot: ClientSnapshot): string {
+  return snapshot.osRelease ?? MISSING_VALUE;
+}
+
+/**
+ * Accessor for the osVersion field.
+ */
+export function osVersionAccessor(snapshot: ClientSnapshot): string {
+  return snapshot.osVersion ?? MISSING_VALUE;
+}
+
+/**
+ * Accessor for the kernel field.
+ */
+export function osKernelAccessor(snapshot: ClientSnapshot): string {
+  return snapshot.kernel ?? MISSING_VALUE;
+}
+
+/**
+ * Accessor for the osInstallDate field.
+ */
+export function osInstallDateAccessor(snapshot: ClientSnapshot): string {
+  return snapshot.installTime?.toUTCString() ?? MISSING_VALUE;
+}
+
+/**
+ * Accessor for the arch field.
+ */
+export function archAccessor(snapshot: ClientSnapshot): string {
+  return snapshot.arch ?? MISSING_VALUE;
+}
+
+/**
+ * Accessor for the memorySize field.
+ */
+export function memorySizeAccessor(snapshot: ClientSnapshot): string {
+  return (String(snapshot.memorySize) ?? MISSING_VALUE) + ' bytes';
+}
+
+/**
+ * Accessor for the volumes field.
+ */
+export function volumesAccessor(snapshot: ClientSnapshot): string {
+  return (snapshot.volumes ?? [])
+    .map((volume: StorageVolume) => {
+      return (
+        `Device path: ${volume.devicePath ?? MISSING_VALUE}` +
+        `\nFile system type: ${volume.fileSystemType ?? MISSING_VALUE}` +
+        `\nFree space: ${volume.freeSpace ?? MISSING_VALUE} bytes`
+      );
+    })
+    .join(',\n\n');
+}
+
+/**
+ * Accessor for the networkInterfaces field.
+ */
+export function networkInterfacesAccessor(snapshot: ClientSnapshot): string {
+  return (snapshot.networkInterfaces ?? [])
+    .map((networkInterface: NetworkInterface) => networkInterface.interfaceName)
+    .join(',\n');
+}
+
+/**
+ * Accessor for the startupInfo field.
+ */
+export function startupInfoAccessor(snapshot: ClientSnapshot): string {
+  return [
+    'Boot Time: ',
+    snapshot.startupInfo?.bootTime?.toUTCString() ?? MISSING_VALUE,
+    '\nClient Name: ',
+    snapshot.startupInfo?.clientInfo?.clientName ?? MISSING_VALUE,
+    '\nClient Version: ',
+    snapshot.startupInfo?.clientInfo?.clientVersion ?? MISSING_VALUE,
+    '\nBuild Time: ',
+    snapshot.startupInfo?.clientInfo?.buildTime?.toUTCString() ?? '',
+    '\nBinary Name: ',
+    snapshot.startupInfo?.clientInfo?.clientBinaryName ?? MISSING_VALUE,
+    '\nDescription: ',
+    snapshot.startupInfo?.clientInfo?.clientDescription ?? MISSING_VALUE,
+    '\nSandboxing supported: ',
+    snapshot.startupInfo?.clientInfo?.sandboxSupport ?? MISSING_VALUE,
+    '\nBtime supported: ',
+    snapshot.startupInfo?.clientInfo?.timelineBtimeSupport ?? MISSING_VALUE,
+  ].join('');
+}
+
+/**
+ * Accessor for the knowledgeBase field.
+ */
+export function knowledgeBaseAccessor(snapshot: ClientSnapshot): string {
+  return [
+    'OS: ',
+    snapshot.knowledgeBase?.os ?? MISSING_VALUE,
+    '\nFQDN: ',
+    snapshot.knowledgeBase?.fqdn ?? MISSING_VALUE,
+    '\nOS Major Version: ',
+    snapshot.knowledgeBase?.osMajorVersion ?? MISSING_VALUE,
+    '\nOS Minor Version: ',
+    snapshot.knowledgeBase?.osMinorVersion ?? MISSING_VALUE,
+  ].join('');
+}
+
+/**
+ * Accessor for the hardwareInfo field.
+ */
+export function hardwareInfoAccessor(snapshot: ClientSnapshot): string {
+  return [
+    'System Manufacturer: ',
+    snapshot.hardwareInfo?.systemManufacturer ?? MISSING_VALUE,
+    '\nSystem Family: ',
+    snapshot.hardwareInfo?.systemFamily ?? MISSING_VALUE,
+    '\nSystem Product Name: ',
+    snapshot.hardwareInfo?.systemProductName ?? MISSING_VALUE,
+    '\nSerial Number: ',
+    snapshot.hardwareInfo?.serialNumber ?? MISSING_VALUE,
+    '\nSystem UUID: ',
+    snapshot.hardwareInfo?.systemUuid ?? MISSING_VALUE,
+    '\nSystem SKU Number: ',
+    snapshot.hardwareInfo?.systemSkuNumber ?? MISSING_VALUE,
+    '\nSystem Assettag: ',
+    snapshot.hardwareInfo?.systemAssettag ?? MISSING_VALUE,
+    '\nBIOS Vendor: ',
+    snapshot.hardwareInfo?.biosVendor ?? MISSING_VALUE,
+    '\nBIOS Version: ',
+    snapshot.hardwareInfo?.biosVersion ?? MISSING_VALUE,
+    '\nBIOS Release Date: ',
+    snapshot.hardwareInfo?.biosReleaseDate ?? MISSING_VALUE,
+    '\nBIOS ROM Size: ',
+    snapshot.hardwareInfo?.biosRomSize ?? MISSING_VALUE,
+    '\nBIOS Revision: ',
+    snapshot.hardwareInfo?.biosRevision ?? MISSING_VALUE,
+  ].join('');
+}
+
+/**
+ * Accessor for the cloudInstance field.
+ */
+export function cloudInstanceAccessor(snapshot: ClientSnapshot): string {
+  const cloudType = snapshot.cloudInstance?.cloudType;
+  if (cloudType === CloudInstanceInstanceType.AMAZON) {
+    return [
+      'Instance ID: ',
+      snapshot.cloudInstance?.amazon?.instanceId ?? MISSING_VALUE,
+      '\nHostname: ',
+      snapshot.cloudInstance?.amazon?.hostname ?? MISSING_VALUE,
+      '\nPublic hostname: ',
+      snapshot.cloudInstance?.amazon?.publicHostname ?? MISSING_VALUE,
+      '\nAMI ID: ',
+      snapshot.cloudInstance?.amazon?.amiId ?? MISSING_VALUE,
+      '\nInstance type: ',
+      snapshot.cloudInstance?.amazon?.instanceType ?? MISSING_VALUE,
+    ].join('');
+  }
+  if (cloudType === CloudInstanceInstanceType.GOOGLE) {
+    return [
+      'Unique ID: ',
+      snapshot.cloudInstance?.google?.uniqueId ?? MISSING_VALUE,
+      '\nZone: ',
+      snapshot.cloudInstance?.google?.zone ?? MISSING_VALUE,
+      '\nProject ID: ',
+      snapshot.cloudInstance?.google?.projectId ?? MISSING_VALUE,
+      '\nInstance ID: ',
+      snapshot.cloudInstance?.google?.instanceId ?? MISSING_VALUE,
+      '\nHostname: ',
+      snapshot.cloudInstance?.google?.hostname ?? MISSING_VALUE,
+      '\nMachine Type: ',
+      snapshot.cloudInstance?.google?.machineType ?? MISSING_VALUE,
+    ].join('');
+  }
+  return '';
+}
+
+/**
+ * Accessor for the users field.
+ */
+export function usersAccessor(snapshot: ClientSnapshot): string {
+  return (snapshot.users ?? []).map((user: User) => user.username).join(',\n');
 }

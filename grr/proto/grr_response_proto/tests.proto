@@ -102,9 +102,21 @@ message DefaultArgsTestFlowArgs {
 }
 
 // For gui/http_api_test.py.
+message SampleInnerMessage {
+  optional string foo = 1;
+  optional uint64 bar = 2;
+  optional bool baz = 3;
+  enum Fruit {
+    ACEROLA = 0;
+    JABUTICABA = 1;
+  }
+  repeated Fruit fruits = 4;
+}
+
 message SampleGetHandlerArgs {
   optional string path = 1;
   optional string foo = 2;
+  optional SampleInnerMessage inner = 3;
 }
 
 message SampleGetHandlerResult {
@@ -147,6 +159,7 @@ message NoDynamicTypeLookupMessage {
 message DummyAuthManagerTestConfigurableApiRouterParams {
   optional string foo = 1;
   optional uint64 bar = 2;
+  optional uint64 duration_s = 3 [(sem_type) = { type: "DurationSeconds" }];
 }
 
 message BoolMessage {
@@ -281,4 +294,17 @@ message MetadataSemTypeMessage {
 
 message ApiSingleStringArgument {
   optional string arg = 1;
+}
+
+message DummySrcValueProto1 {
+  optional string value = 1;
+}
+message DummySrcValueProto2 {
+  optional string value = 1;
+}
+message DummyOutValueProto1 {
+  optional string value = 1;
+}
+message DummyOutValueProto2 {
+  optional string value = 1;
 }

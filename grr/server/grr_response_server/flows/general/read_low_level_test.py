@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for read_low_level."""
-
 import os
 
 from absl import app

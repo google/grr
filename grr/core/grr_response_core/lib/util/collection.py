@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """A module with utility functions for working with collections."""
 
+from collections.abc import Callable, Iterable, Iterator
 import itertools
-from typing import Callable, Dict, Iterable, Iterator, List, Tuple, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -29,7 +30,7 @@ def Flatten(iterator: Iterable[Iterable[T]]) -> Iterator[T]:
       yield item
 
 
-def Trim(lst: List[T], limit: int) -> List[T]:
+def Trim(lst: list[T], limit: int) -> list[T]:
   """Trims a given list so that it is not longer than given limit.
 
   Args:
@@ -46,7 +47,7 @@ def Trim(lst: List[T], limit: int) -> List[T]:
   return clipping
 
 
-def Group(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, T]:
+def Group(items: Iterable[T], key: Callable[[T], K]) -> dict[K, T]:
   """Groups items by given key function.
 
   Args:
@@ -65,7 +66,7 @@ def Group(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, T]:
   return result
 
 
-def Batch(items: Iterable[T], size: int) -> Iterator[List[T]]:
+def Batch(items: Iterable[T], size: int) -> Iterator[list[T]]:
   """Divide items into batches of specified size.
 
   In case where number of items is not evenly divisible by the batch size, the
@@ -118,7 +119,7 @@ def StartsWith(this: Iterable[T], that: Iterable[T]) -> bool:
       return False
 
 
-def Unzip(iterable: Iterable[Tuple[K, T]]) -> Tuple[Iterable[K], Iterable[T]]:
+def Unzip(iterable: Iterable[tuple[K, T]]) -> tuple[Iterable[K], Iterable[T]]:
   """Unzips specified iterable of pairs to pair of two iterables.
 
   This function is an inversion of the standard `zip` function and the following
@@ -147,7 +148,7 @@ def Unzip(iterable: Iterable[Tuple[K, T]]) -> Tuple[Iterable[K], Iterable[T]]:
   return lefts, rights
 
 
-def DictProduct(dictionary: Dict[K, Iterable[T]]) -> Iterator[Dict[K, T]]:
+def DictProduct(dictionary: dict[K, Iterable[T]]) -> Iterator[dict[K, T]]:
   """Computes a cartesian product of dict with iterable values.
 
   This utility function, accepts a dictionary with iterable values, computes

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
 
-from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple, TypedDict
+from collections.abc import Collection, Iterator, Mapping, Sequence
+from typing import Optional, TypedDict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -239,7 +240,7 @@ class InMemoryDBClientMixin(object):
       self,
       client_id: str,
       timerange: Optional[
-          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
       ] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
@@ -263,6 +264,41 @@ class InMemoryDBClientMixin(object):
       snapshot.timestamp = int(ts)
 
       res.append(snapshot)
+    return res
+
+  @utils.Synchronized
+  def ReadClientStartupInfoHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+      exclude_snapshot_collections: bool = False,
+  ) -> Sequence[jobs_pb2.StartupInfo]:
+    """Reads the full history for a particular client."""
+    # _ParseTimeRange is implemented in InMemoryDB class that uses this mixin.
+    from_time, to_time = self._ParseTimeRange(timerange)  # pytype: disable=attribute-error
+
+    history = self.startup_history.get(client_id, None)
+    if not history:
+      return []
+
+    if exclude_snapshot_collections:
+      snapshot_timestamps = self.clients.get(client_id, {})
+      history = {
+          ts: si for ts, si in history.items() if ts not in snapshot_timestamps
+      }
+
+    res = []
+    for ts in sorted(history, reverse=True):
+      if ts < from_time or ts > to_time:
+        continue
+
+      startup_info = jobs_pb2.StartupInfo()
+      startup_info.ParseFromString(history[ts])
+      startup_info.timestamp = int(ts)
+      res.append(startup_info)
+
     return res
 
   @utils.Synchronized

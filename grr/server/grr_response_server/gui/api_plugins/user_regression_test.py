@@ -6,6 +6,7 @@ from absl import app
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
@@ -62,7 +63,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GetClientApproval",
-          args=user_plugin.ApiGetClientApprovalArgs(
+          args=api_user_pb2.ApiGetClientApprovalArgs(
               client_id=clients[0],
               approval_id=approval1_id,
               username=self.test_username,
@@ -71,7 +72,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
       )
       self.Check(
           "GetClientApproval",
-          args=user_plugin.ApiGetClientApprovalArgs(
+          args=api_user_pb2.ApiGetClientApprovalArgs(
               client_id=clients[1],
               approval_id=approval2_id,
               username=self.test_username,
@@ -105,7 +106,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GrantClientApproval",
-          args=user_plugin.ApiGrantClientApprovalArgs(
+          args=api_user_pb2.ApiGrantClientApprovalArgs(
               client_id=client_id, approval_id=approval_id, username="requestor"
           ),
           replace={approval_id: "approval:111111"},
@@ -133,9 +134,9 @@ class ApiCreateClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "CreateClientApproval",
-          args=user_plugin.ApiCreateClientApprovalArgs(
+          args=api_user_pb2.ApiCreateClientApprovalArgs(
               client_id=client_id,
-              approval=user_plugin.ApiClientApproval(
+              approval=api_user_pb2.ApiClientApproval(
                   reason="really important reason!",
                   notified_users=["approver1", "approver2"],
                   email_cc_addresses=["test@example.com"],
@@ -186,7 +187,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "ListClientApprovals",
-          args=user_plugin.ApiListClientApprovalsArgs(),
+          args=api_user_pb2.ApiListClientApprovalsArgs(),
           replace={
               approval1_id: "approval:111111",
               approval2_id: "approval:222222",
@@ -194,7 +195,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
       )
       self.Check(
           "ListClientApprovals",
-          args=user_plugin.ApiListClientApprovalsArgs(client_id=clients[0]),
+          args=api_user_pb2.ApiListClientApprovalsArgs(client_id=clients[0]),
           replace={
               approval1_id: "approval:111111",
               approval2_id: "approval:222222",
@@ -241,7 +242,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GetHuntApproval",
-          args=user_plugin.ApiGetHuntApprovalArgs(
+          args=api_user_pb2.ApiGetHuntApprovalArgs(
               username=self.test_username,
               hunt_id=hunt1_id,
               approval_id=approval1_id,
@@ -253,7 +254,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       )
       self.Check(
           "GetHuntApproval",
-          args=user_plugin.ApiGetHuntApprovalArgs(
+          args=api_user_pb2.ApiGetHuntApprovalArgs(
               username=self.test_username,
               hunt_id=hunt2_id,
               approval_id=approval2_id,
@@ -285,7 +286,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GetHuntApproval",
-          args=user_plugin.ApiGetHuntApprovalArgs(
+          args=api_user_pb2.ApiGetHuntApprovalArgs(
               username=self.test_username,
               hunt_id=hunt2_id,
               approval_id=approval_id,
@@ -348,7 +349,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GetHuntApproval",
-          args=user_plugin.ApiGetHuntApprovalArgs(
+          args=api_user_pb2.ApiGetHuntApprovalArgs(
               username=self.test_username,
               hunt_id=hunt_id,
               approval_id=approval_id,
@@ -397,7 +398,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GrantHuntApproval",
-          args=user_plugin.ApiGrantHuntApprovalArgs(
+          args=api_user_pb2.ApiGrantHuntApprovalArgs(
               hunt_id=hunt_id, approval_id=approval_id, username="requestor"
           ),
           replace={hunt_id: "H:123456", approval_id: "approval:111111"},
@@ -429,9 +430,9 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "CreateHuntApproval",
-          args=user_plugin.ApiCreateHuntApprovalArgs(
+          args=api_user_pb2.ApiCreateHuntApprovalArgs(
               hunt_id=hunt_id,
-              approval=user_plugin.ApiHuntApproval(
+              approval=api_user_pb2.ApiHuntApproval(
                   reason="really important reason!",
                   notified_users=["approver1", "approver2"],
                   email_cc_addresses=["test@example.com"],
@@ -512,7 +513,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GetCronJobApproval",
-          args=user_plugin.ApiGetCronJobApprovalArgs(
+          args=api_user_pb2.ApiGetCronJobApprovalArgs(
               username=self.test_username,
               cron_job_id=cron1_id,
               approval_id=approval1_id,
@@ -521,7 +522,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       )
       self.Check(
           "GetCronJobApproval",
-          args=user_plugin.ApiGetCronJobApprovalArgs(
+          args=api_user_pb2.ApiGetCronJobApprovalArgs(
               username=self.test_username,
               cron_job_id=cron2_id,
               approval_id=approval2_id,
@@ -561,7 +562,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GrantCronJobApproval",
-          args=user_plugin.ApiGrantCronJobApprovalArgs(
+          args=api_user_pb2.ApiGrantCronJobApprovalArgs(
               cron_job_id=cron_id, approval_id=approval_id, username="requestor"
           ),
           replace={cron_id: "CronJob_123456", approval_id: "approval:111111"},
@@ -596,9 +597,9 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "CreateCronJobApproval",
-          args=user_plugin.ApiCreateCronJobApprovalArgs(
+          args=api_user_pb2.ApiCreateCronJobApprovalArgs(
               cron_job_id=cron_id,
-              approval=user_plugin.ApiCronJobApproval(
+              approval=api_user_pb2.ApiCronJobApproval(
                   reason="really important reason!",
                   notified_users=["approver1", "approver2"],
                   email_cc_addresses=["test@example.com"],
@@ -694,17 +695,17 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
     self.Check(
         "ListPendingUserNotifications",
-        args=user_plugin.ApiListPendingUserNotificationsArgs(),
+        args=api_user_pb2.ApiListPendingUserNotificationsArgs(),
     )
     self.Check(
         "ListPendingUserNotifications",
-        args=user_plugin.ApiListPendingUserNotificationsArgs(
+        args=api_user_pb2.ApiListPendingUserNotificationsArgs(
             timestamp=43000000
         ),
     )
     self.Check(
         "ListPendingUserNotifications",
-        args=user_plugin.ApiListPendingUserNotificationsArgs(
+        args=api_user_pb2.ApiListPendingUserNotificationsArgs(
             timestamp=44000000
         ),
     )
@@ -730,19 +731,21 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
       # Notifications are pending in this request.
       self.Check(
           "ListAndResetUserNotifications",
-          args=user_plugin.ApiListAndResetUserNotificationsArgs(),
+          args=api_user_pb2.ApiListAndResetUserNotificationsArgs(),
       )
 
       # But not anymore in these requests.
       self.Check(
           "ListAndResetUserNotifications",
-          args=user_plugin.ApiListAndResetUserNotificationsArgs(
+          args=api_user_pb2.ApiListAndResetUserNotificationsArgs(
               offset=1, count=1
           ),
       )
       self.Check(
           "ListAndResetUserNotifications",
-          args=user_plugin.ApiListAndResetUserNotificationsArgs(filter="other"),
+          args=api_user_pb2.ApiListAndResetUserNotificationsArgs(
+              filter="other"
+          ),
       )
 
 
@@ -763,13 +766,13 @@ class ApiListApproverSuggestionsHandlerRegressionTest(
     # api version.
     self.Check(
         "ListApproverSuggestions",
-        args=user_plugin.ApiListApproverSuggestionsArgs(username_query="foo"),
+        args=api_user_pb2.ApiListApproverSuggestionsArgs(username_query="foo"),
     )
 
     # Check formatting of multiple suggestions.
     self.Check(
         "ListApproverSuggestions",
-        args=user_plugin.ApiListApproverSuggestionsArgs(
+        args=api_user_pb2.ApiListApproverSuggestionsArgs(
             username_query="sanchez"
         ),
     )

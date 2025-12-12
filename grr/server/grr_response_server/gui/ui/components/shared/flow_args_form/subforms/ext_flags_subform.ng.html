@@ -1,0 +1,40 @@
+
+<!-- For all clients except macOS, show Linux flags. -->
+@if (clientOs() !== OperatingSystem.DARWIN) {
+  <h3>Linux file flags (<a href="https://github.com/torvalds/linux/blob/master/include/linux/fs.h" target="_blank">more info</a>)</h3>
+
+  <div class="linux-flags">
+    @for (flag of extendedLinuxFlags; track flag) {
+      <label>{{ flag.identifier }}</label>
+      <mat-radio-group
+          attr.aria-label="Filter by {{flag.identifier}}"
+          name="ext-flags-{{flag.identifier}}"
+          (change)="onExtFlagsChangeLinux()"
+          [(ngModel)]="flag.selection"
+      >
+        <mat-radio-button value="include">Include if set</mat-radio-button>
+        <mat-radio-button value="exclude">Exclude if set</mat-radio-button>
+        <mat-radio-button value="either">Include either way</mat-radio-button>
+      </mat-radio-group>
+    }
+  </div>
+}
+<!-- For all clients except Linux, show macOS flags. -->
+@if (clientOs() !== OperatingSystem.LINUX) {
+  <h3>macOS file flags (<a href="https://github.com/apple/darwin-xnu/blob/master/bsd/sys/stat.h" target="_blank">more info</a>)</h3>
+  <div class="macos-flags">
+  @for (flag of extendedOsxFlags; track flag) {
+    <label>{{ flag.identifier }}</label>
+      <mat-radio-group
+          attr.aria-label="Filter by {{flag.identifier}}"
+          name="ext-flags-{{flag.identifier}}"
+          (change)="onExtFlagsChangeDarwin()"
+          [(ngModel)]="flag.selection"
+      >
+        <mat-radio-button value="include">Include if set</mat-radio-button>
+        <mat-radio-button value="exclude">Exclude if set</mat-radio-button>
+        <mat-radio-button value="either">Include either way</mat-radio-button>
+      </mat-radio-group>
+    }
+  </div>
+}

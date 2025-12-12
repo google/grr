@@ -1,0 +1,27 @@
+
+<table>
+    @if (knowledgeBase()?.os) {
+      <tr>
+        <td>System OS</td>
+        <td><copy-button>{{ knowledgeBase()?.os }}</copy-button></td>
+      </tr>
+    }
+    @if (knowledgeBase()?.osMajorVersion != null) {
+      <tr>
+        <td>OS Major Version</td>
+        <td>{{ knowledgeBase()?.osMajorVersion }}</td>
+      </tr>
+    }
+    @if (knowledgeBase()?.osMinorVersion != null) {
+      <tr>
+        <td>OS Minor Version</td>
+        <td>{{ knowledgeBase()?.osMinorVersion }}</td>
+      </tr>
+    }
+    @if (knowledgeBase()?.fqdn) {
+      <tr>
+        <td>FQDN</td>
+        <td><copy-button>{{ knowledgeBase()?.fqdn }}</copy-button></td>
+      </tr>
+    }
+</table>

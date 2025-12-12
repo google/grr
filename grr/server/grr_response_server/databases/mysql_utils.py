@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """Utilities used by the MySQL database."""
 
+from collections.abc import Iterable, Sequence
 import contextlib
 import functools
 import hashlib
-from typing import Iterable
-from typing import Optional
-from typing import overload
-from typing import Sequence
+from typing import Optional, overload
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition

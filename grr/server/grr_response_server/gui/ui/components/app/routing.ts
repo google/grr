@@ -1,37 +1,33 @@
-import {NgModule} from '@angular/core';
-import {RouterModule} from '@angular/router';
-
 import {GrrRoute} from '../../lib/routing';
-import {ApprovalPage} from '../approval_page/approval_page';
-import {ClientDetails} from '../client_details/client_details';
-import {ClientPage} from '../client_page/client_page';
-import {FlowSection} from '../client_page/flow_section';
-import {VfsSection} from '../client_page/vfs_section';
+import {ApprovalRequestLoader} from '../client_page/client_approvals/approval_request_loader';
+import {ClientApprovals} from '../client_page/client_approvals/client_approvals';
+import {ClientFlows} from '../client_page/client_flows/client_flows';
+import {FlowConfiguration} from '../client_page/client_flows/flow_configuration';
+import {FlowDebugging} from '../client_page/client_flows/flow_debugging';
+import {FlowDetails} from '../client_page/client_flows/flow_details';
+import {FlowResults} from '../client_page/client_flows/flow_results';
+import {ScheduledFlow} from '../client_page/client_flows/scheduled_flow';
+import {ClientHistory} from '../client_page/client_history/client_history';
+import {ClientHistoryEntry} from '../client_page/client_history/client_history_entry';
+import {ClientPage as NewClientPage} from '../client_page/client_page';
+import {FileExplorer} from '../client_page/file_explorer/file_explorer';
 import {ClientSearch} from '../client_search/client_search';
-import {HexView} from '../data_renderers/hex_view/hex_view';
-import {StatView} from '../data_renderers/stat_view/stat_view';
-import {TextView} from '../data_renderers/text_view/text_view';
-import {FileDetailsPage} from '../file_details/file_details_page';
-import {Home} from '../home/home';
-import {HuntApprovalPage} from '../hunt/hunt_approval_page/hunt_approval_page';
-import {HuntHelp} from '../hunt/hunt_help/hunt_help';
-import {HuntOverviewPage} from '../hunt/hunt_overview_page/hunt_overview_page';
-import {HuntPage} from '../hunt/hunt_page/hunt_page';
-import {HuntResultDetails} from '../hunt/hunt_page/hunt_result_details/hunt_result_details';
-import {ModifyHunt} from '../hunt/modify_hunt/modify_hunt';
-import {NewHunt} from '../hunt/new_hunt/new_hunt';
-
-import {NotFoundPage} from './not_found_page';
+import {FleetCollectionApprovalRequestLoader} from '../fleet_collections_page/fleet_collection_approvals/fleet_collection_approval_request_loader';
+import {FleetCollectionApprovals} from '../fleet_collections_page/fleet_collection_approvals/fleet_collection_approvals';
+import {FleetCollectionConfiguration} from '../fleet_collections_page/fleet_collection_configuration/fleet_collection_configuration';
+import {FleetCollectionDebugging} from '../fleet_collections_page/fleet_collection_debugging/fleet_collection_debugging';
+import {FleetCollectionDetails} from '../fleet_collections_page/fleet_collection_details';
+import {FleetCollectionErrors} from '../fleet_collections_page/fleet_collection_errors/fleet_collection_errors';
+import {FleetCollectionResults} from '../fleet_collections_page/fleet_collection_results/fleet_collection_results';
+import {FleetCollectionsPage} from '../fleet_collections_page/fleet_collections_page';
+import {NewFleetCollection} from '../new_fleet_collection_page/new_fleet_collection';
+import {NotFoundPage} from '../not_found_page/not_found_page';
 
 const REDACTED_CLIENT_ID = 'client_id';
 const REDACTED_FLOW_ID = 'flow_id';
-const REDACTED_HUNT_ID = 'hunt_id';
+const REDACTED_FLEET_COLLECTION_ID = 'fleet_collection_id';
 const REDACTED_APPROVAL_ID = 'approval_id';
 const REDACTED_USER = 'user';
-const REDACTED_FILE_PATH = 'file_path';
-const REDACTED_PATH_TYPE = 'path_type';
-const REDACTED_RESULT_KEY = 'result_key';
-const REDACTED_PAYLOAD_TYPE = 'payload_type';
 
 /** Routes and subroutes for the client page */
 export const CLIENT_ROUTES: GrrRoute[] = [
@@ -39,21 +35,19 @@ export const CLIENT_ROUTES: GrrRoute[] = [
     path: 'clients',
     component: ClientSearch,
     data: {
-      legacyLink: '#/search?q=:q',
-      pageViewTracking: {
+      'pageViewTracking': {
         pagePath: 'client_search',
         pageTitle: 'Client Search',
       },
     },
   },
   {
-    path: 'clients/:id',
-    component: ClientPage,
+    path: 'clients/:clientId',
+    component: NewClientPage,
     data: {
-      legacyLink: '#/clients/:id',
-      pageViewTracking: {
+      'pageViewTracking': {
         pagePath: `clients/${REDACTED_CLIENT_ID}`,
-        pageTitle: 'Client > Flows',
+        pageTitle: 'Client',
       },
     },
     children: [
@@ -62,210 +56,214 @@ export const CLIENT_ROUTES: GrrRoute[] = [
         pathMatch: 'full',
         redirectTo: 'flows',
       },
-      // A trailing slash breaks navigation when the URL contains an
-      // auxiliary route upon page load. E.g. refreshing the browser on
-      // `/clients/x/flows/(drawer:details)` is not routed correctly - Angular
-      // shows the error page. One hypothesis is that Angular assumes that
-      // the auxiliary route should belong to `/flows/` and not the root `/`.
-      // We fix this by preventing the trailing slash and redirecting
-      // `/flows/` to `/flows`.
-      {path: 'flows/', pathMatch: 'full', redirectTo: 'flows'},
       {
         path: 'flows',
-        component: FlowSection,
+        component: ClientFlows,
         data: {
-          legacyLink: '#/clients/:id/flows/',
-          // Reuse `FlowSection` component when switching between `/flows` and
-          // `/flows/:id` to preserve UI state, e.g. open panels.
-          reuseComponent: true,
+          'pageViewTracking': {
+            pagePath: `clients/${REDACTED_CLIENT_ID}/flows`,
+            pageTitle: 'Client > Flows',
+          },
+        },
+        children: [
+          {
+            path: 'scheduled-flow',
+            component: ScheduledFlow,
+            data: {
+              'pageViewTracking': {
+                path: `clients/${REDACTED_CLIENT_ID}/scheduled-flow`,
+                pageTitle: 'Client > Flow > Scheduled Flow',
+              },
+            },
+          },
+          {
+            path: ':flowId',
+            component: FlowDetails,
+            children: [
+              {
+                path: '',
+                redirectTo: 'results',
+                pathMatch: 'full',
+                data: {
+                  'pageViewTracking': {
+                    pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/results`,
+                    pageTitle: 'Client > Flow > Results',
+                  },
+                },
+              },
+              {
+                path: 'results',
+                component: FlowResults,
+                data: {
+                  'pageViewTracking': {
+                    pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/results`,
+                    pageTitle: 'Client > Flow > Results',
+                  },
+                },
+              },
+              {
+                path: 'configuration',
+                component: FlowConfiguration,
+                data: {
+                  'pageViewTracking': {
+                    pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/configuration`,
+                    pageTitle: 'Client > Flow > Configuration',
+                  },
+                },
+              },
+              {
+                path: 'debug',
+                component: FlowDebugging,
+                data: {
+                  'pageViewTracking': {
+                    pagePath: `clients/${REDACTED_CLIENT_ID}/flows/${REDACTED_FLOW_ID}/debug`,
+                    pageTitle: 'Client > Flow > Debug',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'history',
+        component: ClientHistory,
+        children: [
+          {
+            path: ':historyTimestamp',
+            component: ClientHistoryEntry,
+          },
+        ],
+        data: {
+          'pageViewTracking': {
+            pagePath: `clients/${REDACTED_CLIENT_ID}/history`,
+            pageTitle: 'Client > History',
+          },
         },
       },
       {
-        path: 'flows/:flowId',
-        component: FlowSection,
+        path: 'approvals',
+        component: ClientApprovals,
+        children: [
+          {
+            path: ':approvalId/users/:requestor',
+            component: ApprovalRequestLoader,
+            data: {
+              'pageViewTracking': {
+                pagePath: `clients/${REDACTED_CLIENT_ID}/approvals/${REDACTED_APPROVAL_ID}/users/${REDACTED_USER}`,
+                pageTitle: 'Client > Approvals > Review',
+              },
+            },
+          },
+        ],
         data: {
-          legacyLink: '#/clients/:id/flows/:flowId',
-          reuseComponent: true,
-          pageViewTracking: {
-            path: `flows/${REDACTED_FLOW_ID}`,
-            pageTitle: 'Client > Flow',
+          'pageViewTracking': {
+            pagePath: `clients/${REDACTED_CLIENT_ID}/approvals${REDACTED_USER}`,
+            pageTitle: 'Client > Approvals',
           },
         },
       },
       {
         path: 'files',
-        // Redirect to the URL-encoded root path `/` => `%2F`.
-        // TODO: Use pretty URLs instead of URL-encoded paths.
-        redirectTo: 'files/%2F',
-      },
-      {
-        // TODO: Use pretty URLs instead of URL-encoded paths.
-        path: 'files/:path',
-        component: VfsSection,
+        component: FileExplorer,
         data: {
-          legacyLink: '#/clients/:id/vfs/fs/os:path',
-          collapseClientHeader: true,
-          pageViewTracking: {
-            path: `files/${REDACTED_FILE_PATH}`,
-            pageTitle: 'Client > Browse Files',
-          },
-        },
-        children: [
-          {path: '', redirectTo: 'stat', pathMatch: 'full'},
-          {path: 'stat', component: StatView},
-          {path: 'text', component: TextView},
-          {path: 'blob', component: HexView},
-        ],
-      },
-    ],
-  },
-  {
-    // TODO: `path` requires slashes to be encoded (`%2F`). It'd be
-    // nicer to use real slashes in the URL, but Angular's wildcard matching
-    // is hard.
-    path: 'files/:pathType/:path',
-    component: FileDetailsPage,
-    outlet: 'drawer',
-    children: [
-      {path: '', redirectTo: 'stat', pathMatch: 'full'},
-      {
-        path: 'stat',
-        component: StatView,
-        data: {
-          pageViewTracking: {
-            pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
-            pageTitle: 'Client > Browse Files > Stat',
-          },
-        },
-      },
-      {
-        path: 'text',
-        component: TextView,
-        data: {
-          pageViewTracking: {
-            pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
-            pageTitle: 'Client > Browse Files > Text',
-          },
-        },
-      },
-      {
-        path: 'blob',
-        component: HexView,
-        data: {
-          pageViewTracking: {
-            pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
-            pageTitle: 'Client > Browse Files > Blob',
+          'pageViewTracking': {
+            pagePath: `clients/${REDACTED_CLIENT_ID}/files`,
+            pageTitle: 'Client > File Explorer',
           },
         },
       },
     ],
-    data: {
-      pageViewTracking: {
-        pagePath: `files/${REDACTED_PATH_TYPE}/${REDACTED_FILE_PATH}`,
-        pageTitle: 'Client > Browse Files',
-      },
-    },
-  },
-  {
-    path: 'details/:clientId',
-    component: ClientDetails,
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `details/${REDACTED_CLIENT_ID}`,
-        pageTitle: 'Client > Client Details',
-      },
-    },
-  },
-  {
-    path: 'details/:clientId/:sourceFlowId',
-    component: ClientDetails,
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `details/${REDACTED_CLIENT_ID}/${REDACTED_FLOW_ID}`,
-        pageTitle: 'Client > Client Details',
-      },
-    },
   },
 ];
 
-/** Routes and subroutes for the hunt page */
-export const HUNT_ROUTES: GrrRoute[] = [
+/** Routes and subroutes for the fleet collections page */
+export const FLEET_COLLECTION_ROUTES: GrrRoute[] = [
   {
-    path: 'hunts',
-    pathMatch: 'full',
-    component: HuntOverviewPage,
+    path: 'fleet-collections',
+    component: FleetCollectionsPage,
     data: {
-      legacyLink: '#/hunts',
-      pageViewTracking: {
-        pagePath: `hunts`,
-        pageTitle: 'Hunt Overview',
+      'pageViewTracking': {
+        pagePath: `fleet-collections`,
+        pageTitle: 'Fleet Collections',
       },
     },
-  },
-  {
-    path: 'hunts/:id',
-    component: HuntPage,
-    data: {
-      legacyLink: '#/hunts/:id',
-      pageViewTracking: {
-        pagePath: `hunts/${REDACTED_HUNT_ID}`,
-        pageTitle: 'Hunt Details',
+    children: [
+      {
+        path: ':fleetCollectionId',
+        component: FleetCollectionDetails,
+        children: [
+          {path: '', redirectTo: 'results', pathMatch: 'full'},
+          {
+            path: 'results',
+            component: FleetCollectionResults,
+            data: {
+              'pageViewTracking': {
+                pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/results`,
+                pageTitle: 'Fleet Collection > Results',
+              },
+            },
+          },
+          {
+            path: 'errors',
+            component: FleetCollectionErrors,
+            data: {
+              'pageViewTracking': {
+                pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/errors`,
+                pageTitle: 'Fleet Collection > Errors',
+              },
+            },
+          },
+          {
+            path: 'configuration',
+            component: FleetCollectionConfiguration,
+            data: {
+              'pageViewTracking': {
+                pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/configuration`,
+                pageTitle: 'Fleet Collection > Configuration',
+              },
+            },
+          },
+          {path: 'debug', component: FleetCollectionDebugging},
+          {
+            path: 'approvals',
+            component: FleetCollectionApprovals,
+            children: [
+              {
+                path: ':approvalId/users/:requestor',
+                component: FleetCollectionApprovalRequestLoader,
+                data: {
+                  'pageViewTracking': {
+                    pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/approvals/${REDACTED_APPROVAL_ID}/users/${REDACTED_USER}`,
+                    pageTitle: 'Fleet Collection > Approval > Review',
+                  },
+                },
+              },
+            ],
+            data: {
+              'pageViewTracking': {
+                pagePath: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}/approvals`,
+                pageTitle: 'Fleet Collection > Approvals',
+              },
+            },
+          },
+        ],
+        data: {
+          'pageViewTracking': {
+            path: `fleet-collections/${REDACTED_FLEET_COLLECTION_ID}`,
+            pageTitle: 'Fleet Collection',
+          },
+        },
       },
-    },
+    ],
   },
   {
-    path: 'new-hunt',
-    component: NewHunt,
+    path: 'new-fleet-collection',
+    component: NewFleetCollection,
     data: {
-      pageViewTracking: {
-        pagePath: `new_hunt`,
-        pageTitle: 'New Hunt',
-      },
-    },
-  },
-  {
-    path: 'modify-hunt',
-    component: ModifyHunt,
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `modify_hunt`,
-        pageTitle: 'Hunt Details > Modify Hunt',
-      },
-    },
-  },
-  {
-    path: 'help',
-    component: HuntHelp,
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `hunts/help`,
-        pageTitle: 'Hunt Overview > Help',
-      },
-    },
-  },
-  {
-    path: 'result-details/:key',
-    redirectTo: 'result-details/:key/',
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `result-details/${REDACTED_RESULT_KEY}`,
-        pageTitle: 'Hunt Details > View Result',
-      },
-    },
-  },
-  {
-    path: 'result-details/:key/:payloadType',
-    component: HuntResultDetails,
-    outlet: 'drawer',
-    data: {
-      pageViewTracking: {
-        pagePath: `result-details/${REDACTED_RESULT_KEY}/${REDACTED_PAYLOAD_TYPE}`,
-        pageTitle: 'Hunt Details > View Result',
+      'pageViewTracking': {
+        pagePath: `new-fleet-collection`,
+        pageTitle: 'New Fleet Collection',
       },
     },
   },
@@ -274,51 +272,30 @@ export const HUNT_ROUTES: GrrRoute[] = [
 /** Routes and subroutes for approval pages */
 export const APPROVAL_PAGE_ROUTES: GrrRoute[] = [
   {
-    path: 'clients/:clientId/users/:requestor/approvals/:approvalId',
-    component: ApprovalPage,
-    data: {
-      legacyLink: '#/users/:requestor/approvals/client/:clientId/:approvalId',
-      pageViewTracking: {
-        pagePath: `clients/${REDACTED_CLIENT_ID}/users/${REDACTED_USER}/approvals/${REDACTED_APPROVAL_ID}`,
-        pageTitle: 'Client Approval',
-      },
-    },
-  },
-  {
     path: 'hunts/:huntId/users/:requestor/approvals/:approvalId',
-    component: HuntApprovalPage,
-    data: {
-      legacyLink: '#/users/:requestor/approvals/hunt/:huntId/:approvalId',
-      pageViewTracking: {
-        pagePath: `hunts/${REDACTED_HUNT_ID}/users/${REDACTED_USER}/approvals/${REDACTED_APPROVAL_ID}`,
-        pageTitle: 'Hunt Approval',
-      },
-    },
+    redirectTo:
+      'fleet-collections/:huntId/approvals/:approvalId/users/:requestor',
   },
 ];
 
-const APP_ROUTES: GrrRoute[] = [
+/** Routes and subroutes for the app */
+export const APP_ROUTES: GrrRoute[] = [
   {
     path: '',
-    component: Home,
-    data: {
-      pageViewTracking: {
-        pagePath: `/`,
-        pageTitle: 'Home',
-      },
-    },
+    pathMatch: 'full',
+    redirectTo: 'clients',
   },
   ...CLIENT_ROUTES,
-  ...HUNT_ROUTES,
+  ...FLEET_COLLECTION_ROUTES,
   ...APPROVAL_PAGE_ROUTES,
   {
     path: '**',
     component: NotFoundPage,
+    data: {
+      'pageViewTracking': {
+        pagePath: 'not-found',
+        pageTitle: 'Not Found',
+      },
+    },
   },
 ];
-
-@NgModule({
-  imports: [RouterModule.forRoot(APP_ROUTES)],
-  exports: [RouterModule],
-})
-export class AppRoutingModule {}

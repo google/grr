@@ -6,8 +6,9 @@ parameters. These annotations are used to assist in rendering the UI for
 starting flows and for validating arguments.
 """
 
+from collections.abc import Iterable
 import logging
-from typing import Iterable, Optional
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization

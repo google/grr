@@ -3,39 +3,29 @@
 
 from absl import app
 
+from grr_response_proto import tests_pb2
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import reflection as reflection_plugin
 from grr.test_lib import test_lib
 
 
-class ApiGetRDFValueDescriptorHandlerTest(api_test_lib.ApiCallHandlerTest):
-  """Test for ApiGetRDFValueDescriptorHandler."""
-
-  def testSuccessfullyRendersReflectionDataForAllTypes(self):
-    result = reflection_plugin.ApiListRDFValuesDescriptorsHandler().Handle(
-        None, context=self.context
-    )
-    # TODO(user): enhance this test.
-    self.assertTrue(result)
-
-
 class DummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy ApiCallRouter implementation overriding just 1 method."""
 
-  @api_call_router.Http("GET", "/api/method1")
-  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
+  @api_call_router.Http("GET", "/api/v2/method1")
+  @api_call_router.ProtoArgsType(tests_pb2.SampleGetHandlerArgs)
   def SomeRandomMethodWithArgsType(self, args, context=None):
     """Doc 1."""
 
-  @api_call_router.Http("GET", "/api/method2")
-  @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
+  @api_call_router.Http("GET", "/api/v2/method2")
+  @api_call_router.ProtoResultType(tests_pb2.SampleGetHandlerArgs)
   def SomeRandomMethodWithResultType(self, args, context=None):
     """Doc 2."""
 
-  @api_call_router.Http("GET", "/api/method3")
-  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
-  @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
+  @api_call_router.Http("GET", "/api/v2/method3")
+  @api_call_router.ProtoArgsType(tests_pb2.SampleGetHandlerArgs)
+  @api_call_router.ProtoResultType(tests_pb2.SampleGetHandlerArgs)
   def SomeRandomMethodWithArgsTypeAndResultType(self, args, context=None):
     """Doc 3."""
 
@@ -58,14 +48,11 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
     ][0]
     self.assertEqual(method.doc, "Doc 1.")
 
-    self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
-        method.args_type_descriptor.AsPrimitiveProto().default.type_url,
+        method.args_type_url,
         "type.googleapis.com/grr.SampleGetHandlerArgs",
     )
-
-    self.assertEqual(method.result_kind, "NONE")
-    self.assertFalse(method.HasField("result_type"))
+    self.assertFalse(method.HasField("result_type_url"))
 
   def testRendersMethodWithResultTypeCorrectly(self):
     result = self.handler.Handle(None, context=self.context)
@@ -77,12 +64,9 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
     ][0]
     self.assertEqual(method.doc, "Doc 2.")
 
-    self.assertFalse(method.HasField("args_type"))
-
-    self.assertEqual(method.result_kind, "VALUE")
-    self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
+    self.assertFalse(method.HasField("args_type_url"))
     self.assertEqual(
-        method.result_type_descriptor.AsPrimitiveProto().default.type_url,
+        method.result_type_url,
         "type.googleapis.com/grr.SampleGetHandlerArgs",
     )
 
@@ -96,16 +80,12 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
     ][0]
     self.assertEqual(method.doc, "Doc 3.")
 
-    self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
-        method.args_type_descriptor.AsPrimitiveProto().default.type_url,
+        method.args_type_url,
         "type.googleapis.com/grr.SampleGetHandlerArgs",
     )
-
-    self.assertEqual(method.result_kind, "VALUE")
-    self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
-        method.result_type_descriptor.AsPrimitiveProto().default.type_url,
+        method.result_type_url,
         "type.googleapis.com/grr.SampleGetHandlerArgs",
     )
 

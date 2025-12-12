@@ -1,0 +1,75 @@
+
+<table>
+  @if (hardwareInfo()?.systemManufacturer) {
+    <tr>
+      <td>Manufacturer</td>
+      <td>{{ hardwareInfo()?.systemManufacturer }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.systemFamily) {
+    <tr>
+      <td>Family</td>
+      <td>{{ hardwareInfo()?.systemFamily }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.systemProductName) {
+    <tr>
+      <td>Product Name</td>
+      <td>{{ hardwareInfo()?.systemProductName }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.serialNumber) {
+    <tr>
+      <td>Serial Number</td>
+      <td>{{ hardwareInfo()?.serialNumber }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.systemUuid) {
+    <tr>
+      <td>UUID</td>
+      <td>{{ hardwareInfo()?.systemUuid }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.systemSkuNumber) {
+    <tr>
+      <td>SKU Number</td>
+      <td>{{ hardwareInfo()?.systemSkuNumber }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.systemAssettag) {
+    <tr>
+      <td>Asset Tag</td>
+      <td>{{ hardwareInfo()?.systemAssettag }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.biosVendor) {
+    <tr>
+      <td>BIOS Vendor</td>
+      <td>{{ hardwareInfo()?.biosVendor }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.biosVersion) {
+    <tr>
+      <td>BIOS Version</td>
+      <td>{{ hardwareInfo()?.biosVersion }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.biosReleaseDate) {
+    <tr>
+      <td>BIOS Release Date</td>
+      <td>{{ hardwareInfo()?.biosReleaseDate }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.biosRomSize) {
+    <tr>
+      <td>BIOS ROM Size</td>
+      <td>{{ hardwareInfo()?.biosRomSize }}</td>
+    </tr>
+  }
+  @if (hardwareInfo()?.biosRevision) {
+    <tr>
+      <td>BIOS Revision</td>
+      <td>{{ hardwareInfo()?.biosRevision }}</td>
+    </tr>
+  }
+</table>

@@ -1,0 +1,27 @@
+<ng-template #resultTables let-result="result">
+  @if (result.fileResults.length > 0) {
+    <p>File Results</p>
+    <file-results-table [results]="result.fileResults" [isHuntResult]="isHuntResult()"/>
+  }
+
+  @if (result.registryResults.length > 0) {
+    <p>Registry Results</p>
+    <registry-results-table [results]="result.registryResults" [isHuntResult]="isHuntResult()"/>
+  }
+</ng-template>
+
+@for (result of resultsPerTag() | keyvalue; track result.key) {
+  @if (result.key) {
+    <!-- Some stat entries have tags like artifacts or browser history, we display them separately. -->
+    <collapsible-container [state]="CollapsibleState.EXPANDED">
+      <collapsible-title>
+        {{ result.key }}
+      </collapsible-title>
+      <collapsible-content>
+        <ng-container *ngTemplateOutlet="resultTables; context: {result: result.value}"/>
+      </collapsible-content>
+    </collapsible-container>
+  } @else {
+    <ng-container *ngTemplateOutlet="resultTables; context: {result: result.value}"/>
+  }
+}

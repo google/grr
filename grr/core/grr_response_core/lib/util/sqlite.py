@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """A module with utility functions for working with SQLite databases."""
 
+from collections.abc import Iterator
 import contextlib
 import io
 import sqlite3
-from typing import IO, Iterator, Tuple
+from typing import IO
 
 from grr_response_core.lib.util import temp
 
@@ -24,7 +25,7 @@ class ConnectionContext:
     """
     self._conn = conn
 
-  def Query(self, query: str) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
+  def Query(self, query: str) -> Iterator[tuple]:  # pylint: disable=g-bare-generic
     """Queries the underlying database.
 
     Args:

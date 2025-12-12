@@ -1,0 +1,48 @@
+// Style definitions for all flow args forsm.
+
+.w100 {
+  width: 100%;
+}
+
+.w33 {
+  width: 33%;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+// Flow configuration options.
+
+fieldset {
+  border: none;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
+mat-error {
+  margin-bottom: 1em;
+  margin-top: 0.5em;
+}
+
+mat-checkbox {
+  display: block;
+}
+
+mat-radio-button {
+  padding: 4px 12px;
+}
+
+mat-form-field {
+  padding: 0.5rem 0;
+}

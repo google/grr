@@ -2,33 +2,23 @@
 """A module with API methods related to the GRR metadata."""
 
 import collections
+from collections.abc import Collection, Iterable
 import functools
 import inspect
 import json
-from typing import Any
-from typing import cast
-from typing import Collection
-from typing import DefaultDict
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import NamedTuple
-from typing import Optional
-from typing import Set
-from typing import Tuple
-from typing import Type
-from typing import Union
+from typing import Any, NamedTuple, Optional, Union, cast
 from urllib import parse as urlparse
 
 from google.protobuf import descriptor as proto_descriptor
+from google.protobuf import message
 from grr_response_core import version
 from grr_response_core.lib import casing
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import semantic_pb2
 from grr_response_proto.api import metadata_pb2
+from grr_response_server import output_plugin_registry
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 
@@ -38,19 +28,19 @@ EnumDescriptor = proto_descriptor.EnumDescriptor
 FieldDescriptor = proto_descriptor.FieldDescriptor
 OneofDescriptor = proto_descriptor.OneofDescriptor
 
-SchemaReference = Dict[str, str]
-PrimitiveSchema = Dict[str, str]
-ArraySchema = Dict[str, Union[str, SchemaReference]]
-EnumSchema = Dict[str, Union[str, Tuple[str, ...]]]
-MessageSchema = Dict[
-    str, Union[str, Dict[str, Union[SchemaReference, ArraySchema]]]
+SchemaReference = dict[str, str]
+PrimitiveSchema = dict[str, str]
+ArraySchema = dict[str, Union[str, SchemaReference]]
+EnumSchema = dict[str, Union[str, tuple[str, ...]]]
+MessageSchema = dict[
+    str, Union[str, dict[str, Union[SchemaReference, ArraySchema]]]
 ]
-DescribedSchema = Dict[
-    str, Union[str, List[SchemaReference], List[ArraySchema]]
+DescribedSchema = dict[
+    str, Union[str, list[SchemaReference], list[ArraySchema]]
 ]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
-PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
-TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+PrimitiveDescription = dict[str, Union[str, PrimitiveSchema]]
+TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, type, int, str]
 
 
 class KeyValueDescriptor(NamedTuple):
@@ -64,11 +54,11 @@ class RouteInfo(NamedTuple):
   """A named tuple for the lists of route components and path arguments."""
 
   # A list of the HTTP method and the components of a URL path.
-  route_comps: List[str]
+  route_comps: list[str]
   # A list of path components that represent required path parameters.
-  req_path_param_comps: List[str]
+  req_path_param_comps: list[str]
   # A list of path components that represent optional path parameters.
-  opt_path_param_comps: List[str]
+  opt_path_param_comps: list[str]
 
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
@@ -78,7 +68,7 @@ class RouteInfo(NamedTuple):
 #
 # [1]: https://developers.google.com/protocol-buffers/docs/proto3#json
 # [2]: https://swagger.io/specification/#data-types
-primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
+primitive_types: dict[Union[int, str], PrimitiveDescription] = {
     rdf_proto2.TYPE_DOUBLE: {
         "name": "protobuf2.TYPE_DOUBLE",
         "schema": {"type": "number", "format": "double"},  # OAS (type, format)
@@ -145,7 +135,7 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
     },
 }
 
-rdf_type_schemas: Dict[str, Schema] = {
+rdf_type_schemas: dict[str, Schema] = {
     "RDFDatetime": {
         "type": "string",
         "format": "uint64",
@@ -196,17 +186,9 @@ rdf_type_schemas: Dict[str, Schema] = {
 }
 
 
-class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for result of the API method for getting GRR version."""
-
-  protobuf = metadata_pb2.ApiGetGrrVersionResult
-  rdf_deps = []
-
-
 class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the API method for getting GRR version."""
 
-  result_type = ApiGetGrrVersionResult
   proto_result_type = metadata_pb2.ApiGetGrrVersionResult
 
   def Handle(
@@ -226,17 +208,10 @@ class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
     return result
 
 
-class ApiGetOpenApiDescriptionResult(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for the OpenAPI description of the GRR API."""
-
-  protobuf = metadata_pb2.ApiGetOpenApiDescriptionResult
-
-
 class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   """Renders a description of the API using the OpenAPI Specification."""
 
   args_type = None
-  result_type = ApiGetOpenApiDescriptionResult
   proto_result_type = metadata_pb2.ApiGetOpenApiDescriptionResult
 
   def __init__(self, router: Any) -> None:
@@ -246,7 +221,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.router: Any = router
     # The JSON-serialized root `OpenAPI Object`.
     self.openapi_obj_json: Optional[str] = None
-    self.schema_objs: Optional[Dict[str, Schema]] = None
+    self.schema_objs: Optional[dict[str, Schema]] = None
 
   def _CreateEnumSchema(
       self,
@@ -289,7 +264,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateMessageSchema(
       self,
       descriptor: Descriptor,
-      visiting: Set[str],
+      visiting: set[str],
   ) -> None:
     """Creates the OpenAPI schema of a protobuf message.
 
@@ -332,7 +307,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateMapFieldSchema(
       self,
       field_descriptor: FieldDescriptor,
-      visiting: Set[str],
+      visiting: set[str],
   ) -> None:
     """Creates the OpenAPI schema of a `protobuf.map` field type.
 
@@ -384,7 +359,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     visiting.remove(type_name)
 
     self.schema_objs[type_name] = cast(
-        Dict[str, Union[str, SchemaReference]],
+        dict[str, Union[str, SchemaReference]],
         {
             "description": (
                 f'This is a map with real key type="{key_type_name}" '
@@ -398,7 +373,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateSchema(
       self,
       cls: Optional[TypeHinter],
-      visiting: Set[str],
+      visiting: set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
@@ -445,31 +420,40 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "nor an EnumDescriptor, nor a primitive type."
     )
 
-  def _CreateFlowSchemas(self, visiting: Set[str]) -> None:
+  def _CreateFlowSchemas(self, visiting: set[str]) -> None:
     """Creates OpenAPI schemas for flow args, progress, and result types."""
     # FLOW_REGISTRY depends on registry_init imports to be populated.
     for flow_cls in registry.FlowRegistry.FLOW_REGISTRY.values():
-      if flow_cls.args_type:
-        self._CreateSchema(flow_cls.args_type, visiting)
-      if flow_cls.progress_type:
-        self._CreateSchema(flow_cls.progress_type, visiting)
-      for result_type in flow_cls.result_types:
-        # Some Flows specify the base RDFValue class as catch all type. We
-        # cannot describe the RDFValue type itself, so we skip it here.
-        if result_type != rdfvalue.RDFValue:
-          self._CreateSchema(result_type, visiting)
+      if flow_cls.proto_args_type:
+        self._CreateSchema(flow_cls.proto_args_type.DESCRIPTOR, visiting)
+      if flow_cls.proto_progress_type:
+        self._CreateSchema(flow_cls.proto_progress_type.DESCRIPTOR, visiting)
+      if flow_cls.proto_store_type:
+        self._CreateSchema(flow_cls.proto_store_type.DESCRIPTOR, visiting)
+      for proto_result_type in flow_cls.proto_result_types:
+        self._CreateSchema(proto_result_type.DESCRIPTOR, visiting)
 
-  def _CreateRouterMethodSchemas(self, visiting: Set[str]) -> None:
+  def _CreateOutputPluginSchemas(self, visiting: set[str]) -> None:
+    """Creates OpenAPI schemas for output plugin args and result types."""
+    for plugin_cls in registry.OutputPluginRegistry.PLUGIN_REGISTRY.values():
+      if plugin_cls.proto_args_type:
+        self._CreateSchema(plugin_cls.proto_args_type.DESCRIPTOR, visiting)
+
+    for plugin_cls in output_plugin_registry.GetAllPlugins():
+      if plugin_cls.args_type:  # pytype: disable=unbound-type-param
+        self._CreateSchema(plugin_cls.args_type.DESCRIPTOR, visiting)
+
+  def _CreateRouterMethodSchemas(self, visiting: set[str]) -> None:
     """Creates OpenAPI schemas for router method args and result types."""
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for method_metadata in router_methods.values():
-      args_type = method_metadata.args_type
+      args_type = method_metadata.proto_args_type
       if args_type:
-        self._CreateSchema(args_type, visiting)
+        self._CreateSchema(args_type.DESCRIPTOR, visiting)
 
-      result_type = method_metadata.result_type
+      result_type = method_metadata.proto_result_type
       if result_type:
-        self._CreateSchema(result_type, visiting)
+        self._CreateSchema(result_type.DESCRIPTOR, visiting)
 
   def _CreateSchemas(self) -> None:
     """Creates OpenAPI schemas for all the used protobuf types."""
@@ -481,15 +465,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         for primitive_type in primitive_types.values()
     }
     self.schema_objs.update(
-        cast(Dict[str, Dict[str, str]], primitive_type_schemas)
+        cast(dict[str, dict[str, str]], primitive_type_schemas)
     )
     # Add the OpenAPI schemas of the statically described RDF types.
     self.schema_objs.update(rdf_type_schemas)
 
     # Holds state of type extraction (white/gray nodes).
-    visiting: Set[str] = set()
+    visiting: set[str] = set()
     self._CreateRouterMethodSchemas(visiting)
     self._CreateFlowSchemas(visiting)
+    self._CreateOutputPluginSchemas(visiting)
 
   def _GetDescribedSchema(
       self,
@@ -589,8 +574,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       required_path_params: Iterable[FieldDescriptor],
       optional_path_params: Iterable[FieldDescriptor],
       query_params: Iterable[FieldDescriptor],
-  ) -> List[
-      Dict[str, Union[str, bool, SchemaReference, ArraySchema, DescribedSchema]]
+  ) -> list[
+      dict[str, Union[str, bool, SchemaReference, ArraySchema, DescribedSchema]]
   ]:
     """Create the OpenAPI description of the parameters of a route."""
     parameters = []
@@ -617,12 +602,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _GetRequestBody(
       self,
       body_params: Iterable[FieldDescriptor],
-  ) -> Dict[str, Dict[str, Any]]:
+  ) -> dict[str, dict[str, Any]]:
     """Create the OpenAPI description of the request body of a route."""
     if not body_params:
       return {}
 
-    properties: Dict[
+    properties: dict[
         str, Union[SchemaReference, ArraySchema, DescribedSchema]
     ] = dict()
     for field_d in body_params:
@@ -642,46 +627,51 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetResponseObject200(
       self,
-      result_type: Union[rdf_structs.RDFProtoStruct, str],
+      is_streaming: bool,
+      result_type: Union[message.Message, str],
       router_method_name: str,
-  ) -> Dict[str, Union[str, Dict[str, Any]]]:
+  ) -> dict[str, Union[str, dict[str, Any]]]:
     """Create the OpenAPI description of a successful, 200 HTTP response."""
-    resp_success_obj: Dict[str, Union[str, Dict[str, Any]]] = dict()
+    resp_success_obj: dict[str, Union[str, dict[str, Any]]] = dict()
 
-    if result_type:
-      if isinstance(result_type, type) and issubclass(
-          result_type, rdf_structs.RDFProtoStruct
-      ):
-        result_type_name = _GetTypeName(
-            cast(rdf_structs.RDFProtoStruct, result_type).protobuf.DESCRIPTOR
-        )
-      else:
-        result_type_name = _GetTypeName(result_type)
-
-      resp_success_obj["description"] = (
-          f"The call to the {router_method_name} API method succeeded and it "
-          f"returned an instance of {result_type_name}."
-      )
-
-      media_obj = {"schema": _GetReferenceObject(result_type_name)}
-
-      content = dict()  # Needed to please mypy.
-      if result_type == "BinaryStream":
-        content["application/octet-stream"] = media_obj
-      else:
-        content["application/json"] = media_obj
-      resp_success_obj["content"] = content
-    else:
+    if not result_type and not is_streaming:
       resp_success_obj["description"] = (
           f"The call to the {router_method_name} API method succeeded."
       )
+      return resp_success_obj
+
+    if is_streaming:
+      result_type_name = "BinaryStream"
+    elif not result_type:
+      result_type_name = None.__class__.__name__
+    elif isinstance(result_type, type) and issubclass(
+        result_type, message.Message
+    ):
+      result_type_name = _GetTypeName(result_type.DESCRIPTOR)
+    else:
+      result_type_name = _GetTypeName(result_type)
+
+    resp_success_obj["description"] = (
+        f"The call to the {router_method_name} API method succeeded and it "
+        f"returned an instance of {result_type_name}."
+    )
+
+    media_obj = {"schema": _GetReferenceObject(result_type_name)}
+
+    content = dict()  # Needed to please mypy.
+    if is_streaming:
+      content["application/octet-stream"] = media_obj
+    else:
+      content["application/json"] = media_obj
+
+    resp_success_obj["content"] = content
 
     return resp_success_obj
 
   def _GetResponseObjectDefault(
       self,
       router_method_name: str,
-  ) -> Dict[str, str]:
+  ) -> dict[str, str]:
     """Create the OpenAPI description used by all undescribed HTTP responses."""
     resp_default_obj = {
         "description": (
@@ -699,7 +689,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return oas_version
 
-  def _GetInfo(self) -> Dict[str, Union[str, Dict[str, str]]]:
+  def _GetInfo(self) -> dict[str, Union[str, dict[str, str]]]:
     """Create the Info Object used by the `info` field."""
     version_dict = version.Version()
 
@@ -725,7 +715,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         ),
     }
 
-  def _GetServers(self) -> List[Dict[str, str]]:
+  def _GetServers(self) -> list[dict[str, str]]:
     """Create a list of `Server Object`s used by the `servers` field."""
     return [
         {
@@ -736,7 +726,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetComponents(
       self,
-  ) -> Dict[str, Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
+  ) -> dict[str, dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
     if self.schema_objs is None:  # Check required by mypy.
@@ -745,7 +735,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
         "schemas": cast(
-            Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
+            dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
             self.schema_objs,
         ),
     }
@@ -754,21 +744,19 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       http_method: str,
       path: str,
-      args_type: Type[rdf_structs.RDFProtoStruct],
-  ) -> Tuple[
-      List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
+      proto_args_type: Optional[TypeHinter],
+  ) -> tuple[
+      list[FieldDescriptor], list[FieldDescriptor], list[FieldDescriptor]
   ]:
     """Group `FieldDescriptors` of a protobuf message by http param types."""
     field_descriptors = []
-    if args_type:
+    if proto_args_type:
       if not (
-          inspect.isclass(args_type)
-          and issubclass(args_type, rdf_structs.RDFProtoStruct)
+          inspect.isclass(proto_args_type)
+          and issubclass(proto_args_type, message.Message)
       ):
-        raise TypeError(
-            "Router method args type is not a RDFProtoStruct subclass."
-        )
-      field_descriptors = args_type.protobuf.DESCRIPTOR.fields
+        raise TypeError("Router method args type is not a protobuf.")
+      field_descriptors = proto_args_type.DESCRIPTOR.fields
 
     # Separate fields into params: path, query and part of the request body.
     path_param_names = set(_GetPathParamsFromPath(path))
@@ -792,7 +780,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       optional_path_params: Iterable[FieldDescriptor],
       query_params: Iterable[FieldDescriptor],
       body_params: Iterable[FieldDescriptor],
-  ) -> Dict[str, Any]:
+  ) -> dict[str, Any]:
     """Create the OpenAPI `Operation Object` associated with the given args."""
 
     # The `Operation Object` associated with the current http method.
@@ -805,7 +793,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         ),
         "responses": {
             "200": self._GetResponseObject200(
-                router_method.result_type, router_method.name
+                router_method.is_streaming,
+                router_method.proto_result_type,
+                router_method.name,
             ),
             "default": self._GetResponseObjectDefault(router_method.name),
         },
@@ -816,18 +806,20 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return operation_obj
 
-  def _GetPaths(self) -> Dict[str, Dict[Any, Any]]:
+  def _GetPaths(self) -> dict[str, dict[Any, Any]]:
     """Create the OpenAPI description of all the routes exposed by the API."""
 
     # The `Paths Object` `paths` field of the root `OpenAPI Object`.
-    paths_obj: DefaultDict[str, Dict[Any, Any]] = collections.defaultdict(dict)
+    paths_obj: collections.defaultdict[str, dict[Any, Any]] = (
+        collections.defaultdict(dict)
+    )
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method in router_methods.values():
       # To extract optional path parameters, all the routes associated with this
       # router method must be analysed and grouped.
       ungrouped_routes = []
-      for http_method, path, _ in router_method.http_methods:
+      for http_method, path in router_method.http_methods:
         path_components = path.split("/")
         # Remove any empty strings from the list of path components.
         path_components = [comp for comp in path_components if comp]
@@ -845,7 +837,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         # Separate the route parameters into path params, query params and
         # request body params.
         path_params, query_params, body_params = self._SeparateFieldsIntoParams(
-            http_method, path, router_method.args_type
+            http_method, path, router_method.proto_args_type
         )
 
         # Separate the path params into required and optional path params.
@@ -950,7 +942,7 @@ def _NormalizePath(path: str) -> str:
   return normalized_path
 
 
-def _GetPathParamsFromPath(path: str) -> List[str]:
+def _GetPathParamsFromPath(path: str) -> list[str]:
   """Extract path parameters from a Werkzeug Rule URL."""
   path_params = []
 
@@ -1119,10 +1111,10 @@ def _CompareComponentCollections(
 class UngroupedRoute:
   """A class for storing routes and their state during route grouping."""
 
-  route: List[str]
+  route: list[str]
   processed: bool
 
-  def __init__(self, route: List[str], processed: bool):
+  def __init__(self, route: list[str], processed: bool):
     self.route = route
     self.processed = processed
 
@@ -1133,8 +1125,8 @@ def _IsPathParameter(comp: str) -> bool:
 
 
 def _IsExtension(
-    longer_route: List[str],
-    shorter_route: List[str],
+    longer_route: list[str],
+    shorter_route: list[str],
 ) -> bool:
   """Verifies whether a route extends another by exactly one path parameter.
 
@@ -1171,12 +1163,12 @@ def _IsExtension(
   return True
 
 
-def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> Set[str]:
+def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> set[str]:
   """Extract the components that represent Werkzeug path parameters."""
   return set(filter(_IsPathParameter, route_comps))
 
 
-def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
+def _GetGroupedRoutes(routes: list[list[str]]) -> list[RouteInfo]:
   """Get a list of routes and their required and optional path parameters.
 
   This function sorts the routes in lexicographic order, then iterates through

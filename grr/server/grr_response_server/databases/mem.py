@@ -2,9 +2,10 @@
 """An in memory database implementation used for testing."""
 
 import collections
+from collections.abc import Callable
 import sys
 import threading
-from typing import Any, Callable
+from typing import Any
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

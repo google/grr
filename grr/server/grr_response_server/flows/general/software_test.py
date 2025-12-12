@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+from collections.abc import Iterator
 import datetime
 import hashlib
-from typing import Iterator
 
 from absl.testing import absltest
 

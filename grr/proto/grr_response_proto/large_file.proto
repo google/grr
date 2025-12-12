@@ -95,3 +95,8 @@ message CollectLargeFileFlowResult {
 message CollectLargeFileFlowProgress {
   optional string session_uri = 1;
 }
+
+message CollectLargeFileFlowStore {
+  optional bytes encryption_key = 1;
+  optional string session_uri = 2;
+}

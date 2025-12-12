@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The InMemoryDB database methods for signed command handling."""
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from grr_response_core.lib import utils
 from grr_response_proto import signed_commands_pb2
@@ -50,7 +50,7 @@ class InMemoryDBSignedCommandsMixin:
     """Reads signed command from the database."""
     stored_command = self.signed_commands.get((id_, operating_system))
     if not stored_command:
-      raise db.NotFoundError()
+      raise db.UnknownSignedCommandError(id_, operating_system)
 
     command = signed_commands_pb2.SignedCommand()
     command.ParseFromString(stored_command)

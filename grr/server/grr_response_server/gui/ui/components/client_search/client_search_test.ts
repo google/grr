@@ -1,81 +1,87 @@
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Location} from '@angular/common';
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
-import {By} from '@angular/platform-browser';
+import {signal} from '@angular/core';
+import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router, RouterLink, RouterModule} from '@angular/router';
+import {Router, RouterModule} from '@angular/router';
 
-import {ApiModule} from '../../lib/api/module';
-import {newClient} from '../../lib/models/model_test_util';
-import {ClientSearchLocalStore} from '../../store/client_search_local_store';
+import {HttpApiWithTranslationService} from '../../lib/api/http_api_with_translation_service';
+import {mockHttpApiWithTranslationService} from '../../lib/api/http_api_with_translation_test_util';
+import {newClient, newClientApproval} from '../../lib/models/model_test_util';
+import {ClientSearchStore} from '../../store/client_search_store';
 import {
-  ClientSearchLocalStoreMock,
-  mockClientSearchLocalStore,
-} from '../../store/client_search_local_store_test_util';
-import {STORE_PROVIDERS} from '../../store/store_test_providers';
+  ClientSearchStoreMock,
+  newClientSearchStoreMock,
+} from '../../store/store_test_util';
 import {initTestEnvironment} from '../../testing';
 import {CLIENT_ROUTES} from '../app/routing';
-
 import {ClientSearch} from './client_search';
-import {ClientSearchModule} from './module';
+import {ClientSearchHarness} from './testing/client_search_harness';
 
 initTestEnvironment();
 
-function htmlCollectionToList(c: HTMLCollection): Element[] {
-  const result: Element[] = [];
-  for (let i = 0; i < c.length; ++i) {
-    const item = c.item(i);
-    if (item) {
-      result.push(item);
-    }
-  }
+async function createComponent() {
+  const fixture = TestBed.createComponent(ClientSearch);
 
-  return result;
+  fixture.detectChanges();
+  const harness = await TestbedHarnessEnvironment.harnessForFixture(
+    fixture,
+    ClientSearchHarness,
+  );
+
+  return {fixture, harness};
 }
 
-describe('ClientSearch Component', () => {
-  let store: ClientSearchLocalStoreMock;
+describe('Client Search Component', () => {
+  let clientSearchStoreMock: ClientSearchStoreMock;
 
   beforeEach(waitForAsync(() => {
+    clientSearchStoreMock = newClientSearchStoreMock();
+
     TestBed.configureTestingModule({
       imports: [
         NoopAnimationsModule,
-        ApiModule,
-        ClientSearchModule,
-        RouterModule.forRoot(CLIENT_ROUTES),
+        ClientSearch,
+        RouterModule.forRoot(CLIENT_ROUTES, {
+          bindToComponentInputs: true,
+        }),
       ],
       providers: [
-        ...STORE_PROVIDERS,
         {
-          provide: ClientSearchLocalStore,
-          useFactory: () => store,
+          provide: HttpApiWithTranslationService,
+          useValue: mockHttpApiWithTranslationService(),
         },
       ],
-      teardown: {destroyAfterEach: false},
-    }).compileComponents();
-
-    store = mockClientSearchLocalStore();
+    })
+      .overrideComponent(ClientSearch, {
+        set: {
+          providers: [
+            {
+              provide: ClientSearchStore,
+              useValue: clientSearchStoreMock,
+            },
+          ],
+        },
+      })
+      .compileComponents();
   }));
 
-  it('triggers a new search on route change', async () => {
-    const fixture = TestBed.createComponent(ClientSearch);
-    // Ensure ngOnInit hook completes.
-    fixture.detectChanges();
+  it('is created', async () => {
+    const {fixture} = await createComponent();
 
-    await TestBed.inject(Router).navigate([], {queryParams: {q: 'foo'}});
-    fixture.detectChanges();
-
-    expect(store.searchClients).toHaveBeenCalledWith('foo');
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('displays a list of clients on clients change', () => {
-    const fixture = TestBed.createComponent(ClientSearch);
-    // Ensure ngOnInit hook completes.
-    fixture.detectChanges();
+  it('calls store to fetch recent clients', fakeAsync(async () => {
+    await createComponent();
 
-    // Simulate initial emission on subscription.
-    store.mockedObservables.clients$.next([]);
+    expect(
+      clientSearchStoreMock.fetchRecentClientApprovals,
+    ).toHaveBeenCalledTimes(1);
+  }));
 
-    store.mockedObservables.clients$.next([
+  it('displays the list of clients from the store', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
       newClient({
         clientId: 'C.1234',
         knowledgeBase: {
@@ -90,96 +96,303 @@ describe('ClientSearch Component', () => {
           fqdn: 'bar.unknown',
           users: [{username: 'baruser'}],
         },
-        labels: [{name: 'barlabel', owner: ''}],
+        labels: [
+          {name: 'barlabel', owner: ''},
+          {name: 'barlabel2', owner: 'baruser'},
+        ],
       }),
     ]);
-    fixture.detectChanges();
+    const {harness} = await createComponent();
 
-    // Using nativeElement here instead of queryAll, since queryAll does
-    // not go into child components DOM (in this case we're interested in
-    // what's inside MatTable).
-    const de: HTMLElement = fixture.debugElement.nativeElement;
-    const rows = de.getElementsByTagName('tr');
-    // First row is the header, two others are data.
-    expect(rows.length).toBe(3);
-    // Check the first data row.
-    expect(
-      htmlCollectionToList(rows[1].getElementsByTagName('td')).map(
-        (e: Element) => (e as HTMLElement).innerText,
-      ),
-    ).toEqual([
-      'C.1234',
-      'foo.unknown',
-      'foouser + 1',
-      '',
-      jasmine.stringMatching('Offline'),
-      jasmine.stringMatching('2019-10-23 00:19:56 UTC'),
+    const rows = await harness.getRows();
+    expect(rows.length).toBe(2);
+    expect(await harness.getCellText(0, 'fqdn')).toBe('foo.unknown');
+    expect(await harness.getCellText(0, 'users')).toBe('foouser + 1');
+    expect(await harness.getCellText(0, 'online')).toContain('Offline');
+    expect(await harness.getCellText(0, 'lastSeenAt')).toContain(
+      '2019-10-23 00:19:56 UTC',
+    );
+    expect(await harness.getCellText(1, 'fqdn')).toBe('bar.unknown');
+    expect(await harness.getCellText(1, 'users')).toBe('baruser');
+    expect(await harness.getCellText(1, 'labels')).toContain('barlabel');
+    expect(await harness.getCellText(1, 'labels')).toContain('barlabel2');
+    expect(await harness.getCellText(1, 'online')).toBe('');
+    expect(await harness.getCellText(1, 'lastSeenAt')).toBe('');
+  }));
+
+  it('can sort by client id', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+      }),
+      newClient({
+        clientId: 'C.5678',
+      }),
     ]);
-    expect(rows[1].hasAttribute('ng-reflect-query-params')).toBeFalse();
-    // Check the second data row.
-    expect(
-      htmlCollectionToList(rows[2].getElementsByTagName('td')).map(
-        (e: Element) => (e as HTMLElement).innerText,
-      ),
-    ).toEqual(['C.5678', 'bar.unknown', 'baruser', 'barlabel', '', '']);
-    expect(rows[2].hasAttribute('ng-reflect-query-params')).toBeFalse();
-  });
+    const {harness} = await createComponent();
 
-  it('includes the reason url param in client urls', async () => {
-    const fixture = TestBed.createComponent(ClientSearch);
-    // Ensure ngOnInit hook completes.
-    fixture.detectChanges();
+    const sort = await harness.getTableSort();
+    const clientIdHeader = await sort.getSortHeaders({label: 'Client ID'});
+    await clientIdHeader[0].click();
 
-    // Simulate initial emission on subscription.
-    store.mockedObservables.clients$.next([]);
+    expect(await clientIdHeader[0].getSortDirection()).toBe('asc');
+    expect(await harness.getRows()).toHaveSize(2);
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
+    expect(await harness.getCellText(1, 'clientId')).toContain('C.5678');
+  }));
 
-    store.mockedObservables.clients$.next([
+  it('can sort by fqdn', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
       newClient({
         clientId: 'C.1234',
         knowledgeBase: {
-          fqdn: 'foo.unknown',
+          fqdn: 'b.unknown',
         },
-        lastSeenAt: new Date(1571789996678),
+      }),
+      newClient({
+        clientId: 'C.5678',
+        knowledgeBase: {
+          fqdn: 'a.unknown',
+        },
       }),
     ]);
-    fixture.detectChanges();
-    await TestBed.inject(Router).navigate([], {
-      queryParams: {reason: 'foo/t/123'},
-    });
+    const {harness} = await createComponent();
 
-    fixture.detectChanges();
+    const sort = await harness.getTableSort();
+    const fqdnHeader = await sort.getSortHeaders({label: 'FQDN'});
+    await fqdnHeader[0].click();
 
-    // Traverse the levels in the DOM tree manually since we can't use
-    // queryAll to query the childComponent here.
-    const matTable = fixture.debugElement.query(By.css('table'));
-    const matTableBody = matTable.children[1];
-    const dataRow = matTableBody.children[0];
-    expect(dataRow.injector.get(RouterLink).queryParams).toEqual({
-      reason: 'foo/t/123',
-    });
-  });
-
-  it('changes the route when query is submitted', fakeAsync(() => {
-    const fixture = TestBed.createComponent(ClientSearch);
-    const componentInstance = fixture.componentInstance;
-    componentInstance.onQuerySubmitted('foo');
-    tick();
-
-    const location = TestBed.inject(Location);
-    expect(location.path()).toEqual('/clients?q=foo');
+    expect(await fqdnHeader[0].getSortDirection()).toBe('asc');
+    expect(await harness.getRows()).toHaveSize(2);
+    expect(await harness.getCellText(0, 'fqdn')).toBe('a.unknown');
+    expect(await harness.getCellText(1, 'fqdn')).toBe('b.unknown');
   }));
 
-  it('preserves reason in the route when a new query is submitted', fakeAsync(async () => {
-    await TestBed.inject(Router).navigate([], {
-      queryParams: {'q': 'foo', 'reason': 'testreason'},
-    });
+  it('can sort by last seen at', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        lastSeenAt: new Date(111111),
+      }),
+      newClient({
+        clientId: 'C.2345',
+        lastSeenAt: new Date(333333),
+      }),
+      newClient({
+        clientId: 'C.3456',
+        lastSeenAt: new Date(222222),
+      }),
+    ]);
+    const {harness} = await createComponent();
 
-    const fixture = TestBed.createComponent(ClientSearch);
-    const componentInstance = fixture.componentInstance;
-    await componentInstance.onQuerySubmitted('bar');
-    tick();
+    const sort = await harness.getTableSort();
+    const lastSeenAtHeader = await sort.getSortHeaders({label: 'Last seen'});
+    await lastSeenAtHeader[0].click();
+
+    expect(await lastSeenAtHeader[0].getSortDirection()).toBe('asc');
+    expect(await harness.getRows()).toHaveSize(3);
+    expect(await harness.getCellText(0, 'lastSeenAt')).toContain(
+      '1970-01-01 00:01:51 UTC',
+    );
+    expect(await harness.getCellText(1, 'lastSeenAt')).toContain(
+      '1970-01-01 00:03:42 UTC',
+    );
+    expect(await harness.getCellText(2, 'lastSeenAt')).toContain(
+      '1970-01-01 00:05:33 UTC',
+    );
+  }));
+
+  it('can filter by client id', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+      }),
+      newClient({
+        clientId: 'C.5678',
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = 'C.1234';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
+  }));
+
+  it('can filter by fqdn', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        knowledgeBase: {
+          fqdn: 'b.fqdn',
+        },
+      }),
+      newClient({
+        clientId: 'C.5678',
+        knowledgeBase: {
+          fqdn: 'a.fqdn',
+        },
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = 'a.fqdn';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'fqdn')).toBe('a.fqdn');
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.5678');
+  }));
+
+  it('can filter by users', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        knowledgeBase: {
+          users: [{username: 'foouser'}, {username: 'admin'}],
+        },
+      }),
+      newClient({
+        clientId: 'C.5678',
+        knowledgeBase: {
+          users: [{username: 'baruser'}],
+        },
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = 'baruser';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'users')).toBe('baruser');
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.5678');
+  }));
+
+  it('can filter by labels', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        labels: [
+          {name: 'barlabel', owner: ''},
+          {name: 'barlabel2', owner: 'baruser'},
+        ],
+      }),
+      newClient({
+        clientId: 'C.5678',
+        labels: [{name: 'foolabel', owner: ''}],
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = 'barlabel';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'labels')).toContain('barlabel');
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
+  }));
+
+  it('can filter by last seen at by milliseconds since epoch', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        lastSeenAt: new Date(111111), // 1970-01-01 00:01:51 UTC
+      }),
+      newClient({
+        clientId: 'C.5678',
+        lastSeenAt: new Date(222222), // 1970-01-01 00:03:42 UTC
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = '111111';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'lastSeenAt')).toContain(
+      '1970-01-01 00:01:51 UTC',
+    );
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
+  }));
+
+  it('can filter by last seen at by UTC string date', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+        lastSeenAt: new Date(111111), // 1970-01-01 00:01:51 UTC
+      }),
+      newClient({
+        clientId: 'C.5678',
+        lastSeenAt: new Date(222222), // 1970-01-01 00:03:42 UTC
+      }),
+    ]);
+    const {harness, fixture} = await createComponent();
+
+    fixture.componentInstance.dataSource.filter = '1 Jan 1970 00:01:51';
+
+    expect(await harness.getRows()).toHaveSize(1);
+    expect(await harness.getCellText(0, 'lastSeenAt')).toContain(
+      '1970-01-01 00:01:51 UTC',
+    );
+    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
+  }));
+
+  it('shows no results message in search table when there are no results', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([]);
+    const {harness} = await createComponent();
+
+    const table = await harness.table();
+    expect(await (await table.host()).text()).toContain(
+      'No search results found.',
+    );
+  }));
+
+  it('displays recent approvals', fakeAsync(async () => {
+    clientSearchStoreMock.recentApprovals = signal([
+      newClientApproval({}),
+      newClientApproval({}),
+    ]);
+    const {harness} = await createComponent();
+
+    expect(await harness.recentApprovals()).toHaveSize(2);
+  }));
+
+  it('links to the client flows list when the approval reason is not set', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+      }),
+    ]);
+    await TestBed.inject(Router).navigate([], {
+      queryParams: {},
+    });
+    const {harness} = await createComponent();
+
+    // The fqdn cell has no copy-button, so the click should open the client
+    // page.
+    const fqdnCell = await harness.getCell(0, 'fqdn');
+    await (await fqdnCell.host()).click();
 
     const location = TestBed.inject(Location);
-    expect(location.path()).toEqual('/clients?q=bar&reason=testreason');
+    expect(location.path()).toEqual('/clients/C.1234/flows');
+  }));
+
+  it('links to the client approvals when the approval reason is set and keeps the reason in the URL', fakeAsync(async () => {
+    clientSearchStoreMock.clients = signal([
+      newClient({
+        clientId: 'C.1234',
+      }),
+    ]);
+    await TestBed.inject(Router).navigate([], {
+      queryParams: {'reason': 'testreason'},
+    });
+    const {harness} = await createComponent();
+
+    // The fqdn cell has no copy-button, so the click should open the client
+    // page.
+    const fqdnCell = await harness.getCell(0, 'fqdn');
+    await (await fqdnCell.host()).click();
+
+    const location = TestBed.inject(Location);
+    expect(location.path()).toEqual(
+      '/clients/C.1234/approvals?reason=testreason',
+    );
   }));
 });
