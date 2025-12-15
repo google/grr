@@ -1,0 +1,64 @@
+@use '../../material-theme' as c;
+@use '@angular/material' as mat;
+
+:host {
+  background-color: transparent;
+
+  @include mat.badge-overrides(
+    (
+      background-color: var(--mat-sys-primary),
+      text-color: var(--mat-sys-on-primary),
+    )
+  );
+
+  @include mat.chips-overrides(
+    (
+      flat-selected-outline-width: 0.5,
+    )
+  );
+}
+
+.not-started-icon {
+  @include mat.chips-overrides(
+    (
+      with-icon-icon-color: c.$color-neutral,
+      outline-color: c.$color-neutral,
+    )
+  );
+}
+
+.running-icon {
+  @include mat.chips-overrides(
+    (
+      with-icon-icon-color: c.$color-progress,
+      outline-color: c.$color-progress,
+    )
+  );
+}
+
+.paused-icon {
+  @include mat.chips-overrides(
+    (
+      with-icon-icon-color: c.$color-warn,
+      outline-color: c.$color-warn,
+    )
+  );
+}
+
+.completed-icon {
+  @include mat.chips-overrides(
+    (
+      with-icon-icon-color: c.$color-success,
+      outline-color: c.$color-success,
+    )
+  );
+}
+
+.cancelled-icon {
+  @include mat.chips-overrides(
+    (
+      with-icon-icon-color: c.$color-danger,
+      outline-color: c.$color-danger,
+    )
+  );
+}

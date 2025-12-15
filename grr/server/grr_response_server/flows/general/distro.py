@@ -14,9 +14,9 @@ from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.models import blobs as models_blobs
-from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 
 
@@ -45,63 +45,34 @@ class CollectDistroInfo(flow_base.FlowBase):
       raise flow_base.FlowError(f"Unsupported system: {self.client_os}")
 
     if self.rrg_support:
-      args = rrg_get_file_contents_pb2.Args()
+      action = rrg_stubs.GetFileContents()
+      # TODO: Use a single RRG call for collecting these (this is
+      # now possible since https://github.com/google/rrg/pull/128).
+      action.args.paths.add()
 
-      args.path.raw_bytes = "/etc/enterprise-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGEnterpriseRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/enterprise-release".encode("utf-8")
+      action.Call(self._ProcessRRGEnterpriseRelease)
 
-      args.path.raw_bytes = "/etc/oracle-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGOracleRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/oracle-release".encode("utf-8")
+      action.Call(self._ProcessRRGOracleRelease)
 
-      args.path.raw_bytes = "/etc/redhat-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGRedHatRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/redhat-release".encode("utf-8")
+      action.Call(self._ProcessRRGRedHatRelease)
 
-      args.path.raw_bytes = "/etc/rocky-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGRockyRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/rocky-release".encode("utf-8")
+      action.Call(self._ProcessRRGRockyRelease)
 
-      args.path.raw_bytes = "/etc/system-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGSystemRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/system-release".encode("utf-8")
+      action.Call(self._ProcessRRGSystemRelease)
 
-      args.path.raw_bytes = "/etc/lsb-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGLSBRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/lsb-release".encode("utf-8")
+      action.Call(self._ProcessRRGLSBRelease)
 
-      args.path.raw_bytes = "/etc/os-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGOSRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/etc/os-release".encode("utf-8")
+      action.Call(self._ProcessRRGOSRelease)
 
-      args.path.raw_bytes = "/usr/lib/os-release".encode("utf-8")
-      self.CallRRG(
-          rrg_pb2.Action.GET_FILE_CONTENTS,
-          args,
-          next_state=self._ProcessRRGOSRelease.__name__,
-      )
+      action.args.paths[0].raw_bytes = "/usr/lib/os-release".encode("utf-8")
+      action.Call(self._ProcessRRGOSRelease)
 
       return
 
@@ -136,6 +107,13 @@ class CollectDistroInfo(flow_base.FlowBase):
     if not responses.success:
       return
 
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
+
     self.Log("Received content from `/etc/lsb-release`")
 
     content = _GetFileContentResponsesToContent(responses)
@@ -148,6 +126,13 @@ class CollectDistroInfo(flow_base.FlowBase):
   ) -> None:
     if not responses.success:
       return
+
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
 
     self.Log("Received content from `/etc/system-release`")
 
@@ -162,6 +147,13 @@ class CollectDistroInfo(flow_base.FlowBase):
   ) -> None:
     if not responses.success:
       return
+
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
 
     self.Log("Received content from `/etc/oracle-release`")
 
@@ -179,6 +171,13 @@ class CollectDistroInfo(flow_base.FlowBase):
     if not responses.success:
       return
 
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
+
     self.Log("Received content from `/etc/enterprise-release`")
 
     if not self.store.result.name:
@@ -194,6 +193,13 @@ class CollectDistroInfo(flow_base.FlowBase):
   ) -> None:
     if not responses.success:
       return
+
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
 
     self.Log("Received content from `/etc/rocky-release`")
 
@@ -211,6 +217,13 @@ class CollectDistroInfo(flow_base.FlowBase):
     if not responses.success:
       return
 
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
+
     self.Log("Received content from `/etc/redhat-release`")
 
     if not self.store.result.name:
@@ -226,6 +239,13 @@ class CollectDistroInfo(flow_base.FlowBase):
   ) -> None:
     if not responses.success:
       return
+
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      if result.error:
+        return
 
     self.Log("Received content from systemd `os-release` file")
 

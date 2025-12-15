@@ -1,319 +1,154 @@
-import {DebugElement} from '@angular/core';
-import {
-  ComponentFixture,
-  discardPeriodicTasks,
-  fakeAsync,
-  flush,
-  TestBed,
-  waitForAsync,
-} from '@angular/core/testing';
-import {By} from '@angular/platform-browser';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router} from '@angular/router';
+import {Router, RouterModule} from '@angular/router';
 
-import {HttpApiService} from '../../lib/api/http_api_service';
-import {mockHttpApiService} from '../../lib/api/http_api_service_test_util';
-import {
-  MetricsService,
-  UiRedirectDirection,
-  UiRedirectSource,
-} from '../../lib/service/metrics_service/metrics_service';
-import {STORE_PROVIDERS} from '../../store/store_test_providers';
-
+import {HttpApiWithTranslationService} from '../../lib/api/http_api_with_translation_service';
+import {mockHttpApiWithTranslationService} from '../../lib/api/http_api_with_translation_test_util';
+import {LoadingService} from '../../lib/service/loading_service/loading_service';
+import {GlobalStore} from '../../store/global_store';
+import {GlobalStoreMock, newGlobalStoreMock} from '../../store/store_test_util';
+import {initTestEnvironment} from '../../testing';
 import {App} from './app';
-import {AppModule} from './app_module';
+import {APP_ROUTES} from './routing';
+import {AppHarness} from './testing/app_harness';
 
-function getNavTab<Component>(
-  fixture: ComponentFixture<Component>,
-  route: string,
-): DebugElement | undefined {
-  const navTabs = fixture.debugElement.queryAll(
-    By.css(`nav.app-navigation
-  a`),
+initTestEnvironment();
+
+async function createComponent() {
+  const fixture = TestBed.createComponent(App);
+  fixture.detectChanges();
+  const harness = await TestbedHarnessEnvironment.harnessForFixture(
+    fixture,
+    AppHarness,
   );
 
-  return navTabs.find((item) => item.nativeElement.href.endsWith(route));
+  return {fixture, harness};
 }
 
 describe('App Component', () => {
-  let metricsService: Partial<MetricsService>;
+  let loadingService: LoadingService;
+  let globalStoreMock: GlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    metricsService = {
-      registerUIRedirect: jasmine.createSpy('registerUIRedirect'),
-    };
+    loadingService = new LoadingService();
+    globalStoreMock = newGlobalStoreMock();
 
     TestBed.configureTestingModule({
-      imports: [AppModule, NoopAnimationsModule],
+      imports: [
+        App,
+        NoopAnimationsModule,
+        RouterModule.forRoot(APP_ROUTES, {bindToComponentInputs: true}),
+      ],
       providers: [
-        ...STORE_PROVIDERS,
-        {provide: HttpApiService, useFactory: () => mockHttpApiService()},
+        {
+          provide: HttpApiWithTranslationService,
+          useValue: mockHttpApiWithTranslationService(),
+        },
+        {
+          provide: LoadingService,
+          useValue: loadingService,
+        },
       ],
     })
-      .overrideProvider(MetricsService, {useFactory: () => metricsService})
+      .overrideComponent(App, {
+        set: {
+          providers: [
+            {
+              provide: GlobalStore,
+              useValue: globalStoreMock,
+            },
+          ],
+        },
+      })
       .compileComponents();
   }));
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const componentInstance = fixture.componentInstance;
-    expect(componentInstance).toBeTruthy();
+  it('should be created', async () => {
+    const {fixture} = await createComponent();
+
+    expect(fixture.componentInstance).toBeTruthy();
+    expect(fixture.componentInstance).toBeInstanceOf(App);
   });
 
-  it('should link to the old ui', fakeAsync(async () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
+  it('should initialize global store', async () => {
+    await createComponent();
 
-    await TestBed.inject(Router).navigate(['/clients/C.123']);
-    flush();
-    fixture.detectChanges();
+    expect(globalStoreMock.initialize).toHaveBeenCalled();
+  });
 
-    const fallbackLink = fixture.debugElement.query(By.css('#fallback-link'));
-    expect(fallbackLink.nativeElement.href).toContain('#/clients/C.123');
+  it('should show user menu', async () => {
+    const {harness} = await createComponent();
 
-    discardPeriodicTasks();
-  }));
+    const userMenu = await harness.userMenu();
+    expect(userMenu).toBeDefined();
+  });
 
-  it('button click handler calls metrics service', fakeAsync(async () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
+  it('should show loading bar only when loading', async () => {
+    const {harness} = await createComponent();
 
-    // We avoid clicking the link so the window will not reload during the
-    // test execution.
-    fixture.componentInstance.registerRedirect();
+    expect(await harness.isProgressBarVisible()).toBeFalse();
 
-    expect(metricsService.registerUIRedirect).toHaveBeenCalledWith(
-      UiRedirectDirection.NEW_TO_OLD,
-      UiRedirectSource.REDIRECT_BUTTON,
-    );
+    loadingService.updateLoadingUrls('/foo', true);
+    expect(await harness.isProgressBarVisible()).toBeTrue();
 
-    discardPeriodicTasks();
-  }));
+    loadingService.updateLoadingUrls('/foo', false);
+    expect(await harness.isProgressBarVisible()).toBeFalse();
+  });
 
-  describe('Navigation tabs', () => {
-    it('should point to right pages', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
+  describe('navigation tabs', () => {
+    it('should open clients page when clicking clients tab', fakeAsync(async () => {
+      const {harness} = await createComponent();
 
       await TestBed.inject(Router).navigate(['/']);
-      fixture.detectChanges();
 
-      flush();
-      fixture.detectChanges();
+      const tabBar = await harness.tabBar();
+      await tabBar.clickLink({label: 'Collect from client'});
 
-      const navLinks = fixture.debugElement.queryAll(
-        By.css('nav.app-navigation a'),
-      );
-      expect(navLinks.length).toBe(2);
-      expect(navLinks[0].nativeElement.href).toMatch(/.*\/$/); // ends in `/`
-      expect(navLinks[1].nativeElement.href).toMatch(/.*\/hunts$/); // ends in `/hunts`
-
-      discardPeriodicTasks();
+      expect(await TestBed.inject(Router).url).toBe('/clients');
     }));
 
-    it('navbar should redirect to right pages', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
+    it('should open fleet collections page when clicking fleet collections tab', fakeAsync(async () => {
+      const {harness} = await createComponent();
 
       await TestBed.inject(Router).navigate(['/']);
-      flush();
-      fixture.detectChanges();
 
-      const navLinks = fixture.debugElement.queryAll(
-        By.css('nav.app-navigation a'),
-      );
-      expect(navLinks.length).toBe(2);
-      expect(navLinks[0].nativeElement.href).toMatch(/.*\/$/); // ends in `/`
+      const tabBar = await harness.tabBar();
+      await tabBar.clickLink({
+        label: 'Collect from fleet',
+      });
 
-      expect(navLinks[0].attributes['class']).toContain('mdc-tab--active');
-      expect(navLinks[1].attributes['class']).not.toContain('mdc-tab--active');
-
-      expect(navLinks[1].nativeElement.href).toMatch(/.*\/hunts$/); // ends in `/hunts`
-      navLinks[1].nativeElement.click();
-      flush();
-      fixture.detectChanges();
-
-      expect(navLinks[0].attributes['class']).not.toContain('mdc-tab--active');
-      expect(navLinks[1].attributes['class']).toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-    }));
-
-    it('show correct active/inactive state when navigating to "/"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      await TestBed.inject(Router).navigate(['/']);
-      flush();
-      fixture.detectChanges();
-
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).not.toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-
-      /* We need to flush due to getting the following error otherwise:
-
-         `Error: 1 timer(s) still in the queue`
-
-         This happens due to MatFormFieldFloatingLabel running the following:
-
-         `setTimeout(() => this._parent._handleLabelResized());`
-
-         When SearchBoxComponent component gets rendered, as we autofocus the
-         Input HTML element through FlowArgumentForm Component.
-         */
-      flush();
+      expect(await TestBed.inject(Router).url).toBe('/fleet-collections');
     }));
 
     it('show correct active/inactive state when navigating to "/clients"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
+      const {harness} = await createComponent();
 
       await TestBed.inject(Router).navigate(['/clients']);
-      flush();
-      fixture.detectChanges();
 
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).not.toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
+      const tabBar = await harness.tabBar();
+      const activeLink = await tabBar.getActiveLink();
+      expect(await activeLink.getLabel()).toBe('Collect from client');
     }));
 
-    it('show correct active/inactive state when navigating to "/clients/C.1234"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
+    it('show correct active/inactive state when navigating to "/fleet-collections"', fakeAsync(async () => {
+      const {harness} = await createComponent();
 
-      await TestBed.inject(Router).navigate(['/clients/C.1234']);
-      flush();
-      fixture.detectChanges();
+      await TestBed.inject(Router).navigate(['/fleet-collections']);
 
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).not.toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
+      const tabBar = await harness.tabBar();
+      const activeLink = await tabBar.getActiveLink();
+      expect(await activeLink.getLabel()).toBe('Collect from fleet');
     }));
 
-    it('show correct active/inactive state when navigating to "/hunts"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
+    it('show correct active/inactive state when navigating to "/new-fleet-collection"', fakeAsync(async () => {
+      const {harness} = await createComponent();
 
-      await TestBed.inject(Router).navigate(['/hunts']);
-      flush();
-      fixture.detectChanges();
+      await TestBed.inject(Router).navigate(['/new-fleet-collection']);
 
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).not.toContain(
-        'mdc-tab--active',
-      );
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-    }));
-
-    it('show correct active/inactive state when navigating to "/hunts/123ABCD4"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      await TestBed.inject(Router).navigate(['/hunts/1234ABCD']);
-      flush();
-      fixture.detectChanges();
-
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).not.toContain(
-        'mdc-tab--active',
-      );
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-    }));
-
-    it('show correct active/inactive state when navigating to "/new-hunt"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      await TestBed.inject(Router).navigate(['/new-hunt']);
-      flush();
-      fixture.detectChanges();
-
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).not.toContain(
-        'mdc-tab--active',
-      );
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-    }));
-
-    it('show correct active/inactive state when navigating to "/new-hunt?clientId=C.1&flowId=123ABCD4"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      await TestBed.inject(Router).navigate([
-        '/new-hunt?clientId=C.1&flowId=123ABCD4',
-      ]);
-      flush();
-      fixture.detectChanges();
-
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).not.toContain(
-        'mdc-tab--active',
-      );
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
-    }));
-
-    it('show correct active/inactive state when navigating to "/approvals"', fakeAsync(async () => {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      await TestBed.inject(Router).navigate(['/approvals']);
-      flush();
-      fixture.detectChanges();
-
-      const clientsNavTab = getNavTab(fixture, '/');
-      expect(clientsNavTab).toBeDefined();
-      expect(clientsNavTab!.attributes['class']).not.toContain(
-        'mdc-tab--active',
-      );
-
-      const huntsNavTab = getNavTab(fixture, '/hunts');
-      expect(huntsNavTab).toBeDefined();
-      expect(huntsNavTab!.attributes['class']).not.toContain('mdc-tab--active');
-
-      discardPeriodicTasks();
+      const tabBar = await harness.tabBar();
+      const activeLink = await tabBar.getActiveLink();
+      expect(await activeLink.getLabel()).toBe('Collect from fleet');
     }));
   });
 });

@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 """The in memory database methods for path handling."""
 
-from typing import Any
-from typing import Collection
-from typing import Dict
-from typing import Iterable
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from collections.abc import Collection, Iterable, Sequence
+from typing import Any, Optional, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -31,7 +25,7 @@ class _PathRecord:
   def __init__(
       self,
       path_type: objects_pb2.PathInfo.PathType,
-      components: Tuple[str, ...],
+      components: tuple[str, ...],
   ):
     self._path_type: objects_pb2.PathInfo.PathType = path_type
     self._components = components
@@ -55,10 +49,10 @@ class _PathRecord:
         if pi.HasField("hash_entry")
     }
 
-  def GetStatEntries(self) -> Iterable[Tuple[int, jobs_pb2.StatEntry]]:
+  def GetStatEntries(self) -> Iterable[tuple[int, jobs_pb2.StatEntry]]:
     return self._stat_entries.items()
 
-  def GetHashEntries(self) -> Iterable[Tuple[int, jobs_pb2.Hash]]:
+  def GetHashEntries(self) -> Iterable[tuple[int, jobs_pb2.Hash]]:
     return self._hash_entries.items()
 
   def AddPathInfo(self, path_info: objects_pb2.PathInfo) -> None:
@@ -160,7 +154,7 @@ class InMemoryDBPathMixin(object):
 
   # Maps (client_id, path_type, components) to a path record.
   path_records: dict[
-      Tuple[str, "objects_pb2.PathInfo.PathType", Tuple[str, ...]], _PathRecord
+      tuple[str, "objects_pb2.PathInfo.PathType", tuple[str, ...]], _PathRecord
   ]
 
   # Maps client_id to client metadata.
@@ -384,7 +378,7 @@ class InMemoryDBPathMixin(object):
       self,
       client_paths: Collection[db.ClientPath],
       max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
+  ) -> dict[db.ClientPath, Optional[objects_pb2.PathInfo]]:
     """Returns PathInfos that have corresponding HashBlobReferences."""
 
     results = {}

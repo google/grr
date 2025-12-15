@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """The access control classes and user management classes for the data_store."""
 
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import deprecated_pb2
 
 _SYSTEM_USERS_LIST = [
     "GRRWorker",
@@ -47,15 +44,6 @@ class UnauthorizedAccess(Error):  # pylint: disable=g-bad-exception-name
     self.subject = subject
     self.requested_access = requested_access
     super().__init__(message)
-
-
-class ACLToken(rdf_structs.RDFProtoStruct):
-  """Deprecated. Use ApiCallContext."""
-
-  protobuf = deprecated_pb2.ACLToken
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
 
 
 def IsValidUsername(username):

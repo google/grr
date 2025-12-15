@@ -5,7 +5,6 @@ from typing import Optional
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import mig_artifacts
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import artifact_pb2
 from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
 from grr_response_server import artifact
@@ -14,22 +13,9 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 
 
-class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_artifact_pb2.ApiListArtifactsArgs
-
-
-class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_artifact_pb2.ApiListArtifactsResult
-  rdf_deps = [
-      rdf_artifacts.ArtifactDescriptor,
-  ]
-
-
 class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Renders available artifacts definitions."""
 
-  args_type = ApiListArtifactsArgs
-  result_type = ApiListArtifactsResult
   proto_args_type = api_artifact_pb2.ApiListArtifactsArgs
   proto_result_type = api_artifact_pb2.ApiListArtifactsResult
 
@@ -86,14 +72,9 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiUploadArtifactArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_artifact_pb2.ApiUploadArtifactArgs
-
-
 class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact upload."""
 
-  args_type = ApiUploadArtifactArgs
   proto_args_type = api_artifact_pb2.ApiUploadArtifactArgs
 
   def Handle(
@@ -106,14 +87,9 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_artifact_pb2.ApiDeleteArtifactsArgs
-
-
 class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact deletion."""
 
-  args_type = ApiDeleteArtifactsArgs
   proto_args_type = api_artifact_pb2.ApiDeleteArtifactsArgs
 
   def Handle(

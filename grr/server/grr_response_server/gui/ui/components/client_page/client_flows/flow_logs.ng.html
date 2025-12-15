@@ -1,0 +1,33 @@
+<filter-paginate [dataSource]="dataSource">
+  <table mat-table
+    matSort
+    [dataSource]="dataSource"
+    (matSortChange)="announceSortChange($event)"
+  >
+    <ng-container matColumnDef="timestamp">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          sortActionDescription="Sort by timestamp">
+        Timestamp
+      </th>
+      <td mat-cell *matCellDef="let r">
+        <timestamp [date]="r.timestamp" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="logMessage">
+      <th mat-header-cell *matHeaderCellDef>Log message</th>
+      <td mat-cell *matCellDef="let r">
+        <codeblock [code]="splitLines(r.logMessage)" />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns" class="row"></tr>
+
+    <tr *matNoDataRow>
+      <td colspan="4">No data</td>
+    </tr>
+  </table>
+</filter-paginate>

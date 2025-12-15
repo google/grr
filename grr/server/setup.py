@@ -37,11 +37,6 @@ def make_ui_files():
   # Install node_modules, but keep package(-lock).json frozen.
   # Using shell=True, otherwise npm is not found in a nodeenv-built
   # virtualenv on Windows.
-  subprocess.check_call(
-      "npm ci", shell=True, cwd="grr_response_server/gui/static")
-  subprocess.check_call(
-      "npm run gulp compile", shell=True, cwd="grr_response_server/gui/static")
-  # Compile UI v2.
   subprocess.check_call("npm ci", shell=True, cwd="grr_response_server/gui/ui")
   subprocess.check_call(
       "npm run ng build --prod", shell=True, cwd="grr_response_server/gui/ui")

@@ -1,0 +1,21 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.list_utmp_users;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+    // Path to the file to use as a source for `utmp` records.
+    //
+    // Typically this should be `/var/log/wtmp`.
+    rrg.fs.Path path = 1;
+}
+
+message Result {
+    // Name of an individual user retrieved from `utmp` records.
+    bytes username = 1;
+}

@@ -16,7 +16,11 @@ class NetstatArgs(rdf_structs.RDFProtoStruct):
 
 
 class Netstat(
-    flow_base.FlowBase[flows_pb2.NetstatArgs, flows_pb2.DefaultFlowStore]
+    flow_base.FlowBase[
+        flows_pb2.NetstatArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
 ):
   """List active network connections on a system."""
 

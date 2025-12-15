@@ -1,0 +1,49 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rule-form {
+  width: 100%;
+  display: flex;
+  gap: 4em;
+
+  padding: 8px;
+
+  client-os-form,
+  client-labels-form,
+  client-regex-form,
+  client-integer-form {
+    flex-grow: 1;
+  }
+}
+
+.action-buttons {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+
+  button {
+    flex-grow: 1;
+  }
+}
+
+mat-divider {
+  margin: 4px 0;
+}
+
+.warning {
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  mat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+  }
+
+  mat-icon {
+    color: var(--mat-sys-on-error-container);
+  }
+}

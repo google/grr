@@ -1,14 +1,90 @@
 #!/usr/bin/env python
 """Output plugins used for testing."""
 
+import functools
 import os
+from typing import Any, Callable, Iterable, Type
 
+from google.protobuf import any_pb2
+from google.protobuf import message
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import flows_pb2
 from grr_response_server import instant_output_plugin
+from grr_response_server import instant_output_plugin_registry
 from grr_response_server import output_plugin
+from grr_response_server import output_plugin_registry
 from grr_response_server.flows.general import processes
 from grr.test_lib import test_lib
+
+
+def WithInstantOutputPluginProto(
+    plugin_cls: Type[instant_output_plugin.InstantOutputPluginProto],
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+  """Makes given function execute with specified instant output plugin registered."""
+
+  def Decorator(func):
+
+    @functools.wraps(func)
+    def Wrapper(*args, **kwargs):
+      with _InstantOutputPluginProtoContext(plugin_cls):
+        func(*args, **kwargs)
+
+    return Wrapper
+
+  return Decorator
+
+
+class _InstantOutputPluginProtoContext:
+  """A context manager for execution with a certain InstantOutputPlugin registered."""
+
+  def __init__(
+      self, plugin_cls: Type[instant_output_plugin.InstantOutputPluginProto]
+  ):
+    self._plugin_cls = plugin_cls
+
+  def __enter__(self):
+    instant_output_plugin_registry.RegisterInstantOutputPluginProto(
+        self._plugin_cls
+    )
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+
+    instant_output_plugin_registry.UnregisterInstantOutputPluginProto(
+        self._plugin_cls.plugin_name
+    )
+
+
+def WithOutputPluginProto(
+    plugin_cls: Type[output_plugin.OutputPluginProto],
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+  """Makes given function execute with specified output plugin registered."""
+
+  def Decorator(func):
+
+    @functools.wraps(func)
+    def Wrapper(*args, **kwargs):
+      with _OutputPluginProtoContext(plugin_cls):
+        func(*args, **kwargs)
+
+    return Wrapper
+
+  return Decorator
+
+
+class _OutputPluginProtoContext:
+  """A context manager for execution with a certain OutputPluginProto registered."""
+
+  def __init__(self, plugin_cls: Type[output_plugin.OutputPluginProto]):
+    self._plugin_cls = plugin_cls
+
+  def __enter__(self):
+    output_plugin_registry.RegisterOutputPluginProto(self._plugin_cls)
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+
+    output_plugin_registry.UnregisterOutputPluginProto(self._plugin_cls)
 
 
 class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
@@ -37,22 +113,30 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
     self.plugin = self.__class__.plugin_cls(source_urn=self.results_urn)
     # pylint: enable=not-callable
 
-  def ProcessValues(self, values_by_cls):
+  def ProcessValuesProto(
+      self,
+      values_by_cls: dict[type[message.Message], Iterable[message.Message]],
+  ) -> str:
     chunks = []
 
     chunks.extend(list(self.plugin.Start()))
 
     for value_cls in sorted(values_by_cls, key=lambda cls: cls.__name__):
       values = values_by_cls[value_cls]
-      messages = []
+      flow_results = []
+      type_url = ""
       for value in values:
-        messages.append(
-            rdf_flows.GrrMessage(source=self.client_id, payload=value)
+        packed_value = any_pb2.Any()
+        packed_value.Pack(value)
+        flow_results.append(
+            flows_pb2.FlowResult(client_id=self.client_id, payload=packed_value)
         )
+        if not type_url:
+          type_url = packed_value.type_url
 
       # pylint: disable=cell-var-from-loop
       chunks.extend(
-          list(self.plugin.ProcessValues(value_cls, lambda: messages))
+          list(self.plugin.ProcessValuesOfType(type_url, lambda: flow_results))
       )
       # pylint: enable=cell-var-from-loop
 
@@ -64,42 +148,3 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
         fd.write(chunk)
 
     return fd_path
-
-
-class TestInstantOutputPlugin(instant_output_plugin.InstantOutputPlugin):
-  """Test plugin."""
-
-  plugin_name = "test"
-  friendly_name = "test plugin"
-  description = "test plugin description"
-
-  def Start(self):
-    yield "Start: %s" % self.source_urn
-
-  def ProcessValues(self, value_cls, values_generator_fn):
-    yield "Values of type: %s" % value_cls.__name__
-    for item in values_generator_fn():
-      yield "First pass: %s (source=%s)" % (item.payload, item.source)
-    for item in values_generator_fn():
-      yield "Second pass: %s (source=%s)" % (item.payload, item.source)
-
-  def Finish(self):
-    yield "Finish: %s" % self.source_urn
-
-
-class TestInstantOutputPluginWithExportConverstion(
-    instant_output_plugin.InstantOutputPluginWithExportConversion
-):
-  """Test plugin with export conversion."""
-
-  def Start(self):
-    yield "Start\n".encode("utf-8")
-
-  def ProcessSingleTypeExportedValues(self, original_cls, exported_values):
-    yield ("Original: %s\n" % original_cls.__name__).encode("utf-8")
-
-    for item in exported_values:
-      yield ("Exported value: %s\n" % item).encode("utf-8")
-
-  def Finish(self):
-    yield "Finish".encode("utf-8")

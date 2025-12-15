@@ -1,0 +1,138 @@
+<ng-template #folderName let-folder="folder">
+  <button mat-button
+    class="folder-name-button"
+    [routerLink]="[]"
+    [queryParams]="{'path': folder.file?.path}"
+    [disabled]="folder.file?.stat && isSymlink(folder.file?.stat)"
+    (click)="folder.children === undefined ? fileExplorerStore.fetchChildren(folder) : null"
+    aria-label="open file or directory"
+    [class.selected-folder]="folder.file?.path === queryPath()"
+  >
+    @if (folder.file?.stat && isSymlink(folder.file?.stat)) {
+      <mat-icon>link</mat-icon>
+    } @else if (folder.file.isDirectory) {
+      <mat-icon>folder</mat-icon>
+    } @else {
+      <mat-icon>article</mat-icon>
+    }
+    /{{ folder.file?.name }}
+  </button>
+  @if (folder.file?.path === queryPath()) {
+    - <copy-button>{{ folder.file?.path }}</copy-button>
+  }
+  @if (folder.file?.stat && isSymlink(folder.file?.stat)) {
+    &#8594; <!-- Unicode arrow --> <copy-button>{{ folder.file?.stat?.symlink }}</copy-button>
+  }
+  @if (folder.file.isDirectory) {
+    @if (fileExplorerStore.currentlyRefreshingPaths().has(folder.file?.stat?.pathspec?.path)) {
+      <mat-spinner diameter="20" matTooltip="Currently fetching folder from client" />
+    } @else {
+      @if (folder.children !== undefined) {
+        <button mat-icon-button
+          (click)="fileExplorerStore.fetchChildren(folder)"
+          [matTooltip]="
+            folder.children === undefined
+            ? 'Fetch folder content from the server' : 'Refresh folder content from the server'"
+          [attr.aria-label]="'refresh folder ' + folder.file?.name"
+        >
+          <mat-icon>refresh</mat-icon>
+        </button>
+      }
+    }
+  }
+</ng-template>
+
+<ng-template #folderTemplate let-folder="folder" let-nestedLevel="nestedLevel">
+  @if (folder.file && hasOverlapWithSearchQuery(folder.file?.path, folder.file?.isDirectory)) {
+    <div
+      class="folder-container"
+      [style.padding-left.px]="20"
+    >
+      <!-- For empty folders we want to show the expand icon to indicate that the content is loaded
+      but empty. -->
+      @if (folder.file?.isDirectory && folder.children != undefined) {
+        <collapsible-container
+          class="collapsible-container-{{ nestedLevel }}"
+          [state]="CollapsibleState.EXPANDED"
+        >
+          <collapsible-title>
+            <div class="folder-name folder-name-{{ nestedLevel }}">
+              <ng-container *ngTemplateOutlet="folderName; context: {folder: folder}"></ng-container>
+            </div>
+          </collapsible-title>
+          <collapsible-content>
+            @for (child of folder.children; track child.file?.name) {
+              <ng-container *ngTemplateOutlet="folderTemplate; context: {
+                folder: child,
+                nestedLevel: nestedLevel + 1,
+              }"></ng-container>
+            }
+          </collapsible-content>
+        </collapsible-container>
+      } @else {
+        <div class="folder-name folder-name-{{ nestedLevel }}">
+          <button mat-icon-button disabled aria-label="not loaded" class="invisible"></button>
+          <ng-container *ngTemplateOutlet="folderName; context: {folder: folder}"></ng-container>
+        </div>
+      }
+    </div>
+  }
+</ng-template>
+
+<split-panel direction="horizontal" [initialSize]="25">
+  <div class="panel" slot="panel1">
+    <mat-form-field appearance="outline">
+      <mat-label>Filter loaded paths by substring or regex match</mat-label>
+      <input matInput [(ngModel)]="searchQuery" />
+      @if (invalidSearchQuery()) {
+        <mat-hint>Invalid search query</mat-hint>
+      }
+    </mat-form-field>
+    @if (fileExplorerStore.fileSystemTree(); as fileSystemTree) {
+      <ng-container *ngTemplateOutlet="folderTemplate; context: {
+        folder: fileSystemTree,
+        nestedLevel: 0,
+      }"></ng-container>
+    }
+  </div>
+  <div class="panel" slot="panel2">
+    @if (currentSelectedFsEntry(); as fsEntry) {
+      @if (fsEntry.file?.isDirectory) {
+        <div class="overview-container">
+          <div class="overview-left">
+            @if (fsEntry.file?.path; as selectedPath) {
+              <button mat-flat-button
+                [disabled]="fileExplorerStore.currentlyRefreshingPaths().has(selectedPath)"
+                (click)="fileExplorerStore.refreshVfsFolder(fsEntry, 1)"
+              >
+                List directory
+              </button>
+              <button mat-flat-button
+                [disabled]="fileExplorerStore.currentlyRefreshingPaths().has(selectedPath)"
+                (click)="fileExplorerStore.refreshVfsFolder(fsEntry, 5);"
+              >
+                List directory &amp; subdirectories
+              </button>
+            }
+          </div>
+          <div class="overview-right">
+            @if (fsEntry.file?.path === "/") {
+              <button mat-stroked-button>
+                <mat-icon>download</mat-icon>
+                Download all collected files &amp; metadata
+              </button>
+            }
+          </div>
+        </div>
+        <file-results-table [results]="currentSelectedFsContent()" [isHuntResult]="false" />
+      } @else {
+        @if (currentSelectedFsContent().length > 0) {
+          <!-- If a single file is selected the `currentSelectedFsContent` has exactly one element,
+           the selected file. We show the content of this entry directly via the file-content
+           component instead of the table with a single entry. -->
+          <file-content [file]="currentSelectedFsContent()[0]" />
+        }
+      }
+    }
+  </div>
+</split-panel>

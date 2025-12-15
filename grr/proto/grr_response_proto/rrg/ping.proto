@@ -1,0 +1,28 @@
+// Copyright 2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.ping;
+
+import "google/protobuf/timestamp.proto";
+
+// Ping message sent pariodically to the GRR server.
+//
+// This is intended to be used as a workaround to the GRR fleet collection sche-
+// duling mechanism. In the current implementations it is the agents that ask
+// for work, not the other way around. While it should be refactored in the
+// future, re-implementing this Python agent quirk is a quick way to unblock
+// agent migration.
+//
+// TODO(user): Remove once no longer needed.
+message Ping {
+    // Time at which the message was sent.
+    google.protobuf.Timestamp send_time = 1;
+
+    // Increasing sequence number since the agent process was started.
+    //
+    // Starts at 0.
+    uint32 seq = 3;
+}

@@ -208,6 +208,26 @@ class StreamTest(absltest.TestCase):
 
     self.assertIn("|/foo/bar\rbaz/quux\r\rnorf|", content)
 
+  def testModeWindows(self):
+    entry_system32 = timeline_pb2.TimelineEntry()
+    entry_system32.path = "C:\\Windows\\system32".encode("utf-8")
+    entry_system32.attributes = 0x30
+
+    entry_notepad = timeline_pb2.TimelineEntry()
+    entry_notepad.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")
+    entry_notepad.attributes = 0x20
+
+    entry_desktop = timeline_pb2.TimelineEntry()
+    entry_desktop.path = "C:\\Users\\Public\\Desktop".encode("utf-8")
+    entry_desktop.attributes = 0x13
+
+    stream = body.Stream(iter([entry_system32, entry_notepad, entry_desktop]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("0|C:\\Windows\\system32|0|drwxrwxrwx|", content)
+    self.assertIn("0|C:\\Windows\\system32\\notepad.exe|0|-rwxrwxrwx|", content)
+    self.assertIn("0|C:\\Users\\Public\\Desktop|0|dr-xr-xr-x|", content)
+
 
 if __name__ == "__main__":
   absltest.main()

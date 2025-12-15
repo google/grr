@@ -1,0 +1,98 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.DUMP_PROCESS_MEMORY, flowArgs())">
+  <h5>Match: </h5>
+  <mat-button-toggle-group appearance="standard" [formControl]="controls.filterMode">
+    <mat-button-toggle [value]="filterMode.PID">PID</mat-button-toggle>
+    <mat-button-toggle [value]="filterMode.NAME">Name</mat-button-toggle>
+    <mat-button-toggle [value]="filterMode.ALL">All</mat-button-toggle>
+  </mat-button-toggle-group>
+
+    @if (controls.filterMode.value === filterMode.PID) {
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Filter comma-separated process IDs</mat-label>
+        <input matInput
+          commaSeparatedNumberInput
+          aria-label="Comma-separated process IDs"
+          placeholder="1, 42, 123"
+          [formControl]="controls.pids"
+          autocomplete="off"
+        />
+        <mat-error>
+          <form-errors [validationErrors]="controls.pids.errors" />
+        </mat-error>
+      </mat-form-field>
+    }
+
+    @if (controls.filterMode.value === filterMode.NAME) {
+      <mat-form-field appearance="outline" class="w100">
+        <mat-label>Match process names with regex</mat-label>
+        <input matInput
+          placeholder="python\d?"
+          aria-label="Regex for matching process names"
+          [formControl]="controls.processRegex"
+          class="monospace"
+          autocomplete="off"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          href="https://docs.python.org/3/library/re.html"
+          target="_blank"
+          matTooltip="Python regex docs"
+        >
+          <mat-icon>help_outline</mat-icon>
+        </button>
+      </mat-form-field>
+    }
+
+    @if (controls.filterMode.value === filterMode.ALL) {
+      <mat-form-field appearance="outline" class="w100">
+        <input matInput
+          aria-label="All processes, except the GRR process."
+          disabled
+          value="All processes, except the GRR process."
+          autocomplete="off"
+        />
+      </mat-form-field>
+    }
+
+  <h5>Skip memory regions:</h5>
+  <mat-checkbox
+      [formControl]="controls.skipReadonlyRegions"
+      name="skip-readonly-regions"
+      matTooltip="Skip memory regions that are NOT WRITABLE.">
+    readonly
+  </mat-checkbox>
+
+  <mat-checkbox
+      [formControl]="controls.skipExecutableRegions"
+      name="skip-executable-regions"
+      matTooltip="Skip memory regions that are EXECUTABLE.">
+    executable
+  </mat-checkbox>
+
+  <mat-checkbox
+      [formControl]="controls.skipSpecialRegions"
+      name="skip-special-regions"
+      matTooltip="On Windows, skip device backed regions (NOCACHE, WRITECOMBINE) and guard pages.">
+    special
+  </mat-checkbox>
+
+  <mat-checkbox
+      [formControl]="controls.skipSharedRegions"
+      name="skip-shared-regions"
+      matTooltip="On Linux and macOS, skip device shared regions.">
+    shared
+  </mat-checkbox>
+
+  <mat-checkbox
+      [formControl]="controls.skipMappedFiles"
+      name="skip-mapped-files"
+      matTooltip="On Linux, skip mapped files.">
+    mapped files
+  </mat-checkbox>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

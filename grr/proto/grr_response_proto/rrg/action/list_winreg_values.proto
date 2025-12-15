@@ -14,6 +14,11 @@ message Args {
 
     // Key relative to `root` to list values of.
     string key = 2;
+
+    // Limit on the depth of recursion when visiting subkeys.
+    //
+    // The default value (0) means that only the values of the given are listed.
+    uint32 max_depth = 3;
 }
 
 message Result {

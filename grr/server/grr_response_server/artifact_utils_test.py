@@ -92,6 +92,17 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       self.assertFalse(ar.GetArtifactPathDependencies(result))
 
   @artifact_test_lib.PatchDefaultArtifactRegistry
+  def testGetArtifactByAlias(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
+    self.assertEqual(
+        registry.GetArtifact("TestArtifactWithAlias").name,
+        "TestArtifactWithAlias",
+    )
+    self.assertEqual(
+        registry.GetArtifact("ArtifactAlias").name, "TestArtifactWithAlias"
+    )
+
+  @artifact_test_lib.PatchDefaultArtifactRegistry
   def testGetArtifactNames(self, registry):
     registry.AddFileSource(self.test_artifacts_file)
 
@@ -159,11 +170,8 @@ class UserMergeTest(test_lib.GRRBaseTest):
     kb.MergeOrAddUser(rdf_client.User(sid="5678", username="test1"))
     self.assertLen(kb.users, 2)
 
-    _, conflicts = kb.MergeOrAddUser(
-        rdf_client.User(sid="5678", username="test2")
-    )
+    kb.MergeOrAddUser(rdf_client.User(sid="5678", username="test2"))
     self.assertLen(kb.users, 2)
-    self.assertEqual(conflicts[0], ("username", "test1", "test2"))
     self.assertEqual(kb.GetUser(sid="5678").username, "test2")
 
     # This should merge on user name as we have no other data.
@@ -171,14 +179,10 @@ class UserMergeTest(test_lib.GRRBaseTest):
     self.assertLen(kb.users, 2)
 
     # This should create a new user since the sid is different.
-    new_attrs, conflicts = kb.MergeOrAddUser(
+    kb.MergeOrAddUser(
         rdf_client.User(username="test2", sid="12345", temp="/blah")
     )
     self.assertLen(kb.users, 3)
-    self.assertCountEqual(
-        new_attrs, ["users.username", "users.temp", "users.sid"]
-    )
-    self.assertEqual(conflicts, [])
 
   def testUserMergeLinux(self):
     """Check Linux users are accurately merged."""
@@ -207,14 +211,10 @@ class UserMergeTest(test_lib.GRRBaseTest):
     self.assertLen(kb.users, 3)
 
     # Check merging where we don't specify uid works
-    new_attrs, conflicts = kb.MergeOrAddUser(
+    kb.MergeOrAddUser(
         rdf_client.User(username="newblake", desktop="/home/blakey/Desktop")
     )
     self.assertLen(kb.users, 3)
-    self.assertCountEqual(new_attrs, ["users.username", "users.desktop"])
-    self.assertCountEqual(
-        conflicts, [("desktop", "/home/blake/Desktop", "/home/blakey/Desktop")]
-    )
 
 
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -322,72 +322,6 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     )
     with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       ar.ValidateSyntax(artifact)
-
-
-class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):
-
-  def testKnowledgeBaseRootAttributesGetMappedCorrectly(self):
-    kb = rdf_client.KnowledgeBase(
-        environ_path="the_path",
-        environ_temp="the_temp",
-        environ_systemroot="the_systemroot",
-        environ_windir="the_windir",
-        environ_programfiles="the_programfiles",
-        environ_programfilesx86="the_programfilesx86",
-        environ_systemdrive="the_systemdrive",
-        environ_allusersprofile="the_allusersprofile",
-        environ_allusersappdata="the_allusersappdata",
-    )
-
-    mapping = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
-
-    self.assertEqual(
-        mapping,
-        {
-            "allusersappdata": "the_allusersappdata",
-            "allusersprofile": "the_allusersprofile",
-            "path": "the_path",
-            "programdata": "the_allusersprofile",
-            "programfiles": "the_programfiles",
-            "programfiles(x86)": "the_programfilesx86",
-            "programw6432": "the_programfiles",
-            "systemdrive": "the_systemdrive",
-            "systemroot": "the_systemroot",
-            "temp": "the_temp",
-            "windir": "the_windir",
-        },
-    )
-
-  def testKnowledgeBaseUsersAttributesExpandIntoLists(self):
-    kb = rdf_client.KnowledgeBase()
-    kb.users.append(
-        rdf_client.User(
-            appdata="the_appdata_1",
-            localappdata="the_localappdata_1",
-            userdomain="the_userdomain_1",
-            userprofile="the_userprofile_1",
-        )
-    )
-    kb.users.append(
-        rdf_client.User(
-            appdata="the_appdata_2",
-            localappdata="the_localappdata_2",
-            userdomain="the_userdomain_2",
-            userprofile="the_userprofile_2",
-        )
-    )
-
-    mapping = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
-
-    self.assertEqual(
-        mapping,
-        {
-            "appdata": ["the_appdata_1", "the_appdata_2"],
-            "localappdata": ["the_localappdata_1", "the_localappdata_2"],
-            "userdomain": ["the_userdomain_1", "the_userdomain_2"],
-            "userprofile": ["the_userprofile_1", "the_userprofile_2"],
-        },
-    )
 
 
 class ExpandKnowledgebaseWindowsEnvVars(absltest.TestCase):

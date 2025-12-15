@@ -51,7 +51,7 @@ class TestRawFilesystemAccessUsesTskOnNonWindows(test_base.EndToEndTest):
 
 
 class TestParserDependency(test_base.EndToEndTest):
-  """Test artifact collectors completes when dependencies=FETCH_NOW."""
+  """Test artifact collectors completes when artifact has dependencies."""
 
   platforms = [
       test_base.EndToEndTest.Platform.WINDOWS,

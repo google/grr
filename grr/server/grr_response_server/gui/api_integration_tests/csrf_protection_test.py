@@ -9,8 +9,8 @@ import requests
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.gui import csrf
 from grr_response_server.gui import webauth
-from grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
 
 
@@ -23,22 +23,22 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     self.base_url = self.endpoint
 
   def testGETRequestWithoutCSRFTokenAndRequestedWithHeaderSucceeds(self):
-    response = requests.get(self.base_url + "/api/config")
+    response = requests.get(self.base_url + "/api/v2/config")
     self.assertEqual(response.status_code, 200)
     # Assert XSSI protection is in place.
     self.assertEqual(response.text[:5], ")]}'\n")
 
   def testHEADRequestForGETUrlWithoutTokenAndRequestedWithHeaderSucceeds(self):
-    response = requests.head(self.base_url + "/api/config")
+    response = requests.head(self.base_url + "/api/v2/config")
     self.assertEqual(response.status_code, 200)
 
   def testHEADRequestNotEnabledForPOSTUrls(self):
-    response = requests.head(self.base_url + "/api/clients/labels/add")
+    response = requests.head(self.base_url + "/api/v2/clients/labels/add")
     self.assertEqual(response.status_code, 405)
 
   def testHEADRequestNotEnabledForDeleteUrls(self):
     response = requests.head(
-        self.base_url + "/api/users/me/notifications/pending/0"
+        self.base_url + "/api/v2/users/me/notifications/pending/0"
     )
     self.assertEqual(response.status_code, 405)
 
@@ -46,7 +46,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
 
     response = requests.post(
-        self.base_url + "/api/clients/labels/add", data=json.dumps(data)
+        self.base_url + "/api/v2/clients/labels/add", data=json.dumps(data)
     )
 
     self.assertEqual(response.status_code, 403)
@@ -61,7 +61,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.post(
-        self.base_url + "/api/clients/labels/add",
+        self.base_url + "/api/v2/clients/labels/add",
         data=json.dumps(data),
         cookies=cookies,
     )
@@ -81,7 +81,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.post(
-        self.base_url + "/api/clients/labels/add",
+        self.base_url + "/api/v2/clients/labels/add",
         headers=headers,
         data=json.dumps(data),
         cookies=cookies,
@@ -100,7 +100,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
       cookies = {"csrftoken": csrf_token}
 
       response = requests.post(
-          self.base_url + "/api/clients/labels/add",
+          self.base_url + "/api/v2/clients/labels/add",
           headers=headers,
           data=json.dumps(data),
           cookies=cookies,
@@ -111,10 +111,10 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     # current_time - token_time > CSRF_TOKEN_DURATION.microseconds
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
-        + wsgiapp.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS)
+        + csrf.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS)
     ):
       response = requests.post(
-          self.base_url + "/api/clients/labels/add",
+          self.base_url + "/api/v2/clients/labels/add",
           headers=headers,
           data=json.dumps(data),
           cookies=cookies,
@@ -123,11 +123,11 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
-        + wsgiapp.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS)
+        + csrf.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS)
         + 1
     ):
       response = requests.post(
-          self.base_url + "/api/clients/labels/add",
+          self.base_url + "/api/v2/clients/labels/add",
           headers=headers,
           data=json.dumps(data),
           cookies=cookies,
@@ -144,7 +144,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.post(
-        self.base_url + "/api/clients/labels/add",
+        self.base_url + "/api/v2/clients/labels/add",
         headers=headers,
         data=json.dumps(data),
         cookies=cookies,
@@ -165,7 +165,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     # match.
     webauth.WEBAUTH_MANAGER.SetUserName("someotheruser")
     response = requests.post(
-        self.base_url + "/api/clients/labels/add",
+        self.base_url + "/api/v2/clients/labels/add",
         headers=headers,
         data=json.dumps(data),
         cookies=cookies,
@@ -175,7 +175,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testDELETERequestWithoutCSRFTokenFails(self):
     response = requests.delete(
-        self.base_url + "/api/users/me/notifications/pending/0"
+        self.base_url + "/api/v2/users/me/notifications/pending/0"
     )
 
     self.assertEqual(response.status_code, 403)
@@ -189,7 +189,8 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
-        self.base_url + "/api/users/me/notifications/pending/0", cookies=cookies
+        self.base_url + "/api/v2/users/me/notifications/pending/0",
+        cookies=cookies,
     )
 
     self.assertEqual(response.status_code, 403)
@@ -204,7 +205,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
-        self.base_url + "/api/users/me/notifications/pending/0",
+        self.base_url + "/api/v2/users/me/notifications/pending/0",
         headers=headers,
         cookies=cookies,
     )
@@ -212,7 +213,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(response.status_code, 200)
 
   def testPATCHRequestWithoutCSRFTokenFails(self):
-    response = requests.patch(self.base_url + "/api/hunts/H:123456")
+    response = requests.patch(self.base_url + "/api/v2/hunts/H:123456")
 
     self.assertEqual(response.status_code, 403)
     self.assertIn("CSRF", response.text)
@@ -225,7 +226,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.patch(
-        self.base_url + "/api/hunts/H:123456", cookies=cookies
+        self.base_url + "/api/v2/hunts/H:123456", cookies=cookies
     )
 
     self.assertEqual(response.status_code, 403)
@@ -240,7 +241,9 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     cookies = {"csrftoken": csrf_token}
 
     response = requests.patch(
-        self.base_url + "/api/hunts/H:123456", headers=headers, cookies=cookies
+        self.base_url + "/api/v2/hunts/H:123456",
+        headers=headers,
+        cookies=cookies,
     )
 
     # We consider 404 to be a normal response here.
@@ -253,7 +256,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertTrue(csrf_token)
 
     # Check that calling GetGrrUser method doesn't update the cookie.
-    get_user_response = requests.get(self.base_url + "/api/users/me")
+    get_user_response = requests.get(self.base_url + "/api/v2/users/me")
     csrf_token_2 = get_user_response.cookies.get("csrftoken")
     self.assertTrue(csrf_token_2)
 
@@ -273,7 +276,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
 
     # Check that calling GetGrrUser method doesn't update the cookie.
     get_user_response = requests.get(
-        self.base_url + "/api/users/me", cookies={"csrftoken": csrf_token}
+        self.base_url + "/api/v2/users/me", cookies={"csrftoken": csrf_token}
     )
     csrf_token_2 = get_user_response.cookies.get("csrftoken")
 
@@ -282,7 +285,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     # Check that calling GetPendingUserNotificationsCount refreshes the
     # token.
     notifications_response = requests.get(
-        self.base_url + "/api/users/me/notifications/pending/count",
+        self.base_url + "/api/v2/users/me/notifications/pending/count",
         cookies={"csrftoken": csrf_token},
     )
     csrf_token_3 = notifications_response.cookies.get("csrftoken")

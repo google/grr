@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """API context definition. Context defines request/response behavior."""
 
+from collections.abc import Iterator
 import itertools
-from typing import Any
-from typing import Iterator
-from typing import Optional
+from typing import Any, Optional
 
 from google.protobuf import message
 from grr_api_client import connectors

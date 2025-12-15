@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for dummy."""
-
 from absl import app
 
 from grr_response_client.client_actions import dummy

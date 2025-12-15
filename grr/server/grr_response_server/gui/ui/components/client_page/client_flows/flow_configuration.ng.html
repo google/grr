@@ -1,0 +1,19 @@
+<h4>Creator</h4>
+@if (flow()?.isRobot) {
+  <p><mat-icon matListItemIcon>smart_toy</mat-icon> Robot</p>
+} @else {
+  <p><user matListItemIcon [username]="flow()?.creator" [withName]="true" /></p>
+}
+
+<h4>Flow Arguments</h4>
+
+@let flowType = flow()?.flowType;
+@let flowArgs = flow()?.args;
+@if (flowType && flowArgs) {
+  <flow-args-form
+      [flowType]="flowType"
+      [flowArgs]="flowArgs"
+      [editable]="false"
+    />
+}
+

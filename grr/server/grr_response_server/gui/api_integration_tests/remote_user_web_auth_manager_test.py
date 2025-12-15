@@ -24,7 +24,7 @@ class RemoteUserWebAuthManagerTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testEnableCustomEmailAddressIsFalse_emailIsNotSet(self):
     headers = {"X-Remote-User": "foo", "X-Remote-Extra-Email": "foo@bar.org"}
-    response = requests.get(self.endpoint + "/api/config", headers=headers)
+    response = requests.get(self.endpoint + "/api/v2/config", headers=headers)
     self.assertEqual(response.status_code, 200)
     proto_user = data_store.REL_DB.ReadGRRUser("foo")
     rdf_user = mig_objects.ToRDFGRRUser(proto_user)
@@ -34,7 +34,7 @@ class RemoteUserWebAuthManagerTest(api_integration_test_lib.ApiIntegrationTest):
   def testEnableCustomEmailAddressIsTrue_emailIsSet(self):
     with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
       headers = {"X-Remote-User": "foo", "X-Remote-Extra-Email": "foo@bar.org"}
-      response = requests.get(self.endpoint + "/api/config", headers=headers)
+      response = requests.get(self.endpoint + "/api/v2/config", headers=headers)
       self.assertEqual(response.status_code, 200)
       proto_user = data_store.REL_DB.ReadGRRUser("foo")
       rdf_user = mig_objects.ToRDFGRRUser(proto_user)

@@ -1,0 +1,144 @@
+<h3>File details</h3>
+<table class="details">
+  <tr>
+    <td>Is directory:</td>
+    <td>
+      @if (!path()) {
+        loading...
+      } @else {
+        {{ path()?.isDirectory ? 'Yes' : 'No' }}
+      }
+    </td>
+  </tr>
+  <tr>
+    <td>Path:</td>
+    <td class="monospace">
+      <copy-button [overrideCopyText]="path()?.stat?.pathspec?.path">
+        @for (pathspec of path()?.stat?.pathspec?.segments; track $index) {
+          <span>
+            @if (pathspec.pathtype === PathSpecPathType.NTFS) {
+              <span class="inline-chip" matTooltip="Parsed the NTFS filesystem with libfsntfs">
+                {{ pathspec.pathtype }}
+              </span>
+            } @else if (pathspec.pathtype === PathSpecPathType.TSK) {
+              <span class="inline-chip" matTooltip="Parsed the filesystem or image with TSK.">
+                {{ pathspec.pathtype }}
+              </span>
+            } @else {
+              <span class="inline-chip">{{ pathspec.pathtype }}</span>
+            }
+            {{ pathspec.path }}
+          </span>
+        }
+      </copy-button>
+    </td>
+  </tr>
+
+  @let p = path();
+  @if (p && isFile(p)){
+    <tr>
+      <td>Content collected:</td>
+      <td>
+        @let timestamp = p.lastContentCollected?.timestamp;
+        @if (timestamp) {
+          <timestamp [date]="timestamp" />
+        } @else {
+          <i>(never)</i>
+        }
+      </td>
+    </tr>
+    @if (p.lastContentCollected?.size !== null) {
+      <tr>
+        <td>Size:</td>
+        <td>{{ p.lastContentCollected?.size | humanReadableByteSize }}</td>
+      </tr>
+    }
+  }
+</table>
+
+<h3>Stat information</h3>
+<table class="stat-table">
+  <tr>
+    <td>Device</td>
+    <td class="monospace">st_dev</td>
+    <td class="monospace">{{path()?.stat?.stDev}}</td>
+  </tr>
+  <tr>
+    <td>Inode</td>
+    <td class="monospace">st_ino</td>
+    <td class="monospace">{{path()?.stat?.stIno}}</td>
+  </tr>
+  <tr>
+    <td>Mode</td>
+    <td class="monospace">st_mode</td>
+    <td class="monospace">{{path()?.stat?.stMode}}</td>
+  </tr>
+  <tr>
+    <td>Hard links</td>
+    <td class="monospace">st_nlink</td>
+    <td class="monospace">{{path()?.stat?.stNlink}}</td>
+  </tr>
+  <tr>
+    <td>Owner user ID</td>
+    <td class="monospace">st_uid</td>
+    <td class="monospace">{{path()?.stat?.stUid}}</td>
+  </tr>
+  <tr>
+    <td>Owner group ID</td>
+    <td class="monospace">st_gid</td>
+    <td class="monospace">{{path()?.stat?.stGid}}</td>
+  </tr>
+  <tr>
+    <td>Special file device ID</td>
+    <td class="monospace">st_rdev</td>
+    <td class="monospace">{{path()?.stat?.stRdev}}</td>
+  </tr>
+  <tr>
+    <td>Size:</td>
+    <td class="monospace">st_size</td>
+    <td>
+      {{ path()?.stat?.stSize | humanReadableByteSize }} -
+      ({{ path()?.stat?.stSize?.toLocaleString() }} bytes)
+    </td>
+  </tr>
+  <tr>
+    <td>Block size:</td>
+    <td class="monospace">st_blksize</td>
+    <td>
+      {{ path()?.stat?.stBlksize | humanReadableByteSize }} -
+      ({{ path()?.stat?.stBlksize?.toLocaleString() }} bytes)
+    </td>
+  </tr>
+  <tr>
+    <td>Allocated blocks</td>
+    <td class="monospace">st_blocks</td>
+    <td class="monospace">{{path()?.stat?.stBlocks}}</td>
+  </tr>
+  <tr>
+    <td>Last access</td>
+    <td class="monospace">st_atime</td>
+    <td><timestamp [date]="path()?.stat?.stAtime" /></td>
+  </tr>
+  <tr>
+    <td>Last modification</td>
+    <td class="monospace">st_mtime</td>
+    <td><timestamp [date]="path()?.stat?.stMtime" /></td>
+  </tr>
+  <tr>
+    <td>Last status change</td>
+    <td class="monospace">st_ctime</td>
+    <td><timestamp [date]="path()?.stat?.stCtime" /></td>
+  </tr>
+</table>
+
+@if (hashes()) {
+  <h3>File hashes</h3>
+  <table class="hashes-table">
+    @for (hash of hashes(); track hash.name) {
+      <tr>
+        <td>{{hash.name}}</td>
+        <td class="monospace"><copy-button>{{ hash.hash }}</copy-button></td>
+      </tr>
+    }
+  </table>
+}

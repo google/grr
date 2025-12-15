@@ -5,6 +5,7 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -33,14 +34,16 @@ class ApiListFilesHandlerRegressionTest(
       fixture_test_lib.ClientFixture(client_id)
     self.Check(
         "ListFiles",
-        vfs_plugin.ApiListFilesArgs(
+        api_vfs_pb2.ApiListFilesArgs(
             client_id=client_id, file_path="fs/tsk/c/bin"
         ),
     )
     self.Check(
         "ListFiles",
-        vfs_plugin.ApiListFilesArgs(
-            client_id=client_id, file_path="fs/tsk/c/bin", timestamp=self.time_2
+        api_vfs_pb2.ApiListFilesArgs(
+            client_id=client_id,
+            file_path="fs/tsk/c/bin",
+            timestamp=self.time_2.AsMicrosecondsSinceEpoch(),
         ),
     )
 
@@ -59,20 +62,22 @@ class ApiGetFileTextHandlerRegressionTest(
 
     self.Check(
         "GetFileText",
-        args=vfs_plugin.ApiGetFileTextArgs(
+        args=api_vfs_pb2.ApiGetFileTextArgs(
             client_id=client_id, file_path=self.file_path
         ),
     )
     self.Check(
         "GetFileText",
-        args=vfs_plugin.ApiGetFileTextArgs(
+        args=api_vfs_pb2.ApiGetFileTextArgs(
             client_id=client_id, file_path=self.file_path, offset=3, length=3
         ),
     )
     self.Check(
         "GetFileText",
-        args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id, file_path=self.file_path, timestamp=self.time_1
+        args=api_vfs_pb2.ApiGetFileTextArgs(
+            client_id=client_id,
+            file_path=self.file_path,
+            timestamp=self.time_1.AsMicrosecondsSinceEpoch(),
         ),
     )
 
@@ -91,21 +96,10 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
 
     self.Check(
         "GetFileVersionTimes",
-        args=vfs_plugin.ApiGetFileVersionTimesArgs(
+        args=api_vfs_pb2.ApiGetFileVersionTimesArgs(
             client_id=client_id, file_path=self.file_path
         ),
     )
-
-
-class ApiListKnownEncodingsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin
-):
-
-  api_method = "ListKnownEncodings"
-  handler = vfs_plugin.ApiListKnownEncodingsHandler
-
-  def Run(self):
-    self.Check("ListKnownEncodings")
 
 
 class ApiGetFileDownloadCommandHandlerRegressionTest(
@@ -120,7 +114,7 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
     self.file_path = "fs/os/etc"
     self.Check(
         "GetFileDownloadCommand",
-        args=vfs_plugin.ApiGetFileDownloadCommandArgs(
+        args=api_vfs_pb2.ApiGetFileDownloadCommandArgs(
             client_id=client_id, file_path=self.file_path
         ),
     )
@@ -149,7 +143,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.Check(
           "CreateVfsRefreshOperation",
-          args=vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+          args=api_vfs_pb2.ApiCreateVfsRefreshOperationArgs(
               client_id=client_id, file_path=self.file_path, max_depth=1
           ),
           replace=ReplaceFlowId,
@@ -208,28 +202,28 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     # Check both operations.
     self.Check(
         "GetVfsRefreshOperationState",
-        args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
+        args=api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=running_flow_id
         ),
         replace={running_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsRefreshOperationState",
-        args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
+        args=api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=finished_flow_id
         ),
         replace={finished_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsRefreshOperationState",
-        args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
+        args=api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=non_refresh_flow_id
         ),
         replace={non_refresh_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsRefreshOperationState",
-        args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
+        args=api_vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=unknown_flow_id
         ),
         replace={unknown_flow_id: "ABCDEF"},
@@ -257,7 +251,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.Check(
           "UpdateVfsFileContent",
-          args=vfs_plugin.ApiUpdateVfsFileContentArgs(
+          args=api_vfs_pb2.ApiUpdateVfsFileContentArgs(
               client_id=client_id, file_path=self.file_path
           ),
           replace=ReplaceFlowId,
@@ -300,28 +294,28 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     # Check both operations.
     self.Check(
         "GetVfsFileContentUpdateState",
-        args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=running_flow_id
         ),
         replace={running_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsFileContentUpdateState",
-        args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=finished_flow_id
         ),
         replace={finished_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsFileContentUpdateState",
-        args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=non_update_flow_id
         ),
         replace={non_update_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsFileContentUpdateState",
-        args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=unknown_flow_id
         ),
         replace={unknown_flow_id: "ABCDEF"},
@@ -342,7 +336,7 @@ class ApiGetVfsTimelineHandlerRegressionTest(
 
     self.Check(
         "GetVfsTimeline",
-        args=vfs_plugin.ApiGetVfsTimelineArgs(
+        args=api_vfs_pb2.ApiGetVfsTimelineArgs(
             client_id=client_id, file_path=self.folder_path
         ),
     )

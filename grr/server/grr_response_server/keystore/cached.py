@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """A module with implementation of the cached keystore."""
 
+from __future__ import annotations
+
 import dataclasses
 import datetime
-from typing import Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 from grr_response_server.keystore import abstract
 
@@ -33,32 +35,54 @@ class CachedKeystore(abstract.Keystore):
     self._delegate = delegate
     self._validity_duration = validity_duration
 
-    self._cache: dict[str, CachedKeystore._CacheEntry] = dict()
+    self._cache_crypters: dict[
+        str, CachedKeystore._CacheEntry[abstract.Crypter]
+    ] = dict()
+    self._cache_macs: dict[str, CachedKeystore._CacheEntry[abstract.MAC]] = (
+        dict()
+    )
+
+  def _GetCachedCrypto(
+      self,
+      name: str,
+      cache: dict[str, CachedKeystore._CacheEntry[_T]],
+      delegate_fn: Callable[[], _T],
+  ) -> _T:
+    """Returns a cached crypto primitive."""
+    try:
+      entry = cache[name]
+    except KeyError:
+      entry = CachedKeystore._CacheEntry(
+          crypto=delegate_fn(),
+          expiration_time=datetime.datetime.now() + self._validity_duration,
+      )
+      cache[name] = entry
+      return entry.crypto
+
+    if entry.is_valid:
+      return entry.crypto
+
+    # The key should be expired. We delete it from the cache and retry reading.
+    del cache[name]
+    return self._GetCachedCrypto(name, cache, delegate_fn)
 
   def Crypter(self, name: str) -> abstract.Crypter:
     """Creates a crypter for the given key to encrypt and decrypt data."""
-    try:
-      entry = self._cache[name]
-    except KeyError:
-      entry = CachedKeystore._CacheEntry(
-          crypter=self._delegate.Crypter(name),
-          expiration_time=datetime.datetime.now() + self._validity_duration,
-      )
-      self._cache[name] = entry
-      return entry.crypter
+    return self._GetCachedCrypto(
+        name, self._cache_crypters, lambda: self._delegate.Crypter(name)
+    )
 
-    if entry.is_valid:
-      return entry.crypter
-
-    # The key should be expired. We delete it from the cache and retry reading.
-    del self._cache[name]
-    return self.Crypter(name)
+  def MAC(self, name: str) -> abstract.MAC:
+    """Creates a MAC for the given key to sign and verify data."""
+    return self._GetCachedCrypto(
+        name, self._cache_macs, lambda: self._delegate.MAC(name)
+    )
 
   @dataclasses.dataclass(frozen=True)
   class _CacheEntry(Generic[_T]):
     """An entry of the cache dictionary."""
 
-    crypter: abstract.Crypter
+    crypto: _T
     expiration_time: datetime.datetime
 
     @property

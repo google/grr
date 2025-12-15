@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Hunts-related part of GRR API client library."""
 
-from typing import Optional
-from typing import Sequence
-from typing import Union
+from collections.abc import Sequence
+from typing import Optional, Union
 
 from google.protobuf import message
 from grr_api_client import client

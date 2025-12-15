@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>Adding a label</h2>
+<mat-dialog-content>
+  <p>You can add a new label or select from existing labels.</p>
+  <mat-form-field appearance="outline">
+    <mat-label>Start typing label name</mat-label>
+    <input #input
+      type="text"
+      matInput
+      cdkFocusInitial
+      [formControl]="labelInputControl"
+      [matAutocomplete]="auto"
+      />
+    <mat-autocomplete #auto="matAutocomplete">
+      @for (label of suggestedLabels(); track label) {
+        <mat-option
+          class="label-option"
+          [value]="label">
+          <span>{{label}}</span>
+        </mat-option>
+      }
+
+      <!-- If the input label already exists, announce to the user! -->
+      @if (labelInputControl.hasError('alreadyPresentLabel')) {
+        <mat-option [value]="labelInputControl.value">
+          <span>Label "{{labelInputControl.value.trim()}}" already present!</span>
+        </mat-option>
+      }
+      <!-- Suggest creating a new label, if so (default option) -->
+      @if (isNewLabel()) {
+        <mat-option [value]="labelInputControl.value.trim()">
+          <span>Add new label "{{labelInputControl.value.trim()}}"</span>
+        </mat-option>
+      }
+    </mat-autocomplete>
+    @if (labelInputControl.hasError('alreadyPresentLabel')) {
+      <mat-error>This label is already present!</mat-error>
+    }
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button [matDialogClose]="false">Cancel</button>
+  @if (labelInputControl.valid) {
+    <button mat-button (click)="onAddClick()">Add</button>
+  } @else {
+    <button mat-button disabled>Add</button>
+  }
+</mat-dialog-actions>

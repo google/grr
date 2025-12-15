@@ -2,26 +2,6 @@ syntax = "proto2";
 
 package grr;
 
-message Command {
-  message EnvVar {
-    optional string name = 1;
-    optional string value = 2;
-  }
-
-  // Path of the executable to execute.
-  optional string path = 1;
-  // The arguments passed to the command.
-  repeated string args = 2;
-  // The environment variables set for the command.
-  repeated EnvVar env_vars = 3;
-  oneof stdin {
-    // Whether the stdin of the command is unsigned.
-    bool unsigned_stdin_allowed = 4;
-    // The stdin of the command, if it is signed.
-    bytes signed_stdin = 5;
-  }
-}
-
 message SignedCommand {
   enum OS {
     UNSET = 0;
@@ -37,4 +17,7 @@ message SignedCommand {
   // Serialized `rrg.action.execute_signed_command.SignedCommand` message.
   optional bytes command = 5;
   optional bytes ed25519_signature = 4;
+
+  // Path to the file the command was defined in.
+  optional string source_path = 6;
 }

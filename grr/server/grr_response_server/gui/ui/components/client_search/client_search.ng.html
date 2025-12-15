@@ -1,61 +1,76 @@
-<app-search-box
-  (querySubmitted)="onQuerySubmitted($event)"
-  [value]="(query$ | async) ?? ''"
-></app-search-box>
+<div class="search-box-container">
+  <search-box />
+</div>
 
-<app-infinite-list
-  [isLoading]="clientSearchLocalStore.isLoading$ | async"
-  [hasMore]="clientSearchLocalStore.hasMore$ | async"
-  (loadMore)="clientSearchLocalStore.loadMore()"
->
-  <table mat-table [dataSource]="rows$">
+<filter-paginate [dataSource]="dataSource" >
+  <table mat-table
+      matSort
+      [dataSource]="dataSource"
+      (matSortChange)="announceSortChange($event)"
+  >
     <ng-container matColumnDef="clientId">
-      <th mat-header-cell *matHeaderCellDef>Client ID</th>
-      <td mat-cell *matCellDef="let element">{{ element.clientId }}</td>
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          matTooltip="Only sorts currently loaded search results, does not fetch more results from the server."
+          sortActionDescription="Sort by client ID">
+        Client ID
+      </th>
+      <td mat-cell *matCellDef="let el"><copy-button>{{ el.clientId }}</copy-button></td>
     </ng-container>
 
     <ng-container matColumnDef="fqdn">
-      <th mat-header-cell *matHeaderCellDef>FQDN</th>
-      <td mat-cell *matCellDef="let element">{{ element.fqdn || '-' }}</td>
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          matTooltip="Only sorts currently loaded search results, does not fetch more results from the server."
+          sortActionDescription="Sort by FQDN">
+        FQDN
+      </th>
+      <td mat-cell *matCellDef="let el">{{ el.knowledgeBase.fqdn || '-' }}</td>
     </ng-container>
 
     <ng-container matColumnDef="users">
       <th mat-header-cell *matHeaderCellDef>Users</th>
-      <td mat-cell *matCellDef="let element">
-        {{ element.users[0] }} {{ element.additionalUserCount ? ('+ ' +
-        element.additionalUserCount) : '' }}
+      <td mat-cell *matCellDef="let el">
+        @if (el.knowledgeBase.users && el.knowledgeBase.users.length > 0) {
+          @let numUsers = el.knowledgeBase.users.length;
+          {{ el.knowledgeBase.users[0].username }} {{ numUsers > 1 ? ('+ ' + (numUsers - 1)) : '' }}
+        }
       </td>
     </ng-container>
 
     <ng-container matColumnDef="labels">
       <th mat-header-cell *matHeaderCellDef>Labels</th>
-      <td mat-cell *matCellDef="let element">
+      <td mat-cell *matCellDef="let el">
         <mat-chip-set role="list">
-          <mat-chip *ngFor="let label of element.labels" role="listitem" [disableRipple]="true">{{label}}</mat-chip>
+          @for (label of el.labels; track label) {
+            <mat-chip class="label-chip" role="listitem">{{label.name}}</mat-chip>
+          }
         </mat-chip-set>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="lastSeenAt">
-      <th mat-header-cell *matHeaderCellDef>Last seen</th>
-      <!-- TODO(user): implement a dedicated pipe or/and a component for
-         dates rendering (with changeable timezone stored in the global
-         store). -->
-      <td mat-cell *matCellDef="let element">
-        <app-timestamp [date]="element.lastSeenAt"></app-timestamp>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="online">
       <th mat-header-cell *matHeaderCellDef>Online</th>
-      <td mat-cell *matCellDef="let element">
-        <mat-chip-set role="list">
-          <online-chip
-            *ngIf="element.lastSeenAt"
-            [lastSeen]="element.lastSeenAt"
-          ></online-chip>
-        </mat-chip-set>
+      <td mat-cell *matCellDef="let el">
+        @if (el.lastSeenAt) {
+          <mat-chip-set role="list">
+            <online-chip [lastSeen]="el.lastSeenAt" />
+          </mat-chip-set>
+        }
       </td>
+    </ng-container>
+
+    <ng-container matColumnDef="lastSeenAt">
+      <th mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          matTooltip="Only sorts currently loaded search results, does not fetch more results from the server."
+          sortActionDescription="Sort by last seen">
+        Last seen
+      </th>
+      <td mat-cell *matCellDef="let el"><timestamp [date]="el.lastSeenAt" /></td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -63,8 +78,26 @@
       mat-row
       *matRowDef="let row; columns: columns"
       role="link"
-      [routerLink]="['/clients/', row.clientId]"
-      [queryParams]="clientLinkParams$ | async"
+      [routerLink]="approvalReason() != undefined
+        ? ['/clients/', row.clientId, 'approvals']
+        : ['/clients/', row.clientId]
+      "
+      [queryParams]="approvalReason() != undefined ? {'reason': approvalReason()} : {}"
     ></tr>
+
+    <tr *matNoDataRow>
+      <td colspan="5">No search results found.</td>
+    </tr>
   </table>
-</app-infinite-list>
+</filter-paginate>
+
+<mat-divider />
+
+<div class="recent-approvals-container">
+  <h3>Recent approvals</h3>
+
+  @for (approval of clientSearchStore.recentApprovals(); track approval) {
+    <recent-client-approval [approval]="approval" />
+  }
+</div>
+

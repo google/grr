@@ -318,6 +318,25 @@ message ApiListFlowOutputPluginErrorsResult {
       [(sem_type) = { description: "Total count of items." }];
 }
 
+message ApiListAllFlowOutputPluginLogsArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional string flow_id = 2
+      [(sem_type) = { type: "ApiFlowId", description: "Flow id." }];
+  optional int64 offset = 3
+      [(sem_type) = { description: "Logs starting offset." }];
+  optional int64 count = 4
+      [(sem_type) = { description: "Max number of log entries." }];
+}
+
+message ApiListAllFlowOutputPluginLogsResult {
+  repeated FlowOutputPluginLogEntry items = 1
+      [(sem_type) = { description: "Log entries." }];
+
+  optional int64 total_count = 2
+      [(sem_type) = { description: "Total count of items." }];
+}
+
 message ApiGetFlowFilesArchiveArgs {
   enum ArchiveFormat {
     ZIP = 0;

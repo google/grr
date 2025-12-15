@@ -2,23 +2,12 @@
 """The in memory database methods for flow handling."""
 
 import collections
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 import logging
 import sys
 import threading
 import time
-from typing import Any
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Mapping
-from typing import NewType
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import TypeVar
-from typing import Union
+from typing import Any, NewType, Optional, TypeVar, Union
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -51,17 +40,17 @@ class TimeOutWhileWaitingForFlowsToBeProcessedError(Error):
 class InMemoryDBFlowMixin(object):
   """InMemoryDB mixin for flow handling."""
 
-  flows: Dict[Tuple[ClientID, FlowID], flows_pb2.Flow]
-  flow_results: Dict[Tuple[str, str], List[flows_pb2.FlowResult]]
-  flow_errors: Dict[Tuple[str, str], List[flows_pb2.FlowError]]
-  flow_log_entries: Dict[Tuple[str, str], List[flows_pb2.FlowLogEntry]]
-  flow_output_plugin_log_entries: Dict[
-      Tuple[str, str], List[flows_pb2.FlowOutputPluginLogEntry]
+  flows: dict[tuple[ClientID, FlowID], flows_pb2.Flow]
+  flow_results: dict[tuple[str, str], list[flows_pb2.FlowResult]]
+  flow_errors: dict[tuple[str, str], list[flows_pb2.FlowError]]
+  flow_log_entries: dict[tuple[str, str], list[flows_pb2.FlowLogEntry]]
+  flow_output_plugin_log_entries: dict[
+      tuple[str, str], list[flows_pb2.FlowOutputPluginLogEntry]
   ]
-  flow_responses: Dict[
-      Tuple[str, str], Dict[int, Dict[int, flows_pb2.FlowResponse]]
+  flow_responses: dict[
+      tuple[str, str], dict[int, dict[int, flows_pb2.FlowResponse]]
   ]
-  flow_requests: Dict[Tuple[str, str], Dict[int, flows_pb2.FlowRequest]]
+  flow_requests: dict[tuple[str, str], dict[int, flows_pb2.FlowRequest]]
 
   scheduled_flows: dict[
       tuple[ClientID, Username, FlowID], flows_pb2.ScheduledFlow
@@ -71,11 +60,11 @@ class InMemoryDBFlowMixin(object):
   flow_handler_thread: threading.Thread
   lock: threading.RLock
   flow_handler_num_being_processed: int
-  message_handler_requests: Dict[
-      HandlerName, Dict[RequestID, objects_pb2.MessageHandlerRequest]
+  message_handler_requests: dict[
+      HandlerName, dict[RequestID, objects_pb2.MessageHandlerRequest]
   ]
-  message_handler_leases: Dict[
-      HandlerName, Dict[RequestID, int]  # lease expiration time in us
+  message_handler_leases: dict[
+      HandlerName, dict[RequestID, int]  # lease expiration time in us
   ]
   flow_processing_requests: dict[
       tuple[str, str, str], flows_pb2.FlowProcessingRequest
@@ -250,7 +239,7 @@ class InMemoryDBFlowMixin(object):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-  ) -> List[flows_pb2.Flow]:
+  ) -> list[flows_pb2.Flow]:
     """Returns all flow objects."""
     res = []
     for flow in self.flows.values():
@@ -581,9 +570,9 @@ class InMemoryDBFlowMixin(object):
       client_id: str,
       flow_id: str,
   ) -> Iterable[
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
-          Dict[
+          dict[
               int,
               Union[
                   flows_pb2.FlowResponse,
@@ -643,9 +632,9 @@ class InMemoryDBFlowMixin(object):
       self,
       client_id: str,
       flow_id: str,
-  ) -> Dict[
+  ) -> dict[
       int,
-      Tuple[
+      tuple[
           flows_pb2.FlowRequest,
           Sequence[
               Union[
@@ -890,7 +879,7 @@ class InMemoryDBFlowMixin(object):
 
   @utils.Synchronized
   def _WriteFlowResultsOrErrors(
-      self, container: Dict[Tuple[str, str], T], items: Sequence[T]
+      self, container: dict[tuple[str, str], T], items: Sequence[T]
   ) -> None:
     for i in items:
       dest = container.setdefault((i.client_id, i.flow_id), [])
@@ -906,13 +895,14 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def _ReadFlowResultsOrErrors(
       self,
-      container: Dict[Tuple[str, str], T],
+      container: dict[tuple[str, str], T],
       client_id: str,
       flow_id: str,
       offset: int,
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
   ) -> Sequence[T]:
     """Reads flow results/errors of a given flow using given query options."""
@@ -926,7 +916,11 @@ class InMemoryDBFlowMixin(object):
     if with_tag is not None:
       results = [i for i in results if i.tag == with_tag]
 
-    if with_type is not None:
+    if with_proto_type_url is not None:
+      results = [
+          i for i in results if i.payload.type_url == with_proto_type_url
+      ]
+    elif with_type is not None:
       results = [
           i
           for i in results
@@ -951,6 +945,7 @@ class InMemoryDBFlowMixin(object):
       count: int,
       with_tag: Optional[str] = None,
       with_type: Optional[str] = None,
+      with_proto_type_url: Optional[str] = None,
       with_substring: Optional[str] = None,
   ) -> Sequence[flows_pb2.FlowResult]:
     """Reads flow results of a given flow using given query options."""
@@ -962,6 +957,7 @@ class InMemoryDBFlowMixin(object):
         count,
         with_tag=with_tag,
         with_type=with_type,
+        with_proto_type_url=with_proto_type_url,
         with_substring=with_substring,
     )
 
@@ -993,6 +989,18 @@ class InMemoryDBFlowMixin(object):
     result = collections.Counter()
     for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
       key = db_utils.TypeURLToRDFTypeName(hr.payload.type_url)
+      result[key] += 1
+
+    return result
+
+  @utils.Synchronized
+  def CountFlowResultsByProtoTypeUrl(
+      self, client_id: str, flow_id: str
+  ) -> Mapping[str, int]:
+    """Returns counts of flow results grouped by proto result type."""
+    result = collections.Counter()
+    for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
+      key = hr.payload.type_url
       result[key] += 1
 
     return result
@@ -1146,16 +1154,29 @@ class InMemoryDBFlowMixin(object):
       entry: flows_pb2.FlowOutputPluginLogEntry,
   ) -> None:
     """Writes a single output plugin log entry to the database."""
-    key = (entry.client_id, entry.flow_id)
+    self.WriteMultipleFlowOutputPluginLogEntries([entry])
 
-    if key not in self.flows:
-      raise db.UnknownFlowError(entry.client_id, entry.flow_id)
+  @utils.Synchronized
+  def WriteMultipleFlowOutputPluginLogEntries(
+      self,
+      entries: Sequence[flows_pb2.FlowOutputPluginLogEntry],
+  ) -> None:
+    """Writes multiple output plugin log entries to the database."""
+    if not entries:
+      return
 
-    log_entry = flows_pb2.FlowOutputPluginLogEntry()
-    log_entry.CopyFrom(entry)
-    log_entry.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+    for entry in entries:
+      now = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+      key = (entry.client_id, entry.flow_id)
 
-    self.flow_output_plugin_log_entries.setdefault(key, []).append(log_entry)
+      if key not in self.flows:
+        raise db.AtLeastOneUnknownFlowError([(entry.client_id, entry.flow_id)])
+
+      log_entry = flows_pb2.FlowOutputPluginLogEntry()
+      log_entry.CopyFrom(entry)
+      log_entry.timestamp = now
+
+      self.flow_output_plugin_log_entries.setdefault(key, []).append(log_entry)
 
   @utils.Synchronized
   def ReadFlowOutputPluginLogEntries(
@@ -1176,6 +1197,28 @@ class InMemoryDBFlowMixin(object):
     )
 
     entries = [e for e in entries if e.output_plugin_id == output_plugin_id]
+
+    if with_type is not None:
+      entries = [e for e in entries if e.log_entry_type == with_type]
+
+    return entries[offset : offset + count]
+
+  @utils.Synchronized
+  def ReadAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_type: Optional[
+          flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType
+      ] = None,
+  ) -> Sequence[flows_pb2.FlowOutputPluginLogEntry]:
+    """Reads flow output plugin log entries for all plugins of a given flow."""
+    entries = sorted(
+        self.flow_output_plugin_log_entries.get((client_id, flow_id), []),
+        key=lambda e: e.timestamp,
+    )
 
     if with_type is not None:
       entries = [e for e in entries if e.log_entry_type == with_type]
@@ -1204,6 +1247,24 @@ class InMemoryDBFlowMixin(object):
             with_type=with_type,
         )
     )
+
+  @utils.Synchronized
+  def CountAllFlowOutputPluginLogEntries(
+      self,
+      client_id: str,
+      flow_id: str,
+      with_type: Optional[
+          "flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ValueType"
+      ] = None,
+  ):
+    """Returns number of flow output plugin log entries of a given flow."""
+
+    entries = self.flow_output_plugin_log_entries.get((client_id, flow_id), [])
+
+    if with_type is not None:
+      entries = [e for e in entries if e.log_entry_type == with_type]
+
+    return len(entries)
 
   @utils.Synchronized
   def WriteScheduledFlow(

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for cron job handling."""
 
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Optional
 
 import MySQLdb
 
@@ -52,7 +53,7 @@ class MySQLDBCronJobMixin(object):
 
   def _CronJobFromRow(
       self,
-      row: Tuple[bytes, float, bool, bool, int, float, str, bytes, float, str],
+      row: tuple[bytes, float, bool, bool, int, float, str, bytes, float, str],
   ) -> flows_pb2.CronJob:
     """Creates a cronjob object from a database result row."""
     (
@@ -356,7 +357,7 @@ class MySQLDBCronJobMixin(object):
       )
 
   def _CronJobRunFromRow(
-      self, row: Tuple[bytes, float]
+      self, row: tuple[bytes, float]
   ) -> flows_pb2.CronJobRun:
     serialized_run, timestamp = row
     res = flows_pb2.CronJobRun()

@@ -16,6 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_proto import artifact_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
@@ -218,6 +219,11 @@ class ClientTest(testing.ColabE2ETest):
   def testHostname_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = 'GRR'
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(ClientTest.FAKE_CLIENT_ID, startup)
+
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
     self.assertEqual(client.hostname, socket.getfqdn())
@@ -236,6 +242,11 @@ class ClientTest(testing.ColabE2ETest):
 
   def testIfaces_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = 'GRR'
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(ClientTest.FAKE_CLIENT_ID, startup)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -280,6 +291,11 @@ class ClientTest(testing.ColabE2ETest):
   def testArch_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = 'GRR'
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(ClientTest.FAKE_CLIENT_ID, startup)
+
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
     self.assertEqual(client.arch, platform.machine())
@@ -297,6 +313,11 @@ class ClientTest(testing.ColabE2ETest):
 
   def testKernel_AfterInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = 'GRR'
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(ClientTest.FAKE_CLIENT_ID, startup)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -385,10 +406,16 @@ class ClientTest(testing.ColabE2ETest):
 
   def testInterrogate(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_name = 'GRR'
+    startup.client_info.client_version = 4321
+    data_store.REL_DB.WriteClientStartupInfo(ClientTest.FAKE_CLIENT_ID, startup)
+
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
     summary = client.interrogate()
-    self.assertEqual(summary.system_info.fqdn, socket.getfqdn())
+    self.assertEqual(summary.knowledge_base.fqdn, socket.getfqdn())
 
   @testing.with_approval_checks
   def testInterrogate_WithoutApproval(self):

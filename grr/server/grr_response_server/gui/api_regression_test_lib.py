@@ -8,6 +8,7 @@ import os
 import re
 import socket
 import sys
+from typing import Optional, Union, Callable
 
 from absl import flags
 import psutil
@@ -78,9 +79,6 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
       setattr(module, cls_name, test_cls)
 
 
-ApiRegressionTestMetaclass.RegisterConnectionMixin(
-    api_regression_http.HttpApiV1RelationalDBRegressionTestMixin
-)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin
 )
@@ -190,22 +188,29 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
 
     return test_class_name
 
-  def Check(self, method, args=None, replace=None, api_post_process_fn=None):
+  def Check(
+      self,
+      method: str,
+      args: Optional[pb_message.Message] = None,
+      replace: Optional[
+          Union[dict[str, str], Callable[[], dict[str, str]]]
+      ] = None,
+  ):
     """Does the regression check.
 
     Args:
       method: Name of the API method to call.
-      args: RDF protobuf containing arguments for the API method.
+      args: Protobuf containing arguments for the API method.
       replace: Can be either: 1) A dict containing strings which, if they occur
         in the raw API response, will be replaced with the strings they map to.
         2) A zero-argument function that returns a replacements dict like the
         one described in 1).
-      api_post_process_fn: A function which, if provided, will be called with
-        the results of parsing the API response, allowing modification of the
-        results before they are compared with golden datasets.
     """
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(self.test_username)
     mdata = router.GetAnnotatedMethods()[method]
+
+    if args is not None and not isinstance(args, pb_message.Message):
+      raise TypeError(f"args must be a proto message, got {type(args)}")
 
     check = self.HandleCheck(
         mdata, args=args, replace=lambda s: self._Replace(s, replace=replace)
@@ -213,9 +218,6 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
 
     check["test_class"] = self.golden_file_class_name
     check["api_method"] = method
-
-    if api_post_process_fn is not None:
-      api_post_process_fn(check)
 
     self.checks.append(check)
 

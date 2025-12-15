@@ -1,0 +1,38 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.COLLECT_LARGE_FILE_FLOW, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute file path</mat-label>
+    <textarea matInput
+        placeholder="/path/to/some/file"
+        [formControl]="controls.path"
+        class="monospace"
+        name="path"
+        autocomplete="off">
+    </textarea>
+    <mat-error>
+      <form-errors [validationErrors]="controls.path.errors" />
+    </mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Signed URL</mat-label>
+    <textarea matInput
+        placeholder="http://signed/bucket/url"
+        [formControl]="controls.signedUrl"
+        class="monospace"
+        name="signed_url"
+        autocomplete="off">
+    </textarea>
+    <form-errors [validationErrors]="controls.signedUrl.errors" />
+  </mat-form-field>
+
+  <h5>Path type</h5>
+  <mat-radio-group aria-label="Path type" [formControl]="controls.pathtype">
+    @for (pathtype of pathtypes; track pathtype) {
+      <mat-radio-button [value]="pathtype">{{pathtype}}</mat-radio-button>
+    }
+  </mat-radio-group>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

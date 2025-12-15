@@ -712,8 +712,9 @@ message StatFSRequest {
 }
 
 // A stat() record for a given path
-// Next field id: 24.
+// Next field id: 26.
 message StatEntry {
+  reserved 24, 25;
   // DEPRECATED
   // optional string aff4path = 1;
   optional uint64 st_mode = 2 [
@@ -911,29 +912,6 @@ message Uname {
   reserved 12;
 }
 
-message FolderInformation {
-  optional string app_data = 1;
-  optional string cache = 2;
-  optional string cookies = 3;
-  optional string desktop = 4;
-  optional string favorites = 5;
-  optional string history = 6;
-  optional string local_app_data = 7;
-  // ID 8 previously used by local_settings
-  optional string my_music = 9;
-  optional string my_pictures = 10;
-  optional string my_video = 11;
-  optional string net_hood = 12;
-  optional string personal = 13;
-  optional string print_hood = 14;
-  optional string programs = 15;
-  optional string recent = 16;
-  optional string send_to = 17;
-  optional string start_menu = 18;
-  optional string startup = 19;
-  optional string templates = 20;
-}
-
 message NetworkAddress {
   option (semantic) = {
     description: "Network Address information."
@@ -963,37 +941,22 @@ message Interface {
                  ""
   }];
 
-  // ip4_addresses is deprecated, use addresses.
-  repeated bytes ip4_addresses = 2;
+  reserved 2;
 
   // CyBOX: adapter
   optional string ifname = 3;
 
-  // ip6_addresses is deprecated, use addresses.
-  repeated bytes ip6_addresses = 4;
+  reserved 4;
 
   // CyBOX: ip_list
   repeated NetworkAddress addresses = 5 [(sem_type) = {
     description: "A network address attached to an interface.",
   }];
 
-  optional uint64 dhcp_lease_expires = 6 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Time when DHCP lease will expire.",
-  }];
-
-  optional uint64 dhcp_lease_obtained = 7 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Time when DHCP lease was obtained.",
-  }];
-
-  repeated NetworkAddress dhcp_server_list = 8 [(sem_type) = {
-    description: "IP addresses of DHCP servers.",
-  }];
-
-  repeated NetworkAddress ip_gateway_list = 9 [(sem_type) = {
-    description: "IP addresses of DHCP servers.",
-  }];
+  reserved 6;
+  reserved 7;
+  reserved 8;
+  reserved 9;
 }
 
 message Hash {
@@ -1756,7 +1719,7 @@ message CloudInstance {
 }
 
 // This is a summary of a GRR client.
-// Next field: 17
+// Next field: 21
 message ClientSummary {
   option (semantic) = {
     description: "A summary of the client information."
@@ -1827,6 +1790,21 @@ message ClientSummary {
   optional FleetspeakValidationInfo fleetspeak_validation_info = 16 [
     (sem_type) = { description: "Fleetspeak ValidationInfo (e.g. IP address)" }
   ];
+
+  // Major component of the RRG version (`x` in `x.y.z`).
+  optional uint32 rrg_version_major = 17;
+  // Minor component of the RRG version (`y` in `x.y.z`).
+  optional uint32 rrg_version_minor = 18;
+  // Patch component of the RRG version (`z` in `x.y.z`).
+  optional uint32 rrg_version_patch = 19;
+  // Optional pre-release label of the RRG version (`foo` in `x.y.z-foo`).
+  //
+  // This is a rather free-form identifier that can also include numbers and
+  // dots (e.g. `beta.1`). See the [syntax][1] description of the Rust `semver`
+  // crate for exact specification.
+  //
+  // [1]: https://docs.rs/semver/latest/semver/struct.Prerelease.html#syntax
+  optional string rrg_version_pre = 20;
 }
 
 // Information about Endpoint Detection and Response agents.

@@ -1,0 +1,26 @@
+.highlight {
+  font-weight: 900;
+}
+
+.item-header,
+.item-content {
+  white-space: normal;
+}
+
+.item-content {
+  font-family: Roboto;
+  font-style: normal;
+  font-size: 11px;
+  line-height: 18px;
+  // or 164%
+
+  letter-spacing: 0.3px;
+}
+
+.table-name::after {
+  content: ' – ';
+}
+
+.bold {
+  font-weight: bold;
+}

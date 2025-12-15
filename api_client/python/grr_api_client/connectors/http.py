@@ -204,7 +204,10 @@ class HttpConnector(abstract.Connector):
     self.api_methods = {}
     for method in proto.items:
       if not method.http_route.startswith("/api/v2/"):
-        method.http_route = method.http_route.replace("/api/", "/api/v2/", 1)
+        raise ValueError(
+            f"Method {method.name} has an unexpected HTTP route:"
+            f" {method.http_route}"
+        )
 
       self.api_methods[method.name] = method
       routing_rules.append(
@@ -266,7 +269,7 @@ class HttpConnector(abstract.Connector):
     if isinstance(value, bool):
       value = int(value)
     elif field.enum_type:
-      value = field.enum_type.values_by_number[value].name.lower()
+      value = field.enum_type.values_by_number[value].name
 
     return value
 
@@ -406,9 +409,8 @@ class HttpConnector(abstract.Connector):
     content = response.content
     json_str = content[len(self.JSON_PREFIX):]
 
-    if method_descriptor.result_type_descriptor.name:
-      default_value = method_descriptor.result_type_descriptor.default
-      result = utils.TypeUrlToMessage(default_value.type_url)
+    if method_descriptor.result_type_url:
+      result = utils.TypeUrlToMessage(method_descriptor.result_type_url)
       json_format.Parse(json_str, result, ignore_unknown_fields=True)
       return result
 

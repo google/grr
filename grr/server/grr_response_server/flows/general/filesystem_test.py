@@ -14,6 +14,9 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_responses
@@ -27,6 +30,7 @@ from grr_response_server.flows.general import collectors
 # pylint: enable=unused-import
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
+from grr_response_server.flows.general import mig_filesystem
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -34,9 +38,11 @@ from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
 
@@ -446,7 +452,10 @@ class ListDirectoryTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetFileMetadata(self, rel_db: db.Database):
-    client_id = db_test_utils.InitializeRRGClient(rel_db)
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
     flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
 
     args = filesystem.ListDirectoryArgs()
@@ -481,13 +490,327 @@ class ListDirectoryTest(absltest.TestCase):
     flow.Start()
     flow.HandleRRGGetFileMetadata(responses)
 
-    self.assertEqual(flow.state.stat.pathspec.path, "/foo/bar/baz")
-    self.assertEqual(flow.state.stat.st_mode, stat.S_IFDIR)
-    self.assertEqual(flow.state.stat.st_size, 1337)
-    self.assertEqual(flow.state.stat.st_atime.AsSecondsSinceEpoch(), 1001)
-    self.assertEqual(flow.state.stat.st_mtime.AsSecondsSinceEpoch(), 1002)
-    self.assertEqual(flow.state.stat.st_btime.AsSecondsSinceEpoch(), 1003)
-    self.assertEqual(flow.state.urn, f"aff4:/{client_id}/fs/os/foo/bar/baz")
+    self.assertEqual(flow.store.stat_entry.pathspec.path, "/foo/bar/baz")
+    self.assertEqual(flow.store.stat_entry.st_mode, stat.S_IFDIR)
+    self.assertEqual(flow.store.stat_entry.st_size, 1337)
+    self.assertEqual(flow.store.stat_entry.st_atime, 1001)
+    self.assertEqual(flow.store.stat_entry.st_mtime, 1002)
+    self.assertEqual(flow.store.stat_entry.st_btime, 1003)
+    self.assertEqual(flow.store.urn, f"aff4:/{client_id}/fs/os/foo/bar/baz")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Empty(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": {},
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertEmpty(flow_results)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Dir(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar": b"",
+            "/foo/baz": {},
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("/foo/bar", results_by_path)
+    self.assertIn("/foo/baz", results_by_path)
+
+    self.assertTrue(stat.S_ISREG(results_by_path["/foo/bar"].st_mode))
+    self.assertTrue(stat.S_ISDIR(results_by_path["/foo/baz"].st_mode))
+
+    path_infos = rel_db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("foo",),
+    )
+    self.assertLen(path_infos, 2)
+
+    path_infos_by_components = {}
+    for path_info in path_infos:
+      path_infos_by_components[tuple(path_info.components)] = path_info
+
+    self.assertIn(("foo", "bar"), path_infos_by_components)
+    self.assertIn(("foo", "baz"), path_infos_by_components)
+
+  @db_test_lib.WithDatabase
+  def testRRG_Dir_Windows(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "X:\\Foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "X:\\Foo\\Bar": b"",
+            "X:\\Foo\\Baz": {},
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("X:/Foo/Bar", results_by_path)
+    self.assertIn("X:/Foo/Baz", results_by_path)
+
+    self.assertTrue(stat.S_ISREG(results_by_path["X:/Foo/Bar"].st_mode))
+    self.assertTrue(stat.S_ISDIR(results_by_path["X:/Foo/Baz"].st_mode))
+
+    path_infos = rel_db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("X:", "Foo"),
+    )
+    self.assertLen(path_infos, 2)
+
+    path_infos_by_components = {}
+    for path_info in path_infos:
+      path_infos_by_components[tuple(path_info.components)] = path_info
+
+    self.assertIn(("X:", "Foo", "Bar"), path_infos_by_components)
+    self.assertIn(("X:", "Foo", "Baz"), path_infos_by_components)
+
+  @db_test_lib.WithDatabase
+  def testRRG_File(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertStartsWith(flow_obj.error_message, "Unexpected file type")
+
+  @db_test_lib.WithDatabase
+  def testRRG_Symlink_Absolute(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": "/quux",
+            "/quux/bar": b"",
+            "/quux/baz": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("/quux/bar", results_by_path)
+    self.assertIn("/quux/baz", results_by_path)
+
+    self.assertTrue(stat.S_ISREG(results_by_path["/quux/bar"].st_mode))
+    self.assertTrue(stat.S_ISREG(results_by_path["/quux/baz"].st_mode))
+
+  @db_test_lib.WithDatabase
+  def testRRG_Symlink_Relative(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo/norf"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/norf": "../quux",
+            "/quux/bar": b"",
+            "/quux/baz": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path = {}
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("/quux/bar", results_by_path)
+    self.assertIn("/quux/baz", results_by_path)
+
+    self.assertTrue(stat.S_ISREG(results_by_path["/quux/bar"].st_mode))
+    self.assertTrue(stat.S_ISREG(results_by_path["/quux/baz"].st_mode))
+
+  @db_test_lib.WithDatabase
+  def testRRG_Symlink_DepthLimit(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.path = "/foo"
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": "/foo",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertStartsWith(flow_obj.error_message, "Symlink depth reached")
+
+  @db_test_lib.WithDatabase
+  def testHandleRRG_Windows_LeadingSlash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.ListDirectoryArgs()
+    args.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+    args.pathspec.path = "/C:/Users"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=filesystem.ListDirectory,
+        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            "C:\\Users\\Foo Bar\\desktop.ini": b"Lorem ipsum.",
+            "C:\\Users\\Quux\\desktop.ini": b"Lorem ipsum.",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 2)
+
+    results_by_path: dict[str, jobs_pb2.StatEntry] = {}
+
+    for flow_result in flow_results:
+      result = jobs_pb2.StatEntry()
+      self.assertTrue(flow_result.payload.Unpack(result))
+
+      results_by_path[result.pathspec.path] = result
+
+    self.assertIn("C:/Users/Foo Bar", results_by_path)
+    self.assertIn("C:/Users/Quux", results_by_path)
 
 
 def main(argv):

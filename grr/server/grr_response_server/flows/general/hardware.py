@@ -12,8 +12,9 @@ from grr_response_proto import sysinfo_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
-from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
@@ -30,21 +31,42 @@ class CollectHardwareInfo(flow_base.FlowBase):
   only_protos_allowed = True
 
   def Start(self) -> None:
-    if self.client_os == "Linux":
-      if self.rrg_support:
+    if self.rrg_support:
+      if self.rrg_os_type == rrg_os_pb2.LINUX:
         signed_command = data_store.REL_DB.ReadSignedCommand(
             "dmidecode_q",
             operating_system=signed_commands_pb2.SignedCommand.OS.LINUX,
         )
-        self.CallRRG(
-            action=rrg_pb2.EXECUTE_SIGNED_COMMAND,
-            args=rrg_execute_signed_command_pb2.Args(
-                command=signed_command.command,
-                command_ed25519_signature=signed_command.ed25519_signature,
-            ),
-            next_state=self._ProcessRRGDmidecodeResults.__name__,
+
+        action = rrg_stubs.ExecuteSignedCommand()
+        action.args.command = signed_command.command
+        action.args.command_ed25519_signature = signed_command.ed25519_signature
+        action.args.timeout.seconds = 10
+        action.Call(self._ProcessRRGDmidecodeResults)
+      elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
+        action = rrg_stubs.QueryWmi()
+        action.args.query = """
+        SELECT *
+          FROM Win32_ComputerSystemProduct
+        """
+        action.Call(self._ProcessRRGComputerSystemProductResults)
+      elif self.rrg_os_type == rrg_os_pb2.MACOS:
+        signed_command = data_store.REL_DB.ReadSignedCommand(
+            "system_profiler_xml_sphardware",
+            operating_system=signed_commands_pb2.SignedCommand.OS.MACOS,
         )
+
+        action = rrg_stubs.ExecuteSignedCommand()
+        action.args.command = signed_command.command
+        action.args.command_ed25519_signature = signed_command.ed25519_signature
+        action.args.timeout.seconds = 10
+        action.Call(self._ProcessRRGSystemProfilerResults)
       else:
+        raise flow_base.FlowError(
+            f"Unsupported operating system: {self.rrg_os_type}",
+        )
+    else:
+      if self.client_os == "Linux":
         dmidecode_args = jobs_pb2.ExecuteRequest()
         dmidecode_args.cmd = "/usr/sbin/dmidecode"
         dmidecode_args.args.append("-q")
@@ -54,19 +76,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
             dmidecode_args,
             next_state=self._ProcessDmidecodeResults.__name__,
         )
-    elif self.client_os == "Windows":
-      if self.rrg_support:
-        self.CallRRG(
-            action=rrg_pb2.QUERY_WMI,
-            args=rrg_query_wmi_pb2.Args(
-                query="""
-                SELECT *
-                  FROM Win32_ComputerSystemProduct
-                """,
-            ),
-            next_state=self._ProcessRRGComputerSystemProductResults.__name__,
-        )
-      else:
+      elif self.client_os == "Windows":
         win32_computer_system_product_args = jobs_pb2.WMIRequest()
         win32_computer_system_product_args.query = """
         SELECT *
@@ -78,21 +88,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
             win32_computer_system_product_args,
             next_state=self._ProcessWin32ComputerSystemProductResults.__name__,
         )
-    elif self.client_os == "Darwin":
-      if self.rrg_support:
-        signed_command = data_store.REL_DB.ReadSignedCommand(
-            "system_profiler_xml_sphardware",
-            operating_system=signed_commands_pb2.SignedCommand.OS.MACOS,
-        )
-        self.CallRRG(
-            action=rrg_pb2.EXECUTE_SIGNED_COMMAND,
-            args=rrg_execute_signed_command_pb2.Args(
-                command=signed_command.command,
-                command_ed25519_signature=signed_command.ed25519_signature,
-            ),
-            next_state=self._ProcessRRGSystemProfilerResults.__name__,
-        )
-      else:
+      elif self.client_os == "Darwin":
         system_profiler_args = jobs_pb2.ExecuteRequest()
         system_profiler_args.cmd = "/usr/sbin/system_profiler"
         system_profiler_args.args.append("-xml")
@@ -103,9 +99,10 @@ class CollectHardwareInfo(flow_base.FlowBase):
             system_profiler_args,
             next_state=self._ProcessSystemProfilerResults.__name__,
         )
-    else:
-      message = f"Unsupported operating system: {self.client_os}"
-      raise flow_base.FlowError(message)
+      else:
+        raise flow_base.FlowError(
+            f"Unsupported operating system: {self.client_os}",
+        )
 
   @flow_base.UseProto2AnyResponses
   def _ProcessRRGDmidecodeResults(
@@ -113,21 +110,28 @@ class CollectHardwareInfo(flow_base.FlowBase):
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
+      self.Log("Failed to run dmidecode: %s", responses.status)
+      return
+
+    if len(responses) != 1:
       raise flow_base.FlowError(
-          f"Failed to run dmidecode: {responses.status}",
+          f"Unexpected number of dmidecode responses: {len(responses)}",
       )
 
-    for response_any in responses:
-      response = rrg_execute_signed_command_pb2.Result()
-      response.ParseFromString(response_any.value)
+    response = rrg_execute_signed_command_pb2.Result()
+    response.ParseFromString(list(responses)[0].value)
 
-      if response.exit_code != 0:
-        raise flow_base.FlowError(
-            f"dmidecode quit abnormally (code: {response.exit_code}, "
-            f"stdout: {response.stdout}, stderr: {response.stderr})",
-        )
+    if response.exit_code != 0 or response.exit_signal != 0:
+      raise flow_base.FlowError(
+          "dmidecode quit abnormally "
+          f"(code: {response.exit_code}, signal: {response.exit_signal}, "
+          f"stdout: {response.stdout}, stderr: {response.stderr})",
+      )
 
-      self.SendReplyProto(_ParseDmidecodeStdout(response.stdout))
+    if response.stdout_truncated:
+      self.Log("dmidecode output was truncated, parsing might be incomplete")
+
+    self.SendReplyProto(_ParseDmidecodeStdout(response.stdout))
 
   @flow_base.UseProto2AnyResponses
   def _ProcessDmidecodeResults(
@@ -135,9 +139,8 @@ class CollectHardwareInfo(flow_base.FlowBase):
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
-      raise flow_base.FlowError(
-          f"Failed to run dmidecode: {responses.status}",
-      )
+      self.Log("Failed to run dmidecode: %s", responses.status)
+      return
 
     for response_any in responses:
       response = jobs_pb2.ExecuteResponse()
@@ -224,9 +227,10 @@ class CollectHardwareInfo(flow_base.FlowBase):
       response = rrg_execute_signed_command_pb2.Result()
       response.ParseFromString(response_any.value)
 
-      if response.exit_code != 0:
+      if response.exit_code != 0 or response.exit_signal != 0:
         raise flow_base.FlowError(
-            f"system profiler quit abnormally (code: {response.exit_code}, "
+            "system profiler quit abnormally "
+            f"(code: {response.exit_code}, signal: {response.exit_signal}, "
             f"stdout: {response.stdout}, stderr: {response.stderr})",
         )
 

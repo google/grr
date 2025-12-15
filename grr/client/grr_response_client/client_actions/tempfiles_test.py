@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for grr_response_client.client_actions.tempfiles."""
-
 import io
 import os
 import shutil

@@ -1,0 +1,15 @@
+
+@let client = approval().subject;
+@if (client) {
+  <div class="client-header">
+    <a mat-button [routerLink]="['/clients', client.clientId]">
+      <mat-icon>computer</mat-icon>
+      <h3>{{ client.knowledgeBase.fqdn }} {{ client.clientId }}</h3>
+    </a>
+    <mat-chip-set role="list">
+      <online-chip [lastSeen]="client.lastSeenAt" />
+      <approval-chip [approval]="approval()" />
+    </mat-chip-set>
+    <div class="reason">: {{ approval().reason }}</div>
+  </div>
+}

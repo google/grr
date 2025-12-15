@@ -43,7 +43,7 @@ function getFlagByName(name: string, flags: readonly Flag[]) {
  * @param name A flag name to search for.
  * @return A flag with specified name.
  */
-function getLinuxFlagByName(name: string) {
+export function getLinuxFlagByName(name: string) {
   return getFlagByName(name, LINUX_FLAGS);
 }
 
@@ -53,7 +53,7 @@ function getLinuxFlagByName(name: string) {
  * @param name A flag name to search for.
  * @return A flag with specified name.
  */
-function getOsxFlagByName(name: string) {
+export function getOsxFlagByName(name: string) {
   return getFlagByName(name, OSX_FLAGS);
 }
 

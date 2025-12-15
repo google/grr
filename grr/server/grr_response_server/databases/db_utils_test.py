@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-from typing import Tuple
 
 from absl import app
 from absl.testing import absltest
@@ -269,7 +268,7 @@ class CallLoggedTest(absltest.TestCase):
 
   def testArgsAndResultPropagated(self):
     @db_utils.CallLogged
-    def SampleCall(arg: int, kwarg: int = 0) -> Tuple[int, int]:
+    def SampleCall(arg: int, kwarg: int = 0) -> tuple[int, int]:
       return (arg, kwarg)
 
     self.assertEqual(SampleCall(42, 1337), (42, 1337))

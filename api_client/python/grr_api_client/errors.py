@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 """API errors definitions."""
 
-from typing import Tuple
-
-VersionTuple = Tuple[int, int, int, int]
+VersionTuple = tuple[int, int, int, int]
 
 
 class Error(RuntimeError):

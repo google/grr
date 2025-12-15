@@ -23,10 +23,6 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import test_lib
 
 
-class TestRDFValueArray(rdf_protodict.RDFValueArray):
-  rdf_type = rdfvalue.RDFString
-
-
 class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   """Test the Dict implementation."""
 
@@ -392,78 +388,15 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict.quux[b"thud"], 3.14)
 
 
-class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
-  """Test the Dict implementation."""
-
-  rdfvalue_class = rdf_protodict.RDFValueArray
-
-  def GenerateSample(self, number=0):
-    return rdf_protodict.RDFValueArray([number])
-
-  def testArray(self):
-    sample = rdf_protodict.RDFValueArray()
-
-    # Add a string.
-    sample.Append("hello")
-    self.assertLen(sample, 1)
-    self.assertEqual(sample[0], "hello")
-
-    # Add another RDFValue
-    sample.Append(rdfvalue.RDFString("hello"))
-    self.assertIsInstance(sample[1], rdfvalue.RDFString)
-
-    # Test iterator.
-    sample_list = list(sample)
-    self.assertIsInstance(sample_list, list)
-    self.assertIsInstance(sample_list[0], str)
-    self.assertIsInstance(sample_list[1], rdfvalue.RDFString)
-
-    # Test initialization from a list of variable types.
-    test_list = [
-        1,
-        2,  # Integers.
-        None,  # None.
-        rdfvalue.RDFDatetime.Now(),  # An RDFValue instance.
-        [1, 2],  # A nested list.
-        "升级程序",  # Unicode.
-    ]
-    sample = rdf_protodict.RDFValueArray(test_list)
-
-    for x, y in zip(sample, test_list):
-      self.assertEqual(x.__class__, y.__class__)
-      self.assertEqual(x, y)
-
-  def testEnforcedArray(self):
-    """Check that arrays with a forced type are enforced."""
-    sample = TestRDFValueArray()
-
-    # Simple type should be coerced to an RDFString.
-    sample.Append("hello")
-    self.assertIsInstance(sample[0], rdfvalue.RDFString)
-
-    # Reject appending invalid types.
-    self.assertRaises(ValueError, sample.Append, rdfvalue.RDFDatetime.Now())
-
-  def testPop(self):
-    sample = TestRDFValueArray()
-
-    # Simple type should be coerced to an RDFString.
-    sample.Append("hello")
-    sample.Append("world")
-    sample.Append("!")
-
-    self.assertEqual(sample.Pop(), "hello")
-    self.assertEqual(sample.Pop(1), "!")
-    self.assertEqual(sample.Pop(), "world")
-
-
 class EmbeddedRDFValueTest(
     rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest
 ):
   rdfvalue_class = rdf_protodict.EmbeddedRDFValue
 
   def GenerateSample(self, number=0):
-    return rdf_protodict.EmbeddedRDFValue(rdf_protodict.RDFValueArray([number]))
+    return rdf_protodict.EmbeddedRDFValue(
+        rdf_protodict.DataBlob(integer=number)
+    )
 
 
 def main(argv):

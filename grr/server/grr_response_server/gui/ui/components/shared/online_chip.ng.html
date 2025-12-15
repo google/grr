@@ -1,0 +1,9 @@
+@if(status() === 'online') {
+  <mat-chip class="green-chip" [disableRipple]="true">
+    <mat-icon matChipAvatar>sensors</mat-icon> Online
+  </mat-chip>
+} @else if (status() === 'offline') {
+  <mat-chip class="red-chip" role="listitem" [disableRipple]="true">
+    <mat-icon matChipAvatar>sensors_off</mat-icon> Offline
+  </mat-chip>
+}

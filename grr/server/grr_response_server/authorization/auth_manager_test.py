@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for AuthorizationManager."""
-
 from unittest import mock
 
 from absl import app

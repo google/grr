@@ -2,7 +2,7 @@
 """Module that contains representers for values returned by Python API."""
 import ipaddress
 import os
-from typing import Dict, Text, List, Optional, Any, Union
+from typing import Any, Optional, Union
 
 import humanize
 import IPython
@@ -68,7 +68,7 @@ def osquery_table_pretty(table: osquery_pb2.OsqueryTable,
 class _RepresenterList(list):
   """Parent of representer lists that ensures that slices have the same type."""
 
-  def __getitem__(self, key: Union[int, slice]) -> Union[Any, List[Any]]:
+  def __getitem__(self, key: Union[int, slice]) -> Union[Any, list[Any]]:
     if isinstance(key, slice):
       return type(self)(super().__getitem__(key))
     return super().__getitem__(key)
@@ -79,7 +79,7 @@ class StatEntryList(_RepresenterList):
 
   def __init__(self, *args, **kwargs) -> None:
     super().__init__(*args, **kwargs)
-    self._hierarchy: Optional[Dict[Text, List]] = None
+    self._hierarchy: Optional[dict[str, list]] = None
     self._build_hierarchy()
 
   def _build_hierarchy(self) -> None:
@@ -100,7 +100,7 @@ class StatEntryList(_RepresenterList):
       self._hierarchy[parent].append((path, stat_entry))
       self._hierarchy[path] = []
 
-  def _repr_contents(self, root: Text, p: pretty.PrettyPrinter) -> None:
+  def _repr_contents(self, root: str, p: pretty.PrettyPrinter) -> None:
     with p.group(4, '', ''):
       p.group_stack[-1].want_break = True
 
@@ -277,7 +277,7 @@ class _StatEntryData(object):
     self.icon = stat.icon(stat_entry)
     self.mode = stat.mode(stat_entry)
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return '{icon} {name} ({mode} {abs_path}, {size})'.format(
         icon=self.icon,
         name=self.name,
@@ -295,7 +295,7 @@ class _BufferReferenceData(object):
     self.end = ref.offset + ref.length
     self.data = ref.data
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     data_repr = repr(self.data)
     return '{path}:{start}-{end}: {data}'.format(
         path=self.path, start=self.start, end=self.end, data=data_repr)
@@ -346,7 +346,7 @@ class _NetworkAddressData(object):
       self.type = 'inet'
       self.address = str(ipaddress.IPv4Address(address.packed_bytes))
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     return '{type} {address}'.format(type=self.type, address=self.address)
 
 
@@ -363,7 +363,7 @@ class _ProcessData(object):
     self.mem = '{:.1f}'.format(process.memory_percent)
     self.command = process.exe
 
-  def __str__(self) -> Text:
+  def __str__(self) -> str:
     data = (
         '{pid:6d} {user:9s} {ni:3d} {virt:>5s} {res:>5s} {s:1s} {mem:>4s} {cmd}'
     )

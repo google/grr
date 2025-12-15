@@ -1,14 +1,20 @@
 /**
- * Map from OutputPlugin name to OutputPluginDescriptor.
+ * Output plugin type.
  */
-export type OutputPluginDescriptorMap = ReadonlyMap<
-  string,
-  OutputPluginDescriptor
->;
+export enum OutputPluginType {
+  UNKNOWN = 'UnknownOutputPlugin',
+  EMAIL = 'EmailOutputPlugin',
+}
 
 /** Combine both OutputPlugin and OutputPluginDescriptor from the backend */
 export interface OutputPluginDescriptor {
-  readonly name: string;
+  readonly pluginType: OutputPluginType;
+  readonly friendlyName: string;
   readonly description: string;
-  readonly argsType: string;
+}
+
+/** OutputPluginDescriptor proto mapping. */
+export declare interface OutputPlugin {
+  readonly pluginType: OutputPluginType;
+  readonly args?: {};
 }

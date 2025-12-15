@@ -5,7 +5,6 @@ from typing import Optional
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_proto.api.root import user_management_pb2
@@ -16,15 +15,9 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import user as api_user
 
 
-class ApiCreateGrrUserArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiCreateGrrUserArgs
-
-
 class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new GRR user."""
 
-  args_type = ApiCreateGrrUserArgs
-  result_type = api_user.ApiGrrUser
   proto_args_type = user_management_pb2.ApiCreateGrrUserArgs
   proto_result_type = api_user_pb2.ApiGrrUser
 
@@ -32,7 +25,7 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
       self,
       args: user_management_pb2.ApiCreateGrrUserArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiGrrUser:
+  ) -> api_user_pb2.ApiGrrUser:
     if not args.username:
       raise ValueError("username can't be empty.")
 
@@ -64,14 +57,9 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     return api_user.InitApiGrrUserFromGrrUser(user)
 
 
-class ApiDeleteGrrUserArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiDeleteGrrUserArgs
-
-
 class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Deletes a GRR user."""
 
-  args_type = ApiDeleteGrrUserArgs
   proto_args_type = user_management_pb2.ApiDeleteGrrUserArgs
 
   def Handle(
@@ -88,15 +76,9 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
       raise api_call_handler_base.ResourceNotFoundError(e)
 
 
-class ApiModifyGrrUserArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiModifyGrrUserArgs
-
-
 class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Modifies a GRR user."""
 
-  args_type = ApiModifyGrrUserArgs
-  result_type = api_user.ApiGrrUser
   proto_args_type = user_management_pb2.ApiModifyGrrUserArgs
   proto_result_type = api_user_pb2.ApiGrrUser
 
@@ -104,7 +86,7 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
       self,
       args: user_management_pb2.ApiModifyGrrUserArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiGrrUser:
+  ) -> api_user_pb2.ApiGrrUser:
     if not args.username:
       raise ValueError("Username is empty")
 
@@ -147,22 +129,9 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
     return api_user.InitApiGrrUserFromGrrUser(user)
 
 
-class ApiListGrrUsersArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiListGrrUsersArgs
-
-
-class ApiListGrrUsersResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiListGrrUsersResult
-  rdf_deps = [
-      api_user.ApiGrrUser,
-  ]
-
-
 class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
   """Lists all users registered in the system."""
 
-  args_type = ApiListGrrUsersArgs
-  result_type = ApiListGrrUsersResult
   proto_args_type = user_management_pb2.ApiListGrrUsersArgs
   proto_result_type = user_management_pb2.ApiListGrrUsersResult
 
@@ -180,15 +149,10 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetGrrUserArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_management_pb2.ApiGetGrrUserArgs
-
-
 class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Returns information about a user with a given name."""
 
-  args_type = ApiGetGrrUserArgs
-  result_type = api_user.ApiGrrUser
+  result_type = api_user_pb2.ApiGrrUser
   proto_args_type = user_management_pb2.ApiGetGrrUserArgs
   proto_result_type = api_user_pb2.ApiGrrUser
 
@@ -196,7 +160,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
       self,
       args: user_management_pb2.ApiGetGrrUserArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_user.ApiGrrUser:
+  ) -> api_user_pb2.ApiGrrUser:
     if not args.username:
       raise ValueError("Username is empty.")
 

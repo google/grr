@@ -4,7 +4,7 @@
 import collections
 import functools
 import threading
-from typing import Optional, Text
+from typing import Optional
 from unittest import mock
 
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -35,7 +35,7 @@ def StoreMessage(fs_msg: common_pb2.Message):
       _messages_by_client_id[grr_id] = collections.deque([grr_msg])
 
 
-def PopMessage(client_id: Text) -> Optional[rdf_flows.GrrMessage]:
+def PopMessage(client_id: str) -> Optional[rdf_flows.GrrMessage]:
   """Returns a message sent to the given Fleetspeak client.
 
   The returned message is removed from the in-memory store. Messages for

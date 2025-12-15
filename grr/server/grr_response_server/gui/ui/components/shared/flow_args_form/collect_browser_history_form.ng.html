@@ -1,0 +1,24 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.COLLECT_BROWSER_HISTORY, flowArgs())">
+  <mat-checkbox [formControl]="controls.collectChromiumBasedBrowsers">
+    Chromium Based Browsers
+  </mat-checkbox>
+  <mat-checkbox [formControl]="controls.collectFirefox">
+    Firefox
+  </mat-checkbox>
+  <mat-checkbox
+    [formControl]="controls.collectInternetExplorer"
+    name="collectInternetExplorer"
+  >
+    Internet Explorer</mat-checkbox
+  >
+  <mat-checkbox [formControl]="controls.collectOpera">
+    Opera
+  </mat-checkbox>
+  <mat-checkbox [formControl]="controls.collectSafari">
+    Safari
+  </mat-checkbox>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

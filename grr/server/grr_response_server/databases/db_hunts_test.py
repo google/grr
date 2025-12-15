@@ -3,7 +3,7 @@
 
 import collections
 import random
-from typing import List, Optional
+from typing import Optional
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
@@ -258,7 +258,7 @@ class DatabaseTestHuntMixin(object):
   def testReadHuntObjectsReturnsEmptyListWhenNoHunts(self):
     self.assertEqual(self.db.ReadHuntObjects(offset=0, count=db.MAX_COUNT), [])
 
-  def _CreateMultipleHunts(self) -> List[hunts_pb2.Hunt]:
+  def _CreateMultipleHunts(self) -> list[hunts_pb2.Hunt]:
     self._CreateMultipleUsers(["user-a", "user-b"])
 
     result = []
@@ -276,7 +276,7 @@ class DatabaseTestHuntMixin(object):
 
     return result
 
-  def _CreateMultipleUsers(self, users: List[str]):
+  def _CreateMultipleUsers(self, users: list[str]):
     for user in users:
       db_test_utils.InitializeUser(self.db, user)
 
@@ -284,7 +284,7 @@ class DatabaseTestHuntMixin(object):
       self,
       user: str,
       count: int,
-  ) -> List[hunts_pb2.Hunt]:
+  ) -> list[hunts_pb2.Hunt]:
     result = []
     for i in range(count):
       hunt_id = db_test_utils.InitializeHunt(
@@ -826,7 +826,9 @@ class DatabaseTestHuntMixin(object):
   def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
-    email_args = output_plugin_pb2.EmailOutputPluginArgs(emails_limit=42)
+    email_args = output_plugin_pb2.EmailOutputPluginArgs(
+        email_address="a@a.com"
+    )
     email_args_any = any_pb2.Any()
     email_args_any.Pack(email_args)
     plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
@@ -849,7 +851,9 @@ class DatabaseTestHuntMixin(object):
         plugin_state=plugin_state,
     )
 
-    email_args_2 = output_plugin_pb2.EmailOutputPluginArgs(emails_limit=43)
+    email_args_2 = output_plugin_pb2.EmailOutputPluginArgs(
+        email_address="b@b.com"
+    )
     email_args_any_2 = any_pb2.Any()
     email_args_any_2.Pack(email_args_2)
     plugin_descriptor_2 = output_plugin_pb2.OutputPluginDescriptor(
@@ -1168,7 +1172,7 @@ class DatabaseTestHuntMixin(object):
     num_entries = self.db.CountHuntLogEntries(hunt_id)
     self.assertEqual(num_entries, 10)
 
-  def _WriteHuntResults(self, sample_results: List[flows_pb2.FlowResult]):
+  def _WriteHuntResults(self, sample_results: list[flows_pb2.FlowResult]):
     self.db.WriteFlowResults(sample_results)
 
     # Update num_replies_sent for all flows referenced in sample_results:
@@ -1190,7 +1194,7 @@ class DatabaseTestHuntMixin(object):
       hunt_id=None,
       serial_number=None,
       count=10,
-  ) -> List[flows_pb2.FlowResult]:
+  ) -> list[flows_pb2.FlowResult]:
     self.assertIsNotNone(client_id)
     self.assertIsNotNone(flow_id)
     self.assertIsNotNone(hunt_id)
@@ -1227,7 +1231,7 @@ class DatabaseTestHuntMixin(object):
       serial_number=None,
       count_per_type=5,
       timestamp_start=10,
-  ) -> List[flows_pb2.FlowResult]:
+  ) -> list[flows_pb2.FlowResult]:
     self.assertIsNotNone(client_id)
     self.assertIsNotNone(flow_id)
     self.assertIsNotNone(hunt_id)
@@ -1409,6 +1413,81 @@ class DatabaseTestHuntMixin(object):
         ],
     )
 
+  def testReadHuntResultsCorrectlyAppliesWithProtoTypeUrlFilter(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    all_results = []
+    for _ in range(10):
+      client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+
+      summary_payload = jobs_pb2.ClientSummary()
+      summary_any = any_pb2.Any()
+      summary_any.Pack(summary_payload)
+      summary_result = flows_pb2.FlowResult(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_id,
+          payload=summary_any,
+      )
+
+      crash_payload = jobs_pb2.ClientCrash()
+      crash_any = any_pb2.Any()
+      crash_any.Pack(crash_payload)
+      crash_result = flows_pb2.FlowResult(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_id,
+          payload=crash_any,
+      )
+
+      results_for_flow = [summary_result, crash_result]
+      self._WriteHuntResults(results_for_flow)
+      all_results.extend(results_for_flow)
+
+    results = self.db.ReadHuntResults(
+        hunt_id,
+        0,
+        100,
+        with_proto_type_url=f"type.googleapis.com/{jobs_pb2.ClientInformation.DESCRIPTOR.full_name}",
+    )
+    self.assertEmpty(results)
+
+    results = self.db.ReadHuntResults(
+        hunt_id,
+        0,
+        100,
+        with_proto_type_url=(
+            f"type.googleapis.com/{jobs_pb2.ClientSummary.DESCRIPTOR.full_name}"
+        ),
+    )
+    self.assertLen(results, 10)
+    self.assertCountEqual(
+        [r.payload for r in results],
+        [
+            r.payload
+            for r in all_results
+            if r.payload.Is(jobs_pb2.ClientSummary.DESCRIPTOR)
+        ],
+    )
+
+  def testReadFlowResultsCorrectlyAppliesWithTypeAndProtoTypeUrlFilters(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    any_proto = any_pb2.Any()
+    any_proto.Pack(jobs_pb2.ClientSummary())
+    client_summary_type_url = any_proto.type_url
+
+    with self.assertRaises(ValueError):
+      self.db.ReadFlowResults(
+          client_id,
+          flow_id,
+          0,
+          100,
+          with_type=rdf_client.ClientSummary.__name__,
+          with_proto_type_url=client_summary_type_url,
+      )
+
   def testReadHuntResultsCorrectlyAppliesWithSubstringFilter(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
@@ -1580,6 +1659,29 @@ class DatabaseTestHuntMixin(object):
     num_results = self.db.CountHuntResults(hunt_id)
     self.assertLen(sample_results, num_results)
 
+  def testCountHuntResultsReturnsCorrectResultsWithoutSubflowResults(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+    _, subflow_id = self._SetupHuntClientAndFlow(
+        client_id=client_id,
+        hunt_id=hunt_id,
+        flow_id=flow.RandomFlowId(),
+        parent_flow_id=hunt_id,
+    )
+
+    sample_results = self._SampleSingleTypeHuntResults(
+        client_id=client_id, flow_id=flow_id, hunt_id=hunt_id
+    )
+    self._WriteHuntResults(sample_results)
+    subflow_results = self._SampleSingleTypeHuntResults(
+        client_id=client_id, flow_id=subflow_id, hunt_id=hunt_id
+    )
+    self._WriteHuntResults(subflow_results)
+
+    num_results = self.db.CountHuntResults(hunt_id)
+    self.assertLen(sample_results, num_results)
+
   def testCountHuntResultsCorrectlyAppliesWithTagFilter(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
@@ -1645,6 +1747,102 @@ class DatabaseTestHuntMixin(object):
     )
     self.assertEqual(num_results, 10)
 
+  def testCountHuntResultsCorrectlyAppliesWithProtoTypeUrl(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    results = []
+    for i in range(10):
+      client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+
+      summary_payload = jobs_pb2.ClientSummary()
+      summary_any = any_pb2.Any()
+      summary_any.Pack(summary_payload)
+      results.append(
+          flows_pb2.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              payload=summary_any,
+          )
+      )
+
+      if i % 2 == 0:
+        crash_payload = jobs_pb2.ClientCrash()
+        crash_any = any_pb2.Any()
+        crash_any.Pack(crash_payload)
+        results.append(
+            flows_pb2.FlowResult(
+                client_id=client_id,
+                flow_id=flow_id,
+                hunt_id=hunt_id,
+                payload=crash_any,
+            )
+        )
+
+    self._WriteHuntResults(results)
+
+    num_results = self.db.CountHuntResults(
+        hunt_id,
+        with_proto_type_url=(
+            f"type.googleapis.com/{jobs_pb2.ClientSummary.DESCRIPTOR.full_name}"
+        ),
+    )
+    self.assertEqual(num_results, 10)
+
+    num_results = self.db.CountHuntResults(
+        hunt_id,
+        with_proto_type_url=(
+            f"type.googleapis.com/{jobs_pb2.ClientCrash.DESCRIPTOR.full_name}"
+        ),
+    )
+    self.assertEqual(num_results, 5)
+
+  def testCountHuntResultsCorrectlyAppliesWithTagAndWithProtoTypeUrl(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+
+    payload = jobs_pb2.ClientSummary()
+    payload_any = any_pb2.Any()
+    payload_any.Pack(payload)
+    results = [
+        flows_pb2.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_id,
+            payload=payload_any,
+            tag="foo",
+        ),
+        flows_pb2.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_id,
+            payload=payload_any,
+            tag="bar",
+        ),
+    ]
+    self._WriteHuntResults(results)
+
+    num_results = self.db.CountHuntResults(
+        hunt_id,
+        with_tag="foo",
+        with_proto_type_url=(
+            f"type.googleapis.com/{jobs_pb2.ClientSummary.DESCRIPTOR.full_name}"
+        ),
+    )
+    self.assertEqual(num_results, 1)
+
+  def testCountHuntResultsRaisesIfBothTypeAndProtoTypeUrlAreSet(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    with self.assertRaises(ValueError):
+      self.db.CountHuntResults(
+          hunt_id,
+          with_type="ClientSummary",
+          with_proto_type_url=(
+              f"type.googleapis.com/{jobs_pb2.ClientSummary.DESCRIPTOR.full_name}"
+          ),
+      )
+
   def testCountHuntResultsCorrectlyAppliesWithTimestampFilter(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
@@ -1690,6 +1888,50 @@ class DatabaseTestHuntMixin(object):
             rdf_client.ClientSummary.__name__: 5,
             rdf_client.ClientCrash.__name__: 5,
         },
+    )
+
+  def testCountHuntResultsByProtoTypeUrl(self):
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    results_by_type_url = self.db.CountHuntResultsByProtoTypeUrl(hunt_id)
+    self.assertEmpty(results_by_type_url)
+
+    client_id_1, flow_id_1 = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+    client_id_2, flow_id_2 = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
+
+    any_proto = any_pb2.Any()
+
+    any_proto.Pack(jobs_pb2.ClientSummary())
+    client_summary = flows_pb2.FlowResult(
+        client_id=client_id_1,
+        flow_id=flow_id_1,
+        hunt_id=hunt_id,
+        payload=any_proto,
+    )
+
+    any_proto.Pack(jobs_pb2.ClientCrash())
+    client_crash = flows_pb2.FlowResult(
+        client_id=client_id_2,
+        flow_id=flow_id_2,
+        hunt_id=hunt_id,
+        payload=any_proto,
+    )
+
+    self.db.WriteFlowResults([client_summary, client_crash, client_crash])
+
+    results_by_type_url = self.db.CountHuntResultsByProtoTypeUrl(hunt_id)
+    self.assertLen(results_by_type_url, 2)
+    self.assertEqual(
+        results_by_type_url[
+            f"type.googleapis.com/{jobs_pb2.ClientSummary.DESCRIPTOR.full_name}"
+        ],
+        1,
+    )
+    self.assertEqual(
+        results_by_type_url[
+            f"type.googleapis.com/{jobs_pb2.ClientCrash.DESCRIPTOR.full_name}"
+        ],
+        2,
     )
 
   def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):

@@ -137,9 +137,8 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(result_flow.data.client_id, client_id)
     self.assertEqual(result_flow.data.name, "Interrogate")
 
-    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
-    self.assertLen(flows, 1)
-    self.assertEqual(flows[0].flow_class_name, "Interrogate")
+    flow = data_store.REL_DB.ReadFlowObject(client_id, result_flow.data.flow_id)
+    self.assertEqual(flow.flow_class_name, "Interrogate")
 
   def testListResultsForListProcessesFlow(self):
     process = rdf_client.Process(

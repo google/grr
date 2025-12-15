@@ -9,6 +9,7 @@ from grr_response_client.client_actions import large_file as large_file_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import aead
 from grr_response_core.lib.util import temp
+from grr_response_proto import large_file_pb2
 from grr_response_server.flows.general import large_file
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -47,11 +48,13 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       flow_id = self._Collect(path=temp_path, signed_url="https://foo.bar/quux")
 
-    state = flow_test_lib.GetFlowState(self.client_id, flow_id)
-    self.assertNotEmpty(state.encryption_key)
+    store_any = flow_test_lib.GetFlowStore(self.client_id, flow_id)
+    store = large_file_pb2.CollectLargeFileFlowStore()
+    store.ParseFromString(store_any.value)
+    self.assertNotEmpty(store.encryption_key)
 
     encrypted_buf = io.BytesIO(handler.content)
-    decrypted_buf = aead.Decrypt(encrypted_buf, state.encryption_key)
+    decrypted_buf = aead.Decrypt(encrypted_buf, store.encryption_key)
     self.assertEqual(decrypted_buf.read(), content)
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)

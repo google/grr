@@ -1,0 +1,16 @@
+
+@for (collectionResult of collectionResults(); track collectionResult) {
+  @if (isHuntResult(collectionResult)) {
+    <p class="client-id">Client ID: <copy-button>{{collectionResult.clientId}}</copy-button></p>
+  }
+  @let result = executeBinaryResponseFromCollectionResult(collectionResult);
+  <codeblock [code]="[`Exit code: ${result.exitStatus}`]" />
+  @if (result.stderr.length > 0) {
+    <div> Stderr: </div>
+    <codeblock [code]="result.stderr" />
+  }
+  @if (result.stdout.length > 0) {
+    <div> Stdout: </div>
+    <codeblock [code]="result.stdout" />
+  }
+}

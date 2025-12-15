@@ -1,0 +1,16 @@
+:host {
+  display: flex;
+  gap: 16px;
+
+  h5 {
+    min-width: 30%;
+  }
+
+  form {
+    flex-grow: 1;
+  }
+}
+
+mat-form-field {
+  width: 100%;
+}

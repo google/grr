@@ -1,0 +1,24 @@
+:host {
+  display: block;
+  margin: 1rem;
+}
+
+td {
+  min-width: 20em;
+}
+
+
+.overview-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.access-container,
+.actions-container {
+  display: flex;
+  gap: 1em;
+}
+
+mat-divider {
+  margin: 1em 0;
+}

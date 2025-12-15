@@ -1,3 +1,9 @@
-import {initTestEnvironment} from '../../testing';
+import {isFlowResult} from './flow';
+import {newFlowResult, newHuntResult} from './model_test_util';
 
-initTestEnvironment();
+describe('Flow model', () => {
+  it('isFlowResult', () => {
+    expect(isFlowResult(newFlowResult({tag: 'foo'}))).toBeTrue();
+    expect(isFlowResult(newHuntResult({}))).toBeFalse();
+  });
+});

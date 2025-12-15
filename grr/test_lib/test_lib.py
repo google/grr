@@ -13,7 +13,7 @@ import shutil
 import threading
 import time
 import types
-from typing import List, Optional
+from typing import Optional
 import unittest
 from unittest import mock
 
@@ -161,7 +161,7 @@ class GRRBaseTest(absltest.TestCase):
       client_nr: Optional[int] = None,
       arch: Optional[str] = "x86_64",
       fqdn: Optional[str] = None,
-      labels: Optional[List[str]] = None,
+      labels: Optional[list[str]] = None,
       last_boot_time: Optional[rdfvalue.RDFDatetime] = None,
       install_time: Optional[rdfvalue.RDFDatetime] = None,
       kernel: Optional[str] = "4.0.0",
@@ -170,7 +170,7 @@ class GRRBaseTest(absltest.TestCase):
       ping: Optional[rdfvalue.RDFDatetime] = None,
       system: Optional[str] = "Linux",
       description: Optional[str] = None,
-      users: Optional[List[knowledge_base_pb2.User]] = None,
+      users: Optional[list[knowledge_base_pb2.User]] = None,
       memory_size: Optional[int] = None,
   ) -> str:
     """Prepares a test client mock to be used."""
@@ -201,9 +201,23 @@ class GRRBaseTest(absltest.TestCase):
     """Sets up mock clients, one for each numerical index in 'indices'."""
     return [self.SetupClient(i, *args, **kwargs) for i in indices]
 
+  def SetupClientStartupInfo(
+      self,
+      client_nr: int,
+      boot_time: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> jobs_pb2.StartupInfo:
+    """Prepares a test client startup info mock to be used."""
+    client_id = "C.1%015x" % client_nr
+    startup_info = jobs_pb2.StartupInfo(
+        client_info=self._TestClientInfo(),
+        boot_time=int(boot_time) if boot_time else 0,
+    )
+    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
+    return startup_info
+
   def _TestClientInfo(
       self,
-      labels: Optional[List[str]] = None,
+      labels: Optional[list[str]] = None,
       description: Optional[str] = None,
   ) -> jobs_pb2.ClientInformation:
     """Creates a test client information proto."""
@@ -220,7 +234,7 @@ class GRRBaseTest(absltest.TestCase):
 
     return res
 
-  def _TestInterfaces(self, client_nr: int) -> List[jobs_pb2.Interface]:
+  def _TestInterfaces(self, client_nr: int) -> list[jobs_pb2.Interface]:
     """Creates a test interfaces proto."""
 
     ip1_str = "192.168.0.%d" % client_nr
@@ -260,8 +274,8 @@ class GRRBaseTest(absltest.TestCase):
       ping: Optional[rdfvalue.RDFDatetime] = None,
       system: Optional[str] = "Linux",
       description: Optional[str] = None,
-      users: Optional[List[knowledge_base_pb2.User]] = None,
-      labels: Optional[List[str]] = None,
+      users: Optional[list[knowledge_base_pb2.User]] = None,
+      labels: Optional[list[str]] = None,
   ):
     """Prepares a test client object."""
     client_id = "C.1%015x" % client_nr

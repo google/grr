@@ -1,42 +1,43 @@
 import {
   HttpClient,
+  HttpContext,
   HttpErrorResponse,
-  HttpEvent,
-  HttpHandler,
-  HttpInterceptor,
   HttpParams,
   HttpParamsOptions,
-  HttpRequest,
 } from '@angular/common/http';
 import {Injectable} from '@angular/core';
-import {Observable, Subject, merge, of, throwError, timer} from 'rxjs';
+import {Observable, of, throwError, timer} from 'rxjs';
 import {
   catchError,
-  exhaustMap,
+  combineLatestWith,
   map,
-  mapTo,
   shareReplay,
   switchMap,
   take,
   takeLast,
   takeWhile,
-  tap,
 } from 'rxjs/operators';
 
-import {SnackBarErrorHandler} from '../../components/helpers/error_snackbar/error_handler';
-import {toApiHuntState} from '../../lib/api_translation/hunt';
-import {ApprovalConfig, ClientApprovalRequest} from '../../lib/models/client';
-import {FlowWithDescriptor} from '../../lib/models/flow';
+import {translateOutputPluginType} from '../../lib/api/translation/output_plugin';
+import {ClientApprovalRequest} from '../../lib/models/client';
 import {
-  Hunt,
   HuntApprovalKey,
   HuntApprovalRequest,
-  HuntState,
   SafetyLimits,
 } from '../../lib/models/hunt';
-import {assertNonNull, isNonNull} from '../preconditions';
-
+import {OutputPlugin, OutputPluginType} from '../../lib/models/output_plugin';
+import {assertNonNull} from '../preconditions';
 import * as apiInterfaces from './api_interfaces';
+import {TRACK_LOADING_STATE} from './http_interceptors/loading_interceptor';
+import {POLLING_INTERVAL} from './http_interceptors/polling_interceptor';
+import {
+  SHOW_ERROR_BAR,
+  SHOW_ERROR_BAR_FOR_403,
+  SHOW_ERROR_BAR_FOR_404,
+} from './http_interceptors/show_error_bar_interceptor';
+
+/** Default polling interval for API calls. */
+export const DEFAULT_POLLING_INTERVAL = 5000;
 
 /**
  * Parameters of the listResultsForFlow call.
@@ -63,7 +64,10 @@ export interface FlowResultsWithSourceParams {
  */
 export const URL_PREFIX = '/api/v2';
 
-interface ClientApprovalKey {
+/**
+ * Key to identify a ClientApproval.
+ */
+export interface ClientApprovalKey {
   readonly clientId: string;
   readonly approvalId: string;
   readonly requestor: string;
@@ -76,20 +80,11 @@ export class MissingApprovalError extends Error {
   }
 }
 
-/** Interceptor that enables the sending of cookies for all HTTP requests. */
-@Injectable()
-export class WithCredentialsInterceptor implements HttpInterceptor {
-  intercept<T>(
-    req: HttpRequest<T>,
-    next: HttpHandler,
-  ): Observable<HttpEvent<T>> {
-    return next.handle(
-      req.clone({
-        withCredentials: true,
-        setHeaders: {'X-User-Agent': 'GRR-UI/2.0'},
-      }),
-    );
-  }
+/** Specification of a file. */
+export interface FileSpec {
+  readonly clientId: string;
+  readonly pathType: apiInterfaces.PathSpecPathType;
+  readonly path: string;
 }
 
 /** Arguments of GetFileText API call. */
@@ -131,7 +126,7 @@ function toHttpParams(o: HttpParamsObject): HttpParams {
 
 function error404To<T>(replacement: T) {
   return (err: HttpErrorResponse) =>
-    err.status === 404 ? of(replacement) : throwError(err);
+    err.status === 404 ? of(replacement) : throwError(() => err);
 }
 
 /**
@@ -139,49 +134,25 @@ function error404To<T>(replacement: T) {
  */
 @Injectable()
 export class HttpApiService {
-  readonly POLLING_INTERVAL = 5000;
-
-  private readonly showErrors = {
-    error: (response: HttpErrorResponse) => {
-      const error = response.error;
-      const address = response.url ?? 'unknown';
-      let message = '';
-
-      if (error instanceof ProgressEvent) {
-        message = `Cannot reach ${address}`;
-      } else if (
-        response.headers.get('content-type')?.startsWith('text/html')
-      ) {
-        // During auth problems, proxies might render fully-fledged HTML pages,
-        // ignoring the fact that our request accepts JSON only. Showing the raw
-        // HTML document provides no value to the user, thus we only show the
-        // HTTP status code.
-        message = `Received status ${response.status} ${response.statusText} from ${address}`;
-      } else {
-        message = `${error['message'] ?? error} (from ${address})`;
-      }
-
-      this.errorHandler.handleError(message);
-    },
-  };
-
-  private readonly triggerClientApprovalPoll$ = new Subject<void>();
-  private readonly triggerHuntApprovalPoll$ = new Subject<void>();
-  private readonly triggerListScheduledFlowsPoll$ = new Subject<void>();
-  private readonly triggerListFlowsPoll$ = new Subject<void>();
-
-  constructor(
-    private readonly http: HttpClient,
-    private readonly errorHandler: SnackBarErrorHandler,
-  ) {
+  constructor(private readonly http: HttpClient) {
     this.flowDescriptors$ = this.http
       .get<apiInterfaces.ApiListFlowDescriptorsResult>(
         `${URL_PREFIX}/flows/descriptors`,
+        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
       )
       .pipe(
         map((res) => res.items ?? []),
-        tap(this.showErrors),
         shareReplay(1), // Cache latest FlowDescriptors.
+      );
+
+    this.outputPluginDescriptors$ = this.http
+      .get<apiInterfaces.ApiListOutputPluginDescriptorsResult>(
+        `${URL_PREFIX}/output-plugins/all`,
+        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+      )
+      .pipe(
+        map((res) => res.items ?? []),
+        shareReplay(1), // Cache latest OutputPluginDescriptors.
       );
   }
 
@@ -205,17 +176,16 @@ export class HttpApiService {
     );
   }
 
-  private fetchClient(id: string): Observable<apiInterfaces.ApiClient> {
-    return this.http
-      .get<apiInterfaces.ApiClient>(`${URL_PREFIX}/clients/${id}`)
-      .pipe(tap(this.showErrors));
-  }
-
-  /** Fetches a client by its ID. */
-  subscribeToClient(clientId: string): Observable<apiInterfaces.ApiClient> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.fetchClient(clientId)),
-      tap(this.showErrors),
+  fetchClient(
+    id: string,
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiClient> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true);
+    return this.http.get<apiInterfaces.ApiClient>(
+      `${URL_PREFIX}/clients/${id}`,
+      {context},
     );
   }
 
@@ -233,192 +203,213 @@ export class HttpApiService {
       },
     };
 
-    return this.http
-      .post<apiInterfaces.ApiClientApproval>(
-        `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`,
-        request,
-      )
-      .pipe(
-        tap(() => {
-          this.triggerClientApprovalPoll$.next();
-        }),
-      );
+    return this.http.post<apiInterfaces.ApiClientApproval>(
+      `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`,
+      request,
+      {context: new HttpContext().set(TRACK_LOADING_STATE, true)},
+    );
   }
 
-  fetchApprovalConfig(): Observable<ApprovalConfig> {
-    return this.http
-      .get<apiInterfaces.ApiConfigOption>(
-        `${URL_PREFIX}/config/Email.approval_optional_cc_address`,
-      )
-      .pipe(
-        // Replace empty string (protobuf default) with undefined.
-        map((res) => (res.value?.['value'] as string) ?? undefined),
-        map((optionalCcEmail) => ({optionalCcEmail})),
-        tap(this.showErrors),
-      );
+  fetchApprovalConfig(): Observable<apiInterfaces.ApiConfigOption> {
+    return this.http.get<apiInterfaces.ApiConfigOption>(
+      `${URL_PREFIX}/config/Email.approval_optional_cc_address`,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+    );
   }
 
   /**
    * Gets the currently configured web authentication type used by Admin UI.
    */
-  fetchWebAuthType(): Observable<string> {
-    return this.http
-      .get<apiInterfaces.ApiConfigOption>(
-        `${URL_PREFIX}/config/AdminUI.webauth_manager`,
-      )
-      .pipe(
-        // Replace empty string (protobuf default) with undefined.
-        map((res) => (res.value?.['value'] as string) ?? undefined),
-        tap(this.showErrors),
-      );
+  fetchWebAuthType(): Observable<apiInterfaces.ApiConfigOption> {
+    return this.http.get<apiInterfaces.ApiConfigOption>(
+      `${URL_PREFIX}/config/AdminUI.webauth_manager`,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+    );
   }
 
   /**
    * Gets the currently configured export command prefix from Admin UI.
    */
-  fetchExportCommandPrefix(): Observable<string> {
-    return this.http
-      .get<apiInterfaces.ApiConfigOption>(
-        `${URL_PREFIX}/config/AdminUI.export_command`,
-      )
-      .pipe(
-        // Replace empty string (protobuf default) with undefined.
-        map((res) => (res.value?.['value'] as string) ?? undefined),
-      );
+  fetchExportCommandPrefix(): Observable<apiInterfaces.ApiConfigOption> {
+    return this.http.get<apiInterfaces.ApiConfigOption>(
+      `${URL_PREFIX}/config/AdminUI.export_command`,
+    );
   }
 
   /** Lists ClientApprovals in reversed chronological order. */
-  private listClientApprovals(
+  listClientApprovals(
     clientId: string,
-  ): Observable<readonly apiInterfaces.ApiClientApproval[]> {
-    return this.http
-      .get<apiInterfaces.ApiListClientApprovalsResult>(
-        `${URL_PREFIX}/users/me/approvals/client/${clientId}`,
-      )
-      .pipe(
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
-      );
-  }
-
-  subscribeToListClientApprovals(clientId: string) {
-    return merge(
-      timer(0, this.POLLING_INTERVAL),
-      this.triggerClientApprovalPoll$,
-    ).pipe(
-      exhaustMap(() => this.listClientApprovals(clientId)),
-      tap(this.showErrors),
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListClientApprovalsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.get<apiInterfaces.ApiListClientApprovalsResult>(
+      `${URL_PREFIX}/users/me/approvals/client/${clientId}`,
+      {context},
     );
   }
 
-  private verifyClientAccess(clientId: string): Observable<boolean> {
-    return this.http.get<{}>(`${URL_PREFIX}/clients/${clientId}/access`).pipe(
-      map(() => true),
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 403) {
-          return of(false);
-        } else {
-          return throwError(err);
-        }
-      }),
-      tap(this.showErrors),
-    );
-  }
-
-  /** Emits true, if the user has access to the client, false otherwise. */
-  subscribeToVerifyClientAccess(clientId: string): Observable<boolean> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.verifyClientAccess(clientId)),
-      tap(this.showErrors),
-    );
+  verifyClientAccess(clientId: string): Observable<{}> {
+    const context = new HttpContext()
+      .set(SHOW_ERROR_BAR, true)
+      .set(SHOW_ERROR_BAR_FOR_403, false);
+    return this.http.head<{}>(`${URL_PREFIX}/clients/${clientId}/access`, {
+      context,
+    });
   }
 
   /** Fetches a ClientApproval. */
-  private fetchClientApproval({
-    clientId,
-    requestor,
-    approvalId,
-  }: ClientApprovalKey): Observable<apiInterfaces.ApiClientApproval> {
-    return this.http
-      .get<apiInterfaces.ApiClientApproval>(
-        `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${approvalId}`,
-      )
-      .pipe(tap(this.showErrors));
+  fetchClientApproval(
+    {clientId, requestor, approvalId}: ClientApprovalKey,
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiClientApproval> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.get<apiInterfaces.ApiClientApproval>(
+      `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${approvalId}`,
+      {context},
+    );
   }
 
   /** Fetches a Flow. */
   fetchFlow(
     clientId: string,
     flowId: string,
+    pollingInterval = 0,
   ): Observable<apiInterfaces.ApiFlow> {
-    return this.http
-      .get<apiInterfaces.ApiFlow>(
-        `${URL_PREFIX}/clients/${clientId}/flows/${flowId}`,
-      )
-      .pipe(tap(this.showErrors));
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true);
+
+    return this.http.get<apiInterfaces.ApiFlow>(
+      `${URL_PREFIX}/clients/${clientId}/flows/${flowId}`,
+      {context},
+    );
+  }
+
+  fetchFlowLogs(
+    clientId: string,
+    flowId: string,
+  ): Observable<apiInterfaces.ApiListFlowLogsResult> {
+    return this.http.get<apiInterfaces.ApiListFlowLogsResult>(
+      `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/log`,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+    );
+  }
+
+  listAllFlowOutputPluginLogs(
+    clientId: string,
+    flowId: string,
+  ): Observable<apiInterfaces.ApiListAllFlowOutputPluginLogsResult> {
+    return this.http.get<apiInterfaces.ApiListAllFlowOutputPluginLogsResult>(
+      `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/output-plugins/logs`,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+    );
   }
 
   createHunt(
     description: string,
-    flowWithDescriptors: FlowWithDescriptor | null,
-    originalHunt: Hunt | null,
+    flowName: string,
+    flowArgs: apiInterfaces.Any,
+    originalFlowRef: apiInterfaces.ApiFlowReference | undefined,
+    originalHuntRef: apiInterfaces.ApiHuntReference | undefined,
     safetyLimits: SafetyLimits,
     rules: apiInterfaces.ForemanClientRuleSet,
-    outputPlugins: readonly apiInterfaces.OutputPluginDescriptor[],
-    originalHuntId?: string,
+    outputPlugins: readonly OutputPlugin[],
   ): Observable<apiInterfaces.ApiHunt> {
-    if (!flowWithDescriptors && !originalHunt) {
-      throwError(`This fleet collection flow is not properly set.
-       Make sure it is based on either an existing flow or fleet collection.`);
+    if (!originalFlowRef && !originalHuntRef) {
+      throw new Error('One of originalFlowRef or originalHuntRef must be set.');
+    }
+    if (originalFlowRef && originalHuntRef) {
+      throw new Error(
+        'Only one of originalFlowRef or originalHuntRef can be set.',
+      );
     }
 
-    const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
-      description,
-      clientRate: safetyLimits.clientRate,
-      clientLimit: safetyLimits.clientLimit?.toString(),
-      crashLimit: safetyLimits.crashLimit?.toString(),
-      expiryTime: safetyLimits.expiryTime?.toString(),
-      avgResultsPerClientLimit:
-        safetyLimits.avgResultsPerClientLimit?.toString(),
-      avgCpuSecondsPerClientLimit:
-        safetyLimits.avgCpuSecondsPerClientLimit?.toString(),
-      avgNetworkBytesPerClientLimit:
-        safetyLimits.avgNetworkBytesPerClientLimit?.toString(),
-      perClientCpuLimit: safetyLimits.perClientCpuLimit?.toString(),
-      perClientNetworkLimitBytes:
-        safetyLimits.perClientNetworkBytesLimit?.toString(),
-      outputPlugins,
-      clientRuleSet: rules,
-    };
+    const outputPluginDescriptors$: Observable<
+      readonly apiInterfaces.OutputPluginDescriptor[]
+    > = this.listOutputPluginDescriptors().pipe(
+      map((descriptors) => {
+        const pluginDescriptors: apiInterfaces.OutputPluginDescriptor[] = [];
+        for (const plugin of outputPlugins) {
+          if (plugin.pluginType === OutputPluginType.UNKNOWN) {
+            continue;
+          }
+          const descriptor = descriptors.find(
+            (d) =>
+              translateOutputPluginType(d.name ?? '') === plugin.pluginType,
+          );
+          if (!descriptor) {
+            throw new Error(`Output plugin ${plugin.pluginType} not found.`);
+          }
+          pluginDescriptors.push({
+            pluginName: descriptor.name,
+            args: {
+              '@type': descriptor.argsType,
+              ...plugin.args,
+            },
+          });
+        }
+        return pluginDescriptors;
+      }),
+    );
 
-    const originalFlowRef: apiInterfaces.ApiFlowReference = {
-      flowId: flowWithDescriptors?.flow?.flowId,
-      clientId: flowWithDescriptors?.flow?.clientId,
-    };
-    const flowName = flowWithDescriptors?.flow?.name ?? originalHunt?.flowName;
-    let flowArgs: apiInterfaces.Any | undefined = undefined;
-    if (flowWithDescriptors) {
-      flowArgs = {
-        '@type': flowWithDescriptors.flowArgType,
-        ...(flowWithDescriptors.flow.args as {}),
-      };
-    } else {
-      flowArgs = originalHunt?.flowArgs as apiInterfaces.Any;
-    }
-    const originalHuntRef: apiInterfaces.ApiHuntReference = {
-      huntId: originalHuntId,
-    };
-    const request: apiInterfaces.ApiCreateHuntArgs = {
-      flowName,
-      flowArgs,
-      huntRunnerArgs,
-      originalFlow: originalHuntId ? undefined : originalFlowRef,
-      originalHunt: originalHuntId ? originalHuntRef : undefined,
-    };
+    const flowDescriptor$: Observable<apiInterfaces.ApiFlowDescriptor> =
+      this.listFlowDescriptors().pipe(
+        // Take FlowDescriptors at most once, so that Flows are not started
+        // repeatedly if FlowDescriptors are ever updated.
+        take(1),
+        map(findFlowDescriptor(flowName)),
+      );
 
-    return this.http
-      .post<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts`, toJson(request))
-      .pipe(tap(this.showErrors));
+    return flowDescriptor$.pipe(
+      combineLatestWith(outputPluginDescriptors$),
+      switchMap(([flowDescriptor, outputPluginDescriptors]) => {
+        const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
+          description,
+          clientRate: safetyLimits.clientRate,
+          clientLimit: safetyLimits.clientLimit?.toString(),
+          crashLimit: safetyLimits.crashLimit?.toString(),
+          expiryTime: safetyLimits.expiryTime?.toString(),
+          avgResultsPerClientLimit:
+            safetyLimits.avgResultsPerClientLimit?.toString(),
+          avgCpuSecondsPerClientLimit:
+            safetyLimits.avgCpuSecondsPerClientLimit?.toString(),
+          avgNetworkBytesPerClientLimit:
+            safetyLimits.avgNetworkBytesPerClientLimit?.toString(),
+          perClientCpuLimit: safetyLimits.perClientCpuLimit?.toString(),
+          perClientNetworkLimitBytes:
+            safetyLimits.perClientNetworkBytesLimit?.toString(),
+          outputPlugins: outputPluginDescriptors,
+          clientRuleSet: rules,
+        };
+        const request: apiInterfaces.ApiCreateHuntArgs = {
+          flowName,
+          flowArgs: {
+            '@type': flowDescriptor.defaultArgs?.['@type'],
+            ...flowArgs,
+          },
+          originalFlow: originalFlowRef,
+          originalHunt: originalHuntRef,
+          huntRunnerArgs,
+        };
+        return this.http
+          .post<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts`, request, {
+            context: new HttpContext()
+              .set(SHOW_ERROR_BAR, true)
+              .set(TRACK_LOADING_STATE, true),
+          })
+          .pipe(
+            catchError((e: HttpErrorResponse) => {
+              throw new Error(e.error.message ?? e.message);
+            }),
+          );
+      }),
+    );
   }
 
   requestHuntApproval(
@@ -432,91 +423,63 @@ export class HttpApiService {
         emailCcAddresses: args.cc,
       },
     };
-    return this.http
-      .post<apiInterfaces.ApiHuntApproval>(
-        `${URL_PREFIX}/users/me/approvals/hunt/${args.huntId}`,
-        request,
-      )
-      .pipe(
-        tap(() => {
-          this.triggerHuntApprovalPoll$.next();
-        }),
-      );
+    return this.http.post<apiInterfaces.ApiHuntApproval>(
+      `${URL_PREFIX}/users/me/approvals/hunt/${args.huntId}`,
+      request,
+      {context: new HttpContext().set(TRACK_LOADING_STATE, true)},
+    );
   }
 
   /** Lists HuntApprovals in reversed chronological order. */
-  private listHuntApprovals(
+  listHuntApprovals(
     huntId: string,
-  ): Observable<readonly apiInterfaces.ApiHuntApproval[]> {
-    return this.http
-      .get<apiInterfaces.ApiListHuntApprovalsResult>(
-        `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`,
-      )
-      .pipe(
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
-      );
-  }
-
-  subscribeToListHuntApprovals(huntId: string) {
-    return merge(
-      timer(0, this.POLLING_INTERVAL),
-      this.triggerHuntApprovalPoll$,
-    ).pipe(
-      exhaustMap(() => this.listHuntApprovals(huntId)),
-      tap(this.showErrors),
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListHuntApprovalsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.get<apiInterfaces.ApiListHuntApprovalsResult>(
+      `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`,
+      {context},
     );
   }
 
   /** Fetches a Hunt. */
-  fetchHunt(id: string): Observable<apiInterfaces.ApiHunt> {
-    return this.http
-      .get<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${id}`)
-      .pipe(tap(this.showErrors));
+  fetchHunt(
+    id: string,
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiHunt> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true);
+    return this.http.get<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${id}`, {
+      context,
+    });
   }
 
-  subscribeToHuntApproval(
-    key: HuntApprovalKey,
-  ): Observable<apiInterfaces.ApiHuntApproval> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.fetchHuntApproval(key)),
-      tap(this.showErrors),
-    );
-  }
-
-  private verifyHuntAccess(huntId: string): Observable<boolean> {
-    return this.http.get<{}>(`${URL_PREFIX}/hunts/${huntId}/access`).pipe(
-      map(() => true),
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 403) {
-          return of(false);
-        } else {
-          return throwError(err);
-        }
-      }),
-      tap(this.showErrors),
-    );
-  }
-
-  /** Emits true, if the user has access to the hunt, false otherwise. */
-  subscribeToVerifyHuntAccess(huntId: string): Observable<boolean> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.verifyHuntAccess(huntId)),
-      tap(this.showErrors),
-    );
+  verifyHuntAccess(huntId: string): Observable<{}> {
+    const context = new HttpContext()
+      .set(SHOW_ERROR_BAR, true)
+      .set(SHOW_ERROR_BAR_FOR_403, false);
+    return this.http.head<{}>(`${URL_PREFIX}/hunts/${huntId}/access`, {
+      context,
+    });
   }
 
   /** Fetches a HuntApproval */
-  private fetchHuntApproval({
-    huntId,
-    approvalId,
-    requestor,
-  }: HuntApprovalKey): Observable<apiInterfaces.ApiHuntApproval> {
-    return this.http
-      .get<apiInterfaces.ApiHuntApproval>(
-        `${URL_PREFIX}/users/${requestor}/approvals/hunt/${huntId}/${approvalId}`,
-      )
-      .pipe(tap(this.showErrors));
+  fetchHuntApproval(
+    {huntId, approvalId, requestor}: HuntApprovalKey,
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiHuntApproval> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.get<apiInterfaces.ApiHuntApproval>(
+      `${URL_PREFIX}/users/${requestor}/approvals/hunt/${huntId}/${approvalId}`,
+      {context},
+    );
   }
 
   /** Grants a HuntApproval. */
@@ -525,61 +488,57 @@ export class HttpApiService {
     approvalId,
     requestor,
   }: HuntApprovalKey): Observable<apiInterfaces.ApiHuntApproval> {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
     return this.http.post<apiInterfaces.ApiHuntApproval>(
       `${URL_PREFIX}/users/${requestor}/approvals/hunt/${huntId}/${approvalId}/actions/grant`,
       {},
-    );
-  }
-
-  subscribeToHunt(huntId: string): Observable<apiInterfaces.ApiHunt> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.fetchHunt(huntId)),
-      tap(this.showErrors),
+      {context},
     );
   }
 
   patchHunt(
     huntId: string,
     patch: {
-      state?: HuntState;
+      state?: apiInterfaces.ApiHuntState;
       clientLimit?: bigint;
       clientRate?: number;
     },
   ): Observable<apiInterfaces.ApiHunt> {
     const params: apiInterfaces.ApiHunt = {
-      'state': patch.state ? toApiHuntState(patch.state) : undefined,
+      'state': patch.state,
       'clientLimit': patch.clientLimit?.toString(),
       'clientRate': patch.clientRate,
     };
-    return this.http
-      .patch<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${huntId}`, params)
-      .pipe(tap(this.showErrors));
-  }
-
-  /** Polls for Hunt Results count by type */
-  subscribeToHuntResultsCountByType(
-    huntId: string,
-  ): Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.getHuntResultsByType(huntId)),
-      tap(this.showErrors),
+    return this.http.patch<apiInterfaces.ApiHunt>(
+      `${URL_PREFIX}/hunts/${huntId}`,
+      params,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
-  private getHuntResultsByType(
+  getHuntResultsByType(
     huntId: string,
+    pollingInterval = 0,
   ): Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
-    return this.http
-      .get<apiInterfaces.ApiCountHuntResultsByTypeResult>(
-        `${URL_PREFIX}/hunts/${huntId}/result-counts`,
-      )
-      .pipe(tap(this.showErrors));
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(TRACK_LOADING_STATE, true)
+      .set(SHOW_ERROR_BAR, true);
+    return this.http.get<apiInterfaces.ApiCountHuntResultsByTypeResult>(
+      `${URL_PREFIX}/hunts/${huntId}/result-counts`,
+      {context},
+    );
   }
 
   /** Lists results of the given hunt. */
   listResultsForHunt(
     params: apiInterfaces.ApiListHuntResultsArgs,
-  ): Observable<readonly apiInterfaces.ApiHuntResult[]> {
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListHuntResultsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(TRACK_LOADING_STATE, true)
+      .set(SHOW_ERROR_BAR, true);
     const huntId = params.huntId;
     assertNonNull(huntId);
 
@@ -608,34 +567,23 @@ export class HttpApiService {
     return this.http
       .get<apiInterfaces.ApiListHuntResultsResult>(
         `${URL_PREFIX}/hunts/${params.huntId}/results`,
-        {params: httpParams},
+        {params: httpParams, context},
       )
       .pipe(
         catchError((err: HttpErrorResponse) => {
           if (err.status === 403) {
-            return throwError(new MissingApprovalError(err));
+            return throwError(() => new MissingApprovalError(err));
           } else {
-            return throwError(err);
+            return throwError(() => err);
           }
         }),
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
       );
-  }
-
-  subscribeToResultsForHunt(
-    params: apiInterfaces.ApiListHuntResultsArgs,
-  ): Observable<readonly apiInterfaces.ApiHuntResult[]> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.listResultsForHunt(params)),
-      tap(this.showErrors),
-    );
   }
 
   /** Lists errors of the given hunt. */
   listErrorsForHunt(
     params: apiInterfaces.ApiListHuntErrorsArgs,
-  ): Observable<readonly apiInterfaces.ApiHuntError[]> {
+  ): Observable<apiInterfaces.ApiListHuntErrorsResult> {
     const huntId = params.huntId;
     assertNonNull(huntId);
 
@@ -658,60 +606,54 @@ export class HttpApiService {
     return this.http
       .get<apiInterfaces.ApiListHuntErrorsResult>(
         `${URL_PREFIX}/hunts/${params.huntId}/errors`,
-        {params: httpParams},
+        {
+          params: httpParams,
+          context: new HttpContext()
+            .set(SHOW_ERROR_BAR, true)
+            .set(TRACK_LOADING_STATE, true),
+        },
       )
       .pipe(
         catchError((err: HttpErrorResponse) => {
           if (err.status === 403) {
-            return throwError(new MissingApprovalError(err));
+            return throwError(() => new MissingApprovalError(err));
           } else {
-            return throwError(err);
+            return throwError(() => err);
           }
         }),
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
       );
   }
 
-  subscribeToErrorsForHunt(
-    params: apiInterfaces.ApiListHuntErrorsArgs,
-  ): Observable<readonly apiInterfaces.ApiHuntError[]> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.listErrorsForHunt(params)),
-      tap(this.showErrors),
-    );
-  }
-
-  subscribeToHuntClientCompletionStats(
+  getHuntClientCompletionStats(
     args: apiInterfaces.ApiGetHuntClientCompletionStatsArgs,
+    pollingInterval = 0,
   ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.getHuntClientCompletionStats(args)),
-      tap(this.showErrors),
-    );
-  }
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(TRACK_LOADING_STATE, true)
+      .set(SHOW_ERROR_BAR, true);
 
-  private getHuntClientCompletionStats(
-    args: apiInterfaces.ApiGetHuntClientCompletionStatsArgs,
-  ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
     const httpParams = args.size
       ? new HttpParams({fromObject: {'size': args.size}})
       : {};
 
-    return this.http
-      .get<apiInterfaces.ApiGetHuntClientCompletionStatsResult>(
-        `${URL_PREFIX}/hunts/${args.huntId}/client-completion-stats`,
-        {params: httpParams},
-      )
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiGetHuntClientCompletionStatsResult>(
+      `${URL_PREFIX}/hunts/${args.huntId}/client-completion-stats`,
+      {params: httpParams, context},
+    );
   }
 
   // TODO: GET parameters require snake_case not camelCase
   // parameters. Do not allow createdBy and other camelCase parameters until
   // fixed.
-  private listHunts(
+  listHunts(
     args: apiInterfaces.ApiListHuntsArgs,
+    pollingInterval = 0,
   ): Observable<apiInterfaces.ApiListHuntsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(TRACK_LOADING_STATE, true)
+      .set(SHOW_ERROR_BAR, true);
     // TODO: Use camelCased field name once the backend converts
     // camelCased names to their snake_case counterpart.
     const params = toHttpParams({
@@ -721,25 +663,21 @@ export class HttpApiService {
       'with_state': args.withState,
       'with_full_summary': true,
     });
-    return this.http
-      .get<apiInterfaces.ApiListHuntsResult>(`${URL_PREFIX}/hunts`, {params})
-      .pipe(tap(this.showErrors));
-  }
-
-  subscribeToListHunts(
-    args: Pick<apiInterfaces.ApiListHuntsArgs, 'offset' | 'count'>,
-  ): Observable<apiInterfaces.ApiListHuntsResult> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.listHunts(args)),
+    return this.http.get<apiInterfaces.ApiListHuntsResult>(
+      `${URL_PREFIX}/hunts`,
+      {params, context},
     );
   }
 
-  subscribeToClientApproval(
-    key: ClientApprovalKey,
-  ): Observable<apiInterfaces.ApiClientApproval> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.fetchClientApproval(key)),
-      tap(this.showErrors),
+  fetchHuntLogs(
+    huntId: string,
+  ): Observable<apiInterfaces.ApiListHuntLogsResult> {
+    const context = new HttpContext()
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.get<apiInterfaces.ApiListHuntLogsResult>(
+      `${URL_PREFIX}/hunts/${huntId}/log`,
+      {context},
     );
   }
 
@@ -749,13 +687,17 @@ export class HttpApiService {
     requestor,
     approvalId,
   }: ClientApprovalKey): Observable<apiInterfaces.ApiClientApproval> {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
     return this.http.post<apiInterfaces.ApiClientApproval>(
       `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${approvalId}/actions/grant`,
       {},
+      {context},
     );
   }
 
   private readonly flowDescriptors$;
+
+  private readonly outputPluginDescriptors$;
 
   listFlowDescriptors(): Observable<
     readonly apiInterfaces.ApiFlowDescriptor[]
@@ -763,36 +705,31 @@ export class HttpApiService {
     return this.flowDescriptors$;
   }
 
-  listArtifactDescriptors(): Observable<
-    readonly apiInterfaces.ArtifactDescriptor[]
-  > {
-    return this.http
-      .get<apiInterfaces.ApiListArtifactsResult>(`${URL_PREFIX}/artifacts`)
-      .pipe(
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
-      );
-  }
-
   listOutputPluginDescriptors(): Observable<
     readonly apiInterfaces.ApiOutputPluginDescriptor[]
   > {
-    return this.http
-      .get<apiInterfaces.ApiListOutputPluginDescriptorsResult>(
-        `${URL_PREFIX}/output-plugins/all`,
-      )
-      .pipe(
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
-        shareReplay({bufferSize: 1, refCount: true}),
-      );
+    return this.outputPluginDescriptors$;
   }
 
-  private listFlowsForClient(
+  listArtifactDescriptors(): Observable<apiInterfaces.ApiListArtifactsResult> {
+    return this.http.get<apiInterfaces.ApiListArtifactsResult>(
+      `${URL_PREFIX}/artifacts`,
+      {
+        context: new HttpContext().set(SHOW_ERROR_BAR, true),
+      },
+    );
+  }
+
+  listFlowsForClient(
     args: apiInterfaces.ApiListFlowsArgs,
-  ): Observable<readonly apiInterfaces.ApiFlow[]> {
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListFlowsResult> {
     const clientId = args.clientId;
     assertNonNull(clientId);
+
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true);
 
     // TODO: Use camelCased field name once the backend converts
     // camelCased names to their snake_case counterpart.
@@ -808,66 +745,44 @@ export class HttpApiService {
     return this.http
       .get<apiInterfaces.ApiListFlowsResult>(
         `${URL_PREFIX}/clients/${clientId}/flows`,
-        {params},
+        {params, context},
       )
       .pipe(
         catchError((err: HttpErrorResponse) => {
           if (err.status === 403) {
-            return throwError(new MissingApprovalError(err));
+            return throwError(() => new MissingApprovalError(err));
           } else {
-            return throwError(err);
+            return throwError(() => err);
           }
         }),
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
       );
-  }
-
-  /** Lists the latest Flows for the given Client. */
-  subscribeToFlowsForClient(
-    args: apiInterfaces.ApiListFlowsArgs,
-  ): Observable<readonly apiInterfaces.ApiFlow[]> {
-    return merge(
-      timer(0, this.POLLING_INTERVAL),
-      this.triggerListFlowsPoll$,
-    ).pipe(
-      exhaustMap(() => this.listFlowsForClient(args)),
-      tap(this.showErrors),
-    );
-  }
-
-  subscribeToScheduledFlowsForClient(
-    clientId: string,
-    creator: string,
-  ): Observable<readonly apiInterfaces.ApiScheduledFlow[]> {
-    return merge(
-      timer(0, this.POLLING_INTERVAL),
-      this.triggerListScheduledFlowsPoll$,
-    ).pipe(
-      exhaustMap(() => this.listScheduledFlows(clientId, creator)),
-      tap(this.showErrors),
-    );
   }
 
   /** Lists all scheduled flows for the given client and user. */
-  private listScheduledFlows(
+  listScheduledFlows(
     clientId: string,
     creator: string,
-  ): Observable<readonly apiInterfaces.ApiScheduledFlow[]> {
-    return this.http
-      .get<apiInterfaces.ApiListScheduledFlowsResult>(
-        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}`,
-      )
-      .pipe(
-        map((res) => res.scheduledFlows ?? []),
-        tap(this.showErrors),
-      );
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListScheduledFlowsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true);
+
+    return this.http.get<apiInterfaces.ApiListScheduledFlowsResult>(
+      `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}`,
+      {context},
+    );
   }
 
   /** Lists results of the given flow. */
   listResultsForFlow(
     params: FlowResultsParams,
-  ): Observable<readonly apiInterfaces.ApiFlowResult[]> {
+    pollingInterval = 0,
+  ): Observable<apiInterfaces.ApiListFlowResultsResult> {
+    const context = new HttpContext()
+      .set(POLLING_INTERVAL, pollingInterval)
+      .set(SHOW_ERROR_BAR, true)
+      .set(TRACK_LOADING_STATE, true);
     const options: {[key: string]: string} = {};
     if (params.withTag) {
       options['with_tag'] = params.withTag;
@@ -884,24 +799,9 @@ export class HttpApiService {
       },
     });
 
-    return this.http
-      .get<apiInterfaces.ApiListFlowResultsResult>(
-        `${URL_PREFIX}/clients/${params.clientId}/flows/${params.flowId}/results`,
-        {params: httpParams},
-      )
-      .pipe(
-        map((res) => res.items ?? []),
-        tap(this.showErrors),
-      );
-  }
-
-  /** Continuously lists results for the given flow, e.g. by polling. */
-  subscribeToResultsForFlow(
-    params: FlowResultsParams,
-  ): Observable<readonly apiInterfaces.ApiFlowResult[]> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
-      exhaustMap(() => this.listResultsForFlow(params)),
-      tap(this.showErrors),
+    return this.http.get<apiInterfaces.ApiListFlowResultsResult>(
+      `${URL_PREFIX}/clients/${params.clientId}/flows/${params.flowId}/results`,
+      {params: httpParams, context},
     );
   }
 
@@ -910,6 +810,7 @@ export class HttpApiService {
     clientId: string,
     flowName: string,
     flowArgs: apiInterfaces.Any,
+    disableRrgSupport = false,
   ): Observable<apiInterfaces.ApiFlow> {
     return this.listFlowDescriptors().pipe(
       // Take FlowDescriptors at most once, so that Flows are not started
@@ -924,6 +825,9 @@ export class HttpApiService {
             '@type': fd.defaultArgs?.['@type'],
             ...flowArgs,
           },
+          runnerArgs: {
+            'disableRrgSupport': disableRrgSupport,
+          },
         },
       })),
       switchMap((request: apiInterfaces.ApiCreateFlowArgs) => {
@@ -931,12 +835,13 @@ export class HttpApiService {
           .post<apiInterfaces.ApiFlow>(
             `${URL_PREFIX}/clients/${clientId}/flows`,
             request,
+            {
+              context: new HttpContext()
+                .set(SHOW_ERROR_BAR, true)
+                .set(TRACK_LOADING_STATE, true),
+            },
           )
           .pipe(
-            tap(() => {
-              this.triggerListFlowsPoll$.next();
-            }),
-            tap(this.showErrors),
             catchError((e: HttpErrorResponse) =>
               throwError(new Error(e.error.message ?? e.message)),
             ),
@@ -971,14 +876,15 @@ export class HttpApiService {
           .post<apiInterfaces.ApiFlow>(
             `${URL_PREFIX}/clients/${clientId}/scheduled-flows`,
             request,
+            {
+              context: new HttpContext()
+                .set(SHOW_ERROR_BAR, true)
+                .set(TRACK_LOADING_STATE, true),
+            },
           )
           .pipe(
-            tap(() => {
-              this.triggerListScheduledFlowsPoll$.next();
-            }),
-            tap(this.showErrors),
             catchError((e: HttpErrorResponse) =>
-              throwError(new Error(e.error.message ?? e.message)),
+              throwError(() => new Error(e.error.message ?? e.message)),
             ),
           );
       }),
@@ -991,30 +897,28 @@ export class HttpApiService {
     flowId: string,
   ): Observable<apiInterfaces.ApiFlow> {
     const url = `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/actions/cancel`;
-    return this.http.post<apiInterfaces.ApiFlow>(url, {}).pipe(
-      tap(() => {
-        this.triggerListFlowsPoll$.next();
-      }),
-      tap(this.showErrors),
+    return this.http.post<apiInterfaces.ApiFlow>(
+      url,
+      {},
+      {
+        context: new HttpContext().set(SHOW_ERROR_BAR, true),
+      },
     );
   }
 
   /** Unschedules a previously scheduled flow. */
   unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}`;
-    return this.http.delete<{}>(url, {}).pipe(
-      tap(() => {
-        this.triggerListScheduledFlowsPoll$.next();
-      }),
-      tap(this.showErrors),
-    );
+    return this.http.delete<{}>(url, {
+      context: new HttpContext().set(SHOW_ERROR_BAR, true),
+    });
   }
 
   /** Fetches the current user. */
   fetchCurrentUser(): Observable<apiInterfaces.ApiGrrUser> {
-    return this.http
-      .get<apiInterfaces.ApiGrrUser>(`${URL_PREFIX}/users/me`)
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiGrrUser>(`${URL_PREFIX}/users/me`, {
+      context: new HttpContext().set(SHOW_ERROR_BAR, true),
+    });
   }
 
   /** Explains a GlobExpression. */
@@ -1022,24 +926,25 @@ export class HttpApiService {
     clientId: string,
     globExpression: string,
     {exampleCount}: {exampleCount: number},
-  ): Observable<readonly apiInterfaces.GlobComponentExplanation[]> {
+  ): Observable<apiInterfaces.ApiExplainGlobExpressionResult> {
     const url = `${URL_PREFIX}/clients/${clientId}/glob-expressions:explain`;
     const args: apiInterfaces.ApiExplainGlobExpressionArgs = {
       globExpression,
       exampleCount,
     };
-    return this.http
-      .post<apiInterfaces.ApiExplainGlobExpressionResult>(url, args)
-      .pipe(
-        map((result) => result.components ?? []),
-        tap(this.showErrors),
-      );
+    return this.http.post<apiInterfaces.ApiExplainGlobExpressionResult>(
+      url,
+      args,
+      {
+        context: new HttpContext().set(SHOW_ERROR_BAR, true),
+      },
+    );
   }
 
   fetchUiConfig(): Observable<apiInterfaces.ApiUiConfig> {
-    return this.http
-      .get<apiInterfaces.ApiUiConfig>(`${URL_PREFIX}/config/ui`)
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiUiConfig>(`${URL_PREFIX}/config/ui`, {
+      context: new HttpContext().set(SHOW_ERROR_BAR, true),
+    });
   }
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
@@ -1048,38 +953,46 @@ export class HttpApiService {
       clientIds: [clientId],
       labels: [label],
     };
-    return this.http.post<{}>(url, body).pipe(tap(this.showErrors));
+    return this.http.post<{}>(url, body, {
+      context: new HttpContext().set(SHOW_ERROR_BAR, true),
+    });
   }
 
-  removeClientLabel(clientId: string, label: string): Observable<string> {
+  removeClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/remove`;
     const body: apiInterfaces.ApiRemoveClientsLabelsArgs = {
       clientIds: [clientId],
       labels: [label],
     };
-    return this.http.post<{}>(url, body).pipe(
-      mapTo(label),
-      tap(this.showErrors),
-      catchError((e: HttpErrorResponse) =>
-        throwError(new Error(e.error.message ?? e.message)),
-      ),
-    );
+    return this.http
+      .post<{}>(url, body, {
+        context: new HttpContext().set(SHOW_ERROR_BAR, true),
+      })
+      .pipe(
+        catchError((e: HttpErrorResponse) =>
+          throwError(() => new Error(e.error.message ?? e.message)),
+        ),
+      );
   }
 
   fetchAllClientsLabels(): Observable<readonly apiInterfaces.ClientLabel[]> {
     const url = `${URL_PREFIX}/clients/labels`;
-    return this.http.get<apiInterfaces.ApiListClientsLabelsResult>(url).pipe(
-      map((clientsLabels) => clientsLabels.items ?? []),
-      tap(this.showErrors),
-    );
+    return this.http
+      .get<apiInterfaces.ApiListClientsLabelsResult>(url, {
+        context: new HttpContext().set(SHOW_ERROR_BAR, true),
+      })
+      .pipe(
+        map((clientsLabels) => clientsLabels.items ?? []),
+        shareReplay(1),
+      );
   }
 
-  fetchClientVersions(
+  fetchClientSnapshots(
     clientId: string,
     start?: Date,
     end?: Date,
-  ): Observable<readonly apiInterfaces.ApiClient[]> {
-    const url = `${URL_PREFIX}/clients/${clientId}/versions`;
+  ): Observable<apiInterfaces.ApiGetClientSnapshotsResult> {
+    const url = `${URL_PREFIX}/clients/${clientId}/snapshots`;
 
     const params = new HttpParams({
       fromObject: {
@@ -1089,70 +1002,104 @@ export class HttpApiService {
       },
     });
 
-    return this.http
-      .get<apiInterfaces.ApiGetClientVersionsResult>(url, {params})
-      .pipe(
-        map((clientVersions) => clientVersions.items ?? []),
-        tap(this.showErrors),
-      );
+    return this.http.get<apiInterfaces.ApiGetClientSnapshotsResult>(url, {
+      params,
+      context: new HttpContext()
+        .set(SHOW_ERROR_BAR, true)
+        .set(TRACK_LOADING_STATE, true),
+    });
+  }
+
+  fetchClientStartupInfos(
+    clientId: string,
+    start?: Date,
+    end?: Date,
+  ): Observable<apiInterfaces.ApiGetClientStartupInfosResult> {
+    const url = `${URL_PREFIX}/clients/${clientId}/startup-infos`;
+
+    const params = new HttpParams({
+      fromObject: {
+        // If start not set, fetch from 1 second from epoch.
+        'start': ((start?.getTime() ?? 1000) * 1000).toString(),
+        'end': ((end ?? new Date()).getTime() * 1000).toString(),
+        'exclude_snapshot_collections': true,
+      },
+    });
+
+    return this.http.get<apiInterfaces.ApiGetClientStartupInfosResult>(url, {
+      params,
+      context: new HttpContext()
+        .set(SHOW_ERROR_BAR, true)
+        .set(TRACK_LOADING_STATE, true),
+    });
   }
 
   suggestApprovers(
     usernameQuery: string,
-  ): Observable<
-    readonly apiInterfaces.ApiListApproverSuggestionsResultApproverSuggestion[]
-  > {
+  ): Observable<apiInterfaces.ApiListApproverSuggestionsResult> {
     const params = new HttpParams().set('username_query', usernameQuery);
-    return this.http
-      .get<apiInterfaces.ApiListApproverSuggestionsResult>(
-        `${URL_PREFIX}/users/approver-suggestions`,
-        {params},
-      )
-      .pipe(
-        map((result) => result.suggestions ?? []),
-        tap(this.showErrors),
-      );
+    return this.http.get<apiInterfaces.ApiListApproverSuggestionsResult>(
+      `${URL_PREFIX}/users/approver-suggestions`,
+      {
+        params,
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(TRACK_LOADING_STATE, true),
+      },
+    );
   }
 
   listRecentClientApprovals(parameters: {
     count?: number;
-  }): Observable<readonly apiInterfaces.ApiClientApproval[]> {
-    return this.http
-      .get<apiInterfaces.ApiListClientApprovalsResult>(
-        `${URL_PREFIX}/users/me/approvals/client`,
-        {params: objectToHttpParams(parameters)},
-      )
-      .pipe(
-        map((result) => result.items ?? []),
-        tap(this.showErrors),
-      );
+  }): Observable<apiInterfaces.ApiListClientApprovalsResult> {
+    return this.http.get<apiInterfaces.ApiListClientApprovalsResult>(
+      `${URL_PREFIX}/users/me/approvals/client`,
+      {
+        params: objectToHttpParams(parameters),
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(TRACK_LOADING_STATE, true),
+      },
+    );
+  }
+
+  getFileAccess(fileSpec: FileSpec): Observable<{}> {
+    const vfsPath = toVFSPath(fileSpec.pathType, fileSpec.path, {
+      urlEncode: true,
+    });
+    const context = new HttpContext()
+      .set(SHOW_ERROR_BAR, true)
+      .set(SHOW_ERROR_BAR_FOR_403, false)
+      .set(TRACK_LOADING_STATE, true);
+    return this.http.head<{}>(
+      `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-details${vfsPath}`,
+      {context},
+    );
   }
 
   getFileDetails(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
+    fileSpec: FileSpec,
     opts?: {timestamp?: Date},
-  ): Observable<apiInterfaces.ApiFile> {
+  ): Observable<apiInterfaces.ApiGetFileDetailsResult> {
     const params = objectToHttpParams({
       'timestamp': opts?.timestamp?.getDate(),
     });
-    const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
-    return this.http
-      .get<apiInterfaces.ApiGetFileDetailsResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-details${vfsPath}`,
-        {params},
-      )
-      .pipe(
-        map((response) => response.file ?? {}),
-        tap(this.showErrors),
-      );
+    const vfsPath = toVFSPath(fileSpec.pathType, fileSpec.path, {
+      urlEncode: true,
+    });
+    return this.http.get<apiInterfaces.ApiGetFileDetailsResult>(
+      `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-details${vfsPath}`,
+      {
+        params,
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(TRACK_LOADING_STATE, true),
+      },
+    );
   }
 
   getFileText(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
+    fileSpec: FileSpec,
     opts?: GetFileTextOptions,
   ): Observable<apiInterfaces.ApiGetFileTextResult | null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
@@ -1162,20 +1109,26 @@ export class HttpApiService {
       timestamp: opts?.timestamp?.getTime()?.toString(),
     };
 
-    const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
+    const vfsPath = toVFSPath(fileSpec.pathType, fileSpec.path, {
+      urlEncode: true,
+    });
     return this.http
       .get<apiInterfaces.ApiGetFileTextResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
-        {params: objectToHttpParams(queryArgs as HttpParamObject)},
+        `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-text${vfsPath}`,
+        {
+          params: objectToHttpParams(queryArgs as HttpParamObject),
+          context: new HttpContext()
+            .set(SHOW_ERROR_BAR, true)
+            .set(SHOW_ERROR_BAR_FOR_404, false)
+            .set(TRACK_LOADING_STATE, true),
+        },
       )
-      .pipe(catchError(error404To(null)), tap(this.showErrors));
+      .pipe(catchError(error404To(null)));
   }
 
   /** Queries the length of the given VFS file. */
   getFileBlobLength(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
+    fileSpec: FileSpec,
     opts?: GetFileBlobOptions,
   ): Observable<bigint | null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
@@ -1184,9 +1137,13 @@ export class HttpApiService {
     };
 
     return this.http
-      .head(getFileBlobUrl(clientId, pathType, path), {
+      .head(getFileBlobUrl(fileSpec), {
         observe: 'response',
         params: objectToHttpParams(queryArgs as HttpParamObject),
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(SHOW_ERROR_BAR_FOR_404, false)
+          .set(TRACK_LOADING_STATE, true),
       })
       .pipe(
         map((response) => {
@@ -1195,15 +1152,12 @@ export class HttpApiService {
           return BigInt(length);
         }),
         catchError(error404To(null)),
-        tap(this.showErrors),
       );
   }
 
   /** Queries the raw, binary contents of a VFS file. */
   getFileBlob(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
+    fileSpec: FileSpec,
     opts?: GetFileBlobOptions,
   ): Observable<ArrayBuffer | null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
@@ -1214,11 +1168,15 @@ export class HttpApiService {
     };
 
     return this.http
-      .get(getFileBlobUrl(clientId, pathType, path), {
+      .get(getFileBlobUrl(fileSpec), {
         responseType: 'arraybuffer',
         params: objectToHttpParams(queryArgs as HttpParamObject),
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(SHOW_ERROR_BAR_FOR_404, false)
+          .set(TRACK_LOADING_STATE, true),
       })
-      .pipe(catchError(error404To(null)), tap(this.showErrors));
+      .pipe(catchError(error404To(null)));
   }
 
   browseFilesystem(
@@ -1232,16 +1190,17 @@ export class HttpApiService {
       path = '/' + path;
     }
 
-    return this.http
-      .get<apiInterfaces.ApiBrowseFilesystemResult>(
-        `${URL_PREFIX}/clients/${clientId}/filesystem${path}`,
-        {
-          params: objectToHttpParams({
-            'include_directory_tree': opts.includeDirectoryTree,
-          }),
-        },
-      )
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiBrowseFilesystemResult>(
+      `${URL_PREFIX}/clients/${clientId}/filesystem${path}`,
+      {
+        params: objectToHttpParams({
+          'include_directory_tree': opts.includeDirectoryTree,
+        }),
+        context: new HttpContext()
+          .set(SHOW_ERROR_BAR, true)
+          .set(TRACK_LOADING_STATE, true),
+      },
+    );
   }
 
   /**
@@ -1249,25 +1208,26 @@ export class HttpApiService {
    * the recollection has been finished.
    */
   updateVfsFileContent(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
-  ): Observable<apiInterfaces.ApiFile> {
+    fileSpec: FileSpec,
+  ): Observable<apiInterfaces.ApiGetFileDetailsResult> {
     const data: apiInterfaces.ApiUpdateVfsFileContentArgs = {
-      filePath: toVFSPath(pathType, path, {urlEncode: false}),
+      filePath: toVFSPath(fileSpec.pathType, fileSpec.path, {urlEncode: false}),
     };
     return this.http
       .post<apiInterfaces.ApiUpdateVfsFileContentResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-update`,
+        `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-update`,
         data,
+        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
       )
       .pipe(
         switchMap((response) =>
-          this.pollVfsFileContentUpdateState(clientId, response.operationId!),
+          this.pollVfsFileContentUpdateState(
+            fileSpec.clientId,
+            response.operationId!,
+          ),
         ),
         takeLast(1),
-        switchMap(() => this.getFileDetails(clientId, pathType, path)),
-        tap(this.showErrors),
+        switchMap(() => this.getFileDetails(fileSpec)),
       );
   }
 
@@ -1275,18 +1235,17 @@ export class HttpApiService {
     clientId: string,
     operationId: string,
   ): Observable<apiInterfaces.ApiGetVfsFileContentUpdateStateResult> {
-    return this.http
-      .get<apiInterfaces.ApiGetVfsFileContentUpdateStateResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-update/${operationId}`,
-      )
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiGetVfsFileContentUpdateStateResult>(
+      `${URL_PREFIX}/clients/${clientId}/vfs-update/${operationId}`,
+      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
+    );
   }
 
   private pollVfsFileContentUpdateState(
     clientId: string,
     operationId: string,
   ): Observable<apiInterfaces.ApiGetVfsFileContentUpdateStateResult> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
+    return timer(0, DEFAULT_POLLING_INTERVAL).pipe(
       switchMap(() => this.getVfsFileContentUpdateState(clientId, operationId)),
       takeWhile(
         (response) =>
@@ -1294,7 +1253,6 @@ export class HttpApiService {
           apiInterfaces.ApiGetVfsFileContentUpdateStateResultState.RUNNING,
         true,
       ),
-      tap(this.showErrors),
     );
   }
 
@@ -1303,28 +1261,30 @@ export class HttpApiService {
    * after the recollection has been finished.
    */
   refreshVfsFolder(
-    clientId: string,
-    pathType: apiInterfaces.PathSpecPathType,
-    path: string,
+    fileSpec: FileSpec,
     opts?: apiInterfaces.ApiCreateVfsRefreshOperationArgs,
   ): Observable<apiInterfaces.ApiBrowseFilesystemResult> {
     const data: apiInterfaces.ApiCreateVfsRefreshOperationArgs = {
-      filePath: toVFSPath(pathType, path, {urlEncode: false}),
+      filePath: toVFSPath(fileSpec.pathType, fileSpec.path, {urlEncode: false}),
       ...opts,
     };
     return this.http
       .post<apiInterfaces.ApiCreateVfsRefreshOperationResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-refresh-operations`,
+        `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-refresh-operations`,
         data,
       )
       .pipe(
         switchMap((response) =>
-          this.pollVfsRefreshOperationState(clientId, response.operationId!),
+          this.pollVfsRefreshOperationState(
+            fileSpec.clientId,
+            response.operationId!,
+          ),
         ),
-        tap(this.showErrors),
         takeLast(1),
         switchMap(() =>
-          this.browseFilesystem(clientId, path, {includeDirectoryTree: false}),
+          this.browseFilesystem(fileSpec.clientId, fileSpec.path, {
+            includeDirectoryTree: false,
+          }),
         ),
       );
   }
@@ -1333,18 +1293,16 @@ export class HttpApiService {
     clientId: string,
     operationId: string,
   ): Observable<apiInterfaces.ApiGetVfsRefreshOperationStateResult> {
-    return this.http
-      .get<apiInterfaces.ApiGetVfsRefreshOperationStateResult>(
-        `${URL_PREFIX}/clients/${clientId}/vfs-refresh-operations/${operationId}`,
-      )
-      .pipe(tap(this.showErrors));
+    return this.http.get<apiInterfaces.ApiGetVfsRefreshOperationStateResult>(
+      `${URL_PREFIX}/clients/${clientId}/vfs-refresh-operations/${operationId}`,
+    );
   }
 
   private pollVfsRefreshOperationState(
     clientId: string,
     operationId: string,
   ): Observable<apiInterfaces.ApiGetVfsRefreshOperationStateResult> {
-    return timer(0, this.POLLING_INTERVAL).pipe(
+    return timer(0, DEFAULT_POLLING_INTERVAL).pipe(
       switchMap(() => this.getVfsRefreshOperationState(clientId, operationId)),
       takeWhile(
         (response) =>
@@ -1352,23 +1310,22 @@ export class HttpApiService {
           apiInterfaces.ApiGetVfsRefreshOperationStateResultState.RUNNING,
         true,
       ),
-      tap(this.showErrors),
     );
   }
 
-  listBinaries() {
-    return this.http.get<apiInterfaces.ApiListGrrBinariesResult>(
-      `${URL_PREFIX}/config/binaries`,
-    );
-  }
-
-  increaseCounterMetric(
-    args: apiInterfaces.ApiIncrementCounterMetricArgs,
-  ): Observable<apiInterfaces.ApiIncrementCounterMetricResult> {
-    return this.http.post<apiInterfaces.ApiIncrementCounterMetricResult>(
-      `${URL_PREFIX}/stats/increment_counter`,
-      args,
-    );
+  listBinaries(
+    includeMetadata: boolean,
+  ): Observable<apiInterfaces.ApiListGrrBinariesResult> {
+    return this.http
+      .get<apiInterfaces.ApiListGrrBinariesResult>(
+        `${URL_PREFIX}/config/binaries`,
+        {
+          params: objectToHttpParams({
+            'include_metadata': includeMetadata,
+          }),
+        },
+      )
+      .pipe(shareReplay(1));
   }
 }
 
@@ -1410,7 +1367,7 @@ interface HttpParamObject {
 function objectToHttpParams(obj: HttpParamObject): HttpParams {
   let httpParams = new HttpParams();
   for (const [key, value] of Object.entries(obj)) {
-    if (isNonNull(value)) {
+    if (value != null) {
       httpParams = httpParams.set(key, value.toString());
     }
   }
@@ -1427,10 +1384,6 @@ function findFlowDescriptor(
     if (!fd) throw new Error(`FlowDescriptors do not contain ${flowName}.`);
     return fd;
   };
-}
-
-function toJson(data: unknown) {
-  return JSON.stringify(data, (k, v) => (typeof v === 'bigint' ? `${v}` : v));
 }
 
 /** Gets the URL to download all client files in the archive. */
@@ -1499,13 +1452,11 @@ export function getHuntExportCLICommand(prefix: string, huntId: string) {
 }
 
 /** Returns the URL to download the raw VFS file contents. */
-export function getFileBlobUrl(
-  clientId: string,
-  pathType: apiInterfaces.PathSpecPathType,
-  path: string,
-) {
-  const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
-  return `${URL_PREFIX}/clients/${clientId}/vfs-blob${vfsPath}`;
+export function getFileBlobUrl(fileSpec: FileSpec) {
+  const vfsPath = toVFSPath(fileSpec.pathType, fileSpec.path, {
+    urlEncode: true,
+  });
+  return `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-blob${vfsPath}`;
 }
 
 /** Returns the URL to download the raw VFS temp file contents. */

@@ -1040,7 +1040,7 @@ class _MockClient(grr_colab.Client):
       ifaces = []
 
     self._client = _MockClient.MockInnerClient()
-    self._summary = None
+    self._snapshot = None
     self._os = _MockClient.MockFileSystem()
     self._tsk = _MockClient.MockFileSystem()
     self._ntfs = _MockClient.MockFileSystem()

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 
+from collections.abc import Collection, Iterable, Iterator, Sequence
 import csv
 import io
 import itertools
 import os
 import re
 import stat
-from typing import Collection, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
+from typing import Optional
 import zipfile
 
 from grr_response_core import config
@@ -33,7 +34,6 @@ from grr_response_server.flows.general import mig_transfer
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui.api_plugins import client
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -186,21 +186,7 @@ class ApiFile(rdf_structs.RDFProtoStruct):
       self.age = rdfvalue.RDFDatetime.Now()
 
 
-class ApiGetFileDetailsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileDetailsArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiGetFileDetailsResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileDetailsResult
-  rdf_deps = [
-      ApiFile,
-  ]
-
-
+# TODO: Reassess and migrate to proto-based implementation.
 def _GenerateApiFileDetails(
     path_infos: Sequence[rdf_objects.PathInfo],
 ) -> ApiAff4ObjectRepresentation:
@@ -287,8 +273,6 @@ def _GenerateApiFileDetails(
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the details of a given file."""
 
-  args_type = ApiGetFileDetailsArgs
-  result_type = ApiGetFileDetailsResult
   proto_args_type = vfs_pb2.ApiGetFileDetailsArgs
   proto_result_type = vfs_pb2.ApiGetFileDetailsResult
 
@@ -383,21 +367,6 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiGetFileDetailsResult(file=file_obj)
 
 
-class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiListFilesArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiListFilesResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiListFilesResult
-  rdf_deps = [
-      ApiFile,
-  ]
-
-
 def _PathInfoToApiFile(path_info: objects_pb2.PathInfo) -> vfs_pb2.ApiFile:
   """Converts a PathInfo to an ApiFile."""
   if path_info.path_type == objects_pb2.PathInfo.PathType.OS:
@@ -436,8 +405,6 @@ def _PathInfoToApiFile(path_info: objects_pb2.PathInfo) -> vfs_pb2.ApiFile:
 class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the child files for a given file."""
 
-  args_type = ApiListFilesArgs
-  result_type = ApiListFilesResult
   proto_args_type = vfs_pb2.ApiListFilesArgs
   proto_result_type = vfs_pb2.ApiListFilesResult
 
@@ -555,33 +522,9 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiListFilesResult(items=items)
 
 
-class ApiBrowseFilesystemArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiBrowseFilesystemArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiBrowseFilesystemEntry(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiBrowseFilesystemEntry
-  rdf_deps = [
-      ApiFile,
-  ]
-
-
-class ApiBrowseFilesystemResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiBrowseFilesystemResult
-  rdf_deps = [
-      ApiBrowseFilesystemEntry,
-  ]
-
-
 class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   """List OS, TSK, NTFS files & directories in a given VFS directory."""
 
-  args_type = ApiBrowseFilesystemArgs
-  result_type = ApiBrowseFilesystemResult
   proto_args_type = vfs_pb2.ApiBrowseFilesystemArgs
   proto_result_type = vfs_pb2.ApiBrowseFilesystemResult
 
@@ -592,8 +535,13 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
   ) -> vfs_pb2.ApiBrowseFilesystemResult:
     del context  # Unused.
 
+    timestamp = (
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(args.timestamp)
+        if args.HasField("timestamp")
+        else None
+    )
+
     last_components = rdf_objects.ParsePath(args.path)
-    results = []
 
     path_types_to_query = {
         objects_pb2.PathInfo.PathType.OS,
@@ -601,19 +549,34 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
         objects_pb2.PathInfo.PathType.NTFS,
     }
 
+    result = vfs_pb2.ApiBrowseFilesystemResult()
+
     if args.include_directory_tree:
       all_components = self._GetDirectoryTree(last_components)
     else:
       all_components = [last_components]
 
-    for cur_components in all_components:
+    root = self._GetDirectory(
+        args.client_id, path_types_to_query, all_components[0], timestamp
+    )
+    if root:
+      result.root_entry.file.CopyFrom(root)
+    parent = result.root_entry
+    for depth, cur_components in enumerate(all_components):
+      if depth > 0:
+        for child in parent.children:
+          if child.file.name == cur_components[-1]:
+            parent = child
+            break
+      if parent is None:
+        # The listing of the parent directory does not contain the
+        # requested path component.
+        break
       path_types_to_query, children = self._ListDirectory(
           args.client_id,
           path_types_to_query,
           cur_components,
-          rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(args.timestamp)
-          if args.HasField("timestamp")
-          else None,
+          timestamp,
       )
 
       if children is None:
@@ -621,24 +584,23 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
         # no transitive children can possibly exist.
         break
 
-      results.append(
-          vfs_pb2.ApiBrowseFilesystemEntry(
-              path="/" + "/".join(cur_components), children=children
-          )
-      )
+      for file in children:
+        child = parent.children.add()
+        child.file.CopyFrom(file)
 
-    return vfs_pb2.ApiBrowseFilesystemResult(items=results)
+    return result
 
   def _GetDirectoryTree(
       self, components: Collection[str]
-  ) -> Iterator[Collection[str]]:
-    yield []  # First, yield the root folder "/".
+  ) -> Iterable[Collection[str]]:
+    result = [[]]  # First, include the root folder "/".
     for i in range(len(components)):
-      yield components[: i + 1]
+      result.append(components[: i + 1])
+    return result
 
   def _MergePathInfos(
       self,
-      path_infos: Dict[str, objects_pb2.PathInfo],
+      path_infos: dict[str, objects_pb2.PathInfo],
       cur_path_infos: Collection[objects_pb2.PathInfo],
   ) -> None:
     """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
@@ -655,17 +617,42 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
       ):
         path_infos[pi.components[-1] if pi.components else ""] = pi
 
+  def _GetDirectory(
+      self,
+      client_id: str,
+      path_types: Collection["objects_pb2.PathInfo.PathType"],
+      components: Collection[str],
+      timestamp: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> Optional[vfs_pb2.ApiFile]:
+    path_infos: dict[str, objects_pb2.PathInfo] = {}
+
+    for path_type in path_types:
+      try:
+        cur_path_info = data_store.REL_DB.ReadPathInfo(
+            client_id=client_id,
+            path_type=path_type,
+            components=components,
+            timestamp=timestamp,
+        )
+      except (db.UnknownPathError, db.NotDirectoryPathError):
+        continue
+
+      self._MergePathInfos(path_infos, [cur_path_info])
+
+    api_files = [_PathInfoToApiFile(pi) for pi in path_infos.values()]
+    return api_files[0] if api_files else None
+
   def _ListDirectory(
       self,
       client_id: str,
       path_types: Collection["objects_pb2.PathInfo.PathType"],
       components: Collection[str],
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
-  ) -> Tuple[
-      Set["objects_pb2.PathInfo.PathType"],
+  ) -> tuple[
+      set["objects_pb2.PathInfo.PathType"],
       Optional[Collection[vfs_pb2.ApiFile]],
   ]:
-    path_infos: Dict[str, objects_pb2.PathInfo] = {}
+    path_infos: dict[str, objects_pb2.PathInfo] = {}
     existing_path_types = set(path_types)
 
     for path_type in path_types:
@@ -694,23 +681,9 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
       return existing_path_types, None
 
 
-class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileTextArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiGetFileTextResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileTextResult
-
-
 class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the text for a given file."""
 
-  args_type = ApiGetFileTextArgs
-  result_type = ApiGetFileTextResult
   proto_args_type = vfs_pb2.ApiGetFileTextArgs
   proto_result_type = vfs_pb2.ApiGetFileTextResult
 
@@ -764,18 +737,9 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileBlobArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the byte content for a given file."""
 
-  args_type = ApiGetFileBlobArgs
   proto_args_type = vfs_pb2.ApiGetFileBlobArgs
 
   CHUNK_SIZE = 1024 * 1024 * 4
@@ -855,25 +819,9 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileVersionTimesArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetFileVersionTimesResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileVersionTimesResult
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the list of version times of the given file."""
 
-  args_type = ApiGetFileVersionTimesArgs
-  result_type = ApiGetFileVersionTimesResult
   proto_args_type = vfs_pb2.ApiGetFileVersionTimesArgs
   proto_result_type = vfs_pb2.ApiGetFileVersionTimesResult
 
@@ -902,22 +850,9 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiGetFileVersionTimesResult(times=times)
 
 
-class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileDownloadCommandArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetFileDownloadCommandResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetFileDownloadCommandResult
-
-
 class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the export command for a given file."""
 
-  args_type = ApiGetFileDownloadCommandArgs
-  result_type = ApiGetFileDownloadCommandResult
   proto_args_type = vfs_pb2.ApiGetFileDownloadCommandArgs
   proto_result_type = vfs_pb2.ApiGetFileDownloadCommandResult
 
@@ -945,42 +880,6 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiGetFileDownloadCommandResult(command=export_command)
 
 
-class ApiListKnownEncodingsResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiListKnownEncodingsResult
-
-
-class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
-  """Retrieves available file encodings."""
-
-  result_type = ApiListKnownEncodingsResult
-  proto_result_type = vfs_pb2.ApiListKnownEncodingsResult
-
-  def Handle(
-      self,
-      args: Optional[None] = None,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> vfs_pb2.ApiListKnownEncodingsResult:
-
-    encodings = sorted(vfs_pb2.ApiGetFileTextArgs.Encoding.keys())
-
-    return vfs_pb2.ApiListKnownEncodingsResult(encodings=encodings)
-
-
-class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for updating a VFS path."""
-
-  protobuf = vfs_pb2.ApiCreateVfsRefreshOperationArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiCreateVfsRefreshOperationResult(rdf_structs.RDFProtoStruct):
-  """Can be immediately returned to poll the status."""
-
-  protobuf = vfs_pb2.ApiCreateVfsRefreshOperationResult
-
-
 class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new refresh operation for a given VFS path.
 
@@ -988,8 +887,6 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   can be monitored by polling the returned URL of the operation.
   """
 
-  args_type = ApiCreateVfsRefreshOperationArgs
-  result_type = ApiCreateVfsRefreshOperationResult
   proto_args_type = vfs_pb2.ApiCreateVfsRefreshOperationArgs
   proto_result_type = vfs_pb2.ApiCreateVfsRefreshOperationResult
 
@@ -1082,28 +979,11 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiCreateVfsRefreshOperationResult(operation_id=flow_id)
 
 
-class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for checking a refresh operation."""
-
-  protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
-  """Indicates the state of a refresh operation."""
-
-  protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateResult
-
-
 class ApiGetVfsRefreshOperationStateHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Retrieves the state of the refresh operation specified."""
 
-  args_type = ApiGetVfsRefreshOperationStateArgs
-  result_type = ApiGetVfsRefreshOperationStateResult
   proto_args_type = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
   proto_result_type = vfs_pb2.ApiGetVfsRefreshOperationStateResult
 
@@ -1252,32 +1132,9 @@ def _GetTimelineItems(
   return sorted(items, key=lambda x: x.timestamp, reverse=True)
 
 
-class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiVfsTimelineItem
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiGetVfsTimelineArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetVfsTimelineArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetVfsTimelineResult(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetVfsTimelineResult
-  rdf_deps = [
-      ApiVfsTimelineItem,
-  ]
-
-
 class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the timeline for a given file path."""
 
-  args_type = ApiGetVfsTimelineArgs
-  result_type = ApiGetVfsTimelineResult
   proto_args_type = vfs_pb2.ApiGetVfsTimelineArgs
   proto_result_type = vfs_pb2.ApiGetVfsTimelineResult
 
@@ -1292,17 +1149,9 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiGetVfsTimelineResult(items=items)
 
 
-class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiGetVfsTimelineAsCsvArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
 class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   """Exports the timeline for a given file path."""
 
-  args_type = ApiGetVfsTimelineAsCsvArgs
   proto_args_type = vfs_pb2.ApiGetVfsTimelineAsCsvArgs
 
   CHUNK_SIZE = 1000
@@ -1406,21 +1255,6 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Unexpected file format: %s" % args.format)
 
 
-class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for updating a VFS file."""
-
-  protobuf = vfs_pb2.ApiUpdateVfsFileContentArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
-  """Can be immediately returned to poll the status."""
-
-  protobuf = vfs_pb2.ApiUpdateVfsFileContentResult
-
-
 class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   """Creates a file update operation for a given VFS file.
 
@@ -1428,8 +1262,6 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   can be monitored by polling the operation id.
   """
 
-  args_type = ApiUpdateVfsFileContentArgs
-  result_type = ApiUpdateVfsFileContentResult
   proto_args_type = vfs_pb2.ApiUpdateVfsFileContentArgs
   proto_result_type = vfs_pb2.ApiUpdateVfsFileContentResult
 
@@ -1470,28 +1302,11 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     return vfs_pb2.ApiUpdateVfsFileContentResult(operation_id=flow_id)
 
 
-class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for checking a file content update operation."""
-
-  protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
-  rdf_deps = [
-      client.ApiClientId,
-  ]
-
-
-class ApiGetVfsFileContentUpdateStateResult(rdf_structs.RDFProtoStruct):
-  """Indicates the state of a file content update operation."""
-
-  protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateResult
-
-
 class ApiGetVfsFileContentUpdateStateHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Retrieves the state of the update operation specified."""
 
-  args_type = ApiGetVfsFileContentUpdateStateArgs
-  result_type = ApiGetVfsFileContentUpdateStateResult
   proto_args_type = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
   proto_result_type = vfs_pb2.ApiGetVfsFileContentUpdateStateResult
 
@@ -1525,26 +1340,15 @@ class ApiGetVfsFileContentUpdateStateHandler(
     return result
 
 
-class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for GetVfsFilesArchive handler."""
-
-  protobuf = vfs_pb2.ApiGetVfsFilesArchiveArgs
-  rdf_deps = [
-      client.ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Streams archive with files collected in the VFS of a client."""
 
-  args_type = ApiGetVfsFilesArchiveArgs
   proto_args_type = vfs_pb2.ApiGetVfsFilesArchiveArgs
 
   def _GenerateContent(
       self,
       client_id: str,
-      start_paths: List[str],
+      start_paths: list[str],
       path_prefix: str,
       timestamp: Optional[rdfvalue.RDFDatetime] = None,
   ) -> Iterator[utils.StreamingZipGenerator]:
@@ -1664,9 +1468,3 @@ def ToProtoApiAff4ObjectRepresentation(
     rdf: ApiAff4ObjectRepresentation,
 ) -> vfs_pb2.ApiAff4ObjectRepresentation:
   return rdf.AsPrimitiveProto()
-
-
-# TODO: Temporary copy of migration function due to cyclic
-# dependency.
-def ToRDFApiFile(proto: vfs_pb2.ApiFile) -> ApiFile:
-  return ApiFile.FromSerializedBytes(proto.SerializeToString())

@@ -62,7 +62,7 @@ message Process {
     description: "Process information."
   };
 
-  reserved 21;
+  reserved 21, 27, 28;
 
   optional uint32 pid = 1;
   optional uint32 ppid = 2;
@@ -164,8 +164,8 @@ message NetworkConnection {
   enum Family {
     INET = 2;
     INET6 = 10;
-    INET6_WIN = 23;
-    INET6_OSX = 30;
+    reserved 23;
+    reserved 30;
   }
   enum Type {
     UNKNOWN_SOCKET = 0;

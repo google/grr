@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """In-memory implementation of DB methods for handling signed binaries."""
 
-from typing import Sequence, Text, Tuple, cast
+from collections.abc import Sequence
+from typing import cast
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -11,13 +12,13 @@ from grr_response_server.databases import db
 
 def _SignedBinaryKeyFromID(
     binary_id: objects_pb2.SignedBinaryID,
-) -> Tuple[int, Text]:
+) -> tuple[int, str]:
   """Converts a binary id to an equivalent dict key (tuple)."""
   return int(binary_id.binary_type), binary_id.path
 
 
 def _SignedBinaryIDFromKey(
-    binary_key: Tuple[int, Text],
+    binary_key: tuple[int, str],
 ) -> objects_pb2.SignedBinaryID:
   """Converts a tuple representing a signed binary to a SignedBinaryID."""
   return objects_pb2.SignedBinaryID(
@@ -60,7 +61,7 @@ class InMemoryDBSignedBinariesMixin(object):
   @utils.Synchronized
   def ReadSignedBinaryReferences(
       self, binary_id: objects_pb2.SignedBinaryID
-  ) -> Tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
+  ) -> tuple[objects_pb2.BlobReferences, rdfvalue.RDFDatetime]:
     """See db.Database."""
     binary_key = _SignedBinaryKeyFromID(binary_id)
     try:

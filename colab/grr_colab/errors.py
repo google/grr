@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """GRR Colab API errors."""
-from typing import List, Optional
+from typing import Optional
 
 from grr_colab import flags
 from grr_response_proto import jobs_pb2
@@ -19,7 +19,7 @@ class UnknownClientError(Exception):
 
 class AmbiguousHostnameError(Exception):
 
-  def __init__(self, hostname: str, clients: List[str]) -> None:
+  def __init__(self, hostname: str, clients: list[str]) -> None:
     self.hostname = hostname
     self.clients = clients
     msg = 'Too many clients ({}) found for hostname: {}'.format(

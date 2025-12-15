@@ -56,18 +56,15 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
 
     python_code = """
 import io
-import uu
+import base64
 import binascii
 
 def decode(encoded):
-  # Use the import (uu) inside a function. This will fail if the environment
+  # Use the import (base64) inside a function. This will fail if the environment
   # for exec is not set up properly.
-  i = io.BytesIO(s)
-  o = io.BytesIO()
-  uu.decode(i, o)
-  return o.getvalue()
+  return base64.b64decode(encoded)
 
-s = "626567696e20363636202d0a2c3226354c3b265c4035565d523b2630410a200a656e640a"
+s = "53475673624738675632397962475168"
 s = binascii.unhexlify(s.encode("ascii"))
 
 magic_return_str = decode(s)

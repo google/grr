@@ -1,0 +1,26 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+}
+
+span {
+  display: inline-block;
+}
+
+img {
+  border-radius: 50%;
+  vertical-align: middle;
+  height: 2rem;
+}
+
+mat-icon {
+  vertical-align: sub;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.username {
+  margin-left: 4px;
+}

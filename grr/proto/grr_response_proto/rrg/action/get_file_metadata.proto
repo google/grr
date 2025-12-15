@@ -9,7 +9,7 @@ package rrg.action.get_file_metadata;
 import "grr_response_proto/rrg/fs.proto";
 
 message Args {
-  // Root path to the file to get the metadata for.
+  // Root paths to the files to get the metadata for.
   //
   // If `max_depth` is non-zero, metadata for subfolders and their contents up
   // to that limit are returned as well.
@@ -17,7 +17,7 @@ message Args {
   // Note that if a path points to a symbolic link, the metadata associated
   // with the link itself will be returned, not the metadata of the file that
   // the link points to.
-  rrg.fs.Path path = 1;
+  repeated rrg.fs.Path paths = 1;
 
   // Limit on the depth of recursion when visiting subfolders.
   //
@@ -45,10 +45,39 @@ message Args {
   //
   // [1]: https://en.wikipedia.org/wiki/SHA-2
   bool sha256 = 5;
+
+  // Regex to restrict the results only to those with matching paths.
+  //
+  // Note that this is not merely doing _filtering_ of the results, it is doing
+  // _pruning_. The difference is that when doing a recursive walk, path that do
+  // not match the given regex will be discarded from the results and they will
+  // not be descended into.
+  string path_pruning_regex = 6;
+
+  // Whether to collect canonical path to the file.
+  //
+  // Path canonicalization can be relatively expensive as it might need to
+  // resolve multiple symlinks along the way and thus should not be enabled for
+  // cases where long filesystem traversals are expected.
+  bool path_canonical = 7;
+
+  // Regex to restrict the results only to those with matching contents.
+  //
+  // Note that evaluating this condition involves opening the file and reading
+  // its contents (entirely in the worst case of not matching the regex). Thus,
+  // this can be an expensive operation.
+  //
+  // File contents are split into overlapping chunks and matching is done per
+  // chunk. This means that the expected matching substring cannot exceed the
+  // size of the chunk.
+  string contents_regex = 8;
 }
 
 message Result {
-  // Canonical path of the file.
+  // Path to the file.
+  //
+  // This is the original root path of the file as specified in the arguments,
+  // possibly with some suffix in case of child files.
   rrg.fs.Path path = 1;
 
   // Metadata of the file.
@@ -90,4 +119,9 @@ message Result {
   //
   // [1]: https://en.wikipedia.org/wiki/SHA-2
   bytes sha256 = 7;
+
+  // Canonical path to the file.
+  //
+  // Collected only if requested via the `path_canonical` argument.
+  rrg.fs.Path path_canonical = 8;
 }

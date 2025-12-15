@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-"""Tests for grr.lib.type_info."""
-
-
 from absl import app
 
 from grr_response_core.lib import type_info

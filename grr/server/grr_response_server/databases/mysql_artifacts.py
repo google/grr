@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for handling artifacts."""
 
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants

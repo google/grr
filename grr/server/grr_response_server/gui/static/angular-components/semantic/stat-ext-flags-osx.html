@@ -1,9 +1,0 @@
-<div ng-switch="::controller.status">
-  <span ng-switch-when="MALFORMED">malformed</span>
-  <span ng-switch-when="NONE">none</span>
-  <ul ng-switch-when="SOME">
-    <li ng-repeat="flag in ::controller.flags">
-      <abbr title="{$ ::flag.description $}">{$ ::flag.identifier $}</abbr>
-    </li>
-  </ul>
-</div>
