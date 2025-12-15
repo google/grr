@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-"""Tests for CSP."""
-
 from wsgiref import headers as wsgi
 
 from absl import app

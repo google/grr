@@ -4,7 +4,7 @@
 import os
 import platform
 import stat
-from typing import Any, Dict
+from typing import Any
 
 from absl.testing import absltest
 
@@ -128,10 +128,10 @@ Section1:
 
 class StubFileParser(config_parser.GRRConfigFileParser):
 
-  def RawDataToBytes(self, raw_data: Dict[Any, Any]) -> bytes:
+  def RawDataToBytes(self, raw_data: dict[Any, Any]) -> bytes:
     return b"to_bytes"
 
-  def RawDataFromBytes(self, b: bytes) -> Dict[Any, Any]:
+  def RawDataFromBytes(self, b: bytes) -> dict[Any, Any]:
     return {"from_bytes": b}
 
 

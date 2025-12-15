@@ -1,0 +1,39 @@
+<table class="monospace hex-table">
+  <thead>
+    <tr>
+      <td class="offset">Offset</td>
+      @for (cell of header; track cell) {
+        <td class="offset">{{cell}}</td>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of blobContent(); track $index; let i = $index) {
+      <tr>
+        <td class="offset">{{rowOffset(i)}}</td>
+        @for (byte of row.hex; track $index) {
+          <td class="content">{{byte}}</td>
+        }
+      </tr>
+    }
+  </tbody>
+</table>
+
+<table class="monospace chars-table">
+  <thead>
+    <tr>
+      @for (cell of header; track cell) {
+        <td class="offset">{{cell}}</td>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of blobContent(); track $index) {
+      <tr>
+        @for (char of row.chars; track $index) {
+          <td class="content">{{char}}</td>
+        }
+      </tr>
+    }
+  </tbody>
+</table>

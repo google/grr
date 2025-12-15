@@ -1,0 +1,138 @@
+@if (dataSource.data.length > 0) {
+  <filter-paginate [dataSource]="dataSource">
+    <table mat-table
+      matSort
+      dense
+      [dataSource]="dataSource"
+      (matSortChange)="announceSortChange($event)"
+    >
+
+      <ng-container matColumnDef="clientId">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by client ID">
+          Client ID
+        </th>
+        <td mat-cell class="monospace" *matCellDef="let c">
+          <copy-button>{{ c.clientId }}</copy-button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="containerId">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by container ID">
+          Container ID
+        </th>
+        <td mat-cell class="monospace" *matCellDef="let c">
+          <copy-button>{{ c.containerId }}</copy-button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="imageName">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by image name">
+          Image Name
+        </th>
+        <td mat-cell *matCellDef="let c">
+          <copy-button>{{ c.imageName }}</copy-button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="command">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by command">
+          Command
+        </th>
+        <td mat-cell class="monospace" *matCellDef="let c">
+          {{c.command}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by created at">
+          Created At
+        </th>
+        <td mat-cell class="monospace" *matCellDef="let c">
+          <timestamp [date]="c.createdAt" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by status">
+          Status
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.status }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="ports">
+        <th mat-header-cell *matHeaderCellDef >
+          Ports
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.ports?.join(", ") }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="names">
+        <th mat-header-cell *matHeaderCellDef >
+          Names
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.names?.join(", ") }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="localVolumes">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by local volumes" >
+          Local Volumes
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.localVolumes }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="mounts">
+        <th mat-header-cell *matHeaderCellDef >
+          Mounts
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.mounts?.join(", ") }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="networks">
+        <th mat-header-cell *matHeaderCellDef>
+          Networks
+        </th>
+        <td mat-cell *matCellDef="let c">
+          {{ c.networks?.join(", ") }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="4">No data.</td>
+      </tr>
+    </table>
+  </filter-paginate>
+}

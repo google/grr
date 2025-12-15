@@ -1,0 +1,14 @@
+
+.key-value-group {
+  display: flex;
+  column-gap: 0.5em;
+  align-items: baseline;
+
+  .key-input {
+    flex: 0.5;
+  }
+
+  .value-input {
+    flex: 1;
+  }
+}

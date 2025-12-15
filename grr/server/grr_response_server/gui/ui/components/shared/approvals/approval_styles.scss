@@ -1,0 +1,10 @@
+
+
+table {
+  td {
+    min-width: 20em;
+  }
+  td:first-child {
+    color: var(--mat-sys-secondary);
+  }
+}

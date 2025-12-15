@@ -1,7 +1,0 @@
-<span [ngStyle]="{height: size, width: size}">
-  <img *ngIf="url$ | async as url; else fallback" src="{{url}}" alt="User image of {{username}}"
-    [ngStyle]="{height: size}">
-  <ng-template #fallback>
-    <mat-icon [ngStyle]="{fontSize: size, width: size, height: size}">account_circle</mat-icon>
-  </ng-template>
-</span>

@@ -20,8 +20,8 @@ enum Action {
   GET_FILE_METADATA = 2;
   // Get contents of the specified file.
   GET_FILE_CONTENTS = 3;
-  // Get hash of the specified file.
-  GET_FILE_HASH = 4;
+  // Get SHA-256 hash of the specified file.
+  GET_FILE_SHA256 = 4;
   // List contents of a directory.
   LIST_DIRECTORY = 5;
   // List processes available on the system.
@@ -30,8 +30,8 @@ enum Action {
   LIST_CONNECTIONS = 7;
   // List named pipes available on the system (Windows-only).
   LIST_NAMED_PIPES = 8;
-  // List users available on the system.
-  LIST_USERS = 9;
+  // List users available on the system (Linux-only).
+  LIST_UTMP_USERS = 9;
   // Get the snapshot of the entire filesystem.
   GET_FILESYSTEM_TIMELINE = 10;
   // List network interfaces available on the system.
@@ -52,6 +52,14 @@ enum Action {
   GET_TCP_RESPONSE = 18;
   /// Execute a signed command.
   EXECUTE_SIGNED_COMMAND = 19;
+  /// Dump the contents of a specified process' memory.
+  DUMP_PROCESS_MEMORY = 20;
+  // Get the snapshot of the entire filesystem.
+  GET_FILESYSTEM_TIMELINE_TSK = 21;
+  // Scan the contents of a specified process' memory for matching patterns using YARA.
+  SCAN_PROCESS_MEMORY_YARA = 22;
+  // Get contents of the specified file using Keramics.
+  GET_FILE_CONTENTS_KMX = 23;
 
   // TODO: Define more actions that should be supported.
 
@@ -206,6 +214,10 @@ enum Sink {
   STARTUP = 1;
   // Accepts binary blobs (e.g. fragments of files).
   BLOB = 2;
+  // Accepts periodic ping messages.
+  //
+  // TODO(user): Remove once no longer needed.
+  PING = 8888;
 }
 
 // An action response-like object not directed at any particular flow.

@@ -1,0 +1,81 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.LIST_PROCESSES, flowArgs())">
+  <div class="column">
+    <mat-form-field appearance="outline">
+      <mat-label>Executable path regex</mat-label>
+      <input matInput
+        type="text"
+        placeholder="^/usr/(local/)?bin/foo.+$"
+        [formControl]="controls.filenameRegex"
+        class="monospace"
+      />
+      <mat-hint>
+        If set, only list processes whose executable path matches a
+        <a
+          href="https://docs.python.org/3/library/re.html"
+          target="_blank"
+          rel="noreferrer"
+          >regex</a
+        >.
+      </mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>PIDs</mat-label>
+      <input matInput
+        commaSeparatedNumberInput
+        placeholder="0, 42, 123"
+        [formControl]="controls.pids"
+        name="pids"
+        autocomplete="off"
+      />
+      <mat-hint>
+        If set, only list processes that match a comma-separated list of process IDs
+      </mat-hint>
+      <mat-error>
+        <form-errors [validationErrors]="controls.pids.errors" />
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Connection state</mat-label>
+      <mat-chip-grid #chipList
+        [formControl]="controls.connectionStates"
+        aria-label="Connection state"
+      >
+        @for (state of controls.connectionStates.value; track state) {
+          <mat-chip-row [removable]="true" (removed)="removeConnectionState(state)">
+            {{state}} <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip-row>
+        }
+        <input
+          #connectionStateInputEl
+          placeholder="LISTEN, ESTABLISHED, ..."
+          [formControl]="connectionStateInputControl"
+          [matAutocomplete]="auto"
+          [matChipInputFor]="chipList"
+          [matChipInputSeparatorKeyCodes]="SEPARATOR_KEY_CODES"
+          (matChipInputTokenEnd)="tryAddInputConnectionState($event.value, connectionStateInputEl)"
+        />
+      </mat-chip-grid>
+      <mat-autocomplete
+        #auto="matAutocomplete"
+        (optionSelected)="addConnectionState($event.option.value); connectionStateInputEl.value = ''"
+      >
+        @for (state of connectionStateSuggestions(); track state) {
+          <mat-option [value]="state">{{state}} </mat-option>
+        }
+      </mat-autocomplete>
+      <mat-hint>
+        If set, only list processes that have network connections matching any of the states
+      </mat-hint>
+    </mat-form-field>
+
+    <mat-checkbox [formControl]="controls.fetchBinaries">
+      Collect process executables
+    </mat-checkbox>
+  </div>
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

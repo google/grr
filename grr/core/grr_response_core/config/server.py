@@ -391,6 +391,15 @@ config_lib.DEFINE_integer(
 )
 
 config_lib.DEFINE_string(
+    "Server.disable_rrg_support",
+    default=False,
+    help=(
+        "Disables support for RRG agents (forces the traffic to always be "
+        "routed to the Python agent)."
+    ),
+)
+
+config_lib.DEFINE_string(
     name="CommandSigning.ed25519_private_key_file",
     default=None,
     help="An UTF-8 encoded Ed25519 encryption key to sign commands.",

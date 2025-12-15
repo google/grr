@@ -13,7 +13,7 @@ pip install --upgrade 'pip<23.1' wheel six 'setuptools<58.3.1' nodeenv
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
-nodeenv -p --prebuilt --node=16.13.0
+nodeenv -p --prebuilt --node=22.14.0
 
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"

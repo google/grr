@@ -1,0 +1,31 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(FlowType.LIST_DIRECTORY, flowArgs())">
+  <h5>Collection Method</h5>
+  <mat-radio-group
+    aria-label="Collection method"
+    [formControl]="controls.collectionMethod"
+  >
+    @for (cm of collectionMethods; track cm) {
+      <mat-radio-button [value]="cm">{{ cm }}</mat-radio-button>
+    }
+  </mat-radio-group>
+  <h5>Path</h5>
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Path</mat-label>
+    <input matInput
+      type="text"
+      placeholder="E.g.: /usr/me"
+      [formControl]="controls.path"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-error>
+      <form-errors [validationErrors]="controls.path.errors" />
+    </mat-error>
+    <mat-hint>
+      <form-warnings [validationWarnings]="controls.path.warnings()" />
+    </mat-hint>
+  </mat-form-field>
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

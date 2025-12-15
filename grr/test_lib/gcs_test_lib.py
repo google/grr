@@ -3,7 +3,6 @@
 import io
 import re
 from typing import Any
-from typing import Tuple
 
 import requests
 
@@ -30,7 +29,7 @@ class FakeUploadHandler:
   def content(self) -> bytes:
     return self._buf.getvalue()
 
-  def __call__(self, request: requests.PreparedRequest) -> Tuple[int, Any, str]:
+  def __call__(self, request: requests.PreparedRequest) -> tuple[int, Any, str]:
     chunk = request.body or b""
     headers = request.headers
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import random
-from typing import Optional
+from typing import Optional, Sequence
 from unittest import mock
 
 from absl import app
@@ -17,19 +17,23 @@ from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
+from grr_response_server import output_plugin
 from grr_response_server import server_stubs
 from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows import file
 from grr_response_server.flows.general import dummy
 from grr_response_server.flows.general import file_finder
+from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_output_plugin
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -391,6 +395,117 @@ class FlowWithBrokenStart(flow_base.FlowBase):
     raise ValueError("boo")
 
 
+class OPPWithArgs(output_plugin.OutputPluginProto):
+  """A dummy output plugin that accepts arguments."""
+
+  name = "OPPWithArgs"
+  description = "Dummy output plugin with arguments."
+  args_type = jobs_pb2.LogMessage
+
+  args_during_init: list[jobs_pb2.LogMessage] = []
+
+  def __init__(
+      self,
+      source_urn: Optional[rdfvalue.RDFURN] = None,
+      args: Optional[jobs_pb2.LogMessage] = None,
+  ):
+    super().__init__(source_urn=source_urn, args=args)
+    OPPWithArgs.args_during_init.append(args)
+
+  def ProcessResults(self, replies: Sequence[flows_pb2.FlowResult]) -> None:
+    pass
+
+
+class OPPProcessResultsIncrements(output_plugin.OutputPluginProto):
+  num_calls = 0
+  num_responses = 0
+  got_results = []
+
+  def ProcessResults(self, results: Sequence[flows_pb2.FlowResult]):
+    OPPProcessResultsIncrements.got_results.extend(results)
+    OPPProcessResultsIncrements.num_calls += 1
+    OPPProcessResultsIncrements.num_responses += len(list(results))
+    self.Log(f"OPPProcessResultsIncrements: Processed {len(results)} replies.")
+
+
+class OPPInitFails(output_plugin.OutputPluginProto):
+
+  def __init__(
+      self, source_urn: rdfvalue.RDFURN, args: Optional[message_pb2.Message]
+  ):
+    super().__init__(source_urn, args)
+    raise RuntimeError("Oh no!")
+
+
+class OPPProcessResultsFails(output_plugin.OutputPluginProto):
+
+  def ProcessResults(self, results: Sequence[flows_pb2.FlowResult]):
+    raise RuntimeError("Oh no!")
+
+
+class RDFOPIncrementsOnProcessing(output_plugin.OutputPlugin):
+  num_calls = 0
+  num_responses = 0
+
+  def ProcessResponses(self, state, responses):
+    RDFOPIncrementsOnProcessing.num_calls += 1
+    RDFOPIncrementsOnProcessing.num_responses += len(list(responses))
+
+
+class RDFOPIncrementsState(output_plugin.OutputPlugin):
+  """Stateful dummy hunt output plugin."""
+
+  data = []
+  num_calls = 0
+  num_responses = 0
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.delta = 0
+
+  def InitializeState(self, state):
+    super().InitializeState(state)
+    state.count = 0
+
+  def ProcessResponses(self, state, responses):
+    RDFOPIncrementsState.data.append(state.count + self.delta)
+    RDFOPIncrementsState.num_calls += 1
+    RDFOPIncrementsState.num_responses += len(list(responses))
+    self.delta += 1
+
+  def UpdateState(self, state):
+    state.count += self.delta
+
+
+class GetOutputPluginStatesTest(absltest.TestCase):
+
+  def testGetOutputPluginStates(self):
+    fake_plugin_1 = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=RDFOPIncrementsOnProcessing.__name__
+    )
+    fake_plugin_2 = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=RDFOPIncrementsState.__name__
+    )
+
+    states = flow.GetOutputPluginStates(
+        [(5, fake_plugin_2), (0, fake_plugin_1)], source="tests"
+    )
+
+    self.assertLen(states, 2)
+
+    self.assertEqual(states[0].plugin_id, "5")
+    self.assertEqual(
+        states[0].plugin_descriptor.plugin_name, fake_plugin_2.plugin_name
+    )
+    self.assertEqual(states[0].plugin_state, {"args": None, "count": 0})
+
+    self.assertEqual(states[1].plugin_id, "0")
+    self.assertEqual(
+        states[1].plugin_descriptor.plugin_name, fake_plugin_1.plugin_name
+    )
+    self.assertEqual(states[1].plugin_state, {"args": None})
+
+
 class FlowCreationTest(BasicFlowTest):
   """Test flow creation."""
 
@@ -401,22 +516,59 @@ class FlowCreationTest(BasicFlowTest):
           client_id=self.client_id,
           flow_cls=CallStateFlow,
           flow_args=dummy.DummyArgs(),
+          start_at=None,
       )
 
   def testDuplicateIDsAreNotAllowed(self):
     flow_id = flow.StartFlow(
-        flow_cls=CallClientParentFlow, client_id=self.client_id
+        flow_cls=CallClientParentFlow,
+        client_id=self.client_id,
+        start_at=None,
     )
     with self.assertRaises(flow.CanNotStartFlowWithExistingIdError):
       flow.StartFlow(
           flow_cls=CallClientParentFlow,
           parent=flow.FlowParent.FromHuntID(flow_id),
           client_id=self.client_id,
+          start_at=None,
       )
+
+  def testDisableRRGSupport(self):
+    flow_id = flow.StartFlow(
+        flow_cls=ChildFlow,
+        client_id=self.client_id,
+        start_at=None,
+        disable_rrg_support=True,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertTrue(flow_obj.disable_rrg_support)
+
+  def testDisableRRGSupport_Child(self):
+    flow_id = flow.StartFlow(
+        flow_cls=ParentFlow,
+        client_id=self.client_id,
+        start_at=None,
+        disable_rrg_support=True,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(
+        client_id=self.client_id,
+        flow_id=flow_id,
+    )
+    self.assertTrue(flow_obj.disable_rrg_support)
+
+    child_flow_obj = data_store.REL_DB.ReadChildFlowObjects(
+        client_id=self.client_id,
+        flow_id=flow_id,
+    )[0]
+    self.assertTrue(child_flow_obj.disable_rrg_support)
 
   def testChildTermination(self):
     flow_id = flow.StartFlow(
-        flow_cls=CallClientParentFlow, client_id=self.client_id
+        flow_cls=CallClientParentFlow,
+        client_id=self.client_id,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     client_flow_obj = data_store.REL_DB.ReadChildFlowObjects(
@@ -441,7 +593,9 @@ class FlowCreationTest(BasicFlowTest):
 
   def testChildTerminationProto(self):
     flow_id = flow.StartFlow(
-        flow_cls=CallClientProtoParentFlow, client_id=self.client_id
+        flow_cls=CallClientProtoParentFlow,
+        client_id=self.client_id,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     client_flow_obj = data_store.REL_DB.ReadChildFlowObjects(
@@ -466,13 +620,78 @@ class FlowCreationTest(BasicFlowTest):
 
   def testExceptionInStart(self):
     flow_id = flow.StartFlow(
-        flow_cls=FlowWithBrokenStart, client_id=self.client_id
+        flow_cls=FlowWithBrokenStart,
+        client_id=self.client_id,
+        start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
 
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
     self.assertEqual(flow_obj.error_message, "boo")
     self.assertIsNotNone(flow_obj.backtrace)
+
+  @test_plugins.WithOutputPluginProto(OPPInitFails)
+  def testStartFlowValidatesOutputPlugin(self):
+    output_plugins = [
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name=OPPInitFails.__name__
+        )
+    ]
+    with self.assertRaisesRegex(RuntimeError, "Oh no!"):
+      flow.StartFlow(
+          flow_cls=CallStateProtoFlow,
+          client_id=self.client_id,
+          output_plugins=output_plugins,
+      )
+
+  def testStartFlowWithRDFAndProtoOutputPluginsFails(self):
+    rdf_op = [rdf_output_plugin.OutputPluginDescriptor(plugin_name="foo")]
+    proto_op = [output_plugin_pb2.OutputPluginDescriptor(plugin_name="bar")]
+    with self.assertRaisesRegex(ValueError, "Only one of"):
+      flow.StartFlow(
+          flow_cls=CallStateProtoFlow,
+          client_id=self.client_id,
+          output_plugins=rdf_op,
+          proto_output_plugins=proto_op,
+      )
+
+  @test_plugins.WithOutputPluginProto(OPPWithArgs)
+  def testStartFlowWithProtoOutputPlugin(self):
+    args = jobs_pb2.LogMessage(data="args")
+    any_args = any_pb2.Any()
+    any_args.Pack(args)
+    proto_op = [
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=OPPWithArgs.__name__, args=any_args
+        )
+    ]
+
+    flow_id = flow.StartFlow(
+        flow_cls=CallStateProtoFlow,
+        client_id=self.client_id,
+        proto_output_plugins=proto_op,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertLen(flow_obj.output_plugins, 1)
+    self.assertEqual(
+        flow_obj.output_plugins[0].plugin_name, OPPWithArgs.__name__
+    )
+    self.assertEqual(flow_obj.output_plugins[0].args.value, any_args.value)
+
+  @test_plugins.WithOutputPluginProto(OPPInitFails)
+  def testStartFlowValidatesProtoOutputPlugin(self):
+    proto_output_plugins = [
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=OPPInitFails.__name__
+        )
+    ]
+    with self.assertRaisesRegex(RuntimeError, "Oh no!"):
+      flow.StartFlow(
+          flow_cls=CallStateProtoFlow,
+          client_id=self.client_id,
+          proto_output_plugins=proto_output_plugins,
+      )
 
 
 class GeneralFlowsTest(
@@ -561,9 +780,12 @@ class GeneralFlowsTest(
     self.assertEqual(ParentCallFlowProto.success, True)
 
   def testChainedFlowProto_WithFlowArgs(self):
+
     class ChildFlowTakesArgs(
         flow_base.FlowBase[
-            flows_pb2.CollectFilesByKnownPathArgs, flows_pb2.DefaultFlowStore
+            flows_pb2.CollectFilesByKnownPathArgs,
+            flows_pb2.DefaultFlowStore,
+            flows_pb2.DefaultFlowProgress,
         ]
     ):
       args_type = rdf_file_finder.CollectFilesByKnownPathArgs
@@ -609,6 +831,62 @@ class GeneralFlowsTest(
     )
 
     self.assertEqual(ParentCallFlowProtoWithArgs.success, True)
+
+  def testCallClientProto_WithCallback(self):
+
+    class ActionSaysFoo(actions.ActionPlugin):
+      in_proto = None
+      out_rdfvalues = [rdf_client.LogMessage]
+
+      def Run(self, _):
+        self.SendReply(rdf_client.LogMessage(data="foo"))
+        self.SendReply(rdf_client.LogMessage(data="bar"))
+
+    action_registry.RegisterAdditionalTestClientAction(ActionSaysFoo)
+
+    class ParentCallClientProtoWithCallback(flow_base.FlowBase):
+      # Global class variables to track number of times called.
+      callback_called_times = 0
+      next_called_times = 0
+
+      def Start(self):
+        self.CallClientProto(
+            ActionSaysFoo,
+            callback_state=self.ParentReceiveOne.__name__,
+            next_state="ParentReceiveAll",
+        )
+
+      @flow_base.UseProto2AnyResponsesCallback
+      def ParentReceiveOne(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ):
+        ParentCallClientProtoWithCallback.callback_called_times += 1
+        res_text = str(list(responses))
+        # Should contain EITHER "foo" or "bar".
+        assert ("foo" in res_text) or ("bar" in res_text)
+
+      @flow_base.UseProto2AnyResponsesCallback
+      def ParentReceiveAll(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ):
+        ParentCallClientProtoWithCallback.next_called_times += 1
+        res_text = str(list(responses))
+        # Should contain BOTH "foo" and "bar".
+        assert ("foo" in res_text) and ("bar" in res_text)
+
+    # Run the flow in the simulated way
+    flow_test_lib.StartAndRunFlow(
+        ParentCallClientProtoWithCallback,
+        client_mock=action_mocks.ActionMock.With(
+            {"ActionSaysFoo": ActionSaysFoo}
+        ),
+        client_id=self.client_id,
+    )
+
+    self.assertEqual(ParentCallClientProtoWithCallback.callback_called_times, 2)
+    self.assertEqual(ParentCallClientProtoWithCallback.next_called_times, 1)
 
   def testBrokenChainedFlow(self):
     BrokenParentFlow.success = False
@@ -707,6 +985,36 @@ class GeneralFlowsTest(
         ],
     )
 
+  def testLimitPropagationProto(self):
+    """This tests that client actions are limited properly."""
+    client_mock = action_mocks.CPULimitClientMock(
+        user_cpu_usage=[10],
+        system_cpu_usage=[10],
+        network_usage=[1000],
+        runtime_us=[rdfvalue.Duration.From(1, rdfvalue.SECONDS)],
+    )
+
+    flow_test_lib.StartAndRunFlow(
+        flow_test_lib.CPULimitFlowProto,
+        client_mock=client_mock,
+        client_id=self.client_id,
+        cpu_limit=1000,
+        network_bytes_limit=10000,
+        runtime_limit=rdfvalue.Duration.From(5, rdfvalue.SECONDS),
+    )
+
+    self.assertEqual(client_mock.storage["cpulimit"], [1000, 980, 960])
+    self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
+    self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
+    self.assertEqual(
+        client_mock.storage["runtimelimit"],
+        [
+            rdfvalue.Duration.From(5, rdfvalue.SECONDS),
+            rdfvalue.Duration.From(4, rdfvalue.SECONDS),
+            rdfvalue.Duration.From(3, rdfvalue.SECONDS),
+        ],
+    )
+
   def testCPULimitExceeded(self):
     """This tests that the cpu limit for flows is working."""
     client_mock = action_mocks.CPULimitClientMock(
@@ -758,6 +1066,27 @@ class GeneralFlowsTest(
     with test_lib.SuppressLogs():
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_test_lib.CPULimitFlow,
+          client_mock=client_mock,
+          client_id=self.client_id,
+          runtime_limit=rdfvalue.Duration.From(9, rdfvalue.SECONDS),
+          check_flow_errors=False,
+      )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
+    self.assertIn("Runtime limit exceeded", flow_obj.error_message)
+
+  def testRuntimeLimitExceededProto(self):
+    client_mock = action_mocks.CPULimitClientMock(
+        user_cpu_usage=[1],
+        system_cpu_usage=[1],
+        network_usage=[1],
+        runtime_us=[rdfvalue.Duration.From(4, rdfvalue.SECONDS)],
+    )
+
+    with test_lib.SuppressLogs():
+      flow_id = flow_test_lib.StartAndRunFlow(
+          flow_test_lib.CPULimitFlowProto,
           client_mock=client_mock,
           client_id=self.client_id,
           runtime_limit=rdfvalue.Duration.From(9, rdfvalue.SECONDS),
@@ -938,7 +1267,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
   def testFlowWithoutOutputPluginsCompletes(self):
     self.RunFlow()
 
-  def testFlowWithOutputPluginButWithoutResultsCompletes(self):
+  def testRDFFlow_RDFOutputPlugin_NoResultsCompletes(self):
     self.RunFlow(
         flow_cls=NoRequestParentFlow,
         output_plugins=[
@@ -949,22 +1278,22 @@ class FlowOutputPluginsTest(BasicFlowTest):
     )
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 0)
 
-  def testFlowWithOutputPluginButWithoutResultsCompletesProtos(self):
-    class FlowWithOutputPluginButNoReplyProtos(flow_base.FlowBase):
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testRDFFlow_ProtoOutputPlugin_NoResultsCompletes(self):
+    OPPProcessResultsIncrements.num_calls = 0
 
-      def Start(self):
-        pass
-
-    self.RunFlow(
-        flow_cls=FlowWithOutputPluginButNoReplyProtos,
+    flow_test_lib.StartAndRunFlow(
+        NoRequestParentFlow,
         client_mock=ClientMock(),
+        client_id=self.client_id,
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
-                plugin_name="DummyFlowOutputPlugin"
+                plugin_name=OPPProcessResultsIncrements.__name__,
             )
         ],
     )
-    self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 0)
+
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 0)
 
   def testFlowWithOutputPluginProcessesResultsSuccessfully(self):
     self.RunFlow(
@@ -977,7 +1306,24 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
 
-  def testFlowWithOutputPluginProcessesResultsSuccessfullyProtos(self):
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testProtoFlow_ProtoOutputPlugin_ProcessesResultsSuccessfully(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
+
+  def testProtoFlow_RDFOutputPlugin_ProcessesResultsSuccessfully(self):
 
     class FlowWithOutputPluginProtos(flow_base.FlowBase):
       proto_result_types = (jobs_pb2.LogMessage,)
@@ -998,6 +1344,45 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 2)
 
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testProtoFlow_ProtoOutputPlugin_ProcessesResultsSuccessfully2(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+    OPPProcessResultsIncrements.got_results = []
+
+    class FlowWithTwoSendReplyProto(flow_base.FlowBase):
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        self.SendReplyProto(jobs_pb2.LogMessage(data="To process 1"))
+        self.SendReplyProto(jobs_pb2.LogMessage(data="To process 2"))
+
+    flow_id = self.RunFlow(
+        flow_cls=FlowWithTwoSendReplyProto,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 2)
+
+    res1 = flows_pb2.FlowResult(
+        client_id=self.client_id, flow_id=flow_id, hunt_id=""
+    )
+    res1.payload.Pack(jobs_pb2.LogMessage(data="To process 1"))
+    res2 = flows_pb2.FlowResult(
+        client_id=self.client_id, flow_id=flow_id, hunt_id=""
+    )
+    res2.payload.Pack(jobs_pb2.LogMessage(data="To process 2"))
+
+    self.assertEqual(
+        OPPProcessResultsIncrements.got_results,
+        [res1, res2],
+    )
+
   def _RunFlowAndCollectLogs(self, output_plugins):
     log_lines = []
     with mock.patch.object(flow_base.FlowBase, "Log") as log_f:
@@ -1017,7 +1402,26 @@ class FlowOutputPluginsTest(BasicFlowTest):
     )
 
     self.assertIn(
-        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies.",
+        "Plugin"
+        f" {rdf_output_plugin.OutputPluginDescriptor(plugin_name=test_output_plugins.DummyFlowOutputPlugin.__name__)} (id:"
+        " 0) successfully processed 1 flow replies.",
+        log_messages,
+    )
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testFlowLogsSuccessfulOutputPluginProcessing_OPProto(self):
+    log_messages = self._RunFlowAndCollectLogs(
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ]
+    )
+
+    self.assertIn(
+        "Plugin"
+        f" <<{output_plugin_pb2.OutputPluginDescriptor(plugin_name=OPPProcessResultsIncrements.__name__)}>>"
+        " (id: 0) successfully processed 1 flow replies.",
         log_messages,
     )
 
@@ -1040,7 +1444,38 @@ class FlowOutputPluginsTest(BasicFlowTest):
     )
     self.assertLen(flow_logs, 1)
     self.assertIn(
-        "Plugin DummyFlowOutputPlugin successfully processed 1 flow replies.",
+        "Plugin"
+        f" {rdf_output_plugin.OutputPluginDescriptor(plugin_name=test_output_plugins.DummyFlowOutputPlugin.__name__)} (id:"
+        " 0) successfully processed 1 flow replies.",
+        flow_logs[0].message,
+    )
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testFlowLogsSuccessfulOutputPluginProcessingProtos_OPProtos(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    flow_id = self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+
+    flow_logs = data_store.REL_DB.ReadFlowLogEntries(
+        self.client_id,
+        flow_id,
+        offset=0,
+        count=10,
+    )
+    self.assertLen(flow_logs, 1)
+    self.assertIn(
+        "Plugin"
+        f" <<{output_plugin_pb2.OutputPluginDescriptor(plugin_name=OPPProcessResultsIncrements.__name__)}>>"
+        " (id: 0) successfully processed 1 flow replies.",
         flow_logs[0].message,
     )
 
@@ -1055,6 +1490,21 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertIn(
         "Plugin FailingDummyFlowOutputPlugin failed to process 1 replies "
         "due to: Oh no!",
+        log_messages,
+    )
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsFails)
+  def testFlowLogsFailedOutputPluginProcessingOPProtos(self):
+    log_messages = self._RunFlowAndCollectLogs(
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsFails.__name__
+            )
+        ]
+    )
+    self.assertIn(
+        "Plugin OPPProcessResultsFails failed to "
+        "process 1 replies due to: Oh no!",
         log_messages,
     )
 
@@ -1082,7 +1532,32 @@ class FlowOutputPluginsTest(BasicFlowTest):
         flow_logs[0].message,
     )
 
-  def testFlowDoesNotFailWhenOutputPluginFails(self):
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsFails)
+  def testFlowLogsFailedOutputPluginProcessingProtos_OPProto(self):
+    flow_id = self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsFails.__name__
+            )
+        ],
+    )
+
+    flow_logs = data_store.REL_DB.ReadFlowLogEntries(
+        self.client_id,
+        flow_id,
+        offset=0,
+        count=10,
+    )
+    self.assertLen(flow_logs, 1)
+    self.assertIn(
+        "Plugin OPPProcessResultsFails failed to"
+        " process 1 replies due to: Oh no!",
+        flow_logs[0].message,
+    )
+
+  def testRDFFlowDoesNotFailWhenOutputPluginFails(self):
     flow_id = self.RunFlow(
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
@@ -1093,7 +1568,19 @@ class FlowOutputPluginsTest(BasicFlowTest):
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
-  def testFlowDoesNotFailWhenOutputPluginFailsProto(self):
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsFails)
+  def testRDFFlowDoesNotFailWhenProtoOutputPluginFails(self):
+    flow_id = self.RunFlow(
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsFails.__name__
+            )
+        ]
+    )
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  def testProtoFlowDoesNotFailWhenOutputPluginFails(self):
     flow_id = self.RunFlow(
         flow_cls=FlowWithSingleProtoResult,
         client_mock=ClientMock(),
@@ -1106,7 +1593,21 @@ class FlowOutputPluginsTest(BasicFlowTest):
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
-  def testFailingPluginDoesNotImpactOtherPlugins(self):
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsFails)
+  def testProtoFlowDoesNotFailWhenProtoOutputPluginFails(self):
+    flow_id = self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsFails.__name__
+            )
+        ],
+    )
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  def testFailingPluginDoesNotImpactOtherPluginsRDFFlow(self):
     self.RunFlow(
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
@@ -1121,7 +1622,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
 
-  def testFailingPluginDoesNotImpactOtherPluginsProto(self):
+  def testFailingPluginDoesNotImpactOtherPluginsProtoFlow(self):
     self.RunFlow(
         flow_cls=FlowWithSingleProtoResult,
         client_mock=ClientMock(),
@@ -1137,6 +1638,52 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsFails)
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testFailingPluginDoesNotImpactOtherPluginsProtoFlow_ProtoPlugin(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsFails.__name__
+            ),
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            ),
+        ],
+    )
+
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
+
+  @test_plugins.WithOutputPluginProto(OPPWithArgs)
+  def testProcessRepliesWithOutputPluginProtoWithArgs(self):
+    OPPWithArgs.args_during_init = []
+
+    args = jobs_pb2.LogMessage(data="args")
+    any_args = any_pb2.Any()
+    any_args.Pack(args)
+    desc = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPWithArgs.__name__,
+        args=any_args,
+    )
+    self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=[mig_output_plugin.ToRDFOutputPluginDescriptor(desc)],
+    )
+
+    # Init should be called twice, once when starting the flow in `flow.py` and
+    # another when processing the replies in `flow_base.py`.
+    self.assertCountEqual(
+        OPPWithArgs.args_during_init,
+        [jobs_pb2.LogMessage(data="args"), jobs_pb2.LogMessage(data="args")],
+    )
 
   def testOutputPluginsOnlyRunInParentFlow_DoesNotForward(self):
     self.RunFlow(
@@ -1153,6 +1700,47 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     # Parent has one response, child has two.
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testOutputPluginsOnlyRunInParentFlow_DoesNotForward_OPProto(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    class ChildFlowProtoIgnored1(flow_base.FlowBase):
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        self.SendReplyProto(jobs_pb2.LogMessage(data="IgnoredInParent"))
+
+    class ParentFlowWithoutForwardingOutputPluginsProto1(flow_base.FlowBase):
+      """This flow creates a Child without forwarding OutputPlugins."""
+
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        # Call the child flow WITHOUT output plugins.
+        self.CallFlowProto(
+            ChildFlowProtoIgnored1.__name__, next_state="IgnoreChildReplies"
+        )
+
+      def IgnoreChildReplies(self, responses):
+        del responses  # Unused
+        self.SendReplyProto(jobs_pb2.LogMessage(data="Parent received"))
+
+    self.RunFlow(
+        flow_cls=ParentFlowWithoutForwardingOutputPluginsProto1,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+
+    # Parent calls once, and child doesn't call.
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    # Parent has one response, child has two.
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
 
   def testOutputPluginsOnlyRunInParentFlow_DoesNotForwardProto(self):
     class ChildFlowProtoIgnored(flow_base.FlowBase):
@@ -1191,6 +1779,47 @@ class FlowOutputPluginsTest(BasicFlowTest):
     # Parent has one response, child has two.
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
 
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testOutputPluginsOnlyRunInParentFlow_DoesNotForwardProto_OPProto(self):
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    class ChildFlowProtoIgnored2(flow_base.FlowBase):
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        self.SendReplyProto(jobs_pb2.LogMessage(data="IgnoredInParent"))
+
+    class ParentFlowWithoutForwardingOutputPluginsProto2(flow_base.FlowBase):
+      """This flow creates a Child without forwarding OutputPlugins."""
+
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        # Call the child flow WITHOUT output plugins.
+        self.CallFlowProto(
+            ChildFlowProtoIgnored2.__name__, next_state="IgnoreChildReplies"
+        )
+
+      def IgnoreChildReplies(self, responses):
+        del responses  # Unused
+        self.SendReplyProto(jobs_pb2.LogMessage(data="Parent received"))
+
+    self.RunFlow(
+        flow_cls=ParentFlowWithoutForwardingOutputPluginsProto2,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+
+    # Parent calls once, and child doesn't call.
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    # Parent has one response, child has two.
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
+
   def testOutputPluginsOnlyRunInParentFlow_Forwards(self):
     self.RunFlow(
         flow_cls=ParentFlowWithForwardedOutputPlugins,
@@ -1206,6 +1835,52 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     # Parent has one response, child has two.
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testOutputPluginsOnlyRunInParentFlow_Forwards_OPProto(self):
+    # This case documents the current behavior. Even if output plugins are
+    # forwarded to the child flow, the child flow does NOT call the plugin.
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+
+    class ChildFlowProtoIgnored3(flow_base.FlowBase):
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        self.SendReplyProto(jobs_pb2.LogMessage(data="IgnoredInParent"))
+        self.SendReplyProto(jobs_pb2.LogMessage(data="IgnoredInParent_2"))
+
+    class ParentFlowWithForwardedOutputPluginsProto3(flow_base.FlowBase):
+      """This flow creates a Child with forwarding OutputPlugins."""
+
+      proto_result_types = (jobs_pb2.LogMessage,)
+
+      def Start(self):
+        # Call the child flow WITH output plugins.
+        self.CallFlowProto(
+            ChildFlowProtoIgnored3.__name__,
+            output_plugins=self.rdf_flow.output_plugins,
+            next_state="IgnoreChildReplies",
+        )
+
+      def IgnoreChildReplies(self, responses):
+        del responses  # Unused
+        self.SendReplyProto(jobs_pb2.LogMessage(data="Parent received"))
+
+    self.RunFlow(
+        flow_cls=ParentFlowWithForwardedOutputPluginsProto3,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name=OPPProcessResultsIncrements.__name__
+            )
+        ],
+    )
+
+    # Parent calls once, and child doesn't call.
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    # Parent has one response, child has two.
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
 
   def testOutputPluginsOnlyRunInParentFlow_ForwardsProto(self):
     class ChildFlowProtoIgnored2Replies(flow_base.FlowBase):
@@ -1244,6 +1919,120 @@ class FlowOutputPluginsTest(BasicFlowTest):
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     # Parent has one response, child has two.
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  @test_plugins.WithOutputPluginProto(OPPProcessResultsIncrements)
+  def testRDFAndProtoOutputPlugins(self):
+    RDFOPIncrementsOnProcessing.num_calls = 0
+    RDFOPIncrementsOnProcessing.num_responses = 0
+
+    RDFOPIncrementsState.data = []
+    RDFOPIncrementsState.num_calls = 0
+    RDFOPIncrementsState.num_responses = 0
+
+    OPPProcessResultsIncrements.num_calls = 0
+    OPPProcessResultsIncrements.num_responses = 0
+    OPPProcessResultsIncrements.got_results = []
+
+    output_plugins = [
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name=RDFOPIncrementsOnProcessing.__name__
+        ),
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name=RDFOPIncrementsState.__name__
+        ),
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name=OPPProcessResultsIncrements.__name__
+        ),
+    ]
+
+    flow_id = self.RunFlow(
+        flow_cls=FlowWithSingleProtoResult,
+        client_mock=ClientMock(),
+        output_plugins=output_plugins,
+    )
+
+    self.assertEqual(RDFOPIncrementsOnProcessing.num_calls, 1)
+    self.assertEqual(RDFOPIncrementsOnProcessing.num_responses, 1)
+    self.assertEqual(RDFOPIncrementsState.num_calls, 1)
+    self.assertEqual(RDFOPIncrementsState.num_responses, 1)
+    self.assertEqual(RDFOPIncrementsState.data, [0])
+    self.assertEqual(OPPProcessResultsIncrements.num_calls, 1)
+    self.assertEqual(OPPProcessResultsIncrements.num_responses, 1)
+
+    flow_logs = data_store.REL_DB.ReadFlowLogEntries(
+        self.client_id,
+        flow_id,
+        offset=0,
+        count=100,
+    )
+    flow_log_msgs = [l.message for l in flow_logs]
+    self.assertIn(
+        "Plugin"
+        f" {rdf_output_plugin.OutputPluginDescriptor(plugin_name=RDFOPIncrementsOnProcessing.__name__)} (id:"
+        " 0) successfully processed 1 flow replies.",
+        flow_log_msgs,
+    )
+    self.assertIn(
+        "Plugin"
+        f" {rdf_output_plugin.OutputPluginDescriptor(plugin_name=RDFOPIncrementsState.__name__)} (id:"
+        " 1) successfully processed 1 flow replies.",
+        flow_log_msgs,
+    )
+    self.assertIn(
+        "Plugin"
+        f" <<{output_plugin_pb2.OutputPluginDescriptor(plugin_name=OPPProcessResultsIncrements.__name__)}>>"
+        " (id: 2) successfully processed 1 flow replies.",
+        flow_log_msgs,
+    )
+
+    plugin_logs = data_store.REL_DB.ReadAllFlowOutputPluginLogEntries(
+        self.client_id, flow_id, offset=0, count=100
+    )
+    # We write 1 log entry for each plugin, and OPP should write an extra one.
+    self.assertLen(plugin_logs, 4)
+    logs_without_timestamps = []
+    for log in plugin_logs:
+      log_without_timestamp = flows_pb2.FlowOutputPluginLogEntry()
+      log_without_timestamp.CopyFrom(log)
+      log_without_timestamp.ClearField("timestamp")
+      logs_without_timestamps.append(log_without_timestamp)
+    self.assertCountEqual(
+        logs_without_timestamps,
+        [
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.client_id,
+                flow_id=flow_id,
+                hunt_id="",
+                output_plugin_id="0",
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message="Processed 1 replies.",
+            ),
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.client_id,
+                flow_id=flow_id,
+                hunt_id="",
+                output_plugin_id="1",
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message="Processed 1 replies.",
+            ),
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.client_id,
+                flow_id=flow_id,
+                hunt_id="",
+                output_plugin_id="2",
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message="Processed 1 replies.",
+            ),
+            flows_pb2.FlowOutputPluginLogEntry(
+                client_id=self.client_id,
+                flow_id=flow_id,
+                hunt_id="",
+                output_plugin_id="2",
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message="OPPProcessResultsIncrements: Processed 1 replies.",
+            ),
+        ],
+    )
 
 
 class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
@@ -1569,7 +2358,126 @@ class FlowWithIncrementalCallback(flow_base.FlowBase):
       self.SendReply(rdfvalue.RDFString("Final: " + str(response)))
 
 
+class ReturnHelloLogClientAction(actions.ActionPlugin):
+  """A test client action."""
+
+  in_proto = None
+  out_rdfvalues = [rdf_client.LogMessage]
+
+  def Run(self, _):
+    self.SendReply(rdf_client.LogMessage(data="Hello World"))
+
+
+action_registry.RegisterAdditionalTestClientAction(ReturnHelloLogClientAction)
+
+
+class ReturnHelloLogWithoutStatusClientMock(action_mocks.ActionMock):
+  """A mock for testing resource limits."""
+
+  NUM_INCREMENTAL_RESPONSES = 2
+
+  def HandleMessage(self, message):
+    responses = [
+        rdf_client.LogMessage(data=f"Hello World {i}")
+        for i in range(self.NUM_INCREMENTAL_RESPONSES)
+    ]
+
+    messages = []
+    for i, r in enumerate(responses):
+      messages.append(
+          rdf_flows.GrrMessage(
+              session_id=message.session_id,
+              request_id=message.request_id,
+              name=message.name,
+              response_id=i + 1,
+              payload=r,
+              type=rdf_flows.GrrMessage.Type.MESSAGE,
+          )
+      )
+
+    return messages
+
+
+class FlowWithIncrementalCallbackProto(flow_base.FlowBase):
+  """This flow will be called by our parent."""
+
+  proto_result_types = [jobs_pb2.LogMessage]
+
+  # These are global flags
+  callback_state_called_times = 0
+  next_state_called_times = 0
+
+  def Start(self):
+    self.CallClientProto(
+        ReturnHelloLogClientAction,
+        callback_state=self.ReceiveHelloCallback.__name__,
+        next_state=self.ReceiveHello.__name__,
+    )
+
+  @flow_base.UseProto2AnyResponsesCallback
+  def ReceiveHelloCallback(
+      self, responses: flow_responses.Responses[any_pb2.Any]
+  ):
+    FlowWithIncrementalCallbackProto.callback_state_called_times += 1
+    # Relay each message when it comes.
+    for response_any in responses:
+      assert response_any.Is(jobs_pb2.LogMessage.DESCRIPTOR)
+      response = jobs_pb2.LogMessage()
+      response_any.Unpack(response)
+      self.SendReplyProto(
+          jobs_pb2.LogMessage(data=f"callback_state: {response.data}")
+      )
+
+  @flow_base.UseProto2AnyResponses
+  def ReceiveHello(self, responses: flow_responses.Responses[any_pb2.Any]):
+    FlowWithIncrementalCallbackProto.next_state_called_times += 1
+    # Relay all incoming messages once more (but prefix the strings).
+    for response_any in responses:
+      assert response_any.Is(jobs_pb2.LogMessage.DESCRIPTOR)
+      response = jobs_pb2.LogMessage()
+      response_any.Unpack(response)
+      self.SendReplyProto(
+          jobs_pb2.LogMessage(data=f"next_state: {response.data}")
+      )
+
+
 class IncrementalResponseHandlingTest(BasicFlowTest):
+
+  def testIncrementalCallbackReturnsResultsBeforeStatus_Proto(self):
+    """Tests (callback state + proto responses - status message) works.
+
+    This test case makes sure that the callback state is called independent
+    of the status being sent. The class uses the proto annotations which should
+    alter the response types sent, but not the callback behavior.
+    """
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallbackProto,
+        client_mock=ReturnHelloLogWithoutStatusClientMock(),
+        client_id=self.client_id,
+        # Set check_flow_errors to False, otherwise test runner will complain
+        # that the flow has finished in the RUNNING state.
+        check_flow_errors=False,
+    )
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.RUNNING)
+
+    self.assertEqual(
+        FlowWithIncrementalCallbackProto.callback_state_called_times,
+        ReturnHelloLogWithoutStatusClientMock.NUM_INCREMENTAL_RESPONSES,
+    )
+
+    results = data_store.REL_DB.ReadFlowResults(self.client_id, flow_id, 0, 50)
+    self.assertLen(
+        results, ReturnHelloLogWithoutStatusClientMock.NUM_INCREMENTAL_RESPONSES
+    )
+
+    for i in range(
+        ReturnHelloLogWithoutStatusClientMock.NUM_INCREMENTAL_RESPONSES
+    ):
+      result = jobs_pb2.LogMessage()
+      results[i].payload.Unpack(result)
+
+      self.assertEqual(result.data, f"callback_state: Hello World {i}")
 
   @mock.patch.object(FlowWithIncrementalCallback, "ReceiveHelloCallback")
   def testIncrementalCallbackReturnsResultsBeforeStatus(self, m):
@@ -1578,6 +2486,7 @@ class IncrementalResponseHandlingTest(BasicFlowTest):
     # Because mocks automagically create non-existing properties, we have to set
     # explicitly `_proto2_any_responses` to falsy value.
     m._proto2_any_responses = False
+    m._proto2_any_responses_callback = False
 
     flow_id = flow_test_lib.StartAndRunFlow(
         FlowWithIncrementalCallback,
@@ -1684,7 +2593,9 @@ class WorkerTest(BasicFlowTest):
   def testRaisesIfFlowProcessingRequestDoesNotTriggerAnyProcessing(self):
     with flow_test_lib.TestWorker() as worker:
       flow_id = flow.StartFlow(
-          flow_cls=CallClientParentFlow, client_id=self.client_id
+          flow_cls=CallClientParentFlow,
+          client_id=self.client_id,
+          start_at=None,
       )
       fpr = flows_pb2.FlowProcessingRequest(
           client_id=self.client_id, flow_id=flow_id
@@ -1695,7 +2606,9 @@ class WorkerTest(BasicFlowTest):
   def testRaisesIfFlowProcessingRequestDoesNotTriggerAnyProcessingProto(self):
     with flow_test_lib.TestWorker() as worker:
       flow_id = flow.StartFlow(
-          flow_cls=CallClientProtoParentFlow, client_id=self.client_id
+          flow_cls=CallClientProtoParentFlow,
+          client_id=self.client_id,
+          start_at=None,
       )
       fpr = flows_pb2.FlowProcessingRequest(
           client_id=self.client_id, flow_id=flow_id

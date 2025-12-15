@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """This file contains cache-related utility functions used by GRR."""
 
+from collections.abc import Callable
 import functools
 import logging
 import threading
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from grr_response_core.lib import rdfvalue
 

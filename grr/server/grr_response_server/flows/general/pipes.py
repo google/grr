@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 """A module with the implementation of the flow listing named pipes."""
 
-import logging
 import re
-from typing import Dict
 from typing import Optional
 
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_proto import pipes_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
@@ -32,8 +33,14 @@ class ListNamedPipesFlowResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ListNamedPipesFlow(flow_base.FlowBase):
-  """A flow mixin with logic listing named pipes."""
+class ListNamedPipesFlow(
+    flow_base.FlowBase[
+        pipes_pb2.ListNamedPipesFlowArgs,
+        pipes_pb2.ListNamedPipesFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
+):
+  """A flow with logic listing named pipes."""
 
   friendly_name = "List named pipes"
   category = "/Processes/"
@@ -41,6 +48,11 @@ class ListNamedPipesFlow(flow_base.FlowBase):
 
   args_type = ListNamedPipesFlowArgs
   result_types = [ListNamedPipesFlowResult]
+  proto_args_type = pipes_pb2.ListNamedPipesFlowArgs
+  proto_result_types = (pipes_pb2.ListNamedPipesFlowResult,)
+  proto_store_type = pipes_pb2.ListNamedPipesFlowStore
+
+  only_protos_allowed = True
 
   def Start(self) -> None:
     super().Start()
@@ -48,30 +60,35 @@ class ListNamedPipesFlow(flow_base.FlowBase):
     if self.client_os != "Windows":
       raise flow_base.FlowError(f"Unsupported platform: {self.client_os}")
 
-    self.CallClient(
+    self.CallClientProto(
         action_cls=server_stubs.ListNamedPipes,
         next_state=self.OnListNamedPipesResult.__name__,
     )
 
+  @flow_base.UseProto2AnyResponses
   def OnListNamedPipesResult(
       self,
-      responses: flow_responses.Responses[ListNamedPipesFlowArgs],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     """Handles results of the action listing named pipes."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
-    pipe_name_regex = re.compile(self.args.pipe_name_regex)
-    pipe_type_filter = self.args.pipe_type_filter
-    pipe_end_filter = self.args.pipe_end_filter
+    pipe_name_regex = re.compile(self.proto_args.pipe_name_regex)
+    pipe_type_filter = self.proto_args.pipe_type_filter
+    pipe_end_filter = self.proto_args.pipe_end_filter
 
-    self.state.pipes = []
+    # TODO: Replace with `clear()` once upgraded.
+    del self.store.pipes[:]
     pids = []
 
-    for response in responses:
-      if not isinstance(response, rdf_client.NamedPipe):
-        logging.error("Unexpected response: %s", response)
+    for response_any in responses:
+      if not response_any.Is(sysinfo_pb2.NamedPipe.DESCRIPTOR):
+        self.Log("Unexpected response type: %s", response_any.type_url)
         continue
+
+      response = sysinfo_pb2.NamedPipe()
+      response.ParseFromString(response_any.value)
 
       if not pipe_name_regex.search(response.name):
         continue
@@ -89,25 +106,26 @@ class ListNamedPipesFlow(flow_base.FlowBase):
         if response.flags & PIPE_END != PIPE_SERVER_END:
           continue
 
-      self.state.pipes.append(response)
+      self.store.pipes.append(response)
 
       if response.HasField("server_pid"):
         pids.append(response.server_pid)
       if response.HasField("client_pid"):
         pids.append(response.client_pid)
 
-    self.CallFlow(
+    self.CallFlowProto(
         flow_name=processes.ListProcesses.__name__,
-        next_state=self.OnListProcessesResult.__name__,
-        flow_args=processes.ListProcessesArgs(
-            filename_regex=self.args.proc_exe_regex,
+        flow_args=flows_pb2.ListProcessesArgs(
+            filename_regex=self.proto_args.proc_exe_regex,
             pids=pids,
         ),
+        next_state=self.OnListProcessesResult.__name__,
     )
 
+  @flow_base.UseProto2AnyResponses
   def OnListProcessesResult(
       self,
-      responses: flow_responses.Responses[rdf_client.Process],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       # Not that we don't want to fail hard if we fail to collect process data
@@ -115,18 +133,20 @@ class ListNamedPipesFlow(flow_base.FlowBase):
       # pipe data to report to the user.
       self.Log("Failed to collect process information")
 
-    procs_by_pid: Dict[int, rdf_client.Process] = {}
+    procs_by_pid: dict[int, sysinfo_pb2.Process] = {}
 
-    for response in responses:
-      if not isinstance(response, rdf_client.Process):
-        logging.error("Unexpected response: %s", response)
+    for response_any in responses:
+      if not response_any.Is(sysinfo_pb2.Process.DESCRIPTOR):
+        self.Log("Unexpected response type: %s", response_any.type_url)
         continue
 
+      response = sysinfo_pb2.Process()
+      response.ParseFromString(response_any.value)
       procs_by_pid[response.pid] = response
 
-    for pipe in self.state.pipes:
-      result = ListNamedPipesFlowResult()
-      result.pipe = pipe
+    for pipe in self.store.pipes:
+      result = pipes_pb2.ListNamedPipesFlowResult()
+      result.pipe.CopyFrom(pipe)
 
       pid: Optional[int] = None
       if pipe.HasField("server_pid"):
@@ -136,7 +156,7 @@ class ListNamedPipesFlow(flow_base.FlowBase):
 
       if pid is not None:
         try:
-          result.proc = procs_by_pid[pid]
+          result.proc.CopyFrom(procs_by_pid[pid])
         except KeyError:
           # In case there was a process executable regex specified, missing data
           # about the associated process is expected (no need to log anything)
@@ -145,14 +165,14 @@ class ListNamedPipesFlow(flow_base.FlowBase):
           # be some issue (e.g. the process has been terminated between getting
           # the pipe data and process information) so it is better to leave some
           # trace to the user.
-          if self.args.proc_exe_regex:
+          if self.proto_args.proc_exe_regex:
             continue
           else:
             self.Log("No process information for pid '%s'", pid)
       else:
         self.Log("No pid for pipe '%s'", pipe.name)
 
-      self.SendReply(result)
+      self.SendReplyProto(result)
 
 
 # https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo

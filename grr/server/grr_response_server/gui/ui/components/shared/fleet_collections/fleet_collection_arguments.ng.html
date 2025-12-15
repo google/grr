@@ -1,0 +1,209 @@
+@if (fleetCollection()) {
+  <table>
+    <tr>
+      <td>
+        <!-- Undefined `matchMode` should be treated as "match all" (default). -->
+        <h5>Selected clients {{
+            fleetCollection().clientRuleSet?.matchMode === ForemanClientRuleSetMatchMode.MATCH_ANY
+            ? "– match any (or):"
+            : "– match all (and)"
+          }}
+        </h5>
+      </td>
+    </tr>
+    @for (rule of fleetCollection().clientRuleSet?.rules; track rule) {
+      <tr>
+        @switch (rule.ruleType) {
+          @case (ForemanClientRuleType.LABEL) {
+              <td>Label:</td>
+              <td>
+                @switch (rule.label?.matchMode) {
+                  @case (ForemanLabelClientRuleMatchMode.MATCH_ALL) {match all:}
+                  @case (ForemanLabelClientRuleMatchMode.MATCH_ANY) {match any:}
+                  @case (ForemanLabelClientRuleMatchMode.DOES_NOT_MATCH_ALL) {doesn't match all:}
+                  @case (ForemanLabelClientRuleMatchMode.DOES_NOT_MATCH_ANY) {doesn't match any:}
+                }
+                @for (name of rule.label?.labelNames; track name) {
+                  {{ name }}@if (!$last) {,}
+                }
+              </td>
+            }
+            @case (ForemanClientRuleType.REGEX) {
+              <td>Regex:</td>
+              <td>
+                @let field = rule.regex?.field;
+                @if (field) {
+                  @switch (field) {
+                    @case (ForemanRegexClientRuleForemanStringField.UNSET) {Unset}
+                    @case (ForemanRegexClientRuleForemanStringField.USERNAMES) {Usernames}
+                    @case (ForemanRegexClientRuleForemanStringField.FQDN) {FQDN}
+                    @case (ForemanRegexClientRuleForemanStringField.HOST_IPS) {Host IPs}
+                    @case (ForemanRegexClientRuleForemanStringField.CLIENT_NAME) {Client Name}
+                    @case (ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION) {
+                      Client Description
+                    }
+                    @case (ForemanRegexClientRuleForemanStringField.SYSTEM) {System}
+                    @case (ForemanRegexClientRuleForemanStringField.MAC_ADDRESSES) {MAC Addresses}
+                    @case (ForemanRegexClientRuleForemanStringField.KERNEL_VERSION) {Kernel Version}
+                    @case (ForemanRegexClientRuleForemanStringField.OS_VERSION) {OS Version}
+                    @case (ForemanRegexClientRuleForemanStringField.OS_RELEASE) {OS Release}
+                    @case (ForemanRegexClientRuleForemanStringField.CLIENT_LABELS) {Client Labels}
+                    @case (ForemanRegexClientRuleForemanStringField.CLIENT_ID) {Client Id}
+                    @default {
+                      {{ checkExhaustive(field) }}
+                    }
+                  }
+                }
+                 - matches: {{ rule.regex?.attributeRegex ?? "No attribute specified" }}
+              </td>
+            }
+            @case (ForemanClientRuleType.INTEGER) {
+              <td>Value:</td>
+              <td>
+                @let field = rule.integer?.field;
+                @if (field) {
+                  @switch (field) {
+                    @case (ForemanIntegerClientRuleForemanIntegerField.INSTALL_TIME) {Install Time}
+                    @case (ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION) {Client Version}
+                    @case (ForemanIntegerClientRuleForemanIntegerField.LAST_BOOT_TIME) {Last Boot Time}
+                    @case (ForemanIntegerClientRuleForemanIntegerField.UNSET) {Unset}
+                    @default {
+                      {{ checkExhaustive(field) }}
+                    }
+                  }
+                } @else {
+                  Undefined Condition Field
+                }
+
+                @let operator = rule.integer?.operator;
+                @if (operator) {
+                  @switch (operator) {
+                    @case (ForemanIntegerClientRuleOperator.EQUAL) {==}
+                    @case (ForemanIntegerClientRuleOperator.LESS_THAN) {<}
+                    @case (ForemanIntegerClientRuleOperator.GREATER_THAN) {>}
+                    @default {
+                      {{ checkExhaustive(operator) }}
+                    }
+                  }
+                }
+                @if (rule.integer?.value) {
+                  {{ rule.integer?.value }}
+                }
+              </td>
+            }
+            @default {
+              <!-- OS is the default rule type. -->
+              <td>Operating System:</td>
+              <td>
+                @if (rule.os?.osWindows) { Windows }
+                @if (rule.os?.osLinux) { Linux }
+                @if (rule.os?.osDarwin) { Darwin }
+              </td>
+            }
+        }
+      </tr>
+    }
+
+    <tr><td><h5>Defined Parameters</h5></td></tr>
+    <tr>
+      <td>Rollout speed:</td>
+      <td>
+        <copy-button>
+          {{ fleetCollection().safetyLimits.clientRate }} clients/min
+          @switch (fleetCollection().safetyLimits.clientRate) {
+            @case (ROLLOUT_SPEED_UNLIMITED) {(unlimited)}
+            @case (ROLLOUT_SPEED_STANDARD) {(standard rollout speed)}
+            @default {(custom)}
+          }
+        </copy-button>
+      </td>
+    </tr>
+    <tr>
+      <td>Run On:</td>
+      <td>
+        <copy-button>
+          @switch (fleetCollection().safetyLimits.clientLimit) {
+            @case (SAMPLE_SIZE_UNLIMITED) {
+              All matching clients
+            }
+            @case (SAMPLE_SIZE_SMALL) {
+              {{ fleetCollection().safetyLimits.clientLimit }} clients (small sample size)
+            }
+            @default {
+              {{ fleetCollection().safetyLimits.clientLimit }} clients (custom)
+            }
+          }
+        </copy-button>
+      </td>
+    </tr>
+    <tr>
+      <td>Active for:</td>
+      <td>
+        <copy-button>
+          {{ fleetCollection().safetyLimits.expiryTime | humanReadableDuration }}
+        </copy-button>
+      </td>
+    </tr>
+
+    <tr><td><h5>Stop fleet collection if...</h5></td></tr>
+    <tr>
+      <td>Crash Limit:</td>
+      <td><copy-button>{{ fleetCollection().safetyLimits.crashLimit }} clients</copy-button></td>
+    </tr>
+    <tr>
+      <td>Average results per client:</td>
+      <td>
+        <copy-button>{{ fleetCollection().safetyLimits.avgResultsPerClientLimit }}</copy-button>
+      </td>
+    </tr>
+    <tr>
+      <td>Average CPU (per client):</td>
+      <td>
+        <copy-button>
+          {{ fleetCollection().safetyLimits.avgCpuSecondsPerClientLimit | humanReadableDuration }}
+        </copy-button>
+      </td>
+    </tr>
+    <tr>
+      <td>Average network usage (per client):</td>
+      <td>
+        <copy-button>
+          {{ fleetCollection().safetyLimits.avgNetworkBytesPerClientLimit | humanReadableByteSize }}
+        </copy-button>
+      </td>
+    </tr>
+
+    <tr><td><h5>Stop flow collection if...</h5></td></tr>
+    <tr>
+      <td>CPU limit per client:</td>
+      <td>
+        @if (isNull(fleetCollection().safetyLimits.perClientCpuLimit)) {
+          Unlimited
+        } @else {
+          <copy-button>
+            {{ fleetCollection().safetyLimits.perClientCpuLimit | humanReadableDuration }}
+          </copy-button>
+        }
+      </td>
+    </tr>
+    <tr>
+      <td>Network Limit per client:</td>
+      <td>
+        @if (isNull(fleetCollection().safetyLimits.perClientNetworkBytesLimit)) {
+          Unlimited
+        } @else {
+          <copy-button>
+            {{ fleetCollection().safetyLimits.perClientNetworkBytesLimit | humanReadableByteSize }}
+          </copy-button>
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-divider />
+
+  @let outputPlugins = fleetCollection().outputPlugins;
+  @if (outputPlugins && outputPlugins.length > 0) {
+    <output-plugins-form [initialOutputPlugins]="outputPlugins" [disabled]="true" />
+  }
+}

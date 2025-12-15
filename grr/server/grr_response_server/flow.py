@@ -31,11 +31,15 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
+from grr_response_server import output_plugin
+from grr_response_server import output_plugin_registry
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_output_plugin
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
@@ -75,11 +79,19 @@ class AttributedDict(dict):
     self.__dict__ = self
 
 
-def GetOutputPluginStates(output_plugins, source=None):
+def GetOutputPluginStates(
+    output_plugins: list[tuple[int, rdf_output_plugin.OutputPluginDescriptor]],
+    source: Optional[rdfvalue.RDFURN] = None,
+) -> list[rdf_flow_runner.OutputPluginState]:
   """Initializes state for a list of output plugins."""
   output_plugins_states = []
-  for plugin_descriptor in output_plugins:
+  for plugin_id, plugin_descriptor in output_plugins:
+    # GetPluginClass() returns an `UnknownOutputPlugin` if the plugin is not
+    # known.
     plugin_class = plugin_descriptor.GetPluginClass()
+    if plugin_class is output_plugin.UnknownOutputPlugin:
+      raise ValueError(f"Plugin {plugin_class} is not known.")
+
     try:
       _, plugin_state = plugin_class.CreatePluginAndDefaultState(
           source_urn=source, args=plugin_descriptor.args
@@ -91,7 +103,9 @@ def GetOutputPluginStates(output_plugins, source=None):
 
     output_plugins_states.append(
         rdf_flow_runner.OutputPluginState(
-            plugin_state=plugin_state, plugin_descriptor=plugin_descriptor
+            plugin_state=plugin_state,
+            plugin_descriptor=plugin_descriptor,
+            plugin_id=str(plugin_id),
         )
     )
 
@@ -178,9 +192,19 @@ def StartFlow(
     output_plugins: Optional[
         Sequence[rdf_output_plugin.OutputPluginDescriptor]
     ] = None,
-    start_at: Optional[rdfvalue.RDFDatetime] = None,
+    proto_output_plugins: Optional[
+        Sequence[output_plugin_pb2.OutputPluginDescriptor]
+    ] = None,
+    # We use a timestamp in the past as a default value here to, by default,
+    # start the flow on the worker immediately. Instead of using `None`, which
+    # would schedule the flow for execution immediately in the current binary
+    # (this code can be executed in the AdminUI or Frontend too). Using a
+    # value here forces the flow to be schedule for execution, which only the
+    # worker picks up.
+    start_at: Optional[rdfvalue.RDFDatetime] = rdfvalue.RDFDatetime(0),
     parent: Optional[FlowParent] = None,
     runtime_limit: Optional[rdfvalue.Duration] = None,
+    disable_rrg_support: bool = False,
 ) -> str:
   """The main factory function for creating and executing a new flow.
 
@@ -196,10 +220,13 @@ def StartFlow(
       another flow.
     output_plugins: An OutputPluginDescriptor object indicating what output
       plugins should be used for this flow.
+    proto_output_plugins: Sequence of OutputPluginDescriptor objects indicating
+      what output plugins should be used for this flow.
     start_at: If specified, flow will be started not immediately, but at a given
       time.
     parent: A FlowParent referencing the parent, or None for top-level flows.
     runtime_limit: Runtime limit as Duration for all ClientActions.
+    disable_rrg_support: Whether to completely disable usage of RRG actions.
 
   Returns:
     the flow id of the new flow.
@@ -235,9 +262,9 @@ def StartFlow(
       flow_class_name=flow_cls.__name__,
       args=flow_args,
       creator=creator,
-      output_plugins=output_plugins,
       original_flow=original_flow,
       flow_state="RUNNING",
+      disable_rrg_support=disable_rrg_support,
   )
 
   if parent is None:
@@ -279,10 +306,67 @@ def StartFlow(
   else:
     raise ValueError(f"Unknown flow parent type {parent}")
 
-  if output_plugins:
-    rdf_flow.output_plugins_states = GetOutputPluginStates(
-        output_plugins, rdf_flow.long_flow_id
+  if output_plugins and proto_output_plugins:
+    raise ValueError(
+        "Only one of output_plugins and proto_output_plugins can be set."
     )
+
+  if output_plugins:
+    rdf_flow.output_plugins = output_plugins
+
+    # We rely on the index of the plugin in the list as its ID.
+    proto_plugin_descriptors: tuple[
+        int, rdf_output_plugin.OutputPluginDescriptor
+    ] = []
+    rdf_plugin_descriptors: tuple[
+        int, rdf_output_plugin.OutputPluginDescriptor
+    ] = []
+    for idx, op in enumerate(output_plugins):
+      try:
+        output_plugin_registry.GetPluginClassByName(op.plugin_name)
+        proto_plugin_descriptors.append((idx, op))
+      except KeyError:
+        rdf_plugin_descriptors.append((idx, op))
+
+    for _, op in proto_plugin_descriptors:
+      plugin_cls = output_plugin_registry.GetPluginClassByName(op.plugin_name)
+      if plugin_cls.args_type is not None:
+        # If the plugin is not recognized with the metaclass registry, then
+        # `op.args` is an instance of RDFBytes.
+        pl_args = plugin_cls.args_type()
+        pl_args.ParseFromString(op.args._value)  # pylint: disable=protected-access
+      else:
+        pl_args = None
+      # Proto-based plugins are stateless, but we initialize them here to
+      # validate their arguments.
+      plugin_cls(source_urn=rdf_flow.long_flow_id, args=pl_args)
+
+    # For RDF-based plugins, we initialize their state.
+    rdf_flow.output_plugins_states = GetOutputPluginStates(
+        rdf_plugin_descriptors, rdf_flow.long_flow_id
+    )
+
+  if proto_output_plugins:
+    rdf_flow.output_plugins = [
+        mig_output_plugin.ToRDFOutputPluginDescriptor(op)
+        for op in proto_output_plugins
+    ]
+
+    for op in proto_output_plugins:
+      try:
+        plugin_cls = output_plugin_registry.GetPluginClassByName(op.plugin_name)
+      except KeyError as exc:
+        raise ValueError(f"Unknown plugin {op.plugin_name}") from exc
+
+      if plugin_cls.args_type is not None:
+        pl_args = plugin_cls.args_type()
+        pl_args.ParseFromString(op.args.value)
+      else:
+        pl_args = None
+
+      # Proto-based plugins are stateless, but we initialize them here to
+      # validate their arguments.
+      plugin_cls(source_urn=rdf_flow.long_flow_id, args=pl_args)
 
   if network_bytes_limit is not None:
     rdf_flow.network_bytes_limit = network_bytes_limit

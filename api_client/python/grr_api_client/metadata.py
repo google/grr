@@ -2,7 +2,7 @@
 """Metadata-related part of GRR API client library."""
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from grr_api_client import context as api_context
 from grr_response_proto.api import metadata_pb2
@@ -10,7 +10,7 @@ from grr_response_proto.api import metadata_pb2
 
 def GetOpenApiDescription(
     context: Optional[api_context.GrrApiContext] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
   """Returns the OpenAPI description of the GRR API as a dictionary."""
   if not context:
     raise ValueError("context can't be empty")

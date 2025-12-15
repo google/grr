@@ -17,10 +17,10 @@ class InitApiSignedCommandFromSignedCommandTest(absltest.TestCase):
     rrg_command = rrg_execute_signed_command_pb2.Command()
     rrg_command.path.raw_bytes = "foo-path".encode("utf-8")
     rrg_command.signed_stdin = b"foo-signed-stdin"
-    rrg_command.args.append("foo-arg-1")
-    rrg_command.args.append("foo-arg-2")
-    rrg_command.env["foo-env-var-1"] = "foo-env-var-1-value"
-    rrg_command.env["foo-env-var-2"] = "foo-env-var-2-value"
+    rrg_command.args_signed.append("foo-arg-1")
+    rrg_command.args_signed.append("foo-arg-2")
+    rrg_command.env_signed["foo-env-var-1"] = "foo-env-var-1-value"
+    rrg_command.env_signed["foo-env-var-2"] = "foo-env-var-2-value"
     signed_command.command = rrg_command.SerializeToString()
 
     expected = api_signed_commands_pb2.ApiSignedCommand(

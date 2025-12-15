@@ -1,0 +1,30 @@
+<div class="item-header">
+  <span class="table-name">
+    @for (part of convertToHighlightedParts(tableSpec().name); track part.value) {
+      <span [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
+    }
+  </span>
+  <span class="table-description">
+    @for (part of convertToHighlightedParts(tableSpec().description); track part.value) {
+      <span [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
+    }
+    </span>
+</div>
+
+<div class="item-content">
+  <span class="bold">Columns: </span>
+  @for (column of tableSpec().columns; track column.name) {
+    <span class="space-before">
+      @for (part of convertToHighlightedParts(column.name); track part.value) {
+        <span [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
+      }
+    @if (!$last) {
+      <span>, </span>
+    }
+    </span>
+  }
+
+  <div>
+    <a target="_blank" [href]="docsLinkToTable">Column descriptions in the official docs</a>
+  </div>
+</div>

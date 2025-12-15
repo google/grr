@@ -1,0 +1,70 @@
+@if (dataSource.data.length > 0) {
+  <filter-paginate [dataSource]="dataSource">
+    <table mat-table
+        matSort
+        [dataSource]="dataSource"
+        (matSortChange)="announceSortChange($event)"
+      >
+      <ng-container matColumnDef="clientId">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by Client ID">
+          Client ID
+        </th>
+        <td mat-cell *matCellDef="let r"><copy-button>{{r.clientId}}</copy-button></td>
+      </ng-container>
+
+      <ng-container matColumnDef="pid">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by PID">
+          PID
+        </th>
+        <td mat-cell *matCellDef="let r">{{r.process?.pid}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="process">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by Process"
+          >Process</th>
+        <td mat-cell *matCellDef="let r">{{r.process?.name ?? ""}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="ruleId">
+        <th mat-header-cell *matHeaderCellDef>Rule</th>
+        <td mat-cell *matCellDef="let r">{{r.match?.ruleName}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="matchOffset">
+        <th mat-header-cell *matHeaderCellDef>Offset</th>
+        <td mat-cell *matCellDef="let r">{{r.stringMatch?.offset}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="matchId">
+        <th mat-header-cell *matHeaderCellDef>String ID</th>
+        <td mat-cell *matCellDef="let r">{{r.stringMatch?.stringId}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="matchData">
+        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <td mat-cell *matCellDef="let r" class="monospace ellipsize-table-cell">
+          {{r.data}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="context">
+        <th mat-header-cell *matHeaderCellDef>Context (Base64)</th>
+        <td mat-cell *matCellDef="let r" class="monospace ellipsize-table-cell">
+          {{ r.context || 'empty' }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+    </table>
+  </filter-paginate>
+}

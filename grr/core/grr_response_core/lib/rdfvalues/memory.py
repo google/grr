@@ -74,11 +74,16 @@ class YaraStringMatch(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
   @classmethod
-  def FromLibYaraStringMatch(cls, yara_string_match):
+  def FromLibYaraStringMatch(
+      cls, yara_string_match, yara_string_match_instance
+  ):
     # Format is described in
-    # http://yara.readthedocs.io/en/v3.5.0/yarapython.html
+    # https://yara.readthedocs.io/en/stable/yarapython.html#yara.StringMatch
     res = cls()
-    res.offset, res.string_id, res.data = yara_string_match
+    res.offset = yara_string_match_instance.offset
+    res.string_id = yara_string_match.identifier
+    res.data = yara_string_match_instance.matched_data
+
     return res
 
 
@@ -90,15 +95,19 @@ class YaraMatch(rdf_structs.RDFProtoStruct):
 
   @classmethod
   def FromLibYaraMatch(cls, yara_match, data, context_window):
+    string_matches = []
+    for yara_string_match in yara_match.strings:
+      for sm in yara_string_match.instances:
+        result = YaraStringMatch.FromLibYaraStringMatch(yara_string_match, sm)
+        if context_window > 0:
+          context = data[
+              sm.offset - context_window : sm.offset + context_window
+          ]
+          result.context = context
+        string_matches.append(result)
+
     res = cls()
     res.rule_name = yara_match.rule
-    string_matches = []
-    for sm in yara_match.strings:
-      yara_string_match = YaraStringMatch.FromLibYaraStringMatch(sm)
-      if context_window > 0:
-        context = data[sm[0] - context_window : sm[0] + context_window]
-        yara_string_match.context = context
-      string_matches.append(yara_string_match)
     res.string_matches = string_matches
     return res
 

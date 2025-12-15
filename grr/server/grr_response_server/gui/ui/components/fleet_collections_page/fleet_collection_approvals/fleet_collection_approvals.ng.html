@@ -1,0 +1,46 @@
+<!-- Router outlet for loading the approval request.
+ The router outlet does not show the approval request, it is displayed further down. This allows
+ navigating to different tabs of the fleet collection without reloading the approval request which
+ requires the approval id and the requestor to be set in the url. -->
+<router-outlet />
+
+<div class="approvals-container">
+  <!-- Display the approval request if it exists and is for the current client. -->
+  @let requestedApproval = approvalRequestStore.requestedFleetCollectionApproval();
+  @if (requestedApproval && requestedApproval?.subject?.huntId === fleetCollectionId()) {
+    <approval-request
+      [approval]="requestedApproval"
+      (grantApproval)="approvalRequestStore.grantFleetCollectionApproval(requestedApproval)" />
+
+    <mat-divider></mat-divider>
+  }
+
+  @let latestApproval = fleetCollectionStore.latestApproval();
+
+  @if(latestApproval && latestApproval.status.type === 'valid') {
+    <granted-approval [approval]="latestApproval" />
+    <mat-divider></mat-divider>
+
+  } @else if(latestApproval && latestApproval.status.type === 'pending') {
+    <!-- If the user does not have access to the fleet collection, there might be more than one
+    pending approval, we show them all. -->
+    @for(approval of fleetCollectionStore.fleetCollectionApprovals(); track approval.approvalId) {
+      @if(approval.status.type === 'pending') {
+        <pending-approval [approval]="approval" />
+        <mat-divider></mat-divider>
+      }
+    }
+    <button mat-stroked-button (click)="showForm = true">Send new approval request</button>
+
+  } @else {
+    @if(fleetCollectionStore.hasAccess()) {
+      <p>Access granted without approval</p>
+    } @else {
+      <fleet-collection-approval-form [fleetCollectionId]="fleetCollectionId()"/>
+    }
+  }
+
+  @if(showForm) {
+    <fleet-collection-approval-form [fleetCollectionId]="fleetCollectionId()"/>
+  }
+</div>

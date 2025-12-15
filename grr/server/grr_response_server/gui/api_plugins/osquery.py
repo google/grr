@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """A module with API handlers related to the Osquery flow."""
 
+from collections.abc import Iterable, Iterator
 import csv
 import io
-from typing import Iterable, Iterator, Optional
+from typing import Optional
 
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -30,7 +31,6 @@ class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
 class ApiGetOsqueryResultsHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for the timeline exporter."""
 
-  args_type = ApiGetOsqueryResultsArgs
   proto_args_type = api_osquery_pb2.ApiGetOsqueryResultsArgs
 
   def Handle(

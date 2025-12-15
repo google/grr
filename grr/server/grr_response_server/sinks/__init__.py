@@ -24,6 +24,7 @@ from collections.abc import Mapping, Sequence
 
 from grr_response_server.sinks import abstract
 from grr_response_server.sinks import blob
+from grr_response_server.sinks import ping
 from grr_response_server.sinks import startup
 from grr_response_proto import rrg_pb2
 
@@ -34,6 +35,7 @@ Sink = abstract.Sink
 REGISTRY: Mapping["rrg_pb2.Sink", abstract.Sink] = {
     rrg_pb2.Sink.STARTUP: startup.StartupSink(),
     rrg_pb2.Sink.BLOB: blob.BlobSink(),
+    rrg_pb2.Sink.PING: ping.PingSink(),
 }
 
 

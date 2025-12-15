@@ -1,0 +1,131 @@
+<split-panel direction="horizontal" [initialSize]="25">
+  <div slot="panel1" class="fleet-collection-list-container">
+    <div class="new-fleet-collection-button-container">
+      <button mat-flat-button
+          class="new-fleet-collection-button"
+          (click)="openNewFleetCollectionDialog()"
+      >
+        New Fleet Collection
+      </button>
+    </div>
+    <div class="fleet-collection-filters-container">
+      <mat-form-field appearance="outline">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>Filter by user, id, or description</mat-label>
+        <input matInput [formControl]="searchFilterFormControl" />
+      </mat-form-field>
+    </div>
+    <div class="fleet-collection-filters-container">
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by creator</mat-label>
+        <mat-icon matPrefix>filter_alt</mat-icon>
+        <mat-select [formControl]="creatorFilterFormControl">
+          <mat-option [value]="ApiListHuntsArgsRobotFilter.NO_ROBOTS">
+            Created by Humans
+          </mat-option>
+          <mat-option [value]="ApiListHuntsArgsRobotFilter.ONLY_ROBOTS">
+            Created by Robots
+          </mat-option>
+          <mat-option [value]="ApiListHuntsArgsRobotFilter.UNKNOWN">
+            All fleet collections
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by state</mat-label>
+        <mat-icon matPrefix>filter_alt</mat-icon>
+        <mat-select [formControl]="stateFilterFormControl">
+          <mat-option [value]="null">
+            - NO FILTER -
+          </mat-option>
+          <mat-option [value]="HuntState.NOT_STARTED">
+            NOT STARTED
+          </mat-option>
+          <mat-option [value]="HuntState.RUNNING">
+            RUNNING
+          </mat-option>
+          <mat-option [value]="HuntState.REACHED_CLIENT_LIMIT">
+            PAUSED - Reached client limit
+          </mat-option>
+          <mat-option [value]="HuntState.CANCELLED">
+            CANCELLED
+          </mat-option>
+          <mat-option [value]="HuntState.REACHED_TIME_LIMIT">
+            COMPLETED - Reached time limit
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="fleet-collection-list">
+      <mat-nav-list disableRipple>
+        @for (fleetCollection of fleetCollectionsStore.fleetCollections(); track fleetCollection.huntId) {
+          @if (
+              fleetCollectionMatchesSearchFilter(fleetCollection) &&
+              fleetCollectionMatchesStateFilter(fleetCollection)) {
+            <a mat-list-item
+              lines="3"
+              [routerLink]="['/fleet-collections', fleetCollection.huntId]"
+              routerLinkActive
+              #fleetCollectionActive="routerLinkActive"
+              [activated]="fleetCollectionActive.isActive"
+            >
+              <user matListItemIcon [username]="fleetCollection.creator" />
+              <div matListItemTitle>{{fleetCollection.description || "No description"}}</div>
+              <div matListItemLine>
+                <copy-button>{{ fleetCollection.huntId }}</copy-button>
+                Created: <timestamp [date]="fleetCollection.created" />
+              </div>
+              <div matListItemLine class="progress-line">
+                <mat-progress-bar
+                  class="collection-progress-bar"
+                  [value]="percentageCompleted(fleetCollection)"
+                  [matTooltip]="fleetCollection.completedClientsCount + ' out of ' + fleetCollection.allClientsCount + ' clients completed'"
+                  >
+                </mat-progress-bar>
+                <span class="collection-progress-max-count">{{ fleetCollection.allClientsCount }}</span>
+                <span class="collection-flow-name">| {{ fleetCollection.flowName }}</span>
+              </div>
+              <span matListItemMeta class="fleet-collection-actions">
+                <fleet-collection-state-chip
+                    [fleetCollectionState]="fleetCollection.state"
+                    [fleetCollectionStateReason]="fleetCollection.stateReason"
+                    [fleetCollectionStateComment]="fleetCollection.stateComment"
+                    [resultsCount]="fleetCollection.clientsWithResultsCount" />
+
+                <button mat-icon-button
+                    aria-label="More actions"
+                    (click)="$event.preventDefault(); $event.stopPropagation()"
+                    [matMenuTriggerFor]="menu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item
+                    [routerLink]="['/new-fleet-collection']"
+                    [queryParams]="{'fleetCollectionId': fleetCollection.huntId}"
+                    [disabled]="isRestrictedFlow(fleetCollection.flowType) && !globalStore.currentUser()?.isAdmin"
+                    [matTooltipDisabled]="!isRestrictedFlow(fleetCollection.flowType) || globalStore.currentUser()?.isAdmin"
+                    matTooltip="Flow requires admin privileges"
+                  >
+                    Duplicate fleet collection
+                  </button>
+                </mat-menu>
+              </span>
+            </a>
+          }
+        }
+      </mat-nav-list>
+      @if (fleetCollectionsStore.hasMoreFleetCollections()) {
+        <div class="more-fleet_collections-button">
+          <button mat-button="outlined" (click)="increaseFleetCollectionsCount(100)">
+            <mat-icon>cached</mat-icon>load 100 more
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+  <div slot="panel2" class="fleet-collection-details">
+    <router-outlet />
+  </div>
+</split-panel>

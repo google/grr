@@ -1,0 +1,41 @@
+<mat-form-field appearance="outline">
+  <mat-label>Regex</mat-label>
+  <input
+    matInput
+    [formControl]="formGroup.controls.regex"
+    name="regex"
+    class="monospace"
+  />
+  <mat-error>
+    <form-errors [validationErrors]="formGroup.controls.regex.errors" />
+  </mat-error>
+</mat-form-field>
+
+<div>
+  <mat-form-field appearance="outline" class="w33">
+    <mat-label>Mode</mat-label>
+    <mat-select [formControl]="formGroup.controls.mode">
+      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.ALL_HITS">
+        All Hits
+      </mat-option>
+      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.FIRST_HIT">
+        First Hit
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w33">
+    <mat-label>Length</mat-label>
+    <input
+      matInput
+      [formControl]="formGroup.controls.length"
+      name="length"
+      class="monospace"
+      type="number"
+      autocomplete="off"
+    />
+    <mat-error>
+      <form-errors [validationErrors]="formGroup.controls.length.errors" />
+    </mat-error>
+  </mat-form-field>
+</div>

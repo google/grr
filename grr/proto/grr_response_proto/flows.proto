@@ -139,35 +139,13 @@ message FlowLikeObjectReference {
 
 // Next field: 24
 message FlowRunnerArgs {
-  reserved 6;
-
-  // DEPRECATED
-  // optional GrrMessage.Priority priority = 1;
-
-  // DEPRECATED
-  // optional bool notify_to_user = 2;
-  reserved 2;
-
-  // DEPRECATED
-  // optional bool send_replies = 3;
-
-  // DEPRECATED
-  // optional string notification_event = 4;
-
-  // DEPRECATED
-  // optional string notification_urn = 14;
+  reserved 1 to 4, 6, 7, 12, 14 to 17, 19, 23;
 
   optional string client_id = 5 [(sem_type) = {
     type: "ClientURN",
     description: "The client id this flow operates on.",
     label: HIDDEN,
   }];
-
-  // DEPRECATED.
-  // optional string event_id = 7 [(sem_type) = {
-  //     description: "A logging event id for issuing further logs."
-  //     label: HIDDEN,
-  //   }];
 
   optional uint64 cpu_limit = 9 [
     (sem_type) = {
@@ -192,22 +170,6 @@ message FlowRunnerArgs {
     label: HIDDEN,
   }];
 
-  // DEPRECATED
-  // optional string base_session_id = 12;
-
-  // DEPRECATED, unused.
-  // optional uint64 start_time = 15;
-
-  // DEPRECATED, output is now fixed.
-  // optional string output = 16 [(sem_type) = {
-  //    description: "If set, a relative URN to the client's namespace where "
-  //    "a collection will be created, and the result will be written to.",
-  //    label: ADVANCED
-  //  }, default="analysis/{p}/{u}-{t}"];
-
-  // DEPRECATED
-  // optional string logs_collection_urn = 17;
-
   optional bool write_intermediate_results = 18 [
     (sem_type) = {
       description: "If true, all child flow results received with sendreply"
@@ -216,8 +178,6 @@ message FlowRunnerArgs {
     },
     default = false
   ];
-
-  reserved 19;
 
   repeated OutputPluginDescriptor output_plugins = 21 [(sem_type) = {
     description: "Output plugins used for this flow. These plugins will be "
@@ -232,12 +192,16 @@ message FlowRunnerArgs {
     label: HIDDEN
   }];
 
-  reserved 23;
+  // Whether to completely disable usage of RRG actions.
+  //
+  // This can be useful in case some RRG-specific issue manifests itself and we
+  // want to force usage of the Python agent.
+  optional bool disable_rrg_support = 39;
 }
 
 // Next field ID: 31
 message HuntRunnerArgs {
-  reserved 7;
+  reserved 5, 6, 7, 14, 16, 30;
 
   optional string hunt_name = 1 [(sem_type) = {
     description: "The name of the class implementing the hunt to run.",
@@ -248,12 +212,6 @@ message HuntRunnerArgs {
 
   optional ForemanClientRuleSet client_rule_set = 18
       [(sem_type) = { description: "Rules that trigger this hunt." }];
-
-  // DEPRECATED
-  // optional GrrMessage.Priority priority = 5;
-
-  // DEPRECATED
-  // optional string notification_event = 6;
 
   optional uint64 cpu_limit = 9 [(sem_type) = {
     description: "An overall limit on the client cpu seconds used by this "
@@ -333,18 +291,6 @@ message HuntRunnerArgs {
     default = 20.5
   ];
 
-  // DEPRECATED.
-  // optional string logs_collection_urn = 14;
-
-  optional bool add_foreman_rules = 16 [
-    default = true,
-    (sem_type) = {
-      description: "Should always be true for user-scheduled hunts. Set to "
-                   "false for system-created hunts that use ManuallyScheduleClients.",
-      label: HIDDEN
-    }
-  ];
-
   optional string crash_alert_email = 17 [(sem_type) = {
     description: "An email address to send mails to when a client crashes "
                  "during execution of this hunt.",
@@ -382,8 +328,6 @@ message HuntRunnerArgs {
                  "a reference to the original here.",
     label: HIDDEN
   }];
-
-  reserved 30;
 }
 
 // Next field ID: 5
@@ -609,25 +553,7 @@ message ArtifactCollectorFlowArgs {
     default = 5368709120
   ];
 
-  enum Dependency {
-    USE_CACHED = 0
-        [(description) =
-             "Use the knowledgebase as a cache. If "
-             "knowledgebase isn't present, a new one will be populated."];
-
-    IGNORE_DEPS = 1 [(description) = "Ignore dependencies."];
-
-    FETCH_NOW = 2 [(description) = "Fetch only required dependencies for this "
-                                   "artifact"];
-  }
-
-  optional Dependency dependencies = 11 [
-    (sem_type) = {
-      description: "Specifies how dependencies should be handled.",
-      label: ADVANCED,
-    },
-    default = USE_CACHED
-  ];
+  reserved 11;
 
   optional bool ignore_interpolation_errors = 12 [
     (sem_type) = {
@@ -671,58 +597,23 @@ message ArtifactCollectorFlowProgress {
 
 message ArtifactCollectorFlowStore {
   optional KnowledgeBase knowledge_base = 1;
-}
 
-// Next field ID: 12
-message ArtifactFilesDownloaderFlowArgs {
-  repeated string artifact_list = 1 [(sem_type) = {
-    type: "ArtifactName",
-    description: "A list of Artifact class names.",
-  }];
+  // Number of times we have been awaiting for blobs to arrive in blobstore.
+  //
+  // For `FILE` artifacts we collect file contents that is sent directly to the
+  // blobstore, not as a normal action result. Thus, the flow has to await until
+  // all of expected blobs are available there. Instead of sleeping the thread
+  // and blocking any work from being done, we schedule flow state update some
+  // time in the future. But that means we need to use flow store to remember
+  // how many times we waited so far to be able to bail eventually if the blobs
+  // are likely to never arrive.
+  optional int32 blob_wait_count = 2;
 
-  // Deprecated.
-  // optional bool use_tsk = 2;
-
-  optional bool use_raw_filesystem_access = 10 [
-    (sem_type) = {
-      description: "Whether raw filesystem access should be used.",
-    },
-    default = false
-  ];
-
-  optional uint64 max_file_size = 9 [
-    (sem_type) = {
-      type: "ByteSize",
-      description: "The maximum size of files we will download in bytes,"
-                   " 5 GiB by default.",
-      label: ADVANCED
-    },
-    default = 5368709120
-  ];
-
-  optional PathSpec.ImplementationType implementation_type = 11 [(sem_type) = {
-    label: ADVANCED,
-    description: "Force use of an implementation."
-  }];
-}
-
-// Next field ID: 5
-message ArtifactFilesDownloaderResult {
-  optional string original_result_type = 1 [(sem_type) = {
-    description: "Type of the result returned by the artifacts collector."
-  }];
-  optional bytes original_result = 2 [(sem_type) = {
-    dynamic_type: "GetOriginalResultType"
-    description: "Original result returned by the artifacts collector."
-  }];
-
-  optional PathSpec found_pathspec = 3 [
-    (sem_type) = { description: "Pathspecs found in the collected artifacts." }
-  ];
-  optional StatEntry downloaded_file = 4 [(sem_type) = {
-    description: "Files that were successfully downloaded using found "
-                 "pathspecs."
-  }];
+  // Intermediate path information.
+  //
+  // For `FILE` artifacts we first collect file metadata and only then their
+  // content. In this field we preserve metadata collected in this first pass.
+  repeated PathInfo path_infos = 3;
 }
 
 // Next field ID: 2
@@ -761,6 +652,18 @@ message ListDirectoryArgs {
       [(sem_type) = { description: "The pathspec for the directory to list." }];
 }
 
+message ListDirectoryStore {
+  optional string urn = 1;
+  optional StatEntry stat_entry = 2;
+
+  // Recursion depth for symlinks.
+  //
+  // If we try to list a symlink, we need to resolve it and list the target.
+  // However, links can have arbitrary depth (or even form cycles), so we track
+  // current depth to bail if we go too deep.
+  optional uint32 symlink_depth = 3;
+}
+
 // Next field ID: 3
 message RecursiveListDirectoryArgs {
   optional PathSpec pathspec = 1
@@ -774,30 +677,18 @@ message RecursiveListDirectoryArgs {
   ];
 }
 
+message RecursiveListDirectoryStore {
+  optional string first_directory = 1;
+}
+
+message RecursiveListDirectoryProgress {
+  optional uint64 dir_count = 1;
+  optional uint64 file_count = 2;
+}
+
 // Next field ID: 2
 message GrepArgs {
   optional GrepSpec request = 1;
-}
-
-// Next field ID: 4
-message GetFileArgs {
-  optional PathSpec pathspec = 1
-      [(sem_type) = { description: "The pathspec for the file to retrieve." }];
-
-  optional uint64 read_length = 2 [
-    (sem_type) = {
-      description: "The amount of data to read from the file. If 0 we use "
-                   "the value from a stat call.",
-      label: ADVANCED
-    },
-    default = 0
-  ];
-
-  optional bool ignore_stat_failure = 3 [(sem_type) = {
-    description: "Ignore stat failures and try to read anyway. "
-                 "Disable for windows devices.",
-    label: ADVANCED,
-  }];
 }
 
 // Next field ID: 2
@@ -808,6 +699,11 @@ message GetMBRArgs {
     },
     default = 4096
   ];
+}
+
+message GetMBRStore {
+  optional uint64 bytes_downloaded = 1;
+  repeated bytes buffers = 2;
 }
 
 enum Browser {
@@ -1077,7 +973,7 @@ message ChromePluginsArgs {
   ];
 }
 
-// Next field ID: 6
+// Next field ID: 7
 message MultiGetFileArgs {
   repeated PathSpec pathspecs = 2 [(sem_type) = {
     description: "Pathspecs of files to be retrieved.",
@@ -1109,6 +1005,16 @@ message MultiGetFileArgs {
     },
     default = 1000
   ];
+
+  enum StopAt {
+    // Will collect the files' contents (including stat and hash).
+    NOTHING = 0;
+    // Will stop after getting the files' stat.
+    STAT = 1;
+    // Will stop after getting the files' hash.
+    HASH = 2;
+  }
+  optional StopAt stop_at = 6;
 }
 
 message PathSpecProgress {
@@ -1131,6 +1037,52 @@ message MultiGetFileProgress {
   optional uint32 num_failed = 5;
 
   repeated PathSpecProgress pathspecs_progress = 6;
+}
+
+message IndexToBufferReference {
+  optional uint64 index = 1;
+  optional BufferReference buffer_reference = 2;
+}
+
+message MultiGetFileTracker {
+  optional uint64 index = 1;
+
+  optional StatEntry stat_entry = 2;
+  optional Hash hash_obj = 3;
+
+  repeated BufferReference hash_list = 7;
+  repeated IndexToBufferReference index_to_buffers = 8;
+
+  optional uint64 bytes_read = 4;
+  optional uint64 size_to_download = 5;
+  optional uint64 expected_chunks = 6;
+}
+
+message IndexToTracker {
+  optional uint64 index = 1;
+  optional MultiGetFileTracker tracker = 2;
+}
+
+// Next field ID: 15
+message MultiGetFileStore {
+  optional uint64 num_files_to_fetch = 1;
+
+  optional uint64 num_files_hashed = 2;
+  optional uint64 num_files_fetched = 3;
+  optional uint64 num_files_skipped = 4;
+  optional uint64 num_files_failed = 5;
+
+  optional uint64 num_files_hashed_since_check = 6;
+  optional uint64 next_pathspec_to_start = 12;
+  optional uint64 blob_hashes_pending = 13;
+
+  repeated IndexToTracker pending_stats = 7;
+  repeated IndexToTracker pending_hashes = 8;
+  repeated IndexToTracker pending_files = 9;
+
+  repeated PathSpec indexed_pathspecs = 10;
+
+  repeated PathSpecProgress pathspecs_progress = 14;
 }
 
 // DEPRECATED. This cronjob doesn't use any args anymore.
@@ -1667,6 +1619,10 @@ message FileFinderResult {
 message FileFinderStore {
   // Number of blobs we're still waiting to be uploaded to blob storage.
   optional uint64 num_blob_waits = 1;
+
+  // `FileFinderResults` that await for file contents to be delivered to the
+  // GRR server and their `transferred_file` field filled.
+  repeated FileFinderResult results_pending_content = 2;
 }
 
 message FileFinderProgress {
@@ -1898,6 +1854,14 @@ message KnowledgeBaseInitializationArgs {
     },
     default = true
   ];
+}
+
+message KnowledgeBaseInitializationStore {
+  // Intermediate knowledge base.
+  //
+  // As more calls to the endpoint finish, this method will be gradually more
+  // and more complete.
+  optional KnowledgeBase knowledge_base = 1;
 }
 
 // Next field ID: 2
@@ -2278,6 +2242,11 @@ message ListNetworkConnectionsArgs {
   ];
 }
 
+message GetMemorySizeResult {
+  // Total number of physical RAM bytes available on the endpoint.
+  optional uint64 total_bytes = 1;
+}
+
 message FlowProcessingRequest {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2418,7 +2387,7 @@ message FlowIterator {
   }];
 }
 
-// Next id: 39
+// Next id: 40
 message Flow {
   reserved 10;
 
@@ -2516,6 +2485,12 @@ message Flow {
     type: "Duration",
   }];
   reserved 35;
+
+  // Whether to completely disable usage of RRG actions.
+  //
+  // This can be useful in case some RRG-specific issue manifests itself and we
+  // want to force usage of the Python agent.
+  optional bool disable_rrg_support = 39;
 }
 
 message FlowOutputPluginLogEntry {

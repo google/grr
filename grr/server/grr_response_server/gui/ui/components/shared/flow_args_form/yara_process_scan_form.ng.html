@@ -1,0 +1,147 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()(flowType, flowArgs())">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>YARA rule</mat-label>
+    <textarea matInput
+      class="monospace w100"
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="15"
+      [formControl]="controls.yaraSignature"></textarea>
+    <button matIconButton
+      matSuffix
+      type="button"
+      matTooltip="YARA documentation"
+      (click)="openLinkInNewTab('https://yara.readthedocs.io/en/stable/writingrules.html')"
+    >
+      <mat-icon>help_outline</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <h5>Match: </h5>
+  <mat-button-toggle-group appearance="standard" [formControl]="controls.filterMode">
+    <mat-button-toggle [value]="filterMode.PID">PID</mat-button-toggle>
+    <mat-button-toggle [value]="filterMode.NAME">Name</mat-button-toggle>
+    <mat-button-toggle [value]="filterMode.CMDLINE">Cmdline</mat-button-toggle>
+    <mat-button-toggle [value]="filterMode.ALL">All</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (controls.filterMode.value === filterMode.PID) {
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>Filter comma-separated process IDs</mat-label>
+      <input matInput
+        commaSeparatedNumberInput
+        placeholder="1, 42, 123"
+        [formControl]="controls.pids"
+        autocomplete="off"
+      />
+      <mat-error>
+        <form-errors [validationErrors]="controls.pids.errors" />
+      </mat-error>
+    </mat-form-field>
+  }
+
+  @if (controls.filterMode.value === filterMode.NAME) {
+    <mat-form-field appearance="outline" class="w100" >
+      <mat-label>Filter processes matchining regex</mat-label>
+      <input matInput
+        class="monospace"
+        [formControl]="controls.processRegex"
+        placeholder="python\d?"
+        autocomplete="off"
+      />
+      <button matIconButton
+        matSuffix
+        type="button"
+        matTooltip="Python regex docs"
+        (click)="openLinkInNewTab('https://docs.python.org/3/library/re.html')"
+      >
+        <mat-icon>help_outline</mat-icon>
+      </button>
+    </mat-form-field>
+  }
+
+  @if (controls.filterMode.value === filterMode.CMDLINE) {
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>Filter processes matching commandline</mat-label>
+      <input
+        matInput
+        placeholder="python.* -m"
+        [formControl]="controls.cmdlineRegex"
+        class="monospace"
+        name="cmdlineRegex"
+        autocomplete="off"
+      />
+      <button matIconButton
+        matSuffix
+        type="button"
+        matTooltip="Python regex docs"
+        (click)="openLinkInNewTab('https://docs.python.org/3/library/re.html')"
+      >
+        <mat-icon>help_outline</mat-icon>
+      </button>
+    </mat-form-field>
+  }
+
+  @if (controls.filterMode.value === filterMode.ALL) {
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>All processes, except the GRR process.</mat-label>
+      <input matInput
+        disabled
+        autocomplete="off"
+      />
+    </mat-form-field>
+  }
+
+  <h5>Context capture window:</h5>
+  <mat-form-field appearance="outline">
+    <mat-label>Window size</mat-label>
+    <input matInput
+      byteInput
+      placeholder="50 B"
+      [formControl]="controls.contextWindow"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-hint>
+      Window size: {{ controls.contextWindow.value | number }} bytes.
+    </mat-hint>
+    <mat-error>
+      <form-errors [validationErrors]="controls.contextWindow.errors" />
+    </mat-error>
+  </mat-form-field>
+
+  <h5>Skip memory regions:</h5>
+  <mat-checkbox
+    [formControl]="controls.skipReadonlyRegions"
+    matTooltip="Skip memory regions that are NOT WRITABLE."
+    name="skipReadonlyRegions"
+    >readonly</mat-checkbox
+  >
+  <mat-checkbox
+    [formControl]="controls.skipExecutableRegions"
+    matTooltip="Skip memory regions that are EXECUTABLE."
+    name="skipExecutableRegions"
+    >executable</mat-checkbox
+  >
+  <mat-checkbox
+    [formControl]="controls.skipSpecialRegions"
+    matTooltip="On Windows, skip device backed regions (NOCACHE, WRITECOMBINE) and guard pages."
+    name="skipSpecialRegions"
+    >special</mat-checkbox
+  >
+  <mat-checkbox
+    [formControl]="controls.skipSharedRegions"
+    matTooltip="On Linux and macOS, skip device shared regions."
+    name="skipSharedRegions"
+    >shared</mat-checkbox
+  >
+  <mat-checkbox
+    [formControl]="controls.skipMappedFiles"
+    matTooltip="On Linux, skip mapped files."
+    name="skipMappedFiles"
+    >mapped files</mat-checkbox
+  >
+
+  @if (editable()) {
+    <submit-button [enabled]="isValid()" />
+  }
+</form>

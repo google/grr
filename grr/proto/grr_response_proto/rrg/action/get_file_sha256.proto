@@ -1,0 +1,43 @@
+// Copyright 2023-2025 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_file_sha256;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // Absolute path to the file to get the SHA-256 hash of.
+  rrg.fs.Path path = 1;
+
+  // Byte offset from which the content should be hashed.
+  //
+  // If unset, hashes from the beginning of the file.
+  uint64 offset = 2;
+
+  // Number of bytes to hash (from the start offset).
+  //
+  // This is value serves as an upper bound: if the file is shorter than the
+  // specified length, only bytes that actually exist are going to be hashed.
+  //
+  // If unset, hashes until the end of the file.
+  uint64 length = 3;
+}
+
+message Result {
+  // Absolute path of the file this result corresponds to.
+  rrg.fs.Path path = 1;
+
+  // Byte offset from which the file content was hashed.
+  uint64 offset = 2;
+
+  // Number of bytes of the file used to produce the hash.
+  uint64 length = 3;
+
+  // SHA-256 [1] hash digest of the file content.
+  //
+  // [1]: https://en.wikipedia.org/wiki/SHA-2
+  bytes sha256 = 4;
+}

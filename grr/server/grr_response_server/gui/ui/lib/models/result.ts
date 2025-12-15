@@ -1,19 +1,40 @@
-import {ApiHuntError, ApiHuntResult} from '../api/api_interfaces';
-
-import {HexHash} from './flow';
-
 /** PayloadType maps types of result payloads. */
 export enum PayloadType {
-  API_HUNT_RESULT = 'ApiHuntResult',
-  CLIENT_SUMMARY = 'ClientSummary',
-  COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
-  FILE_FINDER_RESULT = 'FileFinderResult',
-  KNOWLEDGE_BASE = 'KnowledgeBase',
-  STAT_ENTRY = 'StatEntry',
-  USER = 'User',
   API_HUNT_ERROR = 'ApiHuntError',
+  API_HUNT_RESULT = 'ApiHuntResult',
+  BYTES_VALUE = 'BytesValue',
+  CLIENT_SNAPSHOT = 'ClientSnapshot',
+  COLLECT_BROWSER_HISTORY_RESULT = 'CollectBrowserHistoryResult',
+  COLLECT_DISTRO_INFO_RESULT = 'CollectDistroInfoResult',
+  COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
+  COLLECT_LARGE_FILE_FLOW_RESULT = 'CollectLargeFileFlowResult',
+  COLLECT_MULTIPLE_FILES_RESULT = 'CollectMultipleFilesResult',
+  COLLECT_CLOUD_VM_METADATA_RESULT = 'CollectCloudVMMetadataResult',
+  DICT = 'Dict',
   EXECUTE_BINARY_RESPONSE = 'ExecuteBinaryResponse',
   EXECUTE_PYTHON_HACK_RESULT = 'ExecutePythonHackResult',
+  EXECUTE_RESPONSE = 'ExecuteResponse',
+  FILE_FINDER_RESULT = 'FileFinderResult',
+  GET_CROWDSTRIKE_AGENT_ID_RESULT = 'GetCrowdstrikeAgentIdResult',
+  GET_MEMORY_SIZE_RESULT = 'GetMemorySizeResult',
+  HARDWARE_INFO = 'HardwareInfo',
+  KNOWLEDGE_BASE = 'KnowledgeBase',
+  LIST_CONTAINERS_FLOW_RESULT = 'ListContainersFlowResult',
+  LIST_NAMED_PIPES_FLOW_RESULT = 'ListNamedPipesFlowResult',
+  NETWORK_CONNECTION = 'NetworkConnection',
+  OSQUERY_RESULT = 'OsqueryResult',
+  OSX_SERVICE_INFORMATION = 'OsxServiceInformation',
+  PROCESS = 'Process',
+  PROCESS_MEMORY_ERROR = 'ProcessMemoryError',
+  READ_LOW_LEVEL_FLOW_RESULT = 'ReadLowLevelFlowResult',
+  SOFTWARE_PACKAGES = 'SoftwarePackages',
+  STAT_ENTRY = 'StatEntry',
+  STENOGRAPHER_UPLOAD_FLOW_RESULT = 'StenographerUploadFlowResult',
+  TIMELINE_RESULT = 'TimelineResult',
+  USER = 'User',
+  YARA_PROCESS_DUMP_RESPONSE = 'YaraProcessDumpResponse',
+  YARA_PROCESS_SCAN_MATCH = 'YaraProcessScanMatch',
+  YARA_PROCESS_SCAN_MISS = 'YaraProcessScanMiss',
 }
 
 /**
@@ -24,175 +45,83 @@ export function typeUrlToPayloadType(
 ): PayloadType | undefined {
   const typeName = typeUrl?.split('.').pop();
   switch (typeName) {
-    case 'ApiHuntResult':
-      return PayloadType.API_HUNT_RESULT;
-    case 'ClientSummary':
-      return PayloadType.CLIENT_SUMMARY;
-    case 'CollectFilesByKnownPathResult':
-      return PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT;
-    case 'FileFinderResult':
-      return PayloadType.FILE_FINDER_RESULT;
-    case 'KnowledgeBase':
-      return PayloadType.KNOWLEDGE_BASE;
-    case 'StatEntry':
-      return PayloadType.STAT_ENTRY;
-    case 'User':
-      return PayloadType.USER;
     case 'ApiHuntError':
       return PayloadType.API_HUNT_ERROR;
+    case 'ApiHuntResult':
+      return PayloadType.API_HUNT_RESULT;
+    case 'ClientSnapshot':
+      return PayloadType.CLIENT_SNAPSHOT;
+    case 'CollectBrowserHistoryResult':
+      return PayloadType.COLLECT_BROWSER_HISTORY_RESULT;
+    case 'CollectFilesByKnownPathResult':
+      return PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT;
+    case 'CollectLargeFileFlowResult':
+      return PayloadType.COLLECT_LARGE_FILE_FLOW_RESULT;
+    case 'CollectMultipleFilesResult':
+      return PayloadType.COLLECT_MULTIPLE_FILES_RESULT;
+    case 'CollectDistroInfoResult':
+      return PayloadType.COLLECT_DISTRO_INFO_RESULT;
+    case 'CollectCloudVMMetadataResult':
+      return PayloadType.COLLECT_CLOUD_VM_METADATA_RESULT;
     case 'ExecuteBinaryResponse':
       return PayloadType.EXECUTE_BINARY_RESPONSE;
     case 'ExecutePythonHackResult':
       return PayloadType.EXECUTE_PYTHON_HACK_RESULT;
+    case 'ExecuteResponse':
+      return PayloadType.EXECUTE_RESPONSE;
+    case 'FileFinderResult':
+      return PayloadType.FILE_FINDER_RESULT;
+    case 'GetCrowdstrikeAgentIdResult':
+      return PayloadType.GET_CROWDSTRIKE_AGENT_ID_RESULT;
+    case 'GetMemorySizeResult':
+      return PayloadType.GET_MEMORY_SIZE_RESULT;
+    case 'HardwareInfo':
+      return PayloadType.HARDWARE_INFO;
+    case 'KnowledgeBase':
+      return PayloadType.KNOWLEDGE_BASE;
+    case 'ListContainersFlowResult':
+      return PayloadType.LIST_CONTAINERS_FLOW_RESULT;
+    case 'ListNamedPipesFlowResult':
+      return PayloadType.LIST_NAMED_PIPES_FLOW_RESULT;
+    case 'NetworkConnection':
+      return PayloadType.NETWORK_CONNECTION;
+    case 'OsqueryResult':
+      return PayloadType.OSQUERY_RESULT;
+    case 'OsxServiceInformation':
+      return PayloadType.OSX_SERVICE_INFORMATION;
+    case 'Process':
+      return PayloadType.PROCESS;
+    case 'ProcessMemoryError':
+      return PayloadType.PROCESS_MEMORY_ERROR;
+    case 'ReadLowLevelFlowResult':
+      return PayloadType.READ_LOW_LEVEL_FLOW_RESULT;
+    case 'SoftwarePackages':
+      return PayloadType.SOFTWARE_PACKAGES;
+    case 'StatEntry':
+      return PayloadType.STAT_ENTRY;
+    case 'StenographerUploadFlowResult':
+      return PayloadType.STENOGRAPHER_UPLOAD_FLOW_RESULT;
+    case 'TimelineResult':
+      return PayloadType.TIMELINE_RESULT;
+    case 'User':
+      return PayloadType.USER;
+    case 'YaraProcessDumpResponse':
+      return PayloadType.YARA_PROCESS_DUMP_RESPONSE;
+    case 'YaraProcessScanMatch':
+      return PayloadType.YARA_PROCESS_SCAN_MATCH;
+    case 'YaraProcessScanMiss':
+      return PayloadType.YARA_PROCESS_SCAN_MISS;
     default:
       return undefined;
   }
 }
 
 /**
- * Component describes which component that will be used to render the
- * cell contents.
+ * CollectionResult represents a single collection result.
  */
-// TODO: Expand CellComponent enum types.
-export enum CellComponent {
-  DEFAULT,
-  DRAWER_LINK,
-  FILE_MODE,
-  HASH,
-  HUMAN_READABLE_SIZE,
-  TIMESTAMP, // Takes in a Date object (see ComponentToType below)
-  TRACE,
-  USERNAME,
-}
-
-/** ClientHuntFlow describes the hunt's flow result for a client. */
-export declare interface ClientHuntFlow {
-  clientId?: string;
-  flowId?: string;
-  resultData?: unknown; // ApiHuntResult import creates a circular
-}
-
-/**
- * ComponentToType maps CellComponent values to types that represent them. This
- * allows us to know the TS type of an object property based on its
- * corresponding CellComponent.
- */
-// TODO: Expand CellComponent enum types.
-export declare interface ComponentToType {
-  [CellComponent.DEFAULT]: string | number | undefined;
-  [CellComponent.DRAWER_LINK]: string[] | undefined;
-  [CellComponent.FILE_MODE]: bigint | undefined;
-  [CellComponent.HASH]: HexHash | undefined;
-  [CellComponent.HUMAN_READABLE_SIZE]: bigint | undefined;
-  [CellComponent.TIMESTAMP]: Date | undefined;
-  [CellComponent.TRACE]: string | undefined;
-  [CellComponent.USERNAME]: string | undefined;
-}
-
-/**
- * ColumnDescriptor describes a column by its title and corresponding cell type
- * to render results.
- */
-export declare interface ColumnDescriptor {
-  title?: string;
-  component?: CellComponent;
-}
-
-/**
- * ColumnDescriptorHasComponent is used as an auxiliary interface in the
- * CellData type definition below. It is used to describe a ColumnDescriptor
- * which has the `component` property set (not optional).
- */
-export declare interface ColumnDescriptorHasComponent {
-  component: CellComponent;
-}
-
-/**
- * CellData declares a type that maps the keys of T to its corresponding TS
- * type. For this, it uses ComponentToType map and, based on the CellComponent
- * for a particular key, translates it into the corresponding type.
- *
- * For example, given the following `MY_OBJ` definition:
- * const MY_OBJ = {
- *  'prop1': {},
- *  'prop2': {component: CellComponent.TIMESTAMP},
- * }
- * the corresponding `CellData` vefiries that:
- * - the keys are of type 'prop1'|'prop2'
- * - the corresponding type for each comes from the ComponentToType mapping.
- *   'prop1': string | number | undefined;
- *       comes from: [CellComponent.DEFAULT]: string|number|undefined;
- *   'prop2': Date | undefined;
- *        comes from: [CellComponent.TIMESTAMP]: Date|undefined;
- */
-export declare type CellData<T extends {[key: string]: ColumnDescriptor}> = {
-  [key in keyof T]: ComponentToType[T[key] extends ColumnDescriptorHasComponent
-    ? T[key]['component']
-    : CellComponent.DEFAULT];
-};
-
-/**
- * PayloadTranslation describes the collection of metadata used to translate a
- * given PayloadType into rederable information.
- */
-export declare interface PayloadTranslation<
-  T extends {[key: string]: ColumnDescriptor},
-> {
-  translateFn(...args: unknown[]): CellData<T>;
-  columns: T;
-  tabName: string;
-}
-
-/**
- * HuntResultsTableTabConfig configures the tabs/tables to be displayed for
- * each Hunt Result type.
- */
-export declare interface HuntResultsTableTabConfig {
-  tabName: string;
-  totalResultsCount: number;
-  payloadType: PayloadType;
-}
-
-/** Union of Hunt Results and Hunt Errors in a single type */
-export declare type HuntResultOrError = ApiHuntResult | ApiHuntError;
-
-/** ResultKey describes the primary keys for a Result */
-export declare interface ResultKey {
-  clientId: string;
-  flowId: string;
-  timestamp: string;
-}
-
-/**
- * TypedHuntResultOrError is used as an auxiliary type in the Hunt Page
- * Component tree when emitting the selected Hunt Result to parent components.
- */
-export declare interface TypedHuntResultOrError {
-  value: HuntResultOrError;
-  payloadType: PayloadType;
-}
-
-/** Character that separates the different parts of a stringified ResultKey */
-export const RESULT_KEY_SEPARATOR = '-';
-
-/**
- * Transforms a ResultKey into a string representation of it to be used for
- * indexing/representing results.
- */
-export function toResultKeyString(r: ResultKey): string {
-  return `${r.clientId}${RESULT_KEY_SEPARATOR}${r.flowId}${RESULT_KEY_SEPARATOR}${r.timestamp}`;
-}
-
-/**
- * Breaks down a string representation of a ResultKey, returning an object with
- * the individual parts.
- */
-export function toResultKey(s: string): ResultKey {
-  const parts = s.split(RESULT_KEY_SEPARATOR);
-  if (parts.length !== 3) {
-    throw new Error(
-      `Error parsing result key "${s}": got length ${parts.length}; expected 3`,
-    );
-  }
-  return {clientId: parts[0], flowId: parts[1], timestamp: parts[2]};
+export interface CollectionResult {
+  readonly clientId: string;
+  readonly payloadType: PayloadType | undefined;
+  readonly payload: unknown;
+  readonly timestamp: Date;
 }

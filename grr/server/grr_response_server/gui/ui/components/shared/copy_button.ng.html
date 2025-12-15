@@ -1,0 +1,25 @@
+<button mat-button
+  (click)="triggerCopy($event)"
+  [matTooltip]="tooltip()"
+  [matTooltipDisabled]="tooltip() == null"
+  (mouseenter)="showCopyIcon()"
+  (mouseleave)="hideCopyIcon()"
+  (onfocus)="showCopyIcon()"
+  (onfocusout)="hideCopyIcon()">
+  <mat-icon
+      iconPositionEnd
+      [class]="{'hideIcon': !showIcon}"
+      aria-hidden="false"
+      aria-label="Copy icon"
+  >
+    @if (copied) {
+      check
+    } @else {
+      content_copy
+    }
+  </mat-icon>
+  <div class="content-container" [ngClass]="{'multiline': multiline}">
+    <span #copyContents class="content"><ng-content></ng-content></span>
+  </div>
+</button>
+

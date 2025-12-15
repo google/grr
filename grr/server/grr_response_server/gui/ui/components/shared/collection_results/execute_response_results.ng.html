@@ -1,0 +1,28 @@
+
+@for (collectionResult of collectionResults(); track collectionResult; let i = $index) {
+  @if (isHuntResult(collectionResult)) {
+    <p class="client-id">Client ID: <copy-button>{{collectionResult.clientId}}</copy-button></p>
+  }
+  @let result = executeResponseResultFromCollectionResult(collectionResult);
+  <div class="result">
+    <p>
+      <strong>cmd:</strong>
+      <span class="cmd_{{i}} monospace">{{result.request.cmd}} {{result.request.args.join(" ")}}</span>
+    </p>
+    <p>
+      <strong>exit code:</strong>
+      <span class="exit-status_{{i}} monospace">{{result.exitStatus}}</span>
+    </p>
+    <p>
+      <strong>stdout:</strong>
+    </p>
+    <pre class="stdout_{{i}}">{{result.stdout}}</pre>
+
+      @if (result.stderr) {
+      <p>
+        <strong>stderr:</strong>
+      </p>
+      <pre class="stderr_{{i}}">{{result.stderr}}</pre>
+    }
+  </div>
+}

@@ -4,13 +4,15 @@
 # DISABLED for now until it gets converted to artifacts.
 
 import collections
+from collections.abc import Iterator
 import os
-from typing import Iterator, cast
+from typing import cast
 
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server.databases import db
@@ -22,12 +24,6 @@ class CollectBrowserHistoryArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectBrowserHistory."""
 
   protobuf = flows_pb2.CollectBrowserHistoryArgs
-
-
-# Working around the RDFStructs limitation: the only way to use a top-level
-# enum is to reference it through the class that has a field of that enum's
-# type.
-Browser = CollectBrowserHistoryArgs.Browser
 
 
 class CollectBrowserHistoryResult(rdf_structs.RDFProtoStruct):
@@ -51,21 +47,33 @@ class CollectBrowserHistoryProgress(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CollectBrowserHistoryProgress
   rdf_deps = [BrowserProgress]
 
-  @property
-  def has_errors(self) -> bool:
-    return any(i.status == BrowserProgress.Status.ERROR for i in self.browsers)
 
-  @property
-  def errors_summary(self) -> str:
-    summary = []
-    for item in self.browsers:
-      if item.status == BrowserProgress.Status.ERROR:
-        summary.append(f"{item.browser.name}: {item.description}")
-
-    return "\n".join(summary)
+def _HasErrors(progress: flows_pb2.CollectBrowserHistoryProgress) -> bool:
+  return any(
+      i.status == flows_pb2.BrowserProgress.Status.ERROR
+      for i in progress.browsers
+  )
 
 
-class CollectBrowserHistory(flow_base.FlowBase):
+def _ErrorsSummary(
+    progress: flows_pb2.CollectBrowserHistoryProgress,
+) -> list[str]:
+  summary = []
+  for item in progress.browsers:
+    if item.status == flows_pb2.BrowserProgress.Status.ERROR:
+      summary.append(
+          f"{flows_pb2.Browser.Name(item.browser)}: {item.description}"
+      )
+  return summary
+
+
+class CollectBrowserHistory(
+    flow_base.FlowBase[
+        flows_pb2.CollectBrowserHistoryArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.CollectBrowserHistoryProgress,
+    ]
+):
   """Convenience Flow to collect browser history artifacts."""
 
   friendly_name = "Browser History"
@@ -75,19 +83,32 @@ class CollectBrowserHistory(flow_base.FlowBase):
   result_types = (CollectBrowserHistoryResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
+  proto_args_type = flows_pb2.CollectBrowserHistoryArgs
+  proto_progress_type = flows_pb2.CollectBrowserHistoryProgress
+  proto_result_types = (flows_pb2.CollectBrowserHistoryResult,)
+
+  only_protos_allowed = True
+
   BROWSER_TO_ARTIFACTS_MAP = {
-      Browser.CHROMIUM_BASED_BROWSERS: ["ChromiumBasedBrowsersHistory"],
-      Browser.FIREFOX: ["FirefoxHistory"],
-      Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
-      Browser.OPERA: ["OperaHistoryFile"],
-      Browser.SAFARI: ["SafariHistory"],
+      flows_pb2.Browser.CHROMIUM_BASED_BROWSERS: [
+          "ChromiumBasedBrowsersHistoryDatabaseFile"
+      ],
+      flows_pb2.Browser.FIREFOX: ["FirefoxHistory"],
+      flows_pb2.Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
+      flows_pb2.Browser.OPERA: ["OperaHistoryFile"],
+      flows_pb2.Browser.SAFARI: ["SafariHistory"],
   }
 
   def GetProgress(self) -> CollectBrowserHistoryProgress:
-    if hasattr(self.state, "progress"):
-      return self.state.progress
-    return CollectBrowserHistoryProgress()
+    # The mig_webhistory module cannot be imported here (circular dep).
+    return CollectBrowserHistoryProgress.FromSerializedBytes(
+        self.progress.SerializeToString()
+    )
 
+  def GetProgressProto(self) -> flows_pb2.CollectBrowserHistoryProgress:
+    return self.progress
+
+  # TODO: Remove/update this method to use protos.
   def GetFilesArchiveMappings(
       self, flow_results: Iterator[rdf_flow_objects.FlowResult]
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
@@ -114,7 +135,7 @@ class CollectBrowserHistory(flow_base.FlowBase):
     if not self.args.browsers:
       raise flow_base.FlowError("Need to collect at least one type of history.")
 
-    if Browser.UNDEFINED in self.args.browsers:
+    if flows_pb2.Browser.UNDEFINED in self.args.browsers:
       raise flow_base.FlowError("UNDEFINED is not a valid browser type to use.")
 
     if len(self.args.browsers) != len(set(self.args.browsers)):
@@ -122,68 +143,77 @@ class CollectBrowserHistory(flow_base.FlowBase):
           "Duplicate browser entries are not allowed in the arguments."
       )
 
-    self.state.progress = CollectBrowserHistoryProgress()
+    self.progress = flows_pb2.CollectBrowserHistoryProgress()
 
     # Start a sub-flow for every browser to split results and progress in
     # the user interface more cleanly.
-    for browser in self.args.browsers:
-      flow_id = self.CallFlow(
+    for browser in self.proto_args.browsers:
+      flow_id = self.CallFlowProto(
           collectors.ArtifactCollectorFlow.__name__,
-          flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+          flow_args=flows_pb2.ArtifactCollectorFlowArgs(
               artifact_list=self.BROWSER_TO_ARTIFACTS_MAP[browser],
           ),
           request_data={"browser": browser},
           next_state=self.ProcessArtifactResponses.__name__,
       )
-      self.state.progress.browsers.append(
-          BrowserProgress(
+      self.progress.browsers.append(
+          flows_pb2.BrowserProgress(
               browser=browser,
-              status=BrowserProgress.Status.IN_PROGRESS,
+              status=flows_pb2.BrowserProgress.Status.IN_PROGRESS,
               flow_id=flow_id,
           )
       )
 
+  @flow_base.UseProto2AnyResponses
   def ProcessArtifactResponses(
       self,
-      responses: flow_responses.Responses[rdf_client_fs.StatEntry],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
 
-    browser = Browser.FromInt(responses.request_data["browser"])
-    for bp in self.state.progress.browsers:
+    browser: flows_pb2.Browser = responses.request_data["browser"]
+    for bp in self.progress.browsers:
       if bp.browser != browser:
         continue
 
       if not responses.success:
-        bp.status = BrowserProgress.Status.ERROR
-        bp.description = responses.status.error_message
+        bp.status = flows_pb2.BrowserProgress.Status.ERROR
+        if responses.status:
+          bp.description = responses.status.error_message
       else:
-        bp.status = BrowserProgress.Status.SUCCESS
+        bp.status = flows_pb2.BrowserProgress.Status.SUCCESS
         bp.num_collected_files = len(responses)
 
       break
 
-    for response in responses:
-      self.SendReply(
-          CollectBrowserHistoryResult(browser=browser, stat_entry=response),
-          tag=browser.name,
+    for response_any in responses:
+      stat_entry = jobs_pb2.StatEntry()
+      stat_entry.ParseFromString(response_any.value)
+      self.SendReplyProto(
+          flows_pb2.CollectBrowserHistoryResult(
+              browser=browser,
+              stat_entry=stat_entry,
+          ),
+          tag=flows_pb2.Browser.Name(browser),
       )
 
   def End(self) -> None:
-    p = self.GetProgress()
-    if p.has_errors:
+    p = self.GetProgressProto()
+    if _HasErrors(p):
       raise flow_base.FlowError(
-          f"Errors were encountered during collection: {p.errors_summary}"
+          f"Errors were encountered during collection: {_ErrorsSummary(p)}"
       )
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
+    """Returns default args for this flow."""
+    del username  # Unused.
     return CollectBrowserHistoryArgs(
         browsers=[
-            Browser.CHROMIUM_BASED_BROWSERS,
-            Browser.FIREFOX,
-            Browser.INTERNET_EXPLORER,
-            Browser.OPERA,
-            Browser.SAFARI,
+            flows_pb2.Browser.CHROMIUM_BASED_BROWSERS,
+            flows_pb2.Browser.FIREFOX,
+            flows_pb2.Browser.INTERNET_EXPLORER,
+            flows_pb2.Browser.OPERA,
+            flows_pb2.Browser.SAFARI,
         ]
     )
 

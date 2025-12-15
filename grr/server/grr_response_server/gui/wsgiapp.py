@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """GRR HTTP server implementation."""
 
-import base64
-import hashlib
-import hmac
 import ipaddress
 import logging
 import os
@@ -13,20 +10,18 @@ import ssl
 import string
 from wsgiref import simple_server
 
-from cryptography.hazmat.primitives import constant_time
 import jinja2
-import psutil
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
 from werkzeug import wsgi as werkzeug_wsgi
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import precondition
 from grr_response_server import server_logging
 from grr_response_server.gui import admin_ui_metrics
 from grr_response_server.gui import csp
+from grr_response_server.gui import csrf
+from grr_response_server.gui import csrf_registry
 from grr_response_server.gui import http_api
 from grr_response_server.gui import http_request
 from grr_response_server.gui import http_response
@@ -43,88 +38,9 @@ except ImportError:
   from werkzeug.middleware.dispatcher import DispatcherMiddleware
 # pylint: enable=g-import-not-at-top
 
-CSRF_DELIMITER = b":"
-CSRF_TOKEN_DURATION = rdfvalue.Duration.From(10, rdfvalue.HOURS)
-
-
-def GenerateCSRFToken(user_id, time):
-  """Generates a CSRF token based on a secret key, id and time."""
-  precondition.AssertType(user_id, str)
-  precondition.AssertOptionalType(time, int)
-
-  time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
-
-  secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
-  if secret is None:
-    raise ValueError("CSRF secret not available.")
-  digester = hmac.new(secret.encode("ascii"), digestmod=hashlib.sha256)
-  digester.update(user_id.encode("ascii"))
-  digester.update(CSRF_DELIMITER)
-  digester.update(str(time).encode("ascii"))
-  digest = digester.digest()
-
-  token = base64.urlsafe_b64encode(b"%s%s%d" % (digest, CSRF_DELIMITER, time))
-  return token.rstrip(b"=")
-
-
-def StoreCSRFCookie(user, response):
-  """Decorator for WSGI handler that inserts CSRF cookie into response."""
-
-  csrf_token = GenerateCSRFToken(user, None)
-  response.set_cookie(
-      "csrftoken",
-      csrf_token,
-      max_age=CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS),
-  )
-
-
-def ValidateCSRFTokenOrRaise(request):
-  """Decorator for WSGI handler that checks CSRF cookie against the request."""
-
-  # CSRF check doesn't make sense for GET/HEAD methods, because they can
-  # (and are) used when downloading files through <a href> links - and
-  # there's no way to set X-CSRFToken header in this case.
-  if request.method in ("GET", "HEAD"):
-    return
-
-  # In the ideal world only JavaScript can be used to add a custom header, and
-  # only within its origin. By default, browsers don't allow JavaScript to
-  # make cross origin requests.
-  #
-  # Unfortunately, in the real world due to bugs in browsers plugins, it can't
-  # be guaranteed that a page won't set an HTTP request with a custom header
-  # set. That's why we also check the contents of a header via an HMAC check
-  # with a server-stored secret.
-  #
-  # See for more details:
-  # https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet
-  # (Protecting REST Services: Use of Custom Request Headers).
-  csrf_token = request.headers.get("X-CSRFToken", "").encode("ascii")
-  if not csrf_token:
-    logging.info("Did not find headers CSRF token for: %s", request.path)
-    raise werkzeug_exceptions.Forbidden("CSRF token is missing")
-
-  try:
-    decoded = base64.urlsafe_b64decode(csrf_token + b"==")
-    digest, token_time = decoded.rsplit(CSRF_DELIMITER, 1)
-    token_time = int(token_time)
-  except (TypeError, ValueError):
-    logging.info("Malformed CSRF token for: %s", request.path)
-    raise werkzeug_exceptions.Forbidden("Malformed CSRF token")
-
-  if len(digest) != hashlib.sha256().digest_size:
-    logging.info("Invalid digest size for: %s", request.path)
-    raise werkzeug_exceptions.Forbidden("Malformed CSRF token digest")
-
-  expected = GenerateCSRFToken(request.user, token_time)
-  if not constant_time.bytes_eq(csrf_token, expected):
-    logging.info("Non-matching CSRF token for: %s", request.path)
-    raise werkzeug_exceptions.Forbidden("Non-matching CSRF token")
-
-  current_time = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
-  if current_time - token_time > CSRF_TOKEN_DURATION.microseconds:
-    logging.info("Expired CSRF token for: %s", request.path)
-    raise werkzeug_exceptions.Forbidden("Expired CSRF token")
+GOOGLEFONT_OVERRIDE_STATIC_SERVING_PATH = (
+    "/dist/v2/googlefonts/googlefonts_override.css"
+)
 
 
 def LogAccessWrapper(func):
@@ -158,13 +74,6 @@ class AdminUIApp(object):
 
   def __init__(self):
     self.routing_map = werkzeug_routing.Map()
-    self.routing_map.add(
-        werkzeug_routing.Rule(
-            "/legacy",
-            methods=["HEAD", "GET"],
-            endpoint=EndpointWrapper(self._HandleLegacyHomepage),
-        )
-    )
 
     self.routing_map.add(
         werkzeug_routing.Rule(
@@ -176,7 +85,7 @@ class AdminUIApp(object):
 
     self.routing_map.add(
         werkzeug_routing.Rule(
-            "/api/<path:path>",
+            "/api/v2/<path:path>",
             methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"],
             endpoint=EndpointWrapper(self._HandleApi),
         )
@@ -198,12 +107,10 @@ class AdminUIApp(object):
           )
       )
 
+    self.csrf_token_generator = csrf_registry.CreateCSRFTokenGenerator()
+
   def _BuildRequest(self, environ):
     return http_request.HttpRequest(environ)
-
-  def _HandleLegacyHomepage(self, request):
-    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["legacy"])
-    return self._HandleHomepageV1(request)
 
   def _HandleDefaultHomepage(self, request):
     admin_ui_metrics.WSGI_ROUTE.Increment(fields=["default"])
@@ -213,58 +120,23 @@ class AdminUIApp(object):
     admin_ui_metrics.WSGI_ROUTE.Increment(fields=["v2"])
     return self._HandleHomepageV2(request)
 
-  def _HandleHomepageV1(self, request):
-    """Renders GRR home page by rendering base.html Jinja template."""
-
-    _ = request
-
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
-        autoescape=True,
-    )
-
-    create_time = psutil.Process(os.getpid()).create_time()
-    template_context = {
-        "heading": config.CONFIG["AdminUI.heading"],
-        "report_url": config.CONFIG["AdminUI.report_url"],
-        "help_url": config.CONFIG["AdminUI.help_url"],
-        "timestamp": "%.2f" % create_time,
-        "use_precompiled_js": config.CONFIG["AdminUI.use_precompiled_js"],
-        # Used in conjunction with FirebaseWebAuthManager.
-        "firebase_api_key": config.CONFIG["AdminUI.firebase_api_key"],
-        "firebase_auth_domain": config.CONFIG["AdminUI.firebase_auth_domain"],
-        "firebase_auth_provider": config.CONFIG[
-            "AdminUI.firebase_auth_provider"
-        ],
-        "grr_version": config.CONFIG["Source.version_string"],
-    }
-    template = env.get_template("base.html")
-    response = http_response.HttpResponse(
-        template.render(template_context), mimetype="text/html"
-    )
-
-    # For a redirect-based Firebase authentication scheme we won't have any
-    # user information at this point - therefore checking if the user is
-    # present.
-    try:
-      StoreCSRFCookie(request.user, response)
-    except http_request.RequestHasNoUserError:
-      pass
-
-    return response
-
   def _HandleHomepageV2(self, request):
     """Renders GRR home page for the next-get UI (v2)."""
 
     is_development = contexts.DEBUG_CONTEXT in config.CONFIG.context
 
     context = {
-        "use_debug_bundle": is_development or request.args.get(
-            "use_debug_bundle", False
+        "use_debug_bundle": (
+            is_development or request.args.get("use_debug_bundle", False)
         ),
         "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
         "analytics_id": config.CONFIG["AdminUI.analytics_id"],
     }
+
+    if config.CONFIG["AdminUI.css_font_override"]:
+      context["googlefonts_override"] = (
+          "/static" + GOOGLEFONT_OVERRIDE_STATIC_SERVING_PATH
+      )
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
@@ -276,7 +148,7 @@ class AdminUIApp(object):
     )
 
     try:
-      StoreCSRFCookie(request.user, response)
+      csrf.StoreCSRFCookie(request.user, response, self.csrf_token_generator)
     except http_request.RequestHasNoUserError:
       pass
 
@@ -286,7 +158,7 @@ class AdminUIApp(object):
     """Handles API requests."""
     # Checks CSRF token. CSRF token cookie is updated when homepage is visited
     # or via GetPendingUserNotificationsCount API call.
-    ValidateCSRFTokenOrRaise(request)
+    csrf.ValidateCSRFTokenOrRaise(request, self.csrf_token_generator)
 
     response = http_api.RenderHttpResponse(request)
 
@@ -297,7 +169,7 @@ class AdminUIApp(object):
     if ("csrftoken" not in request.cookies) or response.headers.get(
         "X-API-Method", ""
     ) == "GetPendingUserNotificationsCount":
-      StoreCSRFCookie(request.user, response)
+      csrf.StoreCSRFCookie(request.user, response, self.csrf_token_generator)
 
     return response
 
@@ -352,11 +224,18 @@ window.location = '%s' + friendly_hash;
 
   def WSGIHandler(self):
     """Returns GRR's WSGI handler."""
+    sdm_dict = {
+        "/": config.CONFIG["AdminUI.document_root"],
+    }
+
+    if config.CONFIG["AdminUI.css_font_override"]:
+      sdm_dict[GOOGLEFONT_OVERRIDE_STATIC_SERVING_PATH] = config.CONFIG[
+          "AdminUI.css_font_override"
+      ]
+
     sdm = SharedDataMiddleware(
         self,
-        {
-            "/": config.CONFIG["AdminUI.document_root"],
-        },
+        sdm_dict,
     )
     # Use DispatcherMiddleware to make sure that SharedDataMiddleware is not
     # used at all if the URL path doesn't start with "/static". This is a
@@ -443,6 +322,7 @@ def MakeServer(host=None, port=None, max_port=None, multi_threaded=False):
     # may be used to authenticate web clients (therefore, it will be used to
     # create server-side sockets).
     context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert_file, key_file)
     server.socket = context.wrap_socket(
         server.socket,

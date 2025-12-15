@@ -2,14 +2,11 @@
 """A library of client action mocks for use in tests."""
 
 import collections
+from collections.abc import Iterator, Mapping, Sequence
 import io
 import itertools
 import os
-from typing import Iterator
-from typing import Mapping
 from typing import Optional
-from typing import Sequence
-from typing import Type
 
 from grr_response_client import actions
 from grr_response_client import client_actions
@@ -82,7 +79,7 @@ class ActionMock(object):
   @classmethod
   def With(
       cls,
-      registry: Mapping[str, Type[actions.ActionPlugin]],
+      registry: Mapping[str, type[actions.ActionPlugin]],
   ) -> "ActionMock":
     """Constructs an action mock that uses the provided action registry."""
     instance = cls()
@@ -228,14 +225,6 @@ class MemoryClientMock(ActionMock):
           self).__init__(standard.HashBuffer, standard.HashFile,
                          standard.GetFileStat, standard.TransferBuffer, *args,
                          **kwargs)
-
-
-class GetFileClientMock(ActionMock):
-
-  def __init__(self, *args, **kwargs):
-    super(GetFileClientMock,
-          self).__init__(standard.HashBuffer, standard.GetFileStat,
-                         standard.TransferBuffer, *args, **kwargs)
 
 
 class GetFileWithFailingStatClientMock(ActionMock):

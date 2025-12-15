@@ -1,0 +1,24 @@
+.artifact-option {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+ul, li {
+  list-style-type: none;
+}
+
+.artifact-name {
+  font-weight: bold;
+}
+
+.artifact-doc {
+  margin-top: 0.5em;
+  margin-left: 1.5em;
+}
+
+.artifact-descriptions {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

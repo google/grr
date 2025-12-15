@@ -1,7 +1,5 @@
 import * as d3 from 'd3';
 
-import {isNonNull, isNull} from '../preconditions';
-
 import {DEFAULT_PADDING_PX, PaddingConfiguration} from './padding';
 
 /** Data Structure defining a single data-point in the Line Chart */
@@ -237,7 +235,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   // There is currently no way of detecting the destruction of a "pure" Class
   // In JavaScript/TypeScript. Therefore we need to expose the following method:
   removeEventListeners(): void {
-    if (isNonNull(this.resizeObserver)) {
+    if (this.resizeObserver != null) {
       this.resizeObserver.disconnect();
     }
   }
@@ -453,7 +451,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
       d3
         .line<LineChartDatapoint>()
         // We filter out incomplete datapoints:
-        .defined((dp) => isNonNull(dp.x) && isNonNull(dp.y))
+        .defined((dp) => dp.x != null && dp.y != null)
         .x((dp) => this.xScale!(dp.x))
         .y((dp) => this.yScale!(dp.y))
     );
@@ -467,7 +465,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
       d3
         .area<LineChartDatapoint>()
         // We filter out incomplete datapoints:
-        .defined((dp) => isNonNull(dp.x) && isNonNull(dp.y))
+        .defined((dp) => dp.x != null && dp.y != null)
         .x((dp) => this.xScale!(dp.x))
         .y0(areaBottomBoundary)
         .y1((dp) => this.yScale!(dp.y))
@@ -492,7 +490,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
     containerElement: Element,
     config?: LineChartSizing,
   ): void {
-    if (isNonNull(config?.widthPx)) {
+    if (config?.widthPx != null) {
       this.chartWidthPx = config!.widthPx;
     } else {
       // If we don't specify a width explicitly, it will take the available one,
@@ -508,7 +506,7 @@ export class LineChart<LineChartDataset extends BaseLineChartDataset> {
   }
 
   private setChartPadding(padding?: PaddingConfiguration | number): void {
-    if (isNull(padding)) return;
+    if (padding === undefined) return;
 
     if (typeof padding === 'number') {
       this.chartPaddingPx = {

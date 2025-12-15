@@ -12,25 +12,45 @@ import {
   ForemanIntegerClientRuleOperator,
   ForemanLabelClientRuleMatchMode,
   ForemanRegexClientRuleForemanStringField,
-} from '../../lib/api/api_interfaces';
-import {Client, ClientApproval} from '../../lib/models/client';
-import {Approval} from '../../lib/models/user';
+} from '../api/api_interfaces';
 import {Duration} from '../date_time';
-
+import {Client, ClientApproval, ClientLabel, ClientSnapshot} from './client';
 import {
   ArtifactDescriptor,
   ArtifactDescriptorMap,
+  ArtifactSourceDescription,
+  Binary,
+  BinaryType,
   Flow,
   FlowDescriptor,
   FlowResult,
   FlowState,
+  FlowType,
+  ListFlowResultsResult,
   OperatingSystem,
   ScheduledFlow,
+  SourceType,
 } from './flow';
-import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from './hunt';
-import {OutputPluginDescriptor} from './output_plugin';
-import {GrrUser} from './user';
-import {File, PathSpec, PathSpecPathType, StatEntry} from './vfs';
+import {
+  Hunt,
+  HuntApproval,
+  HuntError,
+  HuntResult,
+  HuntState,
+  HuntType,
+  SafetyLimits,
+} from './hunt';
+import {OutputPluginDescriptor, OutputPluginType} from './output_plugin';
+import {Approval, GrrUser} from './user';
+import {
+  Directory,
+  DirectoryNode,
+  File,
+  FileContent,
+  PathSpec,
+  PathSpecPathType,
+  StatEntry,
+} from './vfs';
 
 function randomHex(length: number): string {
   let result = '';
@@ -55,6 +75,19 @@ export function newClient(args: Partial<Client> = {}): Client {
   };
 }
 
+export function newClientSnapshot(
+  args: Partial<ClientSnapshot> = {},
+): ClientSnapshot {
+  return {
+    clientId: 'C.1234567890',
+    knowledgeBase: {},
+    users: [],
+    networkInterfaces: [],
+    volumes: [],
+    ...args,
+  };
+}
+
 export function newFlow(args: Partial<Flow> = {}): Flow {
   return {
     flowId: randomHex(8),
@@ -62,6 +95,7 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     lastActiveAt: new Date(),
     startedAt: new Date(Date.now() - 60000),
     name: 'FileFinder',
+    flowType: FlowType.FILE_FINDER,
     creator: 'rsanchez',
     args: undefined,
     progress: undefined,
@@ -69,6 +103,9 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     errorDescription: args.errorDescription ?? undefined,
     resultCounts: args.resultCounts ?? undefined,
     isRobot: false,
+    nestedFlows: undefined,
+    context: undefined,
+    store: undefined,
     ...args,
   };
 }
@@ -81,6 +118,7 @@ export function newCollectLargeFileFlow(
     lastActiveAt: new Date(),
     startedAt: new Date(Date.now() - 60000),
     name: 'FileFinder',
+    flowType: FlowType.FILE_FINDER,
     creator: 'rsanchez',
     args: args.args,
     progress: undefined,
@@ -88,6 +126,9 @@ export function newCollectLargeFileFlow(
     errorDescription: args.errorDescription ?? undefined,
     resultCounts: args.resultCounts ?? undefined,
     isRobot: false,
+    nestedFlows: undefined,
+    context: undefined,
+    store: undefined,
     ...args,
   };
 }
@@ -119,6 +160,7 @@ export function newScheduledFlow(
     clientId: `C.${randomHex(16)}`,
     creator: 'rsanchez',
     flowName: 'FileFinder',
+    flowType: FlowType.FILE_FINDER,
     flowArgs: {},
     createTime: new Date(Date.now() - 60000),
     ...args,
@@ -154,10 +196,21 @@ export function newClientApproval(
 
 export function newFlowResult(result: Partial<FlowResult>): FlowResult {
   return {
-    payloadType: 'Foobar',
+    clientId: `C.${randomHex(16)}`,
+    payloadType: undefined,
     payload: {foobar: 42},
     tag: '',
     timestamp: new Date(),
+    ...result,
+  };
+}
+
+export function newListFlowResultsResult(
+  result: Partial<ListFlowResultsResult>,
+): ListFlowResultsResult {
+  return {
+    totalCount: 0,
+    results: [],
     ...result,
   };
 }
@@ -167,13 +220,23 @@ export function newArtifactDescriptor(
 ): ArtifactDescriptor {
   return {
     dependencies: [],
-    doc: 'Description of test artifact',
-    isCustom: false,
     name: 'TestAritfact',
     pathDependencies: [],
-    sources: [],
     supportedOs: new Set([OperatingSystem.LINUX]),
     urls: [],
+    sourceDescriptions: [],
+    artifacts: [],
+    ...args,
+  };
+}
+
+export function newArtifactSourceDescription(
+  args: Partial<ArtifactSourceDescription>,
+): ArtifactSourceDescription {
+  return {
+    type: SourceType.FILE,
+    collections: ['/foo/bar'],
+    supportedOs: new Set([OperatingSystem.LINUX]),
     ...args,
   };
 }
@@ -182,10 +245,9 @@ export function newOutputPluginDescriptor(
   args: Partial<OutputPluginDescriptor>,
 ): OutputPluginDescriptor {
   return {
-    name: 'PluginName',
+    pluginType: OutputPluginType.UNKNOWN,
+    friendlyName: '',
     description: 'Plugin description',
-    argsType: 'PluginArgs',
-    ...args,
   };
 }
 
@@ -233,8 +295,8 @@ export function newFile(file: Partial<File>): File {
 export function newGrrUser(user: Partial<GrrUser>): GrrUser {
   return {
     name: 'currentuser',
-    huntApprovalRequired: true,
     canaryMode: false,
+    isAdmin: false,
     ...user,
   };
 }
@@ -329,6 +391,26 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
   };
 }
 
+export function newHuntResult(result: Partial<HuntResult>): HuntResult {
+  return {
+    clientId: `C.${randomHex(16)}`,
+    payloadType: undefined,
+    payload: {},
+    timestamp: new Date(),
+    ...result,
+  };
+}
+
+export function newHuntError(error: Partial<HuntError>): HuntError {
+  return {
+    clientId: `C.${randomHex(16)}`,
+    timestamp: new Date(),
+    logMessage: undefined,
+    backtrace: undefined,
+    ...error,
+  };
+}
+
 export function newHuntApproval(
   args: Partial<HuntApproval> = {},
 ): HuntApproval {
@@ -343,6 +425,54 @@ export function newHuntApproval(
     requestedApprovers: ['rsanchez'],
     approvers: ['msan'],
     subject: newHunt({huntId, ...args.subject}),
+    ...args,
+  };
+}
+
+export function newFileContent(args: Partial<FileContent> = {}): FileContent {
+  return {
+    totalLength: BigInt(123),
+    ...args,
+  };
+}
+
+export function newDirectory(args: Partial<Directory> = {}): Directory {
+  return {
+    name: 'bar',
+    isDirectory: true,
+    path: 'fs/os/foo/bar',
+    pathtype: PathSpecPathType.OS,
+    ...args,
+  };
+}
+
+export function newDirectoryNode(
+  args: Partial<DirectoryNode> = {},
+): DirectoryNode {
+  return {
+    name: 'bar',
+    isDirectory: true,
+    path: 'fs/os/foo/bar',
+    pathtype: PathSpecPathType.OS,
+    loading: false,
+    ...args,
+  };
+}
+
+export function newBinary(args: Partial<Binary>): Binary {
+  return {
+    type: BinaryType.PYTHON_HACK,
+    path: 'windows/test/hello.py',
+    size: BigInt(1),
+    timestamp: new Date(123),
+    ...args,
+  };
+}
+
+export function newClientLabel(args: Partial<ClientLabel>): ClientLabel {
+  return {
+    owner: 'owner',
+    name: 'label_name',
     ...args,
   };
 }

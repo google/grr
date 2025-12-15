@@ -1,7 +1,5 @@
 import * as d3 from 'd3';
 
-import {isNonNull} from '../preconditions';
-
 import {
   DEFAULT_PADDING_PX,
   PaddingConfiguration,
@@ -54,7 +52,7 @@ export class ChartLegend {
     this.legendOrientation =
       this.configuration.orientation ?? DEFAULT_ORIENTATION;
 
-    if (isNonNull(this.configuration.padding)) {
+    if (this.configuration.padding != null) {
       if (typeof this.configuration.padding === 'number') {
         this.legendPaddingPx = {
           topPx: this.configuration.padding,

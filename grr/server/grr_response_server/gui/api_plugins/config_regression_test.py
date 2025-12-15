@@ -4,6 +4,7 @@
 from absl import app
 
 from grr_response_core.lib.rdfvalues import config as rdf_config
+from grr_response_proto.api import config_pb2 as api_config_pb2
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import config as config_plugin
 from grr_response_server.gui.api_plugins import config_test as config_plugin_test
@@ -37,12 +38,15 @@ class ApiGetGrrBinaryHandlerRegressionTest(
 
     self.Check(
         "GetGrrBinary",
-        args=config_plugin.ApiGetGrrBinaryArgs(type="PYTHON_HACK", path="test"),
+        args=api_config_pb2.ApiGetGrrBinaryArgs(
+            type=api_config_pb2.ApiGrrBinary.Type.PYTHON_HACK, path="test"
+        ),
     )
     self.Check(
         "GetGrrBinary",
-        args=config_plugin.ApiGetGrrBinaryArgs(
-            type="EXECUTABLE", path="windows/test.exe"
+        args=api_config_pb2.ApiGetGrrBinaryArgs(
+            type=api_config_pb2.ApiGrrBinary.Type.EXECUTABLE,
+            path="windows/test.exe",
         ),
     )
 
@@ -60,13 +64,13 @@ class ApiGetGrrBinaryBlobHandlerRegressionTest(
 
     self.Check(
         "GetGrrBinaryBlob",
-        args=config_plugin.ApiGetGrrBinaryBlobArgs(
+        args=api_config_pb2.ApiGetGrrBinaryBlobArgs(
             type="PYTHON_HACK", path="test"
         ),
     )
     self.Check(
         "GetGrrBinaryBlob",
-        args=config_plugin.ApiGetGrrBinaryBlobArgs(
+        args=api_config_pb2.ApiGetGrrBinaryBlobArgs(
             type="EXECUTABLE", path="windows/test.exe"
         ),
     )
@@ -104,87 +108,91 @@ class ApiGetConfigOptionHandlerRegressionTest(
     }):
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(name="Client.company_name"),
+          args=api_config_pb2.ApiGetConfigOptionArgs(
+              name="Client.company_name"
+          ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(name="AdminUI.hunt_config"),
+          args=api_config_pb2.ApiGetConfigOptionArgs(
+              name="AdminUI.hunt_config"
+          ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Source.version_major"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Source.version_major"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Source.version_major"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Source.version_major"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Hunt.default_client_rate"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Email.enable_custom_email_address"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Cron.disabled_cron_jobs"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Server.fleetspeak_last_ping_threshold"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="Server.raw_filesystem_access_pathtype"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="ClientBuilder.build_type"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="ClientBuilder.target_platforms"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(
+          args=api_config_pb2.ApiGetConfigOptionArgs(
               name="ClientRepacker.output_filename"
           ),
       )
       self.Check(
           "GetConfigOption",
-          args=config_plugin.ApiGetConfigOptionArgs(name="Mysql.password"),
+          args=api_config_pb2.ApiGetConfigOptionArgs(name="Mysql.password"),
       )
 
 

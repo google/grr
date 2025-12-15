@@ -1,0 +1,10 @@
+td {
+  min-width: 200px;
+  padding: 3px;
+}
+
+table {
+  border-collapse: collapse;
+  border-left: 2px solid var(--mat-sys-outline-variant);
+  border-bottom: 2px solid var(--mat-sys-outline-variant);
+}

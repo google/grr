@@ -1,59 +1,30 @@
-import {Component, Input} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
-import {BrowserTestingModule} from '@angular/platform-browser/testing';
 
-import {SanitizerPipeModule} from './module';
+import {SanitizerPipe} from './sanitizer_pipe';
 
-describe('SanitizerPipe', () => {
-  describe('HTML sanitizer context', () => {
-    @Component({
-      standalone: false,
-      template: `<div [innerHTML]="htmlSnippet|sanitize"></div>`,
-      jit: true,
-    })
-    class TestHostComponent {
-      @Input() htmlSnippet?: string;
-    }
+describe('Sanitizer Pipe', () => {
+  let pipe: SanitizerPipe;
 
-    beforeEach(() => {
-      TestBed.configureTestingModule({
-        imports: [SanitizerPipeModule, BrowserTestingModule],
-        declarations: [TestHostComponent],
-      }).compileComponents();
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [SanitizerPipe],
     });
+    pipe = TestBed.inject(SanitizerPipe);
+  });
 
-    it('shows empty if the html snippet is undefined', () => {
-      const fixture = TestBed.createComponent(TestHostComponent);
+  it('returns null if the html snippet is undefined', () => {
+    expect(pipe.transform(undefined)).toBe(null);
+  });
 
-      fixture.componentInstance.htmlSnippet = undefined;
+  it('returns the same content if the html snippet is safe', () => {
+    expect(pipe.transform('<div>Hello</div>')).toBe('<div>Hello</div>');
+  });
 
-      fixture.detectChanges();
-
-      const text = fixture.debugElement.nativeElement.innerHTML;
-      expect(text).toBe('<div></div>');
-    });
-
-    it('shows the same content if the html snippet is safe', () => {
-      const fixture = TestBed.createComponent(TestHostComponent);
-
-      fixture.componentInstance.htmlSnippet = '<div>Hello</div>';
-
-      fixture.detectChanges();
-
-      const text = fixture.debugElement.nativeElement.innerHTML;
-      expect(text).toBe('<div><div>Hello</div></div>');
-    });
-
-    it('strips out the unsafe content if it is unsafe', () => {
-      const fixture = TestBed.createComponent(TestHostComponent);
-
-      fixture.componentInstance.htmlSnippet =
-        '<script type="text/javascript">window.alert("peekaboo")</script>';
-
-      fixture.detectChanges();
-
-      const text = fixture.debugElement.nativeElement.innerHTML;
-      expect(text).toBe('<div></div>');
-    });
+  it('strips out the unsafe content if it is unsafe', () => {
+    expect(
+      pipe.transform(
+        '<div><script type="text/javascript">window.alert("fo")</script></div>',
+      ),
+    ).toBe('<div></div>');
   });
 });

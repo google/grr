@@ -1,0 +1,15 @@
+
+@for (pathsPerClient of pathsPerClientId() | keyvalue; track pathsPerClient.key) {
+  @if (isHuntResult()) {
+    <p class="client-id">Client ID: <copy-button>{{ pathsPerClient.key }}</copy-button></p>
+  }
+
+  <h5>Paths to datastore file locations: </h5>
+  <ul>
+    @for (path of pathsPerClient.value; track path) {
+    <!-- TODO: Add a preview with the collected data. -->
+    <li>{{path}}</li>
+  }
+  </ul>
+}
+

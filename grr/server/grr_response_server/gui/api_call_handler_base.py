@@ -64,14 +64,6 @@ class ApiBinaryStream(object):
 class ApiCallHandler:
   """Baseclass for restful API renderers."""
 
-  # RDFValue type used to handle API renderer arguments. This has to be
-  # a class object.
-  args_type = None
-
-  # RDFValue type returned by the handler. This is only used by new handlers
-  # that implement Handle() method.
-  result_type = None
-
   # Proto type used as input to the handler Handle() method.
   proto_args_type = None
 

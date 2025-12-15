@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """The MySQL database methods for client handling."""
 
+from collections.abc import Collection, Iterator, Mapping, Sequence
 import itertools
-from typing import Collection, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Optional
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
@@ -275,7 +276,7 @@ class MySQLDBClientMixin(object):
       self,
       client_id: str,
       timerange: Optional[
-          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
       ] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> Sequence[objects_pb2.ClientSnapshot]:
@@ -456,10 +457,71 @@ class MySQLDBClientMixin(object):
     res.timestamp = int(mysql_utils.TimestampToRDFDatetime(timestamp))
     return res
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
+  def ReadClientStartupInfoHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+      exclude_snapshot_collections: bool = False,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Sequence[jobs_pb2.StartupInfo]:
+    """Reads the full history for a particular client."""
+    assert cursor is not None
+
+    client_id_int = db_utils.ClientIDToInt(client_id)
+
+    query = """
+    SELECT startup_info, UNIX_TIMESTAMP(timestamp)
+      FROM client_startup_history
+     WHERE
+        client_id = %(client_id)s
+    """
+
+    args = {"client_id": client_id_int}
+    if exclude_snapshot_collections:
+      query += """
+       AND timestamp NOT IN (
+          SELECT sn.timestamp
+          FROM client_snapshot_history AS sn
+          WHERE sn.client_id = %(client_id)s
+      )
+      """
+
+    if timerange:
+      time_from, time_to = timerange  # pylint: disable=unpacking-non-sequence
+
+      if time_from is not None:
+        query += "AND timestamp >= FROM_UNIXTIME(%(time_from)s) "
+        args["time_from"] = mysql_utils.RDFDatetimeToTimestamp(time_from)
+
+      if time_to is not None:
+        query += "AND timestamp <= FROM_UNIXTIME(%(time_to)s) "
+        args["time_to"] = mysql_utils.RDFDatetimeToTimestamp(time_to)
+
+    query += "ORDER BY timestamp DESC"
+
+    ret = []
+    cursor.execute(query, args)
+    for startup_bytes, timestamp in cursor.fetchall():
+      startup_info = jobs_pb2.StartupInfo()
+      startup_info.ParseFromString(startup_bytes)
+      startup_info.timestamp = mysql_utils.TimestampToMicrosecondsSinceEpoch(
+          timestamp
+      )
+      ret.append(startup_info)
+    return ret
+
   def _ResponseToClientsFullInfo(self, response):
     """Creates a ClientFullInfo object from a database response."""
-    c_full_info = None
+    if not response:
+      return
+
     prev_cid = None
+    c_full_info = objects_pb2.ClientFullInfo()
     for row in response:
       (
           cid,
@@ -479,10 +541,9 @@ class MySQLDBClientMixin(object):
       ) = row
 
       if cid != prev_cid:
-        if c_full_info:
+        if prev_cid is not None:
           yield db_utils.IntToClientID(prev_cid), c_full_info
-
-        c_full_info = objects_pb2.ClientFullInfo()
+          c_full_info = objects_pb2.ClientFullInfo()
 
         if crt is not None:
           c_full_info.metadata.certificate = crt
@@ -530,10 +591,10 @@ class MySQLDBClientMixin(object):
         if last_rrg_startup_obj is not None:
           c_full_info.last_rrg_startup.ParseFromString(last_rrg_startup_obj)
 
-        prev_cid = cid
+      if label_owner and label_name:
+        c_full_info.labels.add(name=label_name, owner=label_owner)
 
-        if label_owner and label_name:
-          c_full_info.labels.add(name=label_name, owner=label_owner)
+      prev_cid = cid
 
     if c_full_info:
       yield db_utils.IntToClientID(prev_cid), c_full_info
@@ -624,7 +685,7 @@ class MySQLDBClientMixin(object):
       min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
       max_last_ping: Optional[rdfvalue.RDFDatetime] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
-  ) -> Tuple[str, Mapping[str, Optional[rdfvalue.RDFDatetime]]]:
+  ) -> tuple[str, Mapping[str, Optional[rdfvalue.RDFDatetime]]]:
     """Yields dicts of last-ping timestamps for clients in the DB."""
     assert cursor is not None
     where_filters = ["client_id > %s"]

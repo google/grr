@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Helper classes for flows-related testing."""
 
+from collections.abc import Iterable, Sequence
+import contextlib
 import logging
 import re
 import sys
-from typing import ContextManager, Iterable, List, Optional, Pattern, Sequence, Text, Type, Union
+from typing import Optional, Union
 from unittest import mock
 
 from google.protobuf import any_pb2
@@ -18,12 +20,15 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import handler_registry
 from grr_response_server import message_handlers
 from grr_response_server import server_stubs
@@ -103,6 +108,35 @@ class CPULimitFlow(flow_base.FlowBase):
 
   def Done(self, responses):
     pass
+
+
+class CPULimitFlowProto(flow_base.FlowBase):
+  """This flow is used to test the cpu limit."""
+
+  def Start(self):
+    self.CallClientProto(
+        action_registry.ACTION_STUB_BY_ID["Store"],
+        jobs_pb2.DataBlob(string="Hey!"),
+        next_state="State1",
+    )
+
+  def State1(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
+    """First state."""
+    del responses
+    self.CallClientProto(
+        action_registry.ACTION_STUB_BY_ID["Store"],
+        jobs_pb2.DataBlob(string="Hey!"),
+        next_state="State2",
+    )
+
+  def State2(self, responses: flow_responses.Responses[any_pb2.Any]) -> None:
+    """Second state."""
+    del responses
+    self.CallClientProto(
+        action_registry.ACTION_STUB_BY_ID["Store"],
+        jobs_pb2.DataBlob(string="Hey!"),
+        next_state="End",
+    )
 
 
 class FlowWithOneClientRequest(flow_base.FlowBase):
@@ -244,6 +278,26 @@ class DummyLogFlowChild(flow_base.FlowBase):
     self.Log("Cuatro")
 
 
+class EchoLogFlowProto(
+    flow_base.FlowBase[
+        jobs_pb2.LogMessage,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
+):
+  """Sends a single log result."""
+
+  args_type = rdf_client.LogMessage
+  result_types = (rdf_client.LogMessage,)
+  proto_args_type = jobs_pb2.LogMessage
+  proto_result_types = (jobs_pb2.LogMessage,)
+
+  def Start(self):
+    self.SendReplyProto(
+        jobs_pb2.LogMessage(data=f"echo('{self.proto_args.data}')")
+    )
+
+
 class FlowTestsBaseclass(test_lib.GRRBaseTest):
   """The base class for all flow tests."""
 
@@ -259,7 +313,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
       self,
       client_id: str,
       flow_id: str,
-      regex: Union[str, Pattern[str]],
+      regex: Union[str, re.Pattern[str]],
   ) -> None:
     """Asserts that the flow logged a message matching the specified expression.
 
@@ -430,6 +484,7 @@ def StartFlow(
       output_plugins=output_plugins,
       network_bytes_limit=network_bytes_limit,
       cpu_limit=cpu_limit,
+      start_at=None,  # Start immediately.
   )
 
 
@@ -442,6 +497,9 @@ def StartAndRunFlow(
     flow_args: Optional[rdf_structs.RDFStruct] = None,
     output_plugins: Optional[
         Sequence[rdf_output_plugin.OutputPluginDescriptor]
+    ] = None,
+    proto_output_plugins: Optional[
+        Sequence[output_plugin_pb2.OutputPluginDescriptor]
     ] = None,
     network_bytes_limit: Optional[int] = None,
     cpu_limit: Optional[int] = None,
@@ -457,6 +515,8 @@ def StartAndRunFlow(
     check_flow_errors: If True, raise on errors during flow execution.
     flow_args: Flow args that will be passed to flow.StartFlow().
     output_plugins: List of output plugins that should be used for this flow.
+    proto_output_plugins: List of output plugins that should be used for this
+      flow.
     network_bytes_limit: Limit on the network traffic this flow can generated.
     cpu_limit: CPU limit in seconds for this flow.
     runtime_limit: Runtime limit as Duration for all ClientActions.
@@ -475,9 +535,11 @@ def StartAndRunFlow(
         creator=creator,
         flow_args=flow_args,
         output_plugins=output_plugins,
+        proto_output_plugins=proto_output_plugins,
         network_bytes_limit=network_bytes_limit,
         cpu_limit=cpu_limit,
         runtime_limit=runtime_limit,
+        start_at=None,
     )
 
     if check_flow_errors:
@@ -635,8 +697,8 @@ def GetRawFlowResults(client_id: str,
 
 
 def GetFlowResultsByTag(client_id, flow_id):
-  precondition.AssertType(client_id, Text)
-  precondition.AssertType(flow_id, Text)
+  precondition.AssertType(client_id, str)
+  precondition.AssertType(flow_id, str)
 
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
@@ -707,8 +769,8 @@ def OverrideFlowResultMetadataInFlow(
 
 
 def FlowProgressOverride(
-    flow_cls: Type[flow_base.FlowBase],
-    value: rdf_structs.RDFProtoStruct) -> ContextManager[None]:
+    flow_cls: type[flow_base.FlowBase], value: rdf_structs.RDFProtoStruct
+) -> contextlib.AbstractContextManager[None]:
   """Returns a context manager overriding flow class's progress reporting."""
   return mock.patch.object(flow_cls, "GetProgress", return_value=value)
 
@@ -735,6 +797,6 @@ def MarkFlowAsFailed(client_id: str,
   )
 
 
-def ListAllFlows(client_id: str) -> List[flows_pb2.Flow]:
+def ListAllFlows(client_id: str) -> list[flows_pb2.Flow]:
   """Returns all flows in the given client."""
   return data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)

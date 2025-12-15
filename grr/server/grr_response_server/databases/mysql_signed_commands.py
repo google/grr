@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """The MySQL database methods for signed command handling."""
 
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 import MySQLdb
 from MySQLdb import cursors
@@ -29,9 +30,9 @@ class MySQLDBSignedCommandsMixin:
 
     query = """
       INSERT INTO signed_commands (
-        id, operating_system, ed25519_signature, command
+        id, operating_system, ed25519_signature, command, source_path
       ) VALUES (
-        %s, %s, %s, %s
+        %s, %s, %s, %s, %s
       )
     """
 
@@ -42,6 +43,7 @@ class MySQLDBSignedCommandsMixin:
           int(signed_command.operating_system),
           signed_command.ed25519_signature,
           signed_command.command,
+          signed_command.source_path,
       ))
     try:
       cursor.executemany(query, rows)
@@ -64,7 +66,7 @@ class MySQLDBSignedCommandsMixin:
 
     query_signed_command = """
       SELECT
-        ed25519_signature, command
+        ed25519_signature, command, source_path
       FROM
         signed_commands
       WHERE
@@ -75,13 +77,16 @@ class MySQLDBSignedCommandsMixin:
     cursor.execute(query_signed_command, [id_, operating_system])
     signed_command_row = cursor.fetchone()
     if not signed_command_row:
-      raise db.NotFoundError()
-    (ed25519_signature, command_bytes) = signed_command_row
+      raise db.UnknownSignedCommandError(id_, operating_system)
+    (ed25519_signature, command_bytes, source_path) = signed_command_row
     signed_command = signed_commands_pb2.SignedCommand()
     signed_command.id = id_
     signed_command.operating_system = operating_system
     signed_command.ed25519_signature = ed25519_signature
     signed_command.command = command_bytes
+
+    if source_path:
+      signed_command.source_path = source_path
 
     return signed_command
 
@@ -97,7 +102,7 @@ class MySQLDBSignedCommandsMixin:
 
     query_signed_command = """
       SELECT
-        id, operating_system, ed25519_signature, command
+        id, operating_system, ed25519_signature, command, source_path
       FROM
         signed_commands
     """
@@ -108,12 +113,16 @@ class MySQLDBSignedCommandsMixin:
         operating_system,
         ed25519_signature,
         command_bytes,
+        source_path,
     ) in cursor.fetchall():
       signed_command = signed_commands_pb2.SignedCommand()
       signed_command.id = id_
       signed_command.operating_system = operating_system
       signed_command.ed25519_signature = ed25519_signature
       signed_command.command = command_bytes
+
+      if source_path:
+        signed_command.source_path = source_path
 
       signed_commands.append(signed_command)
 

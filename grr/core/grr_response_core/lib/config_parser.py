@@ -7,7 +7,7 @@ import errno
 import io
 import logging
 import os
-from typing import Any, BinaryIO, Dict, Type
+from typing import Any, BinaryIO
 
 import yaml
 
@@ -57,11 +57,11 @@ class GRRConfigParser(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def SaveData(self, raw_data: Dict[str, Any]) -> None:
+  def SaveData(self, raw_data: dict[str, Any]) -> None:
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def ReadData(self) -> Dict[str, Any]:
+  def ReadData(self) -> dict[str, Any]:
     """Convert the file to a more suitable data structure.
 
     Returns:
@@ -98,22 +98,22 @@ class GRRConfigFileParser(GRRConfigParser):
   """Base class for file-based parsers."""
 
   @abc.abstractmethod
-  def RawDataToBytes(self, raw_data: Dict[str, Any]) -> bytes:
+  def RawDataToBytes(self, raw_data: dict[str, Any]) -> bytes:
     raise NotImplementedError()
 
   @abc.abstractmethod
-  def RawDataFromBytes(self, b: bytes) -> Dict[str, Any]:
+  def RawDataFromBytes(self, b: bytes) -> dict[str, Any]:
     raise NotImplementedError()
 
   def SaveDataToFD(
-      self, raw_data: Dict[str, Any], fd: io.BufferedWriter
+      self, raw_data: dict[str, Any], fd: io.BufferedWriter
   ) -> None:
     fd.write(self.RawDataToBytes(raw_data))
 
-  def ReadDataFromFD(self, fd: BinaryIO) -> Dict[str, Any]:
+  def ReadDataFromFD(self, fd: BinaryIO) -> dict[str, Any]:
     return self.RawDataFromBytes(fd.read())
 
-  def SaveData(self, raw_data: Dict[str, Any]) -> None:
+  def SaveData(self, raw_data: dict[str, Any]) -> None:
     """Store the raw data as our configuration."""
     if not self.config_path:
       raise SaveDataPathNotSpecifiedError("Parser's config_path is empty.")
@@ -141,7 +141,7 @@ class GRRConfigFileParser(GRRConfigParser):
           f"Unable to write config file {self.config_path}: {e}."
       ) from e
 
-  def ReadData(self) -> Dict[str, Any]:
+  def ReadData(self) -> dict[str, Any]:
     if not self.config_path:
       raise ReadDataPathNotSpecifiedError("Parser's config_path is empty.")
 
@@ -166,7 +166,7 @@ class GRRConfigFileParser(GRRConfigParser):
 class IniConfigFileParser(GRRConfigFileParser):
   """A parser for ini style config files."""
 
-  def RawDataToBytes(self, raw_data: Dict[str, Any]) -> bytes:
+  def RawDataToBytes(self, raw_data: dict[str, Any]) -> bytes:
     parser = self._Parser()
 
     for key, value in raw_data.items():
@@ -176,7 +176,7 @@ class IniConfigFileParser(GRRConfigFileParser):
     parser.write(sio)
     return sio.getvalue().encode("utf-8")
 
-  def RawDataFromBytes(self, b: bytes) -> Dict[str, Any]:
+  def RawDataFromBytes(self, b: bytes) -> dict[str, Any]:
     parser = self._Parser()
     parser.read_file(b.decode("utf-8").splitlines())
 
@@ -196,10 +196,10 @@ class IniConfigFileParser(GRRConfigFileParser):
 class YamlConfigFileParser(GRRConfigFileParser):
   """A parser for yaml style config files."""
 
-  def RawDataToBytes(self, raw_data: Dict[str, Any]) -> bytes:
+  def RawDataToBytes(self, raw_data: dict[str, Any]) -> bytes:
     return yaml.safe_dump(raw_data).encode("utf-8")
 
-  def RawDataFromBytes(self, b: bytes) -> Dict[str, Any]:
+  def RawDataFromBytes(self, b: bytes) -> dict[str, Any]:
     return yaml.safe_load(b.decode("utf-8")) or dict()
 
 
@@ -212,24 +212,24 @@ class FileParserDataWrapper(GRRConfigParser):
     self._data = data
     self._parser = parser
 
-  def SaveData(self, raw_data: Dict[str, Any]) -> None:
+  def SaveData(self, raw_data: dict[str, Any]) -> None:
     raise SaveDataError("File parser initialized from bytes can't save data.")
 
-  def ReadData(self) -> Dict[str, Any]:
+  def ReadData(self) -> dict[str, Any]:
     return self._parser.RawDataFromBytes(self._data)
 
   def Copy(self) -> "FileParserDataWrapper":
     return self.__class__(self._data, self._parser)
 
 
-_ADDITIONAL_PARSERS: Dict[str, Type[GRRConfigParser]] = {}
+_ADDITIONAL_PARSERS: dict[str, type[GRRConfigParser]] = {}
 
 
-def RegisterParserClass(scheme: str, parser_cls: Type[GRRConfigParser]) -> None:
+def RegisterParserClass(scheme: str, parser_cls: type[GRRConfigParser]) -> None:
   _ADDITIONAL_PARSERS[scheme] = parser_cls
 
 
-def _GetParserClassFromPath(path: str) -> Type[GRRConfigParser]:
+def _GetParserClassFromPath(path: str) -> type[GRRConfigParser]:
   """Returns the appropriate parser class from the path."""
   # Find the configuration parser.
   path_scheme = path.split("://")[0]

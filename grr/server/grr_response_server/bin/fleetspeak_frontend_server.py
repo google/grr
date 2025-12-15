@@ -42,6 +42,10 @@ FLEETSPEAK_MESSAGE_BATCH_ERRORS = metrics.Counter(
     fields=[("type", str)],
 )
 
+FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS = metrics.Counter(
+    "fleetspeak_message_batch_decode_errors",
+    fields=[("expected_type", str)],
+)
 
 MIN_DELAY_BETWEEN_METADATA_UPDATES = rdfvalue.Duration.From(
     30, rdfvalue.SECONDS
@@ -108,8 +112,10 @@ class GRRFSServer:
           fleetspeak_validation_tags=batch.validation_info_tags,
       )
       if metadata is not None:
-        if metadata.ping is not None:
-          elapsed_since_ping = rdfvalue.RDFDatetime.Now() - metadata.ping
+        if metadata.ping:
+          elapsed_since_ping = (
+              rdfvalue.RDFDatetime.Now() - rdfvalue.RDFDatetime(metadata.ping)
+          )
         else:
           elapsed_since_ping = rdfvalue.Duration(sys.maxsize)
 
@@ -129,8 +135,13 @@ class GRRFSServer:
         grr_message_protos: list[jobs_pb2.GrrMessage] = []
         for message in batch.messages:
           grr_message_proto = jobs_pb2.GrrMessage()
-          if not message.Unpack(grr_message_proto):
-            logging.error("invalid GRR message object: %r", message)
+          try:
+            grr_message_proto.ParseFromString(message.value)
+          except proto2_message.DecodeError:
+            logging.exception("invalid GRR message object: %r", message)
+            FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS.Increment(
+                fields=[jobs_pb2.GrrMessage.DESCRIPTOR.full_name]
+            )
             continue
 
           grr_message_protos.append(grr_message_proto)
@@ -147,8 +158,13 @@ class GRRFSServer:
         grr_message_protos: list[jobs_pb2.GrrMessage] = []
         for message in batch.messages:
           packed_message_list_proto = jobs_pb2.PackedMessageList()
-          if not message.Unpack(packed_message_list_proto):
-            logging.error("invalid GRR message list object: %r", message)
+          try:
+            packed_message_list_proto.ParseFromString(message.value)
+          except proto2_message.DecodeError:
+            logging.exception("invalid GRR message list object: %r", message)
+            FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS.Increment(
+                fields=[jobs_pb2.PackedMessageList.DESCRIPTOR.full_name]
+            )
             continue
 
           message_list_proto = mig_flows.ToProtoMessageList(
@@ -175,6 +191,9 @@ class GRRFSServer:
             rrg_response.ParseFromString(message.value)
           except proto2_message.DecodeError:
             logging.exception("Invalid RRG response: %s", message)
+            FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS.Increment(
+                fields=[rrg_pb2.Response.DESCRIPTOR.full_name]
+            )
             continue
 
           rrg_responses.append(rrg_response)
@@ -194,6 +213,9 @@ class GRRFSServer:
             rrg_parcel.ParseFromString(message.value)
           except proto2_message.DecodeError:
             logging.exception("Invalid RRG parcel: %s", message)
+            FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS.Increment(
+                fields=[rrg_pb2.Parcel.DESCRIPTOR.full_name]
+            )
             continue
 
           rrg_parcels.append(rrg_parcel)
@@ -242,11 +264,9 @@ class GRRFSServer:
       # Only update the client metadata if the client exists and the last
       # update happened more than MIN_DELAY_BETWEEN_METADATA_UPDATES ago.
       now = rdfvalue.RDFDatetime.Now()
-      if (
-          existing_client_mdata is not None
-          and existing_client_mdata.ping is not None
-      ):
-        time_since_last_ping = now - existing_client_mdata.ping
+      if existing_client_mdata is not None and existing_client_mdata.ping:
+        last_ping = rdfvalue.RDFDatetime(existing_client_mdata.ping)
+        time_since_last_ping = now - last_ping
         if time_since_last_ping > MIN_DELAY_BETWEEN_METADATA_UPDATES:
           _LogDelayed(
               "Writing client metadata for existing client "

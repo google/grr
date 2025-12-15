@@ -1,0 +1,29 @@
+@if (username(); as username) {
+  <button mat-button [matMenuTriggerFor]="menu">
+    <user [username]="username" size="32px" />
+  </button>
+}
+<mat-menu #menu="matMenu">
+  <div mat-menu-item class="user-info">
+    <div class="user-info-item">
+      <div>User:</div>
+      <samp>{{ globalStore.currentUser()?.name }}</samp>
+    </div>
+    <div class="user-info-item">
+      <div>Admin:</div>
+      @if (globalStore.currentUser()?.isAdmin) {
+        <samp>YES</samp>
+      } @else {
+        <samp>NO</samp>
+      }
+    </div>
+  </div>
+  <mat-divider />
+  <menu mat-menu-item>
+    <mat-slide-toggle
+        (change)="setDarkMode($event.checked)"
+        [checked]="darkMode">
+      Dark mode
+    </mat-slide-toggle>
+  </menu>
+</mat-menu>

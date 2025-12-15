@@ -1,6 +1,0 @@
-Client.foreman_check_frequency: 30
-Logging.verbose: true
-Logging.engines: file,stderr
-Logging.path: /grr
-Logging.filename: /grr/grr-client.log
-

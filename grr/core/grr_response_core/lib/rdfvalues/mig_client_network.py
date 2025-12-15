@@ -34,20 +34,6 @@ def ToRDFNetworkConnection(
   )
 
 
-def ToProtoBlobArrayFromConnections(
-    rdf: rdf_client_network.Connections,
-) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFConnections(
-    proto: jobs_pb2.BlobArray,
-) -> rdf_client_network.Connections:
-  return rdf_client_network.Connections.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoNetworkAddress(
     rdf: rdf_client_network.NetworkAddress,
 ) -> jobs_pb2.NetworkAddress:
@@ -82,17 +68,5 @@ def ToProtoInterface(rdf: rdf_client_network.Interface) -> jobs_pb2.Interface:
 
 def ToRDFInterface(proto: jobs_pb2.Interface) -> rdf_client_network.Interface:
   return rdf_client_network.Interface.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoBlobArrayFromInterfaces(
-    rdf: rdf_client_network.Interfaces,
-) -> jobs_pb2.BlobArray:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFInterfaces(proto: jobs_pb2.BlobArray) -> rdf_client_network.Interfaces:
-  return rdf_client_network.Interfaces.FromSerializedBytes(
       proto.SerializeToString()
   )

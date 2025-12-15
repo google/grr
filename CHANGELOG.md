@@ -11,6 +11,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [4.0.0.0] - 2025-12-15
+
+### Added
+
+* API Changes:
+  * Added a new endpoint to `ApiListAllFlowOutputPluginLogs`.
+* Server-side support for the new agent ([RRG](https://github.com/google/rrg))
+  written in Rust. Both agents, the Python one and the Rust one, are currently
+  supported. Actions are scheduled on either of the two agents, depending on
+  their availability and the supported features.
+
+### Removed
+
+* Legacy UI code completely removed, along with reflection API endpoints used in
+  it.
+* The Podman based dev environment was removed, `docker compose watch` can be
+  used instead.
+
+### Changed
+
+* API Changes:
+  * Legacy HTTP API removed (v1 - `/api/...`), in favor of v2 (`/api/v2/...`).
+    The `v2` API is 100% protocol buffers-based, and the json format is not the
+    same as the legacy RDF-based version.
+  * All API Routers and Handlers now 100% protocol-buffer based. If you have
+    custom router implementations, you'll need to update them. You can use the
+    current implementations as guides.
+  * Added argument to configure `ListGRRBinaries` API method. Only if
+    `include_metadata` is set to true metadata (binary size, valid_signature and
+    timestamp) is included in the API response.
+  * ListFlows API method (`/api/clients/<client_id>/flows`) now also contains
+    progress data when `top_flows_only` is set to false.
+  * Stopped supporting outdated artifact types
+  * Removed stats/reports API Handlers (used only in the legacy UI).
+
+* New UI changes:
+  * Upgraded Angular and Material libraries to version 19.
+  * New layout/design.
+  * Improved loading speed of several API endpoints and improved overall
+    performace by preloading and caching data.
+  * Dark mode.
+  * Display of nested flows.
+  * Added debugging information for flows: logs, additional flow information.
+  * Added debugging information for fleet collections: logs, additional fleet
+    collection information.
+  * Added missing flows, details about client startups, fleet collection
+    configuration, more compact representation, and much more!
+
+* Flows:
+  * Refactored to use protocol buffers in the child classes. If you have your
+    own custom flow implementations, you'll need to adapt and can use the
+    existing classes as a guide. Further refactorings will come in new
+    releases.
+  * Flow `state`s refactored to be protocol-buffer based `store`s.
+  * Flow `progress` refactored to be protocol-buffer based.
+  * Refactored to use RRG agent when available.
+  * Return type of the Interrogate flow changed from `ClientSummary` to
+  `ClientSnapshot`. `ClientSnapshot` contains a superset of the information
+  contained in `ClientSummary`.
+  * Removed `GetFile` flow.
+
+* Fleet collections (fka Hunts):
+  * Variable hunts no longer supported.
+
+* Other:
+  * `ExportConverters` are now protocol-buffer based, and no longer
+  automatically convert values automatically if the data was never seen before
+  or there's no exported definition. We now provide well-defined protocol buffer
+  messages for all the results we have from our flows. If you have custom ones,
+  you'll need to implement converters for them and provide a well defined type
+  for the output.
+  * `OutputPlugin`s - most implementations are removed, except the
+    `EmailOutputPlugin`. This is part of an ongoing migration out of RDF-values
+    and towards protocol buffers. The new interface `OutputPluginProto` no
+    longer has a state. If you rely on the previously provided `OutputPlugin`s,
+    you'll need to add an equivalent `OutputPluginProto` implementation - we're
+    happy to receive contributions!
+
 ## [3.4.9.0] - 2025-02-27
 
 ### Added
@@ -69,17 +147,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repository (ForensicArtifacts/artifacts#275).
 * **GRR server Debian package**. We stopped providing the GRR server Debian
   package as the main way of distributing GRR server and client binaries.
-  Instead we  make GRR Docker image a preferred way for running GRR in a
-  demo or production environment.  See the documentation [here](https://grr-doc.readthedocs.io/en/latest/installing-and-running-grr/via-docker-compose.html).
+  Instead we make GRR Docker image a preferred way for running GRR in a
+  demo or production environment. See the documentation
+  [here](https://grr-doc.readthedocs.io/en/latest/installing-and-running-grr/via-docker-compose.html).
 * **Artifact parsers**. ArtifactCollector flow supported parsing collected files
   and output of executed commands. Its parsers were not properly maintained,
   were often outdated and fragile. We're converted selected parsers
-  into standalone flows (`CollectDistroInfo`, `CollectInstalledSoftware`, `CollectHardwareInfo`) and removed the artifact parsing subsystem.
+  into standalone flows (`CollectDistroInfo`, `CollectInstalledSoftware`,
+  `CollectHardwareInfo`) and removed the artifact parsing subsystem.
   The ArtifactCollector now works as if "apply_parsers" arguments
   attribute is set to False. At some point the "apply_parsers" attribute will be
   deprecated completely.
 
 ### Added
+
 * GRR docker image which contains all grr server components and client
   templates. It is available for every new GRR version for download at
   https://github.com/google/grr/pkgs/container/grr
@@ -91,7 +172,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* YARA memory scanning improvements (matching context options, consuming less bandwidth).
+* YARA memory scanning improvements (matching context options, consuming less
+  bandwidth).
 
 ### API removed
 
@@ -150,20 +232,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fully removed deprecated use_tsk flag.
 * Removed deprecated plugin_args field from OutputPluginDescriptor.
-* Removed deprecated flows: FingerprintFile, KeepAlive, FingerprintFile, FindFiles, SendFile, Uninstall,
+* Removed deprecated flows: FingerprintFile, KeepAlive, FingerprintFile,
+  FindFiles, SendFile, Uninstall,
   UpdateClient, CollectEfiHashes, DumpEfiImage.
 * Deprecated GetFile flow in favor of MultiGetFile.
 * Made FileFinder an alias to ClientFileFinder, using ClientFileFinder
   by default everywhere. Legacy FileFinder is still available as
   LegacyFileFinder. Fixed several inconsistencies in ClientFileFinder
   client action. Same for RegistryFinder.
-* Removed deprecated client actions: EficheckCollectHashes, EficheckDumpImage, Uninstall, SendFile.
+* Removed deprecated client actions: EficheckCollectHashes, EficheckDumpImage,
+  Uninstall, SendFile.
 * Removed "Checks" functionality.
 
 ### API removed
 
 * Deprecated no-op "keep_client_alive" attribute in ApiCreateClientApprovalArgs.
-* Deprecated ListClientActionRequests API call (was no-op after Fleetspeak migration).
+* Deprecated ListClientActionRequests API call (was no-op after Fleetspeak
+  migration).
 
 ## [3.4.6.7] - 2023-03-22
 
@@ -176,11 +261,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Introduced Server.grr_binaries_readonly configuration option (set to False
-  by default). When set to True, binaries and python hacks can't be overriden
+  by default). When set to True, binaries and python hacks can't be overridden
   or deleted.
 * Added configuration option Monitoring.http_address to specify server address
   of stats server. Default value will remain 127.0.0.1.
-
 
 ### Changed
 
@@ -349,6 +433,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *   Removed default "age" attribute from the legacy HTTP API JSON. Every value
     rendered in legacy API responses will be dictionary of {value: ..., type:
     ...} instead of {value: ..., type: ..., age: ...}.
-*   GetClientVersions API call(/api/clients/<client_id>/versions) does not
+*   GetClientVersions API call(/api/clients/\<client_id\>/versions) does not
     include metadata (last ping, last clock, last boot time, last crash time)
     anymore.

@@ -1,0 +1,164 @@
+
+<ng-template #flowForm>
+  @switch (flowType()) {
+    @case (FlowType.ARTIFACT_COLLECTOR_FLOW) {
+      <artifact-collector-flow-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [clientOs]="client()?.knowledgeBase?.os"
+        [clientId]="client()?.clientId"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.CLIENT_REGISTRY_FINDER) {
+      <client-registry-finder-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.COLLECT_BROWSER_HISTORY) {
+      <collect-browser-history-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.COLLECT_FILES_BY_KNOWN_PATH) {
+      <collect-files-by-known-path-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.COLLECT_LARGE_FILE_FLOW) {
+      <collect-large-file-flow-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+       [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.COLLECT_MULTIPLE_FILES) {
+      <collect-multiple-files-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()"
+        [client]="client()" />
+    }
+    @case (FlowType.DUMP_PROCESS_MEMORY) {
+      <dump-process-memory-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+
+    @case (FlowType.EXECUTE_PYTHON_HACK) {
+      <execute-python-hack-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.GET_MBR) {
+      <get-mbr-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.HASH_MULTIPLE_FILES) {
+      <hash-multiple-files-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()"
+        [client]="client()" />
+    }
+    @case (FlowType.INTERROGATE) {
+      <interrogate-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.KILL) {
+      <kill-grr-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+
+    @case (FlowType.LAUNCH_BINARY) {
+      <launch-binary-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.LIST_DIRECTORY) {
+      <list-directory-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.LIST_NAMED_PIPES_FLOW) {
+      <list-named-pipes-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.LIST_PROCESSES) {
+      <list-processes-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.NETSTAT) {
+      <netstat-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.ONLINE_NOTIFICATION) {
+      <online-notification-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [clientLastSeenAt]="client()?.lastSeenAt"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.OS_QUERY_FLOW) {
+      <osquery-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.READ_LOW_LEVEL) {
+      <read-low-level-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.STAT_MULTIPLE_FILES) {
+      <stat-multiple-files-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()"
+        [client]="client()" />
+    }
+
+    @case (FlowType.TIMELINE_FLOW) {
+      <timeline-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+    }
+    @case (FlowType.YARA_PROCESS_SCAN) {
+      <yara-process-scan-form
+        [initialFlowArgs]="flowArgs()"
+        [editable]="editable()"
+        [onSubmit]="onSubmit()" />
+      }
+
+    @default {
+      <div>Missing flow form: {{ flowType() }}</div>
+    }
+}
+</ng-template>
+
+@if (!editable()) {
+  <fieldset disabled readonly>
+    <ng-container *ngTemplateOutlet="flowForm"/>
+  </fieldset>
+} @else {
+  <ng-container *ngTemplateOutlet="flowForm"/>
+}

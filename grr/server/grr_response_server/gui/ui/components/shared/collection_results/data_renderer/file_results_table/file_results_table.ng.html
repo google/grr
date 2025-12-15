@@ -1,0 +1,231 @@
+<filter-paginate [dataSource]="dataSource">
+  @let columns = displayedColumns();
+  @if (columns) {
+    <table mat-table
+      matSort
+      multiTemplateDataRows
+      [dataSource]="dataSource"
+      (matSortChange)="announceSortChange($event)"
+    >
+      <ng-container matColumnDef="ficon">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by path type, i.e. file or folder">
+            Type
+        </th>
+        <td mat-cell *matCellDef="let r">
+          @if (isSymlink(r.statEntry)) {
+            <mat-icon>link</mat-icon>
+          } @else if (r.isDirectory) {
+            <mat-icon>folder</mat-icon>
+          } @else if (r.isFile) {
+            <mat-icon>article</mat-icon>
+          } @else {
+            <mat-icon>insert_drive_file</mat-icon>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="clientId">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by client ID">
+          Client ID
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <copy-button>{{ r.clientId }}</copy-button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="path">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by path">
+          Path
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <copy-button [multiline]="true">
+            <div class="path-copy-button">{{ r.statEntry.pathspec?.path ?? '' }}</div>
+          </copy-button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="hashes">
+        <th mat-header-cell *matHeaderCellDef>
+          Hash
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <expandable-hash [hashes]="r.hashes"></expandable-hash>
+        </td>
+      </ng-container>
+
+        <ng-container matColumnDef="status">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by status">
+          Status
+        </th>
+        <td mat-cell *matCellDef="let r">
+          @switch (r.status.state) {
+            @case (CollectionState.IN_PROGRESS) {
+              <mat-progress-spinner
+                mode="indeterminate"
+                diameter="20"
+                strokeWidth="1"
+                matTooltip="{{ r.status.message }}"
+              >
+              </mat-progress-spinner>
+            } @case (CollectionState.SUCCESS) {
+              <mat-icon matTooltip="{{ r.status.message }}">check</mat-icon>
+            } @case (CollectionState.ERROR) {
+              <mat-icon matTooltip="{{ r.status.message }}">error</mat-icon>
+            } @case (CollectionState.WARNING) {
+              <mat-icon matTooltip="{{ r.status.message }}">priority_high</mat-icon>
+            } @default {
+              <mat-icon matTooltip="{{ r.status.message }}">question_mark</mat-icon>
+            }
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="mode">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by mode">
+          Mode
+        </th>
+        <td mat-cell *matCellDef="let r">{{ r.statEntry.stMode | humanReadableFileMode }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="size">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by size">
+          Size
+        </th>
+        <td mat-cell *matCellDef="let r">
+          {{ r.statEntry.stSize | humanReadableByteSize }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="atime">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by access time">
+          Last access time
+          <a mat-icon-button
+            matTooltip="More information about MAC timestamps"
+            aria-label="More information about MAC timestamps"
+            href="https://forensics.wiki/mac_times/"
+            target="_blank"
+            >
+            <mat-icon>help_outline</mat-icon>
+          </a>
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <timestamp [date]="r.statEntry.stAtime" [multiline]="true" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="mtime">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by modification time">
+          Last modified time
+          <a mat-icon-button
+            matTooltip="More information about MAC timestamps"
+            aria-label="More information about MAC timestamps"
+            href="https://forensics.wiki/mac_times/"
+            target="_blank"
+            >
+            <mat-icon>help_outline</mat-icon>
+          </a>
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <timestamp [date]="r.statEntry.stMtime" [multiline]="true" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="ctime">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by creation time">
+          Last change time
+          <a mat-icon-button
+            matTooltip="More information about MAC timestamps"
+            aria-label="More information about MAC timestamps"
+            href="https://forensics.wiki/mac_times/"
+            target="_blank"
+            >
+            <mat-icon>help_outline</mat-icon>
+          </a>
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <timestamp [date]="r.statEntry.stCtime" [multiline]="true" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="btime">
+        <th mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            sortActionDescription="Sort by block change time">
+          Birth/creation time
+          <a mat-icon-button
+            matTooltip="More information about MAC timestamps"
+            aria-label="More information about MAC timestamps"
+            href="https://forensics.wiki/mac_times/"
+            target="_blank"
+            >
+            <mat-icon>help_outline</mat-icon>
+          </a>
+        </th>
+        <td mat-cell *matCellDef="let r">
+          <timestamp [date]="r.statEntry.stBtime" [multiline]="true" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="details">
+        <th mat-header-cell *matHeaderCellDef>Details</th>
+        <td mat-cell *matCellDef="let r">
+          <button
+            mat-icon-button
+            aria-label="show file content"
+            (click)="toggleExpandedRow(r); $event.stopPropagation()"
+            [class.toggle-button-expanded]="isRowExpanded(r)">
+            <mat-icon>keyboard_arrow_down</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expanded">
+        <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length">
+          <div class="detail-wrapper" [class.detail-wrapper-expanded]="isRowExpanded(element)">
+            <div class="element-detail">
+            @if (isRowExpanded(element)) {
+              <file-content [file]="element" />
+            }
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns" class="row"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expanded']" class="detail-row"></tr>
+
+      <tr *matNoDataRow>
+        <td colspan="4">No data</td>
+      </tr>
+    </table>
+  }
+</filter-paginate>

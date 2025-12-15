@@ -2,19 +2,18 @@
 """API handlers for user-related data and actions."""
 
 import collections
+from collections.abc import Iterable, Sequence
 import email
 import itertools
 import logging
-from typing import Iterable, Optional, Sequence, Union
+from typing import Optional, Union
 
 import jinja2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import objects_pb2
-from grr_response_proto import user_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import cron_pb2
 from grr_response_proto.api import hunt_pb2
@@ -42,91 +41,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 class ApprovalNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a specific approval object could not be found."""
-
-
-class GUISettings(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.GUISettings
-
-
-class ApiNotificationClientReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationClientReference
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
-
-
-class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationHuntReference
-  rdf_deps = [
-      api_hunt.ApiHuntId,
-  ]
-
-
-class ApiNotificationCronReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationCronReference
-  rdf_deps = [
-      api_cron.ApiCronJobId,
-  ]
-
-
-class ApiNotificationFlowReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationFlowReference
-  rdf_deps = [
-      api_client.ApiClientId,
-      api_flow.ApiFlowId,
-  ]
-
-
-class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationVfsReference
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
-
-
-class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationClientApprovalReference
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
-
-
-class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationHuntApprovalReference
-  rdf_deps = [
-      api_hunt.ApiHuntId,
-  ]
-
-
-class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationCronJobApprovalReference
-  rdf_deps = [
-      api_cron.ApiCronJobId,
-  ]
-
-
-class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiNotificationUnknownReference
-  rdf_deps = [
-      rdfvalue.RDFURN,
-  ]
-
-
-class ApiNotificationReference(rdf_structs.RDFProtoStruct):
-  """Object reference used in ApiNotifications."""
-
-  protobuf = api_user_pb2.ApiNotificationReference
-  rdf_deps = [
-      ApiNotificationClientReference,
-      ApiNotificationClientApprovalReference,
-      ApiNotificationCronJobApprovalReference,
-      ApiNotificationCronReference,
-      ApiNotificationFlowReference,
-      ApiNotificationHuntApprovalReference,
-      ApiNotificationHuntReference,
-      ApiNotificationUnknownReference,
-      ApiNotificationVfsReference,
-  ]
 
 
 def InitApiNotificationReferenceFromObjectReference(
@@ -212,16 +126,6 @@ def InitApiNotificationReferenceFromObjectReference(
   return api_reference
 
 
-class ApiNotification(rdf_structs.RDFProtoStruct):
-  """Represents a user notification."""
-
-  protobuf = api_user_pb2.ApiNotification
-  rdf_deps = [
-      ApiNotificationReference,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 def InitApiNotificationFromUserNotification(
     notification: objects_pb2.UserNotification,
 ) -> api_user_pb2.ApiNotification:
@@ -273,20 +177,6 @@ def InitApiGrrUserFromGrrUser(
     api_user.email = user.email
 
   return api_user
-
-
-class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGrrUserInterfaceTraits
-
-
-class ApiGrrUser(rdf_structs.RDFProtoStruct):
-  """API object describing the user."""
-
-  protobuf = api_user_pb2.ApiGrrUser
-  rdf_deps = [
-      ApiGrrUserInterfaceTraits,
-      GUISettings,
-  ]
 
 
 def InitApiHuntApprovalFromApprovalRequest(
@@ -362,15 +252,6 @@ def InitApiClientApprovalFromApprovalRequest(
   """Initializes ApiClientApproval from an ApprovalRequest."""
 
   api_client_approval = api_user_pb2.ApiClientApproval()
-
-  client_full_info = data_store.REL_DB.ReadClientFullInfo(
-      approval_request.subject_id
-  )
-  api_client_approval.subject.CopyFrom(
-      models_clients.ApiClientFromClientFullInfo(
-          approval_request.subject_id, client_full_info
-      )
-  )
 
   _FillApiApprovalFromApprovalRequest(api_client_approval, approval_request)
   try:
@@ -481,16 +362,6 @@ def GetSubjectTitleForClientApproval(
   )
 
 
-class ApiClientApproval(rdf_structs.RDFProtoStruct):
-  """API client approval object."""
-
-  protobuf = api_user_pb2.ApiClientApproval
-  rdf_deps = [
-      api_client.ApiClient,
-      rdfvalue.RDFDatetime,
-  ]
-
-
 def InitObjectReferenceFromApiClientApproval(
     approval_request: api_user_pb2.ApiClientApproval,
 ) -> objects_pb2.ObjectReference:
@@ -505,17 +376,6 @@ def InitObjectReferenceFromApiClientApproval(
           requestor_username=approval_request.requestor,
       ),
   )
-
-
-class ApiHuntApproval(rdf_structs.RDFProtoStruct):
-  """API hunt approval object."""
-
-  protobuf = api_user_pb2.ApiHuntApproval
-  rdf_deps = [
-      api_flow.ApiFlow,
-      api_hunt.ApiHunt,
-      rdfvalue.RDFDatetime,
-  ]
 
 
 def InitObjectReferenceFromApiHuntApproval(
@@ -544,15 +404,6 @@ def InitObjectReferenceFromApiHunt(
   )
 
 
-class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
-  """API cron job approval object."""
-
-  protobuf = api_user_pb2.ApiCronJobApproval
-  rdf_deps = [
-      api_cron.ApiCronJob,
-  ]
-
-
 def InitObjectReferenceFromApiCronJobApproval(
     approval_request: api_user_pb2.ApiCronJobApproval,
 ) -> objects_pb2.ObjectReference:
@@ -577,58 +428,6 @@ def InitObjectReferenceFromApiCronJob(
       reference_type=objects_pb2.ObjectReference.Type.CRON_JOB,
       cron_job=objects_pb2.CronJobReference(cron_job_id=cron_job.cron_job_id),
   )
-
-
-class ApiCreateHuntApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiCreateHuntApprovalArgs
-  rdf_deps = [
-      ApiHuntApproval,
-      api_hunt.ApiHuntId,
-  ]
-
-
-class ApiGetHuntApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGetHuntApprovalArgs
-  rdf_deps = [
-      api_hunt.ApiHuntId,
-  ]
-
-
-class ApiCreateCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiCreateCronJobApprovalArgs
-  rdf_deps = [
-      api_cron.ApiCronJobId,
-      ApiCronJobApproval,
-  ]
-
-
-class ApiGetCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGetCronJobApprovalArgs
-  rdf_deps = [
-      api_cron.ApiCronJobId,
-  ]
-
-
-class ApiCreateClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiCreateClientApprovalArgs
-  rdf_deps = [
-      ApiClientApproval,
-      api_client.ApiClientId,
-  ]
-
-
-class ApiGetClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGetClientApprovalArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
-
-
-class ApiListClientApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListClientApprovalsArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
 
 
 _EMAIL_HEADER = """
@@ -680,9 +479,10 @@ _APPROVAL_REQUESTED_TEMPLATE = _EMAIL_HEADER + """
     </tr>
   </table>
   <p>
+    {% if approval_url %}
     <a href="{{ approval_url }}" class="button">Review approval request</a>
-    {% if legacy_approval_url %}
-    (or <a href="{{ legacy_approval_url }}">review in legacy UI</a>)
+    {% else %}
+    <p>No approval url, please use the API.</p>
     {% endif %}
   </p>
 """ + _EMAIL_FOOTER
@@ -713,9 +513,6 @@ _APPROVAL_GRANTED_TEMPLATE = _EMAIL_HEADER + """
 
   <p>
     <a href="{{ subject_url }}" class="button">Go to {{ subject_title }}</a>
-    {% if legacy_subject_url %}
-    (or <a href="{{ legacy_subject_url }}">view in legacy UI</a>)
-    {% endif %}
   </p>
 """ + _EMAIL_FOOTER
 
@@ -837,8 +634,7 @@ def SendApprovalRequestEmail(
         api_user_pb2.ApiCronJobApproval,
     ],
     subject_title: str,
-    review_url_path: str,
-    review_url_path_legacy: str,
+    review_url_path: Optional[str] = None,
 ) -> None:
   """Sends a emails about a given approval request."""
 
@@ -853,21 +649,15 @@ def SendApprovalRequestEmail(
   )
 
   template = jinja2.Template(_APPROVAL_REQUESTED_TEMPLATE, autoescape=True)
-  base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
-  legacy_approval_url = base_url + review_url_path_legacy.lstrip("/")
-  approval_url = base_url + review_url_path.lstrip("/")
 
-  if approval_url == legacy_approval_url:
-    # In case the new UI does not yet support approval reviews for the given
-    # subject type (client, hunt, cronjob), hide the fallback link to the
-    # old UI in the email template. Instead, clicking the main button will
-    # link the user to the old UI.
-    legacy_approval_url = None
+  approval_url = None
+  if review_url_path:
+    base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
+    approval_url = base_url + review_url_path.lstrip("/")
 
   body = template.render(
       requestor=approval.requestor,
       reason=approval.reason,
-      legacy_approval_url=legacy_approval_url,
       approval_url=approval_url,
       subject_title=subject_title,
       # If you feel like it, add a cute dog picture here :)
@@ -903,7 +693,6 @@ def SendGrantEmail(
     username: str,
     subject_title: str,
     subject_url_path: str,
-    subject_url_path_legacy: str,
 ) -> None:
   """Sends an email about a granted approval request."""
 
@@ -920,20 +709,11 @@ def SendGrantEmail(
   template = jinja2.Template(_APPROVAL_GRANTED_TEMPLATE, autoescape=True)
   base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
   subject_url = base_url + subject_url_path.lstrip("/")
-  legacy_subject_url = base_url + subject_url_path_legacy.lstrip("/")
-
-  if subject_url == legacy_subject_url:
-    # In case the new UI does not yet support showing the given subject type
-    # (client, hunt, cronjob), hide the fallback link to the old UI in the
-    # email template. Instead, clicking the main button will link the user to
-    # the old UI.
-    legacy_subject_url = None
 
   body = template.render(
       grantor=username,
       requestor=approval.requestor,
       reason=approval.reason,
-      legacy_subject_url=legacy_subject_url,
       subject_url=subject_url,
       subject_title=subject_title,
       html_signature=config.CONFIG["Email.approval_signature"],
@@ -990,9 +770,9 @@ def _GetTokenExpirationTime() -> rdfvalue.RDFDatetime:
 
 
 def _FilterApiClientApprovals(
-    api_client_approval: Iterable[ApiClientApproval],
+    api_client_approval: Iterable[api_user_pb2.ApiClientApproval],
     state: api_user_pb2.ApiListClientApprovalsArgs.State,
-) -> Iterable[ApiClientApproval]:
+) -> Iterable[api_user_pb2.ApiClientApproval]:
   """Filters client approvals based on the given state."""
 
   for approval in api_client_approval:
@@ -1009,8 +789,6 @@ def _FilterApiClientApprovals(
 class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user client approval and notifies requested approvers."""
 
-  args_type = ApiCreateClientApprovalArgs
-  result_type = ApiClientApproval
   proto_args_type = api_user_pb2.ApiCreateClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
 
@@ -1068,23 +846,26 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         approval_request, self._approval_checker
     )
 
+    client_full_info = data_store.REL_DB.ReadClientFullInfo(
+        approval_request.subject_id
+    )
+    api_client_approval.subject.CopyFrom(
+        models_clients.ApiClientFromClientFullInfo(
+            approval_request.subject_id, client_full_info
+        )
+    )
+
     subject_title = GetSubjectTitleForClientApproval(api_client_approval)
 
     review_url_path = (
-        f"/v2/clients/{api_client_approval.subject.client_id}/users/"
-        f"{api_client_approval.requestor}/approvals/{api_client_approval.id}"
-    )
-
-    review_url_path_legacy = (
-        f"/#/users/{api_client_approval.requestor}/approvals/client/"
-        f"{api_client_approval.subject.client_id}/{api_client_approval.id}"
+        f"/v2/clients/{api_client_approval.subject.client_id}/approvals/"
+        f"{api_client_approval.id}/users/{api_client_approval.requestor}"
     )
 
     SendApprovalRequestEmail(
         api_client_approval,
         subject_title,
         review_url_path,
-        review_url_path_legacy,
     )
     CreateApprovalNotification(
         api_client_approval.notified_users,
@@ -1098,8 +879,6 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about an approval for a given client and reason."""
 
-  args_type = ApiGetClientApprovalArgs
-  result_type = ApiClientApproval
   proto_args_type = api_user_pb2.ApiGetClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
 
@@ -1136,23 +915,23 @@ class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
           % (approval_request.subject_id, args.client_id)
       )
 
-    return InitApiClientApprovalFromApprovalRequest(
+    approval = InitApiClientApprovalFromApprovalRequest(
         approval_request, self._approval_checker
     )
-
-
-class ApiGrantClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGrantClientApprovalArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-  ]
+    client_full_info = data_store.REL_DB.ReadClientFullInfo(
+        approval_request.subject_id
+    )
+    approval.subject.CopyFrom(
+        models_clients.ApiClientFromClientFullInfo(
+            approval_request.subject_id, client_full_info
+        )
+    )
+    return approval
 
 
 class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Handle for GrantClientApproval requests."""
 
-  args_type = ApiGrantClientApprovalArgs
-  result_type = ApiClientApproval
   proto_args_type = api_user_pb2.ApiGrantClientApprovalArgs
   proto_result_type = api_user_pb2.ApiClientApproval
 
@@ -1180,6 +959,15 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     api_client_approval = InitApiClientApprovalFromApprovalRequest(
         approval_request, self._approval_checker
     )
+    client_full_info = data_store.REL_DB.ReadClientFullInfo(
+        approval_request.subject_id
+    )
+    api_client_approval.subject.CopyFrom(
+        models_clients.ApiClientFromClientFullInfo(
+            approval_request.subject_id, client_full_info
+        )
+    )
+
     subject_title = GetSubjectTitleForClientApproval(api_client_approval)
 
     SendGrantEmail(
@@ -1187,7 +975,6 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         context.username,
         subject_title,
         f"/v2/clients/{api_client_approval.subject.client_id}",
-        f"#/clients/{api_client_approval.subject.client_id}",
     )
     notification_lib.Notify(
         api_client_approval.requestor,
@@ -1205,18 +992,9 @@ class ApiGrantClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     return api_client_approval
 
 
-class ApiListClientApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListClientApprovalsResult
-  rdf_deps = [
-      ApiClientApproval,
-  ]
-
-
 class ApiListClientApprovalsHandler(api_call_handler_base.ApiCallHandler):
   """Returns list of user's clients approvals."""
 
-  args_type = ApiListClientApprovalsArgs
-  result_type = ApiListClientApprovalsResult
   proto_args_type = api_user_pb2.ApiListClientApprovalsArgs
   proto_result_type = api_user_pb2.ApiListClientApprovalsResult
 
@@ -1252,10 +1030,22 @@ class ApiListClientApprovalsHandler(api_call_handler_base.ApiCallHandler):
         key=lambda ar: ar.timestamp,
         reverse=True,
     )
-    api_client_approvals = [
-        InitApiClientApprovalFromApprovalRequest(ar, self._approval_checker)
-        for ar in approvals
-    ]
+
+    client_full_infos = data_store.REL_DB.MultiReadClientFullInfo(
+        [a.subject_id for a in approvals]
+    )
+
+    api_client_approvals = []
+    for ar in approvals:
+      api_client_approval = InitApiClientApprovalFromApprovalRequest(
+          ar, self._approval_checker
+      )
+      api_client_approval.subject.CopyFrom(
+          models_clients.ApiClientFromClientFullInfo(
+              ar.subject_id, client_full_infos[ar.subject_id]
+          )
+      )
+      api_client_approvals.append(api_client_approval)
 
     api_client_approvals = _FilterApiClientApprovals(
         api_client_approvals,
@@ -1266,17 +1056,20 @@ class ApiListClientApprovalsHandler(api_call_handler_base.ApiCallHandler):
       end = None
     else:
       end = args.offset + args.count
-    items = list(itertools.islice(api_client_approvals, args.offset, end))
-    api_client.UpdateClientsFromFleetspeak([a.subject for a in items])
+    api_client_approvals = list(
+        itertools.islice(api_client_approvals, args.offset, end)
+    )
 
-    return api_user_pb2.ApiListClientApprovalsResult(items=items)
+    api_client.UpdateClientsFromFleetspeak(
+        [a.subject for a in api_client_approvals]
+    )
+
+    return api_user_pb2.ApiListClientApprovalsResult(items=api_client_approvals)
 
 
 class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user hunt approval and notifies requested approvers."""
 
-  args_type = ApiCreateHuntApprovalArgs
-  result_type = ApiHuntApproval
   proto_args_type = api_user_pb2.ApiCreateHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
 
@@ -1311,19 +1104,14 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
 
     subject_title = GetSubjectTitleForHuntApproval(api_hunt_approval)
     review_url_path = (
-        f"/v2/hunts/{api_hunt_approval.subject.hunt_id}/users/"
-        f"{api_hunt_approval.requestor}/approvals/{api_hunt_approval.id}"
-    )
-    review_url_path_legacy = (
-        f"/#/users/{api_hunt_approval.requestor}/approvals/hunt/"
-        f"{api_hunt_approval.subject.hunt_id}/{api_hunt_approval.id}"
+        f"/v2/fleet-collections/{api_hunt_approval.subject.hunt_id}/approvals/"
+        f"{api_hunt_approval.id}/users/{api_hunt_approval.requestor}"
     )
 
     SendApprovalRequestEmail(
         api_hunt_approval,
         subject_title,
         review_url_path,
-        review_url_path_legacy,
     )
 
     CreateApprovalNotification(
@@ -1338,8 +1126,6 @@ class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about approval for a given hunt, user and approval id."""
 
-  args_type = ApiGetHuntApprovalArgs
-  result_type = ApiHuntApproval
   proto_args_type = api_user_pb2.ApiGetHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
 
@@ -1381,18 +1167,9 @@ class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGrantHuntApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGrantHuntApprovalArgs
-  rdf_deps = [
-      api_hunt.ApiHuntId,
-  ]
-
-
 class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Handle for GrantHuntApproval requests."""
 
-  args_type = ApiGrantHuntApprovalArgs
-  result_type = ApiHuntApproval
   proto_args_type = api_user_pb2.ApiGrantHuntApprovalArgs
   proto_result_type = api_user_pb2.ApiHuntApproval
 
@@ -1427,8 +1204,7 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         api_hunt_approval,
         context.username,
         subject_title,
-        f"/v2/hunts/{api_hunt_approval.subject.hunt_id}",
-        f"#/hunts/{api_hunt_approval.subject.hunt_id}",
+        f"/v2/fleet-collections/{api_hunt_approval.subject.hunt_id}",
     )
     notification_lib.Notify(
         api_hunt_approval.requestor,
@@ -1440,25 +1216,9 @@ class ApiGrantHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
     return api_hunt_approval
 
 
-class ApiListHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListHuntApprovalsArgs
-  rdf_deps = [
-      api_hunt.ApiHuntId,
-  ]
-
-
-class ApiListHuntApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListHuntApprovalsResult
-  rdf_deps = [
-      ApiHuntApproval,
-  ]
-
-
 class ApiListHuntApprovalsHandler(api_call_handler_base.ApiCallHandler):
   """Returns list of user's hunts approvals."""
 
-  args_type = ApiListHuntApprovalsArgs
-  result_type = ApiListHuntApprovalsResult
   proto_args_type = api_user_pb2.ApiListHuntApprovalsArgs
   proto_result_type = api_user_pb2.ApiListHuntApprovalsResult
 
@@ -1511,8 +1271,6 @@ class ApiListHuntApprovalsHandler(api_call_handler_base.ApiCallHandler):
 class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user cron approval and notifies requested approvers."""
 
-  args_type = ApiCreateCronJobApprovalArgs
-  result_type = ApiCronJobApproval
   proto_args_type = api_user_pb2.ApiCreateCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
 
@@ -1546,16 +1304,11 @@ class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
     )
 
     subject_title = GetSubjectTitleForCronJobApproval(api_cron_job_approval)
-    review_url_path = review_url_path_legacy = (
-        f"/#/users/{api_cron_job_approval.requestor}/approvals/cron-job/"
-        f"{api_cron_job_approval.subject.cron_job_id}/{api_cron_job_approval.id}"
-    )
 
     SendApprovalRequestEmail(
         api_cron_job_approval,
         subject_title,
-        review_url_path,
-        review_url_path_legacy,
+        None,
     )
     CreateApprovalNotification(
         api_cron_job_approval.notified_users,
@@ -1570,8 +1323,6 @@ class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about approval for a given cron, user and approval id."""
 
-  args_type = ApiGetCronJobApprovalArgs
-  result_type = ApiCronJobApproval
   proto_args_type = api_user_pb2.ApiGetCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
 
@@ -1613,18 +1364,9 @@ class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGrantCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGrantCronJobApprovalArgs
-  rdf_deps = [
-      api_cron.ApiCronJobId,
-  ]
-
-
 class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Handle for GrantCronJobApproval requests."""
 
-  args_type = ApiGrantCronJobApprovalArgs
-  result_type = ApiCronJobApproval
   proto_args_type = api_user_pb2.ApiGrantCronJobApprovalArgs
   proto_result_type = api_user_pb2.ApiCronJobApproval
 
@@ -1659,7 +1401,6 @@ class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
         context.username,
         subject_title,
         f"#/crons/{api_cron_job_approval.subject.cron_job_id}",
-        f"#/crons/{api_cron_job_approval.subject.cron_job_id}",
     )
     notification_lib.Notify(
         api_cron_job_approval.requestor,
@@ -1671,22 +1412,9 @@ class ApiGrantCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
     return api_cron_job_approval
 
 
-class ApiListCronJobApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListCronJobApprovalsArgs
-
-
-class ApiListCronJobApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListCronJobApprovalsResult
-  rdf_deps = [
-      ApiCronJobApproval,
-  ]
-
-
 class ApiListCronJobApprovalsHandler(api_call_handler_base.ApiCallHandler):
   """Returns list of user's cron jobs approvals."""
 
-  args_type = ApiListCronJobApprovalsArgs
-  result_type = ApiListCronJobApprovalsResult
   proto_args_type = api_user_pb2.ApiListCronJobApprovalsArgs
   proto_result_type = api_user_pb2.ApiListCronJobApprovalsResult
 
@@ -1735,15 +1463,14 @@ class ApiListCronJobApprovalsHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
-  result_type = ApiGrrUser
   proto_result_type = api_user_pb2.ApiGrrUser
 
   def __init__(
       self,
-      interface_traits: Optional[api_user_pb2.ApiGrrUserInterfaceTraits] = None,
+      is_admin: bool = False,
   ) -> None:
     super().__init__()
-    self.interface_traits = interface_traits
+    self.is_admin = is_admin
 
   def Handle(
       self,
@@ -1755,10 +1482,12 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     # TODO: Use function to get API from proto user.
     user_record = data_store.REL_DB.ReadGRRUser(context.username)
-    api_user = InitApiGrrUserFromGrrUser(user_record)
+    if self.is_admin:
+      user_record.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
+    else:
+      user_record.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_STANDARD
 
-    if self.interface_traits:
-      api_user.interface_traits.CopyFrom(self.interface_traits)
+    api_user = InitApiGrrUserFromGrrUser(user_record)
 
     return api_user
 
@@ -1766,7 +1495,6 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Sets current user settings."""
 
-  args_type = ApiGrrUser
   proto_args_type = api_user_pb2.ApiGrrUser
 
   def Handle(
@@ -1776,10 +1504,8 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   ) -> api_user_pb2.ApiGrrUser:
     assert context is not None
 
-    if args.username or args.HasField("interface_traits"):
-      raise ValueError(
-          "Username or interface traits are set but cannot be updated"
-      )
+    if args.username:
+      raise ValueError("Username is set but cannot be updated")
 
     data_store.REL_DB.WriteGRRUser(
         context.username,
@@ -1788,16 +1514,11 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiGetPendingUserNotificationsCountResult
-
-
 class ApiGetPendingUserNotificationsCountHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Returns the number of pending notifications for the current user."""
 
-  result_type = ApiGetPendingUserNotificationsCountResult
   proto_result_type = api_user_pb2.ApiGetPendingUserNotificationsCountResult
 
   def Handle(
@@ -1819,27 +1540,11 @@ class ApiGetPendingUserNotificationsCountHandler(
     )
 
 
-class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListPendingUserNotificationsArgs
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiListPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListPendingUserNotificationsResult
-  rdf_deps = [
-      ApiNotification,
-  ]
-
-
 class ApiListPendingUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Returns pending notifications for the current user."""
 
-  args_type = ApiListPendingUserNotificationsArgs
-  result_type = ApiListPendingUserNotificationsResult
   proto_args_type = api_user_pb2.ApiListPendingUserNotificationsArgs
   proto_result_type = api_user_pb2.ApiListPendingUserNotificationsResult
 
@@ -1879,19 +1584,11 @@ class ApiListPendingUserNotificationsHandler(
     )
 
 
-class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiDeletePendingUserNotificationArgs
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class ApiDeletePendingUserNotificationHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Removes the pending notification with the given timestamp."""
 
-  args_type = ApiDeletePendingUserNotificationArgs
   proto_args_type = api_user_pb2.ApiDeletePendingUserNotificationArgs
 
   def Handle(
@@ -1909,24 +1606,11 @@ class ApiDeletePendingUserNotificationHandler(
     )
 
 
-class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListAndResetUserNotificationsArgs
-
-
-class ApiListAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListAndResetUserNotificationsResult
-  rdf_deps = [
-      ApiNotification,
-  ]
-
-
 class ApiListAndResetUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler
 ):
   """Returns the number of pending notifications for the current user."""
 
-  args_type = ApiListAndResetUserNotificationsArgs
-  result_type = ApiListAndResetUserNotificationsResult
   proto_args_type = api_user_pb2.ApiListAndResetUserNotificationsArgs
   proto_result_type = api_user_pb2.ApiListAndResetUserNotificationsResult
 
@@ -1988,21 +1672,6 @@ class ApiListAndResetUserNotificationsHandler(
     )
 
 
-class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListApproverSuggestionsArgs
-  rdf_deps = []
-
-
-class ApproverSuggestion(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListApproverSuggestionsResult.ApproverSuggestion
-  rdf_deps = []
-
-
-class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_user_pb2.ApiListApproverSuggestionsResult
-  rdf_deps = [ApproverSuggestion]
-
-
 def _GetAllUsernames() -> Sequence[str]:
   return sorted(user.username for user in data_store.REL_DB.ReadGRRUsers())
 
@@ -2023,8 +1692,6 @@ def _GetMostRequestedUsernames(
 class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
   """List suggestions for approver usernames."""
 
-  args_type = ApiListApproverSuggestionsArgs
-  result_type = ApiListApproverSuggestionsResult
   proto_args_type = api_user_pb2.ApiListApproverSuggestionsArgs
   proto_result_type = api_user_pb2.ApiListApproverSuggestionsResult
 
@@ -2071,22 +1738,3 @@ class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
             for u in usernames
         ]
     )
-
-
-# Copy of migration functions to avoid circular dependency.
-def ToRDFApiClientApproval(
-    proto: api_user_pb2.ApiClientApproval,
-) -> ApiClientApproval:
-  return ApiClientApproval.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToRDFApiHuntApproval(
-    proto: api_user_pb2.ApiHuntApproval,
-) -> ApiHuntApproval:
-  return ApiHuntApproval.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToRDFApiCronJobApproval(
-    proto: api_user_pb2.ApiCronJobApproval,
-) -> ApiCronJobApproval:
-  return ApiCronJobApproval.FromSerializedBytes(proto.SerializeToString())

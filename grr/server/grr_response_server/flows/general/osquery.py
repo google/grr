@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 """A module with flow class calling the osquery client action."""
 
+from collections.abc import Iterable, Iterator
 import json
-from typing import Any, Iterable, Iterator, List
 
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import mig_osquery
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import osquery_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
@@ -27,15 +30,66 @@ FILE_COLLECTION_MAX_SINGLE_FILE_BYTES = 2**30 // 2  # 1/2 GiB
 FILE_COLLECTION_MAX_TOTAL_BYTES = 2**30  # 1 GiB
 
 
-def _GetTotalRowCount(responses: Iterable[rdf_osquery.OsqueryResult]) -> int:
+def _GetTotalRowCount(responses: Iterable[osquery_pb2.OsqueryResult]) -> int:
   get_row_lengths = lambda response: len(response.table.rows)
   row_lengths = map(get_row_lengths, responses)
   return sum(row_lengths)
 
 
+def _GetColumn(
+    table: osquery_pb2.OsqueryTable, column_name: str
+) -> Iterator[str]:
+  """Iterates over values of a given column.
+
+  Args:
+    table: An OsqueryTable to iterate over.
+    column_name: A name of the column to retrieve the values for.
+
+  Yields:
+    Values of the specified column.
+
+  Raises:
+    KeyError: If given column is not present in the table.
+  """
+  column_idx = None
+  for idx, column in enumerate(table.header.columns):
+    if column.name == column_name:
+      column_idx = idx
+      break
+
+  if column_idx is None:
+    raise KeyError("Column '{}' not found".format(column_name))
+
+  for row in table.rows:
+    yield row.values[column_idx]
+
+
+def _Truncate(
+    table: osquery_pb2.OsqueryTable, row_count: int
+) -> osquery_pb2.OsqueryTable:
+  """Returns a fresh table with the first few rows of the original one.
+
+  Truncate doesn't modify the original table.
+
+  Args:
+    table: The table to truncate.
+    row_count: The number of rows to keep in the truncated table
+
+  Returns:
+    New OsqueryTable object with maximum row_count rows.
+  """
+  result = osquery_pb2.OsqueryTable()
+
+  result.query = table.query
+  result.header.CopyFrom(table.header)
+  result.rows.extend(table.rows[:row_count])
+
+  return result
+
+
 def _GetTruncatedTable(
-    responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
-) -> rdf_osquery.OsqueryTable:
+    responses: list[osquery_pb2.OsqueryResult],
+) -> osquery_pb2.OsqueryTable:
   """Constructs a truncated OsqueryTable.
 
   Constructs an OsqueryTable by extracting the first TRUNCATED_ROW_COUNT rows
@@ -51,18 +105,18 @@ def _GetTruncatedTable(
   # TODO(hanuszczak): This whole function looks very suspicious and looks like
   # a good candidate for refactoring.
   if not responses:
-    return rdf_osquery.OsqueryTable()
+    return osquery_pb2.OsqueryTable()
 
   tables = [response.table for response in responses]
 
-  result = tables[0].Truncated(TRUNCATED_ROW_COUNT)
+  result = _Truncate(tables[0], TRUNCATED_ROW_COUNT)
 
   for table in tables[1:]:
     to_add = TRUNCATED_ROW_COUNT - len(result.rows)
     if to_add == 0:
       break
 
-    result.rows.Extend(table.rows[:to_add])
+    result.rows.extend(table.rows[:to_add])
   return result
 
 
@@ -110,7 +164,13 @@ class _UniquePathGenerator:
     return "/".join(path_info.components)
 
 
-class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
+class OsqueryFlow(
+    flow_base.FlowBase[
+        osquery_pb2.OsqueryFlowArgs,
+        osquery_pb2.OsqueryStore,
+        osquery_pb2.OsqueryProgress,
+    ]
+):
   """A flow mixin wrapping the osquery client action."""
 
   friendly_name = "Osquery"
@@ -121,24 +181,31 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
   progress_type = rdf_osquery.OsqueryProgress
   result_types = (rdf_osquery.OsqueryResult,)
 
+  proto_args_type = osquery_pb2.OsqueryFlowArgs
+  proto_result_types = (osquery_pb2.OsqueryResult, jobs_pb2.StatEntry)
+  proto_progress_type = osquery_pb2.OsqueryProgress
+  proto_store_type = osquery_pb2.OsqueryStore
+
+  only_protos_allowed = True
+
   def _UpdateProgressWithError(self, error_message: str) -> None:
-    self.state.progress.error_message = error_message
-    self.state.progress.partial_table = None
-    self.state.progress.total_row_count = None
+    self.progress.error_message = error_message
+    self.progress.ClearField("partial_table")
+    self.progress.ClearField("total_row_count")
 
   def _UpdateProgress(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+      responses: list[osquery_pb2.OsqueryResult],
   ) -> None:
-    self.state.progress.error_message = None
-    self.state.progress.partial_table = _GetTruncatedTable(responses)
-    self.state.progress.total_row_count = _GetTotalRowCount(responses)
+    self.progress.ClearField("error_message")
+    self.progress.partial_table.CopyFrom(_GetTruncatedTable(responses))
+    self.progress.total_row_count = _GetTotalRowCount(responses)
 
   def _GetPathSpecsToCollect(
       self,
-      responses: Iterable[rdf_osquery.OsqueryResult],
-  ) -> List[rdf_paths.PathSpec]:
-    if not self.args.file_collection_columns:
+      responses: list[osquery_pb2.OsqueryResult],
+  ) -> list[jobs_pb2.PathSpec]:
+    if not self.proto_args.file_collection_columns:
       return []
 
     total_row_count = _GetTotalRowCount(responses)
@@ -154,34 +221,40 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     file_names = []
     for osquery_result in responses:
-      for column in self.args.file_collection_columns:
+      for column in self.proto_args.file_collection_columns:
         try:
-          file_names.extend(osquery_result.table.Column(column))
+          file_names.extend(_GetColumn(osquery_result.table, column))
         except KeyError:
           self._UpdateProgressWithError(
               f"No such column '{column}' to collect files from."
           )
           raise
 
-    return [rdf_paths.PathSpec.OS(path=file_name) for file_name in file_names]
+    return [
+        jobs_pb2.PathSpec(
+            path=file_name, pathtype=jobs_pb2.PathSpec.PathType.OS
+        )
+        for file_name in file_names
+    ]
 
   def _FileCollectionFromColumns(
       self,
-      responses: Iterable[rdf_osquery.OsqueryResult],
+      responses: list[osquery_pb2.OsqueryResult],
   ) -> None:
     pathspecs = self._GetPathSpecsToCollect(responses)
 
     for pathspec in pathspecs:
-      request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
-      self.CallClient(
+      request = jobs_pb2.GetFileStatRequest(pathspec=pathspec)
+      self.CallClientProto(
           server_stubs.GetFileStat,
           request,
           next_state=self._StatForFileArrived.__name__,
       )
 
+  @flow_base.UseProto2AnyResponses
   def _StatForFileArrived(
       self,
-      responses: flow_responses.Responses[rdf_client_fs.StatEntry],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       # TODO(user): Take note of this and report to the user with other
@@ -195,12 +268,14 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
           f"Response from stat has length {len(responses)}, instead of 1."
       )
 
-    stat_entry = list(responses)[0]
+    stat_entry_any = list(responses)[0]
+    stat_entry = jobs_pb2.StatEntry()
+    stat_entry.ParseFromString(stat_entry_any.value)
 
     if stat_entry.st_size > FILE_COLLECTION_MAX_SINGLE_FILE_BYTES:
       # TODO(user): Report to the user with other flow results instead of
       # failing the flow.
-      file_path = stat_entry.pathspec.CollapsePath()
+      file_path = stat_entry.pathspec.path
       message = (
           f"File with path {file_path} is too big: {stat_entry.st_size} "
           f"bytes when the limit is {FILE_COLLECTION_MAX_SINGLE_FILE_BYTES} "
@@ -209,7 +284,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       self._UpdateProgressWithError(message)
       raise flow_base.FlowError(message)
 
-    next_total_size = self.state.total_collected_bytes + stat_entry.st_size
+    next_total_size = self.store.total_collected_bytes + stat_entry.st_size
     if next_total_size > FILE_COLLECTION_MAX_TOTAL_BYTES:
       # TODO(user): Consider reporting to the user and giving the
       # collected files so far and the other results.
@@ -220,55 +295,58 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       self._UpdateProgressWithError(message)
       raise flow_base.FlowError(message)
 
-    self.StartFileFetch(stat_entry.pathspec)
-
-  def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
-    super(OsqueryFlow, self).Start(
-        file_size=FILE_COLLECTION_MAX_SINGLE_FILE_BYTES
+    self.CallFlowProto(
+        transfer.MultiGetFile.__name__,
+        flow_args=flows_pb2.MultiGetFileArgs(pathspecs=[stat_entry.pathspec]),
+        next_state=self.ProcessCollectedFile.__name__,
     )
-    self.state.progress = rdf_osquery.OsqueryProgress()
 
-    if len(self.args.file_collection_columns) > FILE_COLLECTION_MAX_COLUMNS:
+  def Start(self):
+    if (
+        len(self.proto_args.file_collection_columns)
+        > FILE_COLLECTION_MAX_COLUMNS
+    ):
       message = (
           "Requested file collection for "
-          f"{len(self.args.file_collection_columns)} columns, "
+          f"{len(self.proto_args.file_collection_columns)} columns, "
           f"but the limit is {FILE_COLLECTION_MAX_COLUMNS} columns."
       )
       self._UpdateProgressWithError(message)
       raise FileCollectionLimitsExceeded(message)
 
-    self.state.path_to_count = {}
-    self.state.total_collected_bytes = 0
-
-    if self.args.configuration_path and self.args.configuration_content:
+    if (
+        self.proto_args.configuration_path
+        and self.proto_args.configuration_content
+    ):
       raise ValueError(
           "Configuration path and configuration content are mutually exclusive."
       )
 
-    if self.args.configuration_content:
+    if self.proto_args.configuration_content:
       try:
-        _ = json.loads(self.args.configuration_content)
+        _ = json.loads(self.proto_args.configuration_content)
       except json.JSONDecodeError as json_error:
         raise ValueError(
             "Configuration content is not valid JSON"
         ) from json_error
 
-    action_args = rdf_osquery.OsqueryArgs(
-        query=self.args.query,
-        timeout_millis=self.args.timeout_millis,
-        configuration_path=self.args.configuration_path,
-        configuration_content=self.args.configuration_content,
+    action_args = osquery_pb2.OsqueryArgs(
+        query=self.proto_args.query,
+        timeout_millis=self.proto_args.timeout_millis,
+        configuration_path=self.proto_args.configuration_path,
+        configuration_content=self.proto_args.configuration_content,
     )
 
-    self.CallClient(
+    self.CallClientProto(
         server_stubs.Osquery,
-        request=action_args,
+        action_args,
         next_state=self.Process.__name__,
     )
 
+  @flow_base.UseProto2AnyResponses
   def Process(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     if not responses.success:
       status = responses.status
@@ -279,32 +357,43 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
       raise flow_base.FlowError(status)
 
-    self._UpdateProgress(responses)
+    unpacked_responses = []
+    for response_any in responses:
+      response = osquery_pb2.OsqueryResult()
+      response.ParseFromString(response_any.value)
+      unpacked_responses.append(response)
 
-    for response in responses:
+    self._UpdateProgress(unpacked_responses)
+
+    for response in unpacked_responses:
       # Older agent versions might still send empty tables, so we simply ignore
       # such.
       if not response.table.rows:
         continue
 
-      self.SendReply(response)
+      self.SendReplyProto(response)
 
-    self._FileCollectionFromColumns(responses)
+    self._FileCollectionFromColumns(unpacked_responses)
 
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
-    if hasattr(self.state, "progress"):
-      return self.state.progress
-    return rdf_osquery.OsqueryProgress()
+    return mig_osquery.ToRDFOsqueryProgress(self.progress)
 
-  def ReceiveFetchedFile(
+  def GetProgressProto(self) -> osquery_pb2.OsqueryProgress:
+    return self.progress
+
+  @flow_base.UseProto2AnyResponses
+  def ProcessCollectedFile(
       self,
-      stat_entry: rdf_client_fs.StatEntry,
-      file_hash: rdf_crypto.Hash,
-      request_data: Any = None,
-      is_duplicate=False,
+      responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
-    del file_hash, request_data, is_duplicate  # Unused
-    self.SendReply(stat_entry)
+    if not responses.success:
+      raise flow_base.FlowError(responses.status)
+
+    stat_entry_any = responses.First()
+    if stat_entry_any:
+      stat_entry = jobs_pb2.StatEntry()
+      stat_entry.ParseFromString(stat_entry_any.value)
+      self.SendReplyProto(stat_entry)
 
   def GetFilesArchiveMappings(
       self,

@@ -1,0 +1,40 @@
+@if (flow(); as flow) {
+  @switch (flow.state) {
+    @case (FlowState.UNSET) {}
+    @case (FlowState.RUNNING) {
+      <mat-icon
+          aria-hidden="false"
+          aria-label="flow in progress"
+          class="flow-in-progress-icon"
+          matTooltip="Flow in progress - Collected {{ getFlowResultsCount(flow) }} results"
+          [matBadge]="getFlowResultsCount(flow)"
+      >
+        hourglass_top
+      </mat-icon>
+    }
+    @case (FlowState.ERROR) {
+      <mat-icon
+          aria-hidden="false"
+          aria-label="flow error"
+          class="flow-error-icon"
+          matTooltip="Flow error"
+      >
+        error_outline
+      </mat-icon>
+    }
+    @case (FlowState.FINISHED) {
+      <mat-icon
+          aria-hidden="false"
+          aria-label="flow finished"
+          class="flow-finished-icon"
+          matTooltip="Flow finished - Collected {{ getFlowResultsCount(flow) }} results"
+          [matBadge]="getFlowResultsCount(flow)"
+      >
+        check_circle
+      </mat-icon>
+    }
+    @default {
+      {{ checkExhaustive(flow.state) }}
+    }
+  }
+}

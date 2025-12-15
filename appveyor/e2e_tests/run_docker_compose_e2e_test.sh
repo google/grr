@@ -34,7 +34,7 @@ readonly SKIP_TESTS_ARR=(\
   TestCheckRunner.runTest \
   # TODO: TSK pathtype is not working on Linux clients, skip tests.
   TestListDirectoryTSKLinux.runTest \
-  TestTransferLinux.testGetFileTSK \
+  TestTransferLinux.testMultiGetFileTSK \
   TestRawFilesystemAccessUsesTskOnNonWindows.runTest \
 )
 # Convert array to string (comma-separated).

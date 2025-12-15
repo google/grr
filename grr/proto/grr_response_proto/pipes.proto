@@ -63,3 +63,8 @@ message ListNamedPipesFlowResult {
   // Information about the process associated with the pipe.
   optional Process proc = 2;
 }
+
+message ListNamedPipesFlowStore {
+  // Collected pipes cached before processes are collected.
+  repeated NamedPipe pipes = 1;
+}

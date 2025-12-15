@@ -1,0 +1,99 @@
+@let state = fleetCollectionState();
+@switch (state) {
+  @case (HuntState.NOT_STARTED) {
+    <mat-chip
+        class="not-started-icon"
+        matTooltip="Fleet collection not started"
+    >
+      <mat-icon matChipAvatar>not_started</mat-icon>
+      Not started
+    </mat-chip>
+  }
+  @case (HuntState.RUNNING) {
+    <mat-chip
+      class="running-icon"
+      [matTooltip]="`Fleet collection running; ${resultsCount() ?? 0} clients returned results`"
+      [matBadge]="`${resultsCount() ?? 0}`"
+      [matBadgeHidden]="resultsCount() === undefined"
+    >
+      <mat-icon matChipAvatar>
+        hourglass_top
+      </mat-icon>
+      Running
+    </mat-chip>
+  }
+  @case (HuntState.REACHED_CLIENT_LIMIT) {
+    <mat-chip
+     class="paused-icon"
+      [matTooltip]="`Fleet collection paused - reached client limit; ${resultsCount() ?? 0} clients returned results`"
+      [matBadge]="`${resultsCount() ?? 0}`"
+      [matBadgeHidden]="resultsCount() === undefined"
+    >
+      <mat-icon matChipAvatar>
+        pause_circle
+      </mat-icon>
+      Paused - reached client limit
+    </mat-chip>
+  }
+  @case (HuntState.REACHED_TIME_LIMIT) {
+    <mat-chip
+      class="completed-icon"
+      [matTooltip]="`Fleet collection completed - reached time limit; ${resultsCount() ?? 0} clients returned results`"
+      [matBadgeHidden]="resultsCount() === undefined"
+      [matBadge]="`${resultsCount() ?? 0}`"
+    >
+      <mat-icon matChipAvatar >
+        check_circle
+      </mat-icon>
+      Completed - reached time limit
+    </mat-chip>
+  }
+  @case (HuntState.CANCELLED) {
+    <mat-chip
+      class="cancelled-icon"
+      [matTooltip]="`Fleet collection cancelled - ${fleetCollectionStateComment()}; ${resultsCount() ?? 0} clients returned results`"
+      [matBadge]="`${resultsCount() ?? 0}`"
+      [matBadgeHidden]="resultsCount() === undefined"
+    >
+      <mat-icon matChipAvatar>cancel</mat-icon>
+      Cancelled -
+      @let reason = fleetCollectionStateReason();
+      @switch (reason) {
+        @case (StateReason.UNKNOWN) {
+          Unknown reason
+        }
+        @case (StateReason.DEADLINE_REACHED) {
+          Deadline exceeded
+        }
+        @case (StateReason.TOTAL_CLIENTS_EXCEEDED) {
+          Too many clients
+        }
+        @case (StateReason.TOTAL_CRASHES_EXCEEDED) {
+          Too many client crashes
+        }
+        @case (StateReason.TOTAL_NETWORK_EXCEEDED) {
+          Too much network used across fleet
+        }
+        @case (StateReason.AVG_RESULTS_EXCEEDED) {
+          Too many results per client
+        }
+        @case (StateReason.AVG_NETWORK_EXCEEDED) {
+          Too much network used per client
+        }
+        @case (StateReason.AVG_CPU_EXCEEDED) {
+          Too much CPU used per client
+        }
+        @case (StateReason.TRIGGERED_BY_USER) {
+          Cancelled by user
+        }
+        @default {
+          {{ checkExhaustive(reason) }}
+        }
+      }
+    </mat-chip>
+  }
+  @default {
+    {{ checkExhaustive(state) }}
+  }
+}
+

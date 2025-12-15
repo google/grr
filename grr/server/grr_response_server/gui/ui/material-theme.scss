@@ -1,219 +1,85 @@
 @use 'sass:map';
+
 @use '@angular/material' as mat;
 
-/* IMPORTANT
+// Initialize Angular material theme.
+// Include non-theme styles for core.
+@include mat.app-background();
+@include mat.elevation-classes();
 
-Do not add CSS rules in this file, as they will get duplicated whenever we use
-this file with `@use` it in other .scss component files.
+html {
+  color-scheme: light;
 
-This file should only define Sass variables or Angular Material theme related
-variables.
+  @include mat.theme(
+    (
+      color: (
 
-In the future we could also convert this file to a Partial Sass file. which
-would automatically not include its CSS rules on the compiled CSS output:
-
-https://sass-lang.com/guide#:~:text=A%20partial%20is%20a%20Sass,used%20with%20the%20%40use%20rule.
-
-*/
-
-// Angular Material theme definition.
-$primary: mat.define-palette(mat.$blue-palette, 600, 400);
-$accent: mat.define-palette(mat.$green-palette, A700, A400, A200);
-$warn: mat.define-palette(mat.$amber-palette, 900, 600, 400);
-$success: mat.define-palette(mat.$green-palette);
-$danger: mat.define-palette(mat.$red-palette);
-
-// See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L712
-// and https://stackoverflow.com/questions/43438305/how-to-change-font-color-of-primary-palette-in-angular-material2/46157803#46157803
-$_grr-foreground: (
-  logo: mat.get-color-from-palette(mat.$grey-palette, 600),
-  text: mat.get-color-from-palette(mat.$grey-palette, 900),
-  text-light: mat.get-color-from-palette(mat.$grey-palette, 600),
-  divider-light: mat.get-color-from-palette(mat.$grey-palette, 300),
-  divider: mat.get-color-from-palette(mat.$grey-palette, 600),
-  dividers: mat.get-color-from-palette(mat.$grey-palette, 600),
-  success: mat.get-color-from-palette(mat.$green-palette, 700),
-  success-light: #8afab1,
-  danger: mat.get-color-from-palette(mat.$red-palette, 700),
-  danger-light: mat.get-color-from-palette(mat.$red-palette, 500),
-  in-progress: mat.get-color-from-palette(mat.$yellow-palette, 700),
-  icon-grey: mat.get-color-from-palette(mat.$grey-palette, 700),
-  selected: mat.get-color-from-palette(mat.$blue-palette, 100),
-  link: mat.get-color-from-palette(mat.$blue-palette, 600),
-);
-// See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L674
-$_grr-background: (
-  hover: #e8f0fe,
-  app-bar: white,
-  darker-background: #f7f8f9,
-  page-background: mat.get-color-from-palette(mat.$grey-palette, 50),
-  panel-background: mat.get-color-from-palette(mat.$grey-palette, 100),
-  // custom GRR property
-  shadow: rgba(0, 0, 0, 0.5),
-  // custom GRR property
-  danger-light: mat.get-color-from-palette($danger, 100),
-  dark-background: mat.get-color-from-palette(mat.$grey-palette, 400),
-);
-// TODO: Provide this application's typography in the
-// theme configuration instead of providing null.
-$_theme: mat.define-light-theme(
-  (
-    color: (
-      primary: $primary,
-      accent: $accent,
-      warn: $warn,
-    ),
-    typography: null,
-    density: 0,
-  )
-);
-$theme: map.merge(
-  $_theme,
-  (
-    color:
-      map.merge(
-        mat.get-color-config($_theme),
-        (
-          foreground:
-            map.merge(
-              map.get(mat.get-color-config($_theme), foreground),
-              $_grr-foreground
-            ),
-          background:
-            map.merge(
-              map.get(mat.get-color-config($_theme), background),
-              $_grr-background
-            ),
-        )
+        primary: mat.$blue-palette,
+        tertiary: mat.$violet-palette,
       ),
-  )
-);
+      typography: (
+        plain-family: (
+          'Google Sans Text',
+          'Google Sans',
+          sans-serif,
+        ),
+        brand-family: (
+          'Google Sans',
+        ),
+        bold-weight: 700,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
 
-$foreground: map.get(mat.get-color-config($theme), foreground);
-$background: map.get(mat.get-color-config($theme), background);
+  @include mat.chips-overrides(
+    (
+      container-shape-radius: 16px,
+      outline-color: transparent,
+    )
+  );
+}
 
-$google-sans-display-family:
-  Google Sans Display,
-  'Helvetica Neue',
-  sans-serif;
-$google-sans-family:
-  Google Sans,
-  'Helvetica Neue',
-  sans-serif;
-$roboto-family: Roboto, 'Helvetica Neue', sans-serif;
-$google-sans-display-family-str: 'Google Sans Display, "Helvetica Neue", sans-serif';
-$google-sans-family-str: 'Google Sans, "Helvetica Neue", sans-serif';
-$roboto-family-str: 'Roboto, "Helvetica Neue", sans-serif';
+body.dark-mode {
+  color-scheme: dark;
+}
+
+:host {
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  border: None;
+  font: var(--mat-sys-body-medium);
+}
 
 // Material Typography level definitions:
-$headline-4-typography: mat.define-typography-level(
-  64px,
-  76px,
-  400,
-  $google-sans-display-family-str,
-  normal
-);
+h1 {
+  font: var(--mat-sys-headline-large);
+}
 
-$headline-3-typography: mat.define-typography-level(
-  56px,
-  64px,
-  400,
-  $google-sans-display-family-str,
-  normal
-);
+h2 {
+  font: var(--mat-sys-headline-medium);
+}
 
-$headline-2-typography: mat.define-typography-level(
-  44px,
-  52px,
-  400,
-  $google-sans-display-family-str,
-  normal
-);
+h3 {
+  font: var(--mat-sys-headline-small);
+}
 
-$headline-5-typography: mat.define-typography-level(
-  18px,
-  24px,
-  400,
-  $google-sans-family-str,
-  normal
-);
+h4 {
+  font: var(--mat-sys-title-large);
+}
 
-$headline-6-typography: mat.define-typography-level(
-  16px,
-  24px,
-  500,
-  $roboto-family-str,
-  0.2px
-);
+h5 {
+  font: var(--mat-sys-title-medium);
+}
 
-$subtitle-2-typography: mat.define-typography-level(
-  14px,
-  20px,
-  500,
-  $google-sans-family-str,
-  0.25px
-);
+h6 {
+  font: var(--mat-sys-title-small);
+}
 
-$subtitle-1-typography: mat.define-typography-level(
-  16px,
-  24px,
-  500,
-  $google-sans-family-str,
-  0.1px
-);
-$body-1-typography: mat.define-typography-level(
-  14px,
-  20px,
-  400,
-  $roboto-family-str,
-  0.2px
-);
-$body-2-typography: mat.define-typography-level(
-  16px,
-  24px,
-  400,
-  $roboto-family-str,
-  0.1px
-);
-$caption-typography: mat.define-typography-level(
-  12px,
-  16px,
-  400,
-  $roboto-family-str,
-  0.3px
-);
-$button-typography: mat.define-typography-level(
-  14px,
-  36px,
-  500,
-  $roboto-family-str,
-  0.2px
-);
-
-/* https://material.angular.io/guide/typography#typography-levels */
-$custom-mdc-typography: mat.define-typography-config(
-  $headline-2: $headline-2-typography,
-  $headline-3: $headline-3-typography,
-  $headline-4: $headline-4-typography,
-  $headline-5: $headline-5-typography,
-  $headline-6: $headline-6-typography,
-  $subtitle-1: $subtitle-1-typography,
-  $subtitle-2: $subtitle-2-typography,
-  $body-1: $body-1-typography,
-  $body-2: $body-2-typography,
-  $caption: $caption-typography,
-  $button: $button-typography,
-);
-
-$button-horizontal-padding: 16px;
-
-// Padding in major containers, e.g. sidebar drawer.
-$container-padding: 16px;
-
-$card-margin: 20px;
-
-$centered-content-max-width: 1280px;
-$centered-content-width: 80%;
-
-// Vertical spacing between major elements (e.g. cards) on a page.
-$page-spacing: 16px;
+$color-warn: #ffb300;
+$color-success: #43a047;
+$color-danger: #e53935;
+$color-progress: #0075ff;
+$color-neutral: #5f6368;

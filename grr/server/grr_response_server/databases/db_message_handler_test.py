@@ -8,6 +8,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import objects_pb2
+from grr_response_server.databases import db_test_utils
 
 
 class DatabaseTestHandlerMixin(object):
@@ -96,6 +97,21 @@ class DatabaseTestHandlerMixin(object):
 
     got.sort(key=lambda req: req.request_id)
     self.assertEqual(requests, got)
+
+  def testLargeRequestId(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    request = objects_pb2.MessageHandlerRequest()
+    request.client_id = client_id
+    request.request_id = 0x133713371337
+    request.handler_name = "FooHandler"
+    self.db.WriteMessageHandlerRequests([request])
+
+    results = self.db.ReadMessageHandlerRequests()
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id)
+    self.assertEqual(results[0].request_id, 0x133713371337)
+    self.assertEqual(results[0].handler_name, "FooHandler")
 
 
 # This file is a test library and thus does not require a __main__ block.

@@ -107,4 +107,9 @@ message Interface {
 
   // IP addresses associated with the interface.
   repeated IpAddress ip_addresses = 3;
+
+  // A friendly name of the interface as reported by the system.
+  //
+  // Windows-only.
+  string windows_friendly_name = 4;
 }
