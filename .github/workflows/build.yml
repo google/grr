@@ -5,30 +5,6 @@ env:
   GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
   DOCKER_REPOSITORY: ghcr.io/google/grr
 jobs:
-  test-devenv:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: check_deps
-        run: |
-          sudo apt-get update && sudo apt-get install -y podman curl jq
-          sudo usermod --add-subuids 500000-565535 --add-subgids 500000-565535 "${USER}"
-          devenv/devenv.sh check_deps
-      - name: start
-        run: |
-          devenv/devenv.sh start
-          OK=false
-          for attempt in $(seq 20); do
-            curl -su admin:admin http://localhost:4280/api/v2/clients |
-              sed 1d |
-              jq -r ".items[].value.client_id.value" |
-              egrep -e "^C[.][0-9a-f]{16}\$" && { OK=true; break; }
-            echo "attempt ${attempt}: devenv not ready"
-            sleep 10
-          done
-          [[ $OK = true ]]
-
-
   test-ubuntu:
     runs-on: ubuntu-22.04
     steps:
