@@ -6,8 +6,8 @@ jobs:
   test-ubuntu:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '18'
       - name: Setup Chrome
@@ -37,7 +37,7 @@ jobs:
   build-openapi:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install
         run: |
           sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
@@ -51,7 +51,7 @@ jobs:
           travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
           ls -la _openapi_artifacts/*
       - name: Upload OpenAPI to GitHub artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: openapi
           path: _openapi_artifacts/
@@ -60,8 +60,8 @@ jobs:
   build-ubuntu:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.9'
       - name: Set up
@@ -75,7 +75,7 @@ jobs:
           travis/build_templates.sh
           ls -la installers_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ubuntu-installers
           path: installers_dir/
@@ -88,7 +88,7 @@ jobs:
       DOCKER_CONTAINER: centos_64bit_container
       DOCKER_USER: grrbot
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build installers
         run: |
           docker run -dit \
@@ -108,7 +108,7 @@ jobs:
           docker exec "${DOCKER_CONTAINER}" rpm -vih installers_dir/*.rpm
           ls -la installers_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: centos-installers
           path: installers_dir/
@@ -117,8 +117,8 @@ jobs:
   build-windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.9'
       - name: Build installers
@@ -131,7 +131,7 @@ jobs:
           mv -v output*/* installers_dir
           ls -la installers_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-installers
           path: installers_dir/
@@ -146,10 +146,10 @@ jobs:
       - build-ubuntu
       - build-windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download installers from GitHub artifacts
         id: download
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: '*installer*'
           path: _installers
@@ -173,7 +173,7 @@ jobs:
             ${{ steps.meta.outputs.tags }}
           outputs: type=docker,dest=/tmp/grr_base_image.tar
       - name: Upload docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: grr_base_image
           path: /tmp/grr_base_image.tar
@@ -186,9 +186,9 @@ jobs:
     needs:
       - build-docker-image
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: grr_base_image
           path: /tmp
@@ -222,7 +222,7 @@ jobs:
           docker compose logs > /tmp/docker_compose_test.log
       - name: Upload docker compose logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docker_commpose_test_logs
           path: /tmp/docker_compose_test.log
@@ -245,9 +245,9 @@ jobs:
       - test-ubuntu
       - docker-compose-e2e-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: grr_base_image
           path: /tmp
