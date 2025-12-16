@@ -21,7 +21,7 @@ __pycache__/
 build/
 dist/
 artifacts/*.yaml
-gcs_upload_dir/
+installers_dir/
 get-pip.py
 grr/core/grr_response_core/artifacts/*.yaml
 *.egg-info/

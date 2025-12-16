@@ -1,8 +1,6 @@
 name: Build
 on: [push, pull_request]
 env:
-  GCS_BUCKET: autobuilds.grr-response.com
-  GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
   DOCKER_REPOSITORY: ghcr.io/google/grr
 jobs:
   test-ubuntu:
@@ -61,8 +59,6 @@ jobs:
 
   build-ubuntu:
     runs-on: ubuntu-22.04
-    env:
-      GCS_TAG: ubuntu_64bit
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -77,18 +73,17 @@ jobs:
         run: |
           travis/install_client_builder.sh
           travis/build_templates.sh
-          ls -la gcs_upload_dir
+          ls -la installers_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-installers
-          path: gcs_upload_dir/
+          path: installers_dir/
           retention-days: 1
 
   build-centos:
     runs-on: ubuntu-22.04
     env:
-      GCS_TAG: centos_64bit
       DOCKER_IMG: grrdocker/centos7-python39
       DOCKER_CONTAINER: centos_64bit_container
       DOCKER_USER: grrbot
@@ -110,13 +105,13 @@ jobs:
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"'
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
           docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
-          docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
-          ls -la gcs_upload_dir
+          docker exec "${DOCKER_CONTAINER}" rpm -vih installers_dir/*.rpm
+          ls -la installers_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v4
         with:
           name: centos-installers
-          path: gcs_upload_dir/
+          path: installers_dir/
           retention-days: 1
 
   build-windows:
@@ -132,14 +127,14 @@ jobs:
           set -ex
           pip install virtualenv wheel
           python -u appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
-          mkdir -p gcs_upload_dir
-          mv -v output*/* gcs_upload_dir
-          ls -la gcs_upload_dir
+          mkdir -p installers_dir
+          mv -v output*/* installers_dir
+          ls -la installers_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-installers
-          path: gcs_upload_dir/
+          path: installers_dir/
           retention-days: 1
 
   build-docker-image:
@@ -271,55 +266,3 @@ jobs:
           docker rmi ${{ env.DOCKER_REPOSITORY }}:testing
           docker push --all-tags ${{ env.DOCKER_REPOSITORY }}
 
-  upload-artifacts:
-    if: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-22.04
-    needs:
-      - docker-compose-e2e-test
-      - test-ubuntu
-      - build-centos
-      - build-ubuntu
-      - build-windows
-      - build-openapi
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download installers from GitHub artifacts
-        id: download
-        uses: actions/download-artifact@v4
-        with:
-          path: _artifacts
-      - run: |
-          ls -la _artifacts/*/
-          COMMIT_TIME=$(git show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format="%cd" $GITHUB_SHA)
-          OUTPUT_DIR=gcs_upload_dir/${COMMIT_TIME}_${GITHUB_SHA}/
-          echo "OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
-          mkdir -p $OUTPUT_DIR/centos/
-          mv -v _artifacts/centos-installers/* $OUTPUT_DIR/centos
-          mkdir -p $OUTPUT_DIR/ubuntu/
-          mv -v _artifacts/ubuntu-installers/* $OUTPUT_DIR/ubuntu
-          mkdir -p $OUTPUT_DIR/windows/
-          mv -v _artifacts/windows-installers/* $OUTPUT_DIR/windows
-      - name: Authenticate
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          export_environment_variables: true
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1.1.0
-      - name: Upload installers to GCS
-        uses: google-github-actions/upload-cloud-storage@v1.0.0
-        with:
-          path: gcs_upload_dir/
-          destination: ${{ env.GCS_BUCKET }}
-          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
-          parent: false
-      - name: Upload OpenAPI to GCS
-        uses: google-github-actions/upload-cloud-storage@v1.0.0
-        with:
-          path: _artifacts/openapi/
-          destination: ${{ env.GCS_BUCKET_OPENAPI }}
-          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
-          parent: false
