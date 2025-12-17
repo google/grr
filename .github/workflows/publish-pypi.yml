@@ -92,7 +92,7 @@ jobs:
         name: grr-response-proto
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-response-core:
     name: Publish grr-response-core to PyPI
@@ -111,7 +111,7 @@ jobs:
         name: grr-response-core
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-response-client:
     name: Publish grr-response-client to PyPI
@@ -130,7 +130,7 @@ jobs:
         name: grr-response-client
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-response-client-builder:
     name: Publish grr-response-client-builder to PyPI
@@ -149,7 +149,7 @@ jobs:
         name: grr-response-client-builder
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-response-server:
     name: Publish grr-response-server to PyPI
@@ -168,7 +168,7 @@ jobs:
         name: grr-response-server
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-response-test:
     name: Publish grr-response-test to PyPI
@@ -187,7 +187,7 @@ jobs:
         name: grr-response-test
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-colab:
     name: Publish grr-colab to PyPI
@@ -206,7 +206,7 @@ jobs:
         name: grr-colab
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
 
   publish-to-pypi-grr-api-client:
     name: Publish grr-api-client to PyPI
@@ -225,4 +225,4 @@ jobs:
         name: grr-api-client
         path: dist/
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13
