@@ -136,6 +136,99 @@ class SendEmailTests(test_lib.GRRBaseTest):
             "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain), message
         )
 
+  def testSendEmailWithStarttlsNotSupported(self):
+    """Email should send when STARTTLS is not supported (non-strict mode)."""
+    with mock.patch("smtplib.SMTP") as mock_smtp:
+      with test_lib.ConfigOverrider({
+          "Logging.domain": "test.com",
+          "Worker.smtp_starttls": True,
+      }):
+        smtp_conn = mock_smtp.return_value
+        smtp_conn.has_extn.return_value = False
+
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            "testto@example.com", "me@example.com", "test", "test message"
+        )
+
+        smtp_conn.has_extn.assert_called_with("starttls")
+        smtp_conn.starttls.assert_not_called()
+        smtp_conn.sendmail.assert_called_once()
+
+  def testSendEmailWithStarttlsSupported(self):
+    """STARTTLS should be used when supported."""
+    with mock.patch("smtplib.SMTP") as mock_smtp:
+      with test_lib.ConfigOverrider({
+          "Logging.domain": "test.com",
+          "Worker.smtp_starttls": True,
+      }):
+        smtp_conn = mock_smtp.return_value
+        smtp_conn.has_extn.return_value = True
+
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            "testto@example.com", "me@example.com", "test", "test message"
+        )
+
+        smtp_conn.starttls.assert_called_once()
+        smtp_conn.sendmail.assert_called_once()
+
+  def testSendEmailAuthFailsWithoutStarttls(self):
+    """Auth failure should provide helpful error when STARTTLS unavailable."""
+    with mock.patch("smtplib.SMTP") as mock_smtp:
+      with test_lib.ConfigOverrider({
+          "Logging.domain": "test.com",
+          "Worker.smtp_starttls": True,
+          "Worker.smtp_user": "testuser",
+          "Worker.smtp_password": "testpass",
+      }):
+        smtp_conn = mock_smtp.return_value
+        smtp_conn.has_extn.return_value = False
+        smtp_conn.login.side_effect = smtplib.SMTPAuthenticationError(
+            535, b"Authentication failed"
+        )
+
+        with self.assertRaises(email_alerts.EmailNotSentError) as context:
+          email_alerts.EMAIL_ALERTER.SendEmail(
+              "testto@example.com", "me@example.com", "test", "test message"
+          )
+
+        self.assertIn("STARTTLS", str(context.exception))
+
+  def testSendEmailWithStarttlsStrictMode(self):
+    """Strict mode should fail when STARTTLS is not supported."""
+    with mock.patch("smtplib.SMTP") as mock_smtp:
+      with test_lib.ConfigOverrider({
+          "Logging.domain": "test.com",
+          "Worker.smtp_starttls": True,
+          "Worker.smtp_starttls_strict": True,
+      }):
+        smtp_conn = mock_smtp.return_value
+        smtp_conn.has_extn.return_value = False
+
+        with self.assertRaises(email_alerts.EmailNotSentError):
+          email_alerts.EMAIL_ALERTER.SendEmail(
+              "testto@example.com", "me@example.com", "test", "test message"
+          )
+
+        smtp_conn.sendmail.assert_not_called()
+
+  def testSendEmailWithStarttlsNonStrictMode(self):
+    """Non-strict mode should continue when STARTTLS is not supported."""
+    with mock.patch("smtplib.SMTP") as mock_smtp:
+      with test_lib.ConfigOverrider({
+          "Logging.domain": "test.com",
+          "Worker.smtp_starttls": True,
+          "Worker.smtp_starttls_strict": False,
+      }):
+        smtp_conn = mock_smtp.return_value
+        smtp_conn.has_extn.return_value = False
+
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            "testto@example.com", "me@example.com", "test", "test message"
+        )
+
+        smtp_conn.sendmail.assert_called_once()
+        smtp_conn.starttls.assert_not_called()
+
 
 def main(argv):
   test_lib.main(argv)

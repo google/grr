@@ -49,6 +49,10 @@ config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
 config_lib.DEFINE_bool("Worker.smtp_starttls", False,
                        "Enable TLS for the smtp connection.")
 
+config_lib.DEFINE_bool(
+    "Worker.smtp_starttls_strict", False,
+    "Fail if STARTTLS is enabled but not supported by the server.")
+
 config_lib.DEFINE_string("Worker.smtp_user", None,
                          "Username for the smtp connection.")
 
