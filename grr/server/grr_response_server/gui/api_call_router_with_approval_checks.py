@@ -698,6 +698,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiCreateFlowArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiScheduleFlowHandler:
+    self.admin_access_checker.CheckIfCanStartFlow(
+        context.username, args.flow.name or args.flow.runner_args.flow_name
+    )
     self.mitigation_flows_access_checker.CheckIfHasAccessToFlow(
         context.username, args.flow.name or args.flow.runner_args.flow_name
     )

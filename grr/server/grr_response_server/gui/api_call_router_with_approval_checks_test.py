@@ -407,7 +407,12 @@ class ApiCallRouterWithApprovalChecksTest(
         access_checker_mock=self.mitigation_flows_access_checker_mock,
         args=args,
     )
-
+    self.CheckMethodIsAccessChecked(
+        self.router.ScheduleFlow,
+        "CheckIfCanStartFlow",
+        access_checker_mock=self.admin_checker_mock,
+        args=args,
+    )
     self.CheckMethodIsAccessChecked(
         self.router.ScheduleFlow,
         "CheckIfHasAccessToFlow",
