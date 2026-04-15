@@ -867,6 +867,34 @@ class ApiScheduleFlowsTest(absltest.TestCase):
     self.assertCountEqual(results.scheduled_flows, [sf1, sf2])
 
   @db_test_lib.WithDatabase
+  def testListScheduledFlowsUsesContextUsername(
+      self, db: abstract_db.Database
+  ):
+    """Verify that handler uses context.username, not args.creator."""
+    context = _CreateContext(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    # Schedule a flow as the authenticated user.
+    handler = flow_plugin.ApiScheduleFlowHandler()
+    args = flow_pb2.ApiCreateFlowArgs()
+    args.client_id = client_id
+    args.flow.name = file.CollectFilesByKnownPath.__name__
+    args.flow.args.Pack(flows_pb2.CollectFilesByKnownPathArgs(paths=["/foo"]))
+    args.flow.runner_args.CopyFrom(flows_pb2.FlowRunnerArgs(cpu_limit=60))
+    sf = handler.Handle(args, context=context)
+
+    # List with args.creator set to a different user -- the handler should
+    # ignore it and use context.username instead.
+    handler = flow_plugin.ApiListScheduledFlowsHandler()
+    args = flow_pb2.ApiListScheduledFlowsArgs(
+        client_id=client_id, creator="someotheruser"
+    )
+    results = handler.Handle(args, context=context)
+
+    # Should still return the authenticated user's flows, not "someotheruser".
+    self.assertCountEqual(results.scheduled_flows, [sf])
+
+  @db_test_lib.WithDatabase
   def testUnscheduleFlowRemovesScheduledFlow(self, db: abstract_db.Database):
     context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
