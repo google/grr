@@ -286,15 +286,14 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     """
     flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id=str(client_id),
+        created_by=frozenset([context.username]),
         include_child_flows=False,
     )
-    for flow_obj in flows:
-      if flow_obj.creator == context.username:
-        return
-    raise access_control.UnauthorizedAccess(
-        "Robot user %s has no flows on client %s."
-        % (context.username, client_id)
-    )
+    if not flows:
+      raise access_control.UnauthorizedAccess(
+          "Robot user %s has no flows on client %s."
+          % (context.username, client_id)
+      )
 
   def _FixFileFinderArgs(
       self, source_args: any_pb2.Any
