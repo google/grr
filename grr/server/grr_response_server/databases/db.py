@@ -2061,7 +2061,7 @@ class Database(metaclass=abc.ABCMeta):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-      created_by: Optional[str] = None,
+      created_by: Optional[Iterable[str]] = None,
   ) -> list[flows_pb2.Flow]:
     """Returns all flow objects.
 
@@ -2073,7 +2073,7 @@ class Database(metaclass=abc.ABCMeta):
       include_child_flows: include child flows in the results. If False, only
         parent flows are returned. Must be `True` if the parent flow is given.
       not_created_by: exclude flows created by any of the users in this list.
-      created_by: only include flows created by this user.
+      created_by: only include flows created by any of the users in this list.
 
     Returns:
       A list of Flow objects.
@@ -4336,7 +4336,7 @@ class DatabaseValidationWrapper(Database):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-      created_by: Optional[str] = None,
+      created_by: Optional[Iterable[str]] = None,
   ) -> list[flows_pb2.Flow]:
     if client_id is not None:
       precondition.ValidateClientId(client_id)
@@ -4352,7 +4352,7 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertIterableType(not_created_by, str)
 
     if created_by is not None:
-      precondition.AssertType(created_by, str)
+      precondition.AssertIterableType(created_by, str)
 
     return self.delegate.ReadAllFlowObjects(
         client_id=client_id,

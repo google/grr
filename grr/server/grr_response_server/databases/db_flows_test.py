@@ -457,13 +457,18 @@ class DatabaseTestFlowMixin(object):
         flows_pb2.Flow(client_id=client_id_1, flow_id="000A0003", creator="foo")
     )
 
-    flows = self.db.ReadAllFlowObjects(created_by="foo")
+    flows = self.db.ReadAllFlowObjects(created_by=frozenset(["foo"]))
     self.assertCountEqual([f.flow_id for f in flows], ["000A0001", "000A0003"])
 
-    flows = self.db.ReadAllFlowObjects(created_by="bar")
+    flows = self.db.ReadAllFlowObjects(created_by=frozenset(["bar"]))
     self.assertCountEqual([f.flow_id for f in flows], ["000A0002"])
 
-    flows = self.db.ReadAllFlowObjects(created_by="nonexistent")
+    flows = self.db.ReadAllFlowObjects(created_by=frozenset(["foo", "bar"]))
+    self.assertCountEqual(
+        [f.flow_id for f in flows], ["000A0001", "000A0002", "000A0003"]
+    )
+
+    flows = self.db.ReadAllFlowObjects(created_by=frozenset(["nonexistent"]))
     self.assertEmpty(flows)
 
   def testReadAllFlowObjectsWithAllConditions(self):

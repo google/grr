@@ -239,7 +239,7 @@ class InMemoryDBFlowMixin(object):
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
-      created_by: Optional[str] = None,
+      created_by: Optional[Iterable[str]] = None,
   ) -> list[flows_pb2.Flow]:
     """Returns all flow objects."""
     res = []
@@ -262,7 +262,7 @@ class InMemoryDBFlowMixin(object):
         continue
       if not_created_by is not None and flow.creator in list(not_created_by):
         continue
-      if created_by is not None and flow.creator != created_by:
+      if created_by is not None and flow.creator not in list(created_by):
         continue
       res.append(flow)
     return res
