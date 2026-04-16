@@ -407,6 +407,7 @@ class MySQLDBFlowMixin:
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
       not_created_by: Optional[Iterable[str]] = None,
+      created_by: Optional[str] = None,
       cursor: Optional[cursors.Cursor] = None,
   ) -> list[flows_pb2.Flow]:
     """Returns all flow objects."""
@@ -440,6 +441,10 @@ class MySQLDBFlowMixin:
       # implementation does not know how to convert a `frozenset` to a string.
       # The cursor implementation knows how to convert lists and ordinary sets.
       args.append(list(not_created_by))
+
+    if created_by is not None:
+      conditions.append("creator = %s")
+      args.append(created_by)
 
     query = f"SELECT {self.FLOW_DB_FIELDS} FROM flows"
     if conditions:

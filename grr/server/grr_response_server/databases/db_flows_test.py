@@ -443,6 +443,29 @@ class DatabaseTestFlowMixin(object):
     flows = self.db.ReadAllFlowObjects(not_created_by=frozenset(["baz", "foo"]))
     self.assertCountEqual([f.flow_id for f in flows], ["000A0002"])
 
+  def testReadAllFlowObjectsWithCreatedBy(self):
+    client_id_1 = "C.1111111111111111"
+    self.db.WriteClientMetadata(client_id_1)
+
+    self.db.WriteFlowObject(
+        flows_pb2.Flow(client_id=client_id_1, flow_id="000A0001", creator="foo")
+    )
+    self.db.WriteFlowObject(
+        flows_pb2.Flow(client_id=client_id_1, flow_id="000A0002", creator="bar")
+    )
+    self.db.WriteFlowObject(
+        flows_pb2.Flow(client_id=client_id_1, flow_id="000A0003", creator="foo")
+    )
+
+    flows = self.db.ReadAllFlowObjects(created_by="foo")
+    self.assertCountEqual([f.flow_id for f in flows], ["000A0001", "000A0003"])
+
+    flows = self.db.ReadAllFlowObjects(created_by="bar")
+    self.assertCountEqual([f.flow_id for f in flows], ["000A0002"])
+
+    flows = self.db.ReadAllFlowObjects(created_by="nonexistent")
+    self.assertEmpty(flows)
+
   def testReadAllFlowObjectsWithAllConditions(self):
     client_id_1 = "C.1111111111111111"
     client_id_2 = "C.2222222222222222"
