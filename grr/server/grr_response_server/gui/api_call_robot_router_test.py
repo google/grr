@@ -12,6 +12,7 @@ from grr_response_proto import flows_pb2
 from grr_response_proto import timeline_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_proto.api import timeline_pb2 as api_timeline_pb2
+from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
 from grr_response_server import access_control
 from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
@@ -701,6 +702,44 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     )
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFileBlob(None, context=self.context)
+
+  def testGetFileBlobRaisesIfNoFlowCreatedBySameUser(self):
+    flow_test_lib.StartFlow(
+        file_finder.FileFinder, self.client_id, creator=self.another_username
+    )
+
+    router = rr.ApiCallRobotRouter(
+        params=api_call_router_pb2.ApiCallRobotRouterParams(
+            get_file_blob=api_call_router_pb2.RobotRouterGetFileBlobParams(
+                enabled=True
+            )
+        )
+    )
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.GetFileBlob(
+          api_vfs_pb2.ApiGetFileBlobArgs(
+              client_id=self.client_id, file_path="fs/os/etc/passwd"
+          ),
+          context=self.context,
+      )
+
+  def testGetFileBlobWorksIfFlowWasCreatedBySameUser(self):
+    self._CreateFlowWithRobotId()
+
+    router = rr.ApiCallRobotRouter(
+        params=api_call_router_pb2.ApiCallRobotRouterParams(
+            get_file_blob=api_call_router_pb2.RobotRouterGetFileBlobParams(
+                enabled=True
+            )
+        )
+    )
+    # Should not raise -- the requesting user has a flow on this client.
+    router.GetFileBlob(
+        api_vfs_pb2.ApiGetFileBlobArgs(
+            client_id=self.client_id, file_path="fs/os/etc/passwd"
+        ),
+        context=self.context,
+    )
 
   def testGetFlowFilesArchiveIsDisabledByDefault(self):
     router = rr.ApiCallRobotRouter(
