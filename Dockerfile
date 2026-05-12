@@ -101,9 +101,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
   uv pip install \
     -e grr/proto \
     -e grr/core \
-    -e grr/client \
     -e grr/server \
-    -e grr/client_builder \
     -e api_client/python
 
 RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \

@@ -20,8 +20,6 @@ jobs:
           mkdir /tmp/sdists
           python grr/proto/setup.py --quiet sdist --dist-dir="/tmp/sdists"
           python grr/core/setup.py --quiet sdist --dist-dir="/tmp/sdists"
-          python grr/client/setup.py --quiet sdist --dist-dir="/tmp/sdists"
-          python grr/client_builder/setup.py --quiet sdist --dist-dir="/tmp/sdists"
           python grr/server/setup.py --quiet sdist --dist-dir="/tmp/sdists"
           python grr/test/setup.py --quiet sdist --dist-dir="/tmp/sdists"
           python colab/setup.py --quiet sdist --dist-dir="/tmp/sdists"
@@ -38,18 +36,6 @@ jobs:
         with:
           name: grr-response-core
           path: /tmp/sdists/grr_response_core-*.tar.gz
-          retention-days: 3          
-      - name: Upload grr-response-client
-        uses: actions/upload-artifact@v4
-        with:
-          name: grr-response-client
-          path: /tmp/sdists/grr_response_client-*.tar.gz
-          retention-days: 3          
-      - name: Upload grr-response-client-builder
-        uses: actions/upload-artifact@v4
-        with:
-          name: grr-response-client-builder
-          path: /tmp/sdists/grr_response_client_builder-*.tar.gz
           retention-days: 3          
       - name: Upload grr-response-server
         uses: actions/upload-artifact@v4
@@ -110,44 +96,6 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: grr-response-core
-        path: dist/
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-
-  publish-to-pypi-grr-response-client:
-    name: Publish grr-response-client to PyPI
-    needs:
-    - build-pypi-packages
-    runs-on: ubuntu-22.04
-    environment:
-      name: pypi
-      url: https://pypi.org/p/grr-response-client
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
-    steps:
-    - name: Download the artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: grr-response-client
-        path: dist/
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-
-  publish-to-pypi-grr-response-client-builder:
-    name: Publish grr-response-client-builder to PyPI
-    needs:
-    - build-pypi-packages
-    runs-on: ubuntu-22.04
-    environment:
-      name: pypi
-      url: https://pypi.org/p/grr-response-client-builder
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
-    steps:
-    - name: Download the artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: grr-response-client-builder
         path: dist/
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
