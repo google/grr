@@ -46,5 +46,8 @@ pip install -e colab --progress-bar off
 # Depends on all other packages
 pip install -e grr/test --progress-bar off
 
+ls -la /home/runner/INSTALL/bin
+pip install grpcio-tools
+
 cd grr/proto && python makefile.py && cd -
 cd grr/core/grr_response_core/artifacts && python makefile.py && cd -
