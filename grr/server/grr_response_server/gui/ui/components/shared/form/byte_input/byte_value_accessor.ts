@@ -17,8 +17,8 @@ type OnTouchedFn = () => void;
 @Directive({
   selector: '[byteInput]',
   host: {
-    '(change)': 'onChange($event.target.value)',
-    '(input)': 'onChange($event.target.value)',
+    '(change)': 'onChange($event)',
+    '(input)': 'onChange($event)',
     '(blur)': 'onTouched()',
   },
   providers: [BYTE_VALUE_ACCESSOR],
@@ -45,7 +45,8 @@ export class ByteValueAccessor implements ControlValueAccessor {
     this.renderer.setProperty(this.el.nativeElement, 'value', byteString);
   }
 
-  onChange(value: string) {
+  onChange(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
     this.onChangeListener(robustParseByteString(value));
   }
 

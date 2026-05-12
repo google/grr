@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grr-response-server"
+description = "The GRR Rapid Response Server."
+readme = "README.md"
+license = {text = "Apache License, Version 2.0"}
+maintainers = [
+    {name = "GRR Development Team", email = "grr-dev@googlegroups.com"}
+]
+urls = {Homepage = "https://github.com/google/grr"}
+dynamic = ["version", "dependencies", "optional-dependencies"]

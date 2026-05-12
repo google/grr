@@ -4,7 +4,7 @@
 import logging
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import read_low_level_pb2
@@ -17,8 +17,14 @@ from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-# TODO: Consider allowing big files using external store.
-class ReadLowLevel(flow_base.FlowBase):
+# TODO - Consider allowing big files using external store.
+class ReadLowLevel(
+    flow_base.FlowBase[
+        read_low_level_pb2.ReadLowLevelArgs,
+        flows_pb2.DefaultFlowStore,
+        flows_pb2.DefaultFlowProgress,
+    ]
+):
   """A low-level transfer mechanism for raw data from a device.
 
   This flow reads and collects `length` bytes from a given `path` starting at
@@ -30,16 +36,32 @@ class ReadLowLevel(flow_base.FlowBase):
   """
 
   category = "/Filesystem/"
-  args_type = rdf_read_low_level.ReadLowLevelArgs
-  result_types = (rdf_read_low_level.ReadLowLevelFlowResult,)
 
   proto_args_type = read_low_level_pb2.ReadLowLevelArgs
   proto_result_types = (read_low_level_pb2.ReadLowLevelFlowResult,)
-  only_protos_allowed = True
+
+  # MAX_RAW_DATA_BYTES sets the limit for requesting raw data for the client.
+  # This limit amounts to 10 GiB. If the user needs more than that, they will
+  # need to schedule more than one read and concatenate the data themselves.
+  MAX_RAW_DATA_BYTES = 10 * 1024 * 1024 * 1024  # 10 GiB
+
+  @classmethod
+  def ValidateArgs(cls, args: read_low_level_pb2.ReadLowLevelArgs) -> None:
+    if not args.HasField("path"):
+      raise ValueError("No path provided")
+
+    if not args.HasField("length"):
+      raise ValueError("No length provided")
+
+    if args.length > cls.MAX_RAW_DATA_BYTES:
+      raise ValueError(
+          f"Cannot read more than {cls.MAX_RAW_DATA_BYTES} bytes "
+          f"({args.length} bytes requested"
+      )
 
   def Start(self):
     """Schedules the read in the client (ReadLowLevel ClientAction)."""
-    # TODO: Set `blob_size` according to `sector_block_size`.
+    # TODO - Set `blob_size` according to `sector_block_size`.
     request = read_low_level_pb2.ReadLowLevelRequest(
         path=self.proto_args.path,
         length=self.proto_args.length,
@@ -87,7 +109,7 @@ class ReadLowLevel(flow_base.FlowBase):
         file_hash_from_client = response.accumulated_hash
 
       rdf_blob_refs.append(
-          rdf_objects.BlobReference(
+          objects_pb2.BlobReference(
               offset=response.blob.offset,
               size=response.blob.length,
               blob_id=response.blob.data,
@@ -109,10 +131,8 @@ class ReadLowLevel(flow_base.FlowBase):
     # This raw data is not necessarily a file, but any data from the device.
     # We artificially create a filename to refer to it on our file store.
     alphanumeric_only = "".join(c for c in self.proto_args.path if c.isalnum())
-    # TODO: Remove client_id from `tmp_filename` when bug is fixed.
-    tmp_filename = (
-        f"{self.client_id}_{self.rdf_flow.flow_id}_{alphanumeric_only}"
-    )
+    # TODO - Remove client_id from `tmp_filename` when bug is fixed.
+    tmp_filename = f"{self.client_id}_{self.flow_id}_{alphanumeric_only}"
     tmp_filepath = db.ClientPath.Temp(self.client_id, [tmp_filename])
 
     # Store blobs under this name in file_store.
@@ -128,7 +148,7 @@ class ReadLowLevel(flow_base.FlowBase):
       logging.warning(
           "Flow %s (%s): mismatch in file hash id in the storage (%s) and in"
           " the client (%s)",
-          self.rdf_flow.protobuf.flow_id,
+          self.flow_id,
           self.client_id,
           file_hash_from_store,
           file_hash_from_client,

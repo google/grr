@@ -87,10 +87,3 @@ def DeserializeTimelineEntryStream(
     parsed_entry = timeline_pb2.TimelineEntry()
     parsed_entry.ParseFromString(entry)
     yield parsed_entry
-
-
-class TimelineProgress(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the timeline progress message."""
-
-  protobuf = timeline_pb2.TimelineProgress
-  rdf_deps = []

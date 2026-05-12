@@ -1,6 +1,5 @@
-import {HttpErrorResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
-import {Observable, of, throwError, timer} from 'rxjs';
+import {Observable, throwError, timer} from 'rxjs';
 import {
   catchError,
   exhaustMap,
@@ -39,6 +38,7 @@ import {
   HuntState,
   ListHuntErrorsArgs,
   ListHuntErrorsResult,
+  ListHuntLogsArgs,
   ListHuntLogsResult,
   ListHuntResultsArgs,
   ListHuntResultsResult,
@@ -84,6 +84,7 @@ import {translateGlobComponentExplanation} from './translation/glob_expression';
 import {
   toApiHuntState,
   toApiListHuntErrorsArgs,
+  toApiListHuntLogsArgs,
   toApiListHuntResultsArgs,
   toApiListHuntsArgs,
   translateHunt,
@@ -116,23 +117,38 @@ export class HttpApiWithTranslationService {
   searchClients(
     args: apiInterfaces.ApiSearchClientsArgs,
   ): Observable<Client[]> {
-    return this.httpApiService
-      .searchClients(args)
-      .pipe(map((results) => results.items?.map(translateClient) ?? []));
+    return this.httpApiService.searchClients(args).pipe(
+      map((results) => results.items?.map(translateClient) ?? []),
+      catchError((error) => {
+        console.error('Response translation error in searchClients:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchClient(id: string, pollingInterval = 0): Observable<Client> {
-    return this.httpApiService
-      .fetchClient(id, pollingInterval)
-      .pipe(map((apiClient) => translateClient(apiClient)));
+    return this.httpApiService.fetchClient(id, pollingInterval).pipe(
+      map((apiClient) => translateClient(apiClient)),
+      catchError((error) => {
+        console.error('Response translation error in fetchClient:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   requestClientApproval(
     args: ClientApprovalRequest,
   ): Observable<ClientApproval> {
-    return this.httpApiService
-      .requestClientApproval(args)
-      .pipe(map((apiApproval) => translateClientApproval(apiApproval)));
+    return this.httpApiService.requestClientApproval(args).pipe(
+      map((apiApproval) => translateClientApproval(apiApproval)),
+      catchError((error) => {
+        console.error(
+          'Response translation error in requestClientApproval:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchApprovalConfig(): Observable<ApprovalConfig> {
@@ -140,6 +156,13 @@ export class HttpApiWithTranslationService {
       // Replace empty string (protobuf default) with undefined.
       map((res) => (res.value?.['value'] as string) ?? undefined),
       map((optionalCcEmail) => ({optionalCcEmail})),
+      catchError((error) => {
+        console.error(
+          'Response translation error in fetchApprovalConfig:',
+          error,
+        );
+        return throwError(() => error);
+      }),
     );
   }
 
@@ -147,6 +170,10 @@ export class HttpApiWithTranslationService {
     return this.httpApiService.fetchWebAuthType().pipe(
       // Replace empty string (protobuf default) with undefined.
       map((res) => (res.value?.['value'] as string) ?? undefined),
+      catchError((error) => {
+        console.error('Response translation error in fetchWebAuthType:', error);
+        return throwError(() => error);
+      }),
     );
   }
 
@@ -154,6 +181,13 @@ export class HttpApiWithTranslationService {
     return this.httpApiService.fetchExportCommandPrefix().pipe(
       // Replace empty string (protobuf default) with undefined.
       map((res) => (res.value?.['value'] as string) ?? undefined),
+      catchError((error) => {
+        console.error(
+          'Response translation error in fetchExportCommandPrefix:',
+          error,
+        );
+        return throwError(() => error);
+      }),
     );
   }
 
@@ -163,24 +197,29 @@ export class HttpApiWithTranslationService {
   ): Observable<ClientApproval[]> {
     return this.httpApiService
       .listClientApprovals(clientId, pollingInterval)
-      .pipe(map((res) => res.items?.map(translateClientApproval) ?? []));
+      .pipe(
+        map((res) => res.items?.map(translateClientApproval) ?? []),
+        catchError((error) => {
+          console.error(
+            'Response translation error in listClientApprovals:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   verifyClientAccess(clientId: string, poll = 0): Observable<boolean> {
     return timer(0, poll)
       .pipe(
-        exhaustMap(() =>
-          this.httpApiService.verifyClientAccess(clientId).pipe(
-            map(() => true),
-            catchError((err: HttpErrorResponse) => {
-              if (err.status === 403) {
-                return of(false);
-              } else {
-                return throwError(() => new Error(err.message));
-              }
-            }),
-          ),
-        ),
+        exhaustMap(() => this.httpApiService.verifyClientAccess(clientId)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in verifyClientAccess:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       )
       .pipe(
         takeWhile((hasAccess) => !hasAccess, true),
@@ -201,13 +240,26 @@ export class HttpApiWithTranslationService {
         },
         pollingInterval,
       )
-      .pipe(map((apiApproval) => translateClientApproval(apiApproval)));
+      .pipe(
+        map((apiApproval) => translateClientApproval(apiApproval)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in fetchClientApproval:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   fetchFlow(clientId: string, flowId: string): Observable<Flow> {
-    return this.httpApiService
-      .fetchFlow(clientId, flowId)
-      .pipe(map((apiFlow) => translateFlow(apiFlow)));
+    return this.httpApiService.fetchFlow(clientId, flowId).pipe(
+      map((apiFlow) => translateFlow(apiFlow)),
+      catchError((error) => {
+        console.error('Response translation error in fetchFlow:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   pollFlow(
@@ -219,6 +271,10 @@ export class HttpApiWithTranslationService {
       .fetchFlow(clientId, flowId, pollingInterval)
       .pipe(
         map((apiFlow) => translateFlow(apiFlow)),
+        catchError((error) => {
+          console.error('Response translation error in pollFlow:', error);
+          return throwError(() => error);
+        }),
         takeWhile(
           (flow) =>
             flow.state !== FlowState.FINISHED && flow.state !== FlowState.ERROR,
@@ -229,9 +285,13 @@ export class HttpApiWithTranslationService {
   }
 
   fetchFlowLogs(clientId: string, flowId: string): Observable<FlowLogs> {
-    return this.httpApiService
-      .fetchFlowLogs(clientId, flowId)
-      .pipe(map((apiFlowLogs) => translateFlowLogs(apiFlowLogs)));
+    return this.httpApiService.fetchFlowLogs(clientId, flowId).pipe(
+      map((apiFlowLogs) => translateFlowLogs(apiFlowLogs)),
+      catchError((error) => {
+        console.error('Response translation error in fetchFlowLogs:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   listAllFlowOutputPluginLogs(
@@ -240,7 +300,16 @@ export class HttpApiWithTranslationService {
   ): Observable<ListAllOutputPluginLogsResult> {
     return this.httpApiService
       .listAllFlowOutputPluginLogs(clientId, flowId)
-      .pipe(map(translateListAllOutputPluginLogsResult));
+      .pipe(
+        map(translateListAllOutputPluginLogsResult),
+        catchError((error) => {
+          console.error(
+            'Response translation error in listAllFlowOutputPluginLogs:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   createHunt(
@@ -264,45 +333,65 @@ export class HttpApiWithTranslationService {
         rules,
         outputPlugins,
       )
-      .pipe(map((hunt) => translateHunt(hunt)));
+      .pipe(
+        map((hunt) => translateHunt(hunt)),
+        catchError((error) => {
+          console.error('Response translation error in createHunt:', error);
+          return throwError(() => error);
+        }),
+      );
   }
 
   requestHuntApproval(args: HuntApprovalRequest): Observable<HuntApproval> {
-    return this.httpApiService
-      .requestHuntApproval(args)
-      .pipe(map((huntApproval) => translateHuntApproval(huntApproval)));
+    return this.httpApiService.requestHuntApproval(args).pipe(
+      map((huntApproval) => translateHuntApproval(huntApproval)),
+      catchError((error) => {
+        console.error(
+          'Response translation error in requestHuntApproval:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   listHuntApprovals(
     huntId: string,
     pollingInterval = 0,
   ): Observable<HuntApproval[]> {
-    return this.httpApiService
-      .listHuntApprovals(huntId, pollingInterval)
-      .pipe(map((res) => res.items?.map(translateHuntApproval) ?? []));
+    return this.httpApiService.listHuntApprovals(huntId, pollingInterval).pipe(
+      map((res) => res.items?.map(translateHuntApproval) ?? []),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listHuntApprovals:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchHunt(id: string, pollingInterval = 0): Observable<Hunt> {
-    return this.httpApiService
-      .fetchHunt(id, pollingInterval)
-      .pipe(map((hunt) => translateHunt(hunt)));
+    return this.httpApiService.fetchHunt(id, pollingInterval).pipe(
+      map((hunt) => translateHunt(hunt)),
+      catchError((error) => {
+        console.error('Response translation error in fetchHunt:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   verifyHuntAccess(huntId: string, poll = 0): Observable<boolean> {
     return timer(0, poll)
       .pipe(
-        exhaustMap(() =>
-          this.httpApiService.verifyHuntAccess(huntId).pipe(
-            map(() => true),
-            catchError((err: HttpErrorResponse) => {
-              if (err.status === 403) {
-                return of(false);
-              } else {
-                return throwError(() => new Error(err.message));
-              }
-            }),
-          ),
-        ),
+        exhaustMap(() => this.httpApiService.verifyHuntAccess(huntId)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in verifyHuntAccess:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       )
       .pipe(
         takeWhile((hasAccess) => !hasAccess, true),
@@ -316,7 +405,16 @@ export class HttpApiWithTranslationService {
   ): Observable<HuntApproval> {
     return this.httpApiService
       .fetchHuntApproval({huntId, approvalId, requestor}, pollingInterval)
-      .pipe(map((huntApproval) => translateHuntApproval(huntApproval)));
+      .pipe(
+        map((huntApproval) => translateHuntApproval(huntApproval)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in fetchHuntApproval:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   grantHuntApproval({
@@ -330,7 +428,16 @@ export class HttpApiWithTranslationService {
         approvalId,
         requestor,
       })
-      .pipe(map((huntApproval) => translateHuntApproval(huntApproval)));
+      .pipe(
+        map((huntApproval) => translateHuntApproval(huntApproval)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in grantHuntApproval:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   patchHunt(
@@ -347,14 +454,30 @@ export class HttpApiWithTranslationService {
         clientLimit: patch.clientLimit,
         clientRate: patch.clientRate,
       })
-      .pipe(map((hunt) => translateHunt(hunt)));
+      .pipe(
+        map((hunt) => translateHunt(hunt)),
+        catchError((error) => {
+          console.error('Response translation error in patchHunt:', error);
+          return throwError(() => error);
+        }),
+      );
   }
 
   getHuntResultsByType(
     huntId: string,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
-    return this.httpApiService.getHuntResultsByType(huntId, pollingInterval);
+    return this.httpApiService
+      .getHuntResultsByType(huntId, pollingInterval)
+      .pipe(
+        catchError((error) => {
+          console.error(
+            'Response translation error in getHuntResultsByType:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   listResultsForHunt(
@@ -363,7 +486,16 @@ export class HttpApiWithTranslationService {
   ): Observable<ListHuntResultsResult> {
     return this.httpApiService
       .listResultsForHunt(toApiListHuntResultsArgs(params), pollingInterval)
-      .pipe(map((res) => translateListHuntResultsResult(res)));
+      .pipe(
+        map((res) => translateListHuntResultsResult(res)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in listResultsForHunt:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   listErrorsForHunt(
@@ -372,17 +504,33 @@ export class HttpApiWithTranslationService {
   ): Observable<ListHuntErrorsResult> {
     return this.httpApiService
       .listErrorsForHunt(toApiListHuntErrorsArgs(params))
-      .pipe(map((res) => translateListHuntErrorsResult(res)));
+      .pipe(
+        map((res) => translateListHuntErrorsResult(res)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in listErrorsForHunt:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   getHuntClientCompletionStats(
     args: apiInterfaces.ApiGetHuntClientCompletionStatsArgs,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
-    return this.httpApiService.getHuntClientCompletionStats(
-      args,
-      pollingInterval,
-    );
+    return this.httpApiService
+      .getHuntClientCompletionStats(args, pollingInterval)
+      .pipe(
+        catchError((error) => {
+          console.error(
+            'Response translation error in getHuntClientCompletionStats:',
+            error,
+          );
+          return throwError(() => error);
+        }),
+      );
   }
 
   listHunts(
@@ -391,13 +539,23 @@ export class HttpApiWithTranslationService {
   ): Observable<ListHuntsResult> {
     return this.httpApiService
       .listHunts(toApiListHuntsArgs(args), pollingInterval)
-      .pipe(map((res) => translateListHuntsResult(res)));
+      .pipe(
+        map((res) => translateListHuntsResult(res)),
+        catchError((error) => {
+          console.error('Response translation error in listHunts:', error);
+          return throwError(() => error);
+        }),
+      );
   }
 
-  fetchHuntLogs(huntId: string): Observable<ListHuntLogsResult> {
-    return this.httpApiService
-      .fetchHuntLogs(huntId)
-      .pipe(map((res) => translateListHuntLogsResult(res)));
+  fetchHuntLogs(args: ListHuntLogsArgs): Observable<ListHuntLogsResult> {
+    return this.httpApiService.fetchHuntLogs(toApiListHuntLogsArgs(args)).pipe(
+      map((res) => translateListHuntLogsResult(res)),
+      catchError((error) => {
+        console.error('Response translation error in fetchHuntLogs:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   grantClientApproval({
@@ -411,36 +569,79 @@ export class HttpApiWithTranslationService {
         requestor,
         approvalId,
       })
-      .pipe(map((apiApproval) => translateClientApproval(apiApproval)));
-  }
-
-  listFlowDescriptors(): Observable<FlowDescriptor[]> {
-    return this.httpApiService
-      .listFlowDescriptors()
       .pipe(
-        map((apiDescriptors) => apiDescriptors.map(translateFlowDescriptor)),
+        map((apiApproval) => translateClientApproval(apiApproval)),
+        catchError((error) => {
+          console.error(
+            'Response translation error in grantClientApproval:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       );
   }
 
+  listFlowDescriptors(): Observable<FlowDescriptor[]> {
+    return this.httpApiService.listFlowDescriptors().pipe(
+      map((apiDescriptors) => apiDescriptors.map(translateFlowDescriptor)),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listFlowDescriptors:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
+  }
+
   getArtifactDescriptorMap(): Observable<ArtifactDescriptorMap> {
-    return this.httpApiService
-      .listArtifactDescriptors()
-      .pipe(map((res) => translateArtifactDescriptors(res.items ?? [])));
+    return this.httpApiService.listArtifactDescriptors().pipe(
+      map((res) => translateArtifactDescriptors(res.items ?? [])),
+      catchError((error) => {
+        console.error(
+          'Response translation error in getArtifactDescriptorMap:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  uploadArtifact(artifact: string): Observable<{}> {
+    return this.httpApiService.uploadArtifact(artifact);
+  }
+
+  deleteArtifact(artifactName: string): Observable<{}> {
+    return this.httpApiService.deleteArtifact(artifactName);
   }
 
   listOutputPluginDescriptors(): Observable<OutputPluginDescriptor[]> {
-    return this.httpApiService
-      .listOutputPluginDescriptors()
-      .pipe(map((res) => res.map(translateOutputPluginDescriptor) ?? []));
+    return this.httpApiService.listOutputPluginDescriptors().pipe(
+      map((res) => res.map(translateOutputPluginDescriptor) ?? []),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listOutputPluginDescriptors:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   listFlowsForClient(
     args: apiInterfaces.ApiListFlowsArgs,
     pollingInterval = 0,
   ): Observable<Flow[]> {
-    return this.httpApiService
-      .listFlowsForClient(args, pollingInterval)
-      .pipe(map((res) => res.items?.map(translateFlow) ?? []));
+    return this.httpApiService.listFlowsForClient(args, pollingInterval).pipe(
+      map((res) => res.items?.map(translateFlow) ?? []),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listFlowsForClient:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   listScheduledFlows(
@@ -452,6 +653,13 @@ export class HttpApiWithTranslationService {
       .listScheduledFlows(clientId, creator, pollingInterval)
       .pipe(
         map((res) => res.scheduledFlows?.map(translateScheduledFlow) ?? []),
+        catchError((error) => {
+          console.error(
+            'Response translation error in listScheduledFlows:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       );
   }
 
@@ -459,9 +667,16 @@ export class HttpApiWithTranslationService {
     params: FlowResultsParams,
     pollingInterval = 0,
   ): Observable<ListFlowResultsResult> {
-    return this.httpApiService
-      .listResultsForFlow(params, pollingInterval)
-      .pipe(map((res) => translateListFlowResultsResult(params.clientId, res)));
+    return this.httpApiService.listResultsForFlow(params, pollingInterval).pipe(
+      map((res) => translateListFlowResultsResult(params.clientId, res)),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listResultsForFlow:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   startFlow(
@@ -472,7 +687,13 @@ export class HttpApiWithTranslationService {
   ): Observable<Flow> {
     return this.httpApiService
       .startFlow(clientId, flowName, flowArgs, disableRrgSupport)
-      .pipe(map((apiFlow) => translateFlow(apiFlow)));
+      .pipe(
+        map((apiFlow) => translateFlow(apiFlow)),
+        catchError((error) => {
+          console.error('Response translation error in startFlow:', error);
+          return throwError(() => error);
+        }),
+      );
   }
 
   scheduleFlow(
@@ -480,15 +701,23 @@ export class HttpApiWithTranslationService {
     flowName: string,
     flowArgs: apiInterfaces.Any,
   ): Observable<ScheduledFlow> {
-    return this.httpApiService
-      .scheduleFlow(clientId, flowName, flowArgs)
-      .pipe(map((sf) => translateScheduledFlow(sf)));
+    return this.httpApiService.scheduleFlow(clientId, flowName, flowArgs).pipe(
+      map((sf) => translateScheduledFlow(sf)),
+      catchError((error) => {
+        console.error('Response translation error in scheduleFlow:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   cancelFlow(clientId: string, flowId: string): Observable<Flow> {
-    return this.httpApiService
-      .cancelFlow(clientId, flowId)
-      .pipe(map((apiFlow) => translateFlow(apiFlow)));
+    return this.httpApiService.cancelFlow(clientId, flowId).pipe(
+      map((apiFlow) => translateFlow(apiFlow)),
+      catchError((error) => {
+        console.error('Response translation error in cancelFlow:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
@@ -496,9 +725,13 @@ export class HttpApiWithTranslationService {
   }
 
   fetchCurrentUser(): Observable<GrrUser> {
-    return this.httpApiService
-      .fetchCurrentUser()
-      .pipe(map((user) => translateGrrUser(user)));
+    return this.httpApiService.fetchCurrentUser().pipe(
+      map((user) => translateGrrUser(user)),
+      catchError((error) => {
+        console.error('Response translation error in fetchCurrentUser:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   explainGlobExpression(
@@ -515,13 +748,24 @@ export class HttpApiWithTranslationService {
           (result) =>
             result.components?.map(translateGlobComponentExplanation) ?? [],
         ),
+        catchError((error) => {
+          console.error(
+            'Response translation error in explainGlobExpression:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       );
   }
 
   fetchUiConfig(): Observable<UiConfig> {
-    return this.httpApiService
-      .fetchUiConfig()
-      .pipe(map((uiConfig) => translateUiConfig(uiConfig)));
+    return this.httpApiService.fetchUiConfig().pipe(
+      map((uiConfig) => translateUiConfig(uiConfig)),
+      catchError((error) => {
+        console.error('Response translation error in fetchUiConfig:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
@@ -529,15 +773,29 @@ export class HttpApiWithTranslationService {
   }
 
   removeClientLabel(clientId: string, label: string): Observable<string> {
-    return this.httpApiService
-      .removeClientLabel(clientId, label)
-      .pipe(mapTo(label));
+    return this.httpApiService.removeClientLabel(clientId, label).pipe(
+      mapTo(label),
+      catchError((error) => {
+        console.error(
+          'Response translation error in removeClientLabel:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchAllClientsLabels(): Observable<string[]> {
-    return this.httpApiService
-      .fetchAllClientsLabels()
-      .pipe(map((labels) => labels.map(translateClientLabel)));
+    return this.httpApiService.fetchAllClientsLabels().pipe(
+      map((labels) => labels.map(translateClientLabel)),
+      catchError((error) => {
+        console.error(
+          'Response translation error in fetchAllClientsLabels:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchClientSnapshots(
@@ -545,9 +803,16 @@ export class HttpApiWithTranslationService {
     start?: Date,
     end?: Date,
   ): Observable<ClientSnapshot[]> {
-    return this.httpApiService
-      .fetchClientSnapshots(clientId, start, end)
-      .pipe(map((res) => res.snapshots?.map(translateClientSnapshot) ?? []));
+    return this.httpApiService.fetchClientSnapshots(clientId, start, end).pipe(
+      map((res) => res.snapshots?.map(translateClientSnapshot) ?? []),
+      catchError((error) => {
+        console.error(
+          'Response translation error in fetchClientSnapshots:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   fetchClientStartupInfos(
@@ -559,56 +824,71 @@ export class HttpApiWithTranslationService {
       .fetchClientStartupInfos(clientId, start, end)
       .pipe(
         map((res) => res.startupInfos?.map(translateClientStartupInfo) ?? []),
+        catchError((error) => {
+          console.error(
+            'Response translation error in fetchClientStartupInfos:',
+            error,
+          );
+          return throwError(() => error);
+        }),
       );
   }
 
   suggestApprovers(usernameQuery: string): Observable<readonly string[]> {
-    return this.httpApiService
-      .suggestApprovers(usernameQuery)
-      .pipe(map((res) => translateApproverSuggestions(res.suggestions ?? [])));
+    return this.httpApiService.suggestApprovers(usernameQuery).pipe(
+      map((res) => translateApproverSuggestions(res.suggestions ?? [])),
+      catchError((error) => {
+        console.error('Response translation error in suggestApprovers:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   listRecentClientApprovals(parameters: {
     count?: number;
   }): Observable<readonly ClientApproval[]> {
-    return this.httpApiService
-      .listRecentClientApprovals(parameters)
-      .pipe(map((res) => res.items?.map(translateClientApproval) ?? []));
+    return this.httpApiService.listRecentClientApprovals(parameters).pipe(
+      map((res) => res.items?.map(translateClientApproval) ?? []),
+      catchError((error) => {
+        console.error(
+          'Response translation error in listRecentClientApprovals:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   getFileAccess(fileSpec: FileSpec): Observable<boolean> {
-    return this.httpApiService.getFileAccess(fileSpec).pipe(
-      map(() => true),
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 403) {
-          return of(false);
-        } else {
-          return throwError(() => new Error(err.message));
-        }
-      }),
-    );
+    return this.httpApiService.getFileAccess(fileSpec);
   }
 
   getFileDetails(
     fileSpec: FileSpec,
     opts?: {timestamp?: Date},
   ): Observable<File | Directory> {
-    return this.httpApiService
-      .getFileDetails(fileSpec, opts)
-      .pipe(map((apiFile) => translateFile(apiFile.file ?? {})));
+    return this.httpApiService.getFileDetails(fileSpec, opts).pipe(
+      map((apiFile) => translateFile(apiFile.file ?? {})),
+      catchError((error) => {
+        console.error('Response translation error in getFileDetails:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   getFileText(
     fileSpec: FileSpec,
     opts?: GetFileTextOptions,
   ): Observable<FileContent | null> {
-    return this.httpApiService
-      .getFileText(fileSpec, opts)
-      .pipe(
-        map((apiResult) =>
-          apiResult ? translateApiGetFileTextResult(apiResult) : null,
-        ),
-      );
+    return this.httpApiService.getFileText(fileSpec, opts).pipe(
+      map((apiResult) =>
+        apiResult ? translateApiGetFileTextResult(apiResult) : null,
+      ),
+      catchError((error) => {
+        console.error('Response translation error in getFileText:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   getFileBlobLength(
@@ -630,15 +910,26 @@ export class HttpApiWithTranslationService {
     path: string,
     opts: {includeDirectoryTree: boolean},
   ): Observable<BrowseFilesystemResult> {
-    return this.httpApiService
-      .browseFilesystem(clientId, path, opts)
-      .pipe(map((res) => translateBrowseFilesystemResult(res)));
+    return this.httpApiService.browseFilesystem(clientId, path, opts).pipe(
+      map((res) => translateBrowseFilesystemResult(res)),
+      catchError((error) => {
+        console.error('Response translation error in browseFilesystem:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   updateVfsFileContent(fileSpec: FileSpec): Observable<File | Directory> {
-    return this.httpApiService
-      .updateVfsFileContent(fileSpec)
-      .pipe(map((apiFile) => translateFile(apiFile.file ?? {})));
+    return this.httpApiService.updateVfsFileContent(fileSpec).pipe(
+      map((apiFile) => translateFile(apiFile.file ?? {})),
+      catchError((error) => {
+        console.error(
+          'Response translation error in updateVfsFileContent:',
+          error,
+        );
+        return throwError(() => error);
+      }),
+    );
   }
 
   refreshVfsFolder(
@@ -648,18 +939,24 @@ export class HttpApiWithTranslationService {
     const opts: apiInterfaces.ApiCreateVfsRefreshOperationArgs = {
       maxDepth: maxDepth ? maxDepth.toString() : undefined,
     };
-    return this.httpApiService
-      .refreshVfsFolder(fileSpec, opts)
-      .pipe(map((res) => translateBrowseFilesystemResult(res)));
+    return this.httpApiService.refreshVfsFolder(fileSpec, opts).pipe(
+      map((res) => translateBrowseFilesystemResult(res)),
+      catchError((error) => {
+        console.error('Response translation error in refreshVfsFolder:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 
   listBinaries(includeMetadata: boolean): Observable<Binary[]> {
-    return this.httpApiService
-      .listBinaries(includeMetadata)
-      .pipe(
-        map((res) =>
-          (res.items ?? []).map(safeTranslateBinary).filter((b) => b != null),
-        ),
-      );
+    return this.httpApiService.listBinaries(includeMetadata).pipe(
+      map((res) =>
+        (res.items ?? []).map(safeTranslateBinary).filter((b) => b != null),
+      ),
+      catchError((error) => {
+        console.error('Response translation error in listBinaries:', error);
+        return throwError(() => error);
+      }),
+    );
   }
 }

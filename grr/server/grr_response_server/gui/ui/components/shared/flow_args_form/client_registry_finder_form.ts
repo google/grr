@@ -134,7 +134,6 @@ export class ClientRegistryFinderForm extends FlowArgsFormInterface<
       if (condition) {
         const valueLiteralMatch: FileFinderContentsLiteralMatchCondition = {
           literal: encodeStringToBase64(condition.literal ?? ''),
-          mode: condition.mode,
         };
         conditions.push({
           conditionType: RegistryFinderConditionType.VALUE_LITERAL_MATCH,
@@ -146,7 +145,6 @@ export class ClientRegistryFinderForm extends FlowArgsFormInterface<
       if (condition) {
         const valueRegexMatch: FileFinderContentsRegexMatchCondition = {
           regex: encodeStringToBase64(condition.regex ?? ''),
-          mode: condition.mode,
           length: Math.floor(condition.length ?? 0).toString(),
         };
         conditions.push({
@@ -274,7 +272,6 @@ export class ClientRegistryFinderForm extends FlowArgsFormInterface<
         regexMatchConditions?.map((condition) => {
           return {
             regex: condition.regex ? decodeBase64ToString(condition.regex) : '',
-            mode: condition.mode,
             length: condition.length ? Number(condition.length) : undefined,
           };
         }) ?? [],
@@ -284,7 +281,6 @@ export class ClientRegistryFinderForm extends FlowArgsFormInterface<
             literal: condition.literal
               ? decodeBase64ToString(condition.literal)
               : '',
-            mode: condition.mode,
           };
         }) ?? [],
       modificationTimes:

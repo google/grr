@@ -6,7 +6,6 @@ from unittest import mock
 
 from grr_response_server import data_store
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import mig_objects
 
 
 class DatabaseProvider(metaclass=abc.ABCMeta):
@@ -59,10 +58,9 @@ class DatabaseTestMixin(DatabaseSetupMixin, metaclass=abc.ABCMeta):
   def testDatabaseHandlesUnicodeCorrectly(self):
     name = "🍻foo🍻"
     self.db.WriteGRRUser(name)
-    proto_user = self.db.ReadGRRUser(name)
-    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-    self.assertLen(rdf_user.username, 5)
-    self.assertEqual(rdf_user.username, name)
+    user = self.db.ReadGRRUser(name)
+    self.assertLen(user.username, 5)
+    self.assertEqual(user.username, name)
 
 
 class GlobalDatabaseTestMixin(DatabaseProvider):

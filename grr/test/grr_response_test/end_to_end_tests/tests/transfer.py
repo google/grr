@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """End to end tests for transfer flows."""
 
+import io
+
 from grr_response_test.end_to_end_tests import test_base
 
 
@@ -74,11 +76,23 @@ class TestTransferWindows(test_base.AbstractFileTransferTest):
     pathspec.path = "C:\\Windows\\regedit.exe"
     pathspec.pathtype = pathspec.OS
 
-    path = "fs/os/C:/Windows/regedit.exe"
-    with self.WaitForFileCollection(path):
-      self.RunFlowAndWait("MultiGetFile", args=args)
+    flow = self.RunFlowAndWait("MultiGetFile", args=args)
+    flow_results = list(flow.ListResults())
+    self.assertLen(flow_results, 1)
 
-    self.CheckPEMagic(path)
+    result_path = flow_results[0].payload.pathspec.path
+    # TODO - The path returned by the old agent will have a leading
+    # `/` (which makes no sense on Windows) so we strip it. We can remove this
+    # workaround once we no longer test with the old agent.
+    result_path = result_path.removeprefix("/")
+    self.assertEqual(result_path.lower(), "c:/windows/regedit.exe")
+
+    result_content = io.BytesIO()
+
+    result_file = self.client.File(f"fs/os/{result_path}")
+    result_file.GetBlob().WriteToStream(result_content)
+
+    self.assertEqual(result_content.getvalue()[0:2], b"MZ")
 
   def testMultiGetFileTSK(self):
     args = self.grr_api.types.CreateFlowArgs("MultiGetFile")

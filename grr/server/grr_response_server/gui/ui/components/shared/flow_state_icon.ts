@@ -24,10 +24,25 @@ export class FlowStateIcon {
   protected readonly FlowState = FlowState;
 
   protected getFlowResultsCount(flow: Flow): number | undefined {
-    // TODO: Filter count by flow type.
+    // TODO - Filter count by flow type.
     return flow.resultCounts?.reduce(
       (sum, resultCount) => sum + (resultCount.count ?? 0),
       0,
     );
+  }
+
+  protected hasNestedFlowsFailures(flow: Flow): boolean {
+    if (flow.state === FlowState.ERROR) {
+      return true;
+    }
+    for (const nestedFlow of flow.nestedFlows ?? []) {
+      if (nestedFlow.state === FlowState.ERROR) {
+        return true;
+      }
+      if (this.hasNestedFlowsFailures(nestedFlow)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

@@ -34,6 +34,7 @@ import {FriendlyFlowNamePipe} from '../../../pipes/flow_pipes/friendly_flow_name
 import {ClientStore} from '../../../store/client_store';
 import {GlobalStore} from '../../../store/global_store';
 import {CopyButton} from '../../shared/copy_button';
+import {ErrorMessage} from '../../shared/error_message';
 import {FlowStateIcon} from '../../shared/flow_state_icon';
 import {SplitPanel} from '../../shared/split_panel/split_panel';
 import {Timestamp} from '../../shared/timestamp';
@@ -60,6 +61,7 @@ const INITIAL_FLOW_FILTER = FlowFilter.ALL_HUMAN_FLOWS;
     CommonModule,
     CopyButton,
     ClipboardModule,
+    ErrorMessage,
     FlowArgsPreviewPipe,
     FlowStateIcon,
     FormsModule,
@@ -161,7 +163,7 @@ export class ClientFlows {
     dialogConfig.data = dialogData;
     dialogConfig.minWidth = '60vw';
     dialogConfig.height = '70vh';
-    dialogConfig.autoFocus = false;
+    dialogConfig.autoFocus = true;
 
     const dialogRef = this.dialog.open(CreateFlowDialog, dialogConfig);
   }

@@ -13,23 +13,12 @@ import {
 import {MatSort, MatSortModule, Sort} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 
-import {OsqueryHeader as ApiOsqueryHeader} from '../../../../lib/api/api_interfaces';
-import {CopyButton} from '../../copy_button';
+import {
+  OsqueryRow as ApiOsqueryRow,
+  OsqueryTable as ApiOsqueryTable,
+} from '../../../../lib/api/api_interfaces';
 import {FilterPaginate} from '../../filter_paginate';
 import {Codeblock} from './codeblock';
-
-/** OsqueryRow proto mapping. */
-export declare interface OsqueryRow {
-  readonly clientId: string;
-  readonly values?: readonly string[];
-}
-
-/** OsqueryTableData proto mapping. */
-export declare interface OsqueryTableData {
-  readonly query?: string;
-  readonly header?: ApiOsqueryHeader;
-  readonly rows?: readonly OsqueryRow[];
-}
 
 /**
  * Component that displays an OsqueryTable object as a HTML table.
@@ -40,7 +29,6 @@ export declare interface OsqueryTableData {
   imports: [
     Codeblock,
     CommonModule,
-    CopyButton,
     FilterPaginate,
     MatSortModule,
     MatTableModule,
@@ -52,23 +40,15 @@ export class OsqueryTable implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** Loaded results to display in the table. */
-  readonly tableData = input.required<OsqueryTableData>();
-  readonly isHuntResult = input.required<boolean>();
+  readonly tableData = input.required<ApiOsqueryTable>();
 
-  protected readonly dataSource = new MatTableDataSource<OsqueryRow>();
+  dataSource = new MatTableDataSource<ApiOsqueryRow>();
 
-  protected readonly valueColumns = computed(() => {
+  displayedColumns = computed(() => {
     return (
       this.tableData().header?.columns?.map((header) => header?.name ?? '') ??
       []
     );
-  });
-
-  protected readonly displayedColumns = computed(() => {
-    if (this.isHuntResult()) {
-      return ['clientId', ...this.valueColumns()];
-    }
-    return this.valueColumns();
   });
 
   constructor() {
@@ -82,7 +62,10 @@ export class OsqueryTable implements AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
-    this.dataSource.sortingDataAccessor = (row: OsqueryRow, column: string) => {
+    this.dataSource.sortingDataAccessor = (
+      row: ApiOsqueryRow,
+      column: string,
+    ) => {
       const value = row.values?.[this.displayedColumns().indexOf(column)];
       return value ? value : '';
     };

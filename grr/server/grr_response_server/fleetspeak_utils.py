@@ -45,7 +45,7 @@ RRG_REQUEST_COUNT = metrics.Counter(
 def SendGrrMessageThroughFleetspeak(
     grr_id: str,
     grr_msg: rdf_flows.GrrMessage,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -93,7 +93,7 @@ def SendGrrMessageThroughFleetspeak(
 def SendGrrMessageProtoThroughFleetspeak(
     grr_id: str,
     grr_msg: jobs_pb2.GrrMessage,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
@@ -143,7 +143,7 @@ def SendGrrMessageProtoThroughFleetspeak(
 def SendRrgRequest(
     client_id: str,
     request: rrg_pb2.Request,
-    labels: Collection[str],  # TODO: Remove once RRG rollout done.
+    labels: Collection[str],  # TODO - Remove once RRG rollout done.
 ) -> None:
   """Sends a RRG action request to the specified endpoint.
 

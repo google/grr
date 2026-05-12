@@ -5,7 +5,6 @@ import plistlib
 import re
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import jobs_pb2
 from grr_response_proto import signed_commands_pb2
 from grr_response_proto import sysinfo_pb2
@@ -25,10 +24,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [rdf_client.HardwareInfo]
   proto_result_types = [sysinfo_pb2.HardwareInfo]
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.rrg_support:
@@ -260,7 +256,7 @@ class CollectHardwareInfo(flow_base.FlowBase):
       self.SendReplyProto(result)
 
 
-# TODO: Inline back to `_Process*DmidecodeResults` once the non-RRG
+# TODO - Inline back to `_Process*DmidecodeResults` once the non-RRG
 # branch has been removed.
 def _ParseDmidecodeStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
   """Parses standard output of the `/usr/bin/dmidecode` command."""
@@ -311,7 +307,7 @@ def _ParseDmidecodeStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
   return result
 
 
-# TODO: Inline back to `_Process*SystemProfilerResults` once the
+# TODO - Inline back to `_Process*SystemProfilerResults` once the
 # non-RRG branch has been removed.
 def _ParseSystemProfilerStdout(stdout: bytes) -> sysinfo_pb2.HardwareInfo:
   """Parses standard output of the `/usr/sbin/system_profiler` command."""

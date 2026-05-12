@@ -31,13 +31,18 @@ import * as apiInterfaces from './api_interfaces';
 import {TRACK_LOADING_STATE} from './http_interceptors/loading_interceptor';
 import {POLLING_INTERVAL} from './http_interceptors/polling_interceptor';
 import {
-  SHOW_ERROR_BAR,
+  MissingApprovalError,
+  MissingFileError,
   SHOW_ERROR_BAR_FOR_403,
   SHOW_ERROR_BAR_FOR_404,
 } from './http_interceptors/show_error_bar_interceptor';
 
 /** Default polling interval for API calls. */
 export const DEFAULT_POLLING_INTERVAL = 5000;
+/**
+ * Common prefix for all API calls.
+ */
+export const URL_PREFIX = '/api/v2';
 
 /**
  * Parameters of the listResultsForFlow call.
@@ -60,24 +65,12 @@ export interface FlowResultsWithSourceParams {
 }
 
 /**
- * Common prefix for all API calls.
- */
-export const URL_PREFIX = '/api/v2';
-
-/**
  * Key to identify a ClientApproval.
  */
 export interface ClientApprovalKey {
   readonly clientId: string;
   readonly approvalId: string;
   readonly requestor: string;
-}
-
-/** Access denied because the requestor is missing a valid approval. */
-export class MissingApprovalError extends Error {
-  constructor(response: HttpErrorResponse) {
-    super(response.error?.message ?? response.message);
-  }
 }
 
 /** Specification of a file. */
@@ -124,11 +117,6 @@ function toHttpParams(o: HttpParamsObject): HttpParams {
   return new HttpParams({fromObject: params});
 }
 
-function error404To<T>(replacement: T) {
-  return (err: HttpErrorResponse) =>
-    err.status === 404 ? of(replacement) : throwError(() => err);
-}
-
 /**
  * Service to make HTTP requests to GRR API endpoint.
  */
@@ -138,7 +126,6 @@ export class HttpApiService {
     this.flowDescriptors$ = this.http
       .get<apiInterfaces.ApiListFlowDescriptorsResult>(
         `${URL_PREFIX}/flows/descriptors`,
-        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
       )
       .pipe(
         map((res) => res.items ?? []),
@@ -148,7 +135,6 @@ export class HttpApiService {
     this.outputPluginDescriptors$ = this.http
       .get<apiInterfaces.ApiListOutputPluginDescriptorsResult>(
         `${URL_PREFIX}/output-plugins/all`,
-        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
       )
       .pipe(
         map((res) => res.items ?? []),
@@ -180,9 +166,7 @@ export class HttpApiService {
     id: string,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiClient> {
-    const context = new HttpContext()
-      .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true);
+    const context = new HttpContext().set(POLLING_INTERVAL, pollingInterval);
     return this.http.get<apiInterfaces.ApiClient>(
       `${URL_PREFIX}/clients/${id}`,
       {context},
@@ -213,7 +197,6 @@ export class HttpApiService {
   fetchApprovalConfig(): Observable<apiInterfaces.ApiConfigOption> {
     return this.http.get<apiInterfaces.ApiConfigOption>(
       `${URL_PREFIX}/config/Email.approval_optional_cc_address`,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
@@ -223,7 +206,6 @@ export class HttpApiService {
   fetchWebAuthType(): Observable<apiInterfaces.ApiConfigOption> {
     return this.http.get<apiInterfaces.ApiConfigOption>(
       `${URL_PREFIX}/config/AdminUI.webauth_manager`,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
@@ -243,7 +225,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListClientApprovalsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true)
       .set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiListClientApprovalsResult>(
       `${URL_PREFIX}/users/me/approvals/client/${clientId}`,
@@ -251,13 +232,22 @@ export class HttpApiService {
     );
   }
 
-  verifyClientAccess(clientId: string): Observable<{}> {
-    const context = new HttpContext()
-      .set(SHOW_ERROR_BAR, true)
-      .set(SHOW_ERROR_BAR_FOR_403, false);
-    return this.http.head<{}>(`${URL_PREFIX}/clients/${clientId}/access`, {
-      context,
-    });
+  verifyClientAccess(clientId: string): Observable<boolean> {
+    const context = new HttpContext().set(SHOW_ERROR_BAR_FOR_403, false);
+    return this.http
+      .head<{}>(`${URL_PREFIX}/clients/${clientId}/access`, {
+        context,
+      })
+      .pipe(
+        map(() => true), // API call was successful -> access is verified.
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingApprovalError) {
+            return of(false);
+          } else {
+            return throwError(() => error);
+          }
+        }),
+      );
   }
 
   /** Fetches a ClientApproval. */
@@ -267,7 +257,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiClientApproval> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true)
       .set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiClientApproval>(
       `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${approvalId}`,
@@ -281,9 +270,7 @@ export class HttpApiService {
     flowId: string,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiFlow> {
-    const context = new HttpContext()
-      .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true);
+    const context = new HttpContext().set(POLLING_INTERVAL, pollingInterval);
 
     return this.http.get<apiInterfaces.ApiFlow>(
       `${URL_PREFIX}/clients/${clientId}/flows/${flowId}`,
@@ -297,7 +284,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListFlowLogsResult> {
     return this.http.get<apiInterfaces.ApiListFlowLogsResult>(
       `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/log`,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
@@ -307,7 +293,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListAllFlowOutputPluginLogsResult> {
     return this.http.get<apiInterfaces.ApiListAllFlowOutputPluginLogsResult>(
       `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/output-plugins/logs`,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
@@ -399,9 +384,7 @@ export class HttpApiService {
         };
         return this.http
           .post<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts`, request, {
-            context: new HttpContext()
-              .set(SHOW_ERROR_BAR, true)
-              .set(TRACK_LOADING_STATE, true),
+            context: new HttpContext().set(TRACK_LOADING_STATE, true),
           })
           .pipe(
             catchError((e: HttpErrorResponse) => {
@@ -426,7 +409,9 @@ export class HttpApiService {
     return this.http.post<apiInterfaces.ApiHuntApproval>(
       `${URL_PREFIX}/users/me/approvals/hunt/${args.huntId}`,
       request,
-      {context: new HttpContext().set(TRACK_LOADING_STATE, true)},
+      {
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
+      },
     );
   }
 
@@ -437,7 +422,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListHuntApprovalsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true)
       .set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiListHuntApprovalsResult>(
       `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`,
@@ -450,21 +434,28 @@ export class HttpApiService {
     id: string,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiHunt> {
-    const context = new HttpContext()
-      .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true);
+    const context = new HttpContext().set(POLLING_INTERVAL, pollingInterval);
     return this.http.get<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${id}`, {
       context,
     });
   }
 
-  verifyHuntAccess(huntId: string): Observable<{}> {
-    const context = new HttpContext()
-      .set(SHOW_ERROR_BAR, true)
-      .set(SHOW_ERROR_BAR_FOR_403, false);
-    return this.http.head<{}>(`${URL_PREFIX}/hunts/${huntId}/access`, {
-      context,
-    });
+  verifyHuntAccess(huntId: string): Observable<boolean> {
+    const context = new HttpContext().set(SHOW_ERROR_BAR_FOR_403, false);
+    return this.http
+      .head<{}>(`${URL_PREFIX}/hunts/${huntId}/access`, {
+        context,
+      })
+      .pipe(
+        map(() => true), // API call was successful -> access is verified.
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingApprovalError) {
+            return of(false);
+          } else {
+            return throwError(() => error);
+          }
+        }),
+      );
   }
 
   /** Fetches a HuntApproval */
@@ -474,7 +465,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiHuntApproval> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true)
       .set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiHuntApproval>(
       `${URL_PREFIX}/users/${requestor}/approvals/hunt/${huntId}/${approvalId}`,
@@ -512,7 +502,6 @@ export class HttpApiService {
     return this.http.patch<apiInterfaces.ApiHunt>(
       `${URL_PREFIX}/hunts/${huntId}`,
       params,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 
@@ -522,8 +511,7 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(TRACK_LOADING_STATE, true)
-      .set(SHOW_ERROR_BAR, true);
+      .set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiCountHuntResultsByTypeResult>(
       `${URL_PREFIX}/hunts/${huntId}/result-counts`,
       {context},
@@ -537,8 +525,7 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListHuntResultsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(TRACK_LOADING_STATE, true)
-      .set(SHOW_ERROR_BAR, true);
+      .set(TRACK_LOADING_STATE, true);
     const huntId = params.huntId;
     assertNonNull(huntId);
 
@@ -548,7 +535,7 @@ export class HttpApiService {
     }
 
     if (params.withType) {
-      // TODO: Use camelCased field name once the backend converts
+      // TODO - Use camelCased field name once the backend converts
       // camelCased names to their snake_case counterpart.
       options['with_type'] = params.withType;
     }
@@ -564,20 +551,10 @@ export class HttpApiService {
       },
     });
 
-    return this.http
-      .get<apiInterfaces.ApiListHuntResultsResult>(
-        `${URL_PREFIX}/hunts/${params.huntId}/results`,
-        {params: httpParams, context},
-      )
-      .pipe(
-        catchError((err: HttpErrorResponse) => {
-          if (err.status === 403) {
-            return throwError(() => new MissingApprovalError(err));
-          } else {
-            return throwError(() => err);
-          }
-        }),
-      );
+    return this.http.get<apiInterfaces.ApiListHuntResultsResult>(
+      `${URL_PREFIX}/hunts/${params.huntId}/results`,
+      {params: httpParams, context},
+    );
   }
 
   /** Lists errors of the given hunt. */
@@ -603,25 +580,13 @@ export class HttpApiService {
       },
     });
 
-    return this.http
-      .get<apiInterfaces.ApiListHuntErrorsResult>(
-        `${URL_PREFIX}/hunts/${params.huntId}/errors`,
-        {
-          params: httpParams,
-          context: new HttpContext()
-            .set(SHOW_ERROR_BAR, true)
-            .set(TRACK_LOADING_STATE, true),
-        },
-      )
-      .pipe(
-        catchError((err: HttpErrorResponse) => {
-          if (err.status === 403) {
-            return throwError(() => new MissingApprovalError(err));
-          } else {
-            return throwError(() => err);
-          }
-        }),
-      );
+    return this.http.get<apiInterfaces.ApiListHuntErrorsResult>(
+      `${URL_PREFIX}/hunts/${params.huntId}/errors`,
+      {
+        params: httpParams,
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
+      },
+    );
   }
 
   getHuntClientCompletionStats(
@@ -630,8 +595,7 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(TRACK_LOADING_STATE, true)
-      .set(SHOW_ERROR_BAR, true);
+      .set(TRACK_LOADING_STATE, true);
 
     const httpParams = args.size
       ? new HttpParams({fromObject: {'size': args.size}})
@@ -643,7 +607,7 @@ export class HttpApiService {
     );
   }
 
-  // TODO: GET parameters require snake_case not camelCase
+  // TODO - GET parameters require snake_case not camelCase
   // parameters. Do not allow createdBy and other camelCase parameters until
   // fixed.
   listHunts(
@@ -652,9 +616,8 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListHuntsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(TRACK_LOADING_STATE, true)
-      .set(SHOW_ERROR_BAR, true);
-    // TODO: Use camelCased field name once the backend converts
+      .set(TRACK_LOADING_STATE, true);
+    // TODO - Use camelCased field name once the backend converts
     // camelCased names to their snake_case counterpart.
     const params = toHttpParams({
       'offset': args.offset,
@@ -670,14 +633,20 @@ export class HttpApiService {
   }
 
   fetchHuntLogs(
-    huntId: string,
+    args: apiInterfaces.ApiListHuntLogsArgs,
   ): Observable<apiInterfaces.ApiListHuntLogsResult> {
-    const context = new HttpContext()
-      .set(SHOW_ERROR_BAR, true)
-      .set(TRACK_LOADING_STATE, true);
+    const huntId = args.huntId;
+    assertNonNull(huntId);
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
+    const params = toHttpParams({
+      'huntId': huntId,
+      'offset': args.offset,
+      'count': args.count,
+      'filter': args.filter,
+    });
     return this.http.get<apiInterfaces.ApiListHuntLogsResult>(
       `${URL_PREFIX}/hunts/${huntId}/log`,
-      {context},
+      {params, context},
     );
   }
 
@@ -712,12 +681,24 @@ export class HttpApiService {
   }
 
   listArtifactDescriptors(): Observable<apiInterfaces.ApiListArtifactsResult> {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
     return this.http.get<apiInterfaces.ApiListArtifactsResult>(
       `${URL_PREFIX}/artifacts`,
-      {
-        context: new HttpContext().set(SHOW_ERROR_BAR, true),
-      },
+      {context},
     );
+  }
+
+  uploadArtifact(artifact: string): Observable<{}> {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
+    const body: apiInterfaces.ApiUploadArtifactArgs = {artifact};
+    return this.http.post<{}>(`${URL_PREFIX}/artifacts`, body, {context});
+  }
+
+  deleteArtifact(artifactName: string): Observable<{}> {
+    const context = new HttpContext().set(TRACK_LOADING_STATE, true);
+    return this.http.delete<{}>(`${URL_PREFIX}/artifacts/${artifactName}`, {
+      context,
+    });
   }
 
   listFlowsForClient(
@@ -727,11 +708,9 @@ export class HttpApiService {
     const clientId = args.clientId;
     assertNonNull(clientId);
 
-    const context = new HttpContext()
-      .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true);
+    const context = new HttpContext().set(POLLING_INTERVAL, pollingInterval);
 
-    // TODO: Use camelCased field name once the backend converts
+    // TODO - Use camelCased field name once the backend converts
     // camelCased names to their snake_case counterpart.
     const params = toHttpParams({
       'offset': args.offset,
@@ -742,20 +721,10 @@ export class HttpApiService {
       'human_flows_only': args.humanFlowsOnly,
     });
 
-    return this.http
-      .get<apiInterfaces.ApiListFlowsResult>(
-        `${URL_PREFIX}/clients/${clientId}/flows`,
-        {params, context},
-      )
-      .pipe(
-        catchError((err: HttpErrorResponse) => {
-          if (err.status === 403) {
-            return throwError(() => new MissingApprovalError(err));
-          } else {
-            return throwError(() => err);
-          }
-        }),
-      );
+    return this.http.get<apiInterfaces.ApiListFlowsResult>(
+      `${URL_PREFIX}/clients/${clientId}/flows`,
+      {params, context},
+    );
   }
 
   /** Lists all scheduled flows for the given client and user. */
@@ -764,9 +733,7 @@ export class HttpApiService {
     creator: string,
     pollingInterval = 0,
   ): Observable<apiInterfaces.ApiListScheduledFlowsResult> {
-    const context = new HttpContext()
-      .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true);
+    const context = new HttpContext().set(POLLING_INTERVAL, pollingInterval);
 
     return this.http.get<apiInterfaces.ApiListScheduledFlowsResult>(
       `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}`,
@@ -781,7 +748,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiListFlowResultsResult> {
     const context = new HttpContext()
       .set(POLLING_INTERVAL, pollingInterval)
-      .set(SHOW_ERROR_BAR, true)
       .set(TRACK_LOADING_STATE, true);
     const options: {[key: string]: string} = {};
     if (params.withTag) {
@@ -831,21 +797,13 @@ export class HttpApiService {
         },
       })),
       switchMap((request: apiInterfaces.ApiCreateFlowArgs) => {
-        return this.http
-          .post<apiInterfaces.ApiFlow>(
-            `${URL_PREFIX}/clients/${clientId}/flows`,
-            request,
-            {
-              context: new HttpContext()
-                .set(SHOW_ERROR_BAR, true)
-                .set(TRACK_LOADING_STATE, true),
-            },
-          )
-          .pipe(
-            catchError((e: HttpErrorResponse) =>
-              throwError(new Error(e.error.message ?? e.message)),
-            ),
-          );
+        return this.http.post<apiInterfaces.ApiFlow>(
+          `${URL_PREFIX}/clients/${clientId}/flows`,
+          request,
+          {
+            context: new HttpContext().set(TRACK_LOADING_STATE, true),
+          },
+        );
       }),
     );
   }
@@ -872,21 +830,13 @@ export class HttpApiService {
         },
       })),
       switchMap((request: apiInterfaces.ApiCreateFlowArgs) => {
-        return this.http
-          .post<apiInterfaces.ApiFlow>(
-            `${URL_PREFIX}/clients/${clientId}/scheduled-flows`,
-            request,
-            {
-              context: new HttpContext()
-                .set(SHOW_ERROR_BAR, true)
-                .set(TRACK_LOADING_STATE, true),
-            },
-          )
-          .pipe(
-            catchError((e: HttpErrorResponse) =>
-              throwError(() => new Error(e.error.message ?? e.message)),
-            ),
-          );
+        return this.http.post<apiInterfaces.ApiFlow>(
+          `${URL_PREFIX}/clients/${clientId}/scheduled-flows`,
+          request,
+          {
+            context: new HttpContext().set(TRACK_LOADING_STATE, true),
+          },
+        );
       }),
     );
   }
@@ -897,28 +847,18 @@ export class HttpApiService {
     flowId: string,
   ): Observable<apiInterfaces.ApiFlow> {
     const url = `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/actions/cancel`;
-    return this.http.post<apiInterfaces.ApiFlow>(
-      url,
-      {},
-      {
-        context: new HttpContext().set(SHOW_ERROR_BAR, true),
-      },
-    );
+    return this.http.post<apiInterfaces.ApiFlow>(url, {});
   }
 
   /** Unschedules a previously scheduled flow. */
   unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}`;
-    return this.http.delete<{}>(url, {
-      context: new HttpContext().set(SHOW_ERROR_BAR, true),
-    });
+    return this.http.delete<{}>(url);
   }
 
   /** Fetches the current user. */
   fetchCurrentUser(): Observable<apiInterfaces.ApiGrrUser> {
-    return this.http.get<apiInterfaces.ApiGrrUser>(`${URL_PREFIX}/users/me`, {
-      context: new HttpContext().set(SHOW_ERROR_BAR, true),
-    });
+    return this.http.get<apiInterfaces.ApiGrrUser>(`${URL_PREFIX}/users/me`);
   }
 
   /** Explains a GlobExpression. */
@@ -935,16 +875,11 @@ export class HttpApiService {
     return this.http.post<apiInterfaces.ApiExplainGlobExpressionResult>(
       url,
       args,
-      {
-        context: new HttpContext().set(SHOW_ERROR_BAR, true),
-      },
     );
   }
 
   fetchUiConfig(): Observable<apiInterfaces.ApiUiConfig> {
-    return this.http.get<apiInterfaces.ApiUiConfig>(`${URL_PREFIX}/config/ui`, {
-      context: new HttpContext().set(SHOW_ERROR_BAR, true),
-    });
+    return this.http.get<apiInterfaces.ApiUiConfig>(`${URL_PREFIX}/config/ui`);
   }
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
@@ -953,9 +888,7 @@ export class HttpApiService {
       clientIds: [clientId],
       labels: [label],
     };
-    return this.http.post<{}>(url, body, {
-      context: new HttpContext().set(SHOW_ERROR_BAR, true),
-    });
+    return this.http.post<{}>(url, body);
   }
 
   removeClientLabel(clientId: string, label: string): Observable<{}> {
@@ -964,27 +897,15 @@ export class HttpApiService {
       clientIds: [clientId],
       labels: [label],
     };
-    return this.http
-      .post<{}>(url, body, {
-        context: new HttpContext().set(SHOW_ERROR_BAR, true),
-      })
-      .pipe(
-        catchError((e: HttpErrorResponse) =>
-          throwError(() => new Error(e.error.message ?? e.message)),
-        ),
-      );
+    return this.http.post<{}>(url, body);
   }
 
   fetchAllClientsLabels(): Observable<readonly apiInterfaces.ClientLabel[]> {
     const url = `${URL_PREFIX}/clients/labels`;
-    return this.http
-      .get<apiInterfaces.ApiListClientsLabelsResult>(url, {
-        context: new HttpContext().set(SHOW_ERROR_BAR, true),
-      })
-      .pipe(
-        map((clientsLabels) => clientsLabels.items ?? []),
-        shareReplay(1),
-      );
+    return this.http.get<apiInterfaces.ApiListClientsLabelsResult>(url).pipe(
+      map((clientsLabels) => clientsLabels.items ?? []),
+      shareReplay(1),
+    );
   }
 
   fetchClientSnapshots(
@@ -1004,9 +925,7 @@ export class HttpApiService {
 
     return this.http.get<apiInterfaces.ApiGetClientSnapshotsResult>(url, {
       params,
-      context: new HttpContext()
-        .set(SHOW_ERROR_BAR, true)
-        .set(TRACK_LOADING_STATE, true),
+      context: new HttpContext().set(TRACK_LOADING_STATE, true),
     });
   }
 
@@ -1028,9 +947,7 @@ export class HttpApiService {
 
     return this.http.get<apiInterfaces.ApiGetClientStartupInfosResult>(url, {
       params,
-      context: new HttpContext()
-        .set(SHOW_ERROR_BAR, true)
-        .set(TRACK_LOADING_STATE, true),
+      context: new HttpContext().set(TRACK_LOADING_STATE, true),
     });
   }
 
@@ -1042,9 +959,7 @@ export class HttpApiService {
       `${URL_PREFIX}/users/approver-suggestions`,
       {
         params,
-        context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
-          .set(TRACK_LOADING_STATE, true),
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
       },
     );
   }
@@ -1056,25 +971,33 @@ export class HttpApiService {
       `${URL_PREFIX}/users/me/approvals/client`,
       {
         params: objectToHttpParams(parameters),
-        context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
-          .set(TRACK_LOADING_STATE, true),
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
       },
     );
   }
 
-  getFileAccess(fileSpec: FileSpec): Observable<{}> {
+  getFileAccess(fileSpec: FileSpec): Observable<boolean> {
     const vfsPath = toVFSPath(fileSpec.pathType, fileSpec.path, {
       urlEncode: true,
     });
     const context = new HttpContext()
-      .set(SHOW_ERROR_BAR, true)
       .set(SHOW_ERROR_BAR_FOR_403, false)
       .set(TRACK_LOADING_STATE, true);
-    return this.http.head<{}>(
-      `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-details${vfsPath}`,
-      {context},
-    );
+    return this.http
+      .head<{}>(
+        `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-details${vfsPath}`,
+        {context},
+      )
+      .pipe(
+        map(() => true), // API call succeeded, user has access.
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingApprovalError) {
+            return of(false);
+          } else {
+            return throwError(() => error);
+          }
+        }),
+      );
   }
 
   getFileDetails(
@@ -1091,9 +1014,7 @@ export class HttpApiService {
       `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-details${vfsPath}`,
       {
         params,
-        context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
-          .set(TRACK_LOADING_STATE, true),
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
       },
     );
   }
@@ -1118,12 +1039,19 @@ export class HttpApiService {
         {
           params: objectToHttpParams(queryArgs as HttpParamObject),
           context: new HttpContext()
-            .set(SHOW_ERROR_BAR, true)
             .set(SHOW_ERROR_BAR_FOR_404, false)
             .set(TRACK_LOADING_STATE, true),
         },
       )
-      .pipe(catchError(error404To(null)));
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingFileError) {
+            return of(null);
+          } else {
+            return throwError(() => error);
+          }
+        }),
+      );
   }
 
   /** Queries the length of the given VFS file. */
@@ -1141,7 +1069,6 @@ export class HttpApiService {
         observe: 'response',
         params: objectToHttpParams(queryArgs as HttpParamObject),
         context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
           .set(SHOW_ERROR_BAR_FOR_404, false)
           .set(TRACK_LOADING_STATE, true),
       })
@@ -1151,7 +1078,13 @@ export class HttpApiService {
           assertNonNull(length, 'content-length header');
           return BigInt(length);
         }),
-        catchError(error404To(null)),
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingFileError) {
+            return of(null);
+          } else {
+            return throwError(() => error);
+          }
+        }),
       );
   }
 
@@ -1172,11 +1105,18 @@ export class HttpApiService {
         responseType: 'arraybuffer',
         params: objectToHttpParams(queryArgs as HttpParamObject),
         context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
           .set(SHOW_ERROR_BAR_FOR_404, false)
           .set(TRACK_LOADING_STATE, true),
       })
-      .pipe(catchError(error404To(null)));
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error instanceof MissingFileError) {
+            return of(null);
+          } else {
+            return throwError(() => error);
+          }
+        }),
+      );
   }
 
   browseFilesystem(
@@ -1196,9 +1136,7 @@ export class HttpApiService {
         params: objectToHttpParams({
           'include_directory_tree': opts.includeDirectoryTree,
         }),
-        context: new HttpContext()
-          .set(SHOW_ERROR_BAR, true)
-          .set(TRACK_LOADING_STATE, true),
+        context: new HttpContext().set(TRACK_LOADING_STATE, true),
       },
     );
   }
@@ -1217,7 +1155,6 @@ export class HttpApiService {
       .post<apiInterfaces.ApiUpdateVfsFileContentResult>(
         `${URL_PREFIX}/clients/${fileSpec.clientId}/vfs-update`,
         data,
-        {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
       )
       .pipe(
         switchMap((response) =>
@@ -1237,7 +1174,6 @@ export class HttpApiService {
   ): Observable<apiInterfaces.ApiGetVfsFileContentUpdateStateResult> {
     return this.http.get<apiInterfaces.ApiGetVfsFileContentUpdateStateResult>(
       `${URL_PREFIX}/clients/${clientId}/vfs-update/${operationId}`,
-      {context: new HttpContext().set(SHOW_ERROR_BAR, true)},
     );
   }
 

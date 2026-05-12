@@ -4,7 +4,7 @@ import os
 from absl import app
 
 from grr_response_client.client_actions import read_low_level as read_low_level_actions
-from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
+from grr_response_proto import read_low_level_pb2
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.flows.general import read_low_level
@@ -34,7 +34,7 @@ class ReadLowLevelFlowTest(flow_test_lib.FlowTestsBaseclass):
         action_mocks.ActionMock(read_low_level_actions.ReadLowLevel),
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=rdf_read_low_level.ReadLowLevelArgs(
+        flow_args=read_low_level_pb2.ReadLowLevelArgs(
             path=path, length=test_len, offset=test_offset
         ),
     )
@@ -52,7 +52,9 @@ class ReadLowLevelFlowTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(test_len, len(received_data))
       self.assertEqual(expected_data, received_data)
 
-      results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+      results = flow_test_lib.GetUnpackedFlowResults(
+          self.client_id, flow_id, read_low_level_pb2.ReadLowLevelFlowResult
+      )
       self.assertLen(results, 1)
       self.assertEqual(tmp_filename_str, results[0].path)
 
@@ -69,7 +71,7 @@ class ReadLowLevelFlowTest(flow_test_lib.FlowTestsBaseclass):
         action_mocks.ActionMock(read_low_level_actions.ReadLowLevel),
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=rdf_read_low_level.ReadLowLevelArgs(
+        flow_args=read_low_level_pb2.ReadLowLevelArgs(
             path=path, length=test_len, offset=test_offset
         ),
     )
@@ -88,7 +90,9 @@ class ReadLowLevelFlowTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(test_len, len(received_data))
       self.assertEqual(expected_data, received_data)
 
-      results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+      results = flow_test_lib.GetUnpackedFlowResults(
+          self.client_id, flow_id, read_low_level_pb2.ReadLowLevelFlowResult
+      )
       self.assertLen(results, 1)
       self.assertEqual(tmp_filename_str, results[0].path)
 
@@ -109,13 +113,13 @@ class ReadLowLevelFlowTest(flow_test_lib.FlowTestsBaseclass):
     path = os.path.join(self.base_path, "test_img.dd")
     test_len = -123
 
-    with self.assertRaisesRegex(ValueError, r"Negative length \(-123 B\)"):
+    with self.assertRaisesRegex(ValueError, r"Value out of range: -123"):
       flow_test_lib.StartAndRunFlow(
           read_low_level.ReadLowLevel,
           action_mocks.ActionMock(read_low_level_actions.ReadLowLevel),
           creator=self.test_username,
           client_id=self.client_id,
-          flow_args=rdf_read_low_level.ReadLowLevelArgs(
+          flow_args=read_low_level_pb2.ReadLowLevelArgs(
               path=path, length=test_len
           ),
       )

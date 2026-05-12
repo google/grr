@@ -12,11 +12,8 @@ from typing import Optional
 from google.protobuf import any_pb2
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import distro_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -30,7 +27,6 @@ from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import distro
 from grr_response_server.models import knowledge_base as models_knowledge_base
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
@@ -39,45 +35,6 @@ from grr_response_proto.rrg.action import grep_file_contents_pb2 as rrg_grep_fil
 from grr_response_proto.rrg.action import list_utmp_users_pb2 as rrg_list_utmp_users_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
-
-
-def GetKnowledgeBase(
-    rdf_client_obj: Optional[rdf_objects.ClientSnapshot],
-    allow_uninitialized: bool = False,
-) -> rdf_client.KnowledgeBase:
-  """Returns a knowledgebase from an rdf client object."""
-  if not allow_uninitialized:
-    if rdf_client_obj is None:
-      raise artifact_utils.KnowledgeBaseUninitializedError(
-          "No client snapshot given."
-      )
-    if rdf_client_obj.knowledge_base is None:
-      raise artifact_utils.KnowledgeBaseUninitializedError(
-          "KnowledgeBase empty for %s." % rdf_client_obj.client_id
-      )
-    kb = rdf_client_obj.knowledge_base
-    if not kb.os:
-      raise artifact_utils.KnowledgeBaseAttributesMissingError(
-          "KnowledgeBase missing OS for %s. Knowledgebase content: %s"
-          % (rdf_client_obj.client_id, kb)
-      )
-  if rdf_client_obj is None or rdf_client_obj.knowledge_base is None:
-    return rdf_client.KnowledgeBase()
-
-  version = rdf_client_obj.os_version.split(".")
-  kb = rdf_client_obj.knowledge_base
-  try:
-    kb.os_major_version = int(version[0])
-    if len(version) > 1:
-      kb.os_minor_version = int(version[1])
-  except ValueError:
-    pass
-
-  return kb
-
-
-class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
 class KnowledgeBaseInitializationFlow(
@@ -95,14 +52,10 @@ class KnowledgeBaseInitializationFlow(
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_ADVANCED
-  args_type = KnowledgeBaseInitializationArgs
-  result_types = (rdf_client.KnowledgeBase,)
 
   proto_args_type = flows_pb2.KnowledgeBaseInitializationArgs
   proto_result_types = [knowledge_base_pb2.KnowledgeBase]
   proto_store_type = flows_pb2.KnowledgeBaseInitializationStore
-
-  only_protos_allowed = True
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -250,7 +203,7 @@ class KnowledgeBaseInitializationFlow(
         action.Call(self._ProcessRRGWindowsProfileList)
 
         # WMI queries are slow, so we consider them "heavyweight".
-        if not self.args.lightweight:
+        if not self.proto_args.lightweight:
           users = self.store.knowledge_base.users
 
           action = rrg_stubs.QueryWmi()
@@ -262,7 +215,7 @@ class KnowledgeBaseInitializationFlow(
           """
           action.Call(self._ProcessRRGWindowsWMIUserAccount)
       else:
-        # TODO: There is no dedicated action for obtaining registry
+        # TODO - There is no dedicated action for obtaining registry
         # values. The existing artifact collector uses `GetFileStat` action for
         # this which is horrible.
         args = jobs_pb2.GetFileStatRequest()
@@ -388,13 +341,13 @@ class KnowledgeBaseInitializationFlow(
         )
 
         args = flows_pb2.FileFinderArgs()
-        # TODO: There is no dedicated action for obtaining registry
+        # TODO - There is no dedicated action for obtaining registry
         # values but `STAT` action of the file-finder will get it. This should be
         # refactored once registry-specific actions are available.
         args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
         args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
         args.paths.append(r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath")
-        # TODO: remove this when the registry+sandboxing bug
+        # TODO - remove this when the registry+sandboxing bug
         # is fixed.
         args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
         self.CallClientProto(
@@ -1064,7 +1017,7 @@ class KnowledgeBaseInitializationFlow(
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     def CollectWindowsTimeZoneStandardName():
-      # TODO: There is no dedicated action for obtaining registry
+      # TODO - There is no dedicated action for obtaining registry
       # values. The existing artifact collector uses `GetFileStat` action for
       # this which is horrible.
       #
@@ -1301,7 +1254,13 @@ class KnowledgeBaseInitializationFlow(
     result = rrg_get_winreg_value_pb2.Result()
     result.ParseFromString(list(responses)[0].value)
 
-    self.store.knowledge_base.environ_path = result.value.string
+    self.store.knowledge_base.environ_path = (
+        # Different applications tend to switch the type of the `Path` variable
+        # between `REG_SZ` and `REG_EXPAND_SZ`, so depending which one used to
+        # update it last it can have a different type.
+        result.value.string
+        or result.value.expand_string
+    )
 
   @flow_base.UseProto2AnyResponses
   def _ProcessWindowsEnvComSpec(
@@ -1521,12 +1480,12 @@ class KnowledgeBaseInitializationFlow(
       models_knowledge_base.MergeOrAddUser(self.store.knowledge_base, user)
 
     args = flows_pb2.FileFinderArgs()
-    # TODO: There is no dedicated action for obtaining registry
+    # TODO - There is no dedicated action for obtaining registry
     # values but `STAT` action of the file-finder will get it. This should be
     # refactored once registry-specific actions are available.
     args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
     args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-    # TODO: remove this when the registry+sandboxing bug
+    # TODO - remove this when the registry+sandboxing bug
     # is fixed.
     args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
 
@@ -1556,7 +1515,7 @@ class KnowledgeBaseInitializationFlow(
     )
 
     # WMI queries are slow, so we consider them "heavyweight".
-    if not self.args.lightweight:
+    if not self.proto_args.lightweight:
       users = self.store.knowledge_base.users
 
       args = jobs_pb2.WMIRequest()
@@ -1746,7 +1705,7 @@ class KnowledgeBaseInitializationFlow(
       path = pathlib.PureWindowsPath(response.stat_entry.pathspec.path)
       parts = path.parts
 
-      # TODO: Sometimes we get leading slashes and sometimes not,
+      # TODO - Sometimes we get leading slashes and sometimes not,
       # so `parts` can have inconsistent prefix. We locate `HKEY_USERS` instead.
       # Once we have dedicated action for retrieving data from the registry in
       # a consistent way, we should remove this workaround.
@@ -1771,7 +1730,7 @@ class KnowledgeBaseInitializationFlow(
       registry_value = parts[-1]
       registry_data = response.stat_entry.registry_data.string
 
-      # TODO: Replace with `match` once we can use Python 3.10
+      # TODO - Replace with `match` once we can use Python 3.10
       # features.
       case = (registry_key, registry_value)
       if case == ("Shell Folders", "{A520A1A4-1780-4FF6-BD18-167343C5AF16}"):
@@ -1972,7 +1931,7 @@ class KnowledgeBaseInitializationFlow(
       if not stat.S_ISDIR(response.st_mode):
         continue
 
-      # TODO: Remove once the `ListDirectory` action is fixed not
+      # TODO - Remove once the `ListDirectory` action is fixed not
       # to yield results with leading slashes on Windows.
       response.pathspec.path = response.pathspec.path.removeprefix("/")
 
@@ -2090,7 +2049,7 @@ def UploadArtifactYamlFile(
   # Make sure all artifacts are loaded so we don't accidentally overwrite one.
   registry_obj.GetArtifacts(reload_datastore_artifacts=True)
 
-  new_artifacts = registry_obj.ArtifactsFromYaml(file_content)
+  new_artifacts = artifact_registry.ArtifactsFromYaml(file_content)
 
   # A quick syntax check before we upload anything.
   for artifact_value in new_artifacts:
@@ -2104,9 +2063,7 @@ def UploadArtifactYamlFile(
         overwrite_system_artifacts=overwrite_system_artifacts,
     )
 
-    data_store.REL_DB.WriteArtifact(
-        mig_artifacts.ToProtoArtifact(artifact_value)
-    )
+    data_store.REL_DB.WriteArtifact(artifact_value)
 
     loaded_artifacts.append(artifact_value)
 

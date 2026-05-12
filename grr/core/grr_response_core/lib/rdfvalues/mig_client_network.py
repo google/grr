@@ -48,20 +48,6 @@ def ToRDFNetworkAddress(
   )
 
 
-def ToProtoDNSClientConfiguration(
-    rdf: rdf_client_network.DNSClientConfiguration,
-) -> sysinfo_pb2.DNSClientConfiguration:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFDNSClientConfiguration(
-    proto: sysinfo_pb2.DNSClientConfiguration,
-) -> rdf_client_network.DNSClientConfiguration:
-  return rdf_client_network.DNSClientConfiguration.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoInterface(rdf: rdf_client_network.Interface) -> jobs_pb2.Interface:
   return rdf.AsPrimitiveProto()
 

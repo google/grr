@@ -50,12 +50,12 @@ export class TimeRangeSubform implements OnInit {
     >;
   }
 
-  // TODO: Interete input as UTC time, this not yet supported
+  // TODO - Interete input as UTC time, this not yet supported
   // internally, waiting for
   // https://github.com/angular/components/tree/eba4719157a7f9a5d4f7a169a1323fd99564f3b6/src/material-moment-adapter/adapter
   //to be imported.
 
-  // TODO: Workaround for bug with the datepicker/timepicker with
+  // TODO - Workaround for bug with the datepicker/timepicker with
   // forms integration in reactive forms:
   // https://github.com/angular/angular/issues/58522.
   // Use
@@ -89,7 +89,7 @@ export class TimeRangeSubform implements OnInit {
   }
 
   ngOnInit() {
-    // TODO: Manually sync the form values with the model. This is
+    // TODO - Manually sync the form values with the model. This is
     // only needed because of the workaround for the datepicker/timepicker bug.
     this.resetFormValues();
   }

@@ -2,26 +2,11 @@
 """Flow that sends a message to the client and back as example."""
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import dummy_pb2
 from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-
-
-class DummyArgs(rdf_structs.RDFProtoStruct):
-  """Request for Dummy action."""
-
-  protobuf = dummy_pb2.DummyArgs
-  rdf_deps = []
-
-
-class DummyFlowResult(rdf_structs.RDFProtoStruct):
-  """Result for Dummy action."""
-
-  protobuf = dummy_pb2.DummyFlowResult
-  rdf_deps = []
 
 
 class Dummy(
@@ -41,12 +26,8 @@ class Dummy(
   category = "/Administrative/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  args_type = DummyArgs
-  result_types = (DummyFlowResult,)
-
   proto_args_type = dummy_pb2.DummyArgs
   proto_result_types = (dummy_pb2.DummyFlowResult,)
-  only_protos_allowed = True
 
   def Start(self):
     """Schedules the action in the client (Dummy ClientAction)."""

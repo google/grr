@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import {MatSort, MatSortModule, Sort} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {Title} from '@angular/platform-browser';
 
 import {HuntError} from '../../../lib/models/hunt';
 import {FleetCollectionStore} from '../../../store/fleet_collection_store';
@@ -55,8 +54,6 @@ export class FleetCollectionErrors {
   protected readonly errorOffset = signal(0);
 
   constructor() {
-    inject(Title).setTitle('GRR | Fleet Collection > Errors');
-
     effect(() => {
       this.dataSource.data = this.fleetCollectionStore
         .fleetCollectionErrors()

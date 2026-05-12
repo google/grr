@@ -7,22 +7,22 @@ from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import dummy_pb2
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
+from grr_response_server import output_plugin
 from grr_response_server.databases import db
-# TODO: Import needed as Dummy proto is packed into Any and is then
+# TODO - Import needed as Dummy proto is packed into Any and is then
 # converted to rdf value, which is unknown otherwise.
 from grr_response_server.flows.general import dummy  # pylint: disable=unused-import
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
-from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -244,9 +244,9 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
   handler = hunt_plugin.ApiGetHuntHandler
 
   def Run(self):
-    ref = rdf_hunts.FlowLikeObjectReference(
+    ref = flows_pb2.FlowLikeObjectReference(
         object_type="HUNT_REFERENCE",
-        hunt_reference=rdf_objects.HuntReference(hunt_id="H:332211"),
+        hunt_reference=objects_pb2.HuntReference(hunt_id="H:332211"),
     )
 
     # TODO(user): make hunt stats non-zero when AFF4 is gone to
@@ -274,9 +274,9 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
   handler = hunt_plugin.ApiGetHuntHandler
 
   def Run(self):
-    ref = rdf_hunts.FlowLikeObjectReference(
+    ref = flows_pb2.FlowLikeObjectReference(
         object_type="FLOW_REFERENCE",
-        flow_reference=rdf_objects.FlowReference(
+        flow_reference=objects_pb2.FlowReference(
             flow_id="F:332211", client_id="C.1111111111111111"
         ),
     )
@@ -541,43 +541,12 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
     )
 
 
-class ApiListHuntOutputPluginsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest,
-    hunt_test_lib.StandardHuntTestMixin,
-):
+class DummyHuntTestOutputPlugin(output_plugin.OutputPluginProto):
 
-  api_method = "ListHuntOutputPlugins"
-  handler = hunt_plugin.ApiListHuntOutputPluginsHandler
+  args_type = flows_pb2.ListProcessesArgs
 
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  uses_legacy_dynamic_protos = True
-
-  def Run(self):
-    output_plugins = [
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="blah!", fetch_binaries=True
-            ),
-        )
-    ]
-
-    with test_lib.FakeTime(42):
-      hunt_id = self.CreateHunt(
-          description="the hunt",
-          output_plugins=output_plugins,
-          creator=self.test_username,
-      )
-      hunt.StartHunt(hunt_id)
-
-    self.Check(
-        "ListHuntOutputPlugins",
-        args=api_hunt_pb2.ApiListHuntOutputPluginsArgs(hunt_id=hunt_id),
-        replace={hunt_id: "H:123456"},
-    )
+  def ProcessResults(self, results):
+    pass
 
 
 class ApiListHuntOutputPluginLogsHandlerRegressionTest(
@@ -588,19 +557,16 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
   api_method = "ListHuntOutputPluginLogs"
   handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler
 
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  uses_legacy_dynamic_protos = True
-
+  @test_plugins.WithOutputPluginProto(DummyHuntTestOutputPlugin)
   def Run(self):
+    packed_args = any_pb2.Any()
+    packed_args.Pack(
+        flows_pb2.ListProcessesArgs(filename_regex="blah!", fetch_binaries=True)
+    )
     output_plugins = [
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="blah!", fetch_binaries=True
-            ),
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=DummyHuntTestOutputPlugin.__name__,
+            args=packed_args,
         )
     ]
     with test_lib.FakeTime(42, increment=1):
@@ -624,6 +590,13 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
     )
 
 
+class FailingDummyHuntOutputPlugin(output_plugin.OutputPluginProto):
+  """A dummy output plugin."""
+
+  def ProcessResults(self, results):
+    raise RuntimeError("Oh no!")
+
+
 class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin,
@@ -632,15 +605,10 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
   api_method = "ListHuntOutputPluginErrors"
   handler = hunt_plugin.ApiListHuntOutputPluginErrorsHandler
 
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  uses_legacy_dynamic_protos = True
-
+  @test_plugins.WithOutputPluginProto(FailingDummyHuntOutputPlugin)
   def Run(self):
-    failing_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__
+    failing_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=FailingDummyHuntOutputPlugin.__name__
     )
 
     with test_lib.FakeTime(42, increment=1):

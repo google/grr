@@ -116,7 +116,7 @@ class InMemoryDBCronJobMixin(object):
     for job_run in self.ReadCronJobRuns(cronjob_id):
       del self.cronjob_runs[(cronjob_id, job_run.run_id)]
 
-    # TODO: Use protos in approvals.
+    # TODO - Use protos in approvals.
     for approvals in self.approvals_by_username.values():
       # We use `list` around dictionary items iterator to avoid errors about
       # dictionary modification during iteration.

@@ -1,0 +1,82 @@
+<h5 class="name">{{ artifact().name }}</h5>
+
+@if (artifact().doc) {
+  <div class="documentation">{{ artifact().doc }}</div>
+  <mat-divider />
+}
+
+<ng-template #artifactDetails let-artifact="artifact">
+  <button mat-icon-button disabled type="button" aria-hidden="true"></button>
+  <p class="artifact-descriptions">
+    {{artifact.name}}
+    @if (artifact.sourceDescriptions!! && artifact.sourceDescriptions.length > 0) {
+      <ul>
+        @for (source of artifact.sourceDescriptions; track source) {
+          <li> {{source.type | FriendlyArtifactType}}
+            <ul >
+              @for (collection of source.collections; track collection) {
+                <li>
+                  @if (clientId() && source.type === SourceType.FILE) {
+                    <glob-expression-explanation
+                        [globExpression]="collection"
+                        [clientId]="clientId()"
+                        [explanationMode]="GlobExplanationMode.ONLY_GLOB_VISIBLE"
+                      />
+                  } @else {
+                    {{collection}}s
+                  }
+                </li>
+              }
+            </ul>
+          <li>
+        }
+      </ul>
+    }
+  </p>
+</ng-template>
+
+<div>Artifact details:</div>
+
+<mat-tree #tree [dataSource]="[artifact()]" [childrenAccessor]="childrenAccessor">
+  <!-- Leaf-node -->
+  <mat-tree-node *matTreeNodeDef="let artifactNode">
+    <button mat-icon-button disabled type="button" aria-hidden="true"></button>
+    <ng-container *ngTemplateOutlet="artifactDetails; context: {artifact: artifactNode}">
+    </ng-container>
+  </mat-tree-node>s
+  <!-- Expandable nodes. -->
+  <mat-tree-node
+      *matTreeNodeDef="let nestedArtifact; when: hasChildren"
+      [cdkTreeNodeTypeaheadLabel]="nestedArtifact.name">
+    <button
+        mat-icon-button
+        matTreeNodeToggle
+        type="button"
+        [matTreeNodeToggleRecursive]="true"
+        aria-label="Toggle nested artifact"
+    >
+      <mat-icon>{{tree.isExpanded(nestedArtifact) ? 'expand_more' : 'chevron_right'}}</mat-icon>
+    </button>
+    <ng-container *ngTemplateOutlet="artifactDetails; context: {artifact: nestedArtifact}">
+    </ng-container>
+  </mat-tree-node>
+</mat-tree>
+
+<mat-divider />
+<div>Supported for operating systems:</div>
+<div class="os">
+  @for (os of artifact().supportedOs; track os) {
+    {{ os }}{{$last ? '' : ', '}}
+  }
+</div>
+
+<mat-divider />
+
+@if (artifact().urls && artifact().urls.length > 0) {
+  <div>References:</div>
+  <div class="links">
+    @for (url of artifact().urls; track url) {
+      <a [href]="url" target="_blank">{{url}}</a>
+    }
+  </div>
+}

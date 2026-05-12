@@ -8,12 +8,27 @@ from grr_response_test.end_to_end_tests import test_base
 ####################
 
 
-class TestListDirectoryOSLinuxDarwin(test_base.EndToEndTest):
-  """Tests if ListDirectory works on Linux and Darwin."""
+class TestListDirectoryOSLinux(test_base.EndToEndTest):
+  """Tests if ListDirectory works on Linux."""
 
   platforms = [
       test_base.EndToEndTest.Platform.LINUX,
-      test_base.EndToEndTest.Platform.DARWIN
+  ]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ListDirectory")
+    args.pathspec.path = "/usr/bin"
+    args.pathspec.pathtype = args.pathspec.OS
+
+    with self.WaitForFileRefresh("fs/os/usr/bin/ls"):
+      self.RunFlowAndWait("ListDirectory", args=args)
+
+
+class TestListDirectoryOSDarwin(test_base.EndToEndTest):
+  """Tests if ListDirectory works on Darwin."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.DARWIN,
   ]
 
   def runTest(self):

@@ -10,6 +10,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import {toSignal} from '@angular/core/rxjs-interop';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
@@ -111,6 +112,9 @@ export class ClientsForm {
       ForemanClientRuleSetMatchMode.MATCH_ALL,
       {nonNullable: true},
     );
+  private readonly rulesMatchModeChange = toSignal(
+    this.rulesMatchModeControl.valueChanges,
+  );
   protected ruleForms = signal<
     Array<
       | ClientLabelsFormData
@@ -149,6 +153,12 @@ export class ClientsForm {
         untracked(() => {
           this.resetInitialRules();
         });
+      }
+    });
+
+    effect(() => {
+      if (this.rulesMatchModeChange()) {
+        this.presubmitCheck();
       }
     });
   }
@@ -257,8 +267,9 @@ export class ClientsForm {
     const formData = this.getFormState();
     const rules = formData.rules;
     if (
-      formData.matchMode !== ForemanClientRuleSetMatchMode.MATCH_ALL ||
-      !rules
+      !rules ||
+      (formData.matchMode !== ForemanClientRuleSetMatchMode.MATCH_ALL &&
+        rules.length > 1)
     ) {
       this.presubmitFailed.set(true);
       return;

@@ -6,7 +6,6 @@ import re
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import crowdstrike_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import signed_commands_pb2
@@ -23,18 +22,12 @@ from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
 
 
-class GetCrowdstrikeAgentIdResult(rdf_structs.RDFProtoStruct):
-  protobuf = crowdstrike_pb2.GetCrowdstrikeAgentIdResult
-  rdf_deps = []
-
-
 class GetCrowdStrikeAgentID(flow_base.FlowBase):
   """Flow that retrieves the identifier of the CrowdStrike agent."""
 
   friendly_name = "Get CrowdStrike agent identifier"
   category = "/Collectors/"
 
-  result_types = (GetCrowdstrikeAgentIdResult,)
   proto_result_types = (crowdstrike_pb2.GetCrowdstrikeAgentIdResult,)
 
   def Start(self) -> None:
@@ -89,7 +82,7 @@ class GetCrowdStrikeAgentID(flow_base.FlowBase):
     action.Call(self._OnWindowsRRGResponse)
 
   def _StartWindows(self) -> None:
-    # TODO: There is no dedicated action for obtaining registry
+    # TODO - There is no dedicated action for obtaining registry
     # values. The existing artifact collector uses `GetFileStat` action for this
     # which is horrible.
     args = jobs_pb2.GetFileStatRequest()

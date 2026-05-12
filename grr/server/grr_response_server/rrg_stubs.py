@@ -9,6 +9,7 @@ from google.protobuf import message as pb_message
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg.action import dump_process_memory_pb2 as rrg_dump_process_memory_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
@@ -22,6 +23,8 @@ from grr_response_proto.rrg.action import list_utmp_users_pb2 as rrg_list_utmp_u
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
+from grr_response_proto.rrg.action import scan_memory_yara_pb2 as rrg_scan_memory_yara_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 class _FlowStateMethod(Protocol):
@@ -80,7 +83,7 @@ class Action(Generic[_Args]):
         context=self._context,
     )
 
-  # TODO: Use pythonic wrappers for filters.
+  # TODO - Use pythonic wrappers for filters.
   def AddFilter(self) -> rrg_pb2.Filter:
     """Returns a new filter to be used by the action."""
     result = rrg_pb2.Filter()
@@ -190,4 +193,25 @@ def ExecuteSignedCommand() -> Action[rrg_execute_signed_command_pb2.Args]:
   return Action(
       action=rrg_pb2.Action.EXECUTE_SIGNED_COMMAND,
       args_type=rrg_execute_signed_command_pb2.Args,
+  )
+
+
+def StoreFilestorePart() -> Action[rrg_store_filestore_part_pb2.Args]:
+  return Action(
+      action=rrg_pb2.Action.STORE_FILESTORE_PART,
+      args_type=rrg_store_filestore_part_pb2.Args,
+  )
+
+
+def DumpProcessMemory() -> Action[rrg_dump_process_memory_pb2.Args]:
+  return Action(
+      action=rrg_pb2.Action.DUMP_PROCESS_MEMORY,
+      args_type=rrg_dump_process_memory_pb2.Args,
+  )
+
+
+def ScanProcessMemoryYara() -> Action[rrg_scan_memory_yara_pb2.Args]:
+  return Action(
+      action=rrg_pb2.Action.SCAN_PROCESS_MEMORY_YARA,
+      args_type=rrg_scan_memory_yara_pb2.Args,
   )

@@ -73,17 +73,3 @@ def ToRDFOsqueryResult(
   return rdf_osquery.OsqueryResult.FromSerializedBytes(
       proto.SerializeToString()
   )
-
-
-def ToProtoOsqueryProgress(
-    rdf: rdf_osquery.OsqueryProgress,
-) -> osquery_pb2.OsqueryProgress:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFOsqueryProgress(
-    proto: osquery_pb2.OsqueryProgress,
-) -> rdf_osquery.OsqueryProgress:
-  return rdf_osquery.OsqueryProgress.FromSerializedBytes(
-      proto.SerializeToString()
-  )

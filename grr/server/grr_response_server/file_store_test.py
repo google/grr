@@ -7,11 +7,11 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -113,7 +113,8 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
   def testAddsFileWithSingleBlob(self):
     hash_id = file_store.AddFileWithUnknownHash(
-        self.client_path, self.blob_refs[:1]
+        self.client_path,
+        self.blob_refs[:1],
     )
     self.assertEqual(hash_id.AsBytes(), self.blob_refs[0].blob_id)
 
@@ -123,7 +124,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
       rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
   )
   def testRaisesIfOneSingleBlobIsNotFound(self):
-    blob_ref = rdf_objects.BlobReference(
+    blob_ref = objects_pb2.BlobReference(
         offset=0, size=0, blob_id=bytes(models_blobs.BlobID.Of(b""))
     )
     with self.assertRaises(file_store.BlobNotFoundError):
@@ -135,17 +136,19 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
       rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS),
   )
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
-    blob_ref = rdf_objects.BlobReference(
+    blob_ref = objects_pb2.BlobReference(
         offset=0, size=0, blob_id=bytes(models_blobs.BlobID.Of(b""))
     )
     with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash(
-          self.client_path, [self.blob_refs[0], blob_ref]
+          self.client_path,
+          [self.blob_refs[0], blob_ref],
       )
 
   def testAddsFileWithTwoBlobs(self):
     hash_id = file_store.AddFileWithUnknownHash(
-        self.client_path, self.blob_refs
+        self.client_path,
+        self.blob_refs,
     )
     self.assertEqual(
         hash_id.AsBytes(),
@@ -210,7 +213,10 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     add_file_mock.assert_called_once()
     args = add_file_mock.call_args_list[0][0]
     self.assertEqual(args[0][hash_id].client_path, self.client_path)
-    self.assertEqual(args[0][hash_id].blob_refs, self.blob_refs)
+    self.assertEqual(
+        args[0][hash_id].blob_refs,
+        self.blob_refs,
+    )
 
 
 def _BlobRefsFromByteArray(data_array):
@@ -219,7 +225,7 @@ def _BlobRefsFromByteArray(data_array):
   for data in data_array:
     blob_id = models_blobs.BlobID.Of(data)
     blob_refs.append(
-        rdf_objects.BlobReference(
+        objects_pb2.BlobReference(
             offset=offset, size=len(data), blob_id=bytes(blob_id)
         )
     )
@@ -370,19 +376,24 @@ class OpenFileTest(test_lib.GRRBaseTest):
 
     blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "def")
     self.hash_id = file_store.AddFileWithUnknownHash(
-        self.client_path, blob_refs
+        self.client_path,
+        blob_refs,
     )
     self.data = b"".join(blob_data)
 
     _, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abc")
     self.other_hash_id = file_store.AddFileWithUnknownHash(
-        self.client_path, blob_refs
+        self.client_path,
+        blob_refs,
     )
 
     self.invalid_hash_id = rdf_objects.SHA256HashID.FromData(b"")
 
-  def _PathInfo(self, hash_id=None):
-    pi = rdf_objects.PathInfo.OS(components=self.client_path.components)
+  def _PathInfo(self, hash_id=None) -> objects_pb2.PathInfo:
+    pi = objects_pb2.PathInfo(
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=self.client_path.components,
+    )
     if hash_id:
       pi.hash_entry.sha256 = hash_id.AsBytes()
     return pi
@@ -390,7 +401,7 @@ class OpenFileTest(test_lib.GRRBaseTest):
   def testOpensFileWithSinglePathInfoWithHash(self):
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
@@ -400,16 +411,14 @@ class OpenFileTest(test_lib.GRRBaseTest):
       file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithoutHash(self):
-    data_store.REL_DB.WritePathInfos(
-        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
-    )
+    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
     with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithUnknownHash(self):
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+        [self._PathInfo(self.invalid_hash_id)],
     )
     with self.assertRaises(file_store.FileHasNoContentError):
       file_store.OpenFile(self.client_path)
@@ -418,24 +427,20 @@ class OpenFileTest(test_lib.GRRBaseTest):
     # Oldest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     # Newest.
-    data_store.REL_DB.WritePathInfos(
-        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
-    )
+    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
 
   def testOpensFileWithTwoPathInfosWhereNewestHasHash(self):
     # Oldest.
-    data_store.REL_DB.WritePathInfos(
-        self.client_id, [mig_objects.ToProtoPathInfo(self._PathInfo())]
-    )
+    data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
     # Newest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
@@ -444,12 +449,12 @@ class OpenFileTest(test_lib.GRRBaseTest):
     # Oldest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+        [self._PathInfo(self.invalid_hash_id)],
     )
     # Newest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
@@ -458,12 +463,12 @@ class OpenFileTest(test_lib.GRRBaseTest):
     # Oldest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     # Newest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.invalid_hash_id))],
+        [self._PathInfo(self.invalid_hash_id)],
     )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
@@ -472,12 +477,12 @@ class OpenFileTest(test_lib.GRRBaseTest):
     # Oldest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.other_hash_id))],
+        [self._PathInfo(self.other_hash_id)],
     )
     # Newest.
     data_store.REL_DB.WritePathInfos(
         self.client_id,
-        [mig_objects.ToProtoPathInfo(self._PathInfo(self.hash_id))],
+        [self._PathInfo(self.hash_id)],
     )
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
@@ -519,9 +524,6 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
   def testRaisesIfSingleFileChunkIsMissing(self):
     _, missing_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "0")
-    missing_blob_refs = list(
-        map(mig_objects.ToProtoBlobReference, missing_blob_refs)
-    )
 
     hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
         missing_blob_refs[0].blob_id
@@ -529,11 +531,12 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     data_store.REL_DB.WriteHashBlobReferences({hash_id: missing_blob_refs})
 
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    path_info = rdf_objects.PathInfo.OS(components=client_path.components)
-    path_info.hash_entry.sha256 = hash_id.AsBytes()
-    data_store.REL_DB.WritePathInfos(
-        client_path.client_id, [mig_objects.ToProtoPathInfo(path_info)]
+    path_info = objects_pb2.PathInfo(
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=client_path.components,
     )
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
     # Just getting the generator doesn't raise.
     chunks = file_store.StreamFilesChunks([client_path])

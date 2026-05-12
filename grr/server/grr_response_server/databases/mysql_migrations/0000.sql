@@ -41,7 +41,7 @@ CREATE TABLE client_labels(
     label VARCHAR(100),
     owner_username VARCHAR(254),
     PRIMARY KEY (client_id, owner_username_hash, label),
-    -- TODO: Add FOREIGN KEY when owner does not use `GRR` anymore.
+    -- TODO - Add FOREIGN KEY when owner does not use `GRR` anymore.
     CONSTRAINT client_labels_ibfk_1
         FOREIGN KEY client_labels_ibfk_1(client_id)
         REFERENCES clients(client_id)

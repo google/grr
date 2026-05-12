@@ -54,7 +54,7 @@ export function createFileSizeRangeFormGroup() {
 
   return new FormGroup(
     {minFileSize, maxFileSize},
-    // TODO: Add check if values are in order.
+    // TODO - Add check if values are in order.
     {validators: [atLeastOneMustBeSet([minFileSize, maxFileSize])]},
   );
 }

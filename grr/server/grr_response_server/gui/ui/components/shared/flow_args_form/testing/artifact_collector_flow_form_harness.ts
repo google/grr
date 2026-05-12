@@ -1,6 +1,6 @@
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatFormFieldHarness} from '@angular/material/form-field/testing';
-import {MatTreeHarness} from '@angular/material/tree/testing';
+import {ArtifactDetailsHarness} from '../../testing/artifact_details_harness';
 
 import {BaseFlowFormHarness} from './base_flow_form_harness';
 
@@ -10,5 +10,8 @@ export class ArtifactCollectorFlowFormHarness extends BaseFlowFormHarness {
 
   readonly form = this.locatorFor(MatFormFieldHarness);
   readonly autocompleteHarness = this.locatorFor(MatAutocompleteHarness);
-  readonly matTreeHarness = this.locatorFor(MatTreeHarness);
+
+  readonly artifactDetailsHarness = this.locatorForOptional(
+    ArtifactDetailsHarness,
+  );
 }

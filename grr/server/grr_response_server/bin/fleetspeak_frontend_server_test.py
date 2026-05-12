@@ -13,6 +13,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import fleetspeak
@@ -36,74 +37,6 @@ FS_SERVICE_NAME = "GRR"
 
 class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
   """Tests the Fleetspeak based GRRFEServer."""
-
-  def testReceiveMessages(self):
-    now = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)
-
-    fs_server = fleetspeak_frontend_server.GRRFSServer()
-    client_id = "C.1234567890123456"
-    flow_id = "12345678"
-    data_store.REL_DB.WriteClientMetadata(
-        client_id,
-        last_ping=now
-        - fleetspeak_frontend_server.MIN_DELAY_BETWEEN_METADATA_UPDATES
-        - rdfvalue.Duration("1s"),
-    )
-
-    flow = flows_pb2.Flow(client_id=client_id, flow_id=flow_id)
-    data_store.REL_DB.WriteFlowObject(flow)
-
-    flow_request = flows_pb2.FlowRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1
-    )
-
-    before_write = data_store.REL_DB.Now()
-    data_store.REL_DB.WriteFlowRequests([flow_request])
-    after_write = data_store.REL_DB.Now()
-    session_id = "%s/%s" % (client_id, flow_id)
-    fs_client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
-    fs_messages = []
-    for i in range(1, 10):
-      grr_message = rdf_flows.GrrMessage(
-          request_id=1,
-          response_id=i + 1,
-          session_id=session_id,
-          payload=rdfvalue.RDFInteger(i),
-      )
-      fs_message = fs_common_pb2.Message(
-          message_type="GrrMessage",
-          source=fs_common_pb2.Address(
-              client_id=fs_client_id, service_name=FS_SERVICE_NAME
-          ),
-      )
-      fs_message.data.Pack(grr_message.AsPrimitiveProto())
-      fs_message.validation_info.tags["foo"] = "bar"
-      fs_messages.append(fs_message)
-
-    with test_lib.FakeTime(now):
-      for fs_message in fs_messages:
-        fs_server.Process(fs_message, None)
-
-    # Ensure the last-ping timestamp gets updated.
-    client_data = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertEqual(client_data.ping, now)
-    self.assertEqual(
-        models_clients.FleetspeakValidationInfoToDict(
-            client_data.last_fleetspeak_validation_info
-        ),
-        {"foo": "bar"},
-    )
-
-    flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        client_id, flow_id
-    )
-    self.assertLen(flow_data, 1)
-    stored_flow_request, flow_responses = flow_data[0]
-    self.assertEqual(stored_flow_request.client_id, flow_request.client_id)
-    self.assertEqual(stored_flow_request.flow_id, flow_request.flow_id)
-    self.assertEqual(stored_flow_request.request_id, flow_request.request_id)
-    self.assertBetween(stored_flow_request.timestamp, before_write, after_write)
-    self.assertLen(flow_responses, 9)
 
   def testReceiveMessageList(self):
     now = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)
@@ -415,76 +348,6 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(validation_info_tags[1].value, "value-2-new")
 
   @db_test_lib.WithDatabase
-  def testProcessBatch_GrrMessage(self, db: abstract_db.Database):
-    client_id = db_test_utils.InitializeClient(db)
-    flow_id = db_test_utils.InitializeFlow(db, client_id)
-    request_id = random.randint(0, sys.maxsize)
-
-    flow_obj = flows_pb2.Flow(
-        client_id=client_id,
-        flow_id=flow_id,
-    )
-    db.WriteFlowObject(flow_obj)
-
-    flow_request = flows_pb2.FlowRequest(
-        client_id=client_id,
-        flow_id=flow_id,
-        request_id=request_id,
-    )
-    db.WriteFlowRequests([flow_request])
-
-    grr_message_1 = jobs_pb2.GrrMessage()
-    grr_message_1.session_id = f"{client_id}/{flow_id}"
-    grr_message_1.request_id = request_id
-    grr_message_1.response_id = 1
-    grr_message_1.args_rdf_name = rdfvalue.RDFString.__name__
-    grr_message_1.args = rdfvalue.RDFString("foo").SerializeToBytes()
-    grr_message_any_1 = any_pb2.Any()
-    grr_message_any_1.Pack(grr_message_1)
-
-    grr_message_2 = jobs_pb2.GrrMessage()
-    grr_message_2.session_id = f"{client_id}/{flow_id}"
-    grr_message_2.request_id = request_id
-    grr_message_2.response_id = 2
-    grr_message_2.args_rdf_name = rdfvalue.RDFString.__name__
-    grr_message_2.args = rdfvalue.RDFString("bar").SerializeToBytes()
-    grr_message_any_2 = any_pb2.Any()
-    grr_message_any_2.Pack(grr_message_2)
-
-    batch = fleetspeak.MessageBatch(
-        client_id=client_id,
-        service="GRR-batched",
-        message_type="GrrMessage",
-        messages=[
-            grr_message_any_1,
-            grr_message_any_2,
-        ],
-        validation_info_tags={},
-    )
-
-    server = fleetspeak_frontend_server.GRRFSServer()
-    server.ProcessBatch(batch)
-
-    flow_requests_and_responses = db.ReadAllFlowRequestsAndResponses(
-        client_id=client_id,
-        flow_id=flow_id,
-    )
-
-    self.assertLen(flow_requests_and_responses, 1)
-    _, flow_responses = flow_requests_and_responses[0]
-    self.assertLen(flow_responses, 2)
-
-    self.assertEqual(flow_responses[1].response_id, 1)
-    string = wrappers_pb2.StringValue()
-    self.assertTrue(flow_responses[1].payload.Unpack(string))
-    self.assertEqual(string.value, "foo")
-
-    self.assertEqual(flow_responses[2].response_id, 2)
-    string = wrappers_pb2.StringValue()
-    self.assertTrue(flow_responses[2].payload.Unpack(string))
-    self.assertEqual(string.value, "bar")
-
-  @db_test_lib.WithDatabase
   def testProcessBatch_MessageList(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
@@ -742,7 +605,9 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
         creator=self.test_username,
     )
 
-    processes = flow_test_lib.GetFlowResults(client_id, flow_id)
+    processes = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, result_type=sysinfo_pb2.Process
+    )
     self.assertLen(processes, 1)
     (process,) = processes
 

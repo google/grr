@@ -3,8 +3,6 @@
 
 from typing import Optional
 
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_proto import artifact_pb2
 from grr_response_proto.api import artifact_pb2 as api_artifact_pb2
 from grr_response_server import artifact
@@ -21,18 +19,17 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
   def BuildArtifactDescriptors(
       self,
-      artifacts_list: list[rdf_artifacts.Artifact],
+      artifacts_list: list[artifact_pb2.Artifact],
   ) -> list[artifact_pb2.ArtifactDescriptor]:
     result = []
-    for rdf_artifact in artifacts_list:
-      proto_artifact = mig_artifacts.ToProtoArtifact(rdf_artifact)
+    for proto_artifact in artifacts_list:
       descriptor = artifact_pb2.ArtifactDescriptor(
           artifact=proto_artifact,
           dependencies=sorted(
-              artifact_registry.GetArtifactDependencies(rdf_artifact)
+              artifact_registry.GetArtifactDependencies(proto_artifact)
           ),
           path_dependencies=sorted(
-              artifact_registry.GetArtifactPathDependencies(rdf_artifact)
+              artifact_registry.GetArtifactPathDependencies(proto_artifact)
           ),
           error_message=proto_artifact.error_message,
           is_custom=artifact_registry.REGISTRY.IsLoadedFrom(
@@ -87,14 +84,14 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
     )
 
 
-class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
+class ApiDeleteArtifactHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact deletion."""
 
-  proto_args_type = api_artifact_pb2.ApiDeleteArtifactsArgs
+  proto_args_type = api_artifact_pb2.ApiDeleteArtifactArgs
 
   def Handle(
       self,
-      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      args: api_artifact_pb2.ApiDeleteArtifactArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> None:
-    artifact_registry.DeleteArtifactsFromDatastore(set(args.names))
+    artifact_registry.DeleteArtifactsFromDatastore([args.name])

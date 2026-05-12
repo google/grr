@@ -15,22 +15,39 @@ import {SnackBarErrorHandler} from '../../../lib/error_handler/snackbar_error_ha
 /**
  * HttpContextToken for enabling the error bar.
  */
-export const SHOW_ERROR_BAR = new HttpContextToken(() => false);
+export const SHOW_ERROR_BAR = new HttpContextToken(() => true);
 /**
- * HttpContextToken for enabling the error bar for 403 errors.
+ * HttpContextToken for enabling the error bar for 403 errors, if the error bar
+ * is disablied a MissingApprovalError will be thrown instead.
  */
 export const SHOW_ERROR_BAR_FOR_403 = new HttpContextToken(() => true);
+
+/** Access denied because the requestor is missing a valid approval. */
+export class MissingApprovalError extends Error {
+  constructor(response: HttpErrorResponse) {
+    super(response.error?.message ?? response.message);
+  }
+}
+
 /**
- * HttpContextToken for enabling the error bar for 404 errors.
+ * HttpContextToken for enabling the error bar for 404 errors, if the error bar
+ * is disablied a MissingFileError will be thrown instead.
  */
 export const SHOW_ERROR_BAR_FOR_404 = new HttpContextToken(() => true);
+
+/** Access denied because the requested file is missing. */
+export class MissingFileError extends Error {
+  constructor(response: HttpErrorResponse) {
+    super(response.error?.message ?? response.message);
+  }
+}
 
 /** Interceptor that translates API responses to the corresponding model types. */
 @Injectable()
 export class ShowErrorBarInterceptor implements HttpInterceptor {
   private readonly errorHandler = inject(SnackBarErrorHandler);
 
-  private readonly showError = (response: HttpErrorResponse) => {
+  private readonly showErrorBar = (response: HttpErrorResponse) => {
     const error = response.error;
     const address = response.url ?? 'unknown';
     let message = '';
@@ -42,7 +59,7 @@ export class ShowErrorBarInterceptor implements HttpInterceptor {
       // ignoring the fact that our request accepts JSON only. Showing the raw
       // HTML document provides no value to the user, thus we only show the
       // HTTP status code.
-      message = `Received status ${response.status} ${response.statusText} from ${address}`;
+      message = `Received status ${response.status} ${response.message} from ${address}`;
     } else {
       message = `${error['message'] ?? error} (from ${address})`;
     }
@@ -63,12 +80,12 @@ export class ShowErrorBarInterceptor implements HttpInterceptor {
     return handler.handle(req).pipe(
       catchError((response: HttpErrorResponse) => {
         if (response.status === 403 && !showErrorBarFor403) {
-          return EMPTY;
+          throw new MissingApprovalError(response);
         }
         if (response.status === 404 && !showErrorBarFor404) {
-          return EMPTY;
+          throw new MissingFileError(response);
         }
-        this.showError(response);
+        this.showErrorBar(response);
         return EMPTY;
       }),
     );

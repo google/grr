@@ -17,7 +17,6 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_registry
 from grr_response_server.gui import http_api
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -197,7 +196,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
                 "foo": "banana",
                 "inner.foo": "batata",
                 "inner.bar": "1234",
-                # TODO: Stop handling booleans as stringified
+                # TODO - Stop handling booleans as stringified
                 # numbers.
                 "inner.baz": "1",  # Booleans are sent as stringified number
                 "inner.fruits": [
@@ -231,7 +230,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/api/v2/some/missing/path"),
     )
 
-  # TODO: Stop messing with the routes and delete this test.
+  # TODO - Stop messing with the routes and delete this test.
   def testRaisesApiVersionHandling(self):
     # `SampleGet` is annotated for `/api/test_sample/<path:path>`
     # However, we have logic that overrides this route for routes starting
@@ -680,9 +679,8 @@ class HttpRequestHandlerTest(
 
     self._RenderResponse(request)
 
-    proto_u = data_store.REL_DB.ReadGRRUser(request.user)
-    rdf_u = mig_objects.ToRDFGRRUser(proto_u)
-    self.assertEqual(rdf_u.email, "foo@bar.org")
+    user = data_store.REL_DB.ReadGRRUser(request.user)
+    self.assertEqual(user.email, "foo@bar.org")
 
 
 class UnflattenDictTest(absltest.TestCase):

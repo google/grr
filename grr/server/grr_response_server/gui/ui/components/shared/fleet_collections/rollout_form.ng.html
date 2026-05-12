@@ -12,6 +12,7 @@
               matTooltip="GRR will schedule as many clients as possible. The fleet collection will pause when this threshold is reached. You can edit this limit and restart the collection."
               (click)="setFixedSampleSize(SAMPLE_SIZE_UNLIMITED)"
               [checked]="!customSampleSize() && SAMPLE_SIZE_UNLIMITED === controls.clientLimit.value"
+              aria-label="All matching clients"
             >
               All matching clients
             </mat-button-toggle>
@@ -19,10 +20,13 @@
               [matTooltip]="'Will run on '+ SAMPLE_SIZE_SMALL + ' matching clients.'"
               (click)="setFixedSampleSize(SAMPLE_SIZE_SMALL)"
               [checked]="!customSampleSize() && SAMPLE_SIZE_SMALL === controls.clientLimit.value"
+              aria-label="Small client sample"
             >
               Small client sample
             </mat-button-toggle>
-            <mat-button-toggle (click)="customSampleSize.set(true)" [checked]="customSampleSize()">
+            <mat-button-toggle (click)="customSampleSize.set(true)" [checked]="customSampleSize()"
+              aria-label="Custom client sample"
+            >
               Custom
             </mat-button-toggle
           >
@@ -55,6 +59,7 @@
               matTooltip="GRR will schedule as many clients as possible per minute. Select only if you are expecting a total traffic of 10MB or below per client or less than 1000 results per client"
               (click)="setFixedRolloutSpeed(ROLLOUT_SPEED_UNLIMITED)"
               [checked]="!customRolloutSpeed() && ROLLOUT_SPEED_UNLIMITED === controls.clientRate.value"
+              aria-label="Unlimited rollout speed"
             >
               Unlimited
             </mat-button-toggle>
@@ -62,6 +67,7 @@
               [matTooltip]="'GRR will schedule '+ ROLLOUT_SPEED_STANDARD + ' clients per minute. Select if you are expecting a total traffic of 10MB or above per client or more than 1000 results per client'"
               (click)="setFixedRolloutSpeed(ROLLOUT_SPEED_STANDARD)"
               [checked]="!customRolloutSpeed() && ROLLOUT_SPEED_STANDARD === controls.clientRate.value"
+              aria-label="Standard rollout speed"
             >
               Standard
             </mat-button-toggle>
@@ -69,6 +75,7 @@
               matTooltip="Set your own rollout speed"
               (click)="customRolloutSpeed.set(true)"
               [checked]="customRolloutSpeed()"
+              aria-label="Custom rollout speed"
             >
               Custom
             </mat-button-toggle>

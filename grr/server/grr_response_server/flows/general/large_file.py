@@ -11,35 +11,10 @@ from google.cloud import storage
 
 from google.protobuf import any_pb2
 from grr_response_core import config
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import large_file_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-
-
-class CollectLargeFileFlowArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for arguments of the large file collection flow."""
-
-  protobuf = large_file_pb2.CollectLargeFileFlowArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class CollectLargeFileFlowResult(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for the result of the large file collection flow."""
-
-  protobuf = large_file_pb2.CollectLargeFileFlowResult
-  rdf_deps = []
-
-
-class CollectLargeFileFlowProgress(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for the progress of the large file collection flow."""
-
-  protobuf = large_file_pb2.CollectLargeFileFlowProgress
-  rdf_deps = []
 
 
 class CollectLargeFileFlow(
@@ -56,21 +31,10 @@ class CollectLargeFileFlow(
   block_hunt_creation = True
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = CollectLargeFileFlowArgs
-  result_types = (CollectLargeFileFlowResult,)
-  progress_type = CollectLargeFileFlowProgress
-
   proto_args_type = large_file_pb2.CollectLargeFileFlowArgs
   proto_result_types = (large_file_pb2.CollectLargeFileFlowResult,)
   proto_store_type = large_file_pb2.CollectLargeFileFlowStore
   proto_progress_type = large_file_pb2.CollectLargeFileFlowProgress
-
-  only_protos_allowed = True
-
-  def GetProgress(self) -> CollectLargeFileFlowProgress:
-    return CollectLargeFileFlowProgress.FromSerializedBytes(
-        self.progress.SerializeToString()
-    )
 
   def GetProgressProto(self) -> large_file_pb2.CollectLargeFileFlowProgress:
     return self.progress
@@ -109,13 +73,7 @@ class CollectLargeFileFlow(
         )
       else:
         head_tail = os.path.split(args.path_spec.path)
-        blob_name = (
-            self.rdf_flow.client_id
-            + "-"
-            + self.rdf_flow.flow_id
-            + "-"
-            + head_tail[1]
-        )
+        blob_name = f"{self.client_id}-{self.flow_id}-{head_tail[1]}"
         self.Log("Signed URL Service Account email: %s", sa_email)
         self.Log("Signed URL GCS Bucket Name: %s", bucket_name)
         self.Log("Signed URL expires in %s hours", expires_hours)

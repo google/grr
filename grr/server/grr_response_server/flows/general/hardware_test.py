@@ -4,13 +4,13 @@ from collections.abc import Iterator
 from absl.testing import absltest
 
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import signed_commands_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
@@ -24,7 +24,6 @@ from grr.test_lib import testing_startup
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
-from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
@@ -36,7 +35,7 @@ class CollectHardwareInfoTest(flow_test_lib.FlowTestsBaseclass):
 
   @db_test_lib.WithDatabase
   def testRRGLinux(self, db: abstract_db.Database) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
@@ -111,13 +110,15 @@ System Boot Information
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=hardware.CollectHardwareInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
 
@@ -142,7 +143,7 @@ System Boot Information
 
   @db_test_lib.WithDatabase
   def testRRGLinux_NonZeroExitSignal(self, db: abstract_db.Database) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/dmidecode".encode("utf-8")
@@ -170,7 +171,7 @@ System Boot Information
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=hardware.CollectHardwareInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -240,7 +241,9 @@ System Boot Information
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
 
@@ -265,7 +268,7 @@ System Boot Information
 
   @db_test_lib.WithDatabase
   def testRRGMacos(self, db: abstract_db.Database) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/system_profiler".encode("utf-8")
@@ -373,13 +376,15 @@ System Boot Information
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=hardware.CollectHardwareInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
 
@@ -391,7 +396,7 @@ System Boot Information
 
   @db_test_lib.WithDatabase
   def testRRGMacos_NonZeroExitSignal(self, db: abstract_db.Database) -> None:
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/system_profiler".encode("utf-8")
@@ -420,7 +425,7 @@ System Boot Information
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=hardware.CollectHardwareInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -520,7 +525,9 @@ System Boot Information
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
 
@@ -537,34 +544,26 @@ System Boot Information
         os_type=rrg_os_pb2.WINDOWS,
     )
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if not args.query.strip().startswith("SELECT "):
-        raise RuntimeError("Non-`SELECT` WMI query")
-
-      if "Win32_ComputerSystemProduct" not in args.query:
-        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["IdentifyingNumber"].string = "2S42F1S3320HFN2179FV"
-      result.row["Name"].string = "42F1S3320H"
-      result.row["Vendor"].string = "LEVELHO"
-      result.row["Version"].string = "NumbBox Y1337"
-      result.row["Caption"].string = "Computer System Product"
-      session.Reply(result)
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=hardware.CollectHardwareInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWmiHandlers({
+            "Win32_ComputerSystemProduct": [
+                {
+                    "IdentifyingNumber": "2S42F1S3320HFN2179FV",
+                    "Name": "42F1S3320H",
+                    "Vendor": "LEVELHO",
+                    "Version": "NumbBox Y1337",
+                    "Caption": "Computer System Product",
+                },
+            ],
+        }),
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].serial_number, "2S42F1S3320HFN2179FV")
@@ -613,7 +612,9 @@ System Boot Information
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.HardwareInfo
+    )
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].serial_number, "2S42F1S3320HFN2179FV")

@@ -6,13 +6,11 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import hunts_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 from grr_response_server import foreman
-from grr_response_server import foreman_rules
 from grr_response_server import hunt
-from grr_response_server import mig_foreman_rules
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
 from grr.test_lib import test_lib
 
 
@@ -41,14 +39,13 @@ class ForemanTests(test_lib.GRRBaseTest):
     now = rdfvalue.RDFDatetime.Now()
     expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
     # Make a new rule
-    rule = foreman_rules.ForemanCondition(
-        creation_time=now,
-        expiration_time=expiration_time,
+    rule = jobs_pb2.ForemanCondition(
+        creation_time=now.AsMicrosecondsSinceEpoch(),
+        expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
         description="Test rule",
         hunt_id="11111111",
     )
-    proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(rule)
-    data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+    data_store.REL_DB.WriteForemanRule(rule)
 
     foreman_obj = foreman.Foreman()
     foreman_obj.AssignTasksToClient(client_id)
@@ -70,25 +67,23 @@ class ForemanTests(test_lib.GRRBaseTest):
       expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
 
       # Make a new rule
-      rule = foreman_rules.ForemanCondition(
-          creation_time=now,
-          expiration_time=expiration_time,
+      rule = jobs_pb2.ForemanCondition(
+          creation_time=now.AsMicrosecondsSinceEpoch(),
+          expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
           description="Test rule",
           hunt_id="11111111",
+          # Matches Windows boxes
+          client_rule_set=jobs_pb2.ForemanClientRuleSet(
+              rules=[
+                  jobs_pb2.ForemanClientRule(
+                      rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                      os=jobs_pb2.ForemanOsClientRule(os_windows=True),
+                  )
+              ]
+          ),
       )
 
-      # Matches Windows boxes
-      rule.client_rule_set = foreman_rules.ForemanClientRuleSet(
-          rules=[
-              foreman_rules.ForemanClientRule(
-                  rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                  os=foreman_rules.ForemanOsClientRule(os_windows=True),
-              )
-          ]
-      )
-
-      proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(rule)
-      data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+      data_store.REL_DB.WriteForemanRule(rule)
 
       self.clients_started = []
       foreman_obj = foreman.Foreman()
@@ -129,81 +124,75 @@ class ForemanTests(test_lib.GRRBaseTest):
       now = rdfvalue.RDFDatetime.Now()
       expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
 
+      one_hour_ago = base_time - rdfvalue.Duration.From(1, rdfvalue.HOURS)
       # Make a new rule
-      rule = foreman_rules.ForemanCondition(
-          creation_time=now,
-          expiration_time=expiration_time,
+      rule = jobs_pb2.ForemanCondition(
+          creation_time=now.AsMicrosecondsSinceEpoch(),
+          expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
           description="Test rule(old)",
           hunt_id="11111111",
+          client_rule_set=jobs_pb2.ForemanClientRuleSet(
+              # Matches the old client
+              rules=[
+                  jobs_pb2.ForemanClientRule(
+                      rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                      integer=jobs_pb2.ForemanIntegerClientRule(
+                          field="INSTALL_TIME",
+                          operator=jobs_pb2.ForemanIntegerClientRule.Operator.LESS_THAN,
+                          value=one_hour_ago.AsSecondsSinceEpoch(),
+                      ),
+                  )
+              ]
+          ),
       )
 
-      # Matches the old client
-      one_hour_ago = base_time - rdfvalue.Duration.From(1, rdfvalue.HOURS)
-      rule.client_rule_set = foreman_rules.ForemanClientRuleSet(
-          rules=[
-              foreman_rules.ForemanClientRule(
-                  rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-                  integer=foreman_rules.ForemanIntegerClientRule(
-                      field="INSTALL_TIME",
-                      operator=foreman_rules.ForemanIntegerClientRule.Operator.LESS_THAN,
-                      value=one_hour_ago.AsSecondsSinceEpoch(),
-                  ),
-              )
-          ]
-      )
-
-      proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(rule)
-      data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+      data_store.REL_DB.WriteForemanRule(rule)
 
       # Make a new rule
-      rule = foreman_rules.ForemanCondition(
-          creation_time=now,
-          expiration_time=expiration_time,
+      rule = jobs_pb2.ForemanCondition(
+          creation_time=now.AsMicrosecondsSinceEpoch(),
+          expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
           description="Test rule(new)",
           hunt_id="22222222",
+          client_rule_set=jobs_pb2.ForemanClientRuleSet(
+              # Matches the newer clients
+              rules=[
+                  jobs_pb2.ForemanClientRule(
+                      rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                      integer=jobs_pb2.ForemanIntegerClientRule(
+                          field="INSTALL_TIME",
+                          operator=jobs_pb2.ForemanIntegerClientRule.Operator.GREATER_THAN,
+                          value=one_hour_ago.AsSecondsSinceEpoch(),
+                      ),
+                  )
+              ]
+          ),
       )
 
-      # Matches the newer clients
-      rule.client_rule_set = foreman_rules.ForemanClientRuleSet(
-          rules=[
-              foreman_rules.ForemanClientRule(
-                  rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-                  integer=foreman_rules.ForemanIntegerClientRule(
-                      field="INSTALL_TIME",
-                      operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
-                      value=one_hour_ago.AsSecondsSinceEpoch(),
-                  ),
-              )
-          ]
-      )
-
-      proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(rule)
-      data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+      data_store.REL_DB.WriteForemanRule(rule)
 
       # Make a new rule
-      rule = foreman_rules.ForemanCondition(
-          creation_time=now,
-          expiration_time=expiration_time,
+      rule = jobs_pb2.ForemanCondition(
+          creation_time=now.AsMicrosecondsSinceEpoch(),
+          expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
           description="Test rule(eq)",
           hunt_id="33333333",
+          # Note that this also tests the handling of nonexistent attributes.
+          client_rule_set=jobs_pb2.ForemanClientRuleSet(
+              rules=[
+                  jobs_pb2.ForemanClientRule(
+                      rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                      integer=jobs_pb2.ForemanIntegerClientRule(
+                          field="LAST_BOOT_TIME",
+                          operator=jobs_pb2.ForemanIntegerClientRule.Operator.EQUAL,
+                          value=boot_time.AsSecondsSinceEpoch(),
+                      ),
+                  )
+              ]
+          ),
       )
 
-      # Note that this also tests the handling of nonexistent attributes.
-      rule.client_rule_set = foreman_rules.ForemanClientRuleSet(
-          rules=[
-              foreman_rules.ForemanClientRule(
-                  rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-                  integer=foreman_rules.ForemanIntegerClientRule(
-                      field="LAST_BOOT_TIME",
-                      operator="EQUAL",
-                      value=boot_time.AsSecondsSinceEpoch(),
-                  ),
-              )
-          ]
-      )
-
-      proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(rule)
-      data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+      data_store.REL_DB.WriteForemanRule(rule)
 
       foreman_obj = foreman.Foreman()
 
@@ -228,66 +217,75 @@ class ForemanTests(test_lib.GRRBaseTest):
     with test_lib.FakeTime(1000):
       foreman_obj = foreman.Foreman()
 
+      # Add some regex that does not match the client.
+      client_rule_set = jobs_pb2.ForemanClientRuleSet(
+          rules=[
+              jobs_pb2.ForemanClientRule(
+                  rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                  regex=jobs_pb2.ForemanRegexClientRule(
+                      field="SYSTEM", attribute_regex="XXX"
+                  ),
+              )
+          ]
+      )
+
+      micro = 1000000
       rules = []
       rules.append(
-          foreman_rules.ForemanCondition(
-              creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
-              expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1500),
+          jobs_pb2.ForemanCondition(
+              creation_time=1000 * micro,
+              expiration_time=1500 * micro,
               description="Test rule1",
               hunt_id="11111111",
+              client_rule_set=client_rule_set,
           )
       )
       rules.append(
-          foreman_rules.ForemanCondition(
-              creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
-              expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1200),
+          jobs_pb2.ForemanCondition(
+              creation_time=1000 * micro,
+              expiration_time=1200 * micro,
               description="Test rule2",
               hunt_id="22222222",
+              client_rule_set=client_rule_set,
           )
       )
       rules.append(
-          foreman_rules.ForemanCondition(
-              creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
-              expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1500),
+          jobs_pb2.ForemanCondition(
+              creation_time=1000 * micro,
+              expiration_time=1500 * micro,
               description="Test rule3",
               hunt_id="33333333",
+              client_rule_set=client_rule_set,
           )
       )
       rules.append(
-          foreman_rules.ForemanCondition(
-              creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
-              expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1300),
+          jobs_pb2.ForemanCondition(
+              creation_time=1000 * micro,
+              expiration_time=1300 * micro,
               description="Test rule4",
               hunt_id="44444444",
+              client_rule_set=client_rule_set,
           )
       )
 
       client_id = self.SetupClient(0x21)
 
-      # Clear the rule set and add the new rules to it.
       for rule in rules:
-        # Add some regex that does not match the client.
-        rule.client_rule_set = foreman_rules.ForemanClientRuleSet(
-            rules=[
-                foreman_rules.ForemanClientRule(
-                    rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-                    regex=foreman_rules.ForemanRegexClientRule(
-                        field="SYSTEM", attribute_regex="XXX"
-                    ),
-                )
-            ]
-        )
-        proto_foreman_condition = mig_foreman_rules.ToProtoForemanCondition(
-            rule
-        )
-        data_store.REL_DB.WriteForemanRule(proto_foreman_condition)
+        data_store.REL_DB.WriteForemanRule(rule)
         # Rule expiration is handled through StopHunt
         duration = rule.expiration_time - rule.creation_time
-        hunt_obj = rdf_hunt_objects.Hunt(hunt_id=rule.hunt_id, creator="GRR")
-        hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+        hunt_obj = hunts_pb2.Hunt(
+            hunt_id=rule.hunt_id,
+            creator="GRR",
+            hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+        )
         data_store.REL_DB.WriteHuntObject(hunt_obj)
         data_store.REL_DB.UpdateHuntObject(
-            rule.hunt_id, start_time=rule.creation_time, duration=duration
+            rule.hunt_id,
+            start_time=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                rule.creation_time
+            ),
+            duration=rdfvalue.Duration(duration),
         )
 
     for now, num_rules in [(1000, 4), (1250, 3), (1350, 2), (1600, 0)]:

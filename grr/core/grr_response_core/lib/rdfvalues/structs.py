@@ -196,7 +196,7 @@ class ProtoType(type_info.TypeInfoObject):
       **kwargs,
   ):
     super().__init__(**kwargs)
-    # TODO: Without this type hint, pytype thinks that field_number
+    # TODO - Without this type hint, pytype thinks that field_number
     # is always None.
     self.field_number: int = field_number
     self.required = required
@@ -312,7 +312,7 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self) -> str:
-    # TODO: This fails for ProtoList.
+    # TODO - This fails for ProtoList.
     return "<Field %s (%s) of %s: field_number: %s>" % (
         self.name,
         self.__class__.__name__,
@@ -1292,7 +1292,7 @@ class ProtoList(ProtoType):
   #  |  /   V        ))       V   \  |
   #  |/     `       //        '     \|
   #  `              V                '
-  # TODO
+  # TODO(user)
   set_default_on_access = True
 
   def __init__(self, delegate, labels=None, **kwargs):

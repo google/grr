@@ -14,7 +14,6 @@ from absl import app
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr.test_lib import artifact_test_lib
@@ -95,15 +94,11 @@ supported_os: [ "Linux" ]
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
       # Add artifact to datastore but not registry
-      for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
-          cmd_artifact
-      ):
-        data_store.REL_DB.WriteArtifact(
-            mig_artifacts.ToProtoArtifact(artifact_val)
-        )
+      for artifact_val in artifact_registry.ArtifactsFromYaml(cmd_artifact):
+        data_store.REL_DB.WriteArtifact(artifact_val)
 
       # Add artifact to registry but not datastore
-      for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
+      for artifact_val in artifact_registry.ArtifactsFromYaml(
           no_datastore_artifact
       ):
         artifact_registry.REGISTRY.RegisterArtifact(

@@ -4,15 +4,17 @@
 from collections.abc import Iterable, Sequence
 import contextlib
 import functools
+import hashlib
 import inspect
 import os
 import platform
 import string
-from typing import Optional
+from typing import Callable, Mapping, Optional
 import unittest
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 import psutil
 import yara
 
@@ -22,23 +24,33 @@ from grr_response_client.client_actions import memory as memory_actions
 from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_responses
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import memory
+from grr_response_server.flows.general import processes as processes_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import testing_startup
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import blob_pb2 as rrg_blob_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import dump_process_memory_pb2 as rrg_dump_process_memory_pb2
+from grr_response_proto.rrg.action import scan_memory_yara_pb2 as rrg_scan_memory_yara_pb2
 
 
 ONE_MIB = 1024 * 1024
@@ -56,6 +68,7 @@ rule test_rule {
 
 
 class FakeMatch(object):
+
   def __init__(self, rule_name="test_rule"):
     self.rule = rule_name
 
@@ -297,31 +310,47 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
             lambda pid: FakeMemoryProcess(pid=pid, tmp_dir=self._tmp_dir),
         ),
     ):
+      flow_args = flows_pb2.YaraProcessScanRequest(
+          yara_signature=_TEST_YARA_SIGNATURE,
+          ignore_grr_process=ignore_grr_process,
+          include_errors_in_results=include_errors_in_results,
+          include_misses_in_results=include_misses_in_results,
+          max_results_per_process=max_results_per_process,
+          pids=pids,
+          process_regex=process_regex,
+          per_process_timeout=per_process_timeout,
+          overlap_size=overlap_size,
+          chunk_size=chunk_size,
+      )
+      if scan_runtime_limit_us:
+        flow_args.scan_runtime_limit_us = (
+            scan_runtime_limit_us.SerializeToWireFormat()
+        )
       session_id = flow_test_lib.StartAndRunFlow(
           memory.YaraProcessScan,
           client_mock,
           client_id=self.client_id,
-          flow_args=rdf_memory.YaraProcessScanRequest(
-              yara_signature=_TEST_YARA_SIGNATURE,
-              ignore_grr_process=ignore_grr_process,
-              include_errors_in_results=include_errors_in_results,
-              include_misses_in_results=include_misses_in_results,
-              max_results_per_process=max_results_per_process,
-              pids=pids,
-              process_regex=process_regex,
-              per_process_timeout=per_process_timeout,
-              overlap_size=overlap_size,
-              chunk_size=chunk_size,
-              scan_runtime_limit_us=scan_runtime_limit_us,
-          ),
+          flow_args=flow_args,
           runtime_limit=runtime_limit,
           creator=self.test_username,
       )
 
-    res = flow_test_lib.GetFlowResults(self.client_id, session_id)
-    matches = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMatch)]
-    errors = [r for r in res if isinstance(r, rdf_memory.ProcessMemoryError)]
-    misses = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMiss)]
+    results = flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        session_id,
+        [
+            flows_pb2.YaraProcessScanMatch,
+            flows_pb2.ProcessMemoryError,
+            flows_pb2.YaraProcessScanMiss,
+        ],
+    )
+    matches = [
+        r for r in results if isinstance(r, flows_pb2.YaraProcessScanMatch)
+    ]
+    errors = [r for r in results if isinstance(r, flows_pb2.ProcessMemoryError)]
+    misses = [
+        r for r in results if isinstance(r, flows_pb2.YaraProcessScanMiss)
+    ]
     return matches, errors, misses
 
   def setUp(self):
@@ -744,7 +773,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           memory.DumpProcessMemory,
           client_mock,
           client_id=self.client_id,
-          flow_args=rdf_memory.YaraProcessDumpArgs(
+          flow_args=flows_pb2.YaraProcessDumpArgs(
               size_limit=size_limit,
               pids=pids or [105],
               chunk_size=chunk_size,
@@ -752,11 +781,18 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           ),
           creator=self.test_username,
       )
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+
+    return flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        session_id,
+        [flows_pb2.YaraProcessDumpResponse, jobs_pb2.StatEntry],
+    )
 
   def _ReadFromPathspec(self, pathspec, num_bytes):
     fd = file_store.OpenFile(
-        db.ClientPath.FromPathSpec(self.client_id, pathspec)
+        db.ClientPath.FromPathSpec(
+            self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+        )
     )
     return fd.read(num_bytes)
 
@@ -765,7 +801,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
     self.assertLen(results, 3)
     for result in results:
-      if isinstance(result, rdf_client_fs.StatEntry):
+      if isinstance(result, jobs_pb2.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
         data = self._ReadFromPathspec(result.pathspec, 1000)
@@ -773,7 +809,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         self.assertIn(
             data, [GeneratePattern(b"A", 100), GeneratePattern(b"B", 700)]
         )
-      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
+      elif isinstance(result, flows_pb2.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
@@ -789,7 +825,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
     self.assertLen(results, 3)
     for result in results:
-      if isinstance(result, rdf_client_fs.StatEntry):
+      if isinstance(result, jobs_pb2.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
 
         data = self._ReadFromPathspec(result.pathspec, 1000)
@@ -797,7 +833,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         self.assertIn(
             data, [GeneratePattern(b"A", 100), GeneratePattern(b"B", 700)]
         )
-      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
+      elif isinstance(result, flows_pb2.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
@@ -811,13 +847,11 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     self.assertLen(results, 2)
 
     for result in results:
-      if isinstance(result, rdf_client_fs.StatEntry):
+      if isinstance(result, jobs_pb2.StatEntry):
         self.assertIn("proc105.exe_105", result.pathspec.path)
-
         data = self._ReadFromPathspec(result.pathspec, 1000)
-
         self.assertEqual(data, GeneratePattern(b"A", 100))
-      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
+      elif isinstance(result, flows_pb2.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
         self.assertIn("limit exceeded", result.dumped_processes[0].error)
@@ -827,10 +861,12 @@ class YaraFlowsTest(BaseYaraFlowsTest):
   def testProcessDumpPartiallyDumpsMemory(self):
     results = self._RunProcessDump(size_limit=20)
     self.assertLen(results, 2)
+    assert isinstance(results[0], flows_pb2.YaraProcessDumpResponse)
     process = results[0].dumped_processes[0]
     self.assertLen(process.memory_regions, 1)
     self.assertEqual(process.memory_regions[0].size, 100)
     self.assertEqual(process.memory_regions[0].dumped_size, 20)
+    self.assertIsInstance(results[1], jobs_pb2.StatEntry)
     self.assertEqual(results[1].st_size, 20)
 
   def testProcessDumpByDefaultErrors(self):
@@ -845,7 +881,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         client_id=self.client_id,
         check_flow_errors=False,
         creator=self.test_username,
-        flow_args=rdf_memory.YaraProcessDumpArgs(
+        flow_args=flows_pb2.YaraProcessDumpArgs(
             ignore_grr_process=True,
         ),
     )
@@ -857,7 +893,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
       results = self._RunProcessDump()
 
     self.assertGreater(len(results), 1)
-    self.assertIsInstance(results[0], rdf_memory.YaraProcessDumpResponse)
+    assert isinstance(results[0], flows_pb2.YaraProcessDumpResponse)
     self.assertLen(results[0].dumped_processes, 1)
     self.assertGreater(results[0].dumped_processes[0].dump_time_us, 0)
 
@@ -922,7 +958,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
             client_mock,
             client_id=self.client_id,
             creator=self.test_username,
-            flow_args=rdf_memory.YaraProcessScanRequest(
+            flow_args=flows_pb2.YaraProcessScanRequest(
                 yara_signature=_TEST_YARA_SIGNATURE,
                 include_errors_in_results="ALL_ERRORS",
                 include_misses_in_results=True,
@@ -933,17 +969,26 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     # Process dumps are not pushed to external file stores.
     self.assertEqual(efs.call_count, 0)
 
-    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        session_id,
+        [
+            flows_pb2.YaraProcessScanMatch,
+            flows_pb2.YaraProcessScanMiss,
+            flows_pb2.YaraProcessDumpResponse,
+            jobs_pb2.StatEntry,
+        ],
+    )
 
     # 1. Scan result match.
     # 2. Scan result miss.
     # 3. ProcDump response.
     # 4. Stat entry for the dumped file.
     self.assertLen(results, 4)
-    self.assertIsInstance(results[0], rdf_memory.YaraProcessScanMatch)
-    self.assertIsInstance(results[1], rdf_memory.YaraProcessScanMiss)
-    self.assertIsInstance(results[2], rdf_memory.YaraProcessDumpResponse)
-    self.assertIsInstance(results[3], rdf_client_fs.StatEntry)
+    assert isinstance(results[0], flows_pb2.YaraProcessScanMatch)
+    assert isinstance(results[1], flows_pb2.YaraProcessScanMiss)
+    assert isinstance(results[2], flows_pb2.YaraProcessDumpResponse)
+    assert isinstance(results[3], jobs_pb2.StatEntry)
 
     self.assertLen(results[2].dumped_processes, 1)
     self.assertEqual(
@@ -952,10 +997,10 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
     self.assertLen(results[2].dumped_processes[0].memory_regions, 1)
 
-    # TODO: Fix PathSpec.__eq__, then compare PathSpecs here.
+    # TODO - Fix PathSpec.__eq__, then compare PathSpecs here.
     self.assertEqual(
-        results[2].dumped_processes[0].memory_regions[0].file.CollapsePath(),
-        results[3].pathspec.CollapsePath(),
+        results[2].dumped_processes[0].memory_regions[0].file.path,
+        results[3].pathspec.path,
     )
 
   def testScanAndDumpPopulatesMemoryRegions(self):
@@ -981,7 +1026,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           client_mock,
           client_id=self.client_id,
           creator=self.test_username,
-          flow_args=rdf_memory.YaraProcessScanRequest(
+          flow_args=flows_pb2.YaraProcessScanRequest(
               yara_signature=_TEST_YARA_SIGNATURE,
               include_errors_in_results="ALL_ERRORS",
               include_misses_in_results=True,
@@ -989,9 +1034,17 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           ),
       )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        session_id,
+        [
+            flows_pb2.YaraProcessDumpResponse,
+            flows_pb2.YaraProcessScanMatch,
+            jobs_pb2.StatEntry,
+        ],
+    )
     dumps = [
-        r for r in results if isinstance(r, rdf_memory.YaraProcessDumpResponse)
+        r for r in results if isinstance(r, flows_pb2.YaraProcessDumpResponse)
     ]
 
     self.assertLen(dumps, 1)
@@ -1035,7 +1088,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           client_mock,
           client_id=self.client_id,
           creator=self.test_username,
-          flow_args=rdf_memory.YaraProcessScanRequest(
+          flow_args=flows_pb2.YaraProcessScanRequest(
               yara_signature=_TEST_YARA_SIGNATURE,
               include_errors_in_results="ALL_ERRORS",
               include_misses_in_results=True,
@@ -1045,9 +1098,17 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           ),
       )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        session_id,
+        [
+            flows_pb2.YaraProcessDumpResponse,
+            flows_pb2.YaraProcessScanMatch,
+            jobs_pb2.StatEntry,
+        ],
+    )
     dumps = [
-        r for r in results if isinstance(r, rdf_memory.YaraProcessDumpResponse)
+        r for r in results if isinstance(r, flows_pb2.YaraProcessDumpResponse)
     ]
 
     self.assertLen(dumps, 1)
@@ -1065,7 +1126,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     self.assertIsNotNone(regions[1].file)
 
   def testPathSpecCasingIsCorrected(self):
-    flow = memory.DumpProcessMemory(rdf_flow_objects.Flow())
+    flow = memory.DumpProcessMemory(proto_flow=flows_pb2.Flow())
     flow.SendReplyProto = mock.Mock(spec=flow.SendReplyProto)
 
     request = rdf_flow_objects.FlowRequest(
@@ -1225,7 +1286,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     data_store.REL_DB.WriteGRRUser(username="foobarski")
     data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
 
-    args = rdf_memory.YaraProcessScanRequest()
+    args = flows_pb2.YaraProcessScanRequest()
     args.yara_signature_blob_id = bytes(blob_id)
 
     shards = []
@@ -1248,14 +1309,14 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     data = "This is very c0nfidential and should not leak to the client."
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(data.encode("utf-8"))
 
-    args = rdf_memory.YaraProcessScanRequest()
+    args = flows_pb2.YaraProcessScanRequest()
     args.yara_signature_blob_id = bytes(blob_id)
 
     with self.assertRaisesRegex(RuntimeError, "signature reference"):
       self._YaraProcessScan(args)
 
   def testYaraSignatureReferenceNotExisting(self):
-    args = rdf_memory.YaraProcessScanRequest()
+    args = flows_pb2.YaraProcessScanRequest()
     args.yara_signature_blob_id = os.urandom(32)
 
     with self.assertRaisesRegex(RuntimeError, "signature reference"):
@@ -1270,7 +1331,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     data_store.REL_DB.WriteGRRUser(username="foobarski")
     data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
 
-    args = rdf_memory.YaraProcessScanRequest()
+    args = flows_pb2.YaraProcessScanRequest()
     args.yara_signature = signature
     args.yara_signature_blob_id = bytes(blob_id)
 
@@ -1279,7 +1340,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
 
   def _YaraProcessScan(
       self,
-      args: rdf_memory.YaraProcessScanRequest,
+      args: flows_pb2.YaraProcessScanRequest,
       action_mock: Optional[action_mocks.ActionMock] = None,
   ) -> None:
     if action_mock is None:
@@ -1294,6 +1355,651 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
+
+
+def _FakeDumpProcessMemoryHandler(
+    memory_regions: dict[int, dict[int, bytes | None]],
+) -> Mapping["rrg_pb2.Action", Callable[[rrg_test_lib.Session], None]]:
+  def DumpProcessMemoryHandler(session: rrg_test_lib.Session) -> None:
+    max_blob_size = 1024
+    args = rrg_dump_process_memory_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    for pid in args.pids:
+      if pid not in memory_regions:
+        result = rrg_dump_process_memory_pb2.Result()
+        result.pid = pid
+        result.error = f"Process {pid} not found."
+        session.Reply(result)
+        continue
+
+      pid_regions = memory_regions[pid]
+      for start, data in pid_regions.items():
+        # Treat None as a region that was not dumped because of an error.
+        if data is None:
+          result = rrg_dump_process_memory_pb2.Result()
+          result.pid = pid
+          result.region_start = start
+          result.region_end = start + 1
+          result.error = "Failed to read memory region."
+          session.Reply(result)
+          continue
+
+        offset = 0
+        original_len = len(data)
+        while data:
+          blob = rrg_blob_pb2.Blob()
+          blob.data = data[:max_blob_size]
+          session.Send(rrg_pb2.Sink.BLOB, blob)
+
+          result = rrg_dump_process_memory_pb2.Result()
+          result.pid = pid
+          result.region_start = start
+          result.region_end = start + original_len
+          result.permissions.execute = False
+          result.permissions.read = True
+          result.permissions.write = True
+          result.size = len(blob.data)
+          result.offset = offset
+          result.blob_sha256 = hashlib.sha256(blob.data).digest()
+          session.Reply(result)
+
+          data = data[max_blob_size:]
+          offset += len(blob.data)
+
+  return {
+      rrg_pb2.Action.DUMP_PROCESS_MEMORY: DumpProcessMemoryHandler,
+  }
+
+
+class DumpProcessMemoryRRGTest(absltest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  @db_test_lib.WithDatabase
+  def testDumpProcessMemory(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the DumpProcessMemory
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test1"))
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=1337, name="test2"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.DumpProcessMemory,
+          flow_args=flows_pb2.YaraProcessDumpArgs(
+              pids=[42, 1337],
+          ),
+          handlers=_FakeDumpProcessMemoryHandler({
+              42: {
+                  0: b"Lorem ipsum.",
+                  0x1000: b"Dolor sit amet.",
+              },
+              1337: {
+                  0x2000: b"A" * 2047,
+              },
+          }),
+      )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(
+        client_id, flow_id, offset=0, count=1024
+    )
+    self.assertLen(flow_results, 1)
+
+    response = flows_pb2.YaraProcessDumpResponse()
+    flow_results[0].payload.Unpack(response)
+
+    self.assertLen(response.dumped_processes, 2)
+    responses_by_pid = {p.process.pid: p for p in response.dumped_processes}
+
+    self.assertEqual(responses_by_pid[42].process.name, "test1")
+    self.assertEqual(responses_by_pid[1337].process.name, "test2")
+    self.assertEmpty(response.errors)
+
+    self.assertLen(responses_by_pid[42].memory_regions, 2)
+    responses_by_pid[42].memory_regions.sort(key=lambda r: r.start)
+    self.assertEqual(responses_by_pid[42].memory_regions[0].start, 0)
+    self.assertEqual(responses_by_pid[42].memory_regions[1].start, 0x1000)
+
+    self.assertLen(responses_by_pid[1337].memory_regions, 1)
+    responses_by_pid[1337].memory_regions.sort(key=lambda r: r.start)
+    self.assertEqual(responses_by_pid[1337].memory_regions[0].start, 0x2000)
+    self.assertEqual(responses_by_pid[1337].memory_regions[0].size, 2047)
+    client_path = db.ClientPath.FromPathSpec(
+        client_id,
+        mig_paths.ToRDFPathSpec(responses_by_pid[1337].memory_regions[0].file),
+    )
+    fd = file_store.OpenFile(client_path)
+    self.assertEqual(fd.read(), b"A" * 2047)
+
+  @db_test_lib.WithDatabase
+  def testDumpProcessMemory_ProcessNotFound(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.DumpProcessMemory,
+          flow_args=flows_pb2.YaraProcessDumpArgs(
+              pids=[42],
+          ),
+          handlers=_FakeDumpProcessMemoryHandler({
+              1337: {0x2000: b"Not here."},
+          }),
+      )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(
+        client_id, flow_id, offset=0, count=1024
+    )
+    self.assertLen(flow_results, 1)
+
+    response = flows_pb2.YaraProcessDumpResponse()
+    flow_results[0].payload.Unpack(response)
+
+    self.assertEmpty(response.dumped_processes)
+    self.assertLen(response.errors, 1)
+    self.assertEqual(response.errors[0].process.pid, 42)
+    self.assertEqual(response.errors[0].process.name, "test")
+    self.assertEqual(response.errors[0].error, "Process 42 not found.")
+
+  @db_test_lib.WithDatabase
+  def testDumpProcessMemory_SkipsRegionDumpErrors(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.DumpProcessMemory,
+          flow_args=flows_pb2.YaraProcessDumpArgs(
+              pids=[42],
+          ),
+          handlers=_FakeDumpProcessMemoryHandler({
+              42: {
+                  0x1000: None,
+                  0x2000: b"A" * 2047,
+                  0x3000: None,
+              },
+          }),
+      )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(
+        client_id, flow_id, offset=0, count=1024
+    )
+    self.assertLen(flow_results, 1)
+
+    response = flows_pb2.YaraProcessDumpResponse()
+    flow_results[0].payload.Unpack(response)
+
+    self.assertLen(response.dumped_processes, 1)
+    self.assertEqual(response.dumped_processes[0].process.pid, 42)
+    self.assertEqual(response.dumped_processes[0].process.name, "test")
+    self.assertEmpty(response.errors)
+
+    self.assertLen(response.dumped_processes[0].memory_regions, 1)
+    self.assertEqual(
+        response.dumped_processes[0].memory_regions[0].start, 0x2000
+    )
+    self.assertEqual(response.dumped_processes[0].memory_regions[0].size, 2047)
+    client_path = db.ClientPath.FromPathSpec(
+        client_id,
+        mig_paths.ToRDFPathSpec(
+            response.dumped_processes[0].memory_regions[0].file
+        ),
+    )
+    fd = file_store.OpenFile(client_path)
+    self.assertEqual(fd.read(), b"A" * 2047)
+
+
+def _FakeScanProcessMemoryYaraHandler(
+    memory_regions: dict[int, dict[int, bytes]],
+    filestore: Optional[rrg_test_lib.Filestore] = None,
+) -> Mapping["rrg_pb2.Action", Callable[[rrg_test_lib.Session], None]]:
+  def ScanProcessMemoryYaraHandler(session: rrg_test_lib.Session) -> None:
+    args = rrg_scan_memory_yara_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    if args.signature_inline:
+      yara_signature = args.signature_inline
+    elif args.signature_file_sha256:
+      if filestore is None:
+        raise ValueError(
+            "Signature file SHA-256 provided, but filestore is not available."
+        )
+      yara_signature = filestore.Content(args.signature_file_sha256).decode(
+          "utf-8"
+      )
+    else:
+      raise ValueError("Signature not provided.")
+
+    rules = yara.compile(source=yara_signature)
+    for pid in args.pids:
+      result = rrg_scan_memory_yara_pb2.Result(pid=pid)
+      if pid not in memory_regions:
+        result.error = f"Process {pid} not found."
+        session.Reply(result)
+        continue
+
+      for start, data in memory_regions[pid].items():
+        for m in rules.match(data=data):
+          matching_rule = result.matching_rules.add(identifier=m.rule)
+          for yara_string_match in m.strings:
+            matching_pattern = matching_rule.patterns.add(
+                identifier=yara_string_match.identifier
+            )
+            for sm_instance in yara_string_match.instances:
+              data_sha256 = hashlib.sha256(sm_instance.matched_data).digest()
+              session.Send(
+                  rrg_pb2.Sink.BLOB,
+                  rrg_blob_pb2.Blob(data=sm_instance.matched_data),
+              )
+              matching_pattern.matches.add(
+                  offset=start + sm_instance.offset,
+                  data_sha256=data_sha256,
+              )
+      session.Reply(result)
+
+  handlers = {
+      rrg_pb2.Action.SCAN_PROCESS_MEMORY_YARA: ScanProcessMemoryYaraHandler,
+  }
+  if filestore is not None:
+    handlers |= rrg_test_lib.FakeFilestoreHandlers(filestore)
+  return handlers
+
+
+class ScanProcessMemoryYaraRRGTest(absltest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  @db_test_lib.WithDatabase
+  def testScansProcessSuccessfully(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the YaraProcessScan
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.YaraProcessScan,
+          flow_args=flows_pb2.YaraProcessScanRequest(
+              pids=[42],
+              yara_signature="""
+              rule foo {
+                strings:
+                  $s1 = "hello world"
+                condition:
+                  $s1
+              }
+              """,
+          ),
+          handlers=_FakeScanProcessMemoryYaraHandler({
+              42: {
+                  0x1000: b"abcdefghello worldabcdefh",
+                  0x2000: b"Lorem ipsum.",
+              },
+          }),
+      )
+
+      flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+      self.assertEqual(flow_obj.error_message, "")
+      self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+      flow_results = rel_db.ReadFlowResults(
+          client_id, flow_id, offset=0, count=1024
+      )
+      self.assertLen(flow_results, 1)
+      match_response = flows_pb2.YaraProcessScanMatch()
+      flow_results[0].payload.Unpack(match_response)
+      self.assertEqual(match_response.process.pid, 42)
+      self.assertLen(match_response.match, 1)
+      self.assertEqual(match_response.match[0].rule_name, "foo")
+      self.assertLen(match_response.match[0].string_matches, 1)
+      self.assertEqual(
+          match_response.match[0].string_matches[0].string_id, "$s1"
+      )
+      self.assertEqual(
+          match_response.match[0].string_matches[0].offset,
+          0x1000 + len(b"abcdefg"),
+      )
+      self.assertEqual(
+          match_response.match[0].string_matches[0].data, b"hello world"
+      )
+
+  @db_test_lib.WithDatabase
+  def testUploadsBigSignatureToFilestore(self, rel_db: db.Database):
+    yara_signature = (
+        """
+        rule foo {
+          strings:
+        """
+        + "\n".join(
+            f'$s{i} = "hellooooooooooooo woooooooorld {i}"'
+            for i in range(1, 10000)
+        )
+        + """
+          condition:
+        """
+        + " or ".join(f"$s{i}" for i in range(1, 10000))
+        + """
+        }
+        """
+    )
+    assert len(yara_signature) > memory._YARA_SIGNATURE_SHARD_SIZE
+
+    blob = yara_signature.encode("utf-8")
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
+
+    data_store.REL_DB.WriteGRRUser(username="foobarski")
+    data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
+
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the YaraProcessScan
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+      filestore = rrg_test_lib.Filestore()
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.YaraProcessScan,
+          flow_args=flows_pb2.YaraProcessScanRequest(
+              pids=[42],
+              yara_signature_blob_id=bytes(blob_id),
+          ),
+          handlers=_FakeScanProcessMemoryYaraHandler(
+              {
+                  42: {
+                      0x1000: b"hellooooooooooooo woooooooorld 9",
+                      0x2000: b"Lorem ipsum.",
+                  },
+              },
+              filestore=filestore,
+          ),
+      )
+
+      flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+      self.assertEqual(flow_obj.error_message, "")
+      self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+      flow_results = rel_db.ReadFlowResults(
+          client_id, flow_id, offset=0, count=1024
+      )
+      self.assertLen(flow_results, 1)
+      match_response = flows_pb2.YaraProcessScanMatch()
+      flow_results[0].payload.Unpack(match_response)
+      self.assertEqual(match_response.process.pid, 42)
+      self.assertLen(match_response.match, 1)
+      self.assertEqual(match_response.match[0].rule_name, "foo")
+      self.assertLen(match_response.match[0].string_matches, 1)
+      self.assertEqual(
+          match_response.match[0].string_matches[0].string_id, "$s9"
+      )
+      self.assertEqual(match_response.match[0].string_matches[0].offset, 0x1000)
+      self.assertEqual(
+          match_response.match[0].string_matches[0].data,
+          b"hellooooooooooooo woooooooorld 9",
+      )
+
+  @db_test_lib.WithDatabase
+  def testSkipsMissesAndErrorsByDefault(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the YaraProcessScan
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.YaraProcessScan,
+          flow_args=flows_pb2.YaraProcessScanRequest(
+              pids=[42, 1337],
+              yara_signature="""
+              rule foo {
+                strings:
+                  $s1 = "hello world"
+                condition:
+                  $s1
+              }
+              """,
+          ),
+          handlers=_FakeScanProcessMemoryYaraHandler({
+              42: {
+                  0x2000: b"Lorem ipsum.",
+                  0x3000: b"Dolor sit amet.",
+              },
+          }),
+      )
+
+      flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+      self.assertEqual(flow_obj.error_message, "")
+      self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+      flow_results = rel_db.ReadFlowResults(
+          client_id, flow_id, offset=0, count=1024
+      )
+      self.assertEmpty(flow_results)
+
+  @db_test_lib.WithDatabase
+  def testIncludesMissesAndErrorsWhenRequested(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the YaraProcessScan
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.YaraProcessScan,
+          flow_args=flows_pb2.YaraProcessScanRequest(
+              pids=[42, 1337],
+              yara_signature="""
+              rule foo {
+                strings:
+                  $s1 = "hello world"
+                condition:
+                  $s1
+              }
+              """,
+              include_misses_in_results=True,
+              include_errors_in_results=flows_pb2.YaraProcessScanRequest.ErrorPolicy.ALL_ERRORS,
+          ),
+          handlers=_FakeScanProcessMemoryYaraHandler({
+              42: {
+                  0x2000: b"Lorem ipsum.",
+                  0x3000: b"Dolor sit amet.",
+              },
+          }),
+      )
+
+      flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+      self.assertEqual(flow_obj.error_message, "")
+      self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+      flow_results = rel_db.ReadFlowResults(
+          client_id, flow_id, offset=0, count=1024
+      )
+      errors = []
+      misses = []
+      for result in flow_results:
+        if result.payload.Is(flows_pb2.ProcessMemoryError.DESCRIPTOR):
+          error = flows_pb2.ProcessMemoryError()
+          result.payload.Unpack(error)
+          errors.append(error)
+        elif result.payload.Is(flows_pb2.YaraProcessScanMiss.DESCRIPTOR):
+          miss = flows_pb2.YaraProcessScanMiss()
+          result.payload.Unpack(miss)
+          misses.append(miss)
+
+      self.assertLen(errors, 1)
+      self.assertEqual(errors[0].process.pid, 1337)
+      self.assertEqual(errors[0].error, "Process 1337 not found.")
+      self.assertLen(misses, 1)
+      self.assertEqual(misses[0].process.pid, 42)
+
+  @db_test_lib.WithDatabase
+  def testTriggersDumpWhenRequested(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    # The ListProcesses action is invoked implicitly by the YaraProcessScan
+    # flow. It does not currently support RRG, so we need to mock it.
+    # TODO - Remove this mock once ListProcesses supports RRG.
+    with mock.patch.object(
+        processes_flow.ListProcesses, "Start", autospec=True
+    ) as mock_list_processes:
+
+      def SendFakeReplies(self_flow):
+        self_flow.SendReplyProto(sysinfo_pb2.Process(pid=42, name="test"))
+
+      mock_list_processes.side_effect = SendFakeReplies
+
+      process_memory = {
+          42: {
+              0x1000: b"hello world",
+              0x2000: b"Lorem ipsum.",
+              0x3000: b"Dolor sit amet.",
+          },
+          1337: {
+              0x3000: b"Consectetur adipiscing elit.",
+          },
+      }
+      flow_id = rrg_test_lib.ExecuteFlow(
+          client_id=client_id,
+          flow_cls=memory.YaraProcessScan,
+          flow_args=flows_pb2.YaraProcessScanRequest(
+              pids=[42, 1337],
+              yara_signature="""
+              rule foo {
+                strings:
+                  $s1 = "hello world"
+                condition:
+                  $s1
+              }
+              """,
+              dump_process_on_match=True,
+          ),
+          handlers={
+              **_FakeScanProcessMemoryYaraHandler(process_memory),
+              **_FakeDumpProcessMemoryHandler(process_memory),
+          },
+      )
+
+      flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+      self.assertEqual(flow_obj.error_message, "")
+      self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+      flow_results = rel_db.ReadFlowResults(
+          client_id, flow_id, offset=0, count=1024
+      )
+      dump_responses = []
+      for result in flow_results:
+        if result.payload.Is(flows_pb2.YaraProcessDumpResponse.DESCRIPTOR):
+          dump_response = flows_pb2.YaraProcessDumpResponse()
+          result.payload.Unpack(dump_response)
+          dump_responses.append(dump_response)
+
+      self.assertLen(dump_responses, 1)
+      self.assertLen(dump_responses[0].dumped_processes, 1)
+      self.assertLen(dump_responses[0].dumped_processes[0].memory_regions, 3)
+      self.assertEqual(dump_responses[0].dumped_processes[0].process.pid, 42)
+      # No need to check the contents of the dumps -- tested elsewhere.
 
 
 def main(argv):

@@ -105,41 +105,10 @@ class ClientURN(rdfvalue.RDFURN):
     return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
 
 
-class PackageRepository(rdf_structs.RDFProtoStruct):
-  """Description of the configured repositories (Yum etc).
-
-  Describes the configured software package repositories.
-  """
-
-  protobuf = sysinfo_pb2.PackageRepository
-
-
-class ManagementAgent(rdf_structs.RDFProtoStruct):
-  """Description of the running management agent (puppet etc).
-
-  Describes the state, last run timestamp, and name of the management agent
-  installed on the system.
-  """
-
-  protobuf = sysinfo_pb2.ManagementAgent
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
 class PwEntry(rdf_structs.RDFProtoStruct):
   """Information about password structures."""
 
   protobuf = knowledge_base_pb2.PwEntry
-
-
-class Group(rdf_structs.RDFProtoStruct):
-  """Information about system posix groups."""
-
-  protobuf = knowledge_base_pb2.Group
-  rdf_deps = [
-      PwEntry,
-  ]
 
 
 class User(rdf_structs.RDFProtoStruct):
@@ -254,12 +223,6 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     for field in self.users.type_descriptor.type.type_infos.descriptor_names:
       fields.add("users.%s" % field)
     return sorted(fields)
-
-
-class HardwareInfo(rdf_structs.RDFProtoStruct):
-  """Various hardware information."""
-
-  protobuf = sysinfo_pb2.HardwareInfo
 
 
 class ClientInformation(rdf_structs.RDFProtoStruct):
@@ -386,14 +349,6 @@ class Process(rdf_structs.RDFProtoStruct):
         response.memory_percent = psutil_process.memory_percent()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-
-      # Due to a bug in psutil, this function is disabled for now
-      # (https://github.com/giampaolo/psutil/issues/340)
-      # try:
-      #  for f in psutil_process.open_files():
-      #    response.open_files.append(utils.SmartUnicode(f.path))
-      # except (psutil.NoSuchProcess, psutil.AccessDenied):
-      #  pass
 
       try:
         for c in psutil_process.connections():

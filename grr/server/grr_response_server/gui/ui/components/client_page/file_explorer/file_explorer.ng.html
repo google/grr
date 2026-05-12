@@ -15,7 +15,11 @@
     } @else {
       <mat-icon>article</mat-icon>
     }
-    /{{ folder.file?.name }}
+    @if (folder.file?.name) {
+      {{ folder.file?.name }}
+    } @else {
+      / <!-- Root directory  -->
+    }
   </button>
   @if (folder.file?.path === queryPath()) {
     - <copy-button>{{ folder.file?.path }}</copy-button>
@@ -124,7 +128,7 @@
             }
           </div>
         </div>
-        <file-results-table [results]="currentSelectedFsContent()" [isHuntResult]="false" />
+        <file-results-table [results]="currentSelectedFsContent()" />
       } @else {
         @if (currentSelectedFsContent().length > 0) {
           <!-- If a single file is selected the `currentSelectedFsContent` has exactly one element,

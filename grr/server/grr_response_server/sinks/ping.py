@@ -25,7 +25,7 @@ class PingSink(abstract.Sink):
     # By issuing a message handler request instead, we force it to be picked up
     # by the worker.
 
-    # TODO: Instead of this, consider rewriting foreman to sche-
+    # TODO - Instead of this, consider rewriting foreman to sche-
     # dule flows instead of starting them.
 
     request = objects_pb2.MessageHandlerRequest()

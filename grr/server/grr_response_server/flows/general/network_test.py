@@ -4,6 +4,8 @@
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_proto import flows_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server.flows.general import network
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -52,7 +54,9 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     # Check the results are correct.
-    conns = flow_test_lib.GetFlowResults(client_id, session_id)
+    conns = flow_test_lib.GetUnpackedFlowResults(
+        client_id, session_id, sysinfo_pb2.NetworkConnection
+    )
     self.assertLen(conns, 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")
     self.assertEqual(conns[0].local_address.port, 22)
@@ -67,18 +71,20 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
         ClientMock(),
         client_id=client_id,
         creator=self.test_username,
-        flow_args=network.NetstatArgs(
+        flow_args=flows_pb2.NetstatArgs(
             listening_only=True,
         ),
     )
 
     # Check the results are correct.
-    conns = flow_test_lib.GetFlowResults(client_id, session_id)
+    conns = flow_test_lib.GetUnpackedFlowResults(
+        client_id, session_id, sysinfo_pb2.NetworkConnection
+    )
     self.assertLen(conns, 1)
     self.assertEqual(conns[0].local_address.ip, "192.168.1.1")
     self.assertEqual(conns[0].pid, 1)
     self.assertEqual(conns[0].remote_address.port, 6667)
-    self.assertEqual(conns[0].state, "LISTEN")
+    self.assertEqual(conns[0].state, sysinfo_pb2.NetworkConnection.State.LISTEN)
 
 
 def main(argv):

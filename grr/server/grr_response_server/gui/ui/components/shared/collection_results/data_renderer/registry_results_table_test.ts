@@ -4,24 +4,20 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {RegistryType} from '../../../../lib/models/flow';
-import {initTestEnvironment} from '../../../../testing';
 import {
-  RegistryKeyWithClientId,
-  RegistryResultsTable,
-  RegistryValueWithClientId,
-} from './registry_results_table';
+  RegistryKey,
+  RegistryType,
+  RegistryValue,
+} from '../../../../lib/models/flow';
+import {initTestEnvironment} from '../../../../testing';
+import {RegistryResultsTable} from './registry_results_table';
 import {RegistryResultsTableHarness} from './testing/registry_results_table_harness';
 
 initTestEnvironment();
 
-async function createComponent(
-  results: Array<RegistryKeyWithClientId | RegistryValueWithClientId>,
-  isHuntResult = false,
-) {
+async function createComponent(results: Array<RegistryKey | RegistryValue>) {
   const fixture = TestBed.createComponent(RegistryResultsTable);
   fixture.componentRef.setInput('results', results);
-  fixture.componentRef.setInput('isHuntResult', isHuntResult);
 
   fixture.detectChanges();
   const harness = await TestbedHarnessEnvironment.harnessForFixture(
@@ -56,8 +52,7 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/bar',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
     ]);
 
     const table = await harness.table();
@@ -79,37 +74,6 @@ describe('Registry Results Table Component', () => {
     expect(await typeCells[0].getText()).toContain('REG_KEY');
   }));
 
-  it('includes client id column for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          path: '/foo/bar',
-          type: RegistryType.REG_NONE,
-          value: {
-            integer: '123',
-          },
-          clientId: 'C.1234',
-        } as RegistryValueWithClientId,
-      ],
-      true,
-    );
-
-    const table = await harness.table();
-    const header = await table.getHeaderRows();
-    const headerCells = await header[0].getCells();
-    expect(headerCells.length).toBe(5);
-    expect(await headerCells[0].getText()).toBe('');
-    expect(await headerCells[1].getText()).toBe('Client ID');
-    expect(await headerCells[2].getText()).toBe('Path');
-    expect(await headerCells[3].getText()).toBe('Type');
-    expect(await headerCells[4].getText()).toBe('Value');
-    expect(await harness.getRows()).toHaveSize(1);
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
-    expect(await harness.getCellText(0, 'path')).toContain('/foo/bar');
-    expect(await harness.getCellText(0, 'type')).toContain('REG_NONE');
-    expect(await harness.getCellText(0, 'value')).toContain('123');
-  }));
-
   it('includes size column when RegistryValue is provided', fakeAsync(async () => {
     const {harness} = await createComponent([
       {
@@ -118,8 +82,7 @@ describe('Registry Results Table Component', () => {
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     const table = await harness.table();
@@ -141,16 +104,14 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/baz',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/bar',
         type: RegistryType.REG_NONE,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     const table = await harness.table();
@@ -168,16 +129,14 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/baz',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/bar',
         type: RegistryType.REG_NONE,
         value: {
           string: 'foo-baz-123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     expect(await harness.getRows()).toHaveSize(2);
@@ -194,21 +153,18 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/2',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/0',
         type: RegistryType.REG_NONE,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
       {
         path: '/foo/1',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
     ]);
 
     const sort = await harness.tableSort();
@@ -220,62 +176,23 @@ describe('Registry Results Table Component', () => {
     expect(await harness.getCellText(2, 'path')).toContain('/foo/1');
   }));
 
-  it('can sort client id column in ascending order for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent(
-      [
-        {
-          path: '/foo/2',
-          type: 'REG_KEY',
-          clientId: 'C.1234',
-        } as RegistryKeyWithClientId,
-        {
-          path: '/foo/0',
-          type: RegistryType.REG_NONE,
-          value: {
-            integer: '123',
-          },
-          clientId: 'C.3456',
-        } as RegistryValueWithClientId,
-        {
-          path: '/foo/1',
-          type: 'REG_KEY',
-          clientId: 'C.2345',
-        } as RegistryKeyWithClientId,
-      ],
-      true,
-    );
-
-    const sort = await harness.tableSort();
-    const clientIdHeader = await sort.getSortHeaders({label: 'Client ID'});
-    await clientIdHeader[0].click();
-
-    expect(await clientIdHeader[0].getSortDirection()).toBe('asc');
-    expect(await harness.getRows()).toHaveSize(3);
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
-    expect(await harness.getCellText(1, 'clientId')).toContain('C.2345');
-    expect(await harness.getCellText(2, 'clientId')).toContain('C.3456');
-  }));
-
   it('can sort path column in ascending order', fakeAsync(async () => {
     const {harness} = await createComponent([
       {
         path: '/foo/2',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/0',
         type: RegistryType.REG_NONE,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
       {
         path: '/foo/1',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
     ]);
 
     const sort = await harness.tableSort();
@@ -294,21 +211,18 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/2',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/0',
         type: RegistryType.REG_NONE,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
       {
         path: '/foo/1',
         type: RegistryType.REG_SZ,
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     const sort = await harness.tableSort();
@@ -322,63 +236,26 @@ describe('Registry Results Table Component', () => {
     expect(await harness.getCellText(2, 'type')).toContain('REG_SZ');
   }));
 
-  it('can filter by client id for hunt results', fakeAsync(async () => {
-    const {harness, fixture} = await createComponent(
-      [
-        {
-          path: '/foo/2',
-          type: 'REG_KEY',
-          clientId: 'C.1234',
-        } as RegistryKeyWithClientId,
-        {
-          path: '/foo/0',
-          type: RegistryType.REG_NONE,
-          value: {
-            integer: '123',
-          },
-          clientId: 'C.2345',
-        } as RegistryValueWithClientId,
-        {
-          path: '/foo/1',
-          type: RegistryType.REG_SZ,
-          value: {
-            integer: '123',
-          },
-          clientId: 'C.3456',
-        } as RegistryValueWithClientId,
-      ],
-      true,
-    );
-
-    fixture.componentInstance.dataSource.filter = '2345';
-
-    expect(await harness.getRows()).toHaveSize(1);
-    expect(await harness.getCellText(0, 'clientId')).toContain('2345');
-  }));
-
   it('can filter by path', fakeAsync(async () => {
     const {harness, fixture} = await createComponent([
       {
         path: '/foo/2',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/0',
         type: RegistryType.REG_NONE,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
       {
         path: '/foo/1',
         type: RegistryType.REG_SZ,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     fixture.componentInstance.dataSource.filter = '/foo/1';
@@ -392,24 +269,21 @@ describe('Registry Results Table Component', () => {
       {
         path: '/foo/2',
         type: 'REG_KEY',
-        clientId: 'C.1234',
-      } as RegistryKeyWithClientId,
+      } as RegistryKey,
       {
         path: '/foo/0',
         type: RegistryType.REG_NONE,
         value: {
           integer: '456',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
       {
         path: '/foo/1',
         type: RegistryType.REG_SZ,
         value: {
           integer: '123',
         },
-        clientId: 'C.1234',
-      } as RegistryValueWithClientId,
+      } as RegistryValue,
     ]);
 
     fixture.componentInstance.dataSource.filter = 'REG_SZ';

@@ -50,10 +50,6 @@ class CipherError(rdfvalue.DecodeError):
   """Raised when decryption failed."""
 
 
-class Certificate(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.Certificate
-
-
 class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
@@ -553,7 +549,7 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     """
     if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
-    # TODO: Remove PKCS1v15 signature type when client adopted
+    # TODO - Remove PKCS1v15 signature type when client adopted
     # change to PSS.
     if self.signature_type not in [
         self.SignatureType.RSA_PKCS1v15,

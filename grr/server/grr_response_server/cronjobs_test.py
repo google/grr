@@ -6,10 +6,9 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import mig_cronjobs
 from grr.test_lib import test_lib
@@ -66,45 +65,22 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     cronjobs.CronManager()._GetThreadPool().Stop()
     super().tearDown()
 
-  def testCronJobPreservesFlowNameAndArguments(self):
-    cron_manager = cronjobs.CronManager()
-
-    flow_name = file_finder.ClientFileFinder.__name__
-
-    cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d", allow_overruns=False, flow_name=flow_name
-    )
-
-    cron_args.flow_args.paths = ["/foo"]
-    cron_args.flow_args.pathtype = rdf_paths.PathSpec.PathType.TSK
-
-    job_id = cron_manager.CreateJob(cron_args=cron_args)
-
-    # Check that CronJob definition is saved properly
-    jobs = cron_manager.ListJobs()
-    self.assertLen(jobs, 1)
-    self.assertEqual(jobs[0], job_id)
-
-    cron_job = cron_manager.ReadJob(job_id)
-    hunt_args = cron_job.args.hunt_cron_action
-    self.assertEqual(hunt_args.flow_name, flow_name)
-
-    self.assertEqual(hunt_args.flow_args.paths, ["/foo"])
-    self.assertEqual(
-        hunt_args.flow_args.pathtype, rdf_paths.PathSpec.PathType.TSK
-    )
-
-    self.assertEqual(
-        cron_job.frequency, rdfvalue.Duration.From(1, rdfvalue.DAYS)
-    )
-    self.assertEqual(cron_job.allow_overruns, False)
-
   def testCronJobStartsRun(self):
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=flows_pb2.SystemCronAction(
+            job_class_name=DummyStatefulSystemCronJobRel.__name__
+        ),
+    )
+    job_id = "cron_1"
+    proto_job = flows_pb2.CronJob(
+        cron_job_id=job_id,
+        args=args,
+        enabled=True,
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+    )
+    data_store.REL_DB.WriteCronJob(proto_job)
     cron_manager = cronjobs.CronManager()
-    create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-    job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
     cron_job = cron_manager.ReadJob(job_id)
     self.assertFalse(cron_manager.JobIsRunning(cron_job))
@@ -123,19 +99,39 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     self.assertEqual(run.status, "FINISHED")
 
   def testDisabledCronJobDoesNotCreateJobs(self):
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=flows_pb2.SystemCronAction(
+            job_class_name=DummySystemCronJobRel.__name__
+        ),
+    )
+    job_id1 = "cron_1"
+    proto_job1 = flows_pb2.CronJob(
+        cron_job_id=job_id1,
+        args=args,
+        enabled=True,
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+        frequency=DummySystemCronJobRel.frequency.SerializeToWireFormat(),
+        lifetime=DummySystemCronJobRel.lifetime.SerializeToWireFormat(),
+    )
+    data_store.REL_DB.WriteCronJob(proto_job1)
+    job_id2 = "cron_2"
+    proto_job2 = flows_pb2.CronJob(
+        cron_job_id=job_id2,
+        args=args,
+        enabled=True,
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+        frequency=DummySystemCronJobRel.frequency.SerializeToWireFormat(),
+        lifetime=DummySystemCronJobRel.lifetime.SerializeToWireFormat(),
+    )
+    data_store.REL_DB.WriteCronJob(proto_job2)
     cron_manager = cronjobs.CronManager()
-    create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-    job_id1 = cron_manager.CreateJob(cron_args=create_flow_args)
-    job_id2 = cron_manager.CreateJob(cron_args=create_flow_args)
-
     cron_manager.DisableJob(job_id1)
 
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     try:
-      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(DummySystemCronJobRel, "Run", wraps=waiting_func):
         cron_manager.RunOnce()
 
       cron_job1 = cron_manager.ReadJob(job_id1)
@@ -156,19 +152,27 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     waiting_func = functools.partial(WaitForEvent, event)
 
     try:
-      create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1h",
-          lifetime="1h",
-          flow_name=file_finder.ClientFileFinder.__name__,
-      )
-      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(DummySystemCronJobRel, "Run", wraps=waiting_func):
         job_ids = []
         for i in range(cron_manager.max_threads * 2):
-          # TODO: The CronJob ID space is small. Using 20 random
+          # TODO - The CronJob ID space is small. Using 20 random
           #  IDs already causes flaky tests. Use hardcoded IDs instead.
-          job_ids.append(
-              cron_manager.CreateJob(cron_args=create_flow_args, job_id=f"{i}")
+          job_id = f"cron_{i}"
+          proto_job = flows_pb2.CronJob(
+              cron_job_id=job_id,
+              args=flows_pb2.CronJobAction(
+                  action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+                  system_cron_action=flows_pb2.SystemCronAction(
+                      job_class_name=DummySystemCronJobRel.__name__
+                  ),
+              ),
+              enabled=True,
+              created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+              frequency=DummySystemCronJobRel.frequency.SerializeToWireFormat(),
+              lifetime=DummySystemCronJobRel.lifetime.SerializeToWireFormat(),
           )
+          data_store.REL_DB.WriteCronJob(proto_job)
+          job_ids.append(job_id)
 
         cron_manager.RunOnce()
 
@@ -198,48 +202,53 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       count_scheduled += len(cron_manager.ReadJobRuns(job_id))
     self.assertEqual(count_scheduled, cron_manager.max_threads * 2)
 
-  # TODO: Refactor to proto-only (no migration lib).
   def testNonExistingSystemCronJobDoesNotPreventOtherCronJobsFromRunning(self):
     # Have a fake non-existing cron job. We assume that cron jobs are going
     # to be processed in alphabetical order, according to their cron job ids.
-    args = rdf_cronjobs.CronJobAction(
-        action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
-        system_cron_action=rdf_cronjobs.SystemCronAction(
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=flows_pb2.SystemCronAction(
             job_class_name="__AbstractFakeCronJob__"
         ),
     )
 
-    rdf_job = rdf_cronjobs.CronJob(
+    proto_job = flows_pb2.CronJob(
         cron_job_id="cron_1",
         args=args,
         enabled=True,
-        frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
-        lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
+        frequency=rdfvalue.DurationSeconds.From(
+            2, rdfvalue.HOURS
+        ).SerializeToWireFormat(),
+        lifetime=rdfvalue.DurationSeconds.From(
+            1, rdfvalue.HOURS
+        ).SerializeToWireFormat(),
         allow_overruns=False,
-        created_at=rdfvalue.RDFDatetime.Now(),
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
     )
-    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
     data_store.REL_DB.WriteCronJob(proto_job)
 
     # Have a proper cron job.
     cron_manager = cronjobs.CronManager()
-    args = rdf_cronjobs.CronJobAction(
-        action_type=rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
-        system_cron_action=rdf_cronjobs.SystemCronAction(
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=flows_pb2.SystemCronAction(
             job_class_name="DummyStatefulSystemCronJobRel"
         ),
     )
 
-    rdf_job = rdf_cronjobs.CronJob(
+    proto_job = flows_pb2.CronJob(
         cron_job_id="cron_2",
         args=args,
         enabled=True,
-        frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
-        lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
+        frequency=rdfvalue.DurationSeconds.From(
+            2, rdfvalue.HOURS
+        ).SerializeToWireFormat(),
+        lifetime=rdfvalue.DurationSeconds.From(
+            1, rdfvalue.HOURS
+        ).SerializeToWireFormat(),
         allow_overruns=False,
-        created_at=rdfvalue.RDFDatetime.Now(),
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
     )
-    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
     data_store.REL_DB.WriteCronJob(proto_job)
 
     with self.assertRaises(cronjobs.OneOrMoreCronJobsFailedError):
@@ -253,17 +262,28 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(DummySystemCronJobRel, "Run", wraps=waiting_func):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
-          create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-              allow_overruns=False,
-              frequency="1h",
-              flow_name=file_finder.ClientFileFinder.__name__,
+          args = flows_pb2.CronJobAction(
+              action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+              system_cron_action=flows_pb2.SystemCronAction(
+                  job_class_name=DummySystemCronJobRel.__name__
+              ),
           )
-
-          job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+          job_id = "cron_1"
+          proto_job = flows_pb2.CronJob(
+              cron_job_id=job_id,
+              args=args,
+              enabled=True,
+              allow_overruns=False,
+              frequency=rdfvalue.DurationSeconds.From(
+                  1, rdfvalue.HOURS
+              ).SerializeToWireFormat(),
+              created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+          )
+          data_store.REL_DB.WriteCronJob(proto_job)
           cron_manager.RunOnce()
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id)
@@ -287,17 +307,30 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(
+        DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+    ):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
-          create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-              allow_overruns=False,
-              frequency="1h",
-              flow_name=file_finder.ClientFileFinder.__name__,
+          args = flows_pb2.CronJobAction(
+              action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+              system_cron_action=flows_pb2.SystemCronAction(
+                  job_class_name=DummyStatefulSystemCronJobRel.__name__
+              ),
           )
-
-          job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+          job_id = "cron_1"
+          proto_job = flows_pb2.CronJob(
+              cron_job_id=job_id,
+              args=args,
+              enabled=True,
+              allow_overruns=False,
+              frequency=rdfvalue.DurationSeconds.From(
+                  1, rdfvalue.HOURS
+              ).SerializeToWireFormat(),
+              created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+          )
+          data_store.REL_DB.WriteCronJob(proto_job)
           cron_manager.RunOnce()
 
           cron_job_runs = cron_manager.ReadJobRuns(job_id)
@@ -339,15 +372,26 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testCronJobRunDoesNothingIfDueTimeHasNotComeYet(self):
     fake_time = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(fake_time):
-      cron_manager = cronjobs.CronManager()
-      create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          allow_overruns=False,
-          frequency="1h",
-          flow_name=file_finder.ClientFileFinder.__name__,
+      args = flows_pb2.CronJobAction(
+          action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+          system_cron_action=flows_pb2.SystemCronAction(
+              job_class_name=DummyStatefulSystemCronJobRel.__name__
+          ),
       )
+      job_id = "cron_1"
+      proto_job = flows_pb2.CronJob(
+          cron_job_id=job_id,
+          args=args,
+          enabled=True,
+          allow_overruns=False,
+          frequency=rdfvalue.DurationSeconds.From(
+              1, rdfvalue.HOURS
+          ).SerializeToWireFormat(),
+          created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+      )
+      data_store.REL_DB.WriteCronJob(proto_job)
 
-      job_id = cron_manager.CreateJob(cron_args=create_flow_args)
-
+      cron_manager = cronjobs.CronManager()
       cron_manager.RunOnce()
 
       cron_job_runs = cron_manager.ReadJobRuns(job_id)
@@ -368,16 +412,29 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(
+          DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+      ):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
-          create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-              allow_overruns=False,
-              frequency="1h",
-              flow_name=file_finder.ClientFileFinder.__name__,
+          args = flows_pb2.CronJobAction(
+              action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+              system_cron_action=flows_pb2.SystemCronAction(
+                  job_class_name=DummyStatefulSystemCronJobRel.__name__
+              ),
           )
-
-          job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+          job_id = "cron_1"
+          proto_job = flows_pb2.CronJob(
+              cron_job_id=job_id,
+              args=args,
+              enabled=True,
+              allow_overruns=False,
+              frequency=rdfvalue.DurationSeconds.From(
+                  1, rdfvalue.HOURS
+              ).SerializeToWireFormat(),
+              created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+          )
+          data_store.REL_DB.WriteCronJob(proto_job)
 
           cron_manager.RunOnce()
 
@@ -405,16 +462,29 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(
+          DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+      ):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
-          create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-              allow_overruns=True,
-              frequency="1h",
-              flow_name=file_finder.ClientFileFinder.__name__,
+          args = flows_pb2.CronJobAction(
+              action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+              system_cron_action=flows_pb2.SystemCronAction(
+                  job_class_name=DummyStatefulSystemCronJobRel.__name__
+              ),
           )
-
-          job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+          job_id = "cron_1"
+          proto_job = flows_pb2.CronJob(
+              cron_job_id=job_id,
+              args=args,
+              enabled=True,
+              allow_overruns=True,
+              frequency=rdfvalue.DurationSeconds.From(
+                  1, rdfvalue.HOURS
+              ).SerializeToWireFormat(),
+              created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+          )
+          data_store.REL_DB.WriteCronJob(proto_job)
 
           cron_manager.RunOnce()
 
@@ -440,10 +510,20 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testCronManagerListJobsDoesNotListDeletedJobs(self):
     cron_manager = cronjobs.CronManager()
 
-    create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-    cron_job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+    args = flows_pb2.CronJobAction(
+        action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+        system_cron_action=flows_pb2.SystemCronAction(
+            job_class_name=DummyStatefulSystemCronJobRel.__name__
+        ),
+    )
+    cron_job_id = "cron_1"
+    proto_job = flows_pb2.CronJob(
+        cron_job_id=cron_job_id,
+        args=args,
+        enabled=True,
+        created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+    )
+    data_store.REL_DB.WriteCronJob(proto_job)
 
     self.assertLen(cron_manager.ListJobs(), 1)
 
@@ -455,19 +535,35 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
 
-    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
-      cron_manager = cronjobs.CronManager()
-      create_flow_args = rdf_cronjobs.CreateCronJobArgs(
-          frequency="1w",
-          lifetime="1d",
-          flow_name=file_finder.ClientFileFinder.__name__,
+    with mock.patch.object(
+        DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+    ):
+      args = flows_pb2.CronJobAction(
+          action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+          system_cron_action=flows_pb2.SystemCronAction(
+              job_class_name=DummyStatefulSystemCronJobRel.__name__
+          ),
       )
-
-      job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+      job_id = "cron_1"
+      proto_job = flows_pb2.CronJob(
+          cron_job_id=job_id,
+          args=args,
+          enabled=True,
+          allow_overruns=False,
+          frequency=rdfvalue.DurationSeconds.From(
+              1, rdfvalue.WEEKS
+          ).SerializeToWireFormat(),
+          lifetime=rdfvalue.DurationSeconds.From(
+              1, rdfvalue.DAYS
+          ).SerializeToWireFormat(),
+          created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+      )
+      data_store.REL_DB.WriteCronJob(proto_job)
 
       prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue(fields=[job_id])
       prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
+      cron_manager = cronjobs.CronManager()
       cron_manager.RunOnce()
 
       cron_job = cron_manager.ReadJob(job_id)
@@ -507,16 +603,32 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
 
     fake_time = rdfvalue.RDFDatetime.Now()
-    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(
+        DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+    ):
       with test_lib.FakeTime(fake_time):
+        args = flows_pb2.CronJobAction(
+            action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+            system_cron_action=flows_pb2.SystemCronAction(
+                job_class_name=DummyStatefulSystemCronJobRel.__name__
+            ),
+        )
+        job_id = "cron_1"
+        proto_job = flows_pb2.CronJob(
+            cron_job_id=job_id,
+            args=args,
+            enabled=True,
+            frequency=rdfvalue.DurationSeconds.From(
+                1, rdfvalue.HOURS
+            ).SerializeToWireFormat(),
+            lifetime=rdfvalue.DurationSeconds.From(
+                1, rdfvalue.HOURS
+            ).SerializeToWireFormat(),
+            created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+        )
+        data_store.REL_DB.WriteCronJob(proto_job)
+
         cron_manager = cronjobs.CronManager()
-        create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-        create_flow_args.frequency = "1h"
-        create_flow_args.lifetime = "1h"
-        create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-        job_id = cron_manager.CreateJob(cron_args=create_flow_args)
-
         cron_manager.RunOnce()
         # Make sure the cron job has actually been started.
         signal_event.wait(10)
@@ -595,15 +707,29 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
 
     fake_time = rdfvalue.RDFDatetime.Now()
-    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(
+        DummyStatefulSystemCronJobRel, "Run", wraps=waiting_func
+    ):
       with test_lib.FakeTime(fake_time):
+        args = flows_pb2.CronJobAction(
+            action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+            system_cron_action=flows_pb2.SystemCronAction(
+                job_class_name=DummyStatefulSystemCronJobRel.__name__
+            ),
+        )
+        job_id = "cron_1"
+        proto_job = flows_pb2.CronJob(
+            cron_job_id=job_id,
+            args=args,
+            enabled=True,
+            lifetime=rdfvalue.DurationSeconds.From(
+                1, rdfvalue.HOURS
+            ).SerializeToWireFormat(),
+            created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+        )
+        data_store.REL_DB.WriteCronJob(proto_job)
+
         cron_manager = cronjobs.CronManager()
-        create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-        create_flow_args.lifetime = "1h"
-        create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-        job_id = cron_manager.CreateJob(cron_args=create_flow_args)
-
         cron_manager.RunOnce()
         # Make sure the cron job has actually been started.
         signal_event.wait(10)
@@ -648,19 +774,33 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
   def testError(self):
     with mock.patch.object(
-        cronjobs.RunHunt,
+        DummyStatefulSystemCronJobRel,
         "Run",
         side_effect=ValueError("Random cron job error."),
     ):
-      cron_manager = cronjobs.CronManager()
-      create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-      create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-      job_id = cron_manager.CreateJob(cron_args=create_flow_args)
+      args = flows_pb2.CronJobAction(
+          action_type=flows_pb2.CronJobAction.ActionType.SYSTEM_CRON_ACTION,
+          system_cron_action=flows_pb2.SystemCronAction(
+              job_class_name=DummyStatefulSystemCronJobRel.__name__
+          ),
+      )
+      job_id = "cron_1"
+      proto_job = flows_pb2.CronJob(
+          cron_job_id=job_id,
+          args=args,
+          enabled=True,
+          allow_overruns=False,
+          frequency=rdfvalue.DurationSeconds.From(
+              1, rdfvalue.HOURS
+          ).SerializeToWireFormat(),
+          created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+      )
+      data_store.REL_DB.WriteCronJob(proto_job)
 
       prev_failure_value = cronjobs.CRON_JOB_FAILURE.GetValue([job_id])
       prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
+      cron_manager = cronjobs.CronManager()
       cron_manager.RunOnce()
       cron_manager._GetThreadPool().Join()
 
@@ -682,14 +822,6 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       self.assertEqual(
           current_latency_value.count, prev_latency_value.count + 1
       )
-
-  def testSchedulingJobWithFixedNamePreservesTheName(self):
-    cron_manager = cronjobs.CronManager()
-    create_flow_args = rdf_cronjobs.CreateCronJobArgs()
-    create_flow_args.flow_name = file_finder.ClientFileFinder.__name__
-
-    job_id = cron_manager.CreateJob(cron_args=create_flow_args, job_id="TheJob")
-    self.assertEqual("TheJob", job_id)
 
   def testSystemCronJobsGetScheduledAutomatically(self):
     cronjobs.ScheduleSystemCronJobs(names=[DummySystemCronJobRel.__name__])
@@ -764,7 +896,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         ),
     )
 
-    # TODO: Refactor to proto-only.
+    # TODO - Refactor to proto-only.
     rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="test_cron",
         args=args,

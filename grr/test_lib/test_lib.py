@@ -38,7 +38,6 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import fleetspeak_connector
 from grr_response_server import prometheus_stats_collector
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import testing_startup
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -324,9 +323,7 @@ class GRRBaseTest(absltest.TestCase):
     data_store.REL_DB.WriteClientMetadata(client_id, last_ping=ping)
     data_store.REL_DB.WriteClientSnapshot(client)
 
-    client_index.ClientIndex().AddClient(
-        mig_objects.ToRDFClientSnapshot(client)
-    )
+    client_index.ClientIndex().AddClient(client)
     if labels is not None:
       data_store.REL_DB.WriteGRRUser("GRR")
       data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)

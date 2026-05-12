@@ -155,7 +155,7 @@ class ApiLabelsRestrictedCallRouterTest(
     # Artifacts methods.
     self.CheckMethod(c.ListArtifacts)
     self.CheckMethod(c.UploadArtifact)
-    self.CheckMethod(c.DeleteArtifacts)
+    self.CheckMethod(c.DeleteArtifact)
 
     # Clients methods
     self.CheckMethod(c.SearchClients)
@@ -281,7 +281,6 @@ class ApiLabelsRestrictedCallRouterTest(
 
     # Cron jobs methods.
     self.CheckMethod(c.ListCronJobs)
-    self.CheckMethod(c.CreateCronJob)
     self.CheckMethod(c.DeleteCronJob)
 
     # Hunts methods.
@@ -303,10 +302,6 @@ class ApiLabelsRestrictedCallRouterTest(
     self.CheckMethod(
         c.GetHuntResultsExportCommand,
         api_hunt_pb2.ApiGetHuntResultsExportCommandArgs(hunt_id=self.hunt_id),
-    )
-    self.CheckMethod(
-        c.ListHuntOutputPlugins,
-        api_hunt_pb2.ApiListHuntOutputPluginsArgs(hunt_id=self.hunt_id),
     )
     self.CheckMethod(
         c.ListHuntOutputPluginLogs,

@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -14,6 +14,7 @@ import {DurationValueAccessor} from './duration_value_accessor';
 initTestEnvironment();
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
       <mat-form-field>
         <input durationInput matInput [(ngModel)]="inputValue" />

@@ -15,7 +15,6 @@ import {MatDividerModule} from '@angular/material/divider';
 import {MatSort, MatSortModule, Sort} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, RouterModule} from '@angular/router';
 
 import {Client} from '../../lib/models/client';
@@ -72,8 +71,6 @@ export class ClientSearch implements AfterViewInit {
   ];
 
   constructor() {
-    inject(Title).setTitle('GRR | Client Search');
-
     effect(() => {
       this.approvalReason.set(this.queryParams()?.['reason'] ?? undefined);
     });

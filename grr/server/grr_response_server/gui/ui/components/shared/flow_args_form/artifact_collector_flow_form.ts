@@ -26,42 +26,14 @@ import {ArtifactCollectorFlowArgs} from '../../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../../lib/api/translation/flow';
 import {
   ArtifactDescriptor,
-  ArtifactSourceDescription,
-  SourceType,
+  extendArtifactDescriptor,
+  ExtendedArtifactDescriptor,
 } from '../../../lib/models/flow';
-import {FriendlyArtifactTypePipe} from '../../../pipes/friendly_artifact_type/friendly_artifact_type';
 import {HumanReadableOsPipe} from '../../../pipes/operating_system/human_readable_os_pipe';
 import {GlobalStore} from '../../../store/global_store';
-import {
-  GlobExplanationMode,
-  GlobExpressionExplanation,
-} from '../form/glob_expression_form_field/glob_expression_explanation';
+import {ArtifactDetails} from '../../shared/artifact_details';
 import {ControlValues, FlowArgsFormInterface} from './flow_args_form_interface';
 import {SubmitButton} from './submit_button';
-
-interface ExtendedArtifactDescriptor extends ArtifactDescriptor {
-  // First artifact collection for preview in the UI.
-  readonly firstArtifactCollection: string;
-  // Recursively counted number of sources.
-  readonly numSources: number;
-  readonly availableOnClient: boolean;
-
-  // Returns true if the artifact matches the user input.
-  matchesInput(input: string): boolean;
-}
-
-/**
- * Recursively gets all source descriptions from an artifact.
- */
-function getSourceDescriptions(
-  artifact: ArtifactDescriptor,
-): ArtifactSourceDescription[] {
-  const result = [...(artifact.sourceDescriptions ?? [])];
-  for (const nestedArtifact of artifact.artifacts ?? []) {
-    result.push(...getSourceDescriptions(nestedArtifact));
-  }
-  return result;
-}
 
 function makeControls(validator: ValidatorFn) {
   return {
@@ -81,9 +53,8 @@ type Controls = ReturnType<typeof makeControls>;
   ],
   imports: [
     A11yModule,
+    ArtifactDetails,
     CommonModule,
-    FriendlyArtifactTypePipe,
-    GlobExpressionExplanation,
     HumanReadableOsPipe,
     MatAutocompleteModule,
     MatInputModule,
@@ -105,9 +76,6 @@ export class ArtifactCollectorFlowForm extends FlowArgsFormInterface<
   readonly clientOs = input<string | undefined>(undefined);
   readonly clientId = input<string | undefined>(undefined);
 
-  protected readonly SourceType = SourceType;
-  protected readonly GlobExplanationMode = GlobExplanationMode;
-
   protected selectedArtifact = signal<ArtifactDescriptor | undefined>(
     undefined,
   );
@@ -115,8 +83,9 @@ export class ArtifactCollectorFlowForm extends FlowArgsFormInterface<
   private readonly extendedArtifactDescriptors = computed<
     ExtendedArtifactDescriptor[]
   >(() => {
+    const clientOs = safeTranslateOperatingSystem(this.clientOs());
     return Array.from(this.globalStore.artifactDescriptorMap().values(), (ad) =>
-      this.extendArtifactDescriptor(ad),
+      extendArtifactDescriptor(ad, clientOs),
     );
   });
 
@@ -171,40 +140,6 @@ export class ArtifactCollectorFlowForm extends FlowArgsFormInterface<
     );
   }
 
-  private extendArtifactDescriptor(
-    artifact: ArtifactDescriptor,
-  ): ExtendedArtifactDescriptor {
-    const sourceDescriptions: ArtifactSourceDescription[] =
-      getSourceDescriptions(artifact);
-    const collections = sourceDescriptions.flatMap(
-      (source) => source.collections,
-    );
-
-    const clientOs = safeTranslateOperatingSystem(this.clientOs());
-
-    return {
-      ...artifact,
-      firstArtifactCollection: collections.length > 0 ? collections[0] : '',
-      numSources: sourceDescriptions.length,
-      // If no client os is provided, assume the artifact is available on the
-      // client.
-      availableOnClient: clientOs ? artifact.supportedOs.has(clientOs) : true,
-      matchesInput: (input: string) => {
-        input = input.toLowerCase();
-        return (
-          artifact.name.toLowerCase().includes(input) ||
-          (artifact.doc && artifact.doc.toLowerCase().includes(input)) ||
-          Array.from(artifact.supportedOs).some((os) =>
-            String(os).toLowerCase().includes(input),
-          ) ||
-          sourceDescriptions.some((source) =>
-            source.collections.some((collection) => collection.includes(input)),
-          )
-        );
-      },
-    };
-  }
-
   override resetFlowArgs(flowArgs: ArtifactCollectorFlowArgs) {
     super.resetFlowArgs(flowArgs);
 
@@ -214,15 +149,5 @@ export class ArtifactCollectorFlowForm extends FlowArgsFormInterface<
         this.globalStore.artifactDescriptorMap().get(artifact),
       );
     }
-  }
-
-  // Artifact sources tree
-
-  hasChildren(_: number, node: ArtifactDescriptor): boolean {
-    return node.artifacts!! && node.artifacts.length > 0;
-  }
-
-  childrenAccessor(node: ArtifactDescriptor): ArtifactDescriptor[] {
-    return Array.from(node.artifacts ?? []);
   }
 }

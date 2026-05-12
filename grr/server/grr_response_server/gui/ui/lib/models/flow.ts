@@ -3,7 +3,7 @@ import {CollectionResult} from './result';
 
 /** Flow type identificators */
 export enum FlowType {
-  // TODO: re-enable clang format when solved.
+  // TODO - re-enable clang format when solved.
   // prettier-ignore
   // keep-sorted start block=yes
   ARTIFACT_COLLECTOR_FLOW = 'ArtifactCollectorFlow',
@@ -86,6 +86,7 @@ export declare interface Flow<Args extends {} | unknown = unknown> {
    */
   readonly resultCounts: readonly FlowResultCount[] | undefined;
   readonly nestedFlows: readonly Flow[] | undefined;
+  readonly parentHuntId: string | undefined;
 
   readonly context: FlowContext | undefined;
 
@@ -204,6 +205,69 @@ export interface ArtifactDescriptor {
   readonly sourceDescriptions: readonly ArtifactSourceDescription[];
   readonly artifacts: readonly ArtifactDescriptor[];
   readonly isCustom?: boolean;
+}
+
+/**
+ * Extended ArtifactDescriptor with information for the UI.
+ */
+export interface ExtendedArtifactDescriptor extends ArtifactDescriptor {
+  // First artifact collection for preview in the UI.
+  readonly firstArtifactCollection: string;
+  // Recursively counted number of sources.
+  readonly numSources: number;
+  readonly availableOnClient: boolean;
+
+  // Returns true if the artifact matches the user input.
+  matchesInput(input: string): boolean;
+}
+
+/**
+ * Recursively gets all source descriptions from an artifact.
+ */
+function getSourceDescriptions(
+  artifact: ArtifactDescriptor,
+): ArtifactSourceDescription[] {
+  const result = [...(artifact.sourceDescriptions ?? [])];
+  for (const nestedArtifact of artifact.artifacts ?? []) {
+    result.push(...getSourceDescriptions(nestedArtifact));
+  }
+  return result;
+}
+
+/**
+ * Extends an ArtifactDescriptor with information for the UI.
+ */
+export function extendArtifactDescriptor(
+  artifact: ArtifactDescriptor,
+  clientOs?: OperatingSystem | null,
+): ExtendedArtifactDescriptor {
+  const sourceDescriptions: ArtifactSourceDescription[] =
+    getSourceDescriptions(artifact);
+  const collections = sourceDescriptions.flatMap(
+    (source) => source.collections,
+  );
+
+  return {
+    ...artifact,
+    firstArtifactCollection: collections.length > 0 ? collections[0] : '',
+    numSources: sourceDescriptions.length,
+    // If no client os is provided, assume the artifact is available on the
+    // client.
+    availableOnClient: clientOs ? artifact.supportedOs.has(clientOs) : true,
+    matchesInput: (input: string) => {
+      input = input.toLowerCase();
+      return (
+        artifact.name.toLowerCase().includes(input) ||
+        (artifact.doc && artifact.doc.toLowerCase().includes(input)) ||
+        Array.from(artifact.supportedOs).some((os) =>
+          String(os).toLowerCase().includes(input),
+        ) ||
+        sourceDescriptions.some((source) =>
+          source.collections.some((collection) => collection.includes(input)),
+        )
+      );
+    },
+  };
 }
 
 /** Artifact Source information. */

@@ -56,7 +56,7 @@
         </button>
         <button mat-icon-button
           [matMenuTriggerFor]="menu"
-          aria-label="flow menu"
+          [attr.aria-label]="'Flow menu for ' + flow.flowId"
           (click)="$event.preventDefault(); $event.stopPropagation()"
           name="flowMenuButton"
         >
@@ -148,10 +148,16 @@
           }
         </mat-select>
       </mat-form-field>
-      @if (clientStore.client() != null) {
+      @if (clientStore.client() != null && clientStore.hasAccess() != null) {
         <button mat-flat-button (click)="openCreateFlowDialog()">New Flow</button>
       }
+
     </div>
+    @if (clientStore.hasAccess() == false && clientStore.client() != null) {
+      <error-message
+        message="Request access to this client to view flows."
+        [routerLink]="['/clients', clientStore.clientId(), 'approvals']"/>
+    }
     <div class="flow-list-container">
       <mat-nav-list disableRipple class="scheduled-flow-list">
         @for (scheduledFlow of clientStore.scheduledFlows(); track scheduledFlow.scheduledFlowId) {

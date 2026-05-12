@@ -774,6 +774,15 @@ message CollectedArtifact {
   }];
 }
 
+message ClientActionResult {
+  optional string type = 11
+      [(sem_type) = { description: "The type of the client action result." }];
+  optional google.protobuf.Any value = 12 [(sem_type) = {
+    description: "The value of the response."
+    dynamic_type: "GetValueClass"
+  }];
+}
+
 message ClientArtifactCollectorArgs {
   repeated ExpandedArtifact artifacts = 1
       [(sem_type) = { description: "A list of artifacts." }];
@@ -1771,7 +1780,7 @@ message ApiReportData {
     UNDEFINED = 0 [(description) = "Undefined"];
     reserved 1;
     reserved 2;
-    // TODO: deprecate audit charts and the whole reporting
+    // TODO - deprecate audit charts and the whole reporting
     // subsystem.
     AUDIT_CHART = 3 [(description) = "Audit chart"];
   }

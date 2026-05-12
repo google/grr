@@ -11,6 +11,7 @@ export enum CollapsibleState {
 
 /** Title of the collapsible content. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'collapsible-title',
   template: `<ng-content />`,
 })
@@ -18,6 +19,7 @@ export class CollapsibleTitle {}
 
 /** Content of the collapsible content. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'collapsible-content',
   template: `<ng-content />`,
 })

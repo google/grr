@@ -24,7 +24,7 @@ import {FlowResultsDownloadButton} from '../../shared/collection_results/flow_re
 export class FleetCollectionClientResults {
   protected readonly flowStore = inject(FlowStore);
 
-  // TODO: These should be `required`, but tests are failing until
+  // TODO - These should be `required`, but tests are failing until
   // the bug is fixed.
   readonly fleetCollectionId = routerInput<string>();
   readonly clientId = routerInput<string>();

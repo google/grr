@@ -1,7 +1,6 @@
 @use '@angular/material' as mat;
 @use 'material-theme' as c;
 
-
 :root {
   --base-font-size: 14px;
 }
@@ -57,4 +56,32 @@ a:any-link mat-chip span {
   cursor: inherit;
 }
 
+.green-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: SpringGreen,
+      label-text-color: black,
+      with-icon-icon-color: black,
+    )
+  );
+}
 
+.red-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: Crimson,
+      label-text-color: white,
+      with-icon-icon-color: white,
+    )
+  );
+}
+
+.gray-chip {
+  @include mat.chips-overrides(
+    (
+      elevated-container-color: DimGray,
+      label-text-color: white,
+      with-icon-icon-color: white,
+    )
+  );
+}

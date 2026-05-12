@@ -14,8 +14,7 @@ from absl import app
 
 from grr_response_core.lib import constants
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
@@ -28,7 +27,6 @@ from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.flows.general import mig_transfer
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -92,7 +90,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
           ClientMock(self.mbr),
           creator=self.test_username,
           client_id=self.client_id,
-          flow_args=transfer.GetMBRArgs(length=download_length),
+          flow_args=flows_pb2.GetMBRArgs(length=download_length),
       )
 
     results = data_store.REL_DB.ReadFlowResults(self.client_id, flow_id, 0, 10)
@@ -177,8 +175,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     with open(zero_sized_filename, "wb"):
       pass
 
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=zero_sized_filename
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path=zero_sized_filename
     )
 
     flow_test_lib.StartAndRunFlow(
@@ -186,15 +184,16 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=transfer.MultiGetFileArgs(
-            file_size="1MiB", pathspecs=[pathspec]
+        flow_args=flows_pb2.MultiGetFileArgs(
+            pathspecs=[pathspec],
+            file_size=1024 * 1024,  # 1MiB
         ),
     )
 
     # Now if we try to fetch a real /proc/ filename this will fail because the
     # filestore already contains the zero length file
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path="/proc/self/environ"
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path="/proc/self/environ"
     )
 
     flow_test_lib.StartAndRunFlow(
@@ -202,12 +201,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=transfer.MultiGetFileArgs(
+        flow_args=flows_pb2.MultiGetFileArgs(
             pathspecs=[pathspec],
             file_size=1024 * 1024,
         ),
     )
 
+    pathspec = mig_paths.ToRDFPathSpec(pathspec)
     with open(pathspec.last.path, "rb") as fd:
       data = fd.read()
 
@@ -230,13 +230,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     """Test MultiGetFile."""
 
     client_mock = action_mocks.MultiGetFileClientMock()
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"),
     )
     expected_size = os.path.getsize(pathspec.path)
 
-    args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
+    args = flows_pb2.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(
         transfer.MultiGetFile, "_ReceiveFileStat"
     ) as receivestat_instrument:
@@ -257,7 +257,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     with open(pathspec.path, "rb") as fd2:
       # Test the file that was created.
-      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      cp = db.ClientPath.FromPathSpec(
+          self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+      )
       fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
@@ -273,13 +275,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
   def testMultiGetFile_StopAtStat_CallsClientOnce(self):
     client_mock = action_mocks.MultiGetFileClientMock()
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"),
     )
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=[pathspec, pathspec],
-        stop_at=transfer.MultiGetFileArgs.StopAt.STAT,
+        stop_at=flows_pb2.MultiGetFileArgs.StopAt.STAT,
     )
 
     with mock.patch.object(
@@ -312,13 +314,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       with open(file_foo_path, "wb") as fd:
         fd.write(b"foo")
       expected_size = os.path.getsize(file_foo_path)
-      pathspec = rdf_paths.PathSpec(
+      pathspec = jobs_pb2.PathSpec(
           path=file_foo_path,
-          pathtype=rdf_paths.PathSpec.PathType.OS,
+          pathtype=jobs_pb2.PathSpec.PathType.OS,
       )
-      args = transfer.MultiGetFileArgs(
+      args = flows_pb2.MultiGetFileArgs(
           pathspecs=[pathspec, pathspec],
-          stop_at=transfer.MultiGetFileArgs.StopAt.STAT,
+          stop_at=flows_pb2.MultiGetFileArgs.StopAt.STAT,
       )
       flow_id = flow_test_lib.StartAndRunFlow(
           transfer.MultiGetFile,
@@ -333,17 +335,21 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.FINISHED
     )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=self.client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].pathspec.path, file_foo_path)
-    self.assertEqual(
-        results[0].pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
-    )
+    self.assertEqual(results[0].pathspec.pathtype, jobs_pb2.PathSpec.OS)
     self.assertEqual(results[0].st_size, expected_size)
 
     # While MultiGetFile only returns the `stat_entry`, we count on the
     # path info being written to the file store.
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    cp = db.ClientPath.FromPathSpec(
+        self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+    )
     self.assertRaises(file_store.FileHasNoContentError, file_store.OpenFile, cp)
 
     history = data_store.REL_DB.ReadPathInfoHistory(
@@ -352,20 +358,18 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertLen(history, 1)
     self.assertEqual(history[0].components[-1], "foo")
     self.assertTrue(history[0].HasField("stat_entry"))
-    self.assertEqual(
-        history[0].stat_entry, mig_client_fs.ToProtoStatEntry(results[0])
-    )
+    self.assertEqual(history[0].stat_entry, results[0])
     self.assertFalse(history[0].HasField("hash_entry"))
 
   def testMultiGetFile_StopAtHash_CallsClientTwice(self):
     client_mock = action_mocks.MultiGetFileClientMock()
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"),
     )
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=[pathspec, pathspec],
-        stop_at=transfer.MultiGetFileArgs.StopAt.HASH,
+        stop_at=flows_pb2.MultiGetFileArgs.StopAt.HASH,
     )
 
     with mock.patch.object(
@@ -398,9 +402,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(
-        flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.FINISHED
-    )
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
   def testMultiGetFile_StopAtHash_Results(self):
     client_mock = action_mocks.MultiGetFileClientMock()
@@ -410,13 +412,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       with open(file_foo_path, "wb") as fd:
         fd.write(b"foo")
       expected_size = os.path.getsize(file_foo_path)
-      pathspec = rdf_paths.PathSpec(
+      pathspec = jobs_pb2.PathSpec(
           path=file_foo_path,
-          pathtype=rdf_paths.PathSpec.PathType.OS,
+          pathtype=jobs_pb2.PathSpec.PathType.OS,
       )
-      args = transfer.MultiGetFileArgs(
+      args = flows_pb2.MultiGetFileArgs(
           pathspecs=[pathspec, pathspec],
-          stop_at=transfer.MultiGetFileArgs.StopAt.HASH,
+          stop_at=flows_pb2.MultiGetFileArgs.StopAt.HASH,
       )
       flow_id = flow_test_lib.StartAndRunFlow(
           transfer.MultiGetFile,
@@ -431,17 +433,21 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.FINISHED
     )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=self.client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].pathspec.path, file_foo_path)
-    self.assertEqual(
-        results[0].pathspec.pathtype, rdf_paths.PathSpec.PathType.OS
-    )
+    self.assertEqual(results[0].pathspec.pathtype, jobs_pb2.PathSpec.OS)
     self.assertEqual(results[0].st_size, expected_size)
 
     # While MultiGetFile only returns the `stat_entry`, we count on the
     # path info being written to the file store.
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    cp = db.ClientPath.FromPathSpec(
+        self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+    )
     self.assertRaises(file_store.FileHasNoContentError, file_store.OpenFile, cp)
 
     history = data_store.REL_DB.ReadPathInfoHistory(
@@ -450,9 +456,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertLen(history, 1)
     self.assertEqual(history[0].components[-1], "foo")
     self.assertTrue(history[0].HasField("stat_entry"))
-    self.assertEqual(
-        history[0].stat_entry, mig_client_fs.ToProtoStatEntry(results[0])
-    )
+    self.assertEqual(history[0].stat_entry, results[0])
     self.assertTrue(history[0].HasField("hash_entry"))
     self.assertEqual(
         text.Hexify(history[0].hash_entry.sha1),
@@ -481,12 +485,12 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       for i in range(total_num_chunks):
         fd.write(struct.pack("b", i) * transfer.MultiGetFile.CHUNK_SIZE)
 
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=path
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path=path
     )
 
     def _Check(expected_size):
-      args = transfer.MultiGetFileArgs(
+      args = flows_pb2.MultiGetFileArgs(
           pathspecs=[pathspec], file_size=expected_size
       )
       flow_test_lib.StartAndRunFlow(
@@ -498,7 +502,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       )
 
       # Test the file that was created.
-      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      cp = db.ClientPath.FromPathSpec(
+          self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+      )
       fd = file_store.OpenFile(cp)
       self.assertEqual(fd.size, expected_size)
 
@@ -524,10 +530,10 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         fd.write(b"Hello")
 
       pathspecs.append(
-          rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
+          jobs_pb2.PathSpec(pathtype=jobs_pb2.PathSpec.PathType.OS, path=path)
       )
 
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=10
     )
     flow_test_lib.StartAndRunFlow(
@@ -540,6 +546,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Now open each file and make sure the data is there.
     for pathspec in pathspecs:
+      pathspec = mig_paths.ToRDFPathSpec(pathspec)
       cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(b"Hello", fd_rel_db.read())
@@ -567,13 +574,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         fd.write(b"Hello")
 
       pathspecs.append(
-          rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
+          jobs_pb2.PathSpec(pathtype=jobs_pb2.PathSpec.PathType.OS, path=path)
       )
 
     # All those files are the same so the individual chunks should
     # only be downloaded once. By forcing maximum_pending_files=1,
     # there should only be a single TransferBuffer call.
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=1
     )
     flow_test_lib.StartAndRunFlow(
@@ -588,7 +595,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     for pathspec in pathspecs:
       # Check that each referenced file can be read.
-      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      cp = db.ClientPath.FromPathSpec(
+          self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+      )
       fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(b"Hello", fd_rel_db.read())
 
@@ -620,11 +629,11 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       with io.open(path, "wb") as fd:
         fd.write(data)
 
-      pathspec = rdf_paths.PathSpec(
-          pathtype=rdf_paths.PathSpec.PathType.OS, path=path
+      pathspec = jobs_pb2.PathSpec(
+          pathtype=jobs_pb2.PathSpec.PathType.OS, path=path
       )
 
-      args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+      args = flows_pb2.MultiGetFileArgs(pathspecs=[pathspec])
       flow_test_lib.StartAndRunFlow(
           transfer.MultiGetFile,
           client_mock,
@@ -633,6 +642,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
           flow_args=args,
       )
 
+      pathspec = mig_paths.ToRDFPathSpec(pathspec)
       cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(fd_rel_db.size, len(data))
@@ -655,13 +665,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
   def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
     client_mock = action_mocks.MultiGetFileClientMock()
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"),
     )
     expected_size = os.path.getsize(pathspec.path)
 
-    args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+    args = flows_pb2.MultiGetFileArgs(pathspecs=[pathspec])
     flow_test_lib.StartAndRunFlow(
         transfer.MultiGetFile,
         client_mock,
@@ -674,7 +684,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     with io.open(os.path.join(self.base_path, "test_img.dd"), "rb") as model_fd:
       h.update(model_fd.read())
 
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    cp = db.ClientPath.FromPathSpec(
+        self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+    )
     fd_rel_db = file_store.OpenFile(cp)
     self.assertEqual(fd_rel_db.hash_id.AsBytes(), h.digest())
 
@@ -691,13 +703,13 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   def testMultiGetFileSizeLimit(self):
     client_mock = action_mocks.MultiGetFileClientMock()
     image_path = os.path.join(self.base_path, "test_img.dd")
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path=image_path
     )
 
     # Read a bit more than one chunk (600 * 1024).
     expected_size = 750 * 1024
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=[pathspec], file_size=expected_size
     )
     flow_test_lib.StartAndRunFlow(
@@ -711,7 +723,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     with open(image_path, "rb") as fd:
       expected_data = fd.read(expected_size)
 
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    cp = db.ClientPath.FromPathSpec(
+        self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+    )
     fd_rel_db = file_store.OpenFile(cp)
 
     self.assertEqual(fd_rel_db.size, expected_size)
@@ -736,14 +750,14 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   def testMultiGetFileProgressReportsFailuresAndSuccessesCorrectly(self):
     client_mock = action_mocks.MultiGetFileClientMock()
     image_path = os.path.join(self.base_path, "test_img.dd")
-    pathspec_1 = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path
+    pathspec_1 = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path=image_path
     )
-    pathspec_2 = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path="/non/existing/path"
+    pathspec_2 = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path="/non/existing/path"
     )
 
-    args = transfer.MultiGetFileArgs(
+    args = flows_pb2.MultiGetFileArgs(
         pathspecs=[
             pathspec_1,
             pathspec_2,
@@ -757,9 +771,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_args=args,
     )
 
-    f_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
-    f_instance = transfer.MultiGetFile(f_obj)
-    p = f_instance.GetProgress()
+    proto_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    f_instance = transfer.MultiGetFile(proto_flow=proto_flow)
+    p = f_instance.GetProgressProto()
 
     self.assertEqual(p.num_pending_hashes, 0)
     self.assertEqual(p.num_pending_files, 0)
@@ -769,25 +783,31 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Check that pathspecs in the progress proto are returned in the same order
     # as in the args proto.
-    self.assertEqual(p.pathspecs_progress[0].pathspec, pathspec_1)
-    self.assertEqual(p.pathspecs_progress[1].pathspec, pathspec_2)
+    self.assertEqual(p.pathspecs_progress[0].pathspec.path, pathspec_1.path)
+    self.assertEqual(
+        p.pathspecs_progress[0].pathspec.pathtype, pathspec_1.pathtype
+    )
+    self.assertEqual(p.pathspecs_progress[1].pathspec.path, pathspec_2.path)
+    self.assertEqual(
+        p.pathspecs_progress[1].pathspec.pathtype, pathspec_2.pathtype
+    )
     # Check that per-pathspecs statuses are correct.
     self.assertEqual(
         p.pathspecs_progress[0].status,
-        transfer.PathSpecProgress.Status.COLLECTED,
+        flows_pb2.PathSpecProgress.Status.COLLECTED,
     )
     self.assertEqual(
-        p.pathspecs_progress[1].status, transfer.PathSpecProgress.Status.FAILED
+        p.pathspecs_progress[1].status, flows_pb2.PathSpecProgress.Status.FAILED
     )
 
   def testMultiGetFileProgressReportsSkippedDuplicatesCorrectly(self):
     client_mock = action_mocks.MultiGetFileClientMock()
     image_path = os.path.join(self.base_path, "test_img.dd")
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS, path=image_path
     )
 
-    args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+    args = flows_pb2.MultiGetFileArgs(pathspecs=[pathspec])
     # Let the flow run to make sure the file is collected.
     flow_test_lib.StartAndRunFlow(
         transfer.MultiGetFile,
@@ -806,18 +826,22 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_args=args,
     )
 
-    f_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
-    f_instance = transfer.MultiGetFile(f_obj)
+    proto_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    f_instance = transfer.MultiGetFile(proto_flow=proto_flow)
 
-    p = f_instance.GetProgress()
+    p = f_instance.GetProgressProto()
     self.assertEqual(p.num_collected, 0)
     self.assertEqual(p.num_failed, 0)
     self.assertEqual(p.num_skipped, 1)
 
     self.assertLen(p.pathspecs_progress, 1)
-    self.assertEqual(p.pathspecs_progress[0].pathspec, pathspec)
+    self.assertEqual(p.pathspecs_progress[0].pathspec.path, pathspec.path)
     self.assertEqual(
-        p.pathspecs_progress[0].status, transfer.PathSpecProgress.Status.SKIPPED
+        p.pathspecs_progress[0].pathspec.pathtype, pathspec.pathtype
+    )
+    self.assertEqual(
+        p.pathspecs_progress[0].status,
+        flows_pb2.PathSpecProgress.Status.SKIPPED,
     )
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
@@ -826,8 +850,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   ):
 
     client_mock = action_mocks.MultiGetFileClientMock()
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+    pathspec = jobs_pb2.PathSpec(
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"),
     )
 
@@ -836,7 +860,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,
-        flow_args=transfer.MultiGetFileArgs(pathspecs=[pathspec]),
+        flow_args=flows_pb2.MultiGetFileArgs(pathspecs=[pathspec]),
     )
 
     add_file_mock.assert_called_once()
@@ -845,14 +869,16 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertIsInstance(hash_id, rdf_objects.SHA256HashID)
     self.assertEqual(
         args[0][hash_id].client_path,
-        db.ClientPath.FromPathSpec(self.client_id, pathspec),
+        db.ClientPath.FromPathSpec(
+            self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+        ),
     )
     self.assertNotEmpty(args[0][hash_id].blob_refs)
     for blob_ref in args[0][hash_id].blob_refs:
-      self.assertIsInstance(blob_ref, rdf_objects.BlobReference)
+      self.assertIsInstance(blob_ref, objects_pb2.BlobReference)
 
   def testStatCallsStatReceiveFileStatOnly(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "test_img.dd")
 
     with mock.patch.object(
@@ -872,11 +898,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.STAT,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.STAT,
                 ),
             )
 
@@ -892,7 +916,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             self.assertFalse(mock_failure.called)
 
   def testStatCallsFileFetchFailed(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "invalid.dd")
 
     with mock.patch.object(
@@ -912,11 +936,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.STAT,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.STAT,
                 ),
             )
 
@@ -926,7 +948,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             self.assertTrue(mock_failure.called)
 
   def testHashCallsReceiveFileHash(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "test_img.dd")
 
     with mock.patch.object(
@@ -946,11 +968,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.HASH,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.HASH,
                 ),
             )
 
@@ -966,7 +986,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             self.assertFalse(mock_failure.called)
 
   def testHashCallsFileFetchFailed(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "invalid.dd")
 
     with mock.patch.object(
@@ -986,11 +1006,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.HASH,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.HASH,
                 ),
             )
 
@@ -1000,7 +1018,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             self.assertTrue(mock_failure.called)
 
   def testFileCallsReceiveFetchedFile(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "test_img.dd")
 
     with mock.patch.object(
@@ -1020,11 +1038,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.NOTHING,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.NOTHING,
                 ),
             )
 
@@ -1040,7 +1056,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             self.assertFalse(mock_failure.called)
 
   def testFileCallsFileFetchFailed(self):
-    pathtype = rdf_paths.PathSpec.PathType.OS
+    pathtype = jobs_pb2.PathSpec.PathType.OS
     path = os.path.join(self.base_path, "invalid.dd")
 
     with mock.patch.object(
@@ -1060,11 +1076,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                 action_mocks.MultiGetFileClientMock(),
                 creator=self.test_username,
                 client_id=self.client_id,
-                flow_args=transfer.MultiGetFileArgs(
-                    pathspecs=[
-                        rdf_paths.PathSpec(pathtype=pathtype, path=path)
-                    ],
-                    stop_at=transfer.MultiGetFileArgs.StopAt.NOTHING,
+                flow_args=flows_pb2.MultiGetFileArgs(
+                    pathspecs=[jobs_pb2.PathSpec(pathtype=pathtype, path=path)],
+                    stop_at=flows_pb2.MultiGetFileArgs.StopAt.NOTHING,
                 ),
             )
 
@@ -1090,7 +1104,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/tmp/foo/bar": b"Lorem ipsum.",
         }),
@@ -1136,7 +1150,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/tmp/foo/bar": b"Lorem ipsum.",
         }),
@@ -1185,7 +1199,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/tmp/foo/bar": b"Lorem ipsum.",
         }),
@@ -1243,7 +1257,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": content,
         }),
@@ -1311,7 +1325,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/quux/foo": b"Lorem ipsum.",
             "/quux/bar": b"Dolor sit amet.",
@@ -1422,6 +1436,94 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(file_baz.read(), b"Consectetur adipiscing elit.")
 
   @db_test_lib.WithDatabase
+  def testRRG_WindowsBackSlash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.STAT
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = r"C:\Windows\System32\notepad.exe"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            r"C:\Windows\System32\notepad.exe": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertEqual(result.pathspec.path, "C:/Windows/System32/notepad.exe")
+    self.assertTrue(stat.S_ISREG(result.st_mode))
+
+    path_info = rel_db.ReadPathInfo(
+        client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("C:", "Windows", "System32", "notepad.exe"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+
+  @db_test_lib.WithDatabase
+  def testRRG_WindowsForwardSlash(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.WINDOWS,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.STAT
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "C:/Windows/System32/notepad.exe"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakeWindowsFileHandlers({
+            r"C:\Windows\System32\notepad.exe": b"",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    self.assertTrue(flow_results[0].payload.Unpack(result))
+
+    self.assertEqual(result.pathspec.path, "C:/Windows/System32/notepad.exe")
+    self.assertTrue(stat.S_ISREG(result.st_mode))
+
+    path_info = rel_db.ReadPathInfo(
+        client_id,
+        path_type=objects_pb2.PathInfo.PathType.OS,
+        components=("C:", "Windows", "System32", "notepad.exe"),
+    )
+    self.assertTrue(stat.S_ISREG(path_info.stat_entry.st_mode))
+
+  @db_test_lib.WithDatabase
   def testRRG_WindowsLeadingSlash(self, rel_db: db.Database):
     client_id = db_test_utils.InitializeRRGClient(
         rel_db,
@@ -1438,7 +1540,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWindowsFileHandlers({
             r"C:\Windows\System32\notepad.exe": b"",
         }),
@@ -1481,7 +1583,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=transfer.MultiGetFile,
-        flow_args=mig_transfer.ToRDFMultiGetFileArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/tmp": {},
         }),
@@ -1499,6 +1601,289 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_log_messages = [flow_log.message for flow_log in flow_logs]
 
     self.assertIn("Unexpected file type for '/tmp': DIR", flow_log_messages)
+
+  @db_test_lib.WithDatabase
+  def testRRG_StopAtNothing_Symlink_Absolute(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.NOTHING
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "/foo/baz/symlink"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar/file": b"Lorem ipsum.",
+            "/foo/baz/symlink": "/foo/bar/file",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_store = flows_pb2.MultiGetFileStore()
+    self.assertTrue(flow_obj.store.Unpack(flow_store))
+
+    progress_by_path = {
+        progress.pathspec.path: progress
+        for progress in flow_store.pathspecs_progress
+    }
+    self.assertEqual(
+        progress_by_path["/foo/baz/symlink"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/file"].status,
+        flows_pb2.PathSpecProgress.COLLECTED,
+    )
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    flow_results[0].payload.Unpack(result)
+
+    self.assertEqual(result.pathspec.path, "/foo/bar/file")
+    self.assertTrue(stat.S_ISREG(result.st_mode))
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar", "file"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_StopAtNothing_Symlink_Relative(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.NOTHING
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "/foo/baz/symlink"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar/file": b"Lorem ipsum.",
+            "/foo/baz/symlink": "../bar/file",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_store = flows_pb2.MultiGetFileStore()
+    self.assertTrue(flow_obj.store.Unpack(flow_store))
+
+    progress_by_path = {
+        progress.pathspec.path: progress
+        for progress in flow_store.pathspecs_progress
+    }
+    self.assertEqual(
+        progress_by_path["/foo/baz/symlink"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/file"].status,
+        flows_pb2.PathSpecProgress.COLLECTED,
+    )
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    flow_results[0].payload.Unpack(result)
+
+    self.assertEqual(result.pathspec.path, "/foo/bar/file")
+    self.assertTrue(stat.S_ISREG(result.st_mode))
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar", "file"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_StopAtNothing_Symlink_Transitive(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.NOTHING
+    args.max_symlink_depth = 5
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "/foo/baz/symlink1"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar/file": b"Lorem ipsum.",
+            "/foo/baz/symlink1": "/foo/baz/symlink2",
+            "/foo/baz/symlink2": "/foo/bar/file",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_store = flows_pb2.MultiGetFileStore()
+    self.assertTrue(flow_obj.store.Unpack(flow_store))
+
+    progress_by_path = {
+        progress.pathspec.path: progress
+        for progress in flow_store.pathspecs_progress
+    }
+    self.assertEqual(
+        progress_by_path["/foo/baz/symlink1"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/baz/symlink2"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/file"].status,
+        flows_pb2.PathSpecProgress.COLLECTED,
+    )
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertLen(flow_results, 1)
+
+    result = jobs_pb2.StatEntry()
+    flow_results[0].payload.Unpack(result)
+
+    self.assertEqual(result.pathspec.path, "/foo/bar/file")
+    self.assertTrue(stat.S_ISREG(result.st_mode))
+
+    file = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("foo", "bar", "file"),
+        ),
+    )
+    self.assertEqual(file.read(), b"Lorem ipsum.")
+
+  @db_test_lib.WithDatabase
+  def testRRG_StopAtNothing_Symlink_MaxDepthLimit(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.NOTHING
+    args.max_symlink_depth = 3
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "/foo/bar/symlink1"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar/symlink1": "/foo/bar/symlink2",
+            "/foo/bar/symlink2": "/foo/bar/symlink3",
+            "/foo/bar/symlink3": "/foo/bar/symlink4",
+            "/foo/bar/symlink4": "/foo/bar/symlink5",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertEmpty(flow_results)
+
+    flow_store = flows_pb2.MultiGetFileStore()
+    self.assertTrue(flow_obj.store.Unpack(flow_store))
+
+    progress_by_path = {
+        progress.pathspec.path: progress
+        for progress in flow_store.pathspecs_progress
+    }
+    self.assertEqual(
+        progress_by_path["/foo/bar/symlink1"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/symlink2"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/symlink3"].status,
+        flows_pb2.PathSpecProgress.SKIPPED,
+    )
+    self.assertEqual(
+        progress_by_path["/foo/bar/symlink4"].status,
+        flows_pb2.PathSpecProgress.FAILED,
+    )
+
+  @db_test_lib.WithDatabase
+  def testRRG_StopAtNothing_Symlink_Circular(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    args = flows_pb2.MultiGetFileArgs()
+    args.stop_at = flows_pb2.MultiGetFileArgs.StopAt.NOTHING
+
+    pathspec = args.pathspecs.add()
+    pathspec.pathtype = jobs_pb2.PathSpec.OS
+    pathspec.path = "/foo/bar/symlink1"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=transfer.MultiGetFile,
+        flow_args=args,
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo/bar/symlink1": "/foo/bar/symlink2",
+            "/foo/bar/symlink2": "/foo/bar/symlink1",
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = rel_db.ReadFlowResults(client_id, flow_id, offset=0, count=8)
+    self.assertEmpty(flow_results)
 
 
 def main(argv):

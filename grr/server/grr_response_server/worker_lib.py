@@ -18,8 +18,6 @@ from grr_response_server import handler_registry
 from grr_response_server import server_stubs
 # pylint: enable=unused-import
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 
 
@@ -107,22 +105,20 @@ class GRRWorker(object):
       logging.info("Caught interrupt, exiting.")
       self.Shutdown()
 
-  def _ReleaseProcessedFlow(self, flow_obj: rdf_flow_objects.Flow) -> bool:
+  def _ReleaseProcessedFlow(self, flow_obj: flow_base.FlowBase) -> bool:
     """Release a processed flow if the processing deadline is not exceeded."""
-    rdf_flow = flow_obj.rdf_flow
-    if rdf_flow.processing_deadline < rdfvalue.RDFDatetime.Now():
+    if flow_obj.processing_deadline < rdfvalue.RDFDatetime.Now():
       raise flow_base.FlowError(
           "Lease expired for flow %s on %s (%s)."
           % (
-              rdf_flow.flow_id,
-              rdf_flow.client_id,
-              rdf_flow.processing_deadline,
+              flow_obj.flow_id,
+              flow_obj.client_id,
+              flow_obj.processing_deadline,
           ),
       )
     flow_obj.FlushQueuedMessages()
 
-    proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
-    return data_store.REL_DB.ReleaseProcessedFlow(proto_flow)
+    return data_store.REL_DB.ReleaseProcessedFlow(flow_obj.proto_flow_object)
 
   def ProcessFlow(
       self, flow_processing_request: flows_pb2.FlowProcessingRequest
@@ -143,19 +139,17 @@ class GRRWorker(object):
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return
 
-    rdf_flow = mig_flow_objects.ToRDFFlow(flow)
-
-    first_request_to_process = rdf_flow.next_request_to_process
+    first_request_to_process = flow.next_request_to_process
     logging.info(
         "Processing Flow %s/%s/%d (%s).",
         client_id,
         flow_id,
         first_request_to_process,
-        rdf_flow.flow_class_name,
+        flow.flow_class_name,
     )
 
-    flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
-    flow_obj = flow_cls(rdf_flow)
+    flow_cls = registry.FlowRegistry.FlowClassByName(flow.flow_class_name)
+    flow_obj = flow_cls(proto_flow=flow)
 
     if not flow_obj.IsRunning():
       logging.info(
@@ -179,7 +173,7 @@ class GRRWorker(object):
         raise FlowHasNothingToProcessError(
             "%s/%s: ReleaseProcessedFlow returned false but no "
             "request could be processed (next req: %d)."
-            % (client_id, flow_id, flow_obj.rdf_flow.next_request_to_process)
+            % (client_id, flow_id, flow_obj.next_request_to_process)
         )
 
     if flow_obj.IsRunning():
@@ -188,8 +182,8 @@ class GRRWorker(object):
           client_id,
           flow_id,
           first_request_to_process,
-          rdf_flow.flow_class_name,
-          rdf_flow.next_request_to_process,
+          flow.flow_class_name,
+          flow.next_request_to_process,
       )
     else:
       logging.info(
@@ -197,5 +191,5 @@ class GRRWorker(object):
           client_id,
           flow_id,
           first_request_to_process,
-          rdf_flow.flow_class_name,
+          flow.flow_class_name,
       )

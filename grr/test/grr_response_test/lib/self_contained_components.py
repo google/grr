@@ -2,6 +2,7 @@
 """Functions to run individual GRR components during self-contained testing."""
 
 import atexit
+import binascii
 import collections
 from collections.abc import Iterable
 import os
@@ -98,8 +99,6 @@ def _GetRunEndToEndTestsArgs(
       "admin",
       "--client_id",
       client_id,
-      "--ignore_test_context",
-      "True",
   ]
   if tests is not None:
     args += ["--run_only_tests", ",".join(tests)]
@@ -180,10 +179,12 @@ GRRConfigs = collections.namedtuple("GRRConfigs", [
 
 def InitGRRConfigs(
     mysql_database: str,
+    # TODO - I don't think all these parameters should be optional.
     mysql_username: Optional[str] = None,
     mysql_password: Optional[str] = None,
     logging_path: Optional[str] = None,
     osquery_path: Optional[str] = None,
+    command_signing_key_path: Optional[str] = None,
 ) -> GRRConfigs:
   """Initializes server and client config files."""
 
@@ -227,6 +228,12 @@ def InitGRRConfigs(
   if osquery_path is not None:
     config_writer_flags.extend(["--config_osquery_path", osquery_path])
 
+  if command_signing_key_path is not None:
+    config_writer_flags.extend([
+        "--config_command_signing_key_path",
+        command_signing_key_path,
+    ])
+
   p = _StartComponent(
       "grr_response_test.lib.self_contained_config_writer",
       config_writer_flags)
@@ -253,6 +260,8 @@ def InitFleetspeakConfigs(
     mysql_database: str,
     mysql_username: Optional[str] = None,
     mysql_password: Optional[str] = None,
+    rrg_path: Optional[str] = None,
+    rrg_command_verifying_key_bytes: Optional[bytes] = None,
     logging_path: Optional[str] = None,
 ) -> FleetspeakConfigs:
   """Initializes Fleetspeak server and client configs."""
@@ -330,6 +339,39 @@ def InitFleetspeakConfigs(
       TempPath("textservices", "GRR.textproto"), mode="w",
       encoding="utf-8") as fd:
     fd.write(text_format.MessageToString(service_conf))
+
+  if rrg_path is not None:
+    rrg_daemon_conf = daemonservice_config_pb2.Config()
+    rrg_daemon_conf.argv.extend([
+        rrg_path,
+        "--verbosity",
+        "DEBUG",
+        "--ping-rate",
+        "30s",
+        "--filestore-dir",
+        TempPath("filestore"),
+    ])
+    if logging_path is not None:
+      rrg_daemon_conf.argv.extend([
+          "--log-to-file",
+          os.path.join(logging_path, "rrg.log"),
+      ])
+    if rrg_command_verifying_key_bytes is not None:
+      rrg_daemon_conf.argv.extend([
+          "--command-verification-key",
+          binascii.hexlify(rrg_command_verifying_key_bytes).decode("ascii"),
+      ])
+    rrg_daemon_conf.monitor_heartbeats = True
+    rrg_daemon_conf.heartbeat_unresponsive_grace_period.seconds = 120
+    rrg_daemon_conf.heartbeat_unresponsive_kill_period.seconds = 60
+
+    rrg_service_conf = system_pb2.ClientServiceConfig()
+    rrg_service_conf.name = "RRG"
+    rrg_service_conf.factory = "Daemon"
+    rrg_service_conf.config.Pack(rrg_daemon_conf)
+
+    with open(TempPath("textservices", "RRG.textproto"), mode="wt") as fd:
+      fd.write(text_format.MessageToString(rrg_service_conf))
 
   # Server services configuration.
   service_config = services_pb2.ServiceConfig(name="GRR", factory="GRPC")

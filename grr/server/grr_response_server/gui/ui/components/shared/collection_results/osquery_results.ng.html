@@ -1,4 +1,4 @@
 
-@for (table of osqueryTables(); track table) {
-  <osquery-table [tableData]="table" [isHuntResult]="isHuntResult()" />
+@for (result of collectionResults(); track result) {
+  <osquery-table [tableData]="result" />
 }

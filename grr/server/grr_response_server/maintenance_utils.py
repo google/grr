@@ -20,7 +20,14 @@ _GRR_API_PAGE_SIZE = 1000
 
 
 def InitGRRRootAPI():
-  """Initializes the GRR root API."""
+  """Initializes the GRR root API.
+
+  This function should be used only in code that has initialized the entire
+  server stack, especially the database modules.
+
+  Returns:
+    An API object that can invoke root methods.
+  """
 
   return api.GrrApi(
       connector=api_shell_raw_access_lib.RawConnector(

@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component, input, Type} from '@angular/core';
+import {ChangeDetectionStrategy, Component, input, Type} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -15,6 +15,7 @@ import {CollapsibleContainerHarness} from './testing/collapsible_container_harne
 initTestEnvironment();
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
       <collapsible-container [state]="state()">
         <collapsible-title>Test title</collapsible-title>
@@ -27,6 +28,7 @@ class TestCollapsibleContainerWithInitialState {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
       <collapsible-container>
         <collapsible-title>Test title</collapsible-title>

@@ -1,17 +1,11 @@
 import {CommonModule} from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-} from '@angular/core';
+import {ChangeDetectionStrategy, Component, input} from '@angular/core';
 
 import {
   Browser as ApiBrowser,
   CollectBrowserHistoryResult as ApiCollectBrowserHistoryResult,
 } from '../../../lib/api/api_interfaces';
 import {translateStatEntry} from '../../../lib/api/translation/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
 import {
   FileResultsTable,
@@ -50,15 +44,10 @@ function flowFileResultsPerBrowserFromCollectionResults(
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectBrowserHistoryResults {
-  collectionResults = input.required<readonly CollectionResult[]>();
-
-  protected flowFileResultsPerBrowser = computed(() => {
-    return flowFileResultsPerBrowserFromCollectionResults(
-      this.collectionResults(),
-    );
-  });
-
-  protected isHuntResult = computed(() => {
-    return this.collectionResults().some(isHuntResult);
+  collectionResults = input.required<
+    Map<ApiBrowser, FlowFileResult[]>,
+    readonly CollectionResult[]
+  >({
+    transform: flowFileResultsPerBrowserFromCollectionResults,
   });
 }

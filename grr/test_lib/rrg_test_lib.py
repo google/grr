@@ -3,13 +3,19 @@
 
 from collections.abc import Mapping
 import contextlib
+import ctypes
+import dataclasses
+import enum
 import hashlib
+import itertools
+import json
 import logging
+import os
 import pathlib
 import re
 import stat
 import traceback
-from typing import Any, Callable, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, TypeVar, Union
 from unittest import mock
 
 from google.protobuf import any_pb2
@@ -17,7 +23,6 @@ from google.protobuf import timestamp_pb2
 from google.protobuf import descriptor as descriptor_pb2
 from google.protobuf import message as message_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -33,12 +38,15 @@ from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import blob_pb2 as rrg_blob_pb2
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 class Session:
@@ -74,10 +82,76 @@ class Session:
     self.parcels.setdefault(sink, []).append(item_copy)
 
 
+@dataclasses.dataclass(frozen=True)
+class FilestorePart:
+  offset: int
+  content: bytes
+  file_size: int
+
+
+class FilestoreStatus(enum.Enum):
+  PENDING = enum.auto()
+  COMPLETE = enum.auto()
+
+  @property
+  def proto(self) -> rrg_store_filestore_part_pb2.Status:
+    if self == self.PENDING:
+      return rrg_store_filestore_part_pb2.Status.PENDING
+    if self == self.COMPLETE:
+      return rrg_store_filestore_part_pb2.Status.COMPLETE
+    raise ValueError(self)
+
+
+class Filestore:
+  """Fake Python-only in-memory filestore emulating the RRG one."""
+
+  def __init__(self):
+    self._parts_by_file_sha256: dict[bytes, list[FilestorePart]] = {}
+    self._files_by_file_sha256: dict[bytes, bytes] = {}
+
+  def Store(self, file_sha256: bytes, part: FilestorePart) -> FilestoreStatus:
+    """Stores a part of the specified file in the fake filestore."""
+    parts = self._parts_by_file_sha256.setdefault(file_sha256, [])
+    parts.append(part)
+    parts.sort(key=lambda part: part.offset)
+
+    if not all(_.file_size == part.file_size for _ in parts):
+      raise ValueError(f"Inconsistent file length: {part.file_size}")
+
+    for part_prev, part_next in itertools.pairwise(parts):
+      if part_prev.offset + len(part_prev.content) < part_next.offset:
+        return FilestoreStatus.PENDING
+      if part_prev.offset + len(part_prev.content) > part_next.offset:
+        raise ValueError(f"Overlapping parts: {part_prev} and {part_next}")
+
+    if parts[0].offset > 0:
+      return FilestoreStatus.PENDING
+    if parts[-1].offset + len(parts[-1].content) < part.file_size:
+      return FilestoreStatus.PENDING
+    if parts[-1].offset + len(parts[-1].content) > part.file_size:
+      raise ValueError(f"Part out of bounds: {parts[-1]}")
+
+    file_content = b"".join(_.content for _ in parts)
+    if hashlib.sha256(file_content).digest() != file_sha256:
+      raise ValueError(f"Invalid SHA-256 digest for {file_sha256}")
+
+    self._files_by_file_sha256[file_sha256] = file_content
+    del self._parts_by_file_sha256[file_sha256]
+
+    return FilestoreStatus.COMPLETE
+
+  def Content(self, file_sha256: bytes) -> bytes:
+    """Returns content of the specified file from the fake filestore."""
+    return self._files_by_file_sha256[file_sha256]
+
+
+_ProtoArgsT = TypeVar("_ProtoArgsT", bound=message_pb2.Message)
+
+
 def ExecuteFlow(
     client_id: str,
-    flow_cls: type[flow_base.FlowBase],
-    flow_args: rdf_structs.RDFProtoStruct,
+    flow_cls: type[flow_base.FlowBase[_ProtoArgsT, Any, Any]],
+    flow_args: _ProtoArgsT,
     handlers: Mapping["rrg_pb2.Action", Callable[[Session], None]],
 ) -> str:
   """Create and execute flow on the given RRG client.
@@ -145,7 +219,7 @@ def ExecuteFlow(
     flow_id = flow.StartFlow(
         client_id=client_id,
         flow_cls=flow_cls,
-        flow_args=flow_args,
+        proto_flow_args=flow_args,
     )
 
     # Starting the flow also invokes its `Start` method which may fail for
@@ -256,7 +330,7 @@ def ExecuteFlow(
 
 
 def FakePosixFileHandlers(
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given POSIX file hierarchy.
 
@@ -272,7 +346,7 @@ def FakePosixFileHandlers(
 
 
 def FakeWindowsFileHandlers(
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given Windows file hierarchy.
 
@@ -289,7 +363,7 @@ def FakeWindowsFileHandlers(
 
 def FakeFileHandlers(
     path_cls: Callable[[str], pathlib.Path],
-    filesystem: dict[str, Union[bytes, str, dict[None, None]]],
+    filesystem: dict[str, Union[bytes, str, dict[None, None], None]],
 ) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
   """Action handlers that emulate given file hierarchy.
 
@@ -337,6 +411,9 @@ def FakeFileHandlers(
         return
 
       if isinstance(trie_node, bytes):
+        if args.max_size and len(trie_node) > args.max_size:
+          return
+
         result.metadata.type = rrg_fs_pb2.FileMetadata.FILE
         result.metadata.size = len(trie_node)
         result.metadata.unix_mode |= stat.S_IFREG
@@ -360,6 +437,11 @@ def FakeFileHandlers(
 
         for part in trie_node:
           Walk(trie_node=trie_node[part], path=path / part, depth=depth + 1)
+
+      elif path == pathlib.PurePosixPath("/dev/random"):
+        result.metadata.size = 0
+        result.metadata.unix_mode = 0o20666
+        result.metadata.unix_ino = 8
 
       else:
         # We verified content type above.
@@ -403,9 +485,14 @@ def FakeFileHandlers(
         content = filesystem[path.raw_bytes.decode("utf-8")]
         if isinstance(content, str):
           content = filesystem[content]
-          # TODO: Add support for non-absolute symlinks.
-          # TODO: Add support for recursive symlinks.
+          # TODO - Add support for non-absolute symlinks.
+          # TODO - Add support for recursive symlinks.
           assert isinstance(content, bytes)
+        if content is None and path.raw_bytes.decode("utf-8") == "/dev/random":
+          # Length must be specified (otherwise we read entrie infinite file).
+          assert args.length > 0
+          # We do `+ args.offset` to account for offsetting below.
+          content = os.urandom(args.length + args.offset)
       except KeyError:
         result.error = "open failed"
         session.Reply(result)
@@ -438,8 +525,8 @@ def FakeFileHandlers(
     content = filesystem[args.path.raw_bytes.decode("utf-8")]
     if isinstance(content, str):
       content = filesystem[content]
-      # TODO: Add support for non-absolute symlinks.
-      # TODO: Add support for recursive symlinks.
+      # TODO - Add support for non-absolute symlinks.
+      # TODO - Add support for recursive symlinks.
       assert isinstance(content, bytes)
 
     if args.length:
@@ -458,6 +545,102 @@ def FakeFileHandlers(
       rrg_pb2.Action.GET_FILE_METADATA: GetFileMetadataHandler,
       rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
       rrg_pb2.Action.GET_FILE_SHA256: GetFileSha256Handler,
+  }
+
+
+def FakeOsqueryHandlers(
+    queries: dict[str, str],
+    filestore: Optional[Filestore] = None,
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given osquery output.
+
+  Args:
+    queries: A mapping from query to its osquery output (in JSON format).
+    filestore: Filestore object to use for configuration storage (if needed).
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def ExecuteSignedCommandHandler(session: Session) -> None:
+    args = rrg_execute_signed_command_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    command = rrg_execute_signed_command_pb2.Command()
+    command.ParseFromString(args.command)
+    if command.path.raw_bytes.decode("utf-8") != "/usr/bin/osqueryd":
+      raise RuntimeError(f"Unexpected command path: {command.path}")
+    if not command.unsigned_stdin_allowed:
+      raise RuntimeError("Unsigned stdin not allowed")
+
+    for i, _ in enumerate(command.args):
+      if command.args[i].signed == "--config-path":
+        if not command.args[i + 1].filestore_file_sha256_allowed:
+          raise RuntimeError("Filestore file SHA-256 not allowed")
+        if filestore is None:
+          raise RuntimeError("Filestore is not available")
+        # TODO - For now we just assert that there is only a single
+        # SHA-256 given. We should have a fake signed command execution handler
+        # that emulates RRG's argument resolution instead.
+        assert len(args.filestore_file_sha256s) == 1
+
+        # We just ensure the configuration is a valid JSON, we don't really want
+        # to emulate individual osquery options...
+        json.loads(filestore.Content(args.filestore_file_sha256s[0]))
+
+    query = args.unsigned_stdin.decode("utf-8").strip()
+    try:
+      output = queries[query]
+    except KeyError:
+      raise RuntimeError(f"Unexpected query: {query}")  # pylint: disable=raise-missing-from
+
+    result = rrg_execute_signed_command_pb2.Result()
+    result.exit_code = 0
+    result.stdout = output.encode("utf-8")
+
+    session.Reply(result)
+
+  handlers = {
+      rrg_pb2.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
+  }
+  if filestore is not None:
+    handlers |= FakeFilestoreHandlers(filestore)
+  return handlers
+
+
+def FakeFilestoreHandlers(
+    filestore: Filestore,
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate filestore operations.
+
+  Args:
+    filestore: Filestore object to use for storage.
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def StoreFilestorePartHandler(session: Session) -> None:
+    args = rrg_store_filestore_part_pb2.Args()
+    args.ParseFromString(session.args.value)
+
+    status = filestore.Store(
+        args.file_sha256,
+        FilestorePart(
+            offset=args.part_offset,
+            content=args.part_content,
+            file_size=args.file_size,
+        ),
+    )
+
+    result = rrg_store_filestore_part_pb2.Result()
+    result.file_sha256 = args.file_sha256
+    result.status = status.proto
+
+    session.Reply(result)
+
+  return {
+      rrg_pb2.STORE_FILESTORE_PART: StoreFilestorePartHandler,
   }
 
 
@@ -580,6 +763,65 @@ def FakeWinregHandlers(
       rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
       rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
       rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
+  }
+
+
+def FakeWmiHandlers(
+    # pyformat: disable
+    tables: dict[str, list[dict[str, Union[
+        bool,
+        ctypes.c_uint, ctypes.c_uint64,
+        ctypes.c_int, ctypes.c_int64,
+        ctypes.c_float,
+        ctypes.c_double,
+        str,
+    ]]]],
+    # pyformat: enable
+) -> Mapping["rrg_pb2.Action", Callable[[Session], None]]:
+  """Action handlers that emulate given WMI query result rows.
+
+  Args:
+    tables: Mapping from table names to lists of rows where each rows maps a
+      column name to its value.
+
+  Returns:
+    Handlers that can be supplied to the `ExecuteFlow` helper.
+  """
+
+  def QueryWmiHandler(session: Session) -> None:
+    args = rrg_query_wmi_pb2.Args()
+    assert session.args.Unpack(args)
+
+    if re.search(r"^\s*SELECT\b", args.query, re.MULTILINE) is None:
+      raise RuntimeError(f"Non-`SELECT` WMI query: {args.query!r}")
+
+    match = re.search(r"\bFROM\b\s*(?P<table>\w+)", args.query, re.MULTILINE)
+    if match is None:
+      raise RuntimeError(f"No `FROM` clause in WMI query: {args.query!r}")
+
+    for row in tables[match["table"]]:
+      result = rrg_query_wmi_pb2.Result()
+
+      for column, value in row.items():
+        if isinstance(value, bool):
+          result.row[column].bool = value
+        elif isinstance(value, (ctypes.c_uint, ctypes.c_uint64)):
+          result.row[column].uint = value.value
+        elif isinstance(value, (ctypes.c_int, ctypes.c_int64)):
+          result.row[column].int = value.value
+        elif isinstance(value, ctypes.c_float):
+          result.row[column].float = value.value
+        elif isinstance(value, ctypes.c_double):
+          result.row[column].double = value.value
+        elif isinstance(value, str):
+          result.row[column].string = value
+        else:
+          raise ValueError(f"Unsupported value type: {type(value)}")
+
+      session.Reply(result)
+
+  return {
+      rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
   }
 
 

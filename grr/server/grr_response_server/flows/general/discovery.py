@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 
-import logging
-
 from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import mig_protodict
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import metrics
 from grr_response_proto import cloud_pb2
 from grr_response_proto import crowdstrike_pb2
@@ -21,7 +19,6 @@ from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
-from grr_response_server import fleetspeak_utils
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import notification
@@ -33,22 +30,16 @@ from grr_response_server.flows.general import cloud
 from grr_response_server.flows.general import crowdstrike
 from grr_response_server.flows.general import hardware
 from grr_response_server.flows.general import memsize
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import clients as models_clients
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 from grr_response_proto.rrg.action import list_interfaces_pb2 as rrg_list_interfaces_pb2
 from grr_response_proto.rrg.action import list_mounts_pb2 as rrg_list_mounts_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
-FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 CLOUD_METADATA_COLLECTION_ERRORS = metrics.Counter(
     "cloud_metadata_collection_errors"
 )
-
-
-class InterrogateArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.InterrogateArgs
 
 
 class Interrogate(
@@ -61,15 +52,11 @@ class Interrogate(
   """Interrogate various things about the host."""
 
   category = "/Administrative/"
-  args_type = InterrogateArgs
-  result_types = (rdf_objects.ClientSnapshot,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   proto_args_type = flows_pb2.InterrogateArgs
   proto_result_types = (objects_pb2.ClientSnapshot,)
   proto_store_type = flows_pb2.InterrogateStore
-
-  only_protos_allowed = True
 
   def Start(self):
     """Start off all the tests."""
@@ -77,7 +64,7 @@ class Interrogate(
       raise flow_base.FlowError("Neither Python nor RRG agent is supported")
 
     self.store.client_snapshot.client_id = self.client_id
-    self.store.client_snapshot.metadata.source_flow_id = self.rdf_flow.flow_id
+    self.store.client_snapshot.metadata.source_flow_id = self.flow_id
 
     # There are three possible scenarios:
     #
@@ -193,7 +180,7 @@ class Interrogate(
         result.install_time.ToMicroseconds()
     )
 
-    # TODO: Remove these lines.
+    # TODO - Remove these lines.
     #
     # At the moment `ProcessKnowledgeBase` uses `state.fqdn` and `state.os` for
     # knowledgebase and overrides everything else. The code should be refactored
@@ -231,7 +218,7 @@ class Interrogate(
       self.Log("Failed to list interfaces: %s", responses.status)
       return
 
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.client_snapshot.interfaces[:]
 
     for response in responses:
@@ -265,7 +252,7 @@ class Interrogate(
       self.Log("Failed to list mounts: %s", responses.status)
       return
 
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.client_snapshot.filesystems[:]
 
     for response in responses:
@@ -354,9 +341,7 @@ class Interrogate(
 
       try:
         # Update the client index
-        client_index.ClientIndex().AddClient(
-            mig_objects.ToRDFClientSnapshot(client)
-        )
+        client_index.ClientIndex().AddClient(client)
       except db.UnknownClientError:
         pass
 
@@ -448,31 +433,6 @@ class Interrogate(
 
     self.store.client_snapshot.knowledge_base.CopyFrom(kb)
 
-    if (
-        config.CONFIG["Interrogate.collect_passwd_cache_users"]
-        and kb.os == "Linux"
-        # RRG agents always collect `passwd.cache` users as part of their
-        # knowledgebase initialization flow.
-        and self.python_agent_support
-    ):
-      condition = flows_pb2.FileFinderCondition()
-      condition.condition_type = (
-          flows_pb2.FileFinderCondition.Type.CONTENTS_REGEX_MATCH
-      )
-      condition.contents_regex_match.regex = (
-          b"^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"
-      )
-
-      args = flows_pb2.FileFinderArgs()
-      args.paths.append("/etc/passwd.cache")
-      args.conditions.append(condition)
-
-      self.CallClientProto(
-          server_stubs.FileFinderOS,
-          args,
-          next_state=self.ProcessPasswdCacheUsers.__name__,
-      )
-
     self.CallFlowProto(
         hardware.CollectHardwareInfo.__name__,
         next_state=self.ProcessHardwareInfo.__name__,
@@ -480,7 +440,7 @@ class Interrogate(
 
     if (
         (kb.os == "Linux" or kb.os == "Darwin")
-        # TODO: In RRG-based installations, this call should not be
+        # TODO - In RRG-based installations, this call should not be
         # necessary as this information should be collected as part of the mount
         # listing routine.
         and self.python_agent_support
@@ -517,9 +477,7 @@ class Interrogate(
 
     try:
       # Update the client index for the rdf_objects.ClientSnapshot.
-      client_index.ClientIndex().AddClient(
-          mig_objects.ToRDFClientSnapshot(self.store.client_snapshot)
-      )
+      client_index.ClientIndex().AddClient(self.store.client_snapshot)
     except db.UnknownClientError:
       pass
 
@@ -677,7 +635,7 @@ class Interrogate(
       interfaces.append(network_interface)
     interfaces.sort(key=lambda i: i.ifname)
 
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.client_snapshot.interfaces[:]
     self.store.client_snapshot.interfaces.extend(interfaces)
 
@@ -700,16 +658,6 @@ class Interrogate(
     del self.store.client_snapshot.filesystems[:]
     self.store.client_snapshot.filesystems.extend(proto_filesystems)
 
-  def _ValidateLabel(self, label):
-    if not label:
-      raise ValueError("Label name cannot be empty.")
-
-    is_valid = lambda char: char.isalnum() or char in " _./:-"
-    if not all(map(is_valid, label)):
-      raise ValueError(
-          "Label name can only contain: a-zA-Z0-9_./:- but got: '%s'" % label
-      )
-
   @flow_base.UseProto2AnyResponses
   def ClientInfo(
       self, responses: flow_responses.Responses[any_pb2.Any]
@@ -721,35 +669,6 @@ class Interrogate(
 
     client_info = jobs_pb2.ClientInformation()
     list(responses)[0].Unpack(client_info)
-
-    # Fetch labels for the client from Fleetspeak. If Fleetspeak doesn't
-    # have any labels for the GRR client, fall back to labels reported by
-    # the client.
-    fleetspeak_labels = fleetspeak_utils.GetLabelsFromFleetspeak(self.client_id)
-    if fleetspeak_labels:
-      # TODO: Replace with `clear()` once upgraded.
-      del client_info.labels[:]
-      client_info.labels.extend(fleetspeak_labels)
-      data_store.REL_DB.AddClientLabels(
-          client_id=self.client_id, owner="GRR", labels=fleetspeak_labels
-      )
-    else:
-      FLEETSPEAK_UNLABELED_CLIENTS.Increment()
-      logging.warning(
-          "Failed to get labels for Fleetspeak client %s.", self.client_id
-      )
-
-    sanitized_labels = []
-    for label in client_info.labels:
-      try:
-        self._ValidateLabel(label)
-        sanitized_labels.append(label)
-      except ValueError:
-        self.Log("Got invalid label: %s", label)
-
-    # TODO: Replace with `clear()` once upgraded.
-    del client_info.labels[:]
-    client_info.labels.extend(sanitized_labels)
 
     self.store.client_snapshot.startup_info.client_info.CopyFrom(client_info)
 
@@ -814,88 +733,6 @@ class Interrogate(
       edr_agent.agent_id = response.agent_id
       self.store.client_snapshot.edr_agents.append(edr_agent)
 
-  @flow_base.UseProto2AnyResponses
-  def ProcessPasswdCacheUsers(
-      self,
-      responses: flow_responses.Responses[any_pb2.Any],
-  ) -> None:
-    """Processes user information obtained from the `/etc/passwd.cache` file."""
-    if not responses.success or not list(responses):
-      status = responses.status
-      self.Log("failed to collect users from `/etc/passwd.cache`: %s", status)
-      return
-
-    users: list[knowledge_base_pb2.User] = []
-
-    for response_any in responses:
-      if not response_any.Is(flows_pb2.FileFinderResult.DESCRIPTOR):
-        raise flow_base.FlowError(
-            f"Unexpected response type: {response_any.type_url}"
-        )
-
-      response = flows_pb2.FileFinderResult()
-      response_any.Unpack(response)
-
-      for match in response.matches:
-        match = match.data.decode("utf-8", "backslashreplace").strip()
-        if not match:
-          continue
-
-        try:
-          (username, _, uid, gid, full_name, homedir, shell) = match.split(":")
-        except ValueError:
-          self.Log("Unexpected `/etc/passwd.cache` line format: %s", match)
-          continue
-
-        try:
-          uid = int(uid)
-        except ValueError:
-          self.Log("Invalid `/etc/passwd.cache` UID: %s", uid)
-          continue
-
-        try:
-          gid = int(gid)
-        except ValueError:
-          self.Log("Invalid `/etc/passwd.cache` GID: %s", gid)
-          continue
-
-        users.append(
-            knowledge_base_pb2.User(
-                username=username,
-                uid=uid,
-                gid=gid,
-                full_name=full_name,
-                homedir=homedir,
-                shell=shell,
-            )
-        )
-
-    kb_users_by_username: dict[str, knowledge_base_pb2.User] = {
-        user.username: user
-        for user in self.store.client_snapshot.knowledge_base.users
-    }
-
-    for user in users:
-      # User lookup should never fail as we only grepped for known users. If
-      # this assumption does not hold for whatever reason, it is better to fail
-      # loudly.
-      kb_user = kb_users_by_username[user.username]
-
-      if not kb_user.uid and user.uid:
-        kb_user.uid = user.uid
-
-      if not kb_user.gid and user.gid:
-        kb_user.gid = user.gid
-
-      if not kb_user.full_name and user.full_name:
-        kb_user.full_name = user.full_name
-
-      if not kb_user.homedir and user.homedir:
-        kb_user.homedir = user.homedir
-
-      if not kb_user.shell and user.shell:
-        kb_user.shell = user.shell
-
   def NotifyAboutEnd(self):
     notification.Notify(
         self.creator,
@@ -915,25 +752,27 @@ class Interrogate(
     except db.UnknownClientError:
       pass
 
-    rdf_snapshot = mig_objects.ToRDFClientSnapshot(self.store.client_snapshot)
-    rdf_summary = rdf_snapshot.GetSummary()
-    rdf_summary.client_id = self.client_id
-    rdf_summary.timestamp = rdfvalue.RDFDatetime.Now()
-    rdf_summary.last_ping = rdf_summary.timestamp
+    summary = models_clients.GetSummaryFromClientSnapshot(
+        self.store.client_snapshot
+    )
+    summary.client_id = self.client_id
+    summary.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+    summary.last_ping = summary.timestamp
     # Note that we do not use `self.rrg_version` as this one can include flow-
     # specific overrides (e.g. when RRG support is disabled) and so is less
     # reliable to use as a source for metadata.
-    rdf_summary.rrg_version_major = self.rrg_startup.metadata.version.major
-    rdf_summary.rrg_version_minor = self.rrg_startup.metadata.version.minor
-    rdf_summary.rrg_version_patch = self.rrg_startup.metadata.version.patch
-    rdf_summary.rrg_version_pre = self.rrg_startup.metadata.version.pre
+    summary.rrg_version_major = self.rrg_startup.metadata.version.major
+    summary.rrg_version_minor = self.rrg_startup.metadata.version.minor
+    summary.rrg_version_patch = self.rrg_startup.metadata.version.patch
+    summary.rrg_version_pre = self.rrg_startup.metadata.version.pre
 
+    rdf_summary = mig_client.ToRDFClientSummary(summary)
     events.Events.PublishEvent("Discovery", rdf_summary, username=self.creator)
 
     self.SendReplyProto(self.store.client_snapshot)
 
     index = client_index.ClientIndex()
-    index.AddClient(mig_objects.ToRDFClientSnapshot(self.store.client_snapshot))
+    index.AddClient(self.store.client_snapshot)
     labels = self.store.client_snapshot.startup_info.client_info.labels
     if labels:
       data_store.REL_DB.AddClientLabels(

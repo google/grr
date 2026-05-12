@@ -48,6 +48,147 @@ describe('HttpApiService', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
+  describe('verifyClientAccess', () => {
+    it('calls the correct endpoint', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService.verifyClientAccess('C.1234').subscribe((result) => {
+        results.push(result);
+      });
+
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/access`,
+      });
+      expect(req).toBeTruthy();
+    }));
+
+    it('returns true if the server returned a 200', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService.verifyClientAccess('C.1234').subscribe((result) => {
+        results.push(result);
+      });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/access`,
+      });
+      req.flush({}, {status: 200, statusText: 'OK'});
+
+      expect(results).toEqual([true]);
+    }));
+
+    it('returns false if the server returned a 403', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService.verifyClientAccess('C.1234').subscribe((result) => {
+        results.push(result);
+      });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/access`,
+      });
+      req.flush({}, {status: 403, statusText: 'Forbidden'});
+
+      expect(results).toEqual([false]);
+    }));
+  });
+
+  describe('verifyHuntAccess', () => {
+    it('calls the correct endpoint', fakeAsync(() => {
+      httpApiService.verifyHuntAccess('ABCD1234').subscribe();
+
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/hunts/ABCD1234/access`,
+      });
+      expect(req).toBeTruthy();
+    }));
+
+    it('returns true if the server returned a 200', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService.verifyHuntAccess('ABCD1234').subscribe((result) => {
+        results.push(result);
+      });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/hunts/ABCD1234/access`,
+      });
+      req.flush({}, {status: 200, statusText: 'OK'});
+
+      expect(results).toEqual([true]);
+    }));
+
+    it('returns false if the server returned a 403', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService.verifyHuntAccess('ABCD1234').subscribe((result) => {
+        results.push(result);
+      });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/hunts/ABCD1234/access`,
+      });
+      req.flush({}, {status: 403, statusText: 'Forbidden'});
+
+      expect(results).toEqual([false]);
+    }));
+  });
+
+  describe('getFileAccess', () => {
+    it('calls the correct endpoint', fakeAsync(() => {
+      httpApiService
+        .getFileAccess({
+          clientId: 'C.1234',
+          path: '/foo/bar',
+          pathType: PathSpecPathType.OS,
+        })
+        .subscribe();
+
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/vfs-details/fs/os/foo/bar`,
+      });
+      expect(req).toBeTruthy();
+    }));
+
+    it('returns true if the server returned a 200', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService
+        .getFileAccess({
+          clientId: 'C.1234',
+          path: '/foo/bar',
+          pathType: PathSpecPathType.OS,
+        })
+        .subscribe((result) => {
+          results.push(result);
+        });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/vfs-details/fs/os/foo/bar`,
+      });
+      req.flush({}, {status: 200, statusText: 'OK'});
+
+      expect(results).toEqual([true]);
+    }));
+
+    it('returns false if the server returned a 403', fakeAsync(() => {
+      const results: boolean[] = [];
+      httpApiService
+        .getFileAccess({
+          clientId: 'C.1234',
+          path: '/foo/bar',
+          pathType: PathSpecPathType.OS,
+        })
+        .subscribe((result) => {
+          results.push(result);
+        });
+      const req = httpMock.expectOne({
+        method: 'HEAD',
+        url: `${URL_PREFIX}/clients/C.1234/vfs-details/fs/os/foo/bar`,
+      });
+      req.flush({}, {status: 403, statusText: 'Forbidden'});
+
+      expect(results).toEqual([false]);
+    }));
+  });
+
   it('updateVfsFileContent posts, then polls, then gets VFS data', fakeAsync(async () => {
     const observable = httpApiService.updateVfsFileContent({
       clientId: 'C.1234',
@@ -802,7 +943,7 @@ describe('HttpApiService', () => {
       httpMock.expectOne({
         method: 'GET',
         // Note: camelCase works due to the following being a GET request. It
-        // wouldn't work on a POST one due to TODO
+        // wouldn't work on a POST one due to TODO(user)
         url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}`,
       });
     });
@@ -951,11 +1092,30 @@ describe('HttpApiService', () => {
   describe('fetchHuntLogs', () => {
     it('calls http service with correct url', () => {
       const huntId = '1234';
-      httpApiService.fetchHuntLogs(huntId).subscribe();
+      httpApiService.fetchHuntLogs({huntId}).subscribe();
 
       httpMock.expectOne({
         method: 'GET',
-        url: `${URL_PREFIX}/hunts/${huntId}/log`,
+        url: `${URL_PREFIX}/hunts/${huntId}/log?huntId=${huntId}`,
+      });
+    });
+
+    it("calls http service's GET with the huntId, count and offset", () => {
+      const huntId = '1234';
+      const count = '10';
+      const offset = '5';
+
+      httpApiService
+        .fetchHuntLogs({
+          huntId,
+          count,
+          offset,
+        })
+        .subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/log?huntId=${huntId}&offset=${offset}&count=${count}`,
       });
     });
   });
@@ -971,6 +1131,30 @@ describe('HttpApiService', () => {
       httpMock.expectOne({
         method: 'GET',
         url: `${URL_PREFIX}/clients/${clientId}/startup-infos?start=${start.getTime() * 1000}&end=${end.getTime() * 1000}&exclude_snapshot_collections=true`,
+      });
+    });
+  });
+
+  describe('uploadArtifact', () => {
+    it('calls http service with correct url and body', () => {
+      const artifact = 'test_artifact';
+      httpApiService.uploadArtifact(artifact).subscribe();
+      const req = httpMock.expectOne({
+        method: 'POST',
+        url: `${URL_PREFIX}/artifacts`,
+      });
+      expect(req.request.body.artifact).toBe(artifact);
+    });
+  });
+
+  describe('deleteArtifact', () => {
+    it('calls http service with correct url and params', () => {
+      const artifactName = 'test_artifact';
+      httpApiService.deleteArtifact(artifactName).subscribe();
+
+      httpMock.expectOne({
+        method: 'DELETE',
+        url: `${URL_PREFIX}/artifacts/${artifactName}`,
       });
     });
   });

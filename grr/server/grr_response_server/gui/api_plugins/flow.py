@@ -6,16 +6,12 @@ from collections.abc import Callable, Iterable, Iterator, Sequence
 import itertools
 import logging
 import re
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.rdfvalues import mig_flows
-from grr_response_core.lib.rdfvalues import mig_protodict
-from grr_response_core.lib.rdfvalues import mig_structs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -35,14 +31,10 @@ from grr_response_server import notification
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
-from grr_response_server.gui import mig_api_call_handler_utils
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_flow_runner
 
 
@@ -64,7 +56,10 @@ def GetFlowContextStateFromFlowObject(
     flow_obj: flows_pb2.Flow,
 ) -> Optional["flows_pb2.FlowContext.State"]:
   """Returns the state of the ApiFlow based on the flow_obj."""
-  if flow_obj.HasField("client_crash_info"):
+  if (
+      flow_obj.HasField("client_crash_info")
+      or flow_obj.flow_state == flows_pb2.Flow.FlowState.CRASHED
+  ):
     return flows_pb2.FlowContext.State.CLIENT_CRASHED
   elif flow_obj.flow_state == flows_pb2.Flow.FlowState.RUNNING:
     return flows_pb2.FlowContext.State.RUNNING
@@ -78,7 +73,10 @@ def GetApiFlowStateFromFlowObject(
     flow_obj: flows_pb2.Flow,
 ) -> Optional["flow_pb2.ApiFlow.State"]:
   """Returns the state of the ApiFlow based on the flow_obj."""
-  if flow_obj.HasField("client_crash_info"):
+  if (
+      flow_obj.HasField("client_crash_info")
+      or flow_obj.flow_state == flows_pb2.Flow.FlowState.CRASHED
+  ):
     return flow_pb2.ApiFlow.State.CLIENT_CRASHED
   elif flow_obj.flow_state == flows_pb2.Flow.FlowState.RUNNING:
     return flow_pb2.ApiFlow.State.RUNNING
@@ -149,6 +147,11 @@ def InitRunnerArgsFromFlowObject(
   return runner_args
 
 
+def GetRobotUsers() -> set[str]:
+  """Returns the set of robot users according to the config."""
+  return access_control.SYSTEM_USERS.union(config.CONFIG["AdminUI.robot_users"])
+
+
 def InitApiFlowFromFlowObject(
     flow_obj: flows_pb2.Flow,
     with_progress: bool = False,
@@ -167,8 +170,9 @@ def InitApiFlowFromFlowObject(
   models_utils.CopyAttr(
       flow_obj, api_flow, "last_update_time", "last_active_at"
   )
+  models_utils.CopyAttr(flow_obj, api_flow, "parent_hunt_id")
   api_flow.creator = flow_obj.creator
-  api_flow.is_robot = flow_obj.creator in access_control.SYSTEM_USERS
+  api_flow.is_robot = flow_obj.creator in GetRobotUsers()
 
   state = GetApiFlowStateFromFlowObject(flow_obj)
   if state is not None:
@@ -200,24 +204,12 @@ def InitApiFlowFromFlowObject(
   api_flow.args.CopyFrom(flow_obj.args)
 
   if with_progress:
-    # TODO: Once all `Progress` is reported with a proto, start
-    # calling `GetProgressProto()` here instead.
     flow_cls = _GetFlowClass(api_flow)
     if flow_cls:
-      flow_instance = flow_cls(mig_flow_objects.ToRDFFlow(flow_obj))
-      api_flow.progress.Pack(flow_instance.GetProgress().AsPrimitiveProto())
+      flow_instance = flow_cls(proto_flow=flow_obj)
+      api_flow.progress.Pack(flow_instance.GetProgressProto())
     api_flow.result_metadata.CopyFrom(flow_obj.result_metadata)
 
-  if with_state_and_context and flow_obj.HasField("persistent_data"):
-    rdf_persistend_data = mig_protodict.ToRDFAttributedDict(
-        flow_obj.persistent_data
-    )
-    rdf_api_data = api_call_handler_utils.ApiDataObject().InitFromDataObject(
-        rdf_persistend_data
-    )
-    api_flow.state_data.CopyFrom(
-        mig_api_call_handler_utils.ToProtoApiDataObject(rdf_api_data)
-    )
   if flow_obj.HasField("store"):
     api_flow.store.CopyFrom(flow_obj.store)
 
@@ -243,80 +235,15 @@ def InitApiFlowDescriptorFromFlowClass(
     context: api_call_context.ApiCallContext,
 ) -> flow_pb2.ApiFlowDescriptor:
   """Creates an ApiFlowDescriptor from a flow class."""
-
-  def _GetCallingPrototypeAsString(flow_cls) -> str:
-    """Get a description of the calling prototype for this flow class."""
-
-    flow_args = []
-    flow_args.append("client_id=client_id")
-    flow_args.append(
-        f"flow_cls={flow_cls.__module__.split('.')[-1]}.{flow_cls.__name__}"
-    )
-    prototypes = []
-    if flow_cls.args_type:
-      for type_descriptor in flow_cls.args_type.type_infos:
-        if not type_descriptor.hidden:
-          prototypes.append(f"{type_descriptor.name}={type_descriptor.name}")
-
-    flow_args = ", ".join(flow_args + prototypes)
-    return "".join(["flow.StartFlow(", flow_args, ")"])
-
-  def _GetFlowArgsHelpAsString(flow_cls: type[flow_base.FlowBase]) -> str:
-    """Get a string description of the calling prototype for this flow."""
-    output = []
-    output.append("  Call Spec:")
-    output.append(f"    {_GetCallingPrototypeAsString(flow_cls)}")
-    output.append("")
-
-    arg_list = sorted(
-        _GetArgsDescription(flow_cls.args_type).items(), key=lambda x: x[0]
-    )
-    if not arg_list:
-      output.append("  Args: None")
-    else:
-      output.append("  Args:")
-      for arg, val in arg_list:
-        output.append(f"    {arg}")
-        output.append(f"      description: {val['description']}")
-        output.append(f"      type: {val['type']}")
-        output.append(f"      default: {val['default']}")
-        output.append("")
-    return "\n".join(output)
-
-  def _GetArgsDescription(
-      args_type: rdf_flows.EmptyFlowArgs,
-  ) -> dict[str, dict[str, Any]]:
-    """Get a simplified description of the args_type for a flow."""
-    args: dict[str, dict[str, Any]] = {}
-    if args_type:
-      for type_descriptor in args_type.type_infos:
-        if not type_descriptor.hidden:
-          args[type_descriptor.name] = {
-              "description": type_descriptor.description,
-              "default": type_descriptor.default,
-              "type": (
-                  type_descriptor.type.__name__ if type_descriptor.type else ""
-              ),
-          }
-    return args
-
-  def GetFlowDocumentation(flow_cls: type[flow_base.FlowBase]) -> str:
-    """Get a string description of the flow documentation."""
-    return (
-        f"{getattr(flow_cls, '__doc__', '')}\n\n"
-        f"{_GetFlowArgsHelpAsString(flow_cls)}"
-    )
+  del context  # Unused.
 
   flow_descriptor = flow_pb2.ApiFlowDescriptor()
   flow_descriptor.name = flow_cls.__name__
   if flow_cls.friendly_name:
     flow_descriptor.friendly_name = flow_cls.friendly_name
   flow_descriptor.category = flow_cls.category.strip("/")
-  flow_descriptor.doc = GetFlowDocumentation(flow_cls)
-  flow_descriptor.args_type = flow_cls.args_type.__name__
-  flow_default_args = flow_cls.GetDefaultArgs(context.username)
-  flow_descriptor.default_args.Pack(flow_default_args.AsPrimitiveProto())
-  flow_descriptor.behaviours.extend(sorted(flow_cls.behaviours))
+  flow_descriptor.args_type = flow_cls.proto_args_type.__name__
+  flow_descriptor.default_args.Pack(flow_cls.GetDefaultArgs())
   flow_descriptor.block_hunt_creation = flow_cls.block_hunt_creation
 
   return flow_descriptor
@@ -388,63 +315,6 @@ class ApiFlowId(rdfvalue.RDFString):
     return self._value.split("/")
 
 
-class ApiFlowReference(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiFlowReference
-  rdf_deps = [
-      client.ApiClientId,
-      ApiFlowId,
-  ]
-
-  def FromFlowReference(self, reference):
-    self.flow_id = reference.flow_id
-    self.client_id = reference.client_id
-    return self
-
-
-class ApiFlow(rdf_structs.RDFProtoStruct):
-  """ApiFlow is used when rendering responses.
-
-  ApiFlow is meant to be more lightweight than automatically generated AFF4
-  representation. It's also meant to contain only the information needed by
-  the UI and and to not expose implementation defails.
-  """
-
-  protobuf = flow_pb2.ApiFlow
-  rdf_deps = [
-      api_call_handler_utils.ApiDataObject,
-      client.ApiClientId,
-      "ApiFlow",  # TODO(user): recursive dependency.
-      ApiFlowId,
-      ApiFlowReference,
-      rdf_flow_runner.FlowContext,
-      rdf_flow_objects.FlowResultMetadata,
-      rdf_flow_runner.FlowRunnerArgs,
-      rdfvalue.RDFDatetime,
-      rdfvalue.SessionID,
-  ]
-
-  def _GetFlowClass(self) -> Optional[type[flow_base.FlowBase]]:
-    flow_name = self.name
-    if not flow_name:
-      flow_name = self.runner_args.flow_name
-
-    if flow_name:
-      try:
-        return registry.FlowRegistry.FlowClassByName(flow_name)
-      except ValueError as e:
-        logging.warning("Failed to get flow class for %s: %s", flow_name, e)
-
-  def GetArgsClass(self) -> Optional[type[rdf_structs.RDFProtoStruct]]:
-    cls = self._GetFlowClass()
-    if cls is not None:
-      return cls.args_type
-
-  def GetProgressClass(self) -> Optional[type[rdf_structs.RDFProtoStruct]]:
-    cls = self._GetFlowClass()
-    if cls is not None:
-      return cls.progress_type
-
-
 class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   """Renders given flow.
 
@@ -504,24 +374,14 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
           request_id=str(request.request_id), request_state=request_state
       )
 
-      responses = []
       if response_dict:
         for _, response in sorted(response_dict.items()):
           if isinstance(response, flows_pb2.FlowResponse):
-            response = mig_flow_objects.ToRDFFlowResponse(response)
-          if isinstance(response, flows_pb2.FlowStatus):
-            response = mig_flow_objects.ToRDFFlowStatus(response)
+            api_request.flow_responses.append(response)
+          elif isinstance(response, flows_pb2.FlowStatus):
+            api_request.flow_statuses.append(response)
           if isinstance(response, flows_pb2.FlowIterator):
-            response = mig_flow_objects.ToRDFFlowIterator(response)
-          responses.append(
-              mig_flows.ToProtoGrrMessage(response.AsLegacyGrrMessage())
-          )
-
-        for r in responses:
-          r.ClearField("args_rdf_name")
-          r.ClearField("args")
-
-        api_request.responses.extend(responses)
+            api_request.flow_iterators.append(response)
 
       result.items.append(api_request)
 
@@ -550,7 +410,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     )
 
     if args.filter:
-      # TODO: with_substring is implemented in a hacky way,
+      # TODO - with_substring is implemented in a hacky way,
       #   searching for a string in the serialized protobuf bytes. We decided
       #   to omit the same hacky implementation in CountFlowResults. Until
       #   CountFlowResults implements the same, or we generally improve this
@@ -560,7 +420,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       total_count = data_store.REL_DB.CountFlowResults(
           args.client_id,
           args.flow_id,
-          # TODO: Add with_substring to CountFlowResults().
+          # TODO - Add with_substring to CountFlowResults().
           with_tag=args.with_tag or None,
           with_type=args.with_type or None,
       )
@@ -631,7 +491,7 @@ class ApiGetFlowResultsExportCommandHandler(
     )
 
 
-# TODO: Check further usages and remove this RDFValue.
+# TODO - Check further usages and remove this RDFValue.
 class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowFilesArchiveArgs
   rdf_deps = [
@@ -808,14 +668,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     flow_results = data_store.REL_DB.ReadFlowResults(
         args.client_id, args.flow_id, 0, db.MAX_COUNT
     )
-    flow_instance = flow_base.FlowBase.CreateFlowInstance(
-        mig_flow_objects.ToRDFFlow(flow_object)
-    )
+    flow_instance = flow_base.FlowBase.CreateFlowInstance(flow_object)
     try:
-      mappings = flow_instance.GetFilesArchiveMappings(
-          mig_flow_objects.ToRDFFlowResult(flow_result)
-          for flow_result in flow_results
-      )
+      mappings = flow_instance.GetFilesArchiveMappings(flow_results)
     except NotImplementedError:
       mappings = None
 
@@ -1076,9 +931,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         min_create_time=min_started_at,
         max_create_time=max_started_at,
         include_child_flows=False,
-        not_created_by=access_control.SYSTEM_USERS
-        if args.human_flows_only
-        else None,
+        not_created_by=GetRobotUsers() if args.human_flows_only else None,
     )
     result = [
         InitApiFlowFromFlowObject(
@@ -1089,7 +942,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     ]
     # TODO(hanuszczak): Consult with the team what should we do in case of flows
     # with missing information.
-    # TODO: Refactor sorting andfiltering of flows to DB layer.
+    # TODO - Refactor sorting andfiltering of flows to DB layer.
     result.sort(key=lambda f: f.started_at or 0, reverse=True)
     result = result[args.offset :]
     if args.HasField("count"):
@@ -1114,9 +967,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         min_create_time=min_started_at,
         max_create_time=max_started_at,
         include_child_flows=True,
-        not_created_by=access_control.SYSTEM_USERS
-        if args.human_flows_only
-        else None,
+        not_created_by=GetRobotUsers() if args.human_flows_only else None,
     )
 
     root_flows: list[flow_pb2.ApiFlow] = []
@@ -1216,17 +1067,18 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if runner_args.HasField("network_bytes_limit"):
       network_bytes_limit = runner_args.network_bytes_limit
 
-    rdf_runner_args = mig_flow_runner.ToRDFFlowRunnerArgs(runner_args)
-    rdf_flow_args = mig_structs.ToRDFAnyValue(args.flow.args)
+    flow_args = flow_cls.proto_args_type()
+    flow_args.ParseFromString(args.flow.args.value)
+
     flow_id = flow.StartFlow(
         client_id=args.client_id,
         cpu_limit=cpu_limit,
         creator=context.username,
-        flow_args=rdf_flow_args.Unpack(flow_cls.args_type),
+        proto_flow_args=flow_args,
         flow_cls=flow_cls,
         network_bytes_limit=network_bytes_limit,
-        original_flow=rdf_runner_args.original_flow,
-        output_plugins=rdf_runner_args.output_plugins,
+        original_flow=runner_args.original_flow,
+        proto_output_plugins=runner_args.output_plugins,
         disable_rrg_support=runner_args.disable_rrg_support,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
@@ -1388,7 +1240,7 @@ class ApiScheduleFlowHandler(api_call_handler_base.ApiCallHandler):
 
     flow_cls, runner_args = _SanitizeApiCreateFlowArgs(args)
 
-    # TODO: Handle the case where the requesting user already has
+    # TODO - Handle the case where the requesting user already has
     # approval to start the flow on the client.
     scheduled_flow = flow.ScheduleFlow(
         client_id=args.client_id,

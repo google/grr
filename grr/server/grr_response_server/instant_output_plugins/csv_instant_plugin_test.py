@@ -99,7 +99,7 @@ class CSVInstantOutputPluginProtoTest(test_plugins.InstantOutputPluginTestBase):
       self.assertEqual(parsed_output[i]["st_uid"], "139592")
       self.assertEqual(parsed_output[i]["st_gid"], "5000")
       self.assertEqual(parsed_output[i]["st_size"], "0")
-      # TODO: Add human-friendly timestamp fields to the exported
+      # TODO - Add human-friendly timestamp fields to the exported
       # proto.
       self.assertEqual(parsed_output[i]["st_atime"], "1336469177")
       self.assertEqual(parsed_output[i]["st_mtime"], "1336129892")

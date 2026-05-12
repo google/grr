@@ -240,6 +240,14 @@ class AbstractFileTransferTest(EndToEndTest):
 
     return path
 
+  def TempPathspecToVFSPath(self, pathspec):
+    path = "temp/"
+    while pathspec.path:
+      path += pathspec.path
+      pathspec = pathspec.nested_path
+
+    return path
+
   def CheckMacMagic(self, path):
     data = self.ReadFromFile(path, 10)
 

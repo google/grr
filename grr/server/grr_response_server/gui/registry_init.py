@@ -33,6 +33,10 @@ def RegisterApiCallRouters():
       api_labels_restricted_call_router.ApiLabelsRestrictedCallRouter,
   )
   api_call_router_registry.RegisterApiCallRouter(
+      "ApiRootAndNonRootRouter",
+      api_root_router.ApiRootAndNonRootRouter,
+  )
+  api_call_router_registry.RegisterApiCallRouter(
       "ApiRootRouter", api_root_router.ApiRootRouter
   )
   api_call_router_registry.RegisterApiCallRouter(

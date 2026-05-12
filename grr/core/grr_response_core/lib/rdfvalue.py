@@ -112,7 +112,7 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
         "Class {} does not implement FromSerializedBytes.".format(cls.__name__)
     )
 
-  # TODO: Remove legacy SerializeToWireFormat.
+  # TODO - Remove legacy SerializeToWireFormat.
   def SerializeToWireFormat(self):
     """Serialize to a datastore compatible form."""
     return self.SerializeToBytes()
@@ -540,7 +540,7 @@ class RDFDatetime(RDFPrimitive):
 
   def __str__(self) -> str:
     """Return the date in human readable (UTC)."""
-    # TODO: Display microseconds if applicable.
+    # TODO - Display microseconds if applicable.
     return self.Format("%Y-%m-%d %H:%M:%S")
 
   def AsDatetime(self) -> datetime.datetime:

@@ -8,22 +8,17 @@ from typing import Optional
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.models import hunts as models_hunts
 from grr_response_server.output_plugins import email_plugin
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class DatabaseTestHuntMixin(object):
@@ -37,7 +32,7 @@ class DatabaseTestHuntMixin(object):
       hunt_id: str = None,
       client_id: Optional[str] = None,
       flow_id: Optional[str] = None,
-      flow_state: Optional[rdf_structs.EnumNamedValue] = None,
+      flow_state: Optional["flows_pb2.Flow.FlowState"] = None,
       parent_flow_id: Optional[str] = None,
   ):
     client_id = db_test_utils.InitializeClient(self.db, client_id=client_id)
@@ -139,7 +134,7 @@ class DatabaseTestHuntMixin(object):
     db_test_utils.InitializeUser(self.db, "user")
     hunt_object = hunts_pb2.Hunt(
         hunt_id=rdf_hunt_objects.RandomHuntId(),
-        hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED,
+        hunt_state=hunts_pb2.Hunt.HuntState.STARTED,
         creator="user",
     )
 
@@ -236,19 +231,17 @@ class DatabaseTestHuntMixin(object):
     approver = db_test_utils.InitializeUser(self.db)
     hunt_id = db_test_utils.InitializeHunt(self.db, creator=creator)
 
-    approval = rdf_objects.ApprovalRequest()
-    approval.approval_type = (
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+    approval = objects_pb2.ApprovalRequest(
+        approval_type=objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
+        requestor_username=creator,
+        notified_users=[approver],
+        subject_id=hunt_id,
+        expiration_time=(
+            rdfvalue.RDFDatetime.Now()
+            + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+        ).AsMicrosecondsSinceEpoch(),
     )
-    approval.requestor_username = creator
-    approval.notified_users = [approver]
-    approval.subject_id = hunt_id
-    approval.expiration_time = (
-        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS)
-    )
-    # TODO: Stop using `mig_objects`.
-    proto_approval = mig_objects.ToProtoApprovalRequest(approval)
-    approval_id = self.db.WriteApprovalRequest(proto_approval)
+    approval_id = self.db.WriteApprovalRequest(approval)
 
     self.db.DeleteHuntObject(hunt_id=hunt_id)
 
@@ -772,7 +765,7 @@ class DatabaseTestHuntMixin(object):
         creator, hunts_pb2.Hunt.HuntState.PAUSED
     )
     paused_hunt_metadata = models_hunts.InitHuntMetadataFromHunt(paused_hunt)
-    self._CreateHuntWithState(creator, rdf_hunt_objects.Hunt.HuntState.STARTED)
+    self._CreateHuntWithState(creator, hunts_pb2.Hunt.HuntState.STARTED)
     stopped_hunt = self._CreateHuntWithState(
         creator, hunts_pb2.Hunt.HuntState.STOPPED
     )
@@ -818,9 +811,232 @@ class DatabaseTestHuntMixin(object):
             with_description_match="foo_4",
             created_by=frozenset(["user-a"]),
             not_created_by=frozenset(["user-b"]),
-            with_states=[rdf_hunt_objects.Hunt.HuntState.PAUSED],
+            with_states=[hunts_pb2.Hunt.HuntState.PAUSED],
         ),
         error_desc="ListHuntObjects",
+    )
+
+  def testCountHuntObjectsReturnsZeroWhenNoHunts(self):
+    self.assertEqual(self.db.CountHuntObjects(), 0)
+
+  def testCountHuntObjectsWithoutFiltersCountsAllHunts(self):
+    db_test_utils.InitializeHunt(self.db)
+    db_test_utils.InitializeHunt(self.db)
+    db_test_utils.InitializeHunt(self.db)
+
+    self.assertEqual(self.db.CountHuntObjects(), 3)
+
+  def testCountHuntObjectsWithCreatorFilterIsAppliedCorrectly(self):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+    db_test_utils.InitializeHunt(self.db, creator="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+
+    self.assertEqual(self.db.CountHuntObjects(with_creator="user-a"), 2)
+
+  def testCountHuntObjectsWithCreatedByFilterIsAppliedCorrectly(self):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+    db_test_utils.InitializeHunt(self.db, creator="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+
+    self.assertEqual(self.db.CountHuntObjects(created_by=frozenset([])), 0)
+    self.assertEqual(
+        self.db.CountHuntObjects(created_by=frozenset(["user-a"])), 2
+    )
+
+  def testCountHuntObjectsWithCreatorAndCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+    db_test_utils.InitializeHunt(self.db, creator="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            created_by=frozenset(["user-a"]),
+        ),
+        2,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            created_by=frozenset(["user-b"]),
+        ),
+        0,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            created_by=frozenset([]),
+        ),
+        0,
+    )
+
+  def testCountHuntObjectsWithNotCreatedByFilterIsAppliedCorrectly(self):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+    db_test_utils.InitializeHunt(self.db, creator="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+
+    self.assertEqual(self.db.CountHuntObjects(not_created_by=frozenset([])), 3)
+    self.assertEqual(
+        self.db.CountHuntObjects(not_created_by=frozenset(["user-a"])), 1
+    )
+
+  def testCountHuntObjectsWithCreatorAndNotCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+    db_test_utils.InitializeHunt(self.db, creator="user-b")
+    db_test_utils.InitializeHunt(self.db, creator="user-a")
+
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            not_created_by=frozenset(["user-b"]),
+        ),
+        2,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            not_created_by=frozenset([]),
+        ),
+        2,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            not_created_by=frozenset(["user-a"]),
+        ),
+        0,
+    )
+
+  def testCountHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
+    hunt_id_1 = db_test_utils.InitializeHunt(self.db)
+    hunt_1 = self.db.ReadHuntObject(hunt_id_1)
+    hunt_id_2 = db_test_utils.InitializeHunt(self.db)
+    hunt_2 = self.db.ReadHuntObject(hunt_id_2)
+    hunt_id_3 = db_test_utils.InitializeHunt(self.db)
+    hunt_3 = self.db.ReadHuntObject(hunt_id_3)
+
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            created_after=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                hunt_1.create_time - 1
+            )
+        ),
+        3,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            created_after=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                hunt_2.create_time
+            )
+        ),
+        1,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            created_after=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+                hunt_3.create_time + 1
+            )
+        ),
+        0,
+    )
+
+  def testCountHuntObjectsWithDescriptionMatchFilterIsAppliedCorrectly(self):
+    db_test_utils.InitializeHunt(self.db, description="foo_1")
+    db_test_utils.InitializeHunt(self.db, description="foo_2")
+    db_test_utils.InitializeHunt(self.db, description="foo_3")
+    db_test_utils.InitializeHunt(self.db, description="bar_4")
+
+    self.assertEqual(self.db.CountHuntObjects(with_description_match="foo_"), 3)
+    self.assertEqual(self.db.CountHuntObjects(with_description_match="blah"), 0)
+    self.assertEqual(
+        self.db.CountHuntObjects(with_description_match="foo_3"), 1
+    )
+
+  def testCountHuntObjectsWithStatesFilterIsAppliedCorrectly(self):
+    db_test_utils.InitializeHunt(
+        self.db, hunt_state=hunts_pb2.Hunt.HuntState.PAUSED
+    )
+    db_test_utils.InitializeHunt(
+        self.db, hunt_state=hunts_pb2.Hunt.HuntState.STARTED
+    )
+    db_test_utils.InitializeHunt(
+        self.db, hunt_state=hunts_pb2.Hunt.HuntState.PAUSED
+    )
+
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_states=[
+                hunts_pb2.Hunt.HuntState.PAUSED,
+            ]
+        ),
+        2,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_states=[
+                hunts_pb2.Hunt.HuntState.PAUSED,
+                hunts_pb2.Hunt.HuntState.STARTED,
+            ]
+        ),
+        3,
+    )
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_states=[],
+        ),
+        0,
+    )
+
+  def testCountHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
+    db_test_utils.InitializeUser(self.db, username="user-a")
+    db_test_utils.InitializeUser(self.db, username="user-b")
+    db_test_utils.InitializeUser(self.db, username="user-c")
+    db_test_utils.InitializeHunt(
+        self.db,
+        creator="user-a",
+        create_time=1000,
+        description="foo_1",
+        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+    )
+    db_test_utils.InitializeHunt(
+        self.db,
+        creator="user-b",
+        create_time=2000,
+        description="foo_2",
+        hunt_state=hunts_pb2.Hunt.HuntState.STARTED,
+    )
+    db_test_utils.InitializeHunt(
+        self.db,
+        creator="user-c",
+        create_time=3000,
+        description="foo_3",
+        hunt_state=hunts_pb2.Hunt.HuntState.STOPPED,
+    )
+
+    self.assertEqual(
+        self.db.CountHuntObjects(
+            with_creator="user-a",
+            created_after=rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(500),
+            with_description_match="foo_1",
+            created_by=frozenset(["user-a"]),
+            not_created_by=frozenset(["user-b"]),
+            with_states=[hunts_pb2.Hunt.HuntState.PAUSED],
+        ),
+        1,
     )
 
   def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
@@ -1547,7 +1763,7 @@ class DatabaseTestHuntMixin(object):
       sample_results.extend(results)
       self._WriteHuntResults(results)
 
-    # TODO: Clean up this test.
+    # TODO - Clean up this test.
     tags = {
         None: list(sample_results),
         "tag_1": [s for s in sample_results if s.tag == "tag_1"],
@@ -1950,16 +2166,16 @@ class DatabaseTestHuntMixin(object):
 
   def _BuildFilterConditionExpectations(self, hunt_id):
     _, running_flow_id = self._SetupHuntClientAndFlow(
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING, hunt_id=hunt_id
+        flow_state=flows_pb2.Flow.FlowState.RUNNING, hunt_id=hunt_id
     )
     _, succeeded_flow_id = self._SetupHuntClientAndFlow(
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED, hunt_id=hunt_id
+        flow_state=flows_pb2.Flow.FlowState.FINISHED, hunt_id=hunt_id
     )
     _, failed_flow_id = self._SetupHuntClientAndFlow(
-        flow_state=rdf_flow_objects.Flow.FlowState.ERROR, hunt_id=hunt_id
+        flow_state=flows_pb2.Flow.FlowState.ERROR, hunt_id=hunt_id
     )
     _, crashed_flow_id = self._SetupHuntClientAndFlow(
-        flow_state=rdf_flow_objects.Flow.FlowState.CRASHED, hunt_id=hunt_id
+        flow_state=flows_pb2.Flow.FlowState.CRASHED, hunt_id=hunt_id
     )
     client_id, flow_with_results_id = self._SetupHuntClientAndFlow(
         hunt_id=hunt_id
@@ -2031,7 +2247,7 @@ class DatabaseTestHuntMixin(object):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
     client_id, flow_id = self._SetupHuntClientAndFlow(
-        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING
+        hunt_id=hunt_id, flow_state=flows_pb2.Flow.FlowState.RUNNING
     )
 
     # Whatever state the subflow is in, it should be ignored.
@@ -2040,21 +2256,21 @@ class DatabaseTestHuntMixin(object):
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.ERROR,
+        flow_state=flows_pb2.Flow.FlowState.ERROR,
     )
     self._SetupHuntClientAndFlow(
         client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        flow_state=flows_pb2.Flow.FlowState.FINISHED,
     )
     self._SetupHuntClientAndFlow(
         client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=flows_pb2.Flow.FlowState.RUNNING,
     )
 
     for state, expected_results in [
@@ -2069,7 +2285,7 @@ class DatabaseTestHuntMixin(object):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
     client_id, flow_id = self._SetupHuntClientAndFlow(
-        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING
+        hunt_id=hunt_id, flow_state=flows_pb2.Flow.FlowState.RUNNING
     )
 
     # Whatever state the subflow is in, it should be ignored.
@@ -2078,21 +2294,21 @@ class DatabaseTestHuntMixin(object):
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.ERROR,
+        flow_state=flows_pb2.Flow.FlowState.ERROR,
     )
     self._SetupHuntClientAndFlow(
         client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        flow_state=flows_pb2.Flow.FlowState.FINISHED,
     )
     self._SetupHuntClientAndFlow(
         client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
+        flow_state=flows_pb2.Flow.FlowState.RUNNING,
     )
 
     self.assertEqual(self.db.CountHuntFlows(hunt_id), 1)
@@ -2349,7 +2565,7 @@ class DatabaseTestHuntMixin(object):
         client_id,
         flow_id=hunt_id,
         parent_hunt_id=hunt_id,
-        cpu_time_used=rdf_client_stats.CpuSeconds(
+        cpu_time_used=jobs_pb2.CpuSeconds(
             user_cpu_time=4.5, system_cpu_time=10
         ),
         network_bytes_sent=42,
@@ -2367,9 +2583,9 @@ class DatabaseTestHuntMixin(object):
         self.db,
         client_id,
         flow_id=hunt_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        flow_state=flows_pb2.Flow.FlowState.FINISHED,
         parent_hunt_id=hunt_id,
-        cpu_time_used=rdf_client_stats.CpuSeconds(
+        cpu_time_used=jobs_pb2.CpuSeconds(
             user_cpu_time=100, system_cpu_time=200
         ),
         network_bytes_sent=300,
@@ -2378,17 +2594,14 @@ class DatabaseTestHuntMixin(object):
     # Create a subflow that used some resources too. This resource usage is
     # already accounted for in the parent flow so the overall hunt resource
     # usage should ignore those numbers.
-    sub_flow = rdf_flow_objects.Flow(
+    sub_flow = flows_pb2.Flow(
         client_id=client_id,
         flow_id="12345678",
         parent_flow_id=flow_id,
         parent_hunt_id=hunt_id,
-        cpu_time_used=rdf_client_stats.CpuSeconds(
-            user_cpu_time=10, system_cpu_time=20
-        ),
+        cpu_time_used=jobs_pb2.CpuSeconds(user_cpu_time=10, system_cpu_time=20),
         network_bytes_sent=30,
     )
-    sub_flow = mig_flow_objects.ToProtoFlow(sub_flow)
     self.db.WriteFlowObject(sub_flow)
 
     usage_stats = self.db.ReadHuntClientResourcesStats(hunt_id)
@@ -2419,9 +2632,9 @@ class DatabaseTestHuntMixin(object):
           self.db,
           client_id,
           flow_id=hunt_id,
-          flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+          flow_state=flows_pb2.Flow.FlowState.FINISHED,
           parent_hunt_id=hunt_id,
-          cpu_time_used=rdf_client_stats.CpuSeconds(
+          cpu_time_used=jobs_pb2.CpuSeconds(
               user_cpu_time=user_cpu_time, system_cpu_time=system_cpu_time
           ),
           network_bytes_sent=network_bytes_sent,
@@ -2556,9 +2769,9 @@ class DatabaseTestHuntMixin(object):
         self.db,
         client_id_1,
         flow_id=hunt_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        flow_state=flows_pb2.Flow.FlowState.FINISHED,
         parent_hunt_id=hunt_id,
-        cpu_time_used=rdf_client_stats.CpuSeconds(
+        cpu_time_used=jobs_pb2.CpuSeconds(
             user_cpu_time=3810072130, system_cpu_time=3810072130
         ),
         network_bytes_sent=3810072130,
@@ -2569,9 +2782,9 @@ class DatabaseTestHuntMixin(object):
         self.db,
         client_id_2,
         flow_id=hunt_id,
-        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        flow_state=flows_pb2.Flow.FlowState.FINISHED,
         parent_hunt_id=hunt_id,
-        cpu_time_used=rdf_client_stats.CpuSeconds(
+        cpu_time_used=jobs_pb2.CpuSeconds(
             user_cpu_time=2143939532, system_cpu_time=2143939532
         ),
         network_bytes_sent=2143939532,
@@ -2850,7 +3063,7 @@ class DatabaseTestHuntMixin(object):
     hunt_id = db_test_utils.InitializeHunt(self.db)
 
     client_id, flow_id = self._SetupHuntClientAndFlow(
-        hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING
+        hunt_id=hunt_id, flow_state=flows_pb2.Flow.FlowState.RUNNING
     )
 
     results = self.db.ReadHuntFlows(

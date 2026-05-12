@@ -78,7 +78,9 @@ class ListRunningServicesTest(flow_test_lib.FlowTestsBaseclass):
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.OSXServiceInformation
+    )
     self.assertLen(results, 3)
 
     self.assertEqual(results[0].label, "com.apple.netbiosd")

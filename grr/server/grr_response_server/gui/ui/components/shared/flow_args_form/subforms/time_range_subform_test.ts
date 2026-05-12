@@ -46,7 +46,7 @@ describe('Time Range Form component', () => {
 
     // Set a fixed locale to avoid test location dependency.
     // This is likely going to fail when daylight savings time starts/ends.
-    // TODO: This should be resolved when we switch to UTC time.
+    // TODO - This should be resolved when we switch to UTC time.
     TestBed.inject(DateAdapter).setLocale('en-US');
   }));
 

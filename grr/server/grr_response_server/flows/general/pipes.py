@@ -5,8 +5,6 @@ import re
 from typing import Optional
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import pipes_pb2
 from grr_response_proto import sysinfo_pb2
@@ -14,23 +12,6 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import processes
-
-
-class ListNamedPipesFlowArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for arguments of the flow listing named pipes."""
-
-  protobuf = pipes_pb2.ListNamedPipesFlowArgs
-  rdf_deps = []
-
-
-class ListNamedPipesFlowResult(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper for results of the flow listing named pipes."""
-
-  protobuf = pipes_pb2.ListNamedPipesFlowResult
-  rdf_deps = [
-      rdf_client.NamedPipe,
-      rdf_client.Process,
-  ]
 
 
 class ListNamedPipesFlow(
@@ -46,13 +27,9 @@ class ListNamedPipesFlow(
   category = "/Processes/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = ListNamedPipesFlowArgs
-  result_types = [ListNamedPipesFlowResult]
   proto_args_type = pipes_pb2.ListNamedPipesFlowArgs
   proto_result_types = (pipes_pb2.ListNamedPipesFlowResult,)
   proto_store_type = pipes_pb2.ListNamedPipesFlowStore
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     super().Start()
@@ -78,7 +55,7 @@ class ListNamedPipesFlow(
     pipe_type_filter = self.proto_args.pipe_type_filter
     pipe_end_filter = self.proto_args.pipe_end_filter
 
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.pipes[:]
     pids = []
 

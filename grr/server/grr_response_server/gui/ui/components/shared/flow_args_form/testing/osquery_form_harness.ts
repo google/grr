@@ -56,10 +56,6 @@ export class OsqueryFormHarness extends BaseFlowFormHarness {
     MatCheckboxHarness.with({name: 'ignore_stderr'}),
   );
 
-  private readonly configurationPathFormField = this.locatorForOptional(
-    MatFormFieldHarness.with({floatingLabelText: 'Configuration Path'}),
-  );
-
   private readonly configurationContentFormField = this.locatorForOptional(
     MatFormFieldHarness.with({floatingLabelText: 'Configuration content'}),
   );
@@ -137,29 +133,6 @@ export class OsqueryFormHarness extends BaseFlowFormHarness {
   async hasTimeout(): Promise<boolean> {
     const timeoutFormField = await this.timeoutFormField();
     return !!timeoutFormField;
-  }
-
-  /** Sets the configuration path. */
-  async setConfigurationPath(path: string): Promise<void> {
-    const configurationPathFormField = await this.configurationPathFormField();
-    const control =
-      await configurationPathFormField?.getControl(MatInputHarness);
-    await control?.setValue(path);
-  }
-
-  /** Returns the configuration path. */
-  async getConfigurationPath(): Promise<string> {
-    const configurationPathFormField = await this.configurationPathFormField();
-    const control =
-      await configurationPathFormField?.getControl(MatInputHarness);
-    return control?.getValue() ?? '';
-  }
-
-  /** Returns the configuration path warnings. */
-  async getConfigurationPathWarnings(): Promise<string[]> {
-    const configurationPathFormField = await this.configurationPathFormField();
-
-    return configurationPathFormField?.getTextHints() ?? [];
   }
 
   /** Sets the configuration content. */

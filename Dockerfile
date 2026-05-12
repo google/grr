@@ -78,13 +78,17 @@ RUN apt-get update && \
 # building as part of Github Actions.
 COPY ./_installers* /client_templates
 
+# Copy uv binaries from official Astral image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1
+
 ENV VIRTUAL_ENV=/usr/share/grr-server
 ENV GRR_SOURCE=/usr/src/grr
 
-RUN python -m venv --system-site-packages $VIRTUAL_ENV
+RUN uv venv --system-site-packages $VIRTUAL_ENV
 ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
 
-RUN ${VIRTUAL_ENV}/bin/python -m pip install wheel nodeenv grpcio-tools==1.60
+RUN uv pip install wheel nodeenv grpcio-tools==1.60
 
 RUN ${VIRTUAL_ENV}/bin/nodeenv -p --prebuilt --node=22.14.0
 
@@ -93,13 +97,14 @@ ADD . ${GRR_SOURCE}
 
 WORKDIR ${GRR_SOURCE}
 
-RUN ${VIRTUAL_ENV}/bin/python -m pip install \
-  -e grr/proto \
-  -e grr/core \
-  -e grr/client \
-  -e grr/server \
-  -e grr/client_builder \
-  -e api_client/python
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv pip install \
+    -e grr/proto \
+    -e grr/core \
+    -e grr/client \
+    -e grr/server \
+    -e grr/client_builder \
+    -e api_client/python
 
 RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
   ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py

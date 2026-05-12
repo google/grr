@@ -6,11 +6,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
-import {
-  ArtifactDescriptor,
-  OperatingSystem,
-  SourceType,
-} from '../../../lib/models/flow';
+import {ArtifactDescriptor, OperatingSystem} from '../../../lib/models/flow';
 import {
   newArtifactDescriptor,
   newArtifactSourceDescription,
@@ -268,6 +264,12 @@ describe('Artifact Collector Flow Form Component', () => {
     expect(await filteredArtifactOptions[0].getText()).toContain('artifact1');
   }));
 
+  it('does not display the artifact details when no artifact is selected', fakeAsync(async () => {
+    const {harness} = await createComponent();
+
+    expect(await harness.artifactDetailsHarness()).toBeNull();
+  }));
+
   it('displays the artifact details when selected', fakeAsync(async () => {
     const artifactDescriptorMap = new Map<string, ArtifactDescriptor>();
     artifactDescriptorMap.set(
@@ -276,50 +278,12 @@ describe('Artifact Collector Flow Form Component', () => {
         name: 'Shopping List',
         doc: 'artifact1 doc',
         supportedOs: new Set([OperatingSystem.LINUX]),
-        artifacts: [
-          newArtifactDescriptor({
-            name: 'Veggies',
-            supportedOs: new Set([OperatingSystem.LINUX]),
-
-            sourceDescriptions: [
-              newArtifactSourceDescription({
-                type: SourceType.FILE,
-                supportedOs: new Set([OperatingSystem.LINUX]),
-                collections: ['Cucumber'],
-              }),
-            ],
-          }),
-          newArtifactDescriptor({
-            name: 'Fruits',
-            supportedOs: new Set([OperatingSystem.LINUX]),
-            sourceDescriptions: [
-              newArtifactSourceDescription({
-                type: SourceType.REGISTRY_KEY,
-                supportedOs: new Set([OperatingSystem.LINUX]),
-                collections: ['Apple', 'Banana'],
-              }),
-            ],
-            artifacts: [
-              newArtifactDescriptor({
-                name: 'Exotic Fruits',
-                supportedOs: new Set([OperatingSystem.LINUX]),
-                sourceDescriptions: [
-                  newArtifactSourceDescription({
-                    type: SourceType.FILE,
-                    supportedOs: new Set([OperatingSystem.LINUX]),
-                    collections: ['Mango'],
-                  }),
-                ],
-              }),
-            ],
-          }),
-        ],
+        artifacts: [],
       }),
     );
     globalStoreMock.artifactDescriptorMap = signal(
       new Map<string, ArtifactDescriptor>(artifactDescriptorMap),
     );
-    tick();
 
     const {harness} = await createComponent();
     const autocompleteHarness = await harness.autocompleteHarness();
@@ -329,27 +293,6 @@ describe('Artifact Collector Flow Form Component', () => {
     expect(artifactOptions.length).toBe(1);
     await artifactOptions[0].click();
 
-    const artifactTree = await harness.matTreeHarness();
-
-    let artifactTreeNodes = await artifactTree.getNodes();
-    expect(artifactTreeNodes.length).toBe(1);
-    await artifactTreeNodes[0].expand();
-    artifactTreeNodes = await artifactTree.getNodes();
-
-    const shoppingListNode = artifactTreeNodes[0];
-    expect(await shoppingListNode.getText()).toContain('Shopping List');
-
-    const veggiesListNode = artifactTreeNodes[1];
-    expect(await veggiesListNode?.getText()).toContain('Veggies');
-    expect(await veggiesListNode?.getText()).toContain('Cucumber');
-
-    const fruitsListNode = artifactTreeNodes[2];
-    expect(await fruitsListNode?.getText()).toContain('Fruits');
-    expect(await fruitsListNode?.getText()).toContain('Apple');
-    expect(await fruitsListNode?.getText()).toContain('Banana');
-
-    const exoticFruitsListNode = artifactTreeNodes[3];
-    expect(await exoticFruitsListNode?.getText()).toContain('Exotic Fruits');
-    expect(await exoticFruitsListNode?.getText()).toContain('Mango');
+    expect(await harness.artifactDetailsHarness()).not.toBeNull();
   }));
 });

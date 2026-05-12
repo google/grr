@@ -444,6 +444,9 @@ class MySQLDBFlowMixin:
 
     if created_by is not None:
       conditions.append("creator IN %s")
+      # We explicitly convert created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
       args.append(list(created_by))
 
     query = f"SELECT {self.FLOW_DB_FIELDS} FROM flows"
@@ -1599,7 +1602,7 @@ class MySQLDBFlowMixin:
       args.append(
           mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
       )
-      # TODO: Remove writing to payload column after a transition
+      # TODO - Remove writing to payload column after a transition
       # period.
       args.append(r.payload.value)
       args.append(r.payload.SerializeToString())

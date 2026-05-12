@@ -230,19 +230,17 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertTrue(result.is_invalid)
 
   def testRendersRDFDuration(self):
-    with test_lib.ConfigOverrider(
-        {"Server.fleetspeak_last_ping_threshold": "1h"}
-    ):
+    with test_lib.ConfigOverrider({"Cron.interrogate_duration": "1d"}):
       result = self.handler.Handle(
           api_config_pb2.ApiGetConfigOptionArgs(
-              name="Server.fleetspeak_last_ping_threshold"
+              name="Cron.interrogate_duration"
           )
       )
-    self.assertEqual(result.name, "Server.fleetspeak_last_ping_threshold")
+    self.assertEqual(result.name, "Cron.interrogate_duration")
     self.assertEqual(result.type, "Int64Value")
     unpacked = api_config_pb2.Int64Value()
     result.value.Unpack(unpacked)
-    self.assertEqual(unpacked.value, rdfvalue.Duration("1h").microseconds)
+    self.assertEqual(unpacked.value, rdfvalue.Duration("1d").microseconds)
 
   def testRendersRDFEnum(self):
     with test_lib.ConfigOverrider(

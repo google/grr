@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ReadLowLevelFlowResult as ApiReadLowLevelFlowResult} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {ReadLowLevelFlowResults} from './read_low_level_flow_results';
@@ -73,12 +70,10 @@ describe('Read Low Level Flow Results Component', () => {
     };
     const {harness} = await createComponent([
       newFlowResult({
-        clientId: 'C.1234',
         payloadType: PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
         payload: readLowLevelFlowResult,
       }),
       newFlowResult({
-        clientId: 'C.1234',
         payloadType: PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
         payload: readLowLevelFlowResult2,
       }),
@@ -88,28 +83,5 @@ describe('Read Low Level Flow Results Component', () => {
     expect(listedFiles).toHaveSize(2);
     expect(await listedFiles[0].text()).toBe('/foo/bar');
     expect(await listedFiles[1].text()).toBe('/foo/baz');
-  }));
-
-  it('shows client ids for hunt results', fakeAsync(async () => {
-    const readLowLevelFlowResult: ApiReadLowLevelFlowResult = {
-      path: '/foo',
-    };
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
-        payload: readLowLevelFlowResult,
-      }),
-      newHuntResult({
-        clientId: 'C.5678',
-        payloadType: PayloadType.READ_LOW_LEVEL_FLOW_RESULT,
-        payload: readLowLevelFlowResult,
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(2);
-    expect(await clientIds[0].text()).toContain('Client ID: C.1234');
-    expect(await clientIds[1].text()).toContain('Client ID: C.5678');
   }));
 });

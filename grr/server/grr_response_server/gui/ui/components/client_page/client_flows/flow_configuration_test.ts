@@ -2,6 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {signal} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterModule} from '@angular/router';
 
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
@@ -37,7 +38,11 @@ describe('Flow Configuration Component', () => {
     clientStoreMock = newClientStoreMock();
 
     TestBed.configureTestingModule({
-      imports: [FlowConfiguration, NoopAnimationsModule],
+      imports: [
+        FlowConfiguration,
+        NoopAnimationsModule,
+        RouterModule.forRoot([]),
+      ],
       providers: [
         {
           provide: HttpApiWithTranslationService,
@@ -55,6 +60,65 @@ describe('Flow Configuration Component', () => {
   it('is created', async () => {
     const {fixture} = await createComponent('1234');
     expect(fixture.componentInstance).toBeTruthy();
+  });
+
+  it('displays flow creator', async () => {
+    clientStoreMock.clientId = signal('C.1111');
+    clientStoreMock.flowsByFlowId = signal(
+      new Map([
+        [
+          '1234',
+          newFlow({
+            flowId: '1234',
+            creator: 'testuser',
+          }),
+        ],
+      ]),
+    );
+    const {harness} = await createComponent('1234');
+
+    const text = await harness.getText();
+    expect(text).toContain('testuser');
+    expect(text).not.toContain('Robot');
+  });
+
+  it('displays robot flow creator', async () => {
+    clientStoreMock.clientId = signal('C.1111');
+    clientStoreMock.flowsByFlowId = signal(
+      new Map([
+        [
+          '1234',
+          newFlow({
+            flowId: '1234',
+            isRobot: true,
+          }),
+        ],
+      ]),
+    );
+    const {harness} = await createComponent('1234');
+
+    const text = await harness.getText();
+    expect(text).toContain('Robot');
+  });
+
+  it('displays flow parent hunt id if present', async () => {
+    clientStoreMock.clientId = signal('C.1111');
+    clientStoreMock.flowsByFlowId = signal(
+      new Map([
+        [
+          '1234',
+          newFlow({
+            flowId: '1234',
+            parentHuntId: 'parent-hunt-id',
+          }),
+        ],
+      ]),
+    );
+    const {harness} = await createComponent('1234');
+
+    const text = await harness.getText();
+    expect(text).toContain('Flow created by Fleet Collection:');
+    expect(text).toContain('parent-hunt-id');
   });
 
   it('displays correct flow args form', async () => {

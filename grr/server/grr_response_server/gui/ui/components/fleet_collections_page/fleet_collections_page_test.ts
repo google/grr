@@ -208,6 +208,49 @@ describe('Fleet Collections Page Component', () => {
     expect(await harness.getFleetCollectionListItemText(0)).toContain('1234');
   }));
 
+  it('searches for fleet collections by flow name', fakeAsync(async () => {
+    fleetCollectionsStoreMock.fleetCollections = signal([
+      newHunt({
+        huntId: '1234',
+        flowType: FlowType.STAT_MULTIPLE_FILES,
+      }),
+      newHunt({
+        huntId: '5678',
+        flowType: FlowType.INTERROGATE,
+      }),
+    ]);
+    const {harness} = await createComponent();
+
+    const searchFilterInput = await harness.getSearchFilterInput();
+    await searchFilterInput.setValue('Interrogate');
+
+    const listItems = await harness.getFleetCollectionListItems();
+    expect(listItems).toHaveSize(1);
+    expect(await harness.getFleetCollectionListItemText(0)).toContain('5678');
+  }));
+
+  it('searches for fleet collections are case insensitive', fakeAsync(async () => {
+    fleetCollectionsStoreMock.fleetCollections = signal([
+      newHunt({
+        description: 'BANANA!',
+        huntId: '1234',
+      }),
+      newHunt({
+        description: 'banana!',
+        huntId: '5678',
+      }),
+    ]);
+    const {harness} = await createComponent();
+
+    const searchFilterInput = await harness.getSearchFilterInput();
+    await searchFilterInput.setValue('Banana');
+
+    const listItems = await harness.getFleetCollectionListItems();
+    expect(listItems).toHaveSize(2);
+    expect(await harness.getFleetCollectionListItemText(0)).toContain('1234');
+    expect(await harness.getFleetCollectionListItemText(1)).toContain('5678');
+  }));
+
   it('calls the store with the initial arguments when the component is created', fakeAsync(async () => {
     let expectedCalls = 0;
     fleetCollectionsStoreMock.pollFleetCollections = ((
@@ -236,7 +279,7 @@ describe('Fleet Collections Page Component', () => {
         state: HuntState.NOT_STARTED,
         allClientsCount: BigInt(100),
         completedClientsCount: BigInt(50),
-        flowName: 'BananaFlow',
+        flowType: FlowType.STAT_MULTIPLE_FILES,
       }),
     ]);
     const {harness} = await createComponent();
@@ -254,7 +297,7 @@ describe('Fleet Collections Page Component', () => {
       '2024-01-01 00:00:00 UTC',
     );
     expect(await harness.getFleetCollectionListItemText(0)).toContain(
-      'BananaFlow',
+      'Stat files',
     );
     const progressBar = await harness.getFleetCollectionListItemProgressBar(0);
     expect(await progressBar.getValue()).toBe(50);

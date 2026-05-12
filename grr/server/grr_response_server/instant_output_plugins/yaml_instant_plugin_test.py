@@ -100,7 +100,7 @@ class YamlInstantOutputPluginProtoTest(
       self.assertEqual(parsed_output[i]["stUid"], 139592)
       self.assertEqual(parsed_output[i]["stGid"], 5000)
       self.assertEqual(parsed_output[i]["stSize"], "0")
-      # TODO: Add human-friendly timestamp fields to the exported
+      # TODO - Add human-friendly timestamp fields to the exported
       # proto.
       self.assertEqual(parsed_output[i]["stAtime"], "1336469177")
       self.assertEqual(parsed_output[i]["stMtime"], "1336129892")

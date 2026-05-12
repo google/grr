@@ -1,0 +1,33 @@
+<split-panel direction="horizontal" [initialSize]="25">
+  <div slot="panel1" class="artifact-list">
+    <div class="artifact-options-container w100">
+      <button mat-flat-button class="w100" (click)="openCreateArtifactDialog()">
+        Create new artifact
+      </button>
+      <mat-divider />
+      <mat-form-field appearance="outline" class="w100">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>Filter by artifact name, doc or source</mat-label>
+        <input matInput [formControl]="searchFormControl" />
+      </mat-form-field>
+    </div>
+
+    <mat-nav-list>
+      @for ( extendedArtifact of extendedArtifactDescriptors(); track extendedArtifact.name ) {
+        @if (extendedArtifact.matchesInput(searchFormControl.value)) {
+          <a mat-list-item
+            [routerLink]="['/administration/artifacts', extendedArtifact.name]"
+            routerLinkActive
+            #active="routerLinkActive"
+            [activated]="active.isActive"
+          >
+            {{ extendedArtifact.name }}
+          </a>
+        }
+      }
+    </mat-nav-list>
+  </div>
+  <div slot="panel2" class="artifact-details">
+    <router-outlet />
+  </div>
+</split-panel>

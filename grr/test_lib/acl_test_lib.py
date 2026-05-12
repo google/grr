@@ -3,13 +3,11 @@
 
 from typing import Optional
 
-from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui.api_plugins import user as api_user
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def CreateUser(username) -> None:
@@ -21,20 +19,6 @@ def CreateAdminUser(username):
   data_store.REL_DB.WriteGRRUser(
       username, user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
   )
-
-
-def BuildClientApprovalRequest(
-    client_id: Optional[str] = None,
-    requestor_username: Optional[str] = None,
-    reason: Optional[str] = None) -> rdf_objects.ApprovalRequest:
-  return rdf_objects.ApprovalRequest(
-      approval_type=rdf_objects.ApprovalRequest.ApprovalType
-      .APPROVAL_TYPE_CLIENT,
-      subject_id=client_id or "C.1234",
-      requestor_username=requestor_username or "testuser",
-      reason=reason or "foo/test1234",
-      expiration_time=rdfvalue.RDFDatetime.Now() +
-      rdfvalue.Duration.From(1, rdfvalue.DAYS))
 
 
 class AclTestMixin(object):

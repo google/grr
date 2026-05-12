@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {YaraProcessScanMatch as ApiYaraProcessScanMatch} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {YaraProcessScanMatchesHarness} from './testing/yara_process_scan_matches_harness';
@@ -203,39 +200,5 @@ describe('Yara Process Scan Matches Component', () => {
     expect(await harness.getCellText(0, 'pid')).toEqual('123');
     expect(await harness.getCellText(1, 'pid')).toEqual('234');
     expect(await harness.getCellText(2, 'pid')).toEqual('345');
-  }));
-
-  it('shows client id column for hunt results', fakeAsync(async () => {
-    const yaraProcessScanMatch: ApiYaraProcessScanMatch = {
-      process: {
-        pid: 123,
-        name: 'process',
-      },
-      match: [
-        {
-          ruleName: 'FooBar1',
-          stringMatches: [
-            {
-              data: btoa('ExampleData'),
-              stringId: 'StringId',
-              offset: '0',
-              context: btoa('Context'),
-            },
-          ],
-        },
-      ],
-    };
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.YARA_PROCESS_SCAN_MATCH,
-        payload: yaraProcessScanMatch,
-      }),
-    ]);
-
-    const table = await harness.table();
-    expect(table).toBeDefined();
-    expect(await table!.getRows()).toHaveSize(1);
-    expect(await harness.getCellText(0, 'clientId')).toContain('C.1234');
   }));
 });

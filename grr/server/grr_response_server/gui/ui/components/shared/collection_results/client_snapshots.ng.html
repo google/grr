@@ -1,10 +1,4 @@
-@for (collectionResult of collectionResults(); track collectionResult) {
-  @if (isHuntResult(collectionResult)) {
-    <p class="client-id-container">
-      Client ID: <copy-button>{{collectionResult.clientId}}</copy-button>
-    </p>
-  }
-  @let clientSnapshot = clientSnapshotsFromCollectionResult(collectionResult);
+@for (clientSnapshot of collectionResults(); track clientSnapshot) {
   <table class="client-snapshot-table">
     <tr>
       <td>

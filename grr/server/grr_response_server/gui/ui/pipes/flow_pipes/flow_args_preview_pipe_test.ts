@@ -13,7 +13,6 @@ import {
   ListProcessesArgs,
   MultiGetFileArgs,
   NetstatArgs,
-  NetworkConnectionState,
   OsqueryFlowArgs,
   ReadLowLevelArgs,
   RecursiveListDirectoryArgs,
@@ -164,16 +163,11 @@ describe('Flow Args Preview Pipe', () => {
     const flowArgs: ListProcessesArgs = {
       filenameRegex: '/path/to/file',
       fetchBinaries: true,
-      connectionStates: [
-        NetworkConnectionState.CLOSED,
-        NetworkConnectionState.ESTABLISHED,
-        NetworkConnectionState.UNKNOWN,
-      ],
       pids: [12345, 67890],
     };
 
     expect(pipe.transform(flowArgs, flowType)).toEqual(
-      '/path/to/file - with binaries - CLOSED, ESTABLISHED, UNKNOWN - 12345, 67890',
+      '/path/to/file - with binaries - 12345, 67890',
     );
   });
 

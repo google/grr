@@ -82,7 +82,7 @@ class CloudInstance(rdf_structs.RDFProtoStruct):
   ]
 
 
-# TODO: Return a proto instead of an RDFValue.
+# TODO - Return a proto instead of an RDFValue.
 def BuildCloudMetadataRequests():
   """Build the standard set of cloud metadata to collect during interrogate.
 

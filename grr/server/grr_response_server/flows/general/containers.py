@@ -5,40 +5,11 @@ import datetime
 import json
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import containers_pb2
 from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-
-
-class ContainerLabel(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `ContainerLabel` proto."""
-
-  protobuf = containers_pb2.ContainerLabel
-  rdf_deps = []
-
-
-class ContainerDetails(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `ContainerDetails` proto."""
-
-  protobuf = containers_pb2.ContainerDetails
-  rdf_deps = [ContainerLabel]
-
-
-class ListContainersFlowArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for ListContainers Flow."""
-
-  protobuf = containers_pb2.ListContainersFlowArgs
-  rdf_deps = []
-
-
-class ListContainersFlowResult(rdf_structs.RDFProtoStruct):
-  """Result for ListContainers Flow."""
-
-  protobuf = containers_pb2.ListContainersFlowResult
-  rdf_deps = [ContainerDetails]
 
 
 class ListContainers(
@@ -58,11 +29,8 @@ class ListContainers(
   category = "/Processes/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = ListContainersFlowArgs
-  result_types = (ListContainersFlowResult,)
   proto_args_type = containers_pb2.ListContainersFlowArgs
   proto_result_types = (containers_pb2.ListContainersFlowResult,)
-  only_protos_allowed = True
 
   def ParseContainerList(
       self, stdout: str, binary: str

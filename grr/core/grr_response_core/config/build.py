@@ -124,7 +124,6 @@ exe = EXE\(
     debug=False,
     strip=False,
     upx=False,
-    embed_manifest=False,
     console=True,
     target_arch=r"%(PyInstaller.target_arch)" or None,
     version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),

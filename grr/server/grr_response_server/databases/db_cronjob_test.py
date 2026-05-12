@@ -5,10 +5,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.util import random
 from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -89,7 +88,7 @@ class DatabaseTestCronJobMixin(object):
     new_job = self.db.ReadCronJob(job.cron_job_id)
     self.assertFalse(new_job.current_run_id)
 
-    # TODO: Stop using rdf_protodict.Dict below.
+    # TODO - Stop using rdf_protodict.Dict below.
     state = mig_protodict.FromProtoAttributedDictToNativeDict(job.state)
     self.assertNotIn("test", state)
     state["test"] = 12345
@@ -132,19 +131,17 @@ class DatabaseTestCronJobMixin(object):
     approver = db_test_utils.InitializeUser(self.db)
     cron_job_id = db_test_utils.InitializeCronJob(self.db)
 
-    approval = rdf_objects.ApprovalRequest()
-    approval.approval_type = (
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+    approval = objects_pb2.ApprovalRequest(
+        approval_type=objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
+        requestor_username=creator,
+        notified_users=[approver],
+        subject_id=cron_job_id,
+        expiration_time=(
+            rdfvalue.RDFDatetime.Now()
+            + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+        ).AsMicrosecondsSinceEpoch(),
     )
-    approval.requestor_username = creator
-    approval.notified_users = [approver]
-    approval.subject_id = cron_job_id
-    approval.expiration_time = (
-        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS)
-    )
-    # TODO: Stop using `mig_objects`.
-    proto_approval = mig_objects.ToProtoApprovalRequest(approval)
-    approval_id = self.db.WriteApprovalRequest(proto_approval)
+    approval_id = self.db.WriteApprovalRequest(approval)
 
     self.db.DeleteCronJob(cron_job_id)
 

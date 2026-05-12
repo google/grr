@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Rdfvalues for flows."""
 
-from typing import Optional
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -82,7 +80,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
     if not self.HasField("client_limit"):
       self.client_limit = 100
 
-    # TODO: We use default values only if the config has been
+    # TODO - We use default values only if the config has been
     # initialized and leave them blank if it has not been. Protobuf defaults
     # depending on the config initialization is a *very* questionable design
     # choice and likely should be revised.
@@ -116,23 +114,6 @@ class Hunt(rdf_structs.RDFProtoStruct):
 
     if not self.HasField("num_clients_at_start_time"):
       self.num_clients_at_start_time = 0
-
-  @property
-  def expiry_time(self) -> Optional[rdfvalue.RDFDatetime]:
-    """Returns the expiry time of the hunt."""
-    if self.init_start_time is not None:
-      return self.init_start_time + self.duration
-    else:
-      return None
-
-  @property
-  def expired(self) -> bool:
-    """Checks if the hunt has expired."""
-    expiry_time = self.expiry_time
-    if expiry_time is not None:
-      return expiry_time < rdfvalue.RDFDatetime.Now()
-    else:
-      return False
 
 
 class HuntMetadata(rdf_structs.RDFProtoStruct):

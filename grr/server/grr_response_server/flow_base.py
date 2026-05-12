@@ -15,9 +15,7 @@ from google.protobuf import message as pb_message
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_protodict
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import FlowRegistry
 from grr_response_core.stats import metrics
@@ -25,6 +23,7 @@ from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import access_control
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -34,7 +33,6 @@ from grr_response_server import flow
 from grr_response_server import flow_responses
 from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
-from grr_response_server import output_plugin as output_plugin_lib
 from grr_response_server import output_plugin_registry
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
@@ -42,11 +40,6 @@ from grr_response_server.models import clients as models_clients
 from grr_response_server.models import protodicts as models_protodicts
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_flow_runner
-from grr_response_server.rdfvalues import mig_hunt_objects
-from grr_response_server.rdfvalues import mig_output_plugin
-from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
@@ -195,9 +188,7 @@ class FlowBase(
 ):
   """The base class for new style flow objects."""
 
-  # Alternatively we can specify a single semantic protobuf that will be used to
-  # provide the args.
-  args_type = rdf_flows.EmptyFlowArgs
+  # Protobuf message type for the flow's args.
   proto_args_type: Type[_ProtoArgsT] = flows_pb2.EmptyFlowArgs
   # _proto_args acts as a cache for the proto representation of the args.
   # If modified, there will be no effect on the source of truth args
@@ -209,11 +200,10 @@ class FlowBase(
   proto_store_type: Type[_ProtoStoreT] = flows_pb2.DefaultFlowStore
   _store: Optional[_ProtoStoreT]
 
-  # An RDFProtoStruct to be produced by the flow's 'progress'
+  # A protobuf to be produced by the flow's 'progress'
   # property. To be used by the API/UI to report on the flow's progress in a
-  # structured way. Can be overridden and has to match GetProgress's
+  # structured way. Can be overridden and has to match GetProgresProto's
   # return type.
-  progress_type = rdf_flow_objects.DefaultFlowProgress
   proto_progress_type: Type[_ProtoProgressT] = flows_pb2.DefaultFlowProgress
   _progress: Optional[_ProtoProgressT]
 
@@ -228,38 +218,28 @@ class FlowBase(
   behaviours = BEHAVIOUR_ADVANCED
 
   # Tuple, containing the union of all possible types this flow might
-  # return. By default, any RDFValue might be returned.
-  result_types = (rdfvalue.RDFValue,)
+  # return.
   proto_result_types = (any_pb2.Any,)
-
-  # This is used to control whether to allow RDF-based methods and properties.
-  # If set to True, only proto-based methods and properties are allowed.
-  only_protos_allowed = False
 
   _result_metadata: flows_pb2.FlowResultMetadata
 
   completed_requests: list[flows_pb2.FlowRequest]
 
-  def __init__(self, rdf_flow: rdf_flow_objects.Flow):
-    self.rdf_flow = rdf_flow
+  def __init__(self, proto_flow: flows_pb2.Flow):
+    self.proto_flow: flows_pb2.Flow = proto_flow
+
     self._proto_args = None
 
-    self.flow_requests = []
     self.proto_flow_requests: list[flows_pb2.FlowRequest] = []
-    self.flow_responses = []
     self.proto_flow_responses: list[
         Union[flows_pb2.FlowResponse, flows_pb2.FlowStatus]
     ] = []
     self.rrg_requests: list[rrg_pb2.Request] = []
-    self.client_action_requests = []
     self.proto_client_action_requests: list[jobs_pb2.GrrMessage] = []
     self.completed_requests: list[flows_pb2.FlowRequest] = []
-    self.replies_to_process = []
     self.proto_replies_to_process: list[flows_pb2.FlowResult] = []
-    self.replies_to_write = []
     self.proto_replies_to_write: list[flows_pb2.FlowResult] = []
 
-    self._state = None
     self._store = None
     self._progress = None
 
@@ -275,10 +255,9 @@ class FlowBase(
     self._rrg_startup: Optional[rrg_startup_pb2.Startup] = None
 
     self._num_replies_per_type_tag = collections.Counter()
-    if rdf_flow.HasField("result_metadata"):
-      self._result_metadata = rdf_flow.result_metadata.AsPrimitiveProto()
-    else:
-      self._result_metadata = flows_pb2.FlowResultMetadata()
+    self._result_metadata = flows_pb2.FlowResultMetadata()
+    if proto_flow.HasField("result_metadata"):
+      self._result_metadata = proto_flow.result_metadata
 
   def Start(self) -> None:
     """The first state of the flow."""
@@ -288,74 +267,6 @@ class FlowBase(
 
     This method is called prior to destruction of the flow.
     """
-
-  def CallState(
-      self,
-      next_state: str = "",
-      start_time: Optional[rdfvalue.RDFDatetime] = None,
-      responses: Optional[Sequence[rdf_structs.RDFStruct]] = None,
-  ):
-    """This method is used to schedule a new state on a different worker.
-
-    This is basically the same as CallFlow() except we are calling
-    ourselves. The state will be invoked at a later time.
-
-    Args:
-       next_state: The state in this flow to be invoked.
-       start_time: Start the flow at this time. This delays notification for
-         flow processing into the future. Note that the flow may still be
-         processed earlier if there are client responses waiting.
-       responses: If specified, responses to be passed to the next state.
-
-    Raises:
-      ValueError: The next state specified does not exist.
-      FlowError: Method shouldn't be used in this flow (only_protos_allowed).
-    """
-    # Start method is special and not ran with `RunStateMethod` by `StartFlow`.
-    # Rather, we call `CallState` directly because it can be scheduled for the
-    # future (`start_time`), different than `RunStateMethod` that runs now.
-    if self.only_protos_allowed and next_state != "Start":
-      raise FlowError(
-          "`CallState` is not allowed for flows that only allow protos. Use"
-          " `CallStateProto` instead."
-      )
-    if not getattr(self, next_state):
-      raise ValueError("Next state %s is invalid." % next_state)
-
-    request_id = self.GetNextOutboundId()
-    if responses:
-      for index, r in enumerate(responses):
-        wrapped_response = rdf_flow_objects.FlowResponse(
-            client_id=self.rdf_flow.client_id,
-            flow_id=self.rdf_flow.flow_id,
-            request_id=request_id,
-            response_id=index,
-            payload=r,
-        )
-        self.flow_responses.append(wrapped_response)
-      self.flow_responses.append(
-          rdf_flow_objects.FlowStatus(
-              client_id=self.rdf_flow.client_id,
-              flow_id=self.rdf_flow.flow_id,
-              request_id=request_id,
-              response_id=len(responses) + 1,
-              status=rdf_flow_objects.FlowStatus.Status.OK,
-          )
-      )
-      nr_responses_expected = len(responses) + 1
-    else:
-      nr_responses_expected = 0
-
-    flow_request = rdf_flow_objects.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        request_id=request_id,
-        next_state=next_state,
-        start_time=start_time,
-        nr_responses_expected=nr_responses_expected,
-        needs_processing=True,
-    )
-    self.flow_requests.append(flow_request)
 
   def CallStateProto(
       self,
@@ -388,19 +299,19 @@ class FlowBase(
       for index, r in enumerate(responses):
         _ValidateProto(r)
         wrapped_response = flows_pb2.FlowResponse(
-            client_id=self.rdf_flow.client_id,
-            flow_id=self.rdf_flow.flow_id,
+            client_id=self.client_id,
+            flow_id=self.flow_id,
             request_id=request_id,
             response_id=index,
         )
         wrapped_response.any_payload.Pack(r)
-        # TODO: Remove dynamic `payload` field.
+        # TODO - Remove dynamic `payload` field.
         wrapped_response.payload.Pack(r)
         self.proto_flow_responses.append(wrapped_response)
       self.proto_flow_responses.append(
           flows_pb2.FlowStatus(
-              client_id=self.rdf_flow.client_id,
-              flow_id=self.rdf_flow.flow_id,
+              client_id=self.client_id,
+              flow_id=self.flow_id,
               request_id=request_id,
               response_id=len(responses) + 1,
               status=flows_pb2.FlowStatus.Status.OK,
@@ -411,8 +322,8 @@ class FlowBase(
       nr_responses_expected = 0
 
     flow_request = flows_pb2.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
+        client_id=self.client_id,
+        flow_id=self.flow_id,
         request_id=request_id,
         next_state=next_state,
         nr_responses_expected=nr_responses_expected,
@@ -423,50 +334,6 @@ class FlowBase(
     if start_time is not None:
       flow_request.start_time = int(start_time)
     self.proto_flow_requests.append(flow_request)
-
-  def CallStateInline(
-      self,
-      messages: Optional[
-          Sequence[
-              Union[
-                  rdf_flow_objects.FlowResponse,
-                  rdf_flow_objects.FlowStatus,
-                  rdf_flow_objects.FlowIterator,
-              ],
-          ]
-      ] = None,
-      next_state: str = "",
-      request_data: Optional[Mapping[str, Any]] = None,
-      responses: Optional[flow_responses.Responses] = None,
-  ):
-    """Calls a state inline (immediately).
-
-    If `responses` is not specified, `messages` and `request_data` are used to
-    create a `flow_responses.Responses` object. Otherwise `responses` is used
-    as is.
-
-    Args:
-      messages: responses to be passed to the state (only used if `responses` is
-        not provided).
-      next_state: The state to be called.
-      request_data: An arbitrary dict to be passed to the called state (only
-        used if `responses` is not provided).
-      responses: Responses to pass to the state (as is). If not specified,
-        `messages` and `request_data` are used to create a
-        `flow_responses.Responses` object.
-
-    Raises:
-      FlowError: Method shouldn't be used in this flow (only_protos_allowed).
-    """
-    if self.only_protos_allowed:
-      raise FlowError(
-          "`CallStateInline` is not allowed for flows that only allow protos."
-          " Use `CallStateInlineProtoWithResponses` or "
-      )
-    if responses is None:
-      responses = flow_responses.FakeResponses(messages, request_data)
-
-    getattr(self, next_state)(responses)
 
   def CallStateInlineProtoWithResponses(
       self,
@@ -488,7 +355,7 @@ class FlowBase(
 
     # Method expects Responses[any_pb2.Any].
     if responses is not None:
-      # TODO: Remove this check once flow targets use pytype.
+      # TODO - Remove this check once flow targets use pytype.
       for r in responses:
         if not isinstance(r, any_pb2.Any):
           raise ValueError(
@@ -536,7 +403,7 @@ class FlowBase(
       self,
       action: rrg_pb2.Action,
       args: pb_message.Message,
-      # TODO: Use more pythonic filter wrappers.
+      # TODO - Use more pythonic filter wrappers.
       filters: Collection[rrg_pb2.Filter] = (),
       next_state: Optional[str] = None,
       context: Optional[dict[str, str]] = None,
@@ -566,8 +433,8 @@ class FlowBase(
     request_id = self.GetNextOutboundId()
 
     flow_request = flows_pb2.FlowRequest()
-    flow_request.client_id = self.rdf_flow.client_id
-    flow_request.flow_id = self.rdf_flow.flow_id
+    flow_request.client_id = self.client_id
+    flow_request.flow_id = self.flow_id
     flow_request.request_id = request_id
 
     if next_state:
@@ -579,7 +446,7 @@ class FlowBase(
       kv.v.string = value
 
     rrg_request = rrg_pb2.Request()
-    rrg_request.flow_id = int(self.rdf_flow.flow_id, 16)
+    rrg_request.flow_id = int(self.flow_id, 16)
     rrg_request.request_id = request_id
     rrg_request.action = action
     rrg_request.args.Pack(args)
@@ -587,7 +454,10 @@ class FlowBase(
     for rrg_filter in filters:
       rrg_request.filters.append(rrg_filter)
 
-    # TODO: Add support for limits.
+    rrg_request.network_bytes_limit = self.network_bytes_limit
+    rrg_request.cpu_time_limit.seconds = self.cpu_limit
+    rrg_request.real_time_limit.seconds = self.runtime_limit_us // 10**6
+    rrg_request.real_time_limit.nanos = (self.runtime_limit_us % 10**6) * 10**3
 
     self.proto_flow_requests.append(flow_request)
     self.rrg_requests.append(rrg_request)
@@ -609,48 +479,40 @@ class FlowBase(
     """
     cpu_limit_ms = None
     network_bytes_limit = None
-    runtime_limit_us = (
-        self.rdf_flow.runtime_limit_us.SerializeToWireFormat()
-        if self.rdf_flow.HasField("runtime_limit_us")
-        else None
-    )
+    runtime_limit_us = self.runtime_limit_us_opt
 
-    if self.rdf_flow.cpu_limit:
-      cpu_usage = self.rdf_flow.cpu_time_used
+    if self.cpu_limit:
       cpu_limit_ms = 1000 * max(
-          self.rdf_flow.cpu_limit
-          - cpu_usage.user_cpu_time
-          - cpu_usage.system_cpu_time,
+          self.cpu_limit - self.used_user_cpu_time - self.used_system_cpu_time,
           0,
       )
 
       if cpu_limit_ms == 0:
         raise flow.FlowResourcesExceededError(
             "CPU limit exceeded for {} {}.".format(
-                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+                self.flow_class_name, self.flow_id
             )
         )
 
-    if self.rdf_flow.network_bytes_limit:
+    if self.network_bytes_limit:
       network_bytes_limit = max(
-          self.rdf_flow.network_bytes_limit - self.rdf_flow.network_bytes_sent,
+          self.network_bytes_limit - self.network_bytes_sent,
           0,
       )
       if network_bytes_limit == 0:
         raise flow.FlowResourcesExceededError(
             "Network limit exceeded for {} {}.".format(
-                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+                self.flow_class_name, self.flow_id
             )
         )
 
-    if self.rdf_flow.runtime_limit_us and self.rdf_flow.runtime_us:
-      if self.rdf_flow.runtime_us < self.rdf_flow.runtime_limit_us:
-        rdf_duration = self.rdf_flow.runtime_limit_us - self.rdf_flow.runtime_us
-        runtime_limit_us = rdf_duration.SerializeToWireFormat()
+    if self.runtime_limit_us and self.runtime_us:
+      if self.runtime_us < self.runtime_limit_us:
+        runtime_limit_us = self.runtime_limit_us - self.runtime_us
       else:
         raise flow.FlowResourcesExceededError(
             "Runtime limit exceeded for {} {}.".format(
-                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+                self.flow_class_name, self.flow_id
             )
         )
 
@@ -659,91 +521,6 @@ class FlowBase(
         network_bytes_limit=network_bytes_limit,
         runtime_limit_us=runtime_limit_us,
     )
-
-  def CallClient(
-      self,
-      action_cls: Type[server_stubs.ClientActionStub],
-      request: Optional[rdfvalue.RDFValue] = None,
-      next_state: Optional[str] = None,
-      callback_state: Optional[str] = None,
-      request_data: Optional[Mapping[str, Any]] = None,
-  ):
-    """Calls the client asynchronously.
-
-    This sends a message to the client to invoke an Action. The run action may
-    send back many responses that will be queued by the framework until a status
-    message is sent by the client. The status message will cause the entire
-    transaction to be committed to the specified state.
-
-    Args:
-       action_cls: The function to call on the client.
-       request: The request to send to the client. Must be of the correct type
-         for the action.
-       next_state: The state in this flow, that responses to this message should
-         go to.
-       callback_state: (optional) The state to call whenever a new response is
-         arriving.
-       request_data: A dict which will be available in the RequestState
-         protobuf. The Responses object maintains a reference to this protobuf
-         for use in the execution of the state method. (so you can access this
-         data by responses.request).
-
-    Raises:
-       ValueError: The request passed to the client does not have the correct
-                   type.
-      FlowError: Method shouldn't be used in this flow (only_protos_allowed).
-    """
-    if self.only_protos_allowed:
-      raise FlowError(
-          "`CallClient` is not allowed for flows that only allow protos. Use"
-          " `CallClientProto` instead."
-      )
-    try:
-      action_identifier = action_registry.ID_BY_ACTION_STUB[action_cls]
-    except KeyError:
-      raise ValueError("Action class %s not known." % action_cls) from None
-
-    if action_cls.in_rdfvalue is None:
-      if request:
-        raise ValueError("Client action %s does not expect args." % action_cls)
-    else:
-      # Verify that the request type matches the client action requirements.
-      if not isinstance(request, action_cls.in_rdfvalue):
-        raise ValueError(
-            "Client action expected %s but got %s"
-            % (action_cls.in_rdfvalue, type(request))
-        )
-
-    outbound_id = self.GetNextOutboundId()
-
-    # Create a flow request.
-    flow_request = rdf_flow_objects.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        request_id=outbound_id,
-        next_state=next_state,
-        callback_state=callback_state,
-    )
-
-    if request_data is not None:
-      flow_request.request_data = rdf_protodict.Dict().FromDict(request_data)
-
-    limits = self._GetAndCheckResourceLimits()
-
-    stub = action_registry.ACTION_STUB_BY_ID[action_identifier]
-    client_action_request = rdf_flows.GrrMessage(
-        session_id="%s/%s" % (self.rdf_flow.client_id, self.rdf_flow.flow_id),
-        name=stub.__name__,
-        request_id=outbound_id,
-        payload=request,
-        network_bytes_limit=limits.network_bytes_limit,
-        runtime_limit_us=limits.runtime_limit_us,
-    )
-    if limits.cpu_limit_ms is not None:
-      client_action_request.cpu_limit = limits.cpu_limit_ms / 1000.0
-
-    self.flow_requests.append(flow_request)
-    self.client_action_requests.append(client_action_request)
 
   def CallClientProto(
       self,
@@ -805,8 +582,8 @@ class FlowBase(
 
     # Create a flow request.
     flow_request = flows_pb2.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
+        client_id=self.client_id,
+        flow_id=self.flow_id,
         request_id=outbound_id,
         next_state=next_state,
         callback_state=callback_state,
@@ -819,7 +596,7 @@ class FlowBase(
 
     limits = self._GetAndCheckResourceLimits()
     client_action_request = jobs_pb2.GrrMessage(
-        session_id="%s/%s" % (self.rdf_flow.client_id, self.rdf_flow.flow_id),
+        session_id="%s/%s" % (self.client_id, self.flow_id),
         name=action_cls.__name__,
         request_id=outbound_id,
         network_bytes_limit=limits.network_bytes_limit,
@@ -842,80 +619,13 @@ class FlowBase(
     self.proto_flow_requests.append(flow_request)
     self.proto_client_action_requests.append(client_action_request)
 
-  def CallFlow(
-      self,
-      flow_name: Optional[str] = None,
-      next_state: Optional[str] = None,
-      request_data: Optional[Mapping[str, Any]] = None,
-      output_plugins: Optional[
-          Sequence[rdf_output_plugin.OutputPluginDescriptor]
-      ] = None,
-      flow_args: Optional[rdf_structs.RDFStruct] = None,
-  ) -> str:
-    """Creates a new flow and send its responses to a state.
-
-    This creates a new flow. The flow may send back many responses which will be
-    queued by the framework until the flow terminates. The final status message
-    will cause the entire transaction to be committed to the specified state.
-
-    Args:
-       flow_name: The name of the flow to invoke.
-       next_state: The state in this flow, that responses to this message should
-         go to.
-       request_data: Any dict provided here will be available in the
-         RequestState protobuf. The Responses object maintains a reference to
-         this protobuf for use in the execution of the state method. (so you can
-         access this data by responses.request). There is no format mandated on
-         this data but it may be a serialized protobuf.
-       output_plugins: A list of output plugins to use for this flow.
-       flow_args: Arguments for the child flow.
-
-    Returns:
-       The flow_id of the child flow which was created.
-
-    Raises:
-      ValueError: The requested next state does not exist.
-      FlowError: Method shouldn't be used in this flow (only_protos_allowed).
-    """
-    if self.only_protos_allowed:
-      raise FlowError(
-          "`CallFlow` is not allowed for flows that only allow protos. Use"
-          " `CallFlowProto` instead."
-      )
-    if not getattr(self, next_state):
-      raise ValueError("Next state %s is invalid." % next_state)
-
-    flow_request = rdf_flow_objects.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        request_id=self.GetNextOutboundId(),
-        next_state=next_state,
-    )
-
-    if request_data is not None:
-      flow_request.request_data = rdf_protodict.Dict().FromDict(request_data)
-
-    self.flow_requests.append(flow_request)
-
-    flow_cls = FlowRegistry.FlowClassByName(flow_name)
-
-    return flow.StartFlow(
-        client_id=self.rdf_flow.client_id,
-        flow_cls=flow_cls,
-        parent=flow.FlowParent.FromFlow(self),
-        output_plugins=output_plugins,
-        flow_args=flow_args,
-        start_at=None,  # Start immediately in this worker.
-        disable_rrg_support=self.rdf_flow.disable_rrg_support,
-    )
-
   def CallFlowProto(
       self,
       flow_name: Optional[str] = None,
       next_state: Optional[str] = None,
       request_data: Optional[dict[str, Any]] = None,
-      output_plugins: Optional[
-          Sequence[rdf_output_plugin.OutputPluginDescriptor]
+      proto_output_plugins: Optional[
+          Sequence[output_plugin_pb2.OutputPluginDescriptor]
       ] = None,
       flow_args: Optional[pb_message.Message] = None,
   ) -> str:
@@ -934,7 +644,7 @@ class FlowBase(
          this protobuf for use in the execution of the state method. (so you can
          access this data by responses.request). There is no format mandated on
          this data but it may be a serialized protobuf.
-       output_plugins: A list of output plugins to use for this flow.
+       proto_output_plugins: A list of output plugins to use for this flow.
        flow_args: Arguments for the child flow.
 
     Returns:
@@ -947,8 +657,8 @@ class FlowBase(
       raise ValueError("Next state %s is invalid." % next_state)
 
     flow_request = flows_pb2.FlowRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
+        client_id=self.client_id,
+        flow_id=self.flow_id,
         request_id=self.GetNextOutboundId(),
         next_state=next_state,
     )
@@ -962,113 +672,22 @@ class FlowBase(
 
     flow_cls = FlowRegistry.FlowClassByName(flow_name)
 
-    rdf_flow_args = None
     if flow_args:
-      if flow_cls.args_type.protobuf != type(flow_args):
+      if flow_cls.proto_args_type != type(flow_args):
         raise ValueError(
             f"Flow {flow_name} expects args of type"
-            f" {flow_cls.args_type.protobuf} but got {type(flow_args)}"
+            f" {flow_cls.proto_args_type} but got {type(flow_args)}"
         )
-      # We try on a best-effort basis to convert the flow args to RDFValue.
-      rdf_flow_args = flow_cls.args_type.FromSerializedBytes(
-          flow_args.SerializeToString()
-      )
 
-    # TODO: Allow `StartFlow` to take proto args in.
     return flow.StartFlow(
-        client_id=self.rdf_flow.client_id,
+        client_id=self.client_id,
         flow_cls=flow_cls,
         parent=flow.FlowParent.FromFlow(self),
-        output_plugins=output_plugins,
-        flow_args=rdf_flow_args,
+        proto_output_plugins=proto_output_plugins,
+        proto_flow_args=flow_args,
         start_at=None,  # Start immediately in this worker.
-        disable_rrg_support=self.rdf_flow.disable_rrg_support,
+        disable_rrg_support=self.disable_rrg_support,
     )
-
-  def SendReply(
-      self, response: rdfvalue.RDFValue, tag: Optional[str] = None
-  ) -> None:
-    """Allows this flow to send a message to its parent flow.
-
-    If this flow does not have a parent, the message is saved to the database
-    as flow result.
-
-    Args:
-      response: An RDFValue() instance to be sent to the parent.
-      tag: If specified, tag the result with this tag.
-
-    Raises:
-      ValueError: If responses is not of the correct type.
-      FlowError: Method shouldn't be used in this flow (only_protos_allowed).
-    """
-    if self.only_protos_allowed:
-      raise FlowError(
-          "`SendReply` is not allowed for flows that only allow protos. Use"
-          " `SendReplyProto` instead."
-      )
-    if not isinstance(response, rdfvalue.RDFValue):
-      raise ValueError(
-          f"SendReply can only send RDFValues, got {type(response)}"
-      )
-
-    if not any(isinstance(response, t) for t in self.result_types):
-      logging.warning(
-          "Flow %s sends response of unexpected type %s.",
-          type(self).__name__,
-          type(response).__name__,
-      )
-
-    reply = rdf_flow_objects.FlowResult(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        hunt_id=self.rdf_flow.parent_hunt_id,
-        payload=response,
-        tag=tag,
-    )
-    if self.rdf_flow.parent_flow_id:
-
-      if isinstance(response, rdf_structs.RDFProtoStruct):
-        rdf_packed_payload = rdf_structs.AnyValue.Pack(response)
-      else:
-        # Should log for `GetMBR` flow which returns `RDFBytes`.
-        # Might fail for others that we're unaware but also return primitives.
-        logging.error(
-            "Flow %s sends response of unexpected type %s.",
-            self.__class__.__name__,
-            type(response),
-        )
-        rdf_packed_payload = None
-
-      flow_response = rdf_flow_objects.FlowResponse(
-          client_id=self.rdf_flow.client_id,
-          request_id=self.rdf_flow.parent_request_id,
-          response_id=self.GetNextResponseId(),
-          payload=response,
-          any_payload=rdf_packed_payload,
-          flow_id=self.rdf_flow.parent_flow_id,
-          tag=tag,
-      )
-
-      self.flow_responses.append(flow_response)
-      # For nested flows we want the replies to be written,
-      # but not to be processed by output plugins.
-      self.replies_to_write.append(reply)
-    else:
-      self.replies_to_write.append(reply)
-      self.replies_to_process.append(reply)
-
-    self.rdf_flow.num_replies_sent += 1
-
-    # Keeping track of result types/tags in a plain Python
-    # _num_replies_per_type_tag dict. In RDFValues/proto2 we have to represent
-    # dictionaries as lists of key-value pairs (i.e. there's no library
-    # support for dicts as data structures). Hence, updating a key would require
-    # iterating over the pairs - which might get expensive for hundreds of
-    # thousands of results. To avoid the issue we keep a non-serialized Python
-    # dict to be later accumulated into a serializable FlowResultCount
-    # in PersistState().
-    key = (type(response).__name__, tag or "")
-    self._num_replies_per_type_tag[key] += 1
 
   def SendReplyProto(
       self,
@@ -1099,20 +718,20 @@ class FlowBase(
       )
 
     reply = flows_pb2.FlowResult(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        hunt_id=self.rdf_flow.parent_hunt_id,
+        client_id=self.client_id,
+        flow_id=self.flow_id,
+        hunt_id=self.parent_hunt_id,
         tag=tag,
     )
     reply.payload.Pack(response)
     self.proto_replies_to_write.append(reply)
 
-    if self.rdf_flow.parent_flow_id:
+    if self.parent_flow_id:
       res = flows_pb2.FlowResponse(
-          client_id=self.rdf_flow.client_id,
-          request_id=self.rdf_flow.parent_request_id,
+          client_id=self.client_id,
+          request_id=self.parent_request_id,
           response_id=self.GetNextResponseId(),
-          flow_id=self.rdf_flow.parent_flow_id,
+          flow_id=self.parent_flow_id,
           tag=tag,
       )
       res.payload.Pack(response)
@@ -1123,7 +742,7 @@ class FlowBase(
       # a parent flow (not nested).
       self.proto_replies_to_process.append(reply)
 
-    self.rdf_flow.num_replies_sent += 1
+    self.num_replies_sent += 1
 
     # Keeping track of result types/tags in a plain Python
     # _num_replies_per_type_tag dict. In RDFValues/proto2 we have to represent
@@ -1140,46 +759,46 @@ class FlowBase(
     """Method to tally resources."""
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
-    self.rdf_flow.cpu_time_used.user_cpu_time += user_cpu
-    self.rdf_flow.cpu_time_used.system_cpu_time += system_cpu
+    self.used_user_cpu_time = self.used_user_cpu_time + user_cpu
+    self.used_system_cpu_time = self.used_system_cpu_time + system_cpu
 
-    self.rdf_flow.network_bytes_sent += status.network_bytes_sent
+    self.network_bytes_sent = (
+        self.network_bytes_sent + status.network_bytes_sent
+    )
 
-    if not self.rdf_flow.runtime_us:
-      self.rdf_flow.runtime_us = rdfvalue.Duration(0)
+    if not self.runtime_us:
+      self.runtime_us = 0
 
     if status.runtime_us:
-      self.rdf_flow.runtime_us += status.runtime_us
+      runtime_us_int = status.runtime_us.SerializeToWireFormat()
+      self.runtime_us = self.runtime_us + runtime_us_int
 
-    if self.rdf_flow.cpu_limit:
-      user_cpu_total = self.rdf_flow.cpu_time_used.user_cpu_time
-      system_cpu_total = self.rdf_flow.cpu_time_used.system_cpu_time
-      if self.rdf_flow.cpu_limit < (user_cpu_total + system_cpu_total):
+    if self.cpu_limit:
+      user_cpu_total = self.used_user_cpu_time
+      system_cpu_total = self.used_system_cpu_time
+      if self.cpu_limit < (user_cpu_total + system_cpu_total):
         # We have exceeded our CPU time limit, stop this flow.
         raise flow.FlowResourcesExceededError(
             "CPU limit exceeded for {} {}.".format(
-                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+                self.flow_class_name, self.flow_id
             )
         )
 
     if (
-        self.rdf_flow.network_bytes_limit
-        and self.rdf_flow.network_bytes_limit < self.rdf_flow.network_bytes_sent
+        self.network_bytes_limit
+        and self.network_bytes_limit < self.network_bytes_sent
     ):
       # We have exceeded our byte limit, stop this flow.
       raise flow.FlowResourcesExceededError(
           "Network bytes limit exceeded {} {}.".format(
-              self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+              self.flow_class_name, self.flow_id
           )
       )
 
-    if (
-        self.rdf_flow.runtime_limit_us
-        and self.rdf_flow.runtime_limit_us < self.rdf_flow.runtime_us
-    ):
+    if self.runtime_limit_us and self.runtime_limit_us < self.runtime_us:
       raise flow.FlowResourcesExceededError(
           "Runtime limit exceeded {} {}.".format(
-              self.rdf_flow.flow_class_name, self.rdf_flow.flow_id
+              self.flow_class_name, self.flow_id
           )
       )
 
@@ -1190,7 +809,7 @@ class FlowBase(
   ) -> None:
     """Terminates this flow with an error."""
     flow_name = self.__class__.__name__
-    is_child = bool(self.rdf_flow.parent_flow_id)
+    is_child = bool(self.parent_flow_id)
     exception_name = _ExtractExceptionName(
         f"{error_message or ''}{backtrace or ''}"
     )
@@ -1214,8 +833,8 @@ class FlowBase(
       _REPORTED_EXCEPTION_NAMES.add(exception_name)
       FLOW_ERRORS.Increment(fields=[flow_name, is_child, exception_name])
 
-    client_id = self.rdf_flow.client_id
-    flow_id = self.rdf_flow.flow_id
+    client_id = self.client_id
+    flow_id = self.flow_id
 
     # backtrace is set for unexpected failures caught in a wildcard except
     # branch, thus these should be logged as error. backtrace is None for
@@ -1234,53 +853,57 @@ class FlowBase(
           "Error in flow %s on %s: %s:", flow_id, client_id, error_message
       )
 
-    if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:
-      status_msg = rdf_flow_objects.FlowStatus(
-          status=rdf_flow_objects.FlowStatus.Status.ERROR,
+    if self.parent_flow_id or self.parent_hunt_id:
+      cpu_seconds = jobs_pb2.CpuSeconds(
+          user_cpu_time=self.used_user_cpu_time,
+          system_cpu_time=self.used_system_cpu_time,
+      )
+      status_msg = flows_pb2.FlowStatus(
+          status=flows_pb2.FlowStatus.Status.ERROR,
           client_id=client_id,
-          request_id=self.rdf_flow.parent_request_id,
+          request_id=self.parent_request_id,
           response_id=self.GetNextResponseId(),
-          cpu_time_used=self.rdf_flow.cpu_time_used,
-          network_bytes_sent=self.rdf_flow.network_bytes_sent,
-          runtime_us=self.rdf_flow.runtime_us,
+          cpu_time_used=cpu_seconds,
+          network_bytes_sent=self.network_bytes_sent,
+          runtime_us=self.runtime_us,
           error_message=error_message,
-          flow_id=self.rdf_flow.parent_flow_id,
+          flow_id=self.parent_flow_id,
           backtrace=backtrace,
       )
 
-      if self.rdf_flow.parent_flow_id:
-        self.flow_responses.append(status_msg)
-      elif self.rdf_flow.parent_hunt_id:
-        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
+      if self.parent_flow_id:
+        self.proto_flow_responses.append(status_msg)
+      elif self.parent_hunt_id:
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.parent_hunt_id)
 
-    self.rdf_flow.flow_state = self.rdf_flow.FlowState.ERROR
+    self.proto_flow.flow_state = flows_pb2.Flow.FlowState.ERROR
     if backtrace is not None:
-      self.rdf_flow.backtrace = backtrace
+      self.proto_flow.backtrace = backtrace
     if error_message is not None:
-      self.rdf_flow.error_message = error_message
+      self.proto_flow.error_message = error_message
 
     self.NotifyCreatorOfError()
 
   def NotifyCreatorOfError(self) -> None:
     if self.ShouldSendNotifications():
-      client_id = self.rdf_flow.client_id
-      flow_id = self.rdf_flow.flow_id
+      client_id = self.client_id
+      flow_id = self.flow_id
 
       flow_ref = objects_pb2.FlowReference(client_id=client_id, flow_id=flow_id)
       notification_lib.Notify(
           self.creator,
-          rdf_objects.UserNotification.Type.TYPE_FLOW_RUN_FAILED,
+          objects_pb2.UserNotification.Type.TYPE_FLOW_RUN_FAILED,
           "Flow %s on %s terminated due to error" % (flow_id, client_id),
           objects_pb2.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.FLOW,
+              reference_type=objects_pb2.ObjectReference.Type.FLOW,
               flow=flow_ref,
           ),
       )
 
   def _ClearAllRequestsAndResponses(self) -> None:
     """Clears all requests and responses."""
-    client_id = self.rdf_flow.client_id
-    flow_id = self.rdf_flow.flow_id
+    client_id = self.client_id
+    flow_id = self.flow_id
 
     # Remove all requests queued for deletion that we delete in the call below.
     self.completed_requests = [
@@ -1295,15 +918,11 @@ class FlowBase(
     """Notify about the end of the flow."""
     # Sum up number of replies to write with the number of already
     # written results.
-    num_results = (
-        len(self.replies_to_write)
-        + len(self.proto_replies_to_write)
-        + data_store.REL_DB.CountFlowResults(
-            self.rdf_flow.client_id, self.rdf_flow.flow_id
-        )
-    )
+    num_results = len(
+        self.proto_replies_to_write
+    ) + data_store.REL_DB.CountFlowResults(self.client_id, self.flow_id)
     flow_ref = objects_pb2.FlowReference(
-        client_id=self.rdf_flow.client_id, flow_id=self.rdf_flow.flow_id
+        client_id=self.client_id, flow_id=self.flow_id
     )
     notification_lib.Notify(
         self.creator,
@@ -1325,23 +944,27 @@ class FlowBase(
 
     # Notify our parent flow or hunt that we are done (if there's a parent flow
     # or hunt).
-    if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:
-      status = rdf_flow_objects.FlowStatus(
-          client_id=self.rdf_flow.client_id,
-          request_id=self.rdf_flow.parent_request_id,
-          response_id=self.GetNextResponseId(),
-          status=rdf_flow_objects.FlowStatus.Status.OK,
-          cpu_time_used=self.rdf_flow.cpu_time_used,
-          network_bytes_sent=self.rdf_flow.network_bytes_sent,
-          runtime_us=self.rdf_flow.runtime_us,
-          flow_id=self.rdf_flow.parent_flow_id,
+    if self.parent_flow_id or self.parent_hunt_id:
+      cpu_seconds = jobs_pb2.CpuSeconds(
+          user_cpu_time=self.used_user_cpu_time,
+          system_cpu_time=self.used_system_cpu_time,
       )
-      if self.rdf_flow.parent_flow_id:
-        self.flow_responses.append(status)
-      elif self.rdf_flow.parent_hunt_id:
-        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
+      status = flows_pb2.FlowStatus(
+          client_id=self.client_id,
+          request_id=self.parent_request_id,
+          response_id=self.GetNextResponseId(),
+          status=flows_pb2.FlowStatus.Status.OK,
+          cpu_time_used=cpu_seconds,
+          network_bytes_sent=self.network_bytes_sent,
+          runtime_us=self.runtime_us,
+          flow_id=self.parent_flow_id,
+      )
+      if self.parent_flow_id:
+        self.proto_flow_responses.append(status)
+      elif self.parent_hunt_id:
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.parent_hunt_id)
 
-    self.rdf_flow.flow_state = self.rdf_flow.FlowState.FINISHED
+    self.proto_flow.flow_state = flows_pb2.Flow.FlowState.FINISHED
 
     if self.ShouldSendNotifications():
       self.NotifyAboutEnd()
@@ -1362,9 +985,9 @@ class FlowBase(
       message = format_str % args
 
     log_entry = flows_pb2.FlowLogEntry(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
-        hunt_id=self.rdf_flow.parent_hunt_id,
+        client_id=self.client_id,
+        flow_id=self.flow_id,
+        hunt_id=self.parent_hunt_id,
         message=message,
     )
     data_store.REL_DB.WriteFlowLogEntry(log_entry)
@@ -1394,30 +1017,32 @@ class FlowBase(
     Raises:
       FlowError: Processing time for the flow has expired.
     """
-    client_id = self.rdf_flow.client_id
+    client_id = self.client_id
 
-    deadline = self.rdf_flow.processing_deadline
+    deadline = self.processing_deadline
     if deadline and rdfvalue.RDFDatetime.Now() > deadline:
       raise FlowError(
           "Processing time for flow %s on %s expired."
-          % (self.rdf_flow.flow_id, self.rdf_flow.client_id)
+          % (self.flow_id, self.client_id)
       )
 
-    self.rdf_flow.current_state = method_name
+    self.proto_flow.current_state = method_name
+
     if request and responses:
       logging.debug(
-          "Running %s for flow %s on %s, %d responses.",
+          "Running `%s` for %s/%s/%s, %d responses.",
           method_name,
-          self.rdf_flow.flow_id,
           client_id,
+          self.flow_id,
+          request.request_id,
           len(responses),
       )
     else:
       logging.debug(
-          "Running %s for flow %s on %s",
+          "Running `%s` for %s/%s",
           method_name,
-          self.rdf_flow.flow_id,
           client_id,
+          self.flow_id,
       )
 
     try:
@@ -1459,7 +1084,7 @@ class FlowBase(
       GRR_WORKER_STATES_RUN.Increment()
 
       if method_name == "Start":
-        FLOW_STARTS.Increment(fields=[self.rdf_flow.flow_class_name])
+        FLOW_STARTS.Increment(fields=[self.flow_class_name])
         method()
       elif method_name == "End":
         method()
@@ -1468,27 +1093,12 @@ class FlowBase(
 
       if self.proto_replies_to_process:
         self._ProcessRepliesWithOutputPluginProto(self.proto_replies_to_process)
-        # TODO: Remove when no more RDF-based output plugins exist.
-        rdf_replies = [
-            mig_flow_objects.ToRDFFlowResult(r)
-            for r in self.proto_replies_to_process
-        ]
-        self.replies_to_process.extend(rdf_replies)
         self.proto_replies_to_process = []
-
-      # TODO: Remove when no more RDF-based output plugins exist.
-      if self.replies_to_process:
-        if self.rdf_flow.parent_hunt_id and not self.rdf_flow.parent_flow_id:
-          self._ProcessRepliesWithHuntOutputPlugins(self.replies_to_process)
-        else:
-          self._ProcessRepliesWithFlowOutputPlugins(self.replies_to_process)
-
-        self.replies_to_process = []
 
     except flow.FlowResourcesExceededError as e:
       logging.info(
           "Flow %s on %s exceeded resource limits: %s.",
-          self.rdf_flow.flow_id,
+          self.flow_id,
           client_id,
           str(e),
       )
@@ -1507,17 +1117,17 @@ class FlowBase(
       requests and the number of incrementally processed ones.
     """
     request_dict = data_store.REL_DB.ReadFlowRequests(
-        self.rdf_flow.client_id,
-        self.rdf_flow.flow_id,
+        self.client_id,
+        self.flow_id,
     )
 
     completed_requests = FindCompletedRequestsToProcess(
         request_dict,
-        self.rdf_flow.next_request_to_process,
+        self.next_request_to_process,
     )
     incremental_requests = FindIncrementalRequestsToProcess(
         request_dict,
-        self.rdf_flow.next_request_to_process,
+        self.next_request_to_process,
     )
     # When dealing with a callback flow, count all incremental requests even if
     # `incremental_requests` is empty, as it's expected that messages might
@@ -1551,7 +1161,7 @@ class FlowBase(
 
       if rdf_responses:
         # We do not sent incremental updates for FlowStatus updates.
-        # TODO: Check if the id of last message in to_process, the
+        # TODO - Check if the id of last message in to_process, the
         # FlowStatus, is important to keep for the next_response_id map, as the
         # flow is anyways complete then. If not we can skip adding the
         # FlowStatus to the `to_process` list instead of filtering it out here.
@@ -1571,7 +1181,7 @@ class FlowBase(
 
     if next_response_id_map:
       data_store.REL_DB.UpdateIncrementalFlowRequests(
-          self.rdf_flow.client_id, self.rdf_flow.flow_id, next_response_id_map
+          self.client_id, self.flow_id, next_response_id_map
       )
 
     # Process completed requests.
@@ -1596,7 +1206,7 @@ class FlowBase(
       if not rdf_responses:
         rdf_responses = None
       self.RunStateMethod(request.next_state, rdf_request, rdf_responses)
-      self.rdf_flow.next_request_to_process += 1
+      self.next_request_to_process += 1
       self.completed_requests.append(request)
 
     if (
@@ -1605,10 +1215,7 @@ class FlowBase(
         and not self.outstanding_requests
     ):
       self.RunStateMethod("End")
-      if (
-          self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
-          and not self.outstanding_requests
-      ):
+      if self.IsRunning() and not self.outstanding_requests:
         self.MarkDone()
 
     self.PersistState()
@@ -1628,69 +1235,68 @@ class FlowBase(
     Returns:
        the number of all outstanding requests.
     """
-    return (
-        self.rdf_flow.next_outbound_id - self.rdf_flow.next_request_to_process
-    )
+    return self.next_outbound_id - self.next_request_to_process
+
+  @property
+  def parent_request_id(self) -> int:
+    return self.proto_flow.parent_request_id
+
+  @property
+  def num_replies_sent(self) -> int:
+    return self.proto_flow.num_replies_sent
+
+  @num_replies_sent.setter
+  def num_replies_sent(self, value: int) -> None:
+    self.proto_flow.num_replies_sent = value
+
+  @property
+  def next_request_to_process(self) -> int:
+    return self.proto_flow.next_request_to_process
+
+  @next_request_to_process.setter
+  def next_request_to_process(self, value: int) -> None:
+    self.proto_flow.next_request_to_process = value
+
+  @property
+  def next_outbound_id(self) -> int:
+    return self.proto_flow.next_outbound_id
+
+  @next_outbound_id.setter
+  def next_outbound_id(self, value: int) -> None:
+    self.proto_flow.next_outbound_id = value
 
   def GetNextOutboundId(self) -> int:
-    my_id = self.rdf_flow.next_outbound_id
-    self.rdf_flow.next_outbound_id += 1
+    my_id = self.next_outbound_id
+    self.next_outbound_id += 1
     return my_id
 
   def GetCurrentOutboundId(self) -> int:
-    return self.rdf_flow.next_outbound_id - 1
+    return self.next_outbound_id - 1
 
   def GetNextResponseId(self) -> int:
-    self.rdf_flow.response_count += 1
-    return self.rdf_flow.response_count
+    self.proto_flow.response_count += 1
+    return self.proto_flow.response_count
 
   def FlushQueuedMessages(self) -> None:
     """Flushes queued messages."""
     # TODO(amoser): This could be done in a single db call, might be worth
     # optimizing.
 
-    if self.flow_requests or self.proto_flow_requests:
-      all_requests = [
-          mig_flow_objects.ToProtoFlowRequest(r) for r in self.flow_requests
-      ] + self.proto_flow_requests
+    if self.proto_flow_requests:
       # We make a single DB call to write all requests. Contrary to what the
       # name suggests, this method does more than writing the requests to the
       # DB. It also tallies the flows that need processing and updates the
       # next request to process. Writing the requests in separate calls can
       # interfere with this process.
-      data_store.REL_DB.WriteFlowRequests(all_requests)
-      self.flow_requests = []
+      data_store.REL_DB.WriteFlowRequests(self.proto_flow_requests)
       self.proto_flow_requests = []
-
-    if self.flow_responses:
-      flow_responses_proto = []
-      for r in self.flow_responses:
-        if isinstance(r, rdf_flow_objects.FlowResponse):
-          flow_responses_proto.append(mig_flow_objects.ToProtoFlowResponse(r))
-        if isinstance(r, rdf_flow_objects.FlowStatus):
-          flow_responses_proto.append(mig_flow_objects.ToProtoFlowStatus(r))
-        if isinstance(r, rdf_flow_objects.FlowIterator):
-          flow_responses_proto.append(mig_flow_objects.ToProtoFlowIterator(r))
-      data_store.REL_DB.WriteFlowResponses(flow_responses_proto)
-      self.flow_responses = []
 
     if self.proto_flow_responses:
       data_store.REL_DB.WriteFlowResponses(self.proto_flow_responses)
       self.proto_flow_responses = []
 
-    if self.client_action_requests:
-      client_id = self.rdf_flow.client_id
-      for request in self.client_action_requests:
-        fleetspeak_utils.SendGrrMessageThroughFleetspeak(
-            client_id,
-            request,
-            self.client_labels,
-        )
-
-      self.client_action_requests = []
-
     if self.proto_client_action_requests:
-      client_id = self.rdf_flow.client_id
+      client_id = self.client_id
       for request in self.proto_client_action_requests:
         fleetspeak_utils.SendGrrMessageProtoThroughFleetspeak(
             client_id,
@@ -1701,7 +1307,7 @@ class FlowBase(
 
     for request in self.rrg_requests:
       fleetspeak_utils.SendRrgRequest(
-          self.rdf_flow.client_id,
+          self.client_id,
           request,
           self.client_labels,
       )
@@ -1712,16 +1318,12 @@ class FlowBase(
       data_store.REL_DB.DeleteFlowRequests(self.completed_requests)
       self.completed_requests = []
 
-    if self.proto_replies_to_write or self.replies_to_write:
-      all_results = self.proto_replies_to_write + [
-          mig_flow_objects.ToProtoFlowResult(r) for r in self.replies_to_write
-      ]
+    if self.proto_replies_to_write:
       # Write flow results to REL_DB, even if the flow is a nested flow.
-      data_store.REL_DB.WriteFlowResults(all_results)
-      if self.rdf_flow.parent_hunt_id:
-        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
+      data_store.REL_DB.WriteFlowResults(self.proto_replies_to_write)
+      if self.parent_hunt_id:
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.parent_hunt_id)
       self.proto_replies_to_write = []
-      self.replies_to_write = []
 
   def _ProcessRepliesWithOutputPluginProto(
       self, replies: Sequence[flows_pb2.FlowResult]
@@ -1737,24 +1339,26 @@ class FlowBase(
     Args:
       replies: A sequence of `flows_pb2.FlowResult` to be processed.
     """
-    proto_plugin_descriptors = []
-    for idx, p in enumerate(self.rdf_flow.output_plugins):
+    existing_plugins = []
+    for idx, p in enumerate(self.output_plugins):
       try:
         output_plugin_registry.GetPluginClassByName(p.plugin_name)
-        proto_plugin_descriptors.append(
-            (idx, mig_output_plugin.ToProtoOutputPluginDescriptor(p))
-        )
+        existing_plugins.append((idx, p))
       except KeyError:
-        # This is an RDF-based plugin, we'll process it separately.
-        pass
+        # The plugin should have been checked when creating the flow.
+        # If something went wrong (e.g. it was removed), we log and continue.
+        self.Log(
+            "Output plugin '%s' not found, skipping processing.",
+            p.plugin_name,
+        )
 
     logging.info(
         "Processing %d replies with %d proto-based output plugins.",
         len(replies),
-        len(proto_plugin_descriptors),
+        len(existing_plugins),
     )
 
-    for plugin_id, plugin_descriptor in proto_plugin_descriptors:
+    for plugin_id, plugin_descriptor in existing_plugins:
       plugin_cls = output_plugin_registry.GetPluginClassByName(
           plugin_descriptor.plugin_name
       )
@@ -1764,7 +1368,9 @@ class FlowBase(
       else:
         pl_args = None
 
-      plugin = plugin_cls(source_urn=self.rdf_flow.long_flow_id, args=pl_args)
+      plugin = plugin_cls(
+          source_urn=rdfvalue.RDFURN(self.long_flow_id), args=pl_args
+      )
 
       try:
         plugin.ProcessResults(replies)
@@ -1775,19 +1381,23 @@ class FlowBase(
             plugin_id,
             len(replies),
         )
-        # TODO: Remove once migration is complete.
+        # TODO - Remove once migration is complete.
         # For now this serves as compatibility with logging for RDF-based
         # plugins (the other branch adds an equivalent log entry).
         data_store.REL_DB.WriteFlowOutputPluginLogEntry(
             flows_pb2.FlowOutputPluginLogEntry(
-                client_id=self.rdf_flow.client_id,
-                flow_id=self.rdf_flow.flow_id,
-                hunt_id=self.rdf_flow.parent_hunt_id,
+                client_id=self.client_id,
+                flow_id=self.flow_id,
+                hunt_id=self.parent_hunt_id,
                 output_plugin_id=str(plugin_id),
                 log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
                 message=f"Processed {len(replies)} replies.",
             )
         )
+        if self.parent_hunt_id and not self.parent_flow_id:
+          HUNT_RESULTS_RAN_THROUGH_PLUGIN.Increment(
+              len(replies), fields=[plugin_descriptor.plugin_name]
+          )
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(
             "Plugin %s failed to process %d replies.",
@@ -1796,9 +1406,9 @@ class FlowBase(
         )
         data_store.REL_DB.WriteFlowOutputPluginLogEntry(
             flows_pb2.FlowOutputPluginLogEntry(
-                client_id=self.rdf_flow.client_id,
-                flow_id=self.rdf_flow.flow_id,
-                hunt_id=self.rdf_flow.parent_hunt_id,
+                client_id=self.client_id,
+                flow_id=self.flow_id,
+                hunt_id=self.parent_hunt_id,
                 output_plugin_id=str(plugin_id),
                 log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
                 message=(
@@ -1813,14 +1423,18 @@ class FlowBase(
             len(self.proto_replies_to_process),
             e,
         )
+        if self.parent_hunt_id and not self.parent_flow_id:
+          HUNT_OUTPUT_PLUGIN_ERRORS.Increment(
+              len(replies), fields=[plugin_descriptor.plugin_name]
+          )
 
       logs_to_write: list[flows_pb2.FlowOutputPluginLogEntry] = []
       for log_type, log_message in plugin.GetLogs():
         logs_to_write.append(
             flows_pb2.FlowOutputPluginLogEntry(
-                client_id=self.rdf_flow.client_id,
-                flow_id=self.rdf_flow.flow_id,
-                hunt_id=self.rdf_flow.parent_hunt_id,
+                client_id=self.client_id,
+                flow_id=self.flow_id,
+                hunt_id=self.parent_hunt_id,
                 output_plugin_id=str(plugin_id),
                 log_entry_type=log_type,
                 message=log_message,
@@ -1832,171 +1446,39 @@ class FlowBase(
       if logs_to_write:
         data_store.REL_DB.WriteMultipleFlowOutputPluginLogEntries(logs_to_write)
 
-  def _ProcessRepliesWithHuntOutputPlugins(
-      self, replies: Sequence[rdf_flow_objects.FlowResult]
-  ) -> None:
-    """Applies output plugins to hunt results."""
-    hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
-    hunt_obj = mig_hunt_objects.ToRDFHunt(hunt_obj)
-    self.rdf_flow.output_plugins = hunt_obj.output_plugins
-    hunt_output_plugins_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
-        self.rdf_flow.parent_hunt_id
-    )
-
-    hunt_output_plugins_states = [
-        mig_flow_runner.ToRDFOutputPluginState(s)
-        for s in hunt_output_plugins_states
-    ]
-    self.rdf_flow.output_plugins_states = hunt_output_plugins_states
-
-    created_plugins = self._ProcessRepliesWithFlowOutputPlugins(replies)
-
-    for index, (plugin, state) in enumerate(
-        zip(created_plugins, hunt_output_plugins_states)
-    ):
-      if plugin is None:
-        continue
-
-      # Only do the REL_DB call if the plugin state has actually changed.
-      s = state.plugin_state.Copy()
-      plugin.UpdateState(s)
-      if s != state.plugin_state:
-
-        def UpdateFn(
-            plugin_state: jobs_pb2.AttributedDict,
-        ) -> jobs_pb2.AttributedDict:
-          plugin_state_rdf = mig_protodict.ToRDFAttributedDict(plugin_state)
-          plugin.UpdateState(plugin_state_rdf)  # pylint: disable=cell-var-from-loop
-          plugin_state = mig_protodict.ToProtoAttributedDict(plugin_state_rdf)
-          return plugin_state
-
-        data_store.REL_DB.UpdateHuntOutputPluginState(
-            hunt_obj.hunt_id, index, UpdateFn
-        )
-
-    for plugin_def, created_plugin in zip(
-        hunt_obj.output_plugins, created_plugins
-    ):
-      if created_plugin is not None:
-        HUNT_RESULTS_RAN_THROUGH_PLUGIN.Increment(
-            len(replies), fields=[plugin_def.plugin_name]
-        )
-      else:
-        HUNT_OUTPUT_PLUGIN_ERRORS.Increment(fields=[plugin_def.plugin_name])
-
-  def _ProcessRepliesWithFlowOutputPlugins(
-      self, replies: Sequence[rdf_flow_objects.FlowResult]
-  ) -> Sequence[Optional[output_plugin_lib.OutputPlugin]]:
-    """Processes replies with output plugins."""
-    created_output_plugins = []
-    for output_plugin_state in self.rdf_flow.output_plugins_states:  # pytype: disable=attribute-error
-      plugin_descriptor = output_plugin_state.plugin_descriptor  # pytype: disable=attribute-error
-      output_plugin_cls = plugin_descriptor.GetPluginClass()
-      args = plugin_descriptor.args
-      output_plugin = output_plugin_cls(
-          source_urn=self.rdf_flow.long_flow_id, args=args
-      )
-
-      try:
-        output_plugin.ProcessResponses(
-            output_plugin_state.plugin_state,
-            replies,
-        )
-        output_plugin.Flush(output_plugin_state.plugin_state)
-        output_plugin.UpdateState(output_plugin_state.plugin_state)
-
-        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
-            flows_pb2.FlowOutputPluginLogEntry(
-                client_id=self.rdf_flow.client_id,
-                flow_id=self.rdf_flow.flow_id,
-                hunt_id=self.rdf_flow.parent_hunt_id,
-                output_plugin_id=output_plugin_state.plugin_id,
-                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
-                message="Processed %d replies." % len(replies),
-            )
-        )
-
-        self.Log(
-            "Plugin %s (id: %s) successfully processed %d flow replies.",
-            plugin_descriptor.plugin_name,
-            output_plugin_state.plugin_id,
-            len(replies),
-        )
-
-        created_output_plugins.append(output_plugin)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception(
-            "Plugin %s failed to process %d replies.",
-            plugin_descriptor,
-            len(replies),
-        )
-        created_output_plugins.append(None)
-
-        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
-            flows_pb2.FlowOutputPluginLogEntry(
-                client_id=self.rdf_flow.client_id,
-                flow_id=self.rdf_flow.flow_id,
-                hunt_id=self.rdf_flow.parent_hunt_id,
-                output_plugin_id=output_plugin_state.plugin_id,
-                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
-                message="Error while processing %d replies: %s"
-                % (len(replies), str(e)),
-            )
-        )
-
-        self.Log(
-            "Plugin %s failed to process %d replies due to: %s",
-            plugin_descriptor,
-            len(replies),
-            e,
-        )
-
-    return created_output_plugins
-
   def MergeQueuedMessages(self, flow_obj: "FlowBase") -> None:
     """Merges queued messages."""
-    self.flow_requests.extend(flow_obj.flow_requests)
-    flow_obj.flow_requests = []
     self.proto_flow_requests.extend(flow_obj.proto_flow_requests)
     flow_obj.proto_flow_requests = []
-    self.flow_responses.extend(flow_obj.flow_responses)
-    flow_obj.flow_responses = []
     self.proto_flow_responses.extend(flow_obj.proto_flow_responses)
     flow_obj.proto_flow_responses = []
     self.rrg_requests.extend(flow_obj.rrg_requests)
     flow_obj.rrg_requests = []
-    self.client_action_requests.extend(flow_obj.client_action_requests)
-    flow_obj.client_action_requests = []
     self.proto_client_action_requests.extend(
         flow_obj.proto_client_action_requests
     )
     flow_obj.proto_client_action_requests = []
     self.completed_requests.extend(flow_obj.completed_requests)
     flow_obj.completed_requests = []
-    self.replies_to_write.extend(flow_obj.replies_to_write)
-    flow_obj.replies_to_write = []
     self.proto_replies_to_write.extend(flow_obj.proto_replies_to_write)
     flow_obj.proto_replies_to_write = []
 
   def ShouldSendNotifications(self) -> bool:
     return bool(
-        not self.rdf_flow.parent_flow_id
-        and not self.rdf_flow.parent_hunt_id
+        not self.parent_flow_id
+        and not self.parent_hunt_id
         and self.creator
         and self.creator not in access_control.SYSTEM_USERS
     )
 
   def IsRunning(self) -> bool:
-    return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
-
-  def GetProgress(self) -> rdf_structs.RDFProtoStruct:
-    return rdf_flow_objects.DefaultFlowProgress()
+    return self.proto_flow.flow_state == flows_pb2.Flow.FlowState.RUNNING
 
   def GetProgressProto(self) -> pb_message.Message:
     return flows_pb2.DefaultFlowProgress()
 
   def GetFilesArchiveMappings(
-      self, flow_results: Iterator[rdf_flow_objects.FlowResult]
+      self, flow_results: Iterator[flows_pb2.FlowResult]
   ) -> Iterator[ClientPathArchiveMapping]:
     """Returns a mapping used to generate flow results archive.
 
@@ -2017,28 +1499,39 @@ class FlowBase(
 
   @property
   def client_id(self) -> str:
-    return self.rdf_flow.client_id
+    return self.proto_flow.client_id
+
+  @property
+  def flow_id(self) -> str:
+    return self.proto_flow.flow_id
+
+  @property
+  def long_flow_id(self) -> str:
+    return self.proto_flow.long_flow_id
+
+  @property
+  def parent_flow_id(self) -> str:
+    return self.proto_flow.parent_flow_id
+
+  @property
+  def parent_hunt_id(self) -> str:
+    return self.proto_flow.parent_hunt_id
 
   @property
   def client_urn(self) -> rdfvalue.RDFURN:
     return rdfvalue.RDFURN(self.client_id)
 
   @property
-  def state(self) -> Any:
-    if self._state is None:
-      self._state = flow.AttributedDict(self.rdf_flow.persistent_data.ToDict())
-    return self._state
-
-  @property
   def progress(self) -> _ProtoProgressT:
-    if self._progress is None:
-      if self.rdf_flow.HasField("progress"):
-        packed_any: any_pb2.Any = self.rdf_flow.progress.AsPrimitiveProto()
-        unpacked = self.proto_progress_type()
-        packed_any.Unpack(unpacked)
-        self._progress = unpacked
-      else:
-        self._progress = self.proto_progress_type()
+    """Returns this flow's unpacked progress proto."""
+    if self._progress is not None:
+      return self._progress
+
+    self._progress = self.proto_progress_type()
+    if self.proto_flow.HasField("progress"):
+      packed_any: any_pb2.Any = self.proto_flow.progress
+      self._progress.ParseFromString(packed_any.value)
+
     return self._progress
 
   @progress.setter
@@ -2047,17 +1540,25 @@ class FlowBase(
 
   @property
   def store(self) -> _ProtoStoreT:
-    if self._store is None:
-      self._store = self.proto_store_type()
-      if self.rdf_flow.HasField("store"):
-        packed_any: any_pb2.Any = self.rdf_flow.store.AsPrimitiveProto()
-        packed_any.Unpack(self._store)
+    """Returns this flow's unpacked store proto."""
+    if self._store is not None:
+      return self._store
 
+    self._store = self.proto_store_type()
+    if self.proto_flow.HasField("store"):
+      packed_any: any_pb2.Any = self.proto_flow.store
+      self._store.ParseFromString(packed_any.value)
     return self._store
 
   @store.setter
   def store(self, value: _ProtoStoreT) -> None:
     self._store = value
+
+  @property
+  def output_plugins(
+      self,
+  ) -> Sequence[output_plugin_pb2.OutputPluginDescriptor]:
+    return self.proto_flow.output_plugins
 
   def _AccountForProtoResultMetadata(self):
     """Merges `_num_replies_per_type_tag` Counter with current ResultMetadata."""
@@ -2083,35 +1584,19 @@ class FlowBase(
       )
     self._num_replies_per_type_tag = collections.Counter()
 
-    self.rdf_flow.result_metadata = (
-        rdf_flow_objects.FlowResultMetadata().FromSerializedBytes(
-            self._result_metadata.SerializeToString()
-        )
-    )
+    self.proto_flow.result_metadata.CopyFrom(self._result_metadata)
 
   def PersistState(self) -> None:
     """Persists flow state."""
     self._AccountForProtoResultMetadata()
-    self.rdf_flow.persistent_data = self.state
     if self._store is not None:
-      self.rdf_flow.store = rdf_structs.AnyValue.PackProto2(self._store)
+      self.proto_flow.store.Pack(self._store)
     if self._progress is not None:
-      self.rdf_flow.progress = rdf_structs.AnyValue.PackProto2(self._progress)
+      self.proto_flow.progress.Pack(self._progress)
 
   @property
-  def args(self) -> Any:
-    return self.rdf_flow.args
-
-  @args.setter
-  def args(self, args: rdfvalue.RDFValue) -> None:
-    """Updates both rdf and proto args."""
-    if not isinstance(args, self.args_type):
-      raise TypeError(
-          f"args must be of type {self.args_type}, got {type(args)} instead."
-      )
-    self.rdf_flow.args = args
-    self._proto_args = self.proto_args_type()
-    self._proto_args.ParseFromString(args.SerializeToBytes())
+  def proto_flow_object(self) -> flows_pb2.Flow:
+    return self.proto_flow
 
   @property
   def proto_args(self) -> _ProtoArgsT:
@@ -2119,14 +1604,9 @@ class FlowBase(
     if self._proto_args is not None:
       return self._proto_args
 
-    # We use `rdf_flow.args` as source of truth for now.
-    if self.rdf_flow.HasField("args"):
-      # Hope serialization is compatible
-      args = self.proto_args_type()
-      args.ParseFromString(self.args.SerializeToBytes())
-      self._proto_args = args
-    else:
-      self._proto_args = self.proto_args_type()
+    self._proto_args = self.proto_args_type()
+    if self.proto_flow.HasField("args"):
+      self._proto_args.ParseFromString(self.proto_flow.args.value)
     return self._proto_args
 
   @proto_args.setter
@@ -2138,9 +1618,75 @@ class FlowBase(
           f" {type(proto_args)} instead."
       )
     self._proto_args = proto_args
-    self.rdf_flow.args = self.args_type.FromSerializedBytes(
-        proto_args.SerializeToString()
+    self.proto_flow.args.Pack(proto_args)
+
+  @property
+  def flow_class_name(self) -> str:
+    return self.proto_flow.flow_class_name
+
+  @property
+  def runtime_us(self) -> int:
+    if self.proto_flow.HasField("runtime_us"):
+      return self.proto_flow.runtime_us
+    return 0
+
+  @runtime_us.setter
+  def runtime_us(self, runtime_us: int) -> None:
+    self.proto_flow.runtime_us = runtime_us
+
+  @property
+  def runtime_limit_us_opt(self) -> Optional[int]:
+    if self.proto_flow.HasField("runtime_limit_us"):
+      return self.proto_flow.runtime_limit_us
+    return None
+
+  @property
+  def runtime_limit_us(self) -> int:
+    if self.proto_flow.HasField("runtime_limit_us"):
+      return self.proto_flow.runtime_limit_us
+    return 0
+
+  @runtime_limit_us.setter
+  def runtime_limit_us(self, runtime_limit_us: int) -> None:
+    self.proto_flow.runtime_limit_us = runtime_limit_us
+
+  @property
+  def cpu_limit(self) -> int:
+    return self.proto_flow.cpu_limit
+
+  @property
+  def processing_deadline(self) -> rdfvalue.RDFDatetime:
+    return rdfvalue.RDFDatetime.FromWireFormat(
+        self.proto_flow.processing_deadline
     )
+
+  @property
+  def used_user_cpu_time(self) -> float:
+    return self.proto_flow.cpu_time_used.user_cpu_time
+
+  @used_user_cpu_time.setter
+  def used_user_cpu_time(self, used_time: float) -> None:
+    self.proto_flow.cpu_time_used.user_cpu_time = used_time
+
+  @property
+  def used_system_cpu_time(self) -> float:
+    return self.proto_flow.cpu_time_used.system_cpu_time
+
+  @used_system_cpu_time.setter
+  def used_system_cpu_time(self, used_time: float) -> None:
+    self.proto_flow.cpu_time_used.system_cpu_time = used_time
+
+  @property
+  def network_bytes_limit(self) -> int:
+    return self.proto_flow.network_bytes_limit
+
+  @property
+  def network_bytes_sent(self) -> int:
+    return self.proto_flow.network_bytes_sent
+
+  @network_bytes_sent.setter
+  def network_bytes_sent(self, bytes_sent: int) -> None:
+    self.proto_flow.network_bytes_sent = bytes_sent
 
   @property
   def client_version(self) -> int:
@@ -2185,6 +1731,11 @@ class FlowBase(
     return self._client_labels
 
   @property
+  def disable_rrg_support(self) -> bool:
+    """Returns whether RRG support is disabled for the flow."""
+    return self.proto_flow.disable_rrg_support
+
+  @property
   def python_agent_support(self) -> bool:
     """Returns whether the endpoint supports the Python agent."""
     if self._python_agent_support is None:
@@ -2217,10 +1768,7 @@ class FlowBase(
   @property
   def rrg_version(self) -> RRGVersion:
     """Returns version of the RRG agent running on the endpoint."""
-    if (
-        config.CONFIG["Server.disable_rrg_support"]
-        or self.rdf_flow.disable_rrg_support
-    ):
+    if config.CONFIG["Server.disable_rrg_support"] or self.disable_rrg_support:
       return RRGVersion(major=0, minor=0, patch=0)
 
     return RRGVersion(
@@ -2265,17 +1813,22 @@ class FlowBase(
 
   @property
   def creator(self) -> str:
-    return self.rdf_flow.creator
+    return self.proto_flow.creator
 
   @classmethod
-  def GetDefaultArgs(cls, username: Optional[str] = None) -> Any:
+  def ValidateArgs(cls, args: _ProtoArgsT) -> None:
+    """Validates the flow args. Should raise if they are not valid."""
+    pass
+
+  @classmethod
+  def GetDefaultArgs(cls, username: Optional[str] = None) -> _ProtoArgsT:
     del username  # Unused.
-    return cls.args_type()
+    return cls.proto_args_type()
 
   @classmethod
-  def CreateFlowInstance(cls, flow_object: rdf_flow_objects.Flow) -> "FlowBase":
+  def CreateFlowInstance(cls, flow_object: flows_pb2.Flow) -> "FlowBase":
     flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
-    return flow_cls(flow_object)
+    return flow_cls(proto_flow=flow_object)
 
   @classmethod
   def CanUseViaAPI(cls) -> bool:
@@ -2531,8 +2084,7 @@ def _TerminateFlow(
 ) -> None:
   """Does the actual termination."""
   flow_cls = FlowRegistry.FlowClassByName(proto_flow.flow_class_name)
-  rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
-  flow_obj = flow_cls(rdf_flow)
+  flow_obj = flow_cls(proto_flow=proto_flow)
 
   if not flow_obj.IsRunning():
     # Nothing to do.
@@ -2540,15 +2092,14 @@ def _TerminateFlow(
 
   logging.info(
       "Terminating flow %s on %s, reason: %s",
-      rdf_flow.flow_id,
-      rdf_flow.client_id,
+      proto_flow.flow_id,
+      proto_flow.client_id,
       reason,
   )
 
-  rdf_flow.flow_state = flow_state
-  rdf_flow.error_message = reason
+  proto_flow.flow_state = flow_state
+  proto_flow.error_message = reason
   flow_obj.NotifyCreatorOfError()
-  proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
   data_store.REL_DB.UpdateFlow(
       proto_flow.client_id,
       proto_flow.flow_id,

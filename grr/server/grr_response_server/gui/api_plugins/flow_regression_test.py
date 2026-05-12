@@ -9,21 +9,21 @@ from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto import flows_pb2
-from grr_response_proto import objects_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import flow_pb2 as api_flow_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import output_plugin
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import email_plugin
-from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
+from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -58,31 +58,6 @@ class ApiGetFlowHandlerRegressionTest(
       )
       for i, child_flow in enumerate(child_flows):
         replace[child_flow.flow_id] = f"F:FFFFFF{i:02X}"
-
-      # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
-      # database as bytes. The `store` here contains the source flow id, and
-      # thus, the bytes change on every run.
-      # To avoid this, we update the `store` field in the flow object in the
-      # database, so it has an empty store.
-      # Before that, though, we want to make sure that the `store` field is
-      # actually set with what we want, so we test it here.
-      # This is not an issue in ApiV2 (protos) so all this can be removed once
-      # we remove ApiV1.
-      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      interrogate_store = flows_pb2.InterrogateStore()
-      flow_obj.store.Unpack(interrogate_store)
-      want_store = flows_pb2.InterrogateStore(
-          client_snapshot=objects_pb2.ClientSnapshot(
-              client_id=client_id,
-              metadata=objects_pb2.ClientSnapshotMetadata(
-                  source_flow_id=flow_id
-              ),
-          )
-      )
-      self.assertEqual(want_store, interrogate_store)
-      api_regression_test_lib.UpdateFlowStore(
-          client_id, flow_id, flows_pb2.InterrogateStore()
-      )
 
       self.Check(
           "GetFlow",
@@ -143,32 +118,6 @@ class ApiListFlowsHandlerRegressionTest(
           flow_test_lib.FlowWithTwoLevelsOfNestedFlows,
           client_id,
           creator=self.test_username,
-      )
-
-    # ApiV1 (RDFValues) serializes the `store` field in the flow object in the
-    # database as bytes. The `store` here contains the source flow id, and thus,
-    # the bytes change on every run.
-    # To avoid this, we update the `store` field in the flow object in the
-    # database, so it has an empty store.
-    # Before that, though, we want to make sure that the `store` field is
-    # actually set with what we want, so we test it here.
-    # This is not an issue in ApiV2 (protos) so all this can be removed once
-    # we remove ApiV1.
-    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id_1)
-    interrogate_store = flows_pb2.InterrogateStore()
-    flow_obj.store.Unpack(interrogate_store)
-    want_store = flows_pb2.InterrogateStore(
-        client_snapshot=objects_pb2.ClientSnapshot(
-            client_id=client_id,
-            metadata=objects_pb2.ClientSnapshotMetadata(
-                source_flow_id=flow_id_1
-            ),
-        )
-    )
-    self.assertEqual(want_store, interrogate_store)
-    with test_lib.FakeTime(43):
-      api_regression_test_lib.UpdateFlowStore(
-          client_id, flow_id_1, flows_pb2.InterrogateStore()
       )
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
@@ -305,8 +254,8 @@ class ApiListFlowResultsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowResultsHandler
 
   def _RunFlow(self, client_id):
-    flow_args = rdf_file_finder.FileFinderArgs()
-    flow_args.paths = ["/tmp/evil.txt"]
+    flow_args = flows_pb2.FileFinderArgs()
+    flow_args.paths.extend(["/tmp/evil.txt"])
     client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     with test_lib.FakeTime(42):
@@ -417,24 +366,21 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
   api_method = "ListFlowOutputPlugins"
   handler = flow_plugin.ApiListFlowOutputPluginsHandler
 
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  uses_legacy_dynamic_protos = True
-
+  @test_plugins.WithOutputPluginProto(email_plugin.EmailOutputPlugin)
   def Run(self):
     client_id = self.SetupClient(0)
-    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+    email_descriptor = output_plugin_pb2.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
-        args=email_plugin.EmailOutputPluginArgs(email_address="test@localhost"),
+    )
+    email_descriptor.args.Pack(
+        output_plugin_pb2.EmailOutputPluginArgs(email_address="test@localhost")
     )
 
     with test_lib.FakeTime(42):
       flow_id = flow.StartFlow(
           flow_cls=processes.ListProcesses,
           client_id=client_id,
-          output_plugins=[email_descriptor],
+          proto_output_plugins=[email_descriptor],
       )
 
     self.Check(
@@ -462,18 +408,18 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+    email_descriptor = output_plugin_pb2.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
-        args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost",
-        ),
+    )
+    email_descriptor.args.Pack(
+        output_plugin_pb2.EmailOutputPluginArgs(email_address="test@localhost")
     )
 
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
           client_id=client_id,
-          output_plugins=[email_descriptor],
+          proto_output_plugins=[email_descriptor],
       )
 
     self.Check(
@@ -485,6 +431,13 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
         ),
         replace={flow_id: "W:ABCDEF"},
     )
+
+
+class FailingDummyHuntOutputPlugin(output_plugin.OutputPluginProto):
+  """A dummy output plugin."""
+
+  def ProcessResults(self, results):
+    raise RuntimeError("Oh no!")
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
@@ -501,9 +454,10 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
   # we can replace these URNs with something stable.
   uses_legacy_dynamic_protos = True
 
+  @test_plugins.WithOutputPluginProto(FailingDummyHuntOutputPlugin)
   def Run(self):
     client_id = self.SetupClient(0)
-    failing_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+    failing_descriptor = output_plugin_pb2.OutputPluginDescriptor(
         plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__
     )
 
@@ -511,7 +465,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
           client_id=client_id,
-          output_plugins=[failing_descriptor],
+          proto_output_plugins=[failing_descriptor],
       )
 
     self.Check(

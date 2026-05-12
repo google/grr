@@ -122,7 +122,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
     return self
 
-  # TODO: Defaulting to ignoring errors is unexpected and
+  # TODO - Defaulting to ignoring errors is unexpected and
   #  problematic.
   def GetValue(self, ignore_error=True):
     """Extracts and returns a single value from a DataBlob."""
@@ -241,7 +241,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __contains__(self, key):
     return key in self._values
 
-  # TODO: This implementation is flawed. It returns a new instance
+  # TODO - This implementation is flawed. It returns a new instance
   # on each invocation, effectively preventing changes to mutable
   # datastructures, e.g. `dct["key"] = []; dct["key"].append(5)`.
   def GetItem(self, key, default=None):
@@ -386,7 +386,7 @@ class AttributedDict(Dict):
       self.SetItem(item, value)
 
   def __setitem__(self, key, value):
-    # TODO: This behavior should be removed once migration is done.
+    # TODO - This behavior should be removed once migration is done.
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
@@ -396,7 +396,7 @@ class AttributedDict(Dict):
     raise TypeError("Non-string key: {!r}".format(key))
 
   def __getitem__(self, key):
-    # TODO: This behavior should be removed once migration is done.
+    # TODO - This behavior should be removed once migration is done.
     if isinstance(key, bytes):
       key = key.decode("utf-8")
 
@@ -405,7 +405,7 @@ class AttributedDict(Dict):
 
     raise TypeError("Non-string key: {!r}".format(key))
 
-  # TODO: This behavior should be removed once migration is done.
+  # TODO - This behavior should be removed once migration is done.
   # Because of Python 3 migration and incompatibilities between Pythons in how
   # attributed dicts are serialized, we are forced to have this dirty hack in
   # here. Once migration is done and we are sure that the old serialized data

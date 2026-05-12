@@ -18,7 +18,7 @@ from grr_api_client import utils
 from grr_api_client import yara
 from grr_response_proto import flows_pb2
 from grr_response_proto.api import config_pb2
-# TODO: Remove this import once the SignedCommands API is
+# TODO - Remove this import once the SignedCommands API is
 # implemented. Currently required to be able to parse responses from the server.
 from grr_response_proto.api import signed_commands_pb2  # pylint: disable=unused-import
 

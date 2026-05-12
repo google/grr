@@ -53,6 +53,12 @@ flags.DEFINE_string(
     help="A path to the osquery executable.",
 )
 
+_CONFIG_COMMAND_SIGNING_KEY_PATH = flags.DEFINE_string(
+    name="config_command_signing_key_path",
+    default="",
+    help="Path to the file with command signing key.",
+)
+
 
 def main(argv):
   del argv  # Unused.
@@ -83,6 +89,10 @@ def main(argv):
     config.CONFIG.Set("Mysql.password", _CONFIG_MYSQL_PASSWORD.value)
   config.CONFIG.Set("AdminUI.port", admin_ui_port)
   config.CONFIG.Set("AdminUI.headless", True)
+  # Because end-to-end tests depend on signed commands, we need the root router
+  # to be able to do the signing. We just modify the default router to avoid
+  # setting up a separate user just for that.
+  config.CONFIG.Set("API.DefaultRouter", "ApiRootAndNonRootRouter")
 
   config.CONFIG.Set("Server.initialized", True)
   config.CONFIG.Set("Cron.active", False)
@@ -105,6 +115,15 @@ def main(argv):
 
   if flags.FLAGS.config_osquery_path:
     config.CONFIG.Set("Osquery.path", flags.FLAGS.config_osquery_path)
+
+  # TODO - Refactor command signer not to depend on the GRR config.
+  # Then we can just pass the key path to the tool and the tool also becomes
+  # independent of the Python codebase.
+  if _CONFIG_COMMAND_SIGNING_KEY_PATH.value:
+    config.CONFIG.Set(
+        "CommandSigning.ed25519_private_key_file",
+        _CONFIG_COMMAND_SIGNING_KEY_PATH.value,
+    )
 
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()

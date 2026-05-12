@@ -101,12 +101,6 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
     raise ValueError(message)
 
 
-class DNSClientConfiguration(rdf_structs.RDFProtoStruct):
-  """DNS client config."""
-
-  protobuf = sysinfo_pb2.DNSClientConfiguration
-
-
 class MacAddress(rdfvalue.RDFBytes):
   """A MAC address."""
 

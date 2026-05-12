@@ -70,7 +70,7 @@ sources:
 - type: NOT_A_SOURCE
       """)
 
-    self.assertIn("not a valid enum value", str(context.exception))
+    self.assertIn("unknown enum label", str(context.exception))
 
 
 if __name__ == "__main__":

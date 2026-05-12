@@ -134,5 +134,34 @@ class MergeOrAddUserTest(absltest.TestCase):
     self.assertEqual(kb.users[0].userdomain, "GOOGLE")
 
 
+class GetUserTest(absltest.TestCase):
+
+  def testExisting(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo", full_name="Jan Fóbarski")
+    kb.users.add(username="bar", full_name="Basia Barbarska")
+
+    user = models_knowledge_base.GetUser(kb, "foo")
+    self.assertEqual(user.username, "foo")
+    self.assertEqual(user.full_name, "Jan Fóbarski")
+
+    user = models_knowledge_base.GetUser(kb, "bar")
+    self.assertEqual(user.username, "bar")
+    self.assertEqual(user.full_name, "Basia Barbarska")
+
+  def testNotExisting(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+    kb.users.add(username="foo", full_name="Jan Fóbarski")
+
+    with self.assertRaisesRegex(ValueError, "User bar not found"):
+      models_knowledge_base.GetUser(kb, "bar")
+
+  def testEmptyUsers(self):
+    kb = knowledge_base_pb2.KnowledgeBase()
+
+    with self.assertRaisesRegex(ValueError, "User foo not found"):
+      models_knowledge_base.GetUser(kb, "foo")
+
+
 if __name__ == "__main__":
   absltest.main()

@@ -4,16 +4,16 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {OsqueryTable as ApiOsqueryTable} from '../../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../../testing';
-import {OsqueryTable, OsqueryTableData} from './osquery_table';
+import {OsqueryTable} from './osquery_table';
 import {OsqueryTableHarness} from './testing/osquery_table_harness';
 
 initTestEnvironment();
 
-async function createComponent(table: OsqueryTableData, isHuntResult = false) {
+async function createComponent(table: ApiOsqueryTable) {
   const fixture = TestBed.createComponent(OsqueryTable);
   fixture.componentRef.setInput('tableData', table);
-  fixture.componentRef.setInput('isHuntResult', isHuntResult);
 
   fixture.detectChanges();
   const harness = await TestbedHarnessEnvironment.harnessForFixture(
@@ -55,7 +55,7 @@ describe('Osquery Table Component', () => {
     const table = await harness.table();
     const rows = await table.getFooterRows();
     expect(rows.length).toBe(0);
-    // TODO: Add check if "No rows to display." is displayed. The
+    // TODO - Add check if "No rows to display." is displayed. The
     // row is currently not returned by the MatTableHarness.
   });
 
@@ -66,7 +66,6 @@ describe('Osquery Table Component', () => {
       },
       rows: [
         {
-          clientId: 'C.1234567890',
           values: ['Value 0', 'Value 1', 'Value 2'],
         },
       ],
@@ -80,35 +79,6 @@ describe('Osquery Table Component', () => {
     expect(headerTexts).toEqual(['Column 0', 'Column 1', 'Column 2']);
   });
 
-  it('displays client id column for hunt results', async () => {
-    const {harness} = await createComponent(
-      {
-        header: {
-          columns: [{name: 'Column'}],
-        },
-        rows: [
-          {
-            clientId: 'C.1234567890',
-            values: ['Value'],
-          },
-        ],
-      },
-      true,
-    );
-    const table = await harness.table();
-    const headerRows = await table.getHeaderRows();
-    const headerCells = await headerRows[0].getCells();
-    const headerTexts = await Promise.all(
-      headerCells.map((cell) => cell.getText()),
-    );
-    expect(headerTexts).toEqual(['Client ID', 'Column']);
-    const rows = await harness.getRows();
-    const cells = await rows[0].getCells();
-    const cellTexts = await Promise.all(cells.map((cell) => cell.getText()));
-    expect(cellTexts[0]).toContain('C.1234567890');
-    expect(cellTexts[1]).toContain('Value');
-  });
-
   it('displays a single row', async () => {
     const {harness} = await createComponent({
       header: {
@@ -116,7 +86,6 @@ describe('Osquery Table Component', () => {
       },
       rows: [
         {
-          clientId: 'C.1234567890',
           values: ['Value 0', 'Value 1', 'Value 2'],
         },
       ],
@@ -136,11 +105,9 @@ describe('Osquery Table Component', () => {
       },
       rows: [
         {
-          clientId: 'C.1234567890',
           values: ['Value 0', 'Value 1', 'Value 2'],
         },
         {
-          clientId: 'C.1234567891',
           values: ['Value 3', 'Value 4', 'Value 5'],
         },
       ],
@@ -163,11 +130,9 @@ describe('Osquery Table Component', () => {
       },
       rows: [
         {
-          clientId: 'C.1234567890',
           values: ['BBB 1', 'BBB 2'],
         },
         {
-          clientId: 'C.1234567891',
           values: ['AAA 1', 'AAA 2'],
         },
       ],
@@ -192,11 +157,9 @@ describe('Osquery Table Component', () => {
       },
       rows: [
         {
-          clientId: 'C.1234567890',
           values: ['BBB 1', 'BBB 2'],
         },
         {
-          clientId: 'C.1234567891',
           values: ['AAA 1', 'AAA 2'],
         },
       ],

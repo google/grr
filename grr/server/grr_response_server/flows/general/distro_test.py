@@ -6,7 +6,6 @@ from absl.testing import absltest
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_proto import distro_pb2
@@ -117,7 +116,9 @@ UBUNTU_CODENAME=jammy
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, distro_pb2.CollectDistroInfoResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].name, "Ubuntu")
     self.assertEqual(results[0].release, "22.04")
@@ -143,7 +144,7 @@ UBUNTU_CODENAME=jammy
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/etc/lsb-release": """\
 DISTRIB_ID=Ubuntu
@@ -275,7 +276,9 @@ VARIANT_ID=container
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, distro_pb2.CollectDistroInfoResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].name, "RedHat")
     self.assertEqual(results[0].release, "Fedora release 39 (Thirty Nine)")
@@ -300,7 +303,7 @@ VARIANT_ID=container
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/etc/fedora-release": """\
 Fedora release 39 (Thirty Nine)
@@ -436,7 +439,9 @@ GOOGLE_TRACK=stable
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, distro_pb2.CollectDistroInfoResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].name, "Debian")
     self.assertEqual(results[0].release, "foobar")
@@ -460,7 +465,7 @@ GOOGLE_TRACK=stable
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/etc/os-release": """\
 PRETTY_NAME="Debian GNU/Linux foobar"
@@ -574,7 +579,9 @@ Amazon Linux AMI release 2018.03
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, distro_pb2.CollectDistroInfoResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].name, "Amazon Linux AMI")
     self.assertEqual(results[0].release, "Amazon Linux AMI release 2018.03")
@@ -600,7 +607,7 @@ Amazon Linux AMI release 2018.03
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/etc/os-release": """\
 NAME="Amazon Linux AMI"
@@ -710,7 +717,9 @@ Amazon Linux release 2 (Karoo)
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, distro_pb2.CollectDistroInfoResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].name, "Amazon Linux")
     self.assertEqual(results[0].release, "Amazon Linux release 2 (Karoo)")
@@ -735,7 +744,7 @@ Amazon Linux release 2 (Karoo)
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=distro.CollectDistroInfo,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/etc/os-release": """\
 NAME="Amazon Linux"

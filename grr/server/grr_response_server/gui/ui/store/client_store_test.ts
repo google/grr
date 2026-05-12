@@ -547,6 +547,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({
@@ -591,6 +592,23 @@ describe('ClientStore', () => {
     );
   }));
 
+  it('does not poll flow results if access is not granted', fakeAsync(() => {
+    const store = TestBed.inject(ClientStore);
+    patchState(unprotected(store), {clientId: 'C.1234'});
+
+    store.pollFlowResults({
+      hasAccess: false,
+      flowId: 'f.ABCD',
+      offset: 0,
+      count: 3,
+      withTag: '',
+      withType: '',
+    });
+    tick();
+
+    expect(httpApiService.listResultsForFlow).not.toHaveBeenCalled();
+  }));
+
   it('correctly groups results by type', fakeAsync(async () => {
     const store = TestBed.inject(ClientStore);
     patchState(unprotected(store), {clientId: 'C.1234'});
@@ -600,6 +618,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({
@@ -654,6 +673,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({});
@@ -709,6 +729,7 @@ describe('ClientStore', () => {
       count: 3,
       withTag: '',
       withType: '',
+      hasAccess: true,
     });
     tick();
     const listFlowResultsResult = newListFlowResultsResult({});

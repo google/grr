@@ -7,7 +7,7 @@ import errno
 import io
 import logging
 import os
-from typing import Any, BinaryIO
+from typing import Any, IO
 
 import yaml
 
@@ -105,12 +105,10 @@ class GRRConfigFileParser(GRRConfigParser):
   def RawDataFromBytes(self, b: bytes) -> dict[str, Any]:
     raise NotImplementedError()
 
-  def SaveDataToFD(
-      self, raw_data: dict[str, Any], fd: io.BufferedWriter
-  ) -> None:
+  def SaveDataToFD(self, raw_data: dict[str, Any], fd: IO[bytes]) -> None:
     fd.write(self.RawDataToBytes(raw_data))
 
-  def ReadDataFromFD(self, fd: BinaryIO) -> dict[str, Any]:
+  def ReadDataFromFD(self, fd: IO[bytes]) -> dict[str, Any]:
     return self.RawDataFromBytes(fd.read())
 
   def SaveData(self, raw_data: dict[str, Any]) -> None:
@@ -145,10 +143,11 @@ class GRRConfigFileParser(GRRConfigParser):
     if not self.config_path:
       raise ReadDataPathNotSpecifiedError("Parser's config_path is empty.")
 
+    return self._ReadFile()
+
+  def _ReadFile(self) -> dict[str, Any]:
     try:
-      # TODO(user): a normal "open" would do, but we have a test
-      # in config_lib_test.py that relies on mocking io.open.
-      with io.open(self.config_path, "rb") as fd:
+      with open(self.config_path, "rb") as fd:
         return self.ReadDataFromFD(fd)
     except OSError as e:
       if e.errno == errno.EACCES:
@@ -156,8 +155,7 @@ class GRRConfigFileParser(GRRConfigParser):
         # user wanted to read the file, and it existed, but they lacked the
         # permissions.
         raise ReadDataPermissionError(e) from e
-
-      return dict()
+    return dict()
 
   def Copy(self) -> "GRRConfigFileParser":
     return self.__class__(self._config_path)  # pytype: disable=not-instantiable

@@ -125,6 +125,14 @@ export const GlobalStore = signalStore(
             patchState(store, {artifactDescriptorMap});
           });
       },
+      deleteArtifact(artifactName: string) {
+        httpApiService
+          .deleteArtifact(artifactName)
+          .pipe(takeUntilDestroyed(destroyRef))
+          .subscribe(() => {
+            this.getArtifactDescriptorMap();
+          });
+      },
       fetchBinaryNames() {
         httpApiService
           .listBinaries(false)
@@ -158,6 +166,14 @@ export const GlobalStore = signalStore(
               patchState(store, {outputPluginDescriptors});
             },
           );
+      },
+      uploadArtifact(artifact: string) {
+        httpApiService
+          .uploadArtifact(artifact)
+          .pipe(takeUntilDestroyed(destroyRef))
+          .subscribe(() => {
+            this.getArtifactDescriptorMap();
+          });
       },
     }),
   ),

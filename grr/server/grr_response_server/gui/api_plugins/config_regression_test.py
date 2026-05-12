@@ -94,7 +94,7 @@ class ApiGetConfigOptionHandlerRegressionTest(
         "Hunt.default_client_rate": 42.0,
         "Email.enable_custom_email_address": True,
         "Cron.disabled_cron_jobs": ["Job1", "Job2"],
-        "Server.fleetspeak_last_ping_threshold": "1h",
+        "Cron.interrogate_duration": "1d",
         "Server.raw_filesystem_access_pathtype": "TSK",
         "ClientBuilder.build_type": "Debug",
         "ClientBuilder.target_platforms": [
@@ -163,7 +163,7 @@ class ApiGetConfigOptionHandlerRegressionTest(
       self.Check(
           "GetConfigOption",
           args=api_config_pb2.ApiGetConfigOptionArgs(
-              name="Server.fleetspeak_last_ping_threshold"
+              name="Cron.interrogate_duration"
           ),
       )
       self.Check(

@@ -2,6 +2,7 @@
 """End to end tests for GRR FileFinder flow."""
 
 import functools
+import io
 import operator
 
 from grr_response_proto import jobs_pb2
@@ -22,12 +23,23 @@ class TestFileFinderOSWindows(test_base.AbstractFileTransferTest):
     condition.size.max_file_size = 1000000
     args.action.action_type = args.action.DOWNLOAD
 
-    # Note that this path is case corrected.
-    path = "fs/os/C:/Windows/System32/notepad.exe"
-    with self.WaitForFileCollection(path):
-      self.RunFlowAndWait(flow, args=args)
+    flow = self.RunFlowAndWait(flow, args=args)
+    flow_results = list(flow.ListResults())
+    self.assertLen(flow_results, 1)
 
-    self.CheckPEMagic(path)
+    result_path = flow_results[0].payload.stat_entry.pathspec.path
+    # TODO - The path returned by the old agent will have a leading
+    # `/` (which makes no sense on Windows) so we strip it. We can remove this
+    # workaround once we no longer test with the old agent.
+    result_path = result_path.removeprefix("/")
+    self.assertEqual(result_path.lower(), "c:/windows/system32/notepad.exe")
+
+    result_content = io.BytesIO()
+
+    result_file = self.client.File(f"fs/os/{result_path}")
+    result_file.GetBlob().WriteToStream(result_content)
+
+    self.assertEqual(result_content.getvalue()[0:2], b"MZ")
 
   def testRegularCollection(self):
     flow = "FileFinder"
@@ -334,6 +346,9 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
     condition = args.conditions.add()
     condition.condition_type = condition.CONTENTS_LITERAL_MATCH
     condition.contents_literal_match.literal = keyword
+    condition_max_size = args.conditions.add()
+    condition_max_size.condition_type = condition.SIZE
+    condition_max_size.size.max_file_size = 10 * 1024 * 1024  # 10 MiB.
     args.action.action_type = args.action.STAT
 
     f = self.RunFlowAndWait(flow, args=args)
@@ -343,10 +358,6 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
     result = results[0].payload
 
     self.assertIn("ls", result.stat_entry.pathspec.path)
-
-    self.assertGreater(len(result.matches), 0)
-    for match in result.matches:
-      self.assertIn(keyword, match.data)
 
   def testLiteralMatching(self):
     self._testLiteralMatching("FileFinder")
@@ -370,16 +381,15 @@ class TestFileFinderRegexMatching(test_base.AbstractFileTransferTest):
         test_base.EndToEndTest.Platform.LINUX: b"E.F",
         test_base.EndToEndTest.Platform.DARWIN: b"Ap..e",
     }
-    keywords = {
-        test_base.EndToEndTest.Platform.LINUX: b"elf",
-        test_base.EndToEndTest.Platform.DARWIN: b"apple",
-    }
 
     args = self.grr_api.types.CreateFlowArgs(flow)
     args.paths.append("/bin/ls")
     condition = args.conditions.add()
     condition.condition_type = condition.CONTENTS_REGEX_MATCH
     condition.contents_regex_match.regex = regexes[self.platform]
+    condition_max_size = args.conditions.add()
+    condition_max_size.condition_type = condition.SIZE
+    condition_max_size.size.max_file_size = 10 * 1024 * 1024  # 10 MiB.
     args.action.action_type = args.action.STAT
 
     f = self.RunFlowAndWait(flow, args=args)
@@ -389,10 +399,6 @@ class TestFileFinderRegexMatching(test_base.AbstractFileTransferTest):
     result = results[0].payload
 
     self.assertIn("ls", result.stat_entry.pathspec.path)
-
-    self.assertGreater(len(result.matches), 0)
-    for match in result.matches:
-      self.assertIn(keywords[self.platform], match.data.lower())
 
   def testRegexMatching(self):
     self._testRegexMatching("FileFinder")

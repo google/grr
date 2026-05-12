@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import ctypes
 import hashlib
 import itertools
+import json
 import stat
 from unittest import mock
 
@@ -9,8 +11,6 @@ from absl.testing import absltest
 from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
 from google.protobuf import wrappers_pb2
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -27,6 +27,7 @@ from grr_response_proto.rrg import blob_pb2 as rrg_blob_pb2
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sha256_pb2
@@ -34,6 +35,8 @@ from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_sys
 from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg_value_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
 from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_winreg_values_pb2
+from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 class ExecuteFlowTest(absltest.TestCase):
@@ -63,7 +66,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=NoRRGCallsFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={},
     )
 
@@ -83,6 +86,7 @@ class ExecuteFlowTest(absltest.TestCase):
       session.Reply(rrg_get_system_metadata_pb2.Result(version="1.3.3.7"))
 
     class SingleRRGCallFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
         rrg_stubs.GetSystemMetadata().Call(self._ProcessSystemMetadata)
@@ -97,12 +101,12 @@ class ExecuteFlowTest(absltest.TestCase):
         result = rrg_get_system_metadata_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFString(result.version))
+        self.SendReplyProto(wrappers_pb2.StringValue(value=result.version))
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=SingleRRGCallFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -139,6 +143,7 @@ class ExecuteFlowTest(absltest.TestCase):
       session.Reply(result)
 
     class MultipleRRGCallsFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.GetWinregValue()
@@ -162,7 +167,7 @@ class ExecuteFlowTest(absltest.TestCase):
         result = rrg_get_winreg_value_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFString(result.value.string))
+        self.SendReplyProto(wrappers_pb2.StringValue(value=result.value.string))
 
       @flow_base.UseProto2AnyResponses
       def _ProcessGetWinregValueQuux(
@@ -174,12 +179,14 @@ class ExecuteFlowTest(absltest.TestCase):
         result = rrg_get_winreg_value_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFString(f"quux_{result.value.uint32:X}"))
+        self.SendReplyProto(
+            wrappers_pb2.StringValue(value=f"quux_{result.value.uint32:X}")
+        )
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=MultipleRRGCallsFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
         },
@@ -240,6 +247,7 @@ class ExecuteFlowTest(absltest.TestCase):
       session.Reply(result)
 
     class MultipleSequentialRRGCallsFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.ListWinregKeys()
@@ -269,12 +277,12 @@ class ExecuteFlowTest(absltest.TestCase):
         result = rrg_get_winreg_value_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFString(result.value.string))
+        self.SendReplyProto(wrappers_pb2.StringValue(value=result.value.string))
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=MultipleSequentialRRGCallsFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
@@ -317,25 +325,26 @@ class ExecuteFlowTest(absltest.TestCase):
       session.Reply(result_3)
 
     class NestedFlowsParentFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
-        self.CallFlow(
+        self.CallFlowProto(
             NestedFlowsChildFlow.__name__,
             next_state=self._ProcessChildFlow.__name__,
         )
 
-      # TODO: Responses from child flows cannot be processed using
-      # `UseProto2AnyResponses` methods. Once it is supported this method should
-      # be annotated with it.
+      @flow_base.UseProto2AnyResponses
       def _ProcessChildFlow(
           self,
-          responses: flow_responses.Responses[rdfvalue.RDFString],
+          responses: flow_responses.Responses[any_pb2.Any],
       ) -> None:
         for response in responses:
-          assert isinstance(response, rdfvalue.RDFString)
-          self.SendReply(response)
+          result = wrappers_pb2.StringValue()
+          assert response.Unpack(result)
+          self.SendReplyProto(result)
 
     class NestedFlowsChildFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.StringValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.ListWinregValues()
@@ -351,12 +360,14 @@ class ExecuteFlowTest(absltest.TestCase):
           result = rrg_list_winreg_values_pb2.Result()
           assert response.Unpack(result)
 
-          self.SendReply(rdfvalue.RDFString(result.value.string))
+          self.SendReplyProto(
+              wrappers_pb2.StringValue(value=result.value.string)
+          )
 
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=NestedFlowsParentFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
         },
@@ -409,7 +420,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ActionErrorFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -453,7 +464,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=AssertionErrorFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -497,7 +508,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=AssertionErrorWithMessageFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -520,7 +531,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=StartFlowErrorFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={},
     )
 
@@ -542,12 +553,12 @@ class ExecuteFlowTest(absltest.TestCase):
     class NestedFlowErrorParentFlow(flow_base.FlowBase):
 
       def Start(self) -> None:
-        self.CallFlow(
+        self.CallFlowProto(
             NestedFlowErrorChildFlow.__name__,
             next_state=self._ProcessChildFlow.__name__,
         )
 
-      # TODO: Responses from child flows cannot be processed using
+      # TODO - Responses from child flows cannot be processed using
       # `UseProto2AnyResponses` methods. Once it is supported this method should
       # be annotated with it.
       def _ProcessChildFlow(
@@ -579,7 +590,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=NestedFlowErrorParentFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -611,7 +622,7 @@ class ExecuteFlowTest(absltest.TestCase):
       rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=MissingHandlerErrorFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers={},
       )
 
@@ -679,7 +690,7 @@ class ExecuteFlowTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=SinksFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers={
               rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
           },
@@ -750,7 +761,7 @@ class ExecuteFlowTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=ParcelsSinkErrorFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers={
               rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
           },
@@ -811,7 +822,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=SessionReplyCopyFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_VALUES: ListWinregValuesHandler,
         },
@@ -858,7 +869,7 @@ class ExecuteFlowTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=SessionSendCopyFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers={
               rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
           },
@@ -922,7 +933,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterSingleFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
         },
@@ -985,7 +996,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterConjunctionFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
         },
@@ -1051,7 +1062,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterDisjunctionFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
         },
@@ -1110,7 +1121,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterNegationFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
         },
@@ -1168,7 +1179,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterNestedFieldFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
         },
@@ -1222,7 +1233,7 @@ class ExecuteFlowTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=FilterStrictTypeCheckFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
         },
@@ -1232,6 +1243,123 @@ class ExecuteFlowTest(absltest.TestCase):
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FINISHED)
+
+
+class FilestoreTest(absltest.TestCase):
+
+  def testSinglePartFile(self):
+    filestore = rrg_test_lib.Filestore()
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBAR").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=0,
+            content=b"FOOBAR",
+            file_size=len(b"FOOBAR"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.COMPLETE)
+
+    content = filestore.Content(hashlib.sha256(b"FOOBAR").digest())
+    self.assertEqual(content, b"FOOBAR")
+
+  def testMultiPartFile(self):
+    filestore = rrg_test_lib.Filestore()
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=0,
+            content=b"FOO",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.PENDING)
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=len(b"FOO"),
+            content=b"BAR",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.PENDING)
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=len(b"FOOBAR"),
+            content=b"BAZ",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.COMPLETE)
+
+    content = filestore.Content(hashlib.sha256(b"FOOBARBAZ").digest())
+    self.assertEqual(content, b"FOOBARBAZ")
+
+  def testMultiPartFile_OutOfOrder(self):
+    filestore = rrg_test_lib.Filestore()
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=len(b"FOOBAR"),
+            content=b"BAZ",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.PENDING)
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=len(b"FOO"),
+            content=b"BAR",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.PENDING)
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOOBARBAZ").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=0,
+            content=b"FOO",
+            file_size=len(b"FOOBARBAZ"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.COMPLETE)
+
+    content = filestore.Content(hashlib.sha256(b"FOOBARBAZ").digest())
+    self.assertEqual(content, b"FOOBARBAZ")
+
+  def testManyFiles(self):
+    filestore = rrg_test_lib.Filestore()
+
+    status = filestore.Store(
+        hashlib.sha256(b"FOO").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=0,
+            content=b"FOO",
+            file_size=len(b"FOO"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.COMPLETE)
+
+    status = filestore.Store(
+        hashlib.sha256(b"BAR").digest(),
+        rrg_test_lib.FilestorePart(
+            offset=0,
+            content=b"BAR",
+            file_size=len(b"BAR"),
+        ),
+    )
+    self.assertEqual(status, rrg_test_lib.FilestoreStatus.COMPLETE)
+
+    self.assertEqual(filestore.Content(hashlib.sha256(b"FOO").digest()), b"FOO")
+    self.assertEqual(filestore.Content(hashlib.sha256(b"BAR").digest()), b"BAR")
 
 
 class FakeFileHandlersTest(absltest.TestCase):
@@ -1249,7 +1377,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=flow_base.FlowBase,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "foo/bar": b"",
           }),
@@ -1266,7 +1394,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=flow_base.FlowBase,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo": b"",
               "/foo/bar": b"",
@@ -1310,7 +1438,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataSingleFileFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"Lorem ipsum.",
         }),
@@ -1387,7 +1515,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataMultipleFilesFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"Lorem ipsum.",
             "/foo/baz": b"Dolor sit amet.",
@@ -1427,7 +1555,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataNotExistingFileFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/baz": b"Dolor sit amet.",
         }),
@@ -1466,7 +1594,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataEmptyDirFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": {},
         }),
@@ -1507,7 +1635,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataSymlinkFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/symlink": "/foo/target",
             "/foo/target": b"",
@@ -1555,12 +1683,60 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataMaxDepthFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"",
             "/foo/baz": b"",
             "/foo/quux": b"",
             "/foo/thud/too-deep": b"",
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testGetFileMetadata_MaxSize(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    class GetFileMetadataMaxSizeFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        get_file_metadata = rrg_stubs.GetFileMetadata()
+        get_file_metadata.args.paths.add().raw_bytes = "/foo".encode()
+        get_file_metadata.args.paths.add().raw_bytes = "/bar".encode()
+        get_file_metadata.args.paths.add().raw_bytes = "/baz".encode()
+        get_file_metadata.args.max_size = 5
+        get_file_metadata.Call(self._ProcessGetFileMetadata)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessGetFileMetadata(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        assert responses.success
+
+        results_by_path = {}
+        for response in responses:
+          result = rrg_get_file_metadata_pb2.Result()
+          assert response.Unpack(result)
+
+          results_by_path[result.path.raw_bytes.decode()] = result
+
+        assert "/foo" in results_by_path
+        assert "/baz" in results_by_path
+
+        assert "/bar" not in results_by_path
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=GetFileMetadataMaxSizeFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakePosixFileHandlers({
+            "/foo": b"12345",
+            "/bar": b"1234567",
+            "/baz": b"123",
         }),
     )
 
@@ -1607,7 +1783,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataPathPruningRegexFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar/thud/norf": b"",
             "/foo/baz/blargh": b"",
@@ -1655,7 +1831,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataContentsRegexFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo": b"FOO",
             "/bar": b"BAR",
@@ -1700,7 +1876,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataDigestsFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"Lorem ipsum.",
         }),
@@ -1747,7 +1923,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileMetadataWindowsFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWindowsFileHandlers({
             "C:\\Foo\\Bar\\Too Deep": b"",
             "C:\\Quux\\Thud": b"",
@@ -1763,6 +1939,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     client_id = db_test_utils.InitializeRRGClient(db)
 
     class GetFileContentsSingleFileFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.BytesValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
@@ -1780,7 +1957,7 @@ class FakeFileHandlersTest(absltest.TestCase):
         result = rrg_get_file_contents_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFBytes(result.blob_sha256))
+        self.SendReplyProto(wrappers_pb2.BytesValue(value=result.blob_sha256))
 
     blob_sink = sinks_test_lib.FakeSink()
 
@@ -1791,7 +1968,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsSingleFileFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo/bar": b"foobar",
           }),
@@ -1816,6 +1993,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     client_id = db_test_utils.InitializeRRGClient(db)
 
     class GetFileContentsMultipleFilesFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.BytesValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
@@ -1836,7 +2014,7 @@ class FakeFileHandlersTest(absltest.TestCase):
           result = rrg_get_file_contents_pb2.Result()
           assert response.Unpack(result)
 
-          self.SendReply(rdfvalue.RDFBytes(result.blob_sha256))
+          self.SendReplyProto(wrappers_pb2.BytesValue(value=result.blob_sha256))
 
     blob_sink = sinks_test_lib.FakeSink()
 
@@ -1847,7 +2025,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsMultipleFilesFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo/bar": b"foobar",
               "/foo/baz": b"foobaz",
@@ -1888,6 +2066,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     client_id = db_test_utils.InitializeRRGClient(db)
 
     class GetFileContentsSymlinkFlow(flow_base.FlowBase):
+      proto_result_types = (wrappers_pb2.BytesValue,)
 
       def Start(self) -> None:
         action = rrg_stubs.GetFileContents()
@@ -1905,7 +2084,7 @@ class FakeFileHandlersTest(absltest.TestCase):
         result = rrg_get_file_contents_pb2.Result()
         assert list(responses)[0].Unpack(result)
 
-        self.SendReply(rdfvalue.RDFBytes(result.blob_sha256))
+        self.SendReplyProto(wrappers_pb2.BytesValue(value=result.blob_sha256))
 
     blob_sink = sinks_test_lib.FakeSink()
 
@@ -1916,7 +2095,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsSymlinkFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo/symlink": "/foo/target",
               "/foo/target": b"bar",
@@ -1970,7 +2149,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsEmptyFileFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo/bar": b"",
           }),
@@ -2032,7 +2211,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       flow_id = rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsLargeFileFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({
               "/foo/bar": b"\xff" * 13371337,
           }),
@@ -2095,7 +2274,7 @@ class FakeFileHandlersTest(absltest.TestCase):
       rrg_test_lib.ExecuteFlow(
           client_id=client_id,
           flow_cls=GetFileContentsUnknownPathFlow,
-          flow_args=rdf_flows.EmptyFlowArgs(),
+          flow_args=flows_pb2.EmptyFlowArgs(),
           handlers=rrg_test_lib.FakePosixFileHandlers({}),
       )
 
@@ -2131,7 +2310,7 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileSha256Flow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"Lorem ipsum.",
         }),
@@ -2172,13 +2351,159 @@ class FakeFileHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetFileSha256LengthFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"Lorem ipsum.",
         }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+
+class FakeOsqueryHandlersTest(absltest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  @db_test_lib.WithDatabase
+  def testSingleQuery(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    class FakeOsqueryFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        command = rrg_execute_signed_command_pb2.Command()
+        command.path.raw_bytes = "/usr/bin/osqueryd".encode()
+        command.unsigned_stdin_allowed = True
+
+        action = rrg_stubs.ExecuteSignedCommand()
+        action.args.command = command.SerializeToString()
+        action.args.unsigned_stdin = """
+        SELECT cmdline FROM processes WHERE pid = 1;
+        """.encode("utf-8")
+        action.Call(self._ProcessExecuteSignedCommand)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessExecuteSignedCommand(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        assert responses.success
+        assert len(responses) == 1
+
+        response = rrg_execute_signed_command_pb2.Result()
+        assert list(responses)[0].Unpack(response)
+
+        assert response.exit_code == 0
+        assert isinstance(json.loads(response.stdout), list)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=FakeOsqueryFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeOsqueryHandlers({
+            # pyformat: disable
+            "SELECT cmdline FROM processes WHERE pid = 1;": """
+[
+  {"cmdline":"/usr/lib/systemd/systemd --system splash"}
+]
+            """,
+            # pyformat: enable
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+  @db_test_lib.WithDatabase
+  def testSingleQuery_WithConfig(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    class FakeOsqueryWithConfigFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        config = """
+        {
+          "options": {
+            "logger_plugin": "filesystem",
+            "logger_path": "/var/log/osquery",
+            "verbose": "true"
+          }
+        }
+        """.encode("utf-8")
+
+        action = rrg_stubs.StoreFilestorePart()
+        action.args.part_offset = 0
+        action.args.part_content = config
+        action.args.file_size = len(config)
+        action.args.file_sha256 = hashlib.sha256(config).digest()
+        action.Call(self._ProcessStoreFilestorePart)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessStoreFilestorePart(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        assert responses.success
+        assert len(responses) == 1
+
+        response = rrg_store_filestore_part_pb2.Result()
+        assert list(responses)[0].Unpack(response)
+
+        assert response.status == rrg_store_filestore_part_pb2.Status.COMPLETE
+        assert response.file_sha256
+
+        command = rrg_execute_signed_command_pb2.Command()
+        command.path.raw_bytes = "/usr/bin/osqueryd".encode()
+        command.args.add().signed = "--config-path"
+        command.args.add().filestore_file_sha256_allowed = True
+        command.unsigned_stdin_allowed = True
+
+        action = rrg_stubs.ExecuteSignedCommand()
+        action.args.command = command.SerializeToString()
+        action.args.unsigned_stdin = """
+        SELECT cmdline FROM processes WHERE pid = 1;
+        """.encode("utf-8")
+        action.args.filestore_file_sha256s.append(response.file_sha256)
+        action.Call(self._ProcessExecuteSignedCommand)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessExecuteSignedCommand(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        assert responses.success
+        assert len(responses) == 1
+
+        response = rrg_execute_signed_command_pb2.Result()
+        assert list(responses)[0].Unpack(response)
+
+        assert response.exit_code == 0
+        assert isinstance(json.loads(response.stdout), list)
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=FakeOsqueryWithConfigFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        # pyformat: disable
+        handlers=rrg_test_lib.FakeOsqueryHandlers({
+            "SELECT cmdline FROM processes WHERE pid = 1;": """
+[
+  {"cmdline":"/usr/lib/systemd/systemd --system splash"}
+]
+            """,
+        }, rrg_test_lib.Filestore()),
+        # pyformat: enable
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
     self.assertEqual(flow_obj.error_message, "")
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
 
@@ -2222,7 +2547,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetWinregValueFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2263,7 +2588,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetWinregValueNotExistingKeyFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {},
@@ -2307,7 +2632,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=GetWinregValueDefaultValueFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2369,7 +2694,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregValuesFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2434,7 +2759,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregValuesMaxDepthFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2476,7 +2801,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregValuesNotExistingKeyFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {},
@@ -2520,7 +2845,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregValuesCustomDefaultValueFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2580,7 +2905,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregKeysFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2641,7 +2966,7 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregKeysMaxDepthFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {
@@ -2688,11 +3013,73 @@ class FakeWinregHandlersTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=ListWinregKeysNotExistingKeyFlow,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakeWinregHandlers({
             rrg_winreg_pb2.LOCAL_MACHINE: {
                 "SOFTWARE": {},
             },
+        }),
+    )
+
+    flow_obj = db.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+
+class FakeWmiHandlers(absltest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  @db_test_lib.WithDatabase
+  def testQueryWmi(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    test = self  # Bypass shadowed `self` in the nested class.
+
+    class QueryWmiFlow(flow_base.FlowBase):
+
+      def Start(self) -> None:
+        query_wmi = rrg_stubs.QueryWmi()
+        query_wmi.args.query = "SELECT * FROM Win32_Foo"
+        query_wmi.Call(self._ProcessQueryWmi)
+
+      @flow_base.UseProto2AnyResponses
+      def _ProcessQueryWmi(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        test.assertTrue(responses.success)
+        test.assertLen(responses, 1)
+
+        result = rrg_query_wmi_pb2.Result()
+        test.assertTrue(list(responses)[0].Unpack(result))
+
+        test.assertTrue(result.row["Bool"].bool)
+        test.assertEqual(result.row["UnsignedInt"].uint, 1337)
+        test.assertEqual(result.row["SignedInt"].int, -42)
+        test.assertAlmostEqual(result.row["Float"].float, 3.14, places=5)
+        test.assertAlmostEqual(result.row["Double"].double, 2.71, places=5)
+        test.assertEqual(result.row["String"].string, "Lorem ipsum")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=QueryWmiFlow,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWmiHandlers({
+            "Win32_Foo": [
+                {
+                    "Bool": True,
+                    "UnsignedInt": ctypes.c_uint(1337),
+                    "SignedInt": ctypes.c_int(-42),
+                    "Float": ctypes.c_float(3.14),
+                    "Double": ctypes.c_double(2.71),
+                    "String": "Lorem ipsum",
+                },
+            ],
         }),
     )
 

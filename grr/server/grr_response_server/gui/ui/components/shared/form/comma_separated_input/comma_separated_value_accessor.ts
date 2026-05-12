@@ -22,8 +22,8 @@ type OnTouchedFn = () => void;
 @Directive({
   selector: '[commaSeparatedInput]',
   host: {
-    '(change)': 'onChange($event.target.value)',
-    '(input)': 'onChange($event.target.value)',
+    '(change)': 'onChange($event)',
+    '(input)': 'onChange($event)',
     '(blur)': 'onTouched()',
   },
   providers: [COMMA_SEPARATED_VALUE_ACCESSOR],
@@ -45,7 +45,8 @@ export class CommaSeparatedValueAccessor implements ControlValueAccessor {
     );
   }
 
-  onChange(value: string) {
+  onChange(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
     this.onChangeListener(parseCommaSeparatedString(value));
   }
 
@@ -66,8 +67,8 @@ export class CommaSeparatedValueAccessor implements ControlValueAccessor {
 @Directive({
   selector: '[commaSeparatedNumberInput]',
   host: {
-    '(change)': 'onChange($event.target.value)',
-    '(input)': 'onChange($event.target.value)',
+    '(change)': 'onChange($event)',
+    '(input)': 'onChange($event)',
     '(blur)': 'onTouched()',
   },
   providers: [COMMA_SEPARATED_NUMBER_VALUE_ACCESSOR],
@@ -89,7 +90,8 @@ export class CommaSeparatedNumberValueAccessor implements ControlValueAccessor {
     );
   }
 
-  onChange(value: string) {
+  onChange(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
     this.onChangeListener(parseCommaSeparatedString(value).map(Number));
   }
 

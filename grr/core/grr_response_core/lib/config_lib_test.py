@@ -2,7 +2,6 @@
 """Tests for config_lib classes."""
 
 import io
-import ntpath
 import os
 import stat
 from unittest import mock
@@ -1047,48 +1046,6 @@ Section1.int: 2
           parser=config_parser.YamlConfigFileParser, filename=configtwo
       )
       self.assertEqual(conf["Section1.int"], 1)
-
-  def testConfigFileInclusionWindowsPaths(self):
-    one = r"""
-Config.includes:
-  - 2.yaml
-
-Section1.int: 1
-"""
-    two = r"""
-Section1.int: 2
-SecondaryFileIncluded: true
-"""
-    config_path = "C:\\Windows\\System32\\GRR"
-
-    def MockedWindowsOpen(filename, _=None):
-      basename = ntpath.basename(filename)
-      dirname = ntpath.dirname(filename)
-
-      # Make sure we only try to open files from this directory.
-      if dirname != config_path:
-        raise IOError("Tried to open wrong file %s" % filename)
-
-      if basename == "1.yaml":
-        return io.BytesIO(one.encode("utf-8"))
-
-      if basename == "2.yaml":
-        return io.BytesIO(two.encode("utf-8"))
-
-      raise IOError("File not found %s" % filename)
-
-    # TODO(user): this kind of mocking is a questionable practice at best.
-    # We have Windows-specific tests and should use them for this kind of
-    # testing.
-    #
-    # We need to also use the nt path manipulation modules.
-    with utils.MultiStubber(
-        (io, "open", MockedWindowsOpen), (os, "path", ntpath)
-    ):
-      conf = self._GetNewConf()
-      conf.Initialize(filename=ntpath.join(config_path, "1.yaml"))
-      self.assertEqual(conf["Section1.int"], 2)
-      self.assertEqual(conf["SecondaryFileIncluded"], True)
 
   def testConfigFileInclusionWithContext(self):
     one = r"""

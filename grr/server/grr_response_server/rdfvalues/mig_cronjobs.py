@@ -20,20 +20,6 @@ def ToRDFCronJobRunStatus(
   )
 
 
-def ToProtoCreateCronJobFlowArgs(
-    rdf: rdf_cronjobs.CreateCronJobFlowArgs,
-) -> flows_pb2.CreateCronJobFlowArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFCreateCronJobFlowArgs(
-    proto: flows_pb2.CreateCronJobFlowArgs,
-) -> rdf_cronjobs.CreateCronJobFlowArgs:
-  return rdf_cronjobs.CreateCronJobFlowArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
 def ToProtoSystemCronAction(
     rdf: rdf_cronjobs.SystemCronAction,
 ) -> flows_pb2.SystemCronAction:
@@ -44,34 +30,6 @@ def ToRDFSystemCronAction(
     proto: flows_pb2.SystemCronAction,
 ) -> rdf_cronjobs.SystemCronAction:
   return rdf_cronjobs.SystemCronAction.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoHuntCronAction(
-    rdf: rdf_cronjobs.HuntCronAction,
-) -> flows_pb2.HuntCronAction:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFHuntCronAction(
-    proto: flows_pb2.HuntCronAction,
-) -> rdf_cronjobs.HuntCronAction:
-  return rdf_cronjobs.HuntCronAction.FromSerializedBytes(
-      proto.SerializeToString()
-  )
-
-
-def ToProtoCronJobAction(
-    rdf: rdf_cronjobs.CronJobAction,
-) -> flows_pb2.CronJobAction:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFCronJobAction(
-    proto: flows_pb2.CronJobAction,
-) -> rdf_cronjobs.CronJobAction:
-  return rdf_cronjobs.CronJobAction.FromSerializedBytes(
       proto.SerializeToString()
   )
 
@@ -90,17 +48,3 @@ def ToProtoCronJobRun(rdf: rdf_cronjobs.CronJobRun) -> flows_pb2.CronJobRun:
 
 def ToRDFCronJobRun(proto: flows_pb2.CronJobRun) -> rdf_cronjobs.CronJobRun:
   return rdf_cronjobs.CronJobRun.FromSerializedBytes(proto.SerializeToString())
-
-
-def ToProtoCreateCronJobArgs(
-    rdf: rdf_cronjobs.CreateCronJobArgs,
-) -> flows_pb2.CreateCronJobArgs:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFCreateCronJobArgs(
-    proto: flows_pb2.CreateCronJobArgs,
-) -> rdf_cronjobs.CreateCronJobArgs:
-  return rdf_cronjobs.CreateCronJobArgs.FromSerializedBytes(
-      proto.SerializeToString()
-  )

@@ -38,7 +38,7 @@
           <mat-option [value]="client.clientId">
             <div class="client-option">
               {{ client.knowledgeBase.fqdn }} ({{ client.clientId }})
-              <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+              <online-chip [lastSeen]="client.lastSeenAt" />
             </div>
           </mat-option>
         }

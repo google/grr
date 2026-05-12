@@ -125,7 +125,7 @@ class BinaryChunkIterator:
                 "File does not start with Crowdstrike quarantine identifier"
             )
 
-          # TODO: Add a check if the actual file size matches the
+          # TODO - Add a check if the actual file size matches the
           # value in chunk[4:12].
 
           # The remainder of the first chunk belongs to the actual file.

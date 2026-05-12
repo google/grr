@@ -3,22 +3,18 @@
 
 from collections.abc import MutableSequence, Sequence
 import logging
+import os
 from typing import Optional
 import zlib
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import constants
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import mig_crypto
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import mig_protodict
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -30,6 +26,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import message_handlers
 from grr_response_server import rrg_fs
+from grr_response_server import rrg_path
 from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
@@ -37,7 +34,6 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.models import blobs as models_blobs
 from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import wrappers as rdf_wrappers
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
@@ -47,45 +43,6 @@ from grr_response_proto.rrg.action import get_file_sha256_pb2 as rrg_get_file_sh
 
 _BLOBSTORE_HIT = metrics.Counter(name="multi_get_file_blobstore_hit")
 _BLOBSTORE_MISS = metrics.Counter(name="multi_get_file_blobstore_miss")
-
-
-class MultiGetFileArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.MultiGetFileArgs
-  rdf_deps = [
-      rdfvalue.ByteSize,
-      rdf_paths.PathSpec,
-  ]
-
-
-class PathSpecProgress(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.PathSpecProgress
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class MultiGetFileProgress(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.MultiGetFileProgress
-  rdf_deps = [
-      PathSpecProgress,
-  ]
-
-
-class IndexToBufferReference(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.IndexToBufferReference
-  rdf_deps = [
-      rdf_client.BufferReference,
-  ]
-
-
-class MultiGetFileTracker(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.MultiGetFileTracker
-  rdf_deps = [
-      rdf_client_fs.StatEntry,
-      rdf_crypto.Hash,
-      rdf_client.BufferReference,
-      IndexToBufferReference,
-  ]
 
 
 def _RemoveIndexToTracker(
@@ -116,22 +73,6 @@ def _FindMultiGetFileTracker(
   return None
 
 
-# TODO: Remove this function once we have migrated to protos.
-# This function is duplicated from `mig_transfer` due to circular dependencies.
-def ToRDFPathSpecProgress(
-    proto: flows_pb2.PathSpecProgress,
-) -> PathSpecProgress:
-  return PathSpecProgress.FromSerializedBytes(proto.SerializeToString())
-
-
-# TODO: Remove this function once we have migrated to protos.
-# This function is duplicated from `mig_transfer` due to circular dependencies.
-def ToRDFMultiGetFileProgress(
-    proto: flows_pb2.MultiGetFileProgress,
-) -> MultiGetFileProgress:
-  return MultiGetFileProgress.FromSerializedBytes(proto.SerializeToString())
-
-
 class MultiGetFile(
     flow_base.FlowBase[
         flows_pb2.MultiGetFileArgs,
@@ -141,16 +82,10 @@ class MultiGetFile(
 ):
   """A flow to effectively retrieve a number of files."""
 
-  args_type = MultiGetFileArgs
-  progress_type = MultiGetFileProgress
-  result_types = (rdf_client_fs.StatEntry,)
-
   proto_args_type = flows_pb2.MultiGetFileArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   proto_progress_type = flows_pb2.MultiGetFileProgress
   proto_store_type = flows_pb2.MultiGetFileStore
-
-  only_protos_allowed = True
 
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
@@ -161,10 +96,13 @@ class MultiGetFile(
   # allows us to amortize file store round trips and increases throughput.
   MIN_CALL_TO_FILE_STORE = 200
 
-  def GetProgress(self) -> MultiGetFileProgress:
-    return ToRDFMultiGetFileProgress(self.GetProtoProgress())
+  DEFAULT_MAX_SYMLINK_DEPTH = 5
 
-  def GetProtoProgress(self) -> flows_pb2.MultiGetFileProgress:
+  @property
+  def max_symlink_depth(self) -> int:
+    return self.proto_args.max_symlink_depth or self.DEFAULT_MAX_SYMLINK_DEPTH
+
+  def GetProgressProto(self) -> flows_pb2.MultiGetFileProgress:
     progress = flows_pb2.MultiGetFileProgress()
     if self.store.pending_hashes:
       progress.num_pending_hashes = len(self.store.pending_hashes)
@@ -225,7 +163,7 @@ class MultiGetFile(
     # This should be refactored to store one progress per *unique* pathspec.
     self.store.pathspecs_progress.extend([
         flows_pb2.PathSpecProgress(
-            pathspec=p, status=PathSpecProgress.Status.IN_PROGRESS
+            pathspec=p, status=flows_pb2.PathSpecProgress.Status.IN_PROGRESS
         )
         for p in self.proto_args.pathspecs
     ])
@@ -272,7 +210,7 @@ class MultiGetFile(
 
       path = get_file_metadata.args.paths.add()
       path.raw_bytes = pathspec.path.encode()
-      # TODO: Sometimes GRR "fixes" Windows paths and inserts a
+      # TODO - Sometimes GRR "fixes" Windows paths and inserts a
       # leading '/' in front (e.g. to have `/C:/Windows`). RRG does not treat it
       # as a valid absolute path and so we need to "unfix" it here.
       #
@@ -295,7 +233,7 @@ class MultiGetFile(
 
     # First stat the file, then hash the file if needed.
     self._ScheduleStatFile(index, pathspec)
-    if self.proto_args.stop_at == MultiGetFileArgs.StopAt.STAT:
+    if self.proto_args.stop_at == flows_pb2.MultiGetFileArgs.StopAt.STAT:
       return
 
     self._ScheduleHashFile(index, pathspec)
@@ -306,6 +244,7 @@ class MultiGetFile(
       responses: flow_responses.Responses[any_pb2.Any],
   ) -> None:
     index = int(responses.request_data["index"])
+    progress = self.store.pathspecs_progress[index]
 
     if not responses.success or not responses:
       self.Log("Failed to collect file metadata: %s", responses.status)
@@ -325,8 +264,39 @@ class MultiGetFile(
     if response.metadata.type == rrg_fs_pb2.FileMetadata.FILE:
       pass
     elif response.metadata.type == rrg_fs_pb2.FileMetadata.SYMLINK:
-      # TODO: Add support for symlinks.
-      raise NotImplementedError()
+      path = rrg_path.PurePath.For(self.rrg_os_type, response.path)
+      symlink = rrg_path.PurePath.For(self.rrg_os_type, response.symlink)
+
+      _RemoveIndexToTracker(self.store.pending_stats, index)
+      _RemoveIndexToTracker(self.store.pending_hashes, index)
+
+      if progress.symlink_depth >= self.max_symlink_depth:
+        self.Log(
+            "Symlink depth (%s) for %s exceeded",
+            self.proto_args.max_symlink_depth,
+            path,
+        )
+        progress.status = flows_pb2.PathSpecProgress.FAILED
+        return
+
+      self.Log(
+          "%s is a symlink to %s, collecting the linked path instead",
+          path,
+          symlink,
+      )
+      progress.status = flows_pb2.PathSpecProgress.SKIPPED
+
+      symlink_pathspec = jobs_pb2.PathSpec()
+      symlink_pathspec.pathtype = jobs_pb2.PathSpec.OS
+      symlink_pathspec.path = os.path.normpath(str(path.parent / symlink))
+
+      symlink_pathspec_progress = self.store.pathspecs_progress.add()
+      symlink_pathspec_progress.pathspec.CopyFrom(symlink_pathspec)
+      symlink_pathspec_progress.status = flows_pb2.PathSpecProgress.IN_PROGRESS
+      symlink_pathspec_progress.symlink_depth = progress.symlink_depth + 1
+
+      self.StartFileFetch(symlink_pathspec)
+      return
     else:
       self.Log(
           "Unexpected file type for '%s': %s",
@@ -340,6 +310,9 @@ class MultiGetFile(
 
     stat_entry = rrg_fs.StatEntry(response.metadata)
     stat_entry.pathspec.CopyFrom(self.store.indexed_pathspecs[index])
+    # TODO - Fix path separator in stat entries.
+    if self.rrg_os_type == rrg_os_pb2.WINDOWS:
+      stat_entry.pathspec.path = stat_entry.pathspec.path.replace("\\", "/")
 
     _RemoveIndexToTracker(self.store.pending_stats, index)
 
@@ -349,7 +322,7 @@ class MultiGetFile(
 
       filesystem.WritePartialFileResults(
           self.client_id,
-          mig_client_fs.ToRDFStatEntry(stat_entry),
+          stat_entry,
       )
       self.SendReplyProto(stat_entry)
       self._RemoveCompletedPathspec(index)
@@ -379,8 +352,8 @@ class MultiGetFile(
 
       filesystem.WritePartialFileResults(
           self.client_id,
-          mig_client_fs.ToRDFStatEntry(stat_entry),
-          mig_crypto.ToRDFHash(pending_hash.hash_obj),
+          stat_entry,
+          pending_hash.hash_obj,
       )
       self.SendReplyProto(stat_entry)
       self._RemoveCompletedPathspec(index)
@@ -472,7 +445,7 @@ class MultiGetFile(
 
     self.ReceiveFetchedFileStat(stat_entry, index)
 
-    if self.proto_args.stop_at == MultiGetFileArgs.StopAt.STAT:
+    if self.proto_args.stop_at == flows_pb2.MultiGetFileArgs.StopAt.STAT:
       self._RemoveCompletedPathspec(index)
       return
 
@@ -494,13 +467,11 @@ class MultiGetFile(
       index: int,
   ) -> None:
     # If we're only meant to get the STAT, report the result.
-    if self.proto_args.stop_at == MultiGetFileArgs.StopAt.STAT:
+    if self.proto_args.stop_at == flows_pb2.MultiGetFileArgs.StopAt.STAT:
       self.store.pathspecs_progress[index].status = (
-          PathSpecProgress.Status.COLLECTED
+          flows_pb2.PathSpecProgress.Status.COLLECTED
       )
-      filesystem.WritePartialFileResults(
-          self.client_id, mig_client_fs.ToRDFStatEntry(stat_entry)
-      )
+      filesystem.WritePartialFileResults(self.client_id, stat_entry)
       self.SendReplyProto(stat_entry)
 
   def _ScheduleHashFile(self, index: int, pathspec: jobs_pb2.PathSpec) -> None:
@@ -598,7 +569,7 @@ class MultiGetFile(
 
     self.ReceiveFetchedFileHash(tracker.stat_entry, hash_obj, index)
 
-    if self.proto_args.stop_at == MultiGetFileArgs.StopAt.HASH:
+    if self.proto_args.stop_at == flows_pb2.MultiGetFileArgs.StopAt.HASH:
       self._RemoveCompletedPathspec(index)
       return
 
@@ -613,14 +584,14 @@ class MultiGetFile(
       index: int,
   ) -> None:
     # If we're only meant to get the HASH, report the result.
-    if self.proto_args.stop_at == MultiGetFileArgs.StopAt.HASH:
+    if self.proto_args.stop_at == flows_pb2.MultiGetFileArgs.StopAt.HASH:
       self.store.pathspecs_progress[index].status = (
-          PathSpecProgress.Status.COLLECTED
+          flows_pb2.PathSpecProgress.Status.COLLECTED
       )
       filesystem.WritePartialFileResults(
           self.client_id,
-          mig_client_fs.ToRDFStatEntry(stat_entry),
-          mig_crypto.ToRDFHash(file_hash),
+          stat_entry,
+          file_hash,
       )
       self.SendReplyProto(stat_entry)
 
@@ -740,13 +711,28 @@ class MultiGetFile(
 
         pathspec = file_tracker.stat_entry.pathspec
 
-        # Support for `get_file_sha256` was introduced in RRG in version 0.0.5.
-        if self.rrg_version >= (0, 0, 5) and pathspec.pathtype in [
-            jobs_pb2.PathSpec.OS,
-            jobs_pb2.PathSpec.TMPFILE,
-        ]:
+        if (
+            # Support for `get_file_sha256` was introduced in version 0.0.5.
+            self.rrg_version >= (0, 0, 5)
+            and pathspec.pathtype
+            in [
+                jobs_pb2.PathSpec.OS,
+                jobs_pb2.PathSpec.TMPFILE,
+            ]
+            # `pathspec` is something that was returned by the endpoint and if
+            # Sleuthkit is used it will mangle it to a top-level `OS` path and a
+            # nested `TSK` path. Thus, to avoid "going RRG" (as the Sleuthkit
+            # path can be taken only by the legacy agent) we need to also check
+            # the type of the nested path.
+            and pathspec.nested_path.pathtype
+            in [
+                jobs_pb2.PathSpec.UNSET,
+                jobs_pb2.PathSpec.OS,
+                jobs_pb2.PathSpec.TMPFILE,
+            ]
+        ):
           path = pathspec.path
-          # TODO: Sometimes GRR "fixes" Windows paths and inserts
+          # TODO - Sometimes GRR "fixes" Windows paths and inserts
           # a leading '/' in front (e.g. to have `/C:/Windows`). RRG does not
           # treat it as a valid absolute path and so we need to "unfix" it here.
           #
@@ -880,8 +866,8 @@ class MultiGetFile(
           _BLOBSTORE_HIT.Increment()
           logging.info(
               "`MultiGetFile` %s/%s blobstore hit for %s",
-              self.rdf_flow.client_id,
-              self.rdf_flow.flow_id,
+              self.client_id,
+              self.flow_id,
               hash_response,
           )
 
@@ -895,21 +881,36 @@ class MultiGetFile(
           _BLOBSTORE_MISS.Increment()
           logging.info(
               "`MultiGetFile` %s/%s blobstore miss for %s",
-              self.rdf_flow.client_id,
-              self.rdf_flow.flow_id,
+              self.client_id,
+              self.flow_id,
               hash_response,
           )
 
           # We dont have this blob - ask the client to transmit it.
-          if self.rrg_support and hash_response.pathspec.pathtype in [
-              jobs_pb2.PathSpec.OS,
-              jobs_pb2.PathSpec.TMPFILE,
-          ]:
+          if (
+              self.rrg_support
+              and hash_response.pathspec.pathtype
+              in [
+                  jobs_pb2.PathSpec.OS,
+                  jobs_pb2.PathSpec.TMPFILE,
+              ]
+              # `hash_response.pathspec` is something that was returned by the
+              # endpoint and if Sleuthkit is used it will mangle it to a top-
+              # level `OS` path and a nested `TSK` path. Thus, to avoid "going
+              # RRG" (as the Sleuthkit path can be taken only by the legacy
+              # agent) we need to also check the type of the nested path.
+              and hash_response.pathspec.nested_path.pathtype
+              in [
+                  jobs_pb2.PathSpec.UNSET,
+                  jobs_pb2.PathSpec.OS,
+                  jobs_pb2.PathSpec.TMPFILE,
+              ]
+          ):
             get_file_contents = rrg_stubs.GetFileContents()
 
             path = get_file_contents.args.paths.add()
             path.raw_bytes = hash_response.pathspec.path.encode()
-            # TODO: Sometimes GRR "fixes" Windows paths and
+            # TODO - Sometimes GRR "fixes" Windows paths and
             # inserts a leading '/' in front (e.g. to have `/C:/Windows`). RRG
             # does not treat it as a valid absolute path and so we need to
             # "unfix" it here.
@@ -968,7 +969,7 @@ class MultiGetFile(
     blob_dict[int(responses.request_data["blob_index"])] = blob_ref
 
     if len(blob_dict) != index_to_tracker.tracker.expected_chunks:
-      # TODO: Replace with `clear()` once upgraded in open-source.
+      # TODO - Replace with `clear()` once upgraded in open-source.
       del index_to_tracker.tracker.index_to_buffers[:]
       index_to_tracker.tracker.index_to_buffers.extend(
           _BuildIndexToBuffers(blob_dict)
@@ -982,7 +983,7 @@ class MultiGetFile(
       blob_ref.offset = blob_dict[index].offset
       blob_ref.size = blob_dict[index].length
 
-      blob_refs.append(mig_objects.ToRDFBlobReference(blob_ref))
+      blob_refs.append(blob_ref)
 
     path_info = rdf_objects.PathInfo.FromStatEntry(
         mig_client_fs.ToRDFStatEntry(index_to_tracker.tracker.stat_entry)
@@ -1014,7 +1015,7 @@ class MultiGetFile(
 
     data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-    # TODO: Replace with `clear()` once upgraded in open-source.
+    # TODO - Replace with `clear()` once upgraded in open-source.
     del index_to_tracker.tracker.index_to_buffers[:]
     del index_to_tracker.tracker.hash_list[:]
 
@@ -1055,7 +1056,7 @@ class MultiGetFile(
 
     if len(blob_dict) != file_tracker.expected_chunks:
       # We need more data before we can write the file.
-      # TODO: Replace with `clear()` once upgraded in OpenSource.
+      # TODO - Replace with `clear()` once upgraded in OpenSource.
       del file_tracker.index_to_buffers[:]
       file_tracker.index_to_buffers.extend(_BuildIndexToBuffers(blob_dict))
       return
@@ -1069,7 +1070,7 @@ class MultiGetFile(
     for index in sorted(blob_dict):
       digest, size = blob_dict[index].data, blob_dict[index].length
       blob_refs.append(
-          rdf_objects.BlobReference(offset=offset, size=size, blob_id=digest)
+          objects_pb2.BlobReference(offset=offset, size=size, blob_id=digest)
       )
       offset += size
 
@@ -1136,9 +1137,9 @@ class MultiGetFile(
   ):
     """This method will be called for each new file successfully fetched."""
     if is_duplicate:
-      status = PathSpecProgress.Status.SKIPPED
+      status = flows_pb2.PathSpecProgress.Status.SKIPPED
     else:
-      status = PathSpecProgress.Status.COLLECTED
+      status = flows_pb2.PathSpecProgress.Status.COLLECTED
     self.store.pathspecs_progress[index].status = status
 
     self.SendReplyProto(stat_entry)
@@ -1162,7 +1163,9 @@ class MultiGetFile(
 
   def FileFetchFailed(self, index: int) -> None:
     """This method will be called when stat or hash requests fail."""
-    self.store.pathspecs_progress[index].status = PathSpecProgress.Status.FAILED
+    self.store.pathspecs_progress[index].status = (
+        flows_pb2.PathSpecProgress.Status.FAILED
+    )
 
   def End(self) -> None:
     # There are some files still in flight.
@@ -1196,10 +1199,6 @@ def _BuildIndexToBuffers(
   ]
 
 
-class GetMBRArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.GetMBRArgs
-
-
 class GetMBR(
     flow_base.FlowBase[
         flows_pb2.GetMBRArgs,
@@ -1214,15 +1213,11 @@ class GetMBR(
   """
 
   category = "/Filesystem/"
-  args_type = GetMBRArgs
   behaviours = flow_base.BEHAVIOUR_BASIC
-  result_types = (rdf_wrappers.BytesValue,)
 
   proto_args_type = flows_pb2.GetMBRArgs
   proto_result_types = [config_pb2.BytesValue]
   proto_store_type = flows_pb2.GetMBRStore
-
-  only_protos_allowed = True
 
   DEFAULT_MBR_LENGTH = 4096
 
@@ -1237,7 +1232,7 @@ class GetMBR(
     self.store.bytes_downloaded = 0
     # An array to collect buffers. This is not very efficient, MBR
     # data should be kept short though so this is not a big deal.
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.buffers[:]
 
     if not self.proto_args.length:
@@ -1279,7 +1274,7 @@ class GetMBR(
 
     if self.store.bytes_downloaded >= self.proto_args.length:
       mbr_data = b"".join(self.store.buffers)
-      # TODO: Replace with `clear()` once upgraded.
+      # TODO - Replace with `clear()` once upgraded.
       del self.store.buffers[:]
 
       self.Log("Successfully collected the MBR (%d bytes)." % len(mbr_data))

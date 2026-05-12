@@ -107,6 +107,7 @@ message Hunt {
     description: "Total network bytes limit imposed on a hunt. A hunt is "
                  "stopped if it receives more bytes than the limit."
   }];
+  // TODO - If adding the total_cpu_seconds_limit, add it here.
 
   optional FlowLikeObjectReference original_object = 17 [(sem_type) = {
     description: "If this hunt is a copy of another hunt or flow, we store "

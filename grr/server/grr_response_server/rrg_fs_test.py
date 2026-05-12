@@ -52,6 +52,24 @@ class StatEntryTest(absltest.TestCase):
     stat_entry = rrg_fs.StatEntry(metadata)
     self.assertTrue(stat.S_ISLNK(stat_entry.st_mode))
 
+  def testIrregular(self):
+    metadata = rrg_fs_pb2.FileMetadata()
+    metadata.unix_dev = 6
+    metadata.unix_ino = 4
+    metadata.unix_mode = 0o20666
+    metadata.unix_nlink = 1
+    metadata.unix_uid = 0
+    metadata.unix_gid = 0
+
+    stat_entry = rrg_fs.StatEntry(metadata)
+    self.assertTrue(stat.S_ISCHR(stat_entry.st_mode))
+    self.assertEqual(stat_entry.st_size, 0)
+    self.assertEqual(stat_entry.st_dev, 6)
+    self.assertEqual(stat_entry.st_ino, 4)
+    self.assertEqual(stat_entry.st_nlink, 1)
+    self.assertEqual(stat_entry.st_uid, 0)
+    self.assertEqual(stat_entry.st_gid, 0)
+
 
 class PathInfoTest(absltest.TestCase):
 

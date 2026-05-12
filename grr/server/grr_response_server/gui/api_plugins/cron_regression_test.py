@@ -4,8 +4,6 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_proto import flows_pb2
-from grr_response_proto import jobs_pb2
 from grr_response_proto.api import cron_pb2 as api_cron_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -92,52 +90,6 @@ def _SetupAndRunInterrogateClientsCronjob():
     manager._GetThreadPool().Stop()
 
     return cron_job_name
-
-
-class ApiCreateCronJobHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest
-):
-  """Test handler that creates a new cron job."""
-
-  api_method = "CreateCronJob"
-  handler = cron_plugin.ApiCreateCronJobHandler
-
-  # ApiCronJob references CreateAndRunGenericHuntFlow that contains
-  # some legacy dynamic fields, that can't be serialized in JSON-proto3-friendly
-  # way.
-  uses_legacy_dynamic_protos = True
-
-  def Run(self):
-
-    def ReplaceCronJobUrn():
-      jobs = list(cronjobs.CronManager().ListJobs())
-      return {jobs[0]: "CreateAndRunGenericHuntFlow_1234"}
-
-    flow_name = file_finder.FileFinder.__name__
-    flow_args = flows_pb2.FileFinderArgs(
-        paths=["c:\\windows\\system32\\notepad.*"]
-    )
-
-    hunt_runner_args = flows_pb2.HuntRunnerArgs()
-    hunt_runner_args.client_rule_set.rules = [
-        jobs_pb2.ForemanClientRule(
-            os=jobs_pb2.ForemanOsClientRule(os_windows=True)
-        )
-    ]
-    hunt_runner_args.description = "Foobar! (cron)"
-
-    self.Check(
-        "CreateCronJob",
-        args=api_cron_pb2.ApiCreateCronJobArgs(
-            description="Foobar!",
-            flow_name=flow_name,
-            flow_args=flow_args,
-            hunt_runner_args=hunt_runner_args,
-            periodicity=604800,
-            lifetime=3600,
-        ),
-        replace=ReplaceCronJobUrn,
-    )
 
 
 class ApiListCronJobRunsHandlerRegressionTest(

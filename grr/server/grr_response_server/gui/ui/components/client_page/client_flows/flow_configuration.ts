@@ -6,8 +6,9 @@ import {
   inject,
   input as routerInput,
 } from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {Title} from '@angular/platform-browser';
+import {RouterModule} from '@angular/router';
 
 import {Flow} from '../../../lib/models/flow';
 import {ClientStore} from '../../../store/client_store';
@@ -20,7 +21,14 @@ import {User} from '../../shared/user';
   selector: 'flow-configuration',
   templateUrl: './flow_configuration.ng.html',
   styleUrls: ['./flow_configuration.scss'],
-  imports: [CommonModule, FlowArgsForm, User, MatIconModule],
+  imports: [
+    CommonModule,
+    FlowArgsForm,
+    User,
+    MatButtonModule,
+    MatIconModule,
+    RouterModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowConfiguration {
@@ -35,8 +43,4 @@ export class FlowConfiguration {
     }
     return undefined;
   });
-
-  constructor() {
-    inject(Title).setTitle('GRR | Client > Flow > Configuration');
-  }
 }

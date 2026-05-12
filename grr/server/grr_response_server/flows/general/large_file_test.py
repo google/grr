@@ -6,9 +6,9 @@ from absl.testing import absltest
 import responses
 
 from grr_response_client.client_actions import large_file as large_file_action
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import aead
 from grr_response_core.lib.util import temp
+from grr_response_proto import jobs_pb2
 from grr_response_proto import large_file_pb2
 from grr_response_server.flows.general import large_file
 from grr.test_lib import action_mocks
@@ -57,10 +57,12 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
     decrypted_buf = aead.Decrypt(encrypted_buf, store.encryption_key)
     self.assertEqual(decrypted_buf.read(), content)
 
-    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
     self.assertEqual(progress.session_uri, "https://foo.bar/norf")
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        self.client_id, flow_id, large_file_pb2.CollectLargeFileFlowResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].session_uri, "https://foo.bar/norf")
     self.assertGreater(results[0].total_bytes_sent, 0)
@@ -75,9 +77,9 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
     Returns:
       An identifier of the flow that was created.
     """
-    args = large_file.CollectLargeFileFlowArgs()
+    args = large_file_pb2.CollectLargeFileFlowArgs()
     args.signed_url = signed_url
-    args.path_spec.pathtype = rdf_paths.PathSpec.PathType.OS
+    args.path_spec.pathtype = jobs_pb2.PathSpec.PathType.OS
     args.path_spec.path = path
 
     action_mock = action_mocks.ActionMock.With({

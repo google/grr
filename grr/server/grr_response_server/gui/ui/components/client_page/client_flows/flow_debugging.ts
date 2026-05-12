@@ -5,7 +5,6 @@ import {
   inject,
   input as routerInput,
 } from '@angular/core';
-import {Title} from '@angular/platform-browser';
 
 import {ClientStore} from '../../../store/client_store';
 import {FlowStore} from '../../../store/flow_store';
@@ -42,9 +41,5 @@ export class FlowDebugging {
 
   protected stringify(data: unknown) {
     return JSON.stringify(data, null, 2);
-  }
-
-  constructor() {
-    inject(Title).setTitle('GRR | Client > Flow > Debugging');
   }
 }

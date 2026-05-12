@@ -67,7 +67,7 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
   case for Linux) will be escaped.
   """
 
-  # TODO: There is a discrepancy between how Python 3.10 and 3.12
+  # TODO - There is a discrepancy between how Python 3.10 and 3.12
   # declare the constructor and to support both we need to do weird gymnastics
   # here. Once support for Python 3.10 is gone, we can remove the weird branch
   # in `__init__` and simplify `__new__`.
@@ -104,7 +104,7 @@ class PurePosixPath(pathlib.PurePosixPath, PurePath):
 
     del self._paths_str  # pytype: disable=attribute-error
 
-  # TODO: Use `@override` once we are on Python 3.12+.
+  # TODO - Use `@override` once we are on Python 3.12+.
   @property
   def components(self) -> Sequence[str]:
     """Returns path's individual components.
@@ -137,7 +137,7 @@ class PureWindowsPath(pathlib.PureWindowsPath, PurePath):
   replacement character (�).
   """
 
-  # TODO: There is a discrepancy between how Python 3.10 and 3.12
+  # TODO - There is a discrepancy between how Python 3.10 and 3.12
   # declare the constructor and to support both we need to do weird gymnastics
   # here. Once support for Python 3.10 is gone, we can remove the weird branch
   # in `__init__` and simplify `__new__`.
@@ -174,7 +174,7 @@ class PureWindowsPath(pathlib.PureWindowsPath, PurePath):
 
     del self._paths_str  # pytype: disable=attribute-error
 
-  # TODO: Use `@override` once we are on Python 3.12+.
+  # TODO - Use `@override` once we are on Python 3.12+.
   @property
   def components(self) -> Sequence[str]:
     """Returns path's individual components.

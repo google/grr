@@ -19,10 +19,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import mig_client_action
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -31,6 +28,7 @@ from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import events
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -47,6 +45,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
+FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 
 
 def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
@@ -81,7 +80,7 @@ class ClientCrashHandler(events.EventListener):
 <html><body><h1>GRR client crash report.</h1>
 
 Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
-Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
 
 <p>Thanks,</p>
 <p>{{ signature }}</p>
@@ -138,7 +137,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
           client_id=client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
           hostname=utils.SmartUnicode(hostname),
-          url="/clients/%s" % client_id,
+          url="clients/%s" % client_id,
           signature=config.CONFIG["Email.signature"],
       )
 
@@ -156,7 +155,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
         logging.warning(e)
 
 
-# TODO: Remove by EOY2024.
+# TODO - Remove by EOY2024.
 class ClientStatsHandler(message_handlers.MessageHandler):
 
   handler_name = "StatsHandler"
@@ -246,13 +245,6 @@ class RecursiveBlobUploadMixin:
     )
 
 
-class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.DeleteGRRTempFilesArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
 class DeleteGRRTempFiles(
     flow_base.FlowBase[
         flows_pb2.DeleteGRRTempFilesArgs,
@@ -269,9 +261,7 @@ class DeleteGRRTempFiles(
   """
 
   category = "/Administrative/"
-  args_type = DeleteGRRTempFilesArgs
   proto_args_type = flows_pb2.DeleteGRRTempFilesArgs
-  only_protos_allowed = True
 
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
@@ -296,7 +286,6 @@ class Kill(flow_base.FlowBase):
   """Terminate a running client (does not disable, just kill)."""
 
   category = "/Administrative/"
-  only_protos_allowed = True
 
   def Start(self):
     """Call the kill function on the client."""
@@ -311,19 +300,6 @@ class Kill(flow_base.FlowBase):
       self.Log("Kill failed on the client.")
 
 
-class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ExecutePythonHackArgs
-  rdf_deps = [
-      rdf_protodict.Dict,
-  ]
-
-
-class ExecutePythonHackResult(rdf_structs.RDFProtoStruct):
-
-  protobuf = flows_pb2.ExecutePythonHackResult
-  rdf_deps = []
-
-
 class ExecutePythonHack(
     flow_base.FlowBase[
         flows_pb2.ExecutePythonHackArgs,
@@ -334,8 +310,6 @@ class ExecutePythonHack(
   """Execute a signed python hack on a client."""
 
   category = "/Administrative/"
-  args_type = ExecutePythonHackArgs
-  result_types = (ExecutePythonHackResult,)
   proto_args_type = flows_pb2.ExecutePythonHackArgs
   proto_result_types = (flows_pb2.ExecutePythonHackResult,)
   only_protos_allowed = True
@@ -343,7 +317,7 @@ class ExecutePythonHack(
   def Start(self):
     """The start method."""
     python_hack_urn = signed_binary_utils.GetAFF4PythonHackRoot().Add(
-        self.args.hack_name
+        self.proto_args.hack_name
     )
 
     try:
@@ -352,7 +326,7 @@ class ExecutePythonHack(
       )
     except signed_binary_utils.SignedBinaryNotFoundError as ex:
       raise flow_base.FlowError(
-          "Python hack %s not found." % self.args.hack_name
+          "Python hack %s not found." % self.proto_args.hack_name
       ) from ex
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
@@ -362,7 +336,7 @@ class ExecutePythonHack(
           mig_client_action.ToProtoExecutePythonRequest(
               rdf_client_action.ExecutePythonRequest(
                   python_code=python_blob,
-                  py_args=self.args.py_args,
+                  py_args=mig_protodict.ToRDFDict(self.proto_args.py_args),
               )
           ),
           next_state=self.Done.__name__,
@@ -391,13 +365,6 @@ class ExecutePythonHack(
       self.SendReplyProto(result)
 
 
-class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.OnlineNotificationArgs
-  rdf_deps = [
-      rdf_standard.DomainEmailAddress,
-  ]
-
-
 class OnlineNotification(
     flow_base.FlowBase[
         flows_pb2.OnlineNotificationArgs,
@@ -419,7 +386,7 @@ class OnlineNotification(
 
 <p>
   Client {{ client_id }} ({{ hostname }}) just came online. Click
-  <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
+  <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
   <br />This notification was created by {{ creator }}.
 </p>
 
@@ -429,15 +396,17 @@ class OnlineNotification(
       autoescape=True,
   )
 
-  args_type = OnlineNotificationArgs
   proto_args_type = flows_pb2.OnlineNotificationArgs
   only_protos_allowed = True
 
-  # TODO: Review this method.
   @classmethod
   def GetDefaultArgs(cls, username=None):
     """Returns an args rdfvalue prefilled with sensible default values."""
-    args = cls.args_type()
+    args = flows_pb2.OnlineNotificationArgs()
+
+    if not username:
+      return args
+
     try:
       user = data_store.REL_DB.ReadGRRUser(username)
       args.email = models_users.GetEmail(user)
@@ -472,7 +441,7 @@ class OnlineNotification(
         client_id=self.client_id,
         admin_ui=config.CONFIG["AdminUI.url"],
         hostname=hostname,
-        url=f"/clients/{self.client_id}",
+        url=f"clients/{self.client_id}",
         creator=self.creator,
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]),
     )
@@ -480,11 +449,6 @@ class OnlineNotification(
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.proto_args.email, "grr-noreply", subject, body, is_html=True
     )
-
-
-class UpdateClientArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.UpdateClientArgs
-  rdf_deps = []
 
 
 class UpdateClient(
@@ -508,9 +472,6 @@ class UpdateClient(
   """
 
   category = "/Administrative/"
-
-  args_type = UpdateClientArgs
-  result_types = (rdf_client_action.ExecuteBinaryResponse,)
 
   proto_args_type = flows_pb2.UpdateClientArgs
   proto_store_type = flows_pb2.UpdateClientStore
@@ -584,7 +545,7 @@ The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
 {{ message }}
 <br>
-Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}{{ url }}'>here</a> to access this machine.
 
 <p>{{ signature }}</p>
 
@@ -623,7 +584,7 @@ Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:
-      url = "/clients/%s" % client_id
+      url = "clients/%s" % client_id
       body = self.__class__.mail_template.render(
           client_id=client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
@@ -640,7 +601,7 @@ Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
           is_html=True,
       )
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(self, msgs: Sequence[rdf_objects.MessageHandlerRequest]):
     for message in msgs:
       self.SendEmail(message.client_id, message.request.payload.string)
 
@@ -650,13 +611,26 @@ class ClientStartupHandler(message_handlers.MessageHandler):
 
   handler_name = "ClientStartupHandler"
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(self, msgs: Sequence[rdf_objects.MessageHandlerRequest]):
     for message in msgs:
       self.WriteClientStartupInfo(message.client_id, message.request.payload)
 
   def WriteClientStartupInfo(self, client_id, new_si):
     """Handle a startup event."""
     drift = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
+
+    # The agent was restarted, so its labels might have changed.
+    #
+    # Fleetspeak is now the source of truth for labels and non-Fleetspeak agents
+    # are no longer supported.
+    labels = fleetspeak_utils.GetLabelsFromFleetspeak(client_id)
+    if labels:
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
+      index = client_index.ClientIndex()
+      index.AddClientLabels(client_id, labels)
+    else:
+      FLEETSPEAK_UNLABELED_CLIENTS.Increment()
+      logging.warning("No labels for %s", client_id)
 
     current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
     if current_si is not None:
@@ -673,12 +647,6 @@ class ClientStartupHandler(message_handlers.MessageHandler):
       new_si_proto = mig_client.ToProtoStartupInfo(new_si)
       try:
         data_store.REL_DB.WriteClientStartupInfo(client_id, new_si_proto)
-        labels = new_si.client_info.labels
-        if labels:
-          data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
-          index = client_index.ClientIndex()
-          index.AddClientLabels(client_id, labels)
-
         # Reset foreman rules check so active hunts can match against the new
         # data
         data_store.REL_DB.WriteClientMetadata(
@@ -706,6 +674,19 @@ class ClientStartupHandler(message_handlers.MessageHandler):
       current_si: Optional[rdf_client.StartupInfo],
       new_si: rdf_client.StartupInfo,
   ) -> bool:
+    if exclude_labels := config.CONFIG["Interrogate.startup_exclude_labels"]:
+      # We should not use `StartupInfo` to determine endpoint's labels as they
+      # are provided by Fleetspeak now and written to the database.
+      #
+      # TODO - Currently we only update database tags during
+      # interrogation which obviously leads to a chicken-and-egg problem. We
+      # need to move it away from there to here.
+      if any(
+          label.name in exclude_labels
+          for label in data_store.REL_DB.ReadClientLabels(client_id)
+      ):
+        return False
+
     # Interrogate the client immediately after its version has been
     # updated or an interrogate was requested on the endpoint (by the user
     # creating a file in a predefined location).
@@ -744,13 +725,6 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     return True
 
 
-class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.LaunchBinaryArgs
-  rdf_deps = [
-      rdfvalue.RDFURN,
-  ]
-
-
 class LaunchBinary(
     RecursiveBlobUploadMixin,
     flow_base.FlowBase[
@@ -762,9 +736,6 @@ class LaunchBinary(
   """Launch a signed binary on a client."""
 
   category = "/Administrative/"
-
-  args_type = LaunchBinaryArgs
-  result_types = (rdf_client_action.ExecuteBinaryResponse,)
 
   proto_args_type = flows_pb2.LaunchBinaryArgs
   proto_store_type = flows_pb2.LaunchBinaryStore
@@ -793,7 +764,7 @@ class LaunchBinary(
     if not self.proto_args.binary:
       raise flow_base.FlowError("Please specify a binary.")
 
-    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    binary_urn = rdfvalue.RDFURN(self.proto_args.binary)
     self.store.write_path = "%d_%s" % (time.time(), binary_urn.Basename())
 
     self.StartBlobsUpload(

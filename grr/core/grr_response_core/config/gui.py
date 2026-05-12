@@ -21,8 +21,8 @@ config_lib.DEFINE_string("AdminUI.bind", "127.0.0.1", "interface to bind to.")
 
 config_lib.DEFINE_string(
     "AdminUI.document_root",
-    "%(grr_response_server/gui/static@grr-response-server|resource)",
-    "The main path to the static HTML pages.",
+    "%(grr_response_server/gui@grr-response-server|resource)",
+    "The main path to the HTML pages.",
 )
 
 config_lib.DEFINE_string(
@@ -118,13 +118,6 @@ config_lib.DEFINE_string(
     "The direct external URL for the user interface.",
 )
 
-config_lib.DEFINE_bool(
-    "AdminUI.use_precompiled_js",
-    False,
-    "If True - use Closure-compiled JS bundle. This flag "
-    "is experimental and is not properly supported yet.",
-)
-
 config_lib.DEFINE_string(
     "AdminUI.export_command",
     "/usr/bin/grr_api_shell '%(AdminUI.url)'",
@@ -181,6 +174,13 @@ config_lib.DEFINE_semantic_struct(
     None,
     "List of labels to include or exclude by default when hunts are created,"
     " and warning message to be shown.",
+)
+
+config_lib.DEFINE_list(
+    "AdminUI.robot_users",
+    [],
+    "List of users that are considered robots when filtering flows and hunts in"
+    " the UI.",
 )
 
 config_lib.DEFINE_semantic_struct(
@@ -242,67 +242,4 @@ config_lib.DEFINE_string(
     None,
     "URL to user's profile images. The placeholder {username} is replaced with "
     "the actual value. E.g. https://avatars.example.com/{username}.jpg",
-)
-
-config_lib.DEFINE_bool(
-    "AdminUI.csp_enabled",
-    False,
-    "If True, enable the Content Security Policy header.",
-)
-
-config_lib.DEFINE_string(
-    "AdminUI.csp_policy",
-    "{}",
-    "A JSON string of keys to lists of values to include in the Content "
-    'Security Policy header. E.g. {"default-src": ["https:"]}',
-)
-
-config_lib.DEFINE_bool(
-    "AdminUI.csp_report_only",
-    True,
-    "If True, set the Content Security Policy header to 'report only' mode. "
-    "This flag has no effect if AdminUI.csp_enabled is False.",
-)
-
-config_lib.DEFINE_bool(
-    "AdminUI.trusted_types_enabled",
-    True,
-    "If True, enable the Trusted Types feature of the Content Security Policy "
-    "header. Combined with setting 'AdminUI.trusted_types_report_only' to "
-    "True, this setting will have no effect on the behavior of GRR - it will "
-    "only report Trusted Types violations in your browser developer console. "
-    "Trusted Types can prevent most common XSS attacks, see "
-    "https://web.dev/trusted-types/ for more information.",
-)
-
-config_lib.DEFINE_bool(
-    "AdminUI.trusted_types_report_only",
-    True,
-    "If True, set the Trusted Types Content Security Policy header to 'report "
-    "only' mode. When in 'report only' mode, Trusted Types violations will be "
-    "logged to the browser developer console, but the behavior of GRR will "
-    "not change. When this flag is set to False, Trusted Types rules will be "
-    "enforced. This flag has no effect if AdminUI.trusted_types_enabled is "
-    "False. See https://web.dev/trusted-types/ for more information.",
-)
-
-config_lib.DEFINE_string(
-    "AdminUI.csp_report_uri",
-    None,
-    "URL to report Content Security Policy violations to.",
-)
-
-config_lib.DEFINE_list(
-    "AdminUI.csp_include_url_prefixes",
-    ["/v2"],
-    "Only requests for URLs with these prefixes will have a Content Security "
-    "Policy header added. Leave empty to include all URLs.",
-)
-
-config_lib.DEFINE_list(
-    "AdminUI.csp_exclude_url_prefixes",
-    [],
-    "Requests for URLs with these prefixes will not have a Content Security "
-    "Policy header added. This is applied to URLs after applying "
-    "AdminUI.csp_include_url_prefixes.",
 )

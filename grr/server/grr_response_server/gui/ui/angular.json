@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "../static/dist/v2",
+            "outputPath": "../static/dist",
             "index": "./index.html",
             "main": "./main.ts",
             "polyfills": "./polyfills.ts",

@@ -3,7 +3,6 @@
 
 from typing import Optional
 
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import signed_commands_pb2
 from grr_response_proto.api import signed_commands_pb2 as api_signed_commands_pb2
 from grr_response_server import data_store
@@ -13,47 +12,9 @@ from grr_response_server.models import signed_commands as models_signed_commands
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 
 
-class ApiArg(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiArg
-  rdf_deps = []
-
-
-class ApiEnvVar(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiEnvVar
-  rdf_deps = []
-
-
-class ApiCommand(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiCommand
-  rdf_deps = [
-      ApiArg,
-      ApiEnvVar,
-  ]
-
-
-class ApiSignedCommand(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiSignedCommand
-  rdf_deps = []
-
-
-class ApiCreateSignedCommandsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiCreateSignedCommandsArgs
-  rdf_deps = [
-      ApiSignedCommand,
-  ]
-
-
-class ApiListSignedCommandsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_signed_commands_pb2.ApiListSignedCommandsResult
-  rdf_deps = [
-      ApiSignedCommand,
-  ]
-
-
 class ApiCreateSignedCommandsHandler(api_call_handler_base.ApiCallHandler):
   """Handles signed command creation request."""
 
-  args_type = ApiCreateSignedCommandsArgs
   proto_args_type = api_signed_commands_pb2.ApiCreateSignedCommandsArgs
 
   def Handle(
@@ -69,7 +30,7 @@ class ApiCreateSignedCommandsHandler(api_call_handler_base.ApiCallHandler):
       if not args_signed_command.id:
         raise ValueError("Command id is required.")
       if not args_signed_command.ed25519_signature:
-        # TODO: Add signature verification.
+        # TODO - Add signature verification.
         raise ValueError("Command signature is required.")
 
       rrg_command = rrg_execute_signed_command_pb2.Command()
@@ -100,8 +61,7 @@ class ApiCreateSignedCommandsHandler(api_call_handler_base.ApiCallHandler):
 class ApiListSignedCommandsHandler(api_call_handler_base.ApiCallHandler):
   """Handles signed command retrieval request."""
 
-  return_type = ApiListSignedCommandsResult
-  proto_return_type = api_signed_commands_pb2.ApiListSignedCommandsResult
+  proto_result_type = api_signed_commands_pb2.ApiListSignedCommandsResult
 
   def Handle(
       self,

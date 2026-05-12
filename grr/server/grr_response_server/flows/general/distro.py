@@ -6,7 +6,6 @@ import re
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import distro_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -20,25 +19,15 @@ from grr_response_server.models import blobs as models_blobs
 from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
 
 
-class CollectDistroInfoResult(rdf_structs.RDFProtoStruct):
-  """RDF wrapper for the `CollectDistroInfoResult` message."""
-
-  protobuf = distro_pb2.CollectDistroInfoResult
-  rdf_deps = []
-
-
 class CollectDistroInfo(flow_base.FlowBase):
   """Flow that collects information about the endpoint Linux distribution."""
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [CollectDistroInfoResult]
   proto_result_types = [distro_pb2.CollectDistroInfoResult]
 
   proto_store_type = distro_pb2.CollectDistroInfoStore
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.client_os != "Linux":
@@ -46,7 +35,7 @@ class CollectDistroInfo(flow_base.FlowBase):
 
     if self.rrg_support:
       action = rrg_stubs.GetFileContents()
-      # TODO: Use a single RRG call for collecting these (this is
+      # TODO - Use a single RRG call for collecting these (this is
       # now possible since https://github.com/google/rrg/pull/128).
       action.args.paths.add()
 

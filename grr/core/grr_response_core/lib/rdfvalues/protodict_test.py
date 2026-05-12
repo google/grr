@@ -272,7 +272,7 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict.bar, b"quux")
     self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
 
-  # TODO: This behaviour should be removed once migration is done.
+  # TODO - This behaviour should be removed once migration is done.
   def testInitFromBytestringKeyedDict(self):
     adict = rdf_protodict.AttributedDict({
         b"foo": 42,
@@ -302,7 +302,7 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict.bar, b"quux")
     self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
 
-  # TODO: This behaviour should be removed once migration is done.
+  # TODO - This behaviour should be removed once migration is done.
   def testSetBytestringItem(self):
     adict = rdf_protodict.AttributedDict()
     adict[b"foo"] = 42
@@ -328,7 +328,7 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict["bar"], b"quux")
     self.assertEqual(adict["baz"], [4, 8, 15, 16, 23, 42])
 
-  # TODO: This behaviour should be removed once migration is done.
+  # TODO - This behaviour should be removed once migration is done.
   def testGetBytestringItem(self):
     adict = rdf_protodict.AttributedDict()
     adict.foo = 42
@@ -339,7 +339,7 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict[b"bar"], b"quux")
     self.assertEqual(adict[b"baz"], [4, 8, 15, 16, 23, 42])
 
-  # TODO: This behaviour should be removed once migration is done.
+  # TODO - This behaviour should be removed once migration is done.
   def testFromSerializedProtoDict(self):
     # In this test we use a non-attributed dict to force a serialization with
     # byte keys and then we deserialize it as attributed dict that should have
@@ -355,7 +355,7 @@ class AttributedDictSimpleTest(absltest.TestCase):
     self.assertEqual(adict.bar, b"quux")
     self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
 
-  # TODO: This behaviour should be removed once migration is done.
+  # TODO - This behaviour should be removed once migration is done.
   def testToPrimitiveDict(self):
     # See rationale for using serialized non-attributed dict above.
     pdict = rdf_protodict.Dict()

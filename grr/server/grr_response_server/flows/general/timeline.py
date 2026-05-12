@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """A module that defines the timeline flow."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import Optional
+
+from google.protobuf import message as pb_message
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import mig_timeline
-from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import timeline
 from grr_response_proto import flows_pb2
 from grr_response_proto import timeline_pb2
@@ -18,7 +18,6 @@ from grr_response_server import rrg_path
 from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
@@ -51,15 +50,9 @@ class TimelineFlow(
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_timeline.TimelineArgs
-  progress_type = rdf_timeline.TimelineProgress
-  result_types = (rdf_timeline.TimelineResult,)
-
   proto_args_type = timeline_pb2.TimelineArgs
   proto_progress_type = timeline_pb2.TimelineProgress
   proto_result_types = (timeline_pb2.TimelineResult,)
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     super().Start()
@@ -126,7 +119,7 @@ class TimelineFlow(
     blob_ids: list[models_blobs.BlobID] = []
     flow_results: list[timeline_pb2.TimelineResult] = []
 
-    # TODO: Add support for streaming responses in RRG.
+    # TODO - Add support for streaming responses in RRG.
     for response in responses:
       result = rrg_get_filesystem_timeline_pb2.Result()
       result.ParseFromString(response.value)
@@ -144,10 +137,6 @@ class TimelineFlow(
 
     for flow_result in flow_results:
       self.SendReplyProto(flow_result)
-
-  # TODO: Remove this method.
-  def GetProgress(self) -> rdf_timeline.TimelineProgress:
-    return mig_timeline.ToRDFTimelineProgress(self.progress)
 
   def GetProgressProto(self) -> timeline_pb2.TimelineProgress:
     return self.progress
@@ -183,13 +172,12 @@ def Blobs(
   Yields:
     Blobs of the timeline data in the gzchunked format for the specified flow.
   """
-  results = data_store.REL_DB.ReadFlowResults(
+  results: Sequence[flows_pb2.FlowResult] = data_store.REL_DB.ReadFlowResults(
       client_id=client_id,
       flow_id=flow_id,
       offset=0,
       count=_READ_FLOW_MAX_RESULTS_COUNT,
   )
-  results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
   # `_READ_FLOW_MAX_RESULTS_COUNT` is far too much than we should ever get. If
   # we really got this many results that it means this assumption is not correct
@@ -198,14 +186,16 @@ def Blobs(
     message = f"Unexpected number of timeline results: {len(results)}"
     raise AssertionError(message)
 
-  for result in results:
-    payload = result.payload
+  for flow_result in results:
+    result = timeline_pb2.TimelineResult()
+    try:
+      result.ParseFromString(flow_result.payload.value)
+    except pb_message.DecodeError as e:
+      raise TypeError(
+          f"Unexpected timeline result of type {flow_result.payload.type_url}"
+      ) from e
 
-    if not isinstance(payload, rdf_timeline.TimelineResult):
-      message = "Unexpected timeline result of type '{}'".format(type(payload))
-      raise TypeError(message)
-
-    for entry_batch_blob_id in payload.entry_batch_blob_ids:
+    for entry_batch_blob_id in result.entry_batch_blob_ids:
       blob_id = models_blobs.BlobID(entry_batch_blob_id)
       blob = data_store.BLOBS.ReadBlob(blob_id)
 
@@ -229,14 +219,18 @@ def FilesystemType(client_id: str, flow_id: str) -> Optional[str]:
   results = data_store.REL_DB.ReadFlowResults(
       client_id=client_id, flow_id=flow_id, offset=0, count=1
   )
-  results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
   if not results:
     return None
 
-  result = results[0].payload
-  if not isinstance(result, rdf_timeline.TimelineResult):
-    raise TypeError(f"Unexpected timeline result of type '{type(result)}'")
+  flow_result: flows_pb2.FlowResult = results[0]
+  result = timeline_pb2.TimelineResult()
+  try:
+    result.ParseFromString(flow_result.payload.value)
+  except pb_message.DecodeError as e:
+    raise TypeError(
+        f"Unexpected timeline result of type {flow_result.payload.type_url}"
+    ) from e
 
   return result.filesystem_type
 

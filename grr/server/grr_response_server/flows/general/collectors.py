@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Flows for handling the collection for artifacts."""
+
 from collections.abc import Sequence
 import hashlib
 import itertools
@@ -13,21 +14,14 @@ from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_artifacts
-from grr_response_core.lib.rdfvalues import mig_client
-from grr_response_core.lib.rdfvalues import mig_client_fs
-from grr_response_core.lib.rdfvalues import mig_file_finder
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import signed_commands_pb2
-from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -43,10 +37,8 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import mig_transfer
 from grr_response_server.flows.general import transfer
 from grr_response_server.models import blobs as models_blobs
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import winreg_pb2 as rrg_winreg_pb2
@@ -58,13 +50,44 @@ from grr_response_proto.rrg.action import list_winreg_values_pb2 as rrg_list_win
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
+def _GetKnowledgeBase(
+    client_snapshot: Optional[objects_pb2.ClientSnapshot],
+    allow_uninitialized: bool = False,
+) -> knowledge_base_pb2.KnowledgeBase:
+  """Returns a knowledgebase from an rdf client object."""
+  if not allow_uninitialized:
+    if client_snapshot is None:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "No client snapshot given."
+      )
+    if client_snapshot.knowledge_base is None:
+      raise artifact_utils.KnowledgeBaseUninitializedError(
+          "KnowledgeBase empty for %s." % client_snapshot.client_id
+      )
+    kb = client_snapshot.knowledge_base
+    if not kb.os:
+      raise artifact_utils.KnowledgeBaseAttributesMissingError(
+          "KnowledgeBase missing OS for %s. Knowledgebase content: %s"
+          % (client_snapshot.client_id, kb)
+      )
+  if client_snapshot is None or client_snapshot.knowledge_base is None:
+    return knowledge_base_pb2.KnowledgeBase()
+
+  version = client_snapshot.os_version.split(".")
+  kb = client_snapshot.knowledge_base
+  try:
+    kb.os_major_version = int(version[0])
+    if len(version) > 1:
+      kb.os_minor_version = int(version[1])
+  except ValueError:
+    pass
+
+  return kb
+
+
 def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
-  if client is not None:
-    client = mig_objects.ToRDFClientSnapshot(client)
-  return artifact.GetKnowledgeBase(
-      client, allow_uninitialized=allow_uninitialized
-  )
+  return _GetKnowledgeBase(client, allow_uninitialized=allow_uninitialized)
 
 
 class ArtifactCollectorFlow(
@@ -100,25 +123,10 @@ class ArtifactCollectorFlow(
   """
 
   category = "/Collectors/"
-  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
   proto_args_type = flows_pb2.ArtifactCollectorFlowArgs
-
-  progress_type = rdf_artifacts.ArtifactCollectorFlowProgress
   proto_progress_type = flows_pb2.ArtifactCollectorFlowProgress
-
   proto_store_type = flows_pb2.ArtifactCollectorFlowStore
 
-  only_protos_allowed = True
-
-  result_types = (
-      rdf_protodict.Dict,
-      rdf_client_fs.StatEntry,
-      rdf_client_action.ExecuteResponse,
-      # ArtifactCollectorFlow has many more result types. For now, only result
-      # types required for UI type generation are captured here, add other
-      # types when needed.
-      rdfvalue.RDFValue,
-  )
   proto_result_types = (
       jobs_pb2.StatEntry,
       jobs_pb2.ExecuteResponse,
@@ -128,6 +136,11 @@ class ArtifactCollectorFlow(
 
   _BLOB_WAIT_DELAY = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
   _BLOB_WAIT_COUNT_LIMIT = 5
+
+  @classmethod
+  def ValidateArgs(cls, args: flows_pb2.ArtifactCollectorFlowArgs) -> None:
+    if not args.artifact_list:
+      raise ValueError("No artifacts specified.")
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -143,9 +156,7 @@ class ArtifactCollectorFlow(
     if not self.store.HasField("knowledge_base"):
       # If not provided, get a knowledge base from the client.
       try:
-        kb = mig_client.ToProtoKnowledgeBase(
-            _ReadClientKnowledgeBase(self.client_id)
-        )
+        kb = _ReadClientKnowledgeBase(self.client_id)
         self.store.knowledge_base.CopyFrom(kb)
       except artifact_utils.KnowledgeBaseUninitializedError:
         # If no-one has ever initialized the knowledge base, we should do so
@@ -181,9 +192,7 @@ class ArtifactCollectorFlow(
 
     if not self.store.knowledge_base:
       self.store.knowledge_base.CopyFrom(
-          mig_client.ToProtoKnowledgeBase(
-              _ReadClientKnowledgeBase(self.client_id, allow_uninitialized=True)
-          )
+          _ReadClientKnowledgeBase(self.client_id, allow_uninitialized=True)
       )
 
     for artifact_name in self.proto_args.artifact_list:
@@ -196,14 +205,16 @@ class ArtifactCollectorFlow(
 
       self._Collect(artifact_obj)
 
-  def _Collect(self, artifact_obj: rdf_artifacts.Artifact) -> None:
+  def _Collect(self, artifact_obj: artifact_pb2.Artifact) -> None:
     """Collect the raw data from the client for this artifact."""
-    artifact_name = str(artifact_obj.name)
+    artifact_name = artifact_obj.name
 
     # Ensure attempted artifacts are shown in progress, even with 0 results.
     progress = self._GetOrInsertArtifactProgress(artifact_name)
 
-    if not MeetsOSConditions(self.store.knowledge_base, artifact_obj):
+    if not MeetsOSConditions(
+        self.store.knowledge_base, artifact_obj.supported_os
+    ):
       logging.debug(
           "%s: Artifact %s not supported on os %s (options %s)",
           self.client_id,
@@ -219,13 +230,13 @@ class ArtifactCollectorFlow(
     sources_ran = 0
     # Call the source defined action for each source.
     for source in artifact_obj.sources:
-      if not MeetsOSConditions(self.store.knowledge_base, source):
+      if not MeetsOSConditions(self.store.knowledge_base, source.supported_os):
         continue
 
       sources_ran += 1
 
       type_name = source.type
-      source_type = rdf_artifacts.ArtifactSource.SourceType
+      source_type = artifact_pb2.ArtifactSource.SourceType
       self.current_artifact_name = artifact_name
       if type_name == source_type.COMMAND:
         self._RunCommand(source)
@@ -269,7 +280,7 @@ class ArtifactCollectorFlow(
 
   def _GetPaths(
       self,
-      source: rdf_artifacts.ArtifactSource,
+      source: artifact_pb2.ArtifactSource,
       action: flows_pb2.FileFinderAction,
   ):
     """Get a set of files."""
@@ -284,7 +295,7 @@ class ArtifactCollectorFlow(
             or self.rrg_version >= (0, 0, 7)
         )
         # Raw filesystem access is not supported in RRG yet.
-        and not self.args.use_raw_filesystem_access
+        and not self.proto_args.use_raw_filesystem_access
     ):
       if self.client_os in ["Linux", "Darwin"]:
         path_cls = pathlib.PurePosixPath
@@ -298,7 +309,8 @@ class ArtifactCollectorFlow(
       path_regexes = []
       path_pruning_regexes = []
 
-      for path in self._InterpolateList(source.attributes.get("paths", [])):
+      attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+      for path in self._InterpolateList(attributes.get("paths", [])):
         glob = rrg_glob.Glob(path_cls(path))
 
         action.args.paths.add().raw_bytes = bytes(glob.root)
@@ -334,12 +346,13 @@ class ArtifactCollectorFlow(
 
       return
 
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     flow_args = flows_pb2.FileFinderArgs(
-        paths=self._InterpolateList(source.attributes.get("paths", [])),
+        paths=self._InterpolateList(attributes.get("paths", [])),
         action=action,
     )
 
-    if self.args.use_raw_filesystem_access:
+    if self.proto_args.use_raw_filesystem_access:
       if self.client_os == "Windows":
         flow_args.pathtype = config.CONFIG[
             "Server.raw_filesystem_access_pathtype"
@@ -349,15 +362,14 @@ class ArtifactCollectorFlow(
     else:
       flow_args.pathtype = jobs_pb2.PathSpec.PathType.OS
 
-    if self.args.HasField("implementation_type"):
-      flow_args.implementation_type = self.args.implementation_type
+    if self.proto_args.HasField("implementation_type"):
+      flow_args.implementation_type = self.proto_args.implementation_type
 
     self.CallFlowProto(
         file_finder.ClientFileFinder.__name__,
         flow_args=flow_args,
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=self.ProcessFileFinderResults.__name__,
     )
@@ -430,7 +442,6 @@ class ArtifactCollectorFlow(
       empty_blob_ref.offset = 0
       empty_blob_ref.size = 0
       empty_blob_ref.blob_id = bytes(empty_blob_id)
-      empty_blob_ref = mig_objects.ToRDFBlobReference(empty_blob_ref)
 
       file_store.AddFilesWithUnknownHashes(
           {client_path: [empty_blob_ref] for client_path in empty_client_paths},
@@ -491,7 +502,7 @@ class ArtifactCollectorFlow(
       response = rrg_get_file_metadata_pb2.Result()
       response.ParseFromString(response_any.value)
 
-      # TODO: For now we return all responses but this way we will
+      # TODO - For now we return all responses but this way we will
       # also return results the user did not ask about because of the way
       # globbing works. Returning more than necessary is not wrong per se, but
       # we should filter responses to retain only those that the user expects.
@@ -518,7 +529,7 @@ class ArtifactCollectorFlow(
       result = rrg_fs.StatEntry(response.metadata)
       result.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
       result.pathspec.path = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         result.pathspec.path = str(path).replace("\\", "/")
 
@@ -592,7 +603,7 @@ class ArtifactCollectorFlow(
               f"followed by response at {response_next.offset}"
           )
 
-      # TODO: We verified all the responses pairwise but we did
+      # TODO - We verified all the responses pairwise but we did
       # not check that the last response matches the whole expected file size.
       # This we could get from the file metadata collection. It's not a big deal
       # so we skip it for now.
@@ -654,7 +665,7 @@ class ArtifactCollectorFlow(
         blob_ref.size = response.length
         blob_ref.blob_id = response.blob_sha256
 
-        blob_refs.append(mig_objects.ToRDFBlobReference(blob_ref))
+        blob_refs.append(blob_ref)
 
     hash_ids_by_client_path = file_store.AddFilesWithUnknownHashes(
         blob_refs_by_client_path,
@@ -696,7 +707,7 @@ class ArtifactCollectorFlow(
     #
     # For efficiency reasons, we clear the list and re-add path infos that are
     # still missing content.
-    # TODO: Replace with `clear()` once upgraded.
+    # TODO - Replace with `clear()` once upgraded.
     del self.store.path_infos[:]
     self.store.path_infos.extend(path_infos_without_content)
 
@@ -722,12 +733,10 @@ class ArtifactCollectorFlow(
           messages=stat_entries,
       )
 
-  def _GetRegistryKey(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _GetRegistryKey(self, source: artifact_pb2.ArtifactSource) -> None:
     artifact_name = str(self.current_artifact_name)
 
     if self.rrg_support:
-      source = mig_artifacts.ToProtoArtifactSource(source)
-
       for attr_kv in source.attributes.dat:
         if attr_kv.k.string != "keys":
           raise flow_base.FlowError(f"Non-keys attribute: {attr_kv}")
@@ -804,18 +813,18 @@ class ArtifactCollectorFlow(
 
       return
 
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     self.CallFlowProto(
         file_finder.ClientFileFinder.__name__,
-        flow_args=mig_file_finder.ToProtoFileFinderArgs(
-            rdf_file_finder.FileFinderArgs(
-                paths=self._InterpolateList(source.attributes.get("keys", [])),
-                pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                action=rdf_file_finder.FileFinderAction.Stat(),
-            )
+        flow_args=flows_pb2.FileFinderArgs(
+            paths=self._InterpolateList(attributes.get("keys", [])),
+            pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.STAT
+            ),
         ),
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=self.ProcessFileFinderKeys.__name__,
     )
@@ -876,11 +885,9 @@ class ArtifactCollectorFlow(
           tag=f"artifact:{artifact_name}",
       )
 
-  def _GetRegistryValue(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _GetRegistryValue(self, source: artifact_pb2.ArtifactSource) -> None:
     """Retrieve directly specified registry values, returning Stat objects."""
     if self.rrg_support:
-      source = mig_artifacts.ToProtoArtifactSource(source)
-
       if len(source.attributes.dat) != 1:
         raise flow_base.FlowError(
             f"Unexpected attributes: {source.attributes.dat}",
@@ -955,7 +962,8 @@ class ArtifactCollectorFlow(
 
     new_paths = set()
     has_glob = False
-    for kvdict in source.attributes["key_value_pairs"]:
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+    for kvdict in attributes["key_value_pairs"]:
       if "*" in kvdict["key"] or rdf_paths.GROUPING_PATTERN.search(
           kvdict["key"]
       ):
@@ -990,16 +998,15 @@ class ArtifactCollectorFlow(
     if has_glob:
       self.CallFlowProto(
           file_finder.ClientFileFinder.__name__,
-          flow_args=mig_file_finder.ToProtoFileFinderArgs(
-              rdf_file_finder.FileFinderArgs(
-                  paths=new_paths,
-                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                  action=rdf_file_finder.FileFinderAction.Stat(),
-              )
+          flow_args=flows_pb2.FileFinderArgs(
+              paths=new_paths,
+              pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
+              action=flows_pb2.FileFinderAction(
+                  action_type=flows_pb2.FileFinderAction.Action.STAT
+              ),
           ),
           request_data={
               "artifact_name": self.current_artifact_name,
-              "source": source.ToPrimitiveDict(),
           },
           next_state=self.ProcessFileFinderKeys.__name__,
       )
@@ -1017,7 +1024,6 @@ class ArtifactCollectorFlow(
             jobs_pb2.GetFileStatRequest(pathspec=pathspec),
             request_data={
                 "artifact_name": self.current_artifact_name,
-                "source": source.ToPrimitiveDict(),
             },
             next_state=self.ProcessCollectedRegistryStatEntry.__name__,
         )
@@ -1047,38 +1053,37 @@ class ArtifactCollectorFlow(
 
   def _StartSubArtifactCollector(
       self,
-      artifact_list: Sequence[rdf_artifacts.ArtifactName],
-      source: rdf_artifacts.ArtifactSource,
+      artifact_list: list[str],
+      source: artifact_pb2.ArtifactSource,
       next_state: str,
   ) -> None:
     self.CallFlowProto(
         ArtifactCollectorFlow.__name__,
-        flow_args=mig_artifacts.ToProtoArtifactCollectorFlowArgs(
-            rdf_artifacts.ArtifactCollectorFlowArgs(
-                artifact_list=artifact_list,
-                use_raw_filesystem_access=self.args.use_raw_filesystem_access,
-                implementation_type=self.args.implementation_type,
-                max_file_size=self.args.max_file_size,
-                ignore_interpolation_errors=self.args.ignore_interpolation_errors,
-                knowledge_base=self.args.knowledge_base,
-            )
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
+            artifact_list=artifact_list,
+            use_raw_filesystem_access=self.proto_args.use_raw_filesystem_access,
+            implementation_type=self.proto_args.implementation_type,
+            max_file_size=self.proto_args.max_file_size,
+            ignore_interpolation_errors=self.proto_args.ignore_interpolation_errors,
+            knowledge_base=self.proto_args.knowledge_base,
         ),
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict(),
         },
         next_state=next_state,
     )
 
-  def _CollectArtifacts(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _CollectArtifacts(self, source: artifact_pb2.ArtifactSource) -> None:
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     self._StartSubArtifactCollector(
-        artifact_list=source.attributes["names"],
+        artifact_list=attributes["names"],
         source=source,
         next_state=self.ProcessCollected.__name__,
     )
 
-  def _RunCommand(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _RunCommand(self, source: artifact_pb2.ArtifactSource) -> None:
     """Run a command."""
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
     if self.rrg_support:
       if self.client_os == "Linux":
         operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
@@ -1093,8 +1098,8 @@ class ArtifactCollectorFlow(
 
       command = data_store.REL_DB.LookupSignedCommand(
           operating_system=operating_system,
-          path=source.attributes["cmd"],
-          args=source.attributes.get("args", []),
+          path=attributes["cmd"],
+          args=attributes.get("args", []),
       )
 
       action = rrg_stubs.ExecuteSignedCommand()
@@ -1107,21 +1112,21 @@ class ArtifactCollectorFlow(
       self.CallClientProto(
           server_stubs.ExecuteCommand,
           jobs_pb2.ExecuteRequest(
-              cmd=source.attributes["cmd"],
-              args=source.attributes.get("args", []),
+              cmd=attributes["cmd"],
+              args=attributes.get("args", []),
           ),
           request_data={
               "artifact_name": self.current_artifact_name,
-              "source": source.ToPrimitiveDict(),
           },
           next_state=self.ProcessCollected.__name__,
       )
 
-  def _WMIQuery(self, source: rdf_artifacts.ArtifactSource) -> None:
+  def _WMIQuery(self, source: artifact_pb2.ArtifactSource) -> None:
     """Run a Windows WMI Query."""
-    query = source.attributes["query"]
+    attributes = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+    query = attributes["query"]
     queries = self._Interpolate(query)
-    base_object = source.attributes.get("base_object")
+    base_object = attributes.get("base_object")
     for query in queries:
       if self.rrg_support:
         action = rrg_stubs.QueryWmi()
@@ -1145,7 +1150,6 @@ class ArtifactCollectorFlow(
             ),
             request_data={
                 "artifact_name": self.current_artifact_name,
-                "source": source.ToPrimitiveDict(),
             },
             next_state=self.ProcessCollected.__name__,
         )
@@ -1376,13 +1380,11 @@ class ArtifactCollectorFlow(
       return
 
     stat_entries = []
-    rdf_stat_entries = []
     for response in responses:
       result = jobs_pb2.StatEntry()
       response.Unpack(result)
       stat_entries.append(result)
-      rdf_stat_entries.append(mig_client_fs.ToRDFStatEntry(result))
-    filesystem.WriteStatEntries(rdf_stat_entries, client_id=self.client_id)
+    filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
 
     self.CallStateInlineProto(
         next_state=self.ProcessCollected.__name__,
@@ -1435,20 +1437,12 @@ class ArtifactCollectorFlow(
       request_data = responses.request_data.ToDict()
       self.CallFlowProto(
           transfer.MultiGetFile.__name__,
-          flow_args=mig_transfer.ToProtoMultiGetFileArgs(
-              transfer.MultiGetFileArgs(
-                  pathspecs=self.download_list,
-                  request_data=request_data,
-              )
-          ),
+          flow_args=flows_pb2.MultiGetFileArgs(pathspecs=self.download_list),
+          request_data=request_data,
           next_state=self.ProcessCollected.__name__,
       )
     else:
       self.Log("No files to download")
-
-  # TODO: Remove this method.
-  def GetProgress(self) -> rdf_artifacts.ArtifactCollectorFlowProgress:
-    return mig_artifacts.ToRDFArtifactCollectorFlowProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.ArtifactCollectorFlowProgress:
     return self.progress
@@ -1480,9 +1474,10 @@ class ArtifactCollectorFlow(
       )
 
 
-def MeetsOSConditions(knowledge_base, source):
-  """Check supported OS on the source."""
-  if source.supported_os and knowledge_base.os not in source.supported_os:
-    return False
+def MeetsOSConditions(
+    knowledge_base: knowledge_base_pb2.KnowledgeBase,
+    supported_os: Sequence[str],
+) -> bool:
+  """Checks whether the OS in the knowledge base is supported."""
 
-  return True
+  return (not supported_os) or (knowledge_base.os in supported_os)

@@ -63,7 +63,7 @@ class FrontEndServer(object):
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
 
-  # TODO: Inline this function and simplify code.
+  # TODO - Inline this function and simplify code.
   def EnrollFleetspeakClientIfNeeded(
       self,
       client_id: str,
@@ -131,7 +131,7 @@ class FrontEndServer(object):
     frontend_message_handler_requests = []
     dropped_count = 0
 
-    # TODO: Remove `fixed_messages` once old clients
+    # TODO - Remove `fixed_messages` once old clients
     # have been migrated.
     fixed_messages = []
     for message in messages:
@@ -262,7 +262,7 @@ class FrontEndServer(object):
         time.time() - now,
     )
 
-  # TODO: Remove once no longer needed.
+  # TODO - Remove once no longer needed.
   def ReceiveRRGResponse(
       self,
       client_id: str,
@@ -300,10 +300,10 @@ class FrontEndServer(object):
       if response.HasField("status"):
         flow_response = flows_pb2.FlowStatus()
         flow_response.network_bytes_sent = response.status.network_bytes_sent
-        # TODO: Populate `cpu_time_used` and `runtime_us`
+        # TODO - Populate `cpu_time_used` and `runtime_us`
 
         if response.status.HasField("error"):
-          # TODO: Convert RRG error types to GRR error types.
+          # TODO - Convert RRG error types to GRR error types.
           flow_response.status = flows_pb2.FlowStatus.Status.ERROR
           flow_response.error_message = response.status.error.message
         else:
@@ -338,7 +338,7 @@ class FrontEndServer(object):
           logs=logs,
       )
 
-  # TODO: Remove once no longer needed.
+  # TODO - Remove once no longer needed.
   def ReceiveRRGParcel(
       self,
       client_id: str,
@@ -374,7 +374,7 @@ class FrontEndServer(object):
     try:
       sinks.AcceptMany(client_id, parcels)
     except Exception:  # pylint: disable=broad-exception-caught
-      # TODO: `AcceptMany` should raise an error that specifies
+      # TODO - `AcceptMany` should raise an error that specifies
       # which sink caused the exception. Then we don't have to increment the
       # count for all sinks.
       for sink_name in parcels_by_sink_name:

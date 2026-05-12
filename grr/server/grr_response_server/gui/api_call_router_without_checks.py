@@ -53,12 +53,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_artifact.ApiUploadArtifactHandler:
     return api_artifact.ApiUploadArtifactHandler()
 
-  def DeleteArtifacts(
+  def DeleteArtifact(
       self,
-      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      args: api_artifact_pb2.ApiDeleteArtifactArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_artifact.ApiDeleteArtifactsHandler:
-    return api_artifact.ApiDeleteArtifactsHandler()
+  ) -> api_artifact.ApiDeleteArtifactHandler:
+    return api_artifact.ApiDeleteArtifactHandler()
 
   # Clients methods.
   # ===============
@@ -458,13 +458,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_cron.ApiListCronJobsHandler:
     return api_cron.ApiListCronJobsHandler()
 
-  def CreateCronJob(
-      self,
-      args: api_cron_pb2.ApiCreateCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_cron.ApiCreateCronJobHandler:
-    return api_cron.ApiCreateCronJobHandler()
-
   def GetCronJob(
       self,
       args: api_cron_pb2.ApiGetCronJobArgs,
@@ -572,13 +565,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_hunt.ApiGetHuntResultsExportCommandHandler:
     return api_hunt.ApiGetHuntResultsExportCommandHandler()
-
-  def ListHuntOutputPlugins(
-      self,
-      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_hunt.ApiListHuntOutputPluginsHandler:
-    return api_hunt.ApiListHuntOutputPluginsHandler()
 
   def ListHuntOutputPluginLogs(
       self,

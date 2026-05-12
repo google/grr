@@ -1,6 +1,6 @@
 import {Clipboard} from '@angular/cdk/clipboard';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component, input, Type} from '@angular/core';
+import {ChangeDetectionStrategy, Component, input, Type} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -11,6 +11,7 @@ import {CopyButtonHarness} from './testing/copy_button_harness';
 initTestEnvironment();
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
       <copy-button [overrideCopyText]="overrideCopyText()">
         {{ content() }}
@@ -23,6 +24,7 @@ class TestTextButton {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
       <copy-button [overrideCopyText]="overrideCopyText()" >
         <div>{{ content() }}</div>

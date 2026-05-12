@@ -6,7 +6,6 @@ import plistlib
 import re
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -24,16 +23,11 @@ class CollectInstalledSoftware(flow_base.FlowBase):
 
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
-  result_types = (rdf_client.SoftwarePackages,)
   proto_result_types = (sysinfo_pb2.SoftwarePackages,)
-  only_protos_allowed = True
-
-  # TODO: Add `result_types` declaration once we migrate away from
-  # the artifact collector in this flow and the types are known.
 
   def Start(self) -> None:
     if self.client_os == "Linux":
-      # TODO: Remove branching once updated agent is rolled out to
+      # TODO - Remove branching once updated agent is rolled out to
       # a reasonable portion of the fleet.
       if self.client_version <= 3478:
         dpkg_args = jobs_pb2.ExecuteRequest()
@@ -65,7 +59,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       rpm_args = jobs_pb2.ExecuteRequest()
       rpm_args.cmd = "/bin/rpm"
 
-      # TODO: Remove branching once updated agent is rolled out to
+      # TODO - Remove branching once updated agent is rolled out to
       # a reasonable portion of the fleet.
       if self.client_version <= 3473:
         rpm_args.args.append("-qa")
@@ -99,7 +93,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       )
 
       win32_quick_fix_engineering_args = jobs_pb2.WMIRequest()
-      # TODO: Query only columns that we explicitly care about.
+      # TODO - Query only columns that we explicitly care about.
       #
       # So far the artifact used wildcard and so for the time being we simply
       # follow it but we should have explicit list of columns that we care about
@@ -300,7 +294,7 @@ class CollectInstalledSoftware(flow_base.FlowBase):
       if not line:
         continue
 
-      # TODO: Remove branching once updated agent is rolled out to
+      # TODO - Remove branching once updated agent is rolled out to
       # a reasonable portion of the fleet.
       if self.client_version <= 3473:
         if (match := _RPM_PACKAGE_REGEX.match(line)) is None:

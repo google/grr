@@ -6,6 +6,5 @@ import {UsersDetailsHarness} from '../data_renderer/testing/users_details_harnes
 export class UsersHarness extends ComponentHarness {
   static hostSelector = 'users';
 
-  readonly clientId = this.locatorForAll('.client-id');
   readonly usersDetails = this.locatorForAll(UsersDetailsHarness);
 }

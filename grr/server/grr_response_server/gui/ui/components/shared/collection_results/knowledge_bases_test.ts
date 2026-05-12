@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {KnowledgeBase as ApiKnowledgeBase} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {KnowledgeBases} from './knowledge_bases';
@@ -87,29 +84,4 @@ describe('Knowledge Bases Component', () => {
       await harness.knowledgeBaseDetailsHarnesses();
     expect(knowledgeBaseHarnesses).toHaveSize(2);
   }));
-
-  it('shows client id for hunt results', async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {},
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(1);
-    expect(await clientIds[0].text()).toContain('Client ID: C.1234');
-  });
-
-  it('does not show client id for flow results', async () => {
-    const {harness} = await createComponent([
-      newFlowResult({
-        clientId: 'C.1234',
-        payload: {},
-      }),
-    ]);
-
-    const clientIds = await harness.clientIds();
-    expect(clientIds).toHaveSize(0);
-  });
 });

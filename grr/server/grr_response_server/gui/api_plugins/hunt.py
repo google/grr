@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """API handlers for accessing hunts."""
 
-import collections
 from collections.abc import Iterable, Iterator, Sequence
 import math
 import os
@@ -12,7 +11,6 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import analysis_pb2
 from grr_response_proto import api_utils_pb2
 from grr_response_proto import flows_pb2
@@ -21,11 +19,8 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
-from grr_response_proto.api import output_plugin_pb2
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import foreman_rules
 from grr_response_server import hunt
 from grr_response_server import instant_output_plugin
 from grr_response_server import instant_output_plugin_registry
@@ -40,9 +35,6 @@ from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.models import hunts as models_hunts
 from grr_response_server.models import protobuf_utils as models_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr_response_server.rdfvalues import mig_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -53,6 +45,7 @@ HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 CANCELLED_BY_USER = "Cancelled by user"
 
 # /grr/server/grr_response_server/hunt.py,
+# )
 # fmt: on
 
 
@@ -161,7 +154,7 @@ def InitApiHuntFromHuntObject(
   models_utils.CopyAttr(hunt_obj, api_hunt, "init_start_time")
   models_utils.CopyAttr(hunt_obj, api_hunt, "last_start_time")
   models_utils.CopyAttr(hunt_obj, api_hunt, "description")
-  api_hunt.is_robot = hunt_obj.creator in access_control.SYSTEM_USERS
+  api_hunt.is_robot = hunt_obj.creator in api_flow.GetRobotUsers()
 
   if hunt_counters is not None:
     api_hunt.results_count = hunt_counters.num_results
@@ -253,7 +246,7 @@ def InitApiHuntFromHuntMetadata(
   api_hunt = api_hunt_pb2.ApiHunt(
       urn=str(rdfvalue.RDFURN("hunts").Add(str(hunt_metadata.hunt_id))),
       state=_HuntStateToApiHuntState(hunt_metadata.hunt_state),
-      is_robot=hunt_metadata.creator in access_control.SYSTEM_USERS,
+      is_robot=hunt_metadata.creator in api_flow.GetRobotUsers(),
   )
 
   models_utils.CopyAttr(hunt_metadata, api_hunt, "hunt_id")
@@ -437,54 +430,6 @@ class ApiHuntId(rdfvalue.RDFString):
     return self._value
 
 
-class ApiHuntReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_hunt_pb2.ApiHuntReference
-  rdf_deps = [
-      ApiHuntId,
-  ]
-
-  def FromHuntReference(self, reference):
-    self.hunt_id = reference.hunt_id
-    return self
-
-
-class ApiFlowLikeObjectReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_hunt_pb2.ApiFlowLikeObjectReference
-  rdf_deps = [
-      ApiHuntReference,
-      api_flow.ApiFlowReference,
-  ]
-
-
-class ApiHunt(rdf_structs.RDFProtoStruct):
-  """ApiHunt is used when rendering responses.
-
-  ApiHunt is meant to be more lightweight than automatically generated AFF4
-  representation. It's also meant to contain only the information needed by
-  the UI and to not expose implementation defails.
-  """
-
-  protobuf = api_hunt_pb2.ApiHunt
-  rdf_deps = [
-      ApiHuntId,
-      ApiFlowLikeObjectReference,
-      foreman_rules.ForemanClientRuleSet,
-      rdf_hunts.HuntRunnerArgs,
-      rdfvalue.DurationSeconds,
-      rdfvalue.RDFDatetime,
-      rdfvalue.SessionID,
-  ]
-
-  def GetFlowArgsClass(self):
-    if self.hunt_type == ApiHunt.HuntType.STANDARD and self.flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
-    elif self.hunt_type == ApiHunt.HuntType.VARIABLE:
-      return rdf_hunt_objects.HuntArgumentsVariable
-
-
 def _ApiToObjectHuntStateProto(
     state: api_hunt_pb2.ApiHunt.State,
 ) -> hunts_pb2.Hunt.HuntState:
@@ -549,26 +494,6 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   proto_args_type = api_hunt_pb2.ApiListHuntsArgs
   proto_result_type = api_hunt_pb2.ApiListHuntsResult
 
-  def _CreatedByFilterRelational(
-      self,
-      username: str,
-      hunt_obj: rdf_hunt_objects.Hunt,
-  ):
-    return hunt_obj.creator == username
-
-  def _IsRobotFilterRelational(self, hunt_obj: rdf_hunt_objects.Hunt):
-    return hunt_obj.is_robot
-
-  def _IsHumanFilterRelational(self, hunt_obj: rdf_hunt_objects.Hunt):
-    return not hunt_obj.is_robot
-
-  def _DescriptionContainsFilterRelational(
-      self,
-      substring: str,
-      hunt_obj: rdf_hunt_objects.Hunt,
-  ):
-    return substring in hunt_obj.description
-
   def _Username(self, username: str, context: api_call_context.ApiCallContext):
     if username == "me":
       return context.username
@@ -591,20 +516,15 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       kw_args["with_creator"] = self._Username(args.created_by, context)
     if args.HasField("robot_filter"):
       if args.robot_filter == args.RobotFilter.ONLY_ROBOTS:
-        kw_args["created_by"] = access_control.SYSTEM_USERS
+        kw_args["created_by"] = api_flow.GetRobotUsers()
       elif args.robot_filter == args.RobotFilter.NO_ROBOTS:
-        kw_args["not_created_by"] = access_control.SYSTEM_USERS
+        kw_args["not_created_by"] = api_flow.GetRobotUsers()
     if args.description_contains:
       kw_args["with_description_match"] = args.description_contains
     if args.active_within:
       kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
     if args.HasField("with_state"):
       kw_args["with_states"] = [_ApiToObjectHuntStateProto(args.with_state)]
-
-    # TODO(user): total_count is not returned by the current implementation.
-    # It's not clear, if it's needed - GRR UI doesn't show total number of
-    # available hunts anywhere. Adding it would require implementing
-    # an additional data_store.REL_DB.CountHuntObjects method.
 
     if args.with_full_summary:
       hunt_objects = data_store.REL_DB.ReadHuntObjects(
@@ -628,7 +548,9 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
           args.offset, args.count or db.MAX_COUNT, **kw_args
       )
       items = [InitApiHuntFromHuntMetadata(h) for h in hunt_objects]
-    return api_hunt_pb2.ApiListHuntsResult(items=items)
+
+    total_count = data_store.REL_DB.CountHuntObjects(**kw_args)
+    return api_hunt_pb2.ApiListHuntsResult(items=items, total_count=total_count)
 
 
 class ApiVerifyHuntAccessHandler(api_call_handler_base.ApiCallHandler):
@@ -772,48 +694,6 @@ class ApiGetHuntResultsExportCommandHandler(
 
     return api_hunt_pb2.ApiGetHuntResultsExportCommandResult(
         command=export_command_str
-    )
-
-
-class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
-  """Renders hunt's output plugins states."""
-
-  proto_args_type = api_hunt_pb2.ApiListHuntOutputPluginsArgs
-  proto_result_type = api_hunt_pb2.ApiListHuntOutputPluginsResult
-
-  def Handle(
-      self,
-      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ) -> api_hunt_pb2.ApiListHuntOutputPluginsResult:
-
-    try:
-      output_plugin_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
-          args.hunt_id
-      )
-    except db.UnknownHuntError as ex:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % str(args.hunt_id)
-      ) from ex
-
-    result = []
-    used_names = collections.Counter()
-    for output_plugin_state in output_plugin_states:
-      plugin_descriptor = output_plugin_state.plugin_descriptor
-
-      name = plugin_descriptor.plugin_name
-      plugin_id = f"{name}_{used_names[name]}"
-      used_names[name] += 1
-
-      api_plugin = output_plugin_pb2.ApiOutputPlugin()
-      api_plugin.id = plugin_id
-      api_plugin.plugin_descriptor.CopyFrom(plugin_descriptor)
-      api_plugin.state.Pack(output_plugin_state.plugin_state)
-
-      result.append(api_plugin)
-
-    return api_hunt_pb2.ApiListHuntOutputPluginsResult(
-        items=result, total_count=len(result)
     )
 
 
@@ -1464,7 +1344,6 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
               "Hunt can only be started from PAUSED state."
           )
         hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
-        hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
       elif args.state == api_hunt_pb2.ApiHunt.State.STOPPED:
         if hunt_obj.hunt_state not in [
             hunts_pb2.Hunt.HuntState.PAUSED,
@@ -1478,7 +1357,6 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
             hunt_state_reason=hunts_pb2.Hunt.HuntStateReason.TRIGGERED_BY_USER,
             reason_comment=CANCELLED_BY_USER,
         )
-        hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
 
       else:
         raise InvalidHuntStateError(

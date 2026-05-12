@@ -15,10 +15,9 @@ from absl.testing import absltest
 import yaml
 
 from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import temp
@@ -41,10 +40,8 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.gui.api_plugins import flow as flow_plugin
-from grr_response_server.gui.api_plugins import mig_flow
 from grr_response_server.instant_output_plugins import csv_instant_plugin
 from grr_response_server.output_plugins import test_plugins
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import export_test_lib
@@ -96,11 +93,12 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
-    flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
-    flow_api_obj = mig_flow.ToRDFApiFlow(flow_api_obj)
-    self.assertIsNotNone(flow_api_obj.progress)
-    self.assertIsInstance(
-        flow_api_obj.progress, rdf_flow_objects.DefaultFlowProgress
+    flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(
+        flow_obj, with_progress=True
+    )
+    self.assertTrue(flow_api_obj.progress)
+    self.assertTrue(
+        flow_api_obj.progress.Is(flows_pb2.DefaultFlowProgress.DESCRIPTOR)
     )
 
   def testFlowWithoutResultsCorrectlyReportsEmptyResultMetadata(self):
@@ -113,31 +111,46 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
-    flow_api_obj = mig_flow.ToRDFApiFlow(flow_api_obj)
-    self.assertIsNotNone(flow_api_obj.result_metadata)
-    self.assertEmpty(flow_api_obj.result_metadata.num_results_per_type_tag)
+    self.assertFalse(flow_api_obj.HasField("result_metadata"))
 
   def testWithFlowProgressTypeReportsProgressCorrectly(self):
+
+    class DummyFlowWithProgress(
+        flow_base.FlowBase[
+            flows_pb2.EmptyFlowArgs,
+            flows_pb2.DefaultFlowStore,
+            tests_pb2.DummyFlowProgress,
+        ]
+    ):
+      """Dummy flow that reports its own progress."""
+
+      proto_progress_type = tests_pb2.DummyFlowProgress
+
+      def GetProgressProto(self) -> tests_pb2.DummyFlowProgress:
+        return tests_pb2.DummyFlowProgress(status="Progress.")
+
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
         client_id=client_id,
-        flow_cls=flow_test_lib.DummyFlowWithProgress,
+        flow_cls=DummyFlowWithProgress,
         start_at=None,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
-    flow_api_obj = mig_flow.ToRDFApiFlow(flow_api_obj)
-    self.assertIsNotNone(flow_api_obj.progress)
+    self.assertTrue(flow_api_obj.progress)
+    progress = tests_pb2.DummyFlowProgress()
+    flow_api_obj.progress.Unpack(progress)
     # An empty proto is created by default.
-    self.assertFalse(flow_api_obj.progress.HasField("status"))
+    self.assertFalse(progress.HasField("status"))
 
     flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(
         flow_obj, with_progress=True
     )
-    flow_api_obj = mig_flow.ToRDFApiFlow(flow_api_obj)
-    self.assertIsNotNone(flow_api_obj.progress)
-    self.assertEqual(flow_api_obj.progress.status, "Progress.")
+    self.assertTrue(flow_api_obj.progress)
+    progress = tests_pb2.DummyFlowProgress()
+    flow_api_obj.progress.Unpack(progress)
+    self.assertEqual(progress.status, "Progress.")
 
   def testInitApiFlowFromFlowObjectwithStore(self):
     client_id = self.SetupClient(0)
@@ -170,6 +183,25 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     self.assertEqual(flow_api_obj.name, "UnknownFlow")
     self.assertFalse(flow_api_obj.HasField("progress"))
 
+  def testRespectsRobotUsersConfig(self):
+    data_store.REL_DB.WriteGRRUser("test_user")
+    client_id = self.SetupClient(0)
+    flow_id = flow.StartFlow(
+        client_id=client_id,
+        flow_cls=flow_test_lib.DummyFlow,
+        start_at=None,
+        creator="test_user",
+    )
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+
+    with test_lib.ConfigOverrider({"AdminUI.robot_users": ["test_user"]}):
+      flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
+      self.assertTrue(flow_api_obj.is_robot)
+
+    with test_lib.ConfigOverrider({"AdminUI.robot_users": []}):
+      flow_api_obj = flow_plugin.InitApiFlowFromFlowObject(flow_obj)
+      self.assertFalse(flow_api_obj.is_robot)
+
 
 class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiGetFlowFilesArchiveHandler."""
@@ -187,9 +219,11 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         action_mock,
         client_id=self.client_id,
         creator=self.test_username,
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
-            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
+            ),
         ),
     )
 
@@ -251,7 +285,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
           file.CollectFilesByKnownPath,
           client_mock,
           client_id=self.client_id,
-          flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(
+          flow_args=flows_pb2.CollectFilesByKnownPathArgs(
               paths=[temp_filepath],
           ),
           creator=self.test_username,
@@ -281,7 +315,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
           file.CollectMultipleFiles,
           client_mock,
           client_id=self.client_id,
-          flow_args=rdf_file_finder.CollectMultipleFilesArgs(
+          flow_args=flows_pb2.CollectMultipleFilesArgs(
               path_expressions=[temp_filepath],
           ),
           creator=self.test_username,
@@ -479,7 +513,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
     flow_id = flow_test_lib.StartAndRunFlow(
         flow_test_lib.EchoLogFlowProto,
-        flow_args=rdf_client.LogMessage(data=input_str),
+        flow_args=jobs_pb2.LogMessage(data=input_str),
         client_id=self.client_id,
         creator=self.test_username,
     )
@@ -540,7 +574,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   ):
     flow_id = flow_test_lib.StartAndRunFlow(
         flow_test_lib.EchoLogFlowProto,
-        flow_args=rdf_client.LogMessage(data="soda pop"),
+        flow_args=jobs_pb2.LogMessage(data="soda pop"),
         client_id=self.client_id,
         creator=self.test_username,
     )
@@ -592,14 +626,15 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
 class DummyFlowWithTwoTaggedReplies(flow_base.FlowBase):
   """Emits 2 tagged replies."""
+  proto_result_types = [wrappers_pb2.StringValue, wrappers_pb2.Int64Value]
 
   def Start(self):
-    self.CallState(next_state="SendSomething")
+    self.CallStateProto(next_state="SendSomething")
 
   def SendSomething(self, responses=None):
     del responses  # Unused.
-    self.SendReply(rdfvalue.RDFString("foo"), tag="tag:foo")
-    self.SendReply(rdfvalue.RDFInteger(42), tag="tag:bar")
+    self.SendReplyProto(wrappers_pb2.StringValue(value="foo"), tag="tag:foo")
+    self.SendReplyProto(wrappers_pb2.Int64Value(value=42), tag="tag:bar")
 
 
 class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):

@@ -321,6 +321,42 @@ class InMemoryDBHuntMixin(object):
     return result[offset : offset + (count or db.MAX_COUNT)]
 
   @utils.Synchronized
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+  ) -> int:
+    """Counts the number of hunt objects in the database."""
+    filter_fns = []
+    if with_creator is not None:
+      filter_fns.append(lambda h: h.creator == with_creator)
+    if created_by is not None:
+      filter_fns.append(lambda h: h.creator in created_by)
+    if not_created_by is not None:
+      filter_fns.append(lambda h: h.creator not in not_created_by)
+    if created_after is not None:
+      filter_fns.append(lambda h: h.create_time > int(created_after))
+    if with_description_match is not None:
+      filter_fns.append(lambda h: with_description_match in h.description)
+    if with_states is not None:
+      filter_fns.append(lambda h: h.hunt_state in with_states)
+    filter_fn = lambda h: all(f(h) for f in filter_fns)
+
+    count = 0
+    for h in self.hunts.values():
+      if not filter_fn(h):
+        continue
+      count += 1
+
+    return count
+
+  @utils.Synchronized
   def ReadHuntLogEntries(
       self,
       hunt_id: str,

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from absl.testing import absltest
+from absl.testing import flagsaver
 
 from grr_response_proto.api import signed_commands_pb2 as api_signed_commands_pb2
 from grr_response_server.bin import command_signer
@@ -52,6 +53,17 @@ class CommandSignerTest(absltest.TestCase):
     self.assertEqual(rrg_command.args[0].signed, "-n")
     self.assertTrue(rrg_command.args[1].unsigned_allowed)
 
+  def testConvertToRRGCommand_ArgsFilestoreFileSha256(self):
+    command = api_signed_commands_pb2.ApiCommand()
+    command.path = "/usr/bin/cat"
+    command.args.add().filestore_file_sha256_allowed = True
+
+    rrg_command = command_signer._ConvertToRrgCommand(command)
+
+    self.assertEqual(rrg_command.path.raw_bytes, "/usr/bin/cat".encode())
+    self.assertLen(rrg_command.args, 1)
+    self.assertTrue(rrg_command.args[0].filestore_file_sha256_allowed)
+
   def testConvertToRrgCommand_EnvUnsigned(self):
     command = api_signed_commands_pb2.ApiCommand()
     command.path = "/foo/bar"
@@ -60,6 +72,40 @@ class CommandSignerTest(absltest.TestCase):
     rrg_command = command_signer._ConvertToRrgCommand(command)
     self.assertEqual(rrg_command.path.raw_bytes, "/foo/bar".encode("utf-8"))
     self.assertIn("FOO", rrg_command.env_unsigned_allowed)
+
+  def testConvertToRrgCommand_EnvInherited(self):
+    command = api_signed_commands_pb2.ApiCommand()
+    command.path = "/foo/bar"
+    command.env_vars_inherited.append("FOO")
+
+    rrg_command = command_signer._ConvertToRrgCommand(command)
+    self.assertEqual(rrg_command.path.raw_bytes, "/foo/bar".encode("utf-8"))
+    self.assertIn("FOO", rrg_command.env_inherited)
+
+  def testConvertToRrgCommand_PathTemplate(self):
+    command = api_signed_commands_pb2.ApiCommand()
+    command.path_template = "${FOO}/baz"
+
+    with flagsaver.flagsaver(
+        (command_signer.FLAG_TEMPLATE_PARAMS, ["FOO=/bar"]),
+    ):
+      rrg_command = command_signer._ConvertToRrgCommand(command)
+
+    self.assertEqual(rrg_command.path.raw_bytes, "/bar/baz".encode("utf-8"))
+
+  def testConvertToRrgCommand_PathTemplate_Excessive(self):
+    command = api_signed_commands_pb2.ApiCommand()
+    command.path_template = "/foo/bar"
+
+    # We want to verify that providing unused parameters is fine (some commands
+    # might be interested only in a portion of parameters, some other commands
+    # might be interested in completely different parameters).
+    with flagsaver.flagsaver(
+        (command_signer.FLAG_TEMPLATE_PARAMS, ["FOO=/baz"]),
+    ):
+      rrg_command = command_signer._ConvertToRrgCommand(command)
+
+    self.assertEqual(rrg_command.path.raw_bytes, "/foo/bar".encode("utf-8"))
 
 
 if __name__ == "__main__":

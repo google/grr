@@ -1,3 +1,4 @@
+import {A11yModule} from '@angular/cdk/a11y';
 import {CdkDrag, CdkDragHandle} from '@angular/cdk/drag-drop';
 import {CommonModule} from '@angular/common';
 import {
@@ -51,6 +52,7 @@ export interface CreateFlowDialogData {
   templateUrl: './create_flow_dialog.ng.html',
   styleUrls: ['./create_flow_dialog.scss'],
   imports: [
+    A11yModule,
     CdkDrag,
     CdkDragHandle,
     CollapsibleContainer,

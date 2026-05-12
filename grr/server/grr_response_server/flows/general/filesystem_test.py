@@ -10,7 +10,7 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
@@ -30,9 +30,7 @@ from grr_response_server.flows.general import collectors
 # pylint: enable=unused-import
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import mig_filesystem
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -57,9 +55,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     """OS ListDirectory on a file will raise."""
     client_mock = action_mocks.ListDirectoryClientMock()
 
-    pb = rdf_paths.PathSpec(
+    pb = jobs_pb2.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
-        pathtype=rdf_paths.PathSpec.PathType.OS,
+        pathtype=jobs_pb2.PathSpec.PathType.OS,
     )
 
     # Make sure the flow raises.
@@ -69,7 +67,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
             filesystem.ListDirectory,
             client_mock,
             client_id=self.client_id,
-            flow_args=filesystem.ListDirectoryArgs(
+            flow_args=flows_pb2.ListDirectoryArgs(
                 pathspec=pb,
             ),
             creator=self.test_username,
@@ -83,6 +81,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
     pb.Append(path="test directory", pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pb = mig_paths.ToProtoPathSpec(pb)
 
     with mock.patch.object(notification, "Notify") as mock_notify:
       # Change the username so we get a notification about the flow termination.
@@ -90,7 +89,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           filesystem.ListDirectory,
           client_mock,
           client_id=self.client_id,
-          flow_args=filesystem.ListDirectoryArgs(
+          flow_args=flows_pb2.ListDirectoryArgs(
               pathspec=pb,
           ),
           creator="User",
@@ -98,7 +97,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(mock_notify.call_count, 1)
       args = list(mock_notify.mock_calls[0])[1]
       self.assertEqual(args[0], "User")
-      com = rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED
+      com = objects_pb2.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED
       self.assertEqual(args[1], com)
       self.assertIn(pb.path, args[2])
 
@@ -114,6 +113,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
     )
     pb.Append(path="doesnotexist", pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pb = mig_paths.ToProtoPathSpec(pb)
 
     with self.assertRaises(RuntimeError):
       with test_lib.SuppressLogs():
@@ -121,7 +121,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
             filesystem.ListDirectory,
             client_mock,
             client_id=self.client_id,
-            flow_args=filesystem.ListDirectoryArgs(
+            flow_args=flows_pb2.ListDirectoryArgs(
                 pathspec=pb,
             ),
             creator=self.test_username,
@@ -149,12 +149,13 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     filename = "入乡随俗 海外春节别样过法"
 
     pb.Append(path=filename, pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pb = mig_paths.ToProtoPathSpec(pb)
 
     flow_test_lib.StartAndRunFlow(
         filesystem.ListDirectory,
         client_mock,
         client_id=self.client_id,
-        flow_args=filesystem.ListDirectoryArgs(
+        flow_args=flows_pb2.ListDirectoryArgs(
             pathspec=pb,
         ),
         creator=self.test_username,
@@ -177,25 +178,29 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.makedirs(os.path.join(temp_dirpath, *dir_components))
 
-      pathspec = rdf_paths.PathSpec(
-          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS
+      pathspec = jobs_pb2.PathSpec(
+          path=temp_dirpath, pathtype=jobs_pb2.PathSpec.PathType.OS
       )
 
       flow_id = flow_test_lib.StartAndRunFlow(
           filesystem.RecursiveListDirectory,
           client_mock,
           client_id=self.client_id,
-          flow_args=filesystem.RecursiveListDirectoryArgs(
+          flow_args=flows_pb2.RecursiveListDirectoryArgs(
               pathspec=pathspec,
               max_depth=2,
           ),
           creator=self.test_username,
       )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=self.client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
     self.assertLen(results, 2)
 
-    dirs = [_.pathspec.Basename() for _ in results]
+    dirs = [os.path.basename(_.pathspec.path) for _ in results]
     self.assertCountEqual(dirs, ["dir1", "dir2"])
 
   def testRecursiveListDirectoryTrivial(self):
@@ -207,24 +212,28 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.makedirs(os.path.join(temp_dirpath, *dir_components))
 
-      pathspec = rdf_paths.PathSpec(
-          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS
+      pathspec = jobs_pb2.PathSpec(
+          path=temp_dirpath, pathtype=jobs_pb2.PathSpec.PathType.OS
       )
 
       flow_id = flow_test_lib.StartAndRunFlow(
           filesystem.RecursiveListDirectory,
           client_mock,
           client_id=self.client_id,
-          flow_args=filesystem.RecursiveListDirectoryArgs(
+          flow_args=flows_pb2.RecursiveListDirectoryArgs(
               pathspec=pathspec,
               max_depth=1,
           ),
           creator=self.test_username,
       )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=self.client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
     self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.Basename(), "dir1")
+    self.assertEqual(os.path.basename(results[0].pathspec.path), "dir1")
 
   def testRecursiveListDirectoryDeep(self):
     """Test that RecursiveListDirectory lists files only up to max depth."""
@@ -235,25 +244,29 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.makedirs(os.path.join(temp_dirpath, *dir_components))
 
-      pathspec = rdf_paths.PathSpec(
-          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS
+      pathspec = jobs_pb2.PathSpec(
+          path=temp_dirpath, pathtype=jobs_pb2.PathSpec.PathType.OS
       )
 
       flow_id = flow_test_lib.StartAndRunFlow(
           filesystem.RecursiveListDirectory,
           client_mock,
           client_id=self.client_id,
-          flow_args=filesystem.RecursiveListDirectoryArgs(
+          flow_args=flows_pb2.RecursiveListDirectoryArgs(
               pathspec=pathspec,
               max_depth=3,
           ),
           creator=self.test_username,
       )
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=self.client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.StatEntry,
+    )
     self.assertLen(results, 3)
 
-    dirs = [_.pathspec.Basename() for _ in results]
+    dirs = [os.path.basename(_.pathspec.path) for _ in results]
     self.assertCountEqual(dirs, ["dir1", "dir2", "dir3"])
 
   def testDownloadDirectoryUnicode(self):
@@ -268,9 +281,11 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           file_finder.FileFinder,
           client_mock,
           client_id=self.client_id,
-          flow_args=rdf_file_finder.FileFinderArgs(
+          flow_args=flows_pb2.FileFinderArgs(
               paths=["/c/Downloads/*"],
-              action=rdf_file_finder.FileFinderAction.Download(),
+              action=flows_pb2.FileFinderAction(
+                  action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+              ),
           ),
           creator=self.test_username,
       )
@@ -325,9 +340,11 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         file_finder.FileFinder,
         client_mock,
         client_id=self.client_id,
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[test_dir + "/*"],
-            action=rdf_file_finder.FileFinderAction.Download(),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+            ),
         ),
         creator=self.test_username,
     )
@@ -359,9 +376,11 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         file_finder.FileFinder,
         client_mock,
         client_id=self.client_id,
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[test_dir + "/**5"],
-            action=rdf_file_finder.FileFinderAction.Download(),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+            ),
         ),
         creator=self.test_username,
     )
@@ -386,9 +405,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with vfs_test_lib.RegistryVFSStubber():
 
       client_id = self.SetupClient(0)
-      pb = rdf_paths.PathSpec(
+      pb = jobs_pb2.PathSpec(
           path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
-          pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+          pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
       )
 
       client_mock = action_mocks.ListDirectoryClientMock()
@@ -397,7 +416,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           filesystem.ListDirectory,
           client_mock,
           client_id=client_id,
-          flow_args=filesystem.ListDirectoryArgs(
+          flow_args=flows_pb2.ListDirectoryArgs(
               pathspec=pb,
           ),
           creator=self.test_username,
@@ -419,9 +438,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     with vfs_test_lib.RegistryVFSStubber():
       client_id = self.SetupClient(0)
-      pb = rdf_paths.PathSpec(
+      pb = jobs_pb2.PathSpec(
           path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
-          pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+          pathtype=jobs_pb2.PathSpec.PathType.REGISTRY,
       )
 
       client_mock = action_mocks.ListDirectoryClientMock()
@@ -430,7 +449,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           filesystem.ListDirectory,
           client_mock,
           client_id=client_id,
-          flow_args=filesystem.ListDirectoryArgs(
+          flow_args=flows_pb2.ListDirectoryArgs(
               pathspec=pb,
           ),
           creator=username,
@@ -438,9 +457,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     notifications = data_store.REL_DB.ReadUserNotifications(username)
     self.assertLen(notifications, 1)
-    n = mig_objects.ToRDFUserNotification(notifications[0])
+    n: objects_pb2.UserNotification = notifications[0]
     self.assertEqual(
-        n.reference.vfs_file.path_type, rdf_objects.PathInfo.PathType.REGISTRY
+        n.reference.vfs_file.path_type, objects_pb2.PathInfo.PathType.REGISTRY
     )
     self.assertEqual(
         n.reference.vfs_file.path_components,
@@ -458,7 +477,7 @@ class ListDirectoryTest(absltest.TestCase):
     )
     flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
 
-    args = filesystem.ListDirectoryArgs()
+    args = flows_pb2.ListDirectoryArgs()
     args.pathspec.path = "/foo/bar/baz"
 
     result = rrg_get_file_metadata_pb2.Result()
@@ -480,13 +499,13 @@ class ListDirectoryTest(absltest.TestCase):
         status_response,
     ])
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = filesystem.ListDirectory.__name__
-    rdf_flow.args = args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = filesystem.ListDirectory.__name__
+    proto_flow.args.Pack(args)
 
-    flow = filesystem.ListDirectory(rdf_flow)
+    flow = filesystem.ListDirectory(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetFileMetadata(responses)
 
@@ -512,7 +531,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo": {},
         }),
@@ -540,7 +559,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/bar": b"",
             "/foo/baz": {},
@@ -596,7 +615,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWindowsFileHandlers({
             "X:\\Foo\\Bar": b"",
             "X:\\Foo\\Baz": {},
@@ -652,7 +671,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo": b"",
         }),
@@ -676,7 +695,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo": "/quux",
             "/quux/bar": b"",
@@ -719,7 +738,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo/norf": "../quux",
             "/quux/bar": b"",
@@ -762,7 +781,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/foo": "/foo",
         }),
@@ -786,7 +805,7 @@ class ListDirectoryTest(absltest.TestCase):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=filesystem.ListDirectory,
-        flow_args=mig_filesystem.ToRDFListDirectoryArgs(args),
+        flow_args=args,
         handlers=rrg_test_lib.FakeWindowsFileHandlers({
             "C:\\Users\\Foo Bar\\desktop.ini": b"Lorem ipsum.",
             "C:\\Users\\Quux\\desktop.ini": b"Lorem ipsum.",

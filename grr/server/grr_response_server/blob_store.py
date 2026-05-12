@@ -154,7 +154,7 @@ class BlobStore(metaclass=abc.ABCMeta):
     remaining_ids = set(blob_ids)
     results = {blob_id: None for blob_id in remaining_ids}
     start = rdfvalue.RDFDatetime.Now()
-    # TODO: Implement truncated exponential backoff.
+    # TODO - Implement truncated exponential backoff.
     sleep_dur = rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     poll_num = 0
 
@@ -214,7 +214,7 @@ class BlobStore(metaclass=abc.ABCMeta):
     """
     remaining_blob_ids = set(blob_ids)
 
-    # TODO: See a TODO comment in `RunAndWaitForBlobs`.
+    # TODO - See a TODO comment in `RunAndWaitForBlobs`.
     sleep_duration = rdfvalue.Duration.From(1, rdfvalue.SECONDS)
 
     start_time = rdfvalue.RDFDatetime.Now()

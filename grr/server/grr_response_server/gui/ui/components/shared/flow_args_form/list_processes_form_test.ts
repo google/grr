@@ -2,14 +2,11 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {
-  ListProcessesArgs,
-  NetworkConnectionState,
-} from '../../../lib/api/api_interfaces';
+import {ListProcessesArgs} from '../../../lib/api/api_interfaces';
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
 import {initTestEnvironment} from '../../../testing';
-import {CONNECTION_STATES, ListProcessesForm} from './list_processes_form';
+import {ListProcessesForm} from './list_processes_form';
 import {ListProcessesFormHarness} from './testing/list_processes_form_harness';
 
 initTestEnvironment();
@@ -57,7 +54,6 @@ describe('List Processes Form Component', () => {
         expect(flowArgs).toEqual({
           filenameRegex: '^/usr/(local/)?bin/foo.+$',
           pids: [0, 42, 123],
-          connectionStates: ['CLOSE', 'ESTABLISHED'],
           fetchBinaries: true,
         });
         onSubmitCalled = true;
@@ -65,7 +61,6 @@ describe('List Processes Form Component', () => {
     );
     await harness.setFilenameRegex('^/usr/(local/)?bin/foo.+$');
     await harness.setPids('0, 42, 123');
-    await harness.setConnectionStates(['CLOSE', 'ESTABLISHED']);
     await harness.setFetchBinariesCheckbox(true);
 
     const submitButton = await harness.getSubmitButton();
@@ -79,20 +74,12 @@ describe('List Processes Form Component', () => {
     const flowArgs = fixture.componentInstance.convertFormStateToFlowArgs({
       filenameRegex: '^/usr/(local/)?bin/foo.+$',
       pids: [0, 42, 123],
-      connectionStates: [
-        NetworkConnectionState.CLOSE,
-        NetworkConnectionState.ESTABLISHED,
-      ],
       fetchBinaries: true,
     });
 
     const expectedFlowArgs: ListProcessesArgs = {
       filenameRegex: '^/usr/(local/)?bin/foo.+$',
       pids: [0, 42, 123],
-      connectionStates: [
-        NetworkConnectionState.CLOSE,
-        NetworkConnectionState.ESTABLISHED,
-      ],
       fetchBinaries: true,
     };
     expect(flowArgs).toEqual(expectedFlowArgs);
@@ -103,10 +90,6 @@ describe('List Processes Form Component', () => {
     const flowArgs: ListProcessesArgs = {
       filenameRegex: '^/usr/(local/)?bin/foo.+$',
       pids: [0, 42, 123],
-      connectionStates: [
-        NetworkConnectionState.CLOSE,
-        NetworkConnectionState.ESTABLISHED,
-      ],
       fetchBinaries: true,
     };
 
@@ -115,10 +98,6 @@ describe('List Processes Form Component', () => {
     ).toEqual({
       filenameRegex: '^/usr/(local/)?bin/foo.+$',
       pids: [0, 42, 123],
-      connectionStates: [
-        NetworkConnectionState.CLOSE,
-        NetworkConnectionState.ESTABLISHED,
-      ],
       fetchBinaries: true,
     });
   });
@@ -128,18 +107,10 @@ describe('List Processes Form Component', () => {
     fixture.componentInstance.resetFlowArgs({
       filenameRegex: '^/usr/(local/)?bin/foo.+$',
       pids: [0, 42, 123],
-      connectionStates: [
-        NetworkConnectionState.CLOSE,
-        NetworkConnectionState.ESTABLISHED,
-      ],
       fetchBinaries: true,
     });
     expect(await harness.getFilenameRegex()).toBe('^/usr/(local/)?bin/foo.+$');
     expect(await harness.getPids()).toBe('0, 42, 123');
-    expect(await harness.getConnectionState()).toEqual([
-      'CLOSE',
-      'ESTABLISHED',
-    ]);
     expect(await harness.getFetchBinariesCheckbox()).toBeTrue();
   });
 
@@ -148,88 +119,10 @@ describe('List Processes Form Component', () => {
     expect(await harness.hasSubmitButton()).toBeFalse();
   });
 
-  it('shows connection state suggestions', async () => {
-    const {harness} = await createComponent();
-
-    expect(await harness.getConnectionStateSuggestionTexts()).toEqual(
-      CONNECTION_STATES,
-    );
-  });
-
-  it('filters connection state suggestions by input', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStateInput('ESTABLISHED');
-
-    expect(await harness.getConnectionStateSuggestionTexts()).toEqual([
-      'ESTABLISHED',
-    ]);
-  });
-
-  it('filters connection state suggestions by input ignoring case', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStateInput('established');
-
-    expect(await harness.getConnectionStateSuggestionTexts()).toEqual([
-      'ESTABLISHED',
-    ]);
-  });
-
   it('shows error if pid input is not a list of numbers', async () => {
     const {harness} = await createComponent();
     await harness.setPids('foo');
 
     expect(await harness.getPidsErrors()).toEqual(['Invalid integer list.']);
-  });
-
-  it('filters connection state suggestions by selected states', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStates(['CLOSE']);
-    await harness.setConnectionStateInput('CLOSE');
-
-    expect(await harness.getConnectionStateSuggestionTexts()).toEqual([
-      'CLOSED',
-      'CLOSE_WAIT',
-    ]);
-  });
-
-  it('adds connection state when input matches a suggestion', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStateInputAndEnter('ESTABLISHED');
-
-    expect(await harness.getConnectionState()).toEqual(['ESTABLISHED']);
-    expect(await harness.getConnectionStateInput()).toBe('');
-  });
-
-  it('does not add connection state when input does not match a suggestion', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStateInputAndEnter('NOT_A_STATE');
-
-    expect(await harness.getConnectionState()).toEqual([]);
-    expect(await harness.getConnectionStateInput()).toBe('NOT_A_STATE');
-  });
-
-  it('adds connection state when selected from suggestions', async () => {
-    const {harness} = await createComponent();
-
-    const options = await harness.getConnectionStateSuggestionOptions();
-    await options[0].click();
-
-    expect(await harness.getConnectionState()).toEqual([CONNECTION_STATES[0]]);
-  });
-
-  it('clear input when adding connection state from suggestions', async () => {
-    const {harness} = await createComponent();
-
-    await harness.setConnectionStateInput('ESTABLISHED');
-    const options = await harness.getConnectionStateSuggestionOptions();
-    await options[0].click();
-
-    expect(await harness.getConnectionState()).toEqual(['ESTABLISHED']);
-    expect(await harness.getConnectionStateInput()).toBe('');
   });
 });

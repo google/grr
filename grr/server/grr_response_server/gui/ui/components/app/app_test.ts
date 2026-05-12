@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
+import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router, RouterModule} from '@angular/router';
 
@@ -121,6 +121,19 @@ describe('App Component', () => {
       expect(await TestBed.inject(Router).url).toBe('/fleet-collections');
     }));
 
+    it('should open administration page when clicking administration tab', fakeAsync(async () => {
+      const {harness} = await createComponent();
+
+      await TestBed.inject(Router).navigate(['/']);
+
+      const tabBar = await harness.tabBar();
+      await tabBar.clickLink({
+        label: 'Administration',
+      });
+
+      expect(await TestBed.inject(Router).url).toBe('/administration');
+    }));
+
     it('show correct active/inactive state when navigating to "/clients"', fakeAsync(async () => {
       const {harness} = await createComponent();
 
@@ -149,6 +162,34 @@ describe('App Component', () => {
       const tabBar = await harness.tabBar();
       const activeLink = await tabBar.getActiveLink();
       expect(await activeLink.getLabel()).toBe('Collect from fleet');
+    }));
+
+    it('show correct active/inactive state when navigating to "/administration"', fakeAsync(async () => {
+      const {harness} = await createComponent();
+
+      await TestBed.inject(Router).navigate(['/administration']);
+
+      const tabBar = await harness.tabBar();
+      const activeLink = await tabBar.getActiveLink();
+      expect(await activeLink.getLabel()).toBe('Administration');
+    }));
+
+    it('should redirect from /v2 to /clients', fakeAsync(async () => {
+      await createComponent();
+
+      await TestBed.inject(Router).navigateByUrl('/v2');
+      tick();
+
+      expect(TestBed.inject(Router).url).toBe('/clients');
+    }));
+
+    it('should redirect from /v2/fleet-collections to /fleet-collections', fakeAsync(async () => {
+      await createComponent();
+
+      await TestBed.inject(Router).navigateByUrl('/v2/fleet-collections');
+      tick();
+
+      expect(TestBed.inject(Router).url).toBe('/fleet-collections');
     }));
   });
 });

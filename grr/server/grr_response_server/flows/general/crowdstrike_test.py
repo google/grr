@@ -10,7 +10,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import crowdstrike_pb2
@@ -79,7 +78,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=crowdstrike.GetCrowdStrikeAgentID,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -132,7 +131,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=crowdstrike.GetCrowdStrikeAgentID,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -185,11 +184,12 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, crowdstrike_pb2.GetCrowdstrikeAgentIdResult
+    )
     self.assertLen(results, 1)
 
     result = results[0]
-    self.assertIsInstance(result, crowdstrike.GetCrowdstrikeAgentIdResult)
     self.assertEqual(result.agent_id, agent_id_hex)
 
   def testLinuxMalformedOutput(self):
@@ -223,7 +223,9 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, crowdstrike_pb2.GetCrowdstrikeAgentIdResult
+    )
     self.assertEmpty(results)
 
     self.assertFlowLoggedRegex(
@@ -263,7 +265,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=crowdstrike.GetCrowdStrikeAgentID,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
         },
@@ -313,11 +315,12 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, crowdstrike_pb2.GetCrowdstrikeAgentIdResult
+    )
     self.assertLen(results, 1)
 
     result = results[0]
-    self.assertIsInstance(result, crowdstrike.GetCrowdstrikeAgentIdResult)
     self.assertEqual(result.agent_id, agent_id_hex)
 
   @db_test_lib.WithDatabase
@@ -330,7 +333,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=crowdstrike.GetCrowdStrikeAgentID,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/Library/Application Support/CrowdStrike/Falcon/registry.base":
             # The file seems to be 40 bytes long, we replicate that.
@@ -392,11 +395,12 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, crowdstrike_pb2.GetCrowdstrikeAgentIdResult
+    )
     self.assertLen(results, 1)
 
     result = results[0]
-    self.assertIsInstance(result, crowdstrike.GetCrowdstrikeAgentIdResult)
     self.assertEqual(result.agent_id, agent_id_hex)
 
 

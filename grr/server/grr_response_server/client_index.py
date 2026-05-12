@@ -10,8 +10,9 @@ from typing import Collection, Iterable, Mapping, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import clients as models_clients
 
 
 def GetClientIDsForHostnames(
@@ -122,7 +123,7 @@ class ClientIndex(object):
         filtered_keywords, start_time=start_time
     )
 
-  def AnalyzeClient(self, client: rdf_objects.ClientSnapshot) -> Sequence[str]:
+  def AnalyzeClient(self, client: objects_pb2.ClientSnapshot) -> Sequence[str]:
     """Finds the client_id and keywords for a client.
 
     Args:
@@ -195,9 +196,9 @@ class ClientIndex(object):
             # wrapping characters.
             TryAppend("", name.strip("\"'()"))
 
-    for ip in client.GetIPAddresses():
+    for ip in models_clients.GetIpAddressesFromClientSnapshot(client):
       TryAppendIP(ip)
-    for mac in client.GetMacAddresses():
+    for mac in models_clients.GetMacAddressesFromClientSnapshot(client):
       TryAppendMac(mac)
 
     client_info = client.startup_info.client_info
@@ -210,7 +211,7 @@ class ClientIndex(object):
 
     return keywords
 
-  def AddClient(self, client: rdf_objects.ClientSnapshot):
+  def AddClient(self, client: objects_pb2.ClientSnapshot):
     """Adds a client to the index.
 
     Args:

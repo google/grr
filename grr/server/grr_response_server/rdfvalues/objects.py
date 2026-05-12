@@ -12,10 +12,7 @@ import itertools
 import os
 import stat
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -23,189 +20,8 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
 from grr_response_proto import objects_pb2
-from grr_response_server.rdfvalues import rrg as rdf_rrg
 
 _UNKNOWN_GRR_VERSION = "Unknown-GRR-version"
-
-
-class ClientLabel(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ClientLabel
-
-
-class StringMapEntry(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.StringMapEntry
-
-
-class ClientSnapshotMetadata(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ClientSnapshotMetadata
-
-
-class ClientSnapshot(rdf_structs.RDFProtoStruct):
-  """The client object.
-
-  Attributes:
-    timestamp: An rdfvalue.Datetime indicating when this client snapshot was
-      saved to the database. Should be present in every client object loaded
-      from the database, but is not serialized with the rdfvalue fields.
-  """
-
-  protobuf = objects_pb2.ClientSnapshot
-
-  rdf_deps = [
-      StringMapEntry,
-      ClientSnapshotMetadata,
-      rdf_cloud.CloudInstance,
-      rdf_client.EdrAgent,
-      rdf_client_fs.Filesystem,
-      rdf_client.HardwareInfo,
-      rdf_client_network.Interface,
-      rdf_client.KnowledgeBase,
-      rdf_client.StartupInfo,
-      rdf_client_fs.Volume,
-      rdfvalue.ByteSize,
-      rdfvalue.RDFDatetime,
-      rdf_client.FleetspeakValidationInfo,
-  ]
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.timestamp = None
-
-  def GetMacAddresses(self):
-    """MAC addresses from all interfaces."""
-    result = set()
-    for interface in self.interfaces:
-      if interface.mac_address and interface.mac_address != b"\x00" * len(
-          interface.mac_address
-      ):
-        result.add(str(interface.mac_address.human_readable_address))
-    return sorted(result)
-
-  def GetIPAddresses(self):
-    """IP addresses from all interfaces."""
-    result = []
-    filtered_ips = ["127.0.0.1", "::1", "fe80::1"]
-
-    for interface in self.interfaces:
-      for address in interface.addresses:
-        if address.human_readable_address not in filtered_ips:
-          result.append(str(address.human_readable_address))
-    return sorted(result)
-
-  def GetSummary(self):
-    """Gets a client summary object.
-
-    Returns:
-      rdf_client.ClientSummary
-    Raises:
-      ValueError: on bad cloud type
-    """
-    summary = rdf_client.ClientSummary()
-    summary.client_id = self.client_id
-    summary.timestamp = self.timestamp
-
-    summary.system_info.release = self.os_release
-    summary.system_info.version = str(self.os_version or "")
-    summary.system_info.kernel = self.kernel
-    summary.system_info.machine = self.arch
-    summary.system_info.install_date = self.install_time
-    kb = self.knowledge_base
-    if kb:
-      summary.system_info.fqdn = kb.fqdn
-      summary.system_info.system = kb.os
-      summary.users = kb.users
-      summary.interfaces = self.interfaces
-      summary.client_info = self.startup_info.client_info
-
-      # We use knowledge base release information only if it was not set already
-      # (and the same applies to the version information). This is because the
-      # knowledge base information comes from artifact definitions that are less
-      # precise than platform information obtained through the `distro` package.
-      if not summary.system_info.release and kb.os_release:
-        summary.system_info.release = kb.os_release
-        if not summary.system_info.version and kb.os_major_version:
-          summary.system_info.version = "%d.%d" % (
-              kb.os_major_version,
-              kb.os_minor_version,
-          )
-
-    summary.edr_agents = self.edr_agents
-    summary.fleetspeak_validation_info = self.fleetspeak_validation_info
-
-    hwi = self.hardware_info
-    if hwi:
-      summary.serial_number = hwi.serial_number
-      summary.system_manufacturer = hwi.system_manufacturer
-      summary.system_uuid = hwi.system_uuid
-
-    cloud_instance = self.cloud_instance
-    if cloud_instance:
-      summary.cloud_type = cloud_instance.cloud_type
-      if cloud_instance.cloud_type == "GOOGLE":
-        summary.cloud_instance_id = cloud_instance.google.unique_id
-      elif cloud_instance.cloud_type == "AMAZON":
-        summary.cloud_instance_id = cloud_instance.amazon.instance_id
-      else:
-        raise ValueError("Bad cloud type: %s" % cloud_instance.cloud_type)
-
-    return summary
-
-
-class ClientMetadata(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ClientMetadata
-
-  rdf_deps = [
-      rdf_crypto.RDFX509Cert,
-      rdfvalue.RDFDatetime,
-      rdf_client.FleetspeakValidationInfo,
-  ]
-
-
-class ClientFullInfo(rdf_structs.RDFProtoStruct):
-  """ClientFullInfo object."""
-
-  protobuf = objects_pb2.ClientFullInfo
-
-  rdf_deps = [
-      ClientMetadata,
-      ClientSnapshot,
-      ClientLabel,
-      rdf_client.StartupInfo,
-      rdf_rrg.Startup,
-  ]
-
-  def GetLabelsNames(self, owner=None):
-    return set(
-        str(l.name) for l in self.labels if not owner or l.owner == owner
-    )
-
-
-class GRRUser(rdf_structs.RDFProtoStruct):
-  """GRRUser object."""
-
-  protobuf = objects_pb2.GRRUser
-  rdf_deps = [
-      rdf_crypto.Password,
-  ]
-
-
-class ApprovalGrant(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ApprovalGrant
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApprovalRequest(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ApprovalRequest
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-      ApprovalGrant,
-  ]
-
-  @property
-  def is_expired(self):
-    return self.expiration_time < rdfvalue.RDFDatetime.Now()
 
 
 @functools.total_ordering
@@ -611,72 +427,14 @@ def VfsFileReferenceToPath(
   raise ValueError("Unsupported path type: %s" % vfs_file_reference.path_type)
 
 
-class ClientReference(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ClientReference
-  rdf_deps = []
-
-
 class HuntReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.HuntReference
-  rdf_deps = []
-
-
-class CronJobReference(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.CronJobReference
   rdf_deps = []
 
 
 class FlowReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.FlowReference
   rdf_deps = []
-
-
-class VfsFileReference(rdf_structs.RDFProtoStruct):
-  """Object reference pointing to a VFS file."""
-
-  protobuf = objects_pb2.VfsFileReference
-  rdf_deps = []
-
-  def ToPath(self):
-    """Converts a reference into a VFS file path."""
-
-    if self.path_type == PathInfo.PathType.OS:
-      return os.path.join("fs", "os", *self.path_components)
-    elif self.path_type == PathInfo.PathType.TSK:
-      return os.path.join("fs", "tsk", *self.path_components)
-    elif self.path_type == PathInfo.PathType.REGISTRY:
-      return os.path.join("registry", *self.path_components)
-    elif self.path_type == PathInfo.PathType.TEMP:
-      return os.path.join("temp", *self.path_components)
-    elif self.path_type == PathInfo.PathType.NTFS:
-      return os.path.join("fs", "ntfs", *self.path_components)
-
-    raise ValueError("Unsupported path type: %s" % self.path_type)
-
-
-class ApprovalRequestReference(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ApprovalRequestReference
-  rdf_deps = []
-
-
-class ObjectReference(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.ObjectReference
-  rdf_deps = [
-      ClientReference,
-      HuntReference,
-      CronJobReference,
-      FlowReference,
-      VfsFileReference,
-      ApprovalRequestReference,
-  ]
-
-
-class UserNotification(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.UserNotification
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-      ObjectReference,
-  ]
 
 
 class MessageHandlerRequest(rdf_structs.RDFProtoStruct):
@@ -705,31 +463,6 @@ class ClientPathID(rdf_structs.RDFProtoStruct):
   ]
 
 
-class BlobReference(rdf_structs.RDFProtoStruct):
-  """A reference to a blob."""
-
-  protobuf = objects_pb2.BlobReference
-  rdf_deps = []
-
-  @classmethod
-  def FromBlobImageChunkDescriptor(
-      cls,
-      chunk: rdf_client_fs.BlobImageChunkDescriptor,
-  ) -> "BlobReference":
-    result = cls()
-    result.offset = chunk.offset
-    result.size = chunk.length
-    result.blob_id = chunk.digest
-    return result
-
-
-class BlobReferences(rdf_structs.RDFProtoStruct):
-  protobuf = objects_pb2.BlobReferences
-  rdf_deps = [
-      BlobReference,
-  ]
-
-
 class SerializedValueOfUnrecognizedType(rdf_structs.RDFProtoStruct):
   """Class used to represent objects that can't be deserialized properly.
 
@@ -744,37 +477,6 @@ class SerializedValueOfUnrecognizedType(rdf_structs.RDFProtoStruct):
 
   protobuf = objects_pb2.SerializedValueOfUnrecognizedType
   rdf_deps = []
-
-
-class APIAuditEntry(rdf_structs.RDFProtoStruct):
-  """Audit entry for API calls, persistend in the relational database."""
-
-  protobuf = objects_pb2.APIAuditEntry
-  rdf_deps = [rdfvalue.RDFDatetime]
-
-  # Use dictionaries instead of if-statements to look up mappings to increase
-  # branch coverage during testing. This way, all constants are accessed,
-  # without requiring a test for every single one.
-  _HTTP_STATUS_TO_CODE = {
-      200: objects_pb2.APIAuditEntry.OK,
-      403: objects_pb2.APIAuditEntry.FORBIDDEN,
-      404: objects_pb2.APIAuditEntry.NOT_FOUND,
-      500: objects_pb2.APIAuditEntry.ERROR,
-      501: objects_pb2.APIAuditEntry.NOT_IMPLEMENTED,
-  }
-
-  @classmethod
-  def FromHttpRequestResponse(cls, request, response):
-    response_code = APIAuditEntry._HTTP_STATUS_TO_CODE.get(
-        response.status_code, objects_pb2.APIAuditEntry.ERROR
-    )
-
-    return cls(
-        http_request_path=request.full_path,  # include query string
-        router_method_name=response.headers.get("X-API-Method", ""),
-        username=request.user,
-        response_code=response_code,
-    )
 
 
 class SignedBinaryID(rdf_structs.RDFProtoStruct):

@@ -5,8 +5,6 @@ from absl import app
 
 from google.protobuf import any_pb2
 from google.protobuf import message
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto import api_call_router_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import timeline_pb2
@@ -26,11 +24,11 @@ from grr.test_lib import test_lib
 
 
 class AnotherFileFinder(flow_base.FlowBase):
-  args_type = rdf_file_finder.FileFinderArgs
+  proto_args_type = flows_pb2.FileFinderArgs
 
 
 class AnotherArtifactCollector(flow_base.FlowBase):
-  args_type = rdf_artifacts.ArtifactCollectorFlowArgs
+  proto_args_type = flows_pb2.ArtifactCollectorFlowArgs
 
 
 class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):

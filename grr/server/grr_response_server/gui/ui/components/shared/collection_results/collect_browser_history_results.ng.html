@@ -1,11 +1,8 @@
 
 
-@for (result of flowFileResultsPerBrowser() | keyvalue; track result.key) {
+@for (result of collectionResults() | keyvalue; track result.key) {
   <div class="browser-{{result.key}}">
     <h5>{{result.key}}</h5>
-    <file-results-table
-      [results]="result.value"
-      [isHuntResult]="isHuntResult()"
-      class="browser-{{result.key}}" />
+    <file-results-table [results]="result.value" class="browser-{{result.key}}" />
   </div>
 }

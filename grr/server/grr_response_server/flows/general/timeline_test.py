@@ -7,9 +7,7 @@ from absl.testing import absltest
 
 from grr_response_client.client_actions import timeline as timeline_action
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import mig_timeline
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
@@ -21,7 +19,6 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import timeline as timeline_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
@@ -124,11 +121,13 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       filesystem_test_lib.CreateFile(os.path.join(tempdir, "bar"))
       filesystem_test_lib.CreateFile(os.path.join(tempdir, "baz"))
 
-      args = rdf_timeline.TimelineArgs()
+      args = timeline_pb2.TimelineArgs()
       args.root = tempdir.encode("utf-8")
 
       flow_id = flow_test_lib.StartFlow(
-          timeline_flow.TimelineFlow, client_id=client_id, flow_args=args
+          timeline_flow.TimelineFlow,
+          client_id=client_id,
+          flow_args=args,
       )
 
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -159,7 +158,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     db.WriteClientSnapshot(snapshot)
 
     with temp.AutoTempDirPath() as tempdir:
-      args = rdf_timeline.TimelineArgs(root=tempdir.encode("utf-8"))
+      args = timeline_pb2.TimelineArgs(root=tempdir.encode("utf-8"))
 
       flow_id = flow_test_lib.StartAndRunFlow(
           timeline_flow.TimelineFlow,
@@ -187,7 +186,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     db.WriteClientSnapshot(snapshot)
 
     with temp.AutoTempDirPath() as tempdir:
-      args = rdf_timeline.TimelineArgs(root=tempdir.encode("utf-8"))
+      args = timeline_pb2.TimelineArgs(root=tempdir.encode("utf-8"))
 
       flow_id = flow_test_lib.StartAndRunFlow(
           timeline_flow.TimelineFlow,
@@ -255,7 +254,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       self.assertGreater(file_entry.ctime_ns, 0)
 
   def _Collect(self, root: bytes) -> Iterator[timeline_pb2.TimelineEntry]:
-    args = rdf_timeline.TimelineArgs(root=root)
+    args = timeline_pb2.TimelineArgs(root=root)
 
     flow_id = flow_test_lib.StartAndRunFlow(
         timeline_flow.TimelineFlow,
@@ -279,7 +278,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    args = rdf_timeline.TimelineArgs()
+    args = timeline_pb2.TimelineArgs()
     args.root = b"/foo/bar"
 
     result = rrg_get_filesystem_timeline_pb2.Result()
@@ -297,13 +296,13 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
         status_response,
     ])
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = timeline_flow.TimelineFlow.__name__
-    rdf_flow.args = args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = timeline_flow.TimelineFlow.__name__
+    proto_flow.args.Pack(args)
 
-    flow = timeline_flow.TimelineFlow(rdf_flow)
+    flow = timeline_flow.TimelineFlow(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetFilesystemTimeline(responses)
 
@@ -325,7 +324,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=timeline_flow.TimelineFlow,
-        flow_args=mig_timeline.ToRDFTimelineArgs(args),
+        flow_args=args,
         handlers={},
     )
 
@@ -349,7 +348,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=timeline_flow.TimelineFlow,
-        flow_args=mig_timeline.ToRDFTimelineArgs(args),
+        flow_args=args,
         handlers={},
     )
 
@@ -367,11 +366,12 @@ class FilesystemTypeTest(absltest.TestCase):
 
     db.WriteClientMetadata(client_id, last_ping=rdfvalue.RDFDatetime.Now())
 
-    flow_obj = rdf_flow_objects.Flow()
-    flow_obj.client_id = client_id
-    flow_obj.flow_id = flow_id
-    flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
+    flow_obj = flows_pb2.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        flow_class_name=timeline_flow.TimelineFlow.__name__,
+    )
+    db.WriteFlowObject(flow_obj)
 
     self.assertIsNone(timeline_flow.FilesystemType(client_id, flow_id))
 
@@ -382,17 +382,21 @@ class FilesystemTypeTest(absltest.TestCase):
 
     db.WriteClientMetadata(client_id, last_ping=rdfvalue.RDFDatetime.Now())
 
-    flow_obj = rdf_flow_objects.Flow()
-    flow_obj.client_id = client_id
-    flow_obj.flow_id = flow_id
-    flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
-    db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
+    flow_obj = flows_pb2.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        flow_class_name=timeline_flow.TimelineFlow.__name__,
+    )
+    db.WriteFlowObject(flow_obj)
 
-    flow_result = rdf_flow_objects.FlowResult()
-    flow_result.client_id = client_id
-    flow_result.flow_id = flow_id
-    flow_result.payload = rdf_timeline.TimelineResult(filesystem_type="ntfs")
-    db.WriteFlowResults([mig_flow_objects.ToProtoFlowResult(flow_result)])
+    flow_result = flows_pb2.FlowResult(
+        client_id=client_id,
+        flow_id=flow_id,
+    )
+    flow_result.payload.Pack(
+        timeline_pb2.TimelineResult(filesystem_type="ntfs")
+    )
+    db.WriteFlowResults([flow_result])
 
     self.assertEqual(timeline_flow.FilesystemType(client_id, flow_id), "ntfs")
 

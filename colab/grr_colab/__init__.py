@@ -333,33 +333,9 @@ class Client(object):
     """
     return self.os.glob(path)
 
-  def grep(
-      self, path: str, pattern: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      pattern: A regular expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    return self.os.grep(path, pattern)
-
-  def fgrep(
-      self, path: str, literal: bytes
-  ) -> Sequence[jobs_pb2.BufferReference]:
-    """Greps for given content on the specified path.
-
-    Args:
-      path: A path to a file to be searched.
-      literal: A literal expression on search for.
-
-    Returns:
-      A list of buffer references to the matched content.
-    """
-    return self.os.fgrep(path, literal)
+  # TODO - `grep` and `fgrep` methods could be implemented by using
+  # the RRG `GREP_FILE_CONTENTS` action (e.g. through some simple pass-through
+  # flow).
 
   def osquery(
       self, query: str, timeout: int = 30000, ignore_stderr_errors: bool = False

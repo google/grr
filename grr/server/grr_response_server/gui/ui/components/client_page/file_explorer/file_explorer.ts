@@ -17,7 +17,6 @@ import {MatInputModule} from '@angular/material/input';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatTreeModule} from '@angular/material/tree';
-import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, RouterModule} from '@angular/router';
 
 import {getClientArchiveURL} from '../../../lib/api/http_api_service';
@@ -97,8 +96,6 @@ export class FileExplorer {
 
   constructor() {
     this.rootArchiveUrl = getClientArchiveURL(this.clientId);
-
-    inject(Title).setTitle('GRR | Client > File Explorer');
 
     const init = effect(() => {
       const queryPath = this.queryPath();

@@ -2,7 +2,6 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {Title} from '@angular/platform-browser';
 
 import {GlobalStore} from '../../store/global_store';
 
@@ -32,10 +31,6 @@ export class NotFoundPage {
   protected readonly currentUrlPath = window.location.href.slice(
     window.location.origin.length,
   );
-
-  constructor() {
-    inject(Title).setTitle('GRR | Not Found');
-  }
 
   protected navigateBack() {
     window.history.back();

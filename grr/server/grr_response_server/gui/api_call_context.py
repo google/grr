@@ -3,7 +3,7 @@
 
 from typing import Optional
 
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import objects_pb2
 
 
 class ApiCallContext:
@@ -12,7 +12,7 @@ class ApiCallContext:
   def __init__(
       self,
       username: str,
-      approval: Optional[rdf_objects.ApprovalRequest] = None,
+      approval: Optional[objects_pb2.ApprovalRequest] = None,
   ):
     self._username = username
     self._approval = approval
@@ -22,11 +22,11 @@ class ApiCallContext:
     return self._username
 
   @property
-  def approval(self) -> Optional[rdf_objects.ApprovalRequest]:
+  def approval(self) -> Optional[objects_pb2.ApprovalRequest]:
     return self._approval
 
   @approval.setter
-  def approval(self, value: Optional[rdf_objects.ApprovalRequest]):
+  def approval(self, value: Optional[objects_pb2.ApprovalRequest]):
     self._approval = value
 
   def __repr__(self) -> str:

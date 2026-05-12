@@ -17,7 +17,6 @@ import {
   translateHashToHex,
   translateStatEntry,
 } from '../../../lib/api/translation/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
 import {checkExhaustive} from '../../../lib/utils';
 import {
@@ -102,14 +101,11 @@ function collectionStatusFromCollectFilesByKnownPathResultStatus(
 })
 export class CollectFilesByKnownPathResults implements AfterViewInit {
   /** Loaded results to display in the table. */
-  readonly collectionResults = input.required<readonly CollectionResult[]>();
-
-  protected flowFileResults = computed(() => {
-    return flowFileResultFromCollectionResults(this.collectionResults());
-  });
-
-  protected isHuntResult = computed(() => {
-    return this.collectionResults().some(isHuntResult);
+  readonly collectionResults = input.required<
+    readonly FlowFileResult[],
+    readonly CollectionResult[]
+  >({
+    transform: flowFileResultFromCollectionResults,
   });
 
   // Bar chart.
@@ -120,14 +116,14 @@ export class CollectFilesByKnownPathResults implements AfterViewInit {
   protected yScale = d3.scaleBand().range([0, HEIGHT]).padding(0.2);
 
   protected readonly barChartEntries = computed(() => {
-    const errorPaths = this.flowFileResults()
+    const errorPaths = this.collectionResults()
       .filter((res) => res.status?.state === CollectionState.ERROR)
       .map((res) => res.statEntry.pathspec?.path ?? '');
-    const successPaths = this.flowFileResults()
+    const successPaths = this.collectionResults()
       .filter((res) => res.status?.state === CollectionState.SUCCESS)
       .map((res) => res.statEntry.pathspec?.path ?? '');
     const inProgressPaths = new Set<string>(
-      this.flowFileResults()
+      this.collectionResults()
         .filter((res) => res.status?.state === CollectionState.IN_PROGRESS)
         .map((res) => res.statEntry.pathspec?.path ?? '')
         // Filter out paths that are already in the other two sets. Every flow

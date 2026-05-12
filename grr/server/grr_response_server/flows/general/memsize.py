@@ -4,7 +4,6 @@ import re
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import signed_commands_pb2
 from grr_response_server import data_store
@@ -16,13 +15,6 @@ from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import grep_file_contents_pb2 as rrg_grep_file_contents_pb2
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
-
-
-class GetMemorySizeResult(rdf_structs.RDFProtoStruct):
-  """RDF wrapper for the GetMemorySizeResult` message."""
-
-  protobuf = flows_pb2.GetMemorySizeResult
-  rdf_deps = []
 
 
 class GetMemorySize(
@@ -37,10 +29,7 @@ class GetMemorySize(
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [GetMemorySizeResult]
   proto_result_types = [flows_pb2.GetMemorySizeResult]
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.rrg_support and self.rrg_os_type == rrg_os_pb2.LINUX:
@@ -193,7 +182,7 @@ class GetMemorySize(
     # `GetMemorySize` ClientAction returns an `rdfvalue.ByteSize` (primitive).
     # This is then packed into a wrapper `config_pb2.Int64Value` in
     # `FlowResponseForLegacyResponse`.
-    # TODO: Remove this workaround for the uint64 mapping when
+    # TODO - Remove this workaround for the uint64 mapping when
     # no more ClientActions return RDFPrimitives.
     response = wrappers_pb2.Int64Value()
     response.ParseFromString(list(responses)[0].value)

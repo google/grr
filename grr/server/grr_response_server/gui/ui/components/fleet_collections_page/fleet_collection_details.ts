@@ -23,7 +23,7 @@ import {ApprovalChip} from '../shared/approval_chip';
 export class FleetCollectionDetails {
   protected readonly fleetCollectionStore = inject(FleetCollectionStore);
 
-  // TODO: This input should be `required`, this would also allow
+  // TODO - This input should be `required`, this would also allow
   // the store methods to receive string, instead of string | undefined, and
   // avoid null checks.
   readonly fleetCollectionId = routerInput<string>();

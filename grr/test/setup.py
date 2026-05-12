@@ -53,17 +53,13 @@ class Sdist(sdist):
 
 
 setup_args = dict(
-    name="grr-response-test",
     version=VERSION.get("Version", "packageversion"),
-    description="The GRR Rapid Response test suite.",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr",
     install_requires=[
         "absl-py==1.4.0",
         "flaky==3.7.0",
         "pytest==7.2.1",
         "responses==0.22.0",
-        "selenium==3.141.0",
+        "selenium==4.41.0",
         "google-api-python-client==1.12.11",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

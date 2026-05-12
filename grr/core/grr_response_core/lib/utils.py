@@ -1029,7 +1029,7 @@ def ResolveHostnameToIP(host, port):
   return ip_addrs[0][4][0]
 
 
-# TODO: This module is way too big right now. It should be split
+# TODO - This module is way too big right now. It should be split
 # into several smaller ones (such as `util.paths`, `util.collections` etc.).
 
 

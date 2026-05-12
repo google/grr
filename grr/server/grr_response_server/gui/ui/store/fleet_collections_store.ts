@@ -1,6 +1,5 @@
 import {computed, DestroyRef, inject} from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
-import {tapResponse} from '@ngrx/operators';
 import {
   patchState,
   signalStore,
@@ -11,7 +10,7 @@ import {
 } from '@ngrx/signals';
 import {rxMethod} from '@ngrx/signals/rxjs-interop';
 import {pipe} from 'rxjs';
-import {switchMap} from 'rxjs/operators';
+import {switchMap, tap} from 'rxjs/operators';
 
 import {DEFAULT_POLLING_INTERVAL} from '../lib/api/http_api_service';
 import {HttpApiWithTranslationService} from '../lib/api/http_api_with_translation_service';
@@ -46,18 +45,11 @@ export const FleetCollectionsStore = signalStore(
         switchMap((args: ListHuntsArgs) => {
           return httpApiService.listHunts(args, DEFAULT_POLLING_INTERVAL).pipe(
             takeUntilDestroyed(destroyRef),
-            tapResponse({
-              next: (fleetCollections: ListHuntsResult) => {
-                patchState(store, {
-                  fleetCollections: fleetCollections.hunts,
-                  totalFleetCollectionsCount: fleetCollections.totalCount,
-                });
-              },
-              error: (err) => {
-                // TODO: Revisit this once approvals are
-                // implemented.
-                throw err;
-              },
+            tap((fleetCollections: ListHuntsResult) => {
+              patchState(store, {
+                fleetCollections: fleetCollections.hunts,
+                totalFleetCollectionsCount: fleetCollections.totalCount,
+              });
             }),
           );
         }),

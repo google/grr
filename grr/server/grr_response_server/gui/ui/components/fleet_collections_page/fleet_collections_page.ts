@@ -18,13 +18,13 @@ import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {MatSelectModule} from '@angular/material/select';
 import {MatTooltipModule} from '@angular/material/tooltip';
-import {Title} from '@angular/platform-browser';
 import {Router, RouterModule} from '@angular/router';
 
 import {ApiListHuntsArgsRobotFilter} from '../../lib/api/api_interfaces';
 import {FLOW_DETAILS_BY_TYPE} from '../../lib/data/flows/flow_definitions';
 import {FlowType} from '../../lib/models/flow';
 import {Hunt, HuntState} from '../../lib/models/hunt';
+import {FriendlyFlowNamePipe} from '../../pipes/flow_pipes/friendly_flow_name';
 import {FleetCollectionsStore} from '../../store/fleet_collections_store';
 import {GlobalStore} from '../../store/global_store';
 import {CopyButton} from '../shared/copy_button';
@@ -48,6 +48,7 @@ const INITIAL_STATE_FILTER: HuntState | null = null;
     CopyButton,
     FleetCollectionStateChip,
     FormsModule,
+    FriendlyFlowNamePipe,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -97,8 +98,6 @@ export class FleetCollectionsPage {
   protected readonly count = signal<number>(INITIAL_COUNT);
 
   constructor() {
-    inject(Title).setTitle('GRR | Fleet Collections');
-
     this.fleetCollectionsStore.pollFleetCollections(
       computed(() => {
         const triggerFilter = this.triggerFilter();
@@ -124,12 +123,18 @@ export class FleetCollectionsPage {
   }
 
   protected fleetCollectionMatchesSearchFilter(fleetCollection: Hunt) {
-    const searchFilter = this.searchFilterFormControl.value;
+    const searchFilter = this.searchFilterFormControl.value.toLowerCase();
     return (
       searchFilter === '' ||
-      fleetCollection.creator.includes(searchFilter) ||
-      fleetCollection.huntId.includes(searchFilter) ||
-      (fleetCollection.description || '').includes(searchFilter)
+      fleetCollection.creator.toLowerCase().includes(searchFilter) ||
+      fleetCollection.huntId.toLowerCase().includes(searchFilter) ||
+      (fleetCollection.description || '')
+        .toLowerCase()
+        .includes(searchFilter) ||
+      new FriendlyFlowNamePipe()
+        .transform(fleetCollection.flowType)
+        .toLowerCase()
+        .includes(searchFilter)
     );
   }
 

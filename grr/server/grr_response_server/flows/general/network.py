@@ -2,17 +2,11 @@
 """These are network related flows."""
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
-
-
-class NetstatArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.NetstatArgs
 
 
 class Netstat(
@@ -26,12 +20,9 @@ class Netstat(
 
   category = "/Network/"
   behaviours = flow_base.BEHAVIOUR_BASIC
-  args_type = NetstatArgs
-  result_types = (rdf_client_network.NetworkConnection,)
 
   proto_args_type = flows_pb2.NetstatArgs
   proto_result_types = (sysinfo_pb2.NetworkConnection,)
-  only_protos_allowed = True
 
   def Start(self):
     """Start processing."""

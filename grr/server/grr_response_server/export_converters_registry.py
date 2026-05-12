@@ -6,10 +6,7 @@ from typing import Set, Type
 
 from google.protobuf import message
 from grr_response_server.export_converters import base
-from grr_response_server.export_converters import data_agnostic
 
-
-_EXPORT_CONVERTER_REGISTRY: Set[Type[base.ExportConverter]] = set()
 
 # Maps proto message type to a set of export converters that can convert it.
 _EXPORT_CONVERTER_REGISTRY_BY_PROTO_CLS: dict[
@@ -18,15 +15,6 @@ _EXPORT_CONVERTER_REGISTRY_BY_PROTO_CLS: dict[
 _EXPORT_CONVERTER_BY_TYPE_URL: dict[
     str, Set[Type[base.ExportConverterProto]]
 ] = collections.defaultdict(set)
-
-
-def Register(cls: Type[base.ExportConverter]):
-  """Registers an ExportConversion class.
-
-  Args:
-    cls: ExportConversion class.
-  """
-  _EXPORT_CONVERTER_REGISTRY.add(cls)
 
 
 def RegisterProto(cls: Type[base.ExportConverterProto[message.Message]]):
@@ -44,15 +32,6 @@ def RegisterProto(cls: Type[base.ExportConverterProto[message.Message]]):
   _EXPORT_CONVERTER_BY_TYPE_URL[_GetTypeUrl(cls.input_proto_type)].add(cls)
 
 
-def Unregister(cls: Type[base.ExportConverter]):
-  """Unregisters an ExportConversion class.
-
-  Args:
-    cls: ExportConversion class to be unregistered.
-  """
-  _EXPORT_CONVERTER_REGISTRY.remove(cls)
-
-
 def UnregisterProto(cls: Type[base.ExportConverterProto[message.Message]]):
   """Unregisters an ExportConversion class.
 
@@ -68,28 +47,10 @@ def UnregisterProto(cls: Type[base.ExportConverterProto[message.Message]]):
     _EXPORT_CONVERTER_BY_TYPE_URL[type_url].discard(cls)
 
 
-def ClearExportConverters():
-  """Clears converters registry and its cached values."""
-  _EXPORT_CONVERTER_REGISTRY.clear()
-
-
 def ClearExportConvertersProto():
   """Clears converters registry for protos and its cached values."""
   _EXPORT_CONVERTER_REGISTRY_BY_PROTO_CLS.clear()
   _EXPORT_CONVERTER_BY_TYPE_URL.clear()
-
-
-def GetConvertersByClass(value_cls):
-  """Returns all converters that take given value as an input value."""
-  results = [
-      cls
-      for cls in _EXPORT_CONVERTER_REGISTRY
-      if cls.input_rdf_type == value_cls
-  ]
-  if not results:
-    results = [data_agnostic.DataAgnosticExportConverter]
-
-  return results
 
 
 def GetConvertersByClassProto(
@@ -98,11 +59,6 @@ def GetConvertersByClassProto(
   """Returns all converters that take given value as an input value."""
   # Will return an empty set if the class is not registered.
   return _EXPORT_CONVERTER_REGISTRY_BY_PROTO_CLS[value_cls]
-
-
-def GetConvertersByValue(value):
-  """Returns all converters that take given value as an input value."""
-  return GetConvertersByClass(value.__class__)
 
 
 def GetConvertersByValueProto(

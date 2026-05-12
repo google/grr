@@ -8,12 +8,10 @@ import string
 from typing import Any, Optional
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server.databases import db as abstract_db
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
@@ -273,11 +271,11 @@ def InitializeFlow(
     db: abstract_db.Database,
     client_id: str,
     flow_id: Optional[str] = None,
-    flow_state: Optional[rdf_structs.EnumNamedValue] = None,
+    flow_state: Optional["flows_pb2.Flow.FlowState"] = None,
     parent_flow_id: Optional[str] = None,
     parent_hunt_id: Optional[str] = None,
     next_request_to_process: Optional[int] = None,
-    cpu_time_used: Optional[float] = None,
+    cpu_time_used: Optional[jobs_pb2.CpuSeconds] = None,
     network_bytes_sent: Optional[int] = None,
     creator: Optional[str] = None,
 ) -> str:
@@ -303,30 +301,19 @@ def InitializeFlow(
     random_digit = lambda: random.choice(string.hexdigits).upper()
     flow_id = "".join(random_digit() for _ in range(16))
 
-  flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+  flow_obj = flows_pb2.Flow(
+      client_id=client_id,
+      flow_id=flow_id,
+      flow_state=flow_state,
+      parent_flow_id=parent_flow_id,
+      parent_hunt_id=parent_hunt_id,
+      next_request_to_process=next_request_to_process,
+      cpu_time_used=cpu_time_used,
+      network_bytes_sent=network_bytes_sent,
+      creator=creator,
+  )
 
-  if flow_state is not None:
-    flow_obj.flow_state = flow_state
-
-  if parent_flow_id is not None:
-    flow_obj.parent_flow_id = parent_flow_id
-
-  if parent_hunt_id is not None:
-    flow_obj.parent_hunt_id = parent_hunt_id
-
-  if cpu_time_used is not None:
-    flow_obj.cpu_time_used = cpu_time_used
-
-  if network_bytes_sent is not None:
-    flow_obj.network_bytes_sent = network_bytes_sent
-
-  if next_request_to_process is not None:
-    flow_obj.next_request_to_process = next_request_to_process
-
-  if creator is not None:
-    flow_obj.creator = creator
-
-  db.WriteFlowObject(mig_flow_objects.ToProtoFlow(flow_obj))
+  db.WriteFlowObject(flow_obj)
 
   return flow_id
 
@@ -337,6 +324,8 @@ def InitializeHunt(
     creator: Optional[str] = None,
     description: Optional[str] = None,
     client_rate: Optional[float] = None,
+    create_time: Optional[int] = None,
+    hunt_state: Optional["hunts_pb2.Hunt.HuntState"] = None,
 ) -> str:
   """Initializes a test user.
 
@@ -348,6 +337,8 @@ def InitializeHunt(
       generated one is used (and initialized).
     description: A hunt description.
     client_rate: The client rate
+    create_time: The create time of the hunt.
+    hunt_state: The state of the hunt.
 
   Returns:
     A hunt id of the initialized hunt.
@@ -367,7 +358,13 @@ def InitializeHunt(
     hunt_obj.description = description
   if client_rate is not None:
     hunt_obj.client_rate = client_rate
+  if create_time is not None:
+    hunt_obj.create_time = create_time
+
   db.WriteHuntObject(hunt_obj)
+
+  if hunt_state is not None:
+    db.UpdateHuntObject(hunt_id, hunt_state=hunt_state)
 
   return hunt_id
 

@@ -2,24 +2,27 @@
 """A module with flow class calling the osquery client action."""
 
 from collections.abc import Iterable, Iterator
+import hashlib
 import json
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import mig_osquery
-from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import osquery_pb2
+from grr_response_proto import signed_commands_pb2
+from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
+from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import osquery as rdf_server_osquery
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
+from grr_response_proto.rrg.action import store_filestore_part_pb2 as rrg_store_filestore_part_pb2
 
 
 TRUNCATED_ROW_COUNT = 10
@@ -28,6 +31,8 @@ FILE_COLLECTION_MAX_COLUMNS = 5
 FILE_COLLECTION_MAX_ROWS = 1000
 FILE_COLLECTION_MAX_SINGLE_FILE_BYTES = 2**30 // 2  # 1/2 GiB
 FILE_COLLECTION_MAX_TOTAL_BYTES = 2**30  # 1 GiB
+
+DEFAULT_TIMEOUT_MILLIS = 5 * 60 * 1000  # 5 minutes.
 
 
 def _GetTotalRowCount(responses: Iterable[osquery_pb2.OsqueryResult]) -> int:
@@ -121,13 +126,12 @@ def _GetTruncatedTable(
 
 
 def _ExtractFileInfo(
-    result: rdf_flow_objects.FlowResult,
-) -> rdf_server_osquery.OsqueryCollectedFile:
-  if not isinstance(result.payload, rdf_client_fs.StatEntry):
+    result: flows_pb2.FlowResult,
+) -> jobs_pb2.StatEntry:
+  stat_entry = jobs_pb2.StatEntry()
+  if not result.payload.Unpack(stat_entry):
     raise _ResultNotRelevantError
-
-  stat_entry = result.payload
-  return rdf_server_osquery.OsqueryCollectedFile(stat_entry=stat_entry)
+  return stat_entry
 
 
 class _ResultNotRelevantError(ValueError):
@@ -177,16 +181,10 @@ class OsqueryFlow(
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_server_osquery.OsqueryFlowArgs
-  progress_type = rdf_osquery.OsqueryProgress
-  result_types = (rdf_osquery.OsqueryResult,)
-
   proto_args_type = osquery_pb2.OsqueryFlowArgs
   proto_result_types = (osquery_pb2.OsqueryResult, jobs_pb2.StatEntry)
   proto_progress_type = osquery_pb2.OsqueryProgress
   proto_store_type = osquery_pb2.OsqueryStore
-
-  only_protos_allowed = True
 
   def _UpdateProgressWithError(self, error_message: str) -> None:
     self.progress.error_message = error_message
@@ -314,14 +312,6 @@ class OsqueryFlow(
       self._UpdateProgressWithError(message)
       raise FileCollectionLimitsExceeded(message)
 
-    if (
-        self.proto_args.configuration_path
-        and self.proto_args.configuration_content
-    ):
-      raise ValueError(
-          "Configuration path and configuration content are mutually exclusive."
-      )
-
     if self.proto_args.configuration_content:
       try:
         _ = json.loads(self.proto_args.configuration_content)
@@ -330,18 +320,203 @@ class OsqueryFlow(
             "Configuration content is not valid JSON"
         ) from json_error
 
-    action_args = osquery_pb2.OsqueryArgs(
-        query=self.proto_args.query,
-        timeout_millis=self.proto_args.timeout_millis,
-        configuration_path=self.proto_args.configuration_path,
-        configuration_content=self.proto_args.configuration_content,
+    if self.rrg_support and not self.proto_args.configuration_content:
+      # TODO - This should be probably moved to some utility.
+      if self.rrg_os_type == rrg_os_pb2.LINUX:
+        os = signed_commands_pb2.SignedCommand.OS.LINUX
+      elif self.rrg_os_type == rrg_os_pb2.MACOS:
+        os = signed_commands_pb2.SignedCommand.OS.MACOS
+      elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
+        os = signed_commands_pb2.SignedCommand.OS.WINDOWS
+      else:
+        raise flow_base.FlowError(f"Unexpected system: {self.rrg_os_type}")
+
+      assert data_store.REL_DB is not None
+      osquery_command = data_store.REL_DB.ReadSignedCommand(
+          "osquery",
+          operating_system=os,
+      )
+
+      timeout_millis = self.proto_args.timeout_millis or DEFAULT_TIMEOUT_MILLIS
+
+      action = rrg_stubs.ExecuteSignedCommand()
+      action.args.command = osquery_command.command
+      action.args.command_ed25519_signature = osquery_command.ed25519_signature
+      action.args.unsigned_stdin = self.proto_args.query.encode("utf-8")
+      action.args.timeout.seconds = timeout_millis // 1_000
+      action.args.timeout.nanos = (timeout_millis % 1_000) * 1_000_000
+      action.Call(self._ProcessRRG)
+    elif (
+        # `store_filestore_part` was introduced in version 0.0.8.
+        self.rrg_version >= (0, 0, 8)
+        and self.proto_args.configuration_content
+    ):
+      content = self.proto_args.configuration_content.encode("utf-8")
+
+      action = rrg_stubs.StoreFilestorePart()
+      action.args.file_sha256 = hashlib.sha256(content).digest()
+      action.args.file_size = len(content)
+      action.args.part_offset = 0
+      action.args.part_content = content
+      action.Call(self._ProcessStoreConfig)
+    else:
+      action_args = osquery_pb2.OsqueryArgs(
+          query=self.proto_args.query,
+          timeout_millis=(
+              self.proto_args.timeout_millis or DEFAULT_TIMEOUT_MILLIS
+          ),
+          configuration_content=self.proto_args.configuration_content,
+      )
+
+      self.CallClientProto(
+          server_stubs.Osquery,
+          action_args,
+          next_state=self.Process.__name__,
+      )
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessRRG(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      raise flow_base.FlowError(
+          f"Failed to invoke osquery: {responses.status}",
+      )
+
+    if len(responses) != 1:
+      raise flow_base.FlowError(
+          f"Unexpected osquery response count: {len(responses)}",
+      )
+
+    response = rrg_execute_signed_command_pb2.Result()
+    response.ParseFromString(list(responses)[0].value)
+
+    if response.exit_code != 0 or response.exit_signal != 0:
+      raise flow_base.FlowError(
+          "Invoking osquery failed abnormally "
+          f"(code: {response.exit_code}, signal: {response.exit_signal}"
+          f"stdout: {response.stdout}, stderr: {response.stderr})",
+      )
+
+    # Depending on the version, in case of a syntax error osquery might or might
+    # not terminate with a non-zero exit code, but it will always print the
+    # error to stderr.
+    if response.stderr:
+      raise flow_base.FlowError(
+          f"Invoking osquery had errors: {response.stderr}",
+      )
+
+    if response.stdout_truncated:
+      raise flow_base.FlowError(
+          "Output of osquery too long",
+      )
+
+    result = osquery_pb2.OsqueryResult()
+    result.table.query = self.proto_args.query
+
+    for response_row in json.loads(response.stdout):
+      # We use the columns of first response row as the header prototype.
+      if not result.table.header.columns:
+        for response_column in response_row.keys():
+          result_column = result.table.header.columns.add()
+          result_column.name = response_column
+          # TODO - Add support for types (the Python implementation
+          # does currently not have one but has a TODO comment about it).
+
+      result_row = result.table.rows.add()
+      for result_column in result.table.header.columns:
+        result_row.values.append(response_row[result_column.name])
+
+    # The legacy agent returns a table only when there are some rows, so we must
+    # replicate this behaviour.
+    if result.table.rows:
+      self.SendReplyProto(result)
+
+    multi_get_file_args = flows_pb2.MultiGetFileArgs()
+
+    for i, result_column in enumerate(result.table.header.columns):
+      if result_column.name not in self.proto_args.file_collection_columns:
+        continue
+
+      for row in result.table.rows:
+        pathspec = multi_get_file_args.pathspecs.add()
+        pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
+        pathspec.path = row.values[i]
+
+    if multi_get_file_args.pathspecs:
+      self.CallFlowProto(
+          transfer.MultiGetFile.__name__,
+          flow_args=multi_get_file_args,
+          next_state=self._ProcessMultiGetFile.__name__,
+      )
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessMultiGetFile(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      raise flow_base.FlowError(
+          f"Failed to collect files: {responses.status}",
+      )
+
+    for response_any in responses:
+      response = jobs_pb2.StatEntry()
+      response.ParseFromString(response_any.value)
+
+      self.SendReplyProto(response)
+
+  @flow_base.UseProto2AnyResponses
+  def _ProcessStoreConfig(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      raise flow_base.FlowError(
+          f"Failed to store osquery configuration: {responses.status}",
+      )
+
+    if len(responses) != 1:
+      raise flow_base.FlowError(
+          f"Unexpected `store_filestore_part` response count: {len(responses)}",
+      )
+
+    response = rrg_store_filestore_part_pb2.Result()
+    response.ParseFromString(list(responses)[0].value)
+
+    # We only send one part so it should always complete the file.
+    if response.status != rrg_store_filestore_part_pb2.COMPLETE:
+      raise flow_base.FlowError(
+          f"Unexpected `store_filestore_part` part status: {response.status}",
+      )
+
+    # TODO - This should be probably moved to some utility.
+    if self.rrg_os_type == rrg_os_pb2.LINUX:
+      os = signed_commands_pb2.SignedCommand.OS.LINUX
+    elif self.rrg_os_type == rrg_os_pb2.MACOS:
+      os = signed_commands_pb2.SignedCommand.OS.MACOS
+    elif self.rrg_os_type == rrg_os_pb2.WINDOWS:
+      os = signed_commands_pb2.SignedCommand.OS.WINDOWS
+    else:
+      raise flow_base.FlowError(f"Unexpected system: {self.rrg_os_type}")
+
+    assert data_store.REL_DB is not None
+    osquery_command = data_store.REL_DB.ReadSignedCommand(
+        "osquery_with_config",
+        operating_system=os,
     )
 
-    self.CallClientProto(
-        server_stubs.Osquery,
-        action_args,
-        next_state=self.Process.__name__,
-    )
+    timeout_millis = self.proto_args.timeout_millis or DEFAULT_TIMEOUT_MILLIS
+
+    action = rrg_stubs.ExecuteSignedCommand()
+    action.args.command = osquery_command.command
+    action.args.command_ed25519_signature = osquery_command.ed25519_signature
+    action.args.unsigned_stdin = self.proto_args.query.encode("utf-8")
+    action.args.timeout.seconds = timeout_millis // 1_000
+    action.args.timeout.nanos = (timeout_millis % 1_000) * 1_000_000
+    action.args.filestore_file_sha256s.append(response.file_sha256)
+    action.Call(self._ProcessRRG)
 
   @flow_base.UseProto2AnyResponses
   def Process(
@@ -375,9 +550,6 @@ class OsqueryFlow(
 
     self._FileCollectionFromColumns(unpacked_responses)
 
-  def GetProgress(self) -> rdf_osquery.OsqueryProgress:
-    return mig_osquery.ToRDFOsqueryProgress(self.progress)
-
   def GetProgressProto(self) -> osquery_pb2.OsqueryProgress:
     return self.progress
 
@@ -397,21 +569,21 @@ class OsqueryFlow(
 
   def GetFilesArchiveMappings(
       self,
-      flow_results: Iterator[rdf_flow_objects.FlowResult],
+      flow_results: Iterator[flows_pb2.FlowResult],
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
     target_path_generator = _UniquePathGenerator()
 
     for result in flow_results:
       try:
-        osquery_file = _ExtractFileInfo(result)
+        stat_entry = _ExtractFileInfo(result)
       except _ResultNotRelevantError:
         continue
 
       client_path = db.ClientPath.FromPathSpec(
-          self.client_id, osquery_file.stat_entry.pathspec
+          self.client_id, mig_paths.ToRDFPathSpec(stat_entry.pathspec)
       )
       target_path = target_path_generator.GeneratePath(
-          osquery_file.stat_entry.pathspec
+          mig_paths.ToRDFPathSpec(stat_entry.pathspec)
       )
 
       yield flow_base.ClientPathArchiveMapping(

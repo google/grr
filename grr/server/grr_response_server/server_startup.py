@@ -13,7 +13,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 # pylint: disable=unused-import
-# TODO: Remove once old clients are fully deprecated.
+# TODO - Remove once old clients are fully deprecated.
 from grr_response_core.lib.rdfvalues import deprecated as rdf_deprecated
 # pylint: enable=unused-import
 from grr_response_core.stats import stats_collector_instance

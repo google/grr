@@ -62,11 +62,13 @@ export function newGlobalStoreMock(): GlobalStoreMock {
     fetchFlowDescriptors: jasmine.createSpy('fetchFlowDescriptors'),
     fetchBinaryNames: jasmine.createSpy('fetchBinaryNames'),
     getArtifactDescriptorMap: jasmine.createSpy('getArtifactDescriptorMap'),
+    deleteArtifact: jasmine.createSpy('deleteArtifact'),
     fetchWebAuthType: jasmine.createSpy('fetchWebAuthType'),
     fetchExportCommandPrefix: jasmine.createSpy('fetchExportCommandPrefix'),
     fetchOutputPluginDescriptors: jasmine.createSpy(
       'fetchOutputPluginDescriptors',
     ),
+    uploadArtifact: jasmine.createSpy('uploadArtifact'),
   };
 }
 

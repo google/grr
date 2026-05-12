@@ -110,8 +110,11 @@ export class OutputPluginsForm {
           emailPlugin,
         ]);
         break;
+      case OutputPluginType.UNKNOWN:
+        console.log('Unknown plugin type');
+        break;
       default:
-        console.log('Unknown plugin: ', pluginType);
+        checkExhaustive(pluginType);
     }
   }
 

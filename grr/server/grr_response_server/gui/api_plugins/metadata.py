@@ -367,6 +367,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
             ),
             "type": "object",
             "additionalProperties": _GetReferenceObject(value_type_name),
+            "x-key-type": _GetReferenceObject(key_type_name),
         },
     )
 
@@ -435,10 +436,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _CreateOutputPluginSchemas(self, visiting: set[str]) -> None:
     """Creates OpenAPI schemas for output plugin args and result types."""
-    for plugin_cls in registry.OutputPluginRegistry.PLUGIN_REGISTRY.values():
-      if plugin_cls.proto_args_type:
-        self._CreateSchema(plugin_cls.proto_args_type.DESCRIPTOR, visiting)
-
     for plugin_cls in output_plugin_registry.GetAllPlugins():
       if plugin_cls.args_type:  # pytype: disable=unbound-type-param
         self._CreateSchema(plugin_cls.args_type.DESCRIPTOR, visiting)
@@ -973,10 +970,7 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
       if key_value_d is None:
         raise AssertionError(f"{cls} is not a map FieldDescriptor")
 
-      key_type_name = _GetTypeName(key_value_d.key)
-      value_type_name = _GetTypeName(key_value_d.value)
-
-      return f"{map_type_name}Map_{key_type_name}:{value_type_name}"
+      return f"{map_type_name}Map"
 
     if cls.message_type:
       return _GetTypeName(cls.message_type)

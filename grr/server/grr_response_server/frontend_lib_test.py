@@ -430,7 +430,7 @@ class FrontEndServerTest(absltest.TestCase):
   def testReceiveRRGParcelError(self):
     class FakeSink(sinks.Sink):
 
-      # TODO: Add the `@override` annotation [1] once we are can
+      # TODO - Add the `@override` annotation [1] once we are can
       # use Python 3.12 features.
       #
       # [1]: https://peps.python.org/pep-0698/

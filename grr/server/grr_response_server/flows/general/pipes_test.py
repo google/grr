@@ -25,19 +25,19 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testPlatformNotSupported(self):
     self.client_id = self.SetupClient(0, system="Linux")
 
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     with self.assertRaisesRegex(RuntimeError, "Unsupported platform"):
       self._RunListNamedPipesFlow(args)
 
   def testNoPipes(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     results = self._RunListNamedPipesFlow(args, pipe_results=[])
     self.assertEmpty(results)
 
   def testSinglePipe(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
     pipe.name = "foo"
@@ -49,7 +49,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.server_pid, 1337)
 
   def testMultiplePipes(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
     pipe_foo.name = "foo"
@@ -70,7 +70,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results_by_name["baz"].pipe.server_pid, 0xB45)
 
   def testPipeNameRegex(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_name_regex = "ba."
 
     pipe_foo = rdf_client.NamedPipe()
@@ -93,7 +93,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("baz", result_names)
 
   def testProcExeRegex(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.proc_exe_regex = r"C:\\Windows\\ba.\.exe"
 
     pipe_foo = rdf_client.NamedPipe()
@@ -132,7 +132,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("baz", result_names)
 
   def testPipeTypeFilterByteMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.BYTE_TYPE
 
     pipe = rdf_client.NamedPipe()
@@ -144,7 +144,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeTypeFilterByteNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.BYTE_TYPE
 
     pipe = rdf_client.NamedPipe()
@@ -155,7 +155,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results)
 
   def testPipeTypeFilterMessageMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.MESSAGE_TYPE
 
     pipe = rdf_client.NamedPipe()
@@ -167,7 +167,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeTypeFilterMessageNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_type_filter = pipes_pb2.ListNamedPipesFlowArgs.MESSAGE_TYPE
 
     pipe = rdf_client.NamedPipe()
@@ -178,7 +178,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results)
 
   def testPipeEndFilterClientMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.CLIENT_END
 
     pipe = rdf_client.NamedPipe()
@@ -190,7 +190,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeEndFilterClientNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.CLIENT_END
 
     pipe = rdf_client.NamedPipe()
@@ -201,7 +201,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results)
 
   def testPipeEndFilterServerMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.SERVER_END
 
     pipe = rdf_client.NamedPipe()
@@ -213,7 +213,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].pipe.name, "foo")
 
   def testPipeEndFilterServerNoMatch(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
     args.pipe_end_filter = pipes_pb2.ListNamedPipesFlowArgs.SERVER_END
 
     pipe = rdf_client.NamedPipe()
@@ -224,7 +224,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results)
 
   def testSinglePipeWithServerPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
     pipe.name = "foo"
@@ -245,7 +245,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].proc.exe, r"C:\Windows\foo.exe")
 
   def testSinglePipeWithClientPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
     pipe.name = "foo"
@@ -266,7 +266,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].proc.exe, r"C:\Windows\foo.exe")
 
   def testSinglePipeWithNoMatchingPid(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe = rdf_client.NamedPipe()
     pipe.name = "foo"
@@ -291,7 +291,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results[0].proc.exe)
 
   def testMultiplePipesWithPids(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
     pipe_foo.name = "foo-pipe"
@@ -326,7 +326,7 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(results_by_name["bar-pipe"].proc.exe)
 
   def testMultiplePipesWithPid0(self):
-    args = pipes.ListNamedPipesFlowArgs()
+    args = pipes_pb2.ListNamedPipesFlowArgs()
 
     pipe_foo = rdf_client.NamedPipe()
     pipe_foo.name = "foo-pipe"
@@ -352,10 +352,10 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def _RunListNamedPipesFlow(
       self,
-      args: pipes.ListNamedPipesFlowArgs,
+      args: pipes_pb2.ListNamedPipesFlowArgs,
       pipe_results: Iterable[rdf_client.NamedPipe] = (),
       proc_results: Iterable[rdf_client.Process] = (),
-  ) -> Sequence[pipes.ListNamedPipesFlowResult]:
+  ) -> Sequence[pipes_pb2.ListNamedPipesFlowResult]:
     """Runs the flow listing named pipes with the given fake action results."""
 
     class ActionMock(action_mocks.ActionMock):
@@ -386,7 +386,9 @@ class ListNamedPipesFlowTest(flow_test_lib.FlowTestsBaseclass):
     )
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
-    return flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    return flow_test_lib.GetUnpackedFlowResults(
+        self.client_id, flow_id, pipes_pb2.ListNamedPipesFlowResult
+    )
 
 
 if __name__ == "__main__":

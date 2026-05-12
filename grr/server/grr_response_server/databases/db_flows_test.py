@@ -22,8 +22,6 @@ from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows import file
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import test_lib
 from grr_response_proto import rrg_pb2
 
@@ -286,19 +284,16 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteClientMetadata(client_id_2)
 
     # Write a flow and a child flow for client 1.
-    flow1 = rdf_flow_objects.Flow(client_id=client_id_1, flow_id="000A0001")
-    proto_flow = mig_flow_objects.ToProtoFlow(flow1)
-    self.db.WriteFlowObject(proto_flow)
-    flow2 = rdf_flow_objects.Flow(
+    flow1 = flows_pb2.Flow(client_id=client_id_1, flow_id="000A0001")
+    self.db.WriteFlowObject(flow1)
+    flow2 = flows_pb2.Flow(
         client_id=client_id_1, flow_id="000A0002", parent_flow_id="000A0001"
     )
-    proto_flow = mig_flow_objects.ToProtoFlow(flow2)
-    self.db.WriteFlowObject(proto_flow)
+    self.db.WriteFlowObject(flow2)
 
     # Same flow id for client 2.
-    flow3 = rdf_flow_objects.Flow(client_id=client_id_2, flow_id="000A0001")
-    proto_flow = mig_flow_objects.ToProtoFlow(flow3)
-    self.db.WriteFlowObject(proto_flow)
+    flow3 = flows_pb2.Flow(client_id=client_id_2, flow_id="000A0001")
+    self.db.WriteFlowObject(flow3)
 
     flows = self.db.ReadAllFlowObjects()
     self.assertCountEqual(
@@ -358,31 +353,21 @@ class DatabaseTestFlowMixin(object):
   def testReadAllFlowObjectsWitParentFlowID(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    parent_flow = rdf_flow_objects.Flow()
-    parent_flow.client_id = client_id
-    parent_flow.flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(parent_flow)
-    self.db.WriteFlowObject(proto_flow)
+    parent_flow = flows_pb2.Flow(client_id=client_id, flow_id="AAAAAAAA")
+    self.db.WriteFlowObject(parent_flow)
 
-    child_flow_1 = rdf_flow_objects.Flow()
-    child_flow_1.client_id = client_id
-    child_flow_1.flow_id = "CCCC1111"
-    child_flow_1.parent_flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(child_flow_1)
-    self.db.WriteFlowObject(proto_flow)
+    child_flow_1 = flows_pb2.Flow(
+        client_id=client_id, flow_id="CCCC1111", parent_flow_id="AAAAAAAA"
+    )
+    self.db.WriteFlowObject(child_flow_1)
 
-    child_flow_2 = rdf_flow_objects.Flow()
-    child_flow_2.client_id = client_id
-    child_flow_2.flow_id = "CCCC2222"
-    child_flow_2.parent_flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(child_flow_2)
-    self.db.WriteFlowObject(proto_flow)
+    child_flow_2 = flows_pb2.Flow(
+        client_id=client_id, flow_id="CCCC2222", parent_flow_id="AAAAAAAA"
+    )
+    self.db.WriteFlowObject(child_flow_2)
 
-    not_child_flow = rdf_flow_objects.Flow()
-    not_child_flow.client_id = client_id
-    not_child_flow.flow_id = "FFFFFFFF"
-    proto_flow = mig_flow_objects.ToProtoFlow(not_child_flow)
-    self.db.WriteFlowObject(proto_flow)
+    not_child_flow = flows_pb2.Flow(client_id=client_id, flow_id="FFFFFFFF")
+    self.db.WriteFlowObject(not_child_flow)
 
     result = self.db.ReadAllFlowObjects(
         client_id=client_id, parent_flow_id="AAAAAAAA", include_child_flows=True
@@ -397,11 +382,8 @@ class DatabaseTestFlowMixin(object):
   def testReadAllFlowObjectsWithParentFlowIDWithoutChildren(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    parent_flow = rdf_flow_objects.Flow()
-    parent_flow.client_id = client_id
-    parent_flow.flow_id = "AAAAAAAA"
-    proto_flow = mig_flow_objects.ToProtoFlow(parent_flow)
-    self.db.WriteFlowObject(proto_flow)
+    parent_flow = flows_pb2.Flow(client_id=client_id, flow_id="AAAAAAAA")
+    self.db.WriteFlowObject(parent_flow)
 
     with self.assertRaises(ValueError):
       self.db.ReadAllFlowObjects(
@@ -1335,7 +1317,7 @@ class DatabaseTestFlowMixin(object):
             flow_id=flow_id,
             request_id=2,
             response_id=2,
-            status=rdf_flow_objects.FlowStatus.Status.OK,
+            status=flows_pb2.FlowStatus.Status.OK,
         )
     )
 
@@ -2139,7 +2121,7 @@ class DatabaseTestFlowMixin(object):
         request_id=request.request_id,
         response_id=0,
         # For the purpose of the test, the payload can be arbitrary,
-        # using rdf_flow_objects.FlowRequest as a sample struct.
+        # using flows_pb2.FlowRequest as a sample struct.
         payload=payload_any,
     )
     self.db.WriteFlowResponses([response])

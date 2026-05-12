@@ -245,7 +245,7 @@ class GetFileWithFailingStatClientMock(ActionMock):
 # New tests should implement and/or use proper mock objects, as VFS is all but
 # obsolete.
 #
-# TODO: remove this hack once we drop `FileFinder` altogether.
+# TODO - remove this hack once we drop `FileFinder` altogether.
 class ClientFileFinderWithVFS(ActionMock):
   """Mock action allowing ClientFileFinder to work with VFS.
 

@@ -4,7 +4,7 @@
 from grr_response_proto import knowledge_base_pb2
 
 
-# TODO: Should this be named just `MergeUser`? The "or add" is kind
+# TODO - Should this be named just `MergeUser`? The "or add" is kind
 # of obvious and only adds unnecessary visual clutter to code.
 def MergeOrAddUser(
     kb: knowledge_base_pb2.KnowledgeBase,
@@ -52,3 +52,13 @@ def MergeOrAddUser(
     # we cannot do it during the loop above not to mess up the indices.
     for kb_user_idx in kb_user_idxes[1:]:
       del kb.users[kb_user_idx]
+
+
+def GetUser(
+    kb: knowledge_base_pb2.KnowledgeBase, username: str
+) -> knowledge_base_pb2.User:
+  """Returns a user from the knowledge base."""
+  for user in kb.users:
+    if user.username == username:
+      return user
+  raise ValueError(f"User {username} not found in knowledge base.")

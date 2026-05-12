@@ -15,17 +15,17 @@ import yaml
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import config as rdf_config
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_proto.api import hunt_pb2 as api_hunt_pb2
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server import instant_output_plugin
+from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.export_converters import log_message
@@ -37,10 +37,6 @@ from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.instant_output_plugins import csv_instant_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
-from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import export_test_lib
@@ -358,12 +354,15 @@ class ApiListHuntsHandlerTest(
   def testShowsFullSummaryWhenRequested(self):
     client_ids = self.SetupClients(1)
     hunt_id = self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+        flow_runner_args=flows_pb2.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__
         ),
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
-            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+            ),
+            pathtype=jobs_pb2.PathSpec.PathType.OS,
         ),
         client_rate=0,
         creator=self.context.username,
@@ -483,6 +482,31 @@ class ApiListHuntsHandlerTest(
     self.assertEqual(result.items[0].description, "hunt_not_started")
     self.assertEqual(result.items[0].state, api_hunt_pb2.ApiHunt.State.PAUSED)
 
+  def testFiltersHuntsByRobotFilter(self):
+    self.CreateHunt(description="robot hunt", creator="beepboop")
+    self.CreateHunt(description="human hunt", creator="test_user")
+
+    with test_lib.ConfigOverrider({"AdminUI.robot_users": ["beepboop"]}):
+      result = self.handler.Handle(
+          api_hunt_pb2.ApiListHuntsArgs(
+              robot_filter=api_hunt_pb2.ApiListHuntsArgs.RobotFilter.ONLY_ROBOTS
+          ),
+          context=self.context,
+      )
+
+      self.assertLen(result.items, 1)
+      self.assertEqual(result.items[0].description, "robot hunt")
+
+      result = self.handler.Handle(
+          api_hunt_pb2.ApiListHuntsArgs(
+              robot_filter=api_hunt_pb2.ApiListHuntsArgs.RobotFilter.NO_ROBOTS
+          ),
+          context=self.context,
+      )
+
+      self.assertLen(result.items, 1)
+      self.assertEqual(result.items[0].description, "human hunt")
+
   def testRaisesIfDescriptionContainsFilterUsedWithoutActiveWithinFilter(self):
     self.assertRaises(
         ValueError,
@@ -581,18 +605,20 @@ class ApiGetHuntHandlerTest(
     self.handler = hunt_plugin.ApiGetHuntHandler()
 
   def testHuntDuration(self):
-    duration = rdfvalue.Duration.From(42, rdfvalue.MINUTES)
-    hunt_obj = rdf_hunt_objects.Hunt()
-    hunt_obj.hunt_id = "12345678"
-    hunt_obj.duration = duration
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    duration_seconds = rdfvalue.Duration.From(42, rdfvalue.MINUTES).ToInt(
+        timeunit=rdfvalue.SECONDS
+    )
+    hunt_obj = hunts_pb2.Hunt(
+        hunt_id="12345678",
+        duration=duration_seconds,
+        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
+    )
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     args = api_hunt_pb2.ApiGetHuntArgs()
     args.hunt_id = "12345678"
 
     hunt_api_obj = self.handler.Handle(args, context=self.context)
-    duration_seconds = duration.ToInt(timeunit=rdfvalue.SECONDS)
     self.assertEqual(hunt_api_obj.duration, duration_seconds)
     self.assertEqual(
         hunt_api_obj.hunt_runner_args.expiry_time,
@@ -611,12 +637,15 @@ class ApiGetHuntFilesArchiveHandlerTest(
 
     self.client_ids = self.SetupClients(10)
     self.hunt_id = self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+        flow_runner_args=flows_pb2.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__
         ),
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
-            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+            ),
+            pathtype=jobs_pb2.PathSpec.PathType.OS,
         ),
         client_rate=0,
         creator=self.context.username,
@@ -706,12 +735,15 @@ class ApiGetHuntFileHandlerTest(
     self.vfs_file_path = "fs/os/%s" % self.file_path
 
     self.hunt_id = self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+        flow_runner_args=flows_pb2.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__
         ),
-        flow_args=rdf_file_finder.FileFinderArgs(
+        flow_args=flows_pb2.FileFinderArgs(
             paths=[self.file_path],
-            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+            ),
+            pathtype=jobs_pb2.PathSpec.PathType.OS,
         ),
         client_rate=0,
         creator=self.context.username,
@@ -851,8 +883,8 @@ class ApiListHuntResultsHandlerTest(
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectFilesByKnownPathResult(),
-            rdf_file_finder.FileFinderResult(),
+            flows_pb2.CollectFilesByKnownPathResult(),
+            flows_pb2.FileFinderResult(),
         ],
     )
     result = self.handler.Handle(
@@ -873,8 +905,8 @@ class ApiListHuntResultsHandlerTest(
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectFilesByKnownPathResult(),
-            rdf_file_finder.FileFinderResult(),
+            flows_pb2.CollectFilesByKnownPathResult(),
+            flows_pb2.FileFinderResult(),
         ],
     )
     result = self.handler.Handle(
@@ -889,13 +921,13 @@ class ApiListHuntResultsHandlerTest(
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectFilesByKnownPathResult(),
-            rdf_file_finder.FileFinderResult(),
+            flows_pb2.CollectFilesByKnownPathResult(),
+            flows_pb2.FileFinderResult(),
         ],
     )
     result = self.handler.Handle(
         api_hunt_pb2.ApiListHuntResultsArgs(
-            hunt_id=hunt_id, with_type=rdf_file_finder.FileFinderResult.__name__
+            hunt_id=hunt_id, with_type=flows_pb2.FileFinderResult.__name__
         ),
         context=self.context,
     )
@@ -910,15 +942,15 @@ class ApiListHuntResultsHandlerTest(
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectFilesByKnownPathResult(),
-            rdf_file_finder.FileFinderResult(),
+            flows_pb2.CollectFilesByKnownPathResult(),
+            flows_pb2.FileFinderResult(),
         ],
     )
     result = self.handler.Handle(
         api_hunt_pb2.ApiListHuntResultsArgs(
             hunt_id=hunt_id,
             count=3,
-            with_type=rdf_file_finder.FileFinderResult.__name__,
+            with_type=flows_pb2.FileFinderResult.__name__,
         ),
         context=self.context,
     )
@@ -952,8 +984,8 @@ class ApiCountHuntResultsHandlerTest(
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectFilesByKnownPathResult(),
-            rdf_file_finder.FileFinderResult(),
+            flows_pb2.CollectFilesByKnownPathResult(),
+            flows_pb2.FileFinderResult(),
         ],
     )
     result = self.handler.Handle(
@@ -975,6 +1007,16 @@ class ApiCountHuntResultsHandlerTest(
     )
 
 
+class DummyHuntTestOutputPlugin(output_plugin.OutputPluginProto):
+  """A dummy output plugin."""
+
+  description = "Dummy do do."
+  args_type = flows_pb2.ListProcessesArgs
+
+  def ProcessResults(self, results):
+    pass
+
+
 class ApiListHuntOutputPluginLogsHandlerTest(
     api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
 ):
@@ -986,23 +1028,27 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.client_ids = self.SetupClients(5)
     self.handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler()
     self.output_plugins = [
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="foo"
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=DummyHuntTestOutputPlugin.__name__,
+            args=any_pb2.Any().Pack(
+                flows_pb2.ListProcessesArgs(filename_regex="foo")
             ),
         ),
-        rdf_output_plugin.OutputPluginDescriptor(
-            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
-                filename_regex="bar"
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=DummyHuntTestOutputPlugin.__name__,
+            args=any_pb2.Any().Pack(
+                flows_pb2.ListProcessesArgs(filename_regex="bar")
             ),
         ),
     ]
 
-  def RunHuntWithOutputPlugins(self, output_plugins):
+  def RunHuntWithOutputPlugins(
+      self,
+      output_plugins: list[output_plugin_pb2.OutputPluginDescriptor],
+  ):
     hunt_id = self.StartHunt(
-        description="the hunt", output_plugins=output_plugins
+        description="the hunt",
+        output_plugins=output_plugins,
     )
 
     for client_id in self.client_ids:
@@ -1010,12 +1056,13 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
     return hunt_id
 
+  @test_plugins.WithOutputPluginProto(DummyHuntTestOutputPlugin)
   def testReturnsLogsWhenJustOnePlugin(self):
     hunt_id = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
     result = self.handler.Handle(
         api_hunt_pb2.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_id,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0",
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0",
         ),
         context=self.context,
     )
@@ -1023,12 +1070,13 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
 
+  @test_plugins.WithOutputPluginProto(DummyHuntTestOutputPlugin)
   def testReturnsLogsWhenMultiplePlugins(self):
     hunt_id = self.RunHuntWithOutputPlugins(self.output_plugins)
     result = self.handler.Handle(
         api_hunt_pb2.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_id,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1",
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1",
         ),
         context=self.context,
     )
@@ -1036,6 +1084,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 5)
 
+  @test_plugins.WithOutputPluginProto(DummyHuntTestOutputPlugin)
   def testSlicesLogsWhenJustOnePlugin(self):
     hunt_id = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
     result = self.handler.Handle(
@@ -1043,7 +1092,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
             hunt_id=hunt_id,
             offset=2,
             count=2,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0",
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0",
         ),
         context=self.context,
     )
@@ -1051,6 +1100,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertEqual(result.total_count, 5)
     self.assertLen(result.items, 2)
 
+  @test_plugins.WithOutputPluginProto(DummyHuntTestOutputPlugin)
   def testSlicesLogsWhenMultiplePlugins(self):
     hunt_id = self.RunHuntWithOutputPlugins(self.output_plugins)
     result = self.handler.Handle(
@@ -1058,7 +1108,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
             hunt_id=hunt_id,
             offset=2,
             count=2,
-            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1",
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1",
         ),
         context=self.context,
     )
@@ -1243,10 +1293,10 @@ class ApiGetExportedHuntResultsHandlerTest(
   def testWorksCorrectlyWithProtoPlugin(self):
     input_str = "banana"
     hunt_id = self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+        flow_runner_args=flows_pb2.FlowRunnerArgs(
             flow_name=flow_test_lib.EchoLogFlowProto.__name__
         ),
-        flow_args=rdf_client.LogMessage(data=input_str),
+        flow_args=jobs_pb2.LogMessage(data=input_str),
         client_rate=0,
     )
     client_ids = self.SetupClients(1)
@@ -1298,10 +1348,10 @@ class ApiGetExportedHuntResultsHandlerTest(
   )
   def testIntegrationWithCSVAndExportConverter(self):
     hunt_id = self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+        flow_runner_args=flows_pb2.FlowRunnerArgs(
             flow_name=flow_test_lib.EchoLogFlowProto.__name__
         ),
-        flow_args=rdf_client.LogMessage(data="yerba mate"),
+        flow_args=jobs_pb2.LogMessage(data="yerba mate"),
         client_rate=0,
     )
     client_ids = self.SetupClients(1)

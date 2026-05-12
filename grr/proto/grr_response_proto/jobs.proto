@@ -513,7 +513,7 @@ message RequestState {
 }
 
 message CpuSeconds {
-  // TODO: Remove `deprecated` fields.
+  // TODO - Remove `deprecated` fields.
   // DEPRECATED: Use user_cpu_seconds instead.
   optional float deprecated_user_cpu_time = 1 [(sem_type) = {
     friendly_name: "User cpu seconds used",
@@ -668,7 +668,7 @@ message PathSpec {
   // ImplementationType has been introduced for rolling-out sandboxing.
   // The purpose is to make it possible to switch the implementation at
   // run-time via the UI in case there are problems.
-  // TODO: Once sandboxing becomes the default implementation,
+  // TODO - Once sandboxing becomes the default implementation,
   // this should be removed.
 
   enum ImplementationType {
@@ -1154,7 +1154,7 @@ message GrepSpec {
     default = 10737418240
   ];
 
-  // TODO: Semantic type here should be unnecessary.
+  // TODO - Semantic type here should be unnecessary.
   optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   // A literal search.
@@ -1237,7 +1237,7 @@ message FindSpec {
     label: ADVANCED
   }];
 
-  // TODO: Semantic type here should be unnecessary.
+  // TODO - Semantic type here should be unnecessary.
   optional bytes data_regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
   optional uint64 start_time = 5 [
@@ -1508,12 +1508,6 @@ message ForemanCondition {
 
   optional string hunt_id = 6
       [(sem_type) = { description: "The id of the hunt to start." }];
-}
-
-message HuntError {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
-  optional string log_message = 2;
-  optional string backtrace = 3;
 }
 
 message FlowLog {
@@ -1879,7 +1873,7 @@ message MetricMetadata {
   enum ValueType {
     INT = 0;
     FLOAT = 1;
-    DEPRECATED_STR = 2;  // TODO: String Gauges are deprecated.
+    DEPRECATED_STR = 2;  // TODO - String Gauges are deprecated.
     DISTRIBUTION = 3;
   }
 

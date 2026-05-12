@@ -64,28 +64,35 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Literal(self):
     regex = rrg_winreg.KeyGlob(r"Foo\Bar\Baz").regex
-    self.assertEqual(regex.pattern, r"^Foo\\Bar\\Baz$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo\\Bar\\Baz$")
     self.assertRegex(r"Foo\Bar\Baz", regex)
     self.assertNotRegex(r"Foo\Bar\Quux", regex)
     self.assertNotRegex(r"Foo\Quux\Baz", regex)
 
+  def testRegex_CaseInsensitive(self):
+    regex = rrg_winreg.KeyGlob(r"foo\BAR\bAz").regex
+    self.assertEqual(regex.pattern, r"(?i)^foo\\BAR\\bAz$")
+    self.assertRegex(r"Foo\Bar\Baz", regex)
+    self.assertRegex(r"foo\bar\baz", regex)
+    self.assertRegex(r"FOO\BAR\BAZ", regex)
+
   def testRegex_Star_Root_Leaf(self):
     regex = rrg_winreg.KeyGlob("*").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*$")
     self.assertRegex("Foo", regex)
     self.assertRegex("Bar", regex)
     self.assertNotRegex(r"Foo\Bar", regex)
 
   def testRegex_Star_Root_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"*\Bar").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*\\Bar$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*\\Bar$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Quux\Bar", regex)
     self.assertNotRegex(r"Foo\Baz", regex)
 
   def testRegex_Star_Leaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\Bar\*").regex
-    self.assertEqual(regex.pattern, r"^Foo\\Bar\\[^\\]*$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo\\Bar\\[^\\]*$")
     self.assertRegex(r"Foo\Bar\Baz", regex)
     self.assertRegex(r"Foo\Bar\Quux", regex)
     self.assertRegex(r"Foo\Bar\Norf", regex)
@@ -94,7 +101,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Star_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\*\Baz").regex
-    self.assertEqual(regex.pattern, r"^Foo\\[^\\]*\\Baz$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo\\[^\\]*\\Baz$")
     self.assertRegex(r"Foo\Bar\Baz", regex)
     self.assertRegex(r"Foo\Quux\Baz", regex)
     self.assertRegex(r"Foo\Norf\Baz", regex)
@@ -103,7 +110,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Star_Multiple(self):
     regex = rrg_winreg.KeyGlob(r"Foo\*\*").regex
-    self.assertEqual(regex.pattern, r"^Foo\\[^\\]*\\[^\\]*$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo\\[^\\]*\\[^\\]*$")
     self.assertRegex(r"Foo\Bar\Baz", regex)
     self.assertRegex(r"Foo\Bar\Quux", regex)
     self.assertRegex(r"Foo\Quux\Baz", regex)
@@ -112,7 +119,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Recursive_Leaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\**2").regex
-    self.assertEqual(regex.pattern, r"^Foo(\\[^\\]*){0,2}$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo(\\[^\\]*){0,2}$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Foo\Baz", regex)
     self.assertRegex(r"Foo\Bar\Baz", regex)
@@ -121,7 +128,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Recursive_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\**2\Bar").regex
-    self.assertEqual(regex.pattern, r"^Foo(\\[^\\]*){0,2}\\Bar$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo(\\[^\\]*){0,2}\\Bar$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Foo\Baz\Bar", regex)
     self.assertRegex(r"Foo\Quux\Bar", regex)
@@ -132,7 +139,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Recursive_Default_Leaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\**").regex
-    self.assertEqual(regex.pattern, r"^Foo(\\[^\\]*){0,3}$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo(\\[^\\]*){0,3}$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Foo\Baz", regex)
     self.assertRegex(r"Foo\Bar\Baz", regex)
@@ -142,7 +149,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRegex_Recursive_Default_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"Foo\**\Bar").regex
-    self.assertEqual(regex.pattern, r"^Foo(\\[^\\]*){0,3}\\Bar$")
+    self.assertEqual(regex.pattern, r"(?i)^Foo(\\[^\\]*){0,3}\\Bar$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Foo\Baz\Bar", regex)
     self.assertRegex(r"Foo\Quux\Bar", regex)
@@ -153,7 +160,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRecursive_Root_Leaf(self):
     regex = rrg_winreg.KeyGlob("**2").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*(\\[^\\]*){0,1}$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*(\\[^\\]*){0,1}$")
     self.assertRegex("Foo", regex)
     self.assertRegex("Bar", regex)
     self.assertRegex(r"Foo\Bar", regex)
@@ -162,7 +169,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRecursive_Root_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"**2\Bar").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*(\\[^\\]*){0,1}\\Bar$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*(\\[^\\]*){0,1}\\Bar$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Quux\Bar", regex)
     self.assertRegex(r"Foo\Quux\Bar", regex)
@@ -172,7 +179,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRecursive_Root_Default_Leaf(self):
     regex = rrg_winreg.KeyGlob("**").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*(\\[^\\]*){0,2}$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*(\\[^\\]*){0,2}$")
     self.assertRegex("Foo", regex)
     self.assertRegex("Bar", regex)
     self.assertRegex(r"Foo\Bar", regex)
@@ -182,7 +189,7 @@ class KeyGlobTest(absltest.TestCase):
 
   def testRecursive_Root_Default_NonLeaf(self):
     regex = rrg_winreg.KeyGlob(r"**\Bar").regex
-    self.assertEqual(regex.pattern, r"^[^\\]*(\\[^\\]*){0,2}\\Bar$")
+    self.assertEqual(regex.pattern, r"(?i)^[^\\]*(\\[^\\]*){0,2}\\Bar$")
     self.assertRegex(r"Foo\Bar", regex)
     self.assertRegex(r"Quux\Bar", regex)
     self.assertRegex(r"Foo\Quux\Bar", regex)
@@ -191,6 +198,49 @@ class KeyGlobTest(absltest.TestCase):
     self.assertNotRegex(r"Foo\Quux\Baz", regex)
     self.assertNotRegex(r"Foo\Quux\Norf\Baz", regex)
     self.assertNotRegex(r"Foo\Quux\Norf\Thud\Bar", regex)
+
+
+class ValueNameGlobTest(absltest.TestCase):
+
+  def testRegex_Literal(self):
+    regex = rrg_winreg.ValueNameGlob(r"Foo").regex
+    self.assertEqual(regex.pattern, r"(?i)^Foo$")
+    self.assertRegex("Foo", regex)
+    self.assertNotRegex("Fo", regex)
+    self.assertNotRegex("Foobar", regex)
+
+  def testRegex_CaseInsensitive(self):
+    regex = rrg_winreg.ValueNameGlob(r"foo").regex
+    self.assertEqual(regex.pattern, r"(?i)^foo$")
+    self.assertRegex("Foo", regex)
+    self.assertRegex("foo", regex)
+    self.assertRegex("FOO", regex)
+
+  def testRegex_Star(self):
+    regex = rrg_winreg.ValueNameGlob(r"Ba*").regex
+    self.assertEqual(regex.pattern, r"(?i)^Ba.*$")
+    self.assertRegex("Bar", regex)
+    self.assertRegex("Baz", regex)
+    self.assertRegex("Baaarz", regex)
+    self.assertNotRegex("Foo", regex)
+
+  def testRegex_Star_Double(self):
+    # `**` has no "resursive" meaning for value name globs, it should be handled
+    # as just two `*` next to each other.
+    regex = rrg_winreg.ValueNameGlob(r"**").regex
+    self.assertEqual(regex.pattern, r"(?i)^.*.*$")
+    self.assertRegex("Foo", regex)
+    self.assertRegex("Bar", regex)
+    self.assertRegex("Baz", regex)
+
+  def testRegex_Escape(self):
+    # Globs are not regexes and so regex constructs should be properly escaped
+    # and matched literally.
+    regex = rrg_winreg.ValueNameGlob("Ba[rz]").regex
+    self.assertEqual(regex.pattern, r"(?i)^Ba\[rz\]$")
+    self.assertRegex("Ba[rz]", regex)
+    self.assertNotRegex("Bar", regex)
+    self.assertNotRegex("Baz", regex)
 
 
 class StatEntryOfKeyResultTest(absltest.TestCase):

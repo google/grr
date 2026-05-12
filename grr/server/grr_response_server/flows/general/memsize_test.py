@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+import ctypes
 import re
 
 from absl.testing import absltest
 
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import flows_pb2
 from grr_response_proto import signed_commands_pb2
 from grr_response_server.databases import db as abstract_db
@@ -20,7 +20,6 @@ from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 from grr_response_proto.rrg.action import grep_file_contents_pb2 as rrg_grep_file_contents_pb2
-from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 class GetMemorySizeTest(flow_test_lib.FlowTestsBaseclass):
@@ -70,7 +69,7 @@ VmallocChunk:          0 kB
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=memsize.GetMemorySize,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.GREP_FILE_CONTENTS: GrepFileContentsHandler,
         },
@@ -94,27 +93,17 @@ VmallocChunk:          0 kB
         os_type=rrg_os_pb2.WINDOWS,
     )
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if not args.query.strip().startswith("SELECT "):
-        raise RuntimeError("Non-`SELECT` WMI query")
-
-      if "Win32_ComputerSystem" not in args.query:
-        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["TotalPhysicalMemory"].uint = 34355990528
-      session.Reply(result)
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=memsize.GetMemorySize,
-        flow_args=rdf_flows.EmptyFlowArgs(),
-        handlers={
-            rrg_pb2.QUERY_WMI: QueryWmiHandler,
-        },
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        handlers=rrg_test_lib.FakeWmiHandlers({
+            "Win32_ComputerSystem": [
+                {
+                    "TotalPhysicalMemory": ctypes.c_uint64(34355990528),
+                },
+            ],
+        }),
     )
 
     flow_obj = db.ReadFlowObject(client_id, flow_id)
@@ -130,7 +119,7 @@ VmallocChunk:          0 kB
 
   @db_test_lib.WithDatabase
   def testRRGMacos(self, db: abstract_db.Database):
-    # TODO: Load signed commands from the `.textproto` file to
+    # TODO - Load signed commands from the `.textproto` file to
     # ensure integrity.
     command = rrg_execute_signed_command_pb2.Command()
     command.path.raw_bytes = "/usr/sbin/sysctl".encode("utf-8")
@@ -170,7 +159,7 @@ VmallocChunk:          0 kB
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=memsize.GetMemorySize,
-        flow_args=rdf_flows.EmptyFlowArgs(),
+        flow_args=flows_pb2.EmptyFlowArgs(),
         handlers={
             rrg_pb2.EXECUTE_SIGNED_COMMAND: ExecuteSignedCommandHandler,
         },
@@ -208,7 +197,9 @@ VmallocChunk:          0 kB
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, flows_pb2.GetMemorySizeResult
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].total_bytes, 42 * 1024 * 1024 * 1024)
 

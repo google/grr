@@ -9,7 +9,6 @@ import socket
 from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import mig_cloud
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import cloud_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
@@ -26,13 +25,6 @@ from grr_response_proto.rrg.action import get_tcp_response_pb2 as rrg_get_tcp_re
 from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
-class CollectCloudVMMetadataResult(rdf_structs.RDFProtoStruct):
-  """RDF wrapper for the `CollectCloudVMMetadataResult` message."""
-
-  protobuf = cloud_pb2.CollectCloudVMMetadataResult
-  rdf_deps = [rdf_cloud.CloudInstance]
-
-
 class CollectCloudVMMetadata(
     flow_base.FlowBase[
         flows_pb2.EmptyFlowArgs,
@@ -45,12 +37,9 @@ class CollectCloudVMMetadata(
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  result_types = [CollectCloudVMMetadataResult]
   proto_result_types = [cloud_pb2.CollectCloudVMMetadataResult]
 
   proto_store_type = cloud_pb2.CollectCloudVMMetadataStore
-
-  only_protos_allowed = True
 
   def Start(self) -> None:
     if self.rrg_support and self.rrg_os_type == rrg_os_pb2.LINUX:
@@ -505,7 +494,7 @@ class CollectCloudVMMetadata(
       # method, no need to send it again.
       return
 
-    # TODO: Remove once `unique_id` is deprecated.
+    # TODO - Remove once `unique_id` is deprecated.
     if (
         self.store.vm_metadata.google.zone
         and self.store.vm_metadata.google.project_id

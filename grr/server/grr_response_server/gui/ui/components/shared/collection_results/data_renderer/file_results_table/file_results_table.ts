@@ -112,7 +112,6 @@ export class FileResultsTable implements AfterViewInit, OnInit {
 
   /** Loaded results to display in the table. */
   readonly results = input.required<readonly FlowFileResult[]>();
-  readonly isHuntResult = input.required<boolean>();
 
   // tslint:disable-next-line:enforce-name-casing
   protected readonly CollectionState = CollectionState;
@@ -122,9 +121,6 @@ export class FileResultsTable implements AfterViewInit, OnInit {
     const columns = [...BASE_COLUMNS];
     const availableResults = this.results();
 
-    if (this.isHuntResult()) {
-      columns.splice(1, 0, 'clientId');
-    }
     if (
       availableResults.some(
         (res) => res.hashes && Object.keys(res.hashes).length > 0,
@@ -189,9 +185,6 @@ export class FileResultsTable implements AfterViewInit, OnInit {
           return '';
         }
       }
-      if (property === 'clientId') {
-        return item.clientId;
-      }
       if (property === 'path') {
         return item.statEntry.pathspec?.path ?? '';
       }
@@ -226,7 +219,6 @@ export class FileResultsTable implements AfterViewInit, OnInit {
       return (
         (data.isFile && filter.includes('file')) ||
         (data.isDirectory && filter.includes('folder')) ||
-        data.clientId.includes(filter) ||
         data.statEntry.pathspec?.path?.includes(filter) ||
         data.statEntry.stSize?.toString().includes(filter) ||
         data.statEntry.stAtime?.getTime().toString().includes(filter) ||

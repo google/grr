@@ -172,54 +172,6 @@ config_lib.DEFINE_integer(
     10000000,
     help="The number of bytes allowed for unbounded reads from a file object")
 
-# Data retention policies.
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.cron_jobs_flows_ttl",
-    default=None,
-    help="Cron job flows TTL specified as the duration string. "
-    "Examples: 90d, 180d, 1y. If not set, cron jobs flows will be retained "
-    "forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.hunts_ttl",
-    default=None,
-    help="Hunts TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, hunts will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.hunts_ttl_exception_label",
-    default="retain",
-    help="Hunts marked with this label "
-    "will be retained forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.tmp_ttl",
-    default=None,
-    help="Temp TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, temp objects will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.tmp_ttl_exception_label",
-    default="retain",
-    help="Temp objects marked with this "
-    "label will be retained forever.")
-
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "DataRetention.inactive_client_ttl",
-    default=None,
-    help="Temp TTL specified as the duration string. Examples: 90d, "
-    "180d, 1y. If not set, inactive clients will be retained forever.")
-
-config_lib.DEFINE_string(
-    "DataRetention.inactive_client_ttl_exception_label",
-    default="retain",
-    help="Inactive clients marked with "
-    "this label will be retained forever.")
-
 config_lib.DEFINE_float(
     "Hunt.default_client_rate",
     default=20.0,
@@ -283,14 +235,6 @@ config_lib.DEFINE_list(
     "a Fleetspeak label is not in the map, it will be written as is to GRR's "
     "DB as part of the Interrogate flow.")
 
-config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
-    "Server.fleetspeak_last_ping_threshold",
-    default="2h",
-    help="Age above which to consider last-ping timestamps for Fleetspeak "
-    "clients as stale, and in need of updating (by querying Fleetspeak "
-    "servers).")
-
 config_lib.DEFINE_integer(
     "Server.fleetspeak_list_clients_batch_size",
     default=5000,
@@ -345,21 +289,21 @@ config_lib.DEFINE_boolean(
     "Server.grr_binaries_readonly", False,
     "When set to True, uploaded GRR binaries can't be deleted or overwritten.")
 
+config_lib.DEFINE_list(
+    name="Interrogate.startup_exclude_labels",
+    default=[],
+    help=(
+        "List of labels for which interrogation is not started upon receiving "
+        "the agent startup notification."
+    ),
+)
+
 config_lib.DEFINE_boolean(
     name="Interrogate.collect_crowdstrike_agent_id",
     default=False,
     help=(
         "Whether the interrogate flow should collect identifier of the "
         "endpoint's CrowdStrike agent."
-    ),
-)
-
-config_lib.DEFINE_boolean(
-    name="Interrogate.collect_passwd_cache_users",
-    default=False,
-    help=(
-        "Whether the interrogate flow should collect user information using the"
-        "`/etc/passwd.cache` file."
     ),
 )
 

@@ -76,25 +76,6 @@ message PwEntry {
   }];
 }
 
-message Group {
-  optional string name = 1 [(sem_type) = {
-    description: "The name of the group. ",
-  }];
-
-  repeated string members = 2 [(sem_type) = {
-    description: "The members of the group, as usernames. ",
-  }];
-
-  // Posix specific values.
-  optional uint32 gid = 3 [(sem_type) = {
-    description: "The gid of the group, e.g.: 1001.",
-  }];
-
-  optional PwEntry pw_entry = 4 [(sem_type) = {
-    description: "The password state of the group, e.g.: shadow+sha512.",
-  }];
-}
-
 message User {
   optional string username = 1 [(sem_type) = {
     description: "The name of the user.",
@@ -238,7 +219,7 @@ message KnowledgeBase {
     description: "The system temporary directory.",
   }];
 
-  // TODO: This field should not be called "release" but "name"
+  // TODO - This field should not be called "release" but "name"
   // or "distribution".
   //
   // Linux specific distribution information.
@@ -249,7 +230,7 @@ message KnowledgeBase {
     description: "Linux distribution name.",
   }];
 
-  // TODO: Create a field with system release information (stuff
+  // TODO - Create a field with system release information (stuff
   // that does not fit `os_minor_version` and `os_major_version`).
 
   //
@@ -287,7 +268,7 @@ message KnowledgeBase {
                  "drivers.",
   }];
 
-  // TODO: `ProfilesDirectory` is not an environment variable, so
+  // TODO - `ProfilesDirectory` is not an environment variable, so
   // this field should be renamed.
   optional string environ_profilesdirectory = 33 [(sem_type) = {
     description: "Folder that typically contains users' profile directories; "

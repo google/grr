@@ -6,7 +6,7 @@ LINUX_INSTALLER_UPLOAD_URL=$(curl http://metadata.google.internal/computeMetadat
 if [[ "${grr_version}" = "latest" ]]; then
   wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-273.0.0-linux-x86_64.tar.gz"
   tar -xzf ./google-cloud-sdk-273.0.0-linux-x86_64.tar.gz -C .
-  ./google-cloud-sdk/bin/gsutil cp gs://autobuilds.grr-response.com/_latest_server_deb/*.deb .
+  ./google-cloud-sdk/bin/gcloud storage cp gs://autobuilds.grr-response.com/_latest_server_deb/*.deb .
   GRR_VERSION=$(ls *.deb | sed 's/.*\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\-\([0-9]\+\).*/\1.\2.\3.\4/')
 else
   GRR_VERSION="${grr_version}"

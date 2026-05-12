@@ -154,14 +154,12 @@ export class CollectMultipleFilesForm extends FlowArgsFormInterface<
         literal: encodeStringToBase64(
           formState.contentsLiteralMatch.literal ?? '',
         ),
-        mode: formState.contentsLiteralMatch.mode,
       };
     }
     let contentsRegexMatch: FileFinderContentsRegexMatchCondition | undefined;
     if (formState.contentsRegexMatch) {
       contentsRegexMatch = {
         regex: encodeStringToBase64(formState.contentsRegexMatch.regex ?? ''),
-        mode: formState.contentsRegexMatch.mode,
         length: Math.floor(formState.contentsRegexMatch.length ?? 0).toString(),
       };
     }
@@ -245,7 +243,6 @@ export class CollectMultipleFilesForm extends FlowArgsFormInterface<
         regex: flowArgs.contentsRegexMatch?.regex
           ? decodeBase64ToString(flowArgs.contentsRegexMatch?.regex)
           : '',
-        mode: flowArgs.contentsRegexMatch?.mode,
         length: flowArgs.contentsRegexMatch?.length
           ? Number(flowArgs.contentsRegexMatch?.length)
           : undefined,
@@ -254,7 +251,6 @@ export class CollectMultipleFilesForm extends FlowArgsFormInterface<
         literal: flowArgs.contentsLiteralMatch?.literal
           ? decodeBase64ToString(flowArgs.contentsLiteralMatch?.literal)
           : '',
-        mode: flowArgs.contentsLiteralMatch?.mode,
       },
       modificationTime: {
         fromTime: createOptionalDate(

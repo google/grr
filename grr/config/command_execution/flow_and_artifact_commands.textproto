@@ -1,0 +1,405 @@
+# proto-file: grr_response_proto/api/signed_commands.proto
+# proto-message: ApiCommands
+
+commands {
+  id: "df"
+  operating_system: LINUX
+
+  path: "/bin/df"
+  args: []
+}
+commands {
+  id: "echo_1"
+  operating_system: LINUX
+
+  path: "/bin/echo"
+  args: { signed: "1" }
+}
+commands {
+  id: "mount"
+  operating_system: LINUX
+
+  path: "/bin/mount"
+  args: []
+}
+commands {
+  id: "rpm_qa"
+  operating_system: LINUX
+
+  path: "/bin/rpm"
+  args: { signed: "-qa" }
+}
+commands {
+  id: "rpm_query_all"
+  operating_system: LINUX
+
+  path: "/bin/rpm"
+  args: { signed: "--query" }
+  args: { signed: "--all" }
+}
+commands {
+  id: "rpm_query_all_queryformat"
+  operating_system: LINUX
+
+  path: "/bin/rpm"
+  args: { signed: "--query" }
+  args: { signed: "--all" }
+  args: { signed: "--queryformat" }
+  args: { signed: "%{NAME}|%{EPOCH}|%{VERSION}|%{RELEASE}|%{ARCH}|%{INSTALLTIME}|%{VENDOR}|%{SOURCERPM}\n" }
+}
+commands {
+  id: "sleep_10"
+  operating_system: LINUX
+
+  path: "/bin/sleep"
+  args: { signed: "10" }
+}
+commands {
+  id: "crowdstrike_falconctl_get_cid_aid"
+  operating_system: LINUX
+
+  path: "/opt/CrowdStrike/falconctl"
+  args: { signed: "-g" }
+  args: { signed: "--cid" }
+  args: { signed: "--aid" }
+}
+commands {
+  id: "auditctl_l"
+  operating_system: LINUX
+
+  path: "/sbin/auditctl"
+  args: { signed: "-l" }
+}
+commands {
+  id: "ifconfig_a"
+  operating_system: LINUX
+
+  path: "/sbin/ifconfig"
+  args { signed: "-a" }
+}
+commands {
+  id: "iptables_L_n_v"
+  operating_system: LINUX
+
+  path: "/sbin/iptables"
+  args: { signed: "-L" }
+  args: { signed: "-n" }
+  args: { signed: "-v" }
+}
+commands {
+  id: "lsmod"
+  operating_system: LINUX
+
+  path: "/sbin/lsmod"
+  args: []
+}
+commands {
+  id: "dpkg_list"
+  operating_system: LINUX
+
+  path: "/usr/bin/dpkg"
+  args: { signed: "--list" }
+}
+commands {
+  id: "dpkg_query_show_showformat"
+  operating_system: LINUX
+
+  path: "/usr/bin/dpkg-query"
+  args: { signed: "--show" }
+  args: { signed: "--showformat" }
+  args: { signed: "${Package}|${Version}|${Architecture}|${Source}|${binary:Synopsis}\n" }
+}
+commands {
+  id: "last"
+  operating_system: LINUX
+
+  path: "/usr/bin/last"
+  args: []
+}
+commands {
+  id: "who"
+  operating_system: LINUX
+
+  path: "/usr/bin/who"
+  args: []
+}
+commands {
+  id: "yum_list_installed_q"
+  operating_system: LINUX
+
+  path: "/usr/bin/yum"
+  args: { signed: "list" }
+  args: { signed: "installed" }
+  args: { signed: "-q" }
+}
+commands {
+  id: "yum_repolist_v_q"
+  operating_system: LINUX
+
+  path: "/usr/bin/yum"
+  args: { signed: "repolist" }
+  args: { signed: "-v" }
+  args: { signed: "-q" }
+}
+commands {
+  id: "arp_a"
+  operating_system: LINUX
+
+  path: "/usr/sbin/arp"
+  args: { signed: "-a" }
+}
+commands {
+  id: "dmidecode_q"
+  operating_system: LINUX
+
+  path: "/usr/sbin/dmidecode"
+  args: { signed: "-q" }
+}
+commands {
+  id: "dmidecode_bios_version"
+  operating_system: LINUX
+
+  path: "/usr/sbin/dmidecode"
+  args: { signed: "--string" }
+  args: { signed: "bios-version" }
+  signed_stdin: ""
+}
+commands {
+  id: "sshd_T"
+  operating_system: LINUX
+
+  path: "/usr/sbin/sshd"
+  args: { signed: "-T" }
+}
+# Container Runtimes
+commands {
+  id: "crictl_ps_a_o_json"
+  operating_system: LINUX
+
+  path: "/home/kubernetes/bin/crictl"
+  args: { signed: "ps" }
+  args: { signed: "-a" }
+  args: { signed: "-o" }
+  args: { signed: "json" }
+}
+commands {
+  id: "ctr_namespaces_list"
+  operating_system: LINUX
+
+  path: "/usr/bin/ctr"
+  args: { signed: "namespaces" }
+  args: { signed: "list" }
+}
+commands {
+  id: "ctr_containers_list"
+  operating_system: LINUX
+
+  path: "/usr/bin/ctr"
+  args: { signed: "--namespace" }
+  args: { signed: "k8s.io" }
+  args: { signed: "containers" }
+  args: { signed: "list" }
+}
+commands {
+  id: "docker_ps_a_f_json_n_trunc"
+  operating_system: LINUX
+
+  path: "/usr/bin/docker"
+  args: { signed: "ps" }
+  args: { signed: "-a" }
+  args: { signed: "--format" }
+  args: { signed: "json" }
+  args: { signed: "--no-trunc" }
+}
+commands {
+  id: "chroot_hostroot_home_kubernetes_bin_crictl_ps_a_o_json"
+  operating_system: LINUX
+
+  path: "/usr/sbin/chroot"
+  args { signed: "/hostroot" }
+  args { signed: "/home/kubernetes/bin/crictl" }
+  args { signed: "ps" }
+  args { signed: "-a" }
+  args { signed: "-o" }
+  args { signed: "json" }
+}
+commands {
+  id: "chroot_hostroot_usr_bin_crictl_ps_a_o_json"
+  operating_system: LINUX
+
+  path: "/usr/sbin/chroot"
+  args: { signed: "/hostroot" }
+  args: { signed: "/usr/bin/crictl" }
+  args: { signed: "ps" }
+  args: { signed: "-a" }
+  args: { signed: "-o" }
+  args: { signed: "json" }
+}
+commands {
+  id: "chroot_hostroot_usr_bin_ctr_namespaces_list"
+  operating_system: LINUX
+
+  path: "/usr/sbin/chroot"
+  args: { signed: "/hostroot" }
+  args: { signed: "/usr/bin/ctr" }
+  args: { signed: "namespaces" }
+  args: { signed: "list" }
+}
+commands {
+  id: "chroot_hostroot_usr_bin_ctr_namespace_k8sio_containers_list"
+  operating_system: LINUX
+
+  path: "/usr/sbin/chroot"
+  args: { signed: "/hostroot" }
+  args: { signed: "/usr/bin/ctr" }
+  args: { signed: "--namespace" }
+  args: { signed: "k8s.io" }
+  args: { signed: "containers" }
+  args: { signed: "list" }
+}
+commands {
+  id: "chroot_hostroot_usr_bin_docker_ps_a_format_json_notrunc"
+  operating_system: LINUX
+
+  path: "/usr/sbin/chroot"
+  args: { signed: "/hostroot" }
+  args: { signed: "/usr/bin/docker" }
+  args: { signed: "ps" }
+  args: { signed: "-a" }
+  args: { signed: "--format" }
+  args: { signed: "json" }
+  args: { signed: "--no-trunc" }
+}
+
+commands {
+  id: "echo_1"
+  operating_system: MACOS
+
+  path: "/bin/echo"
+  args: { signed: "1" }
+}
+commands {
+  id: "hdiutil_info"
+  operating_system: MACOS
+
+  path: "/usr/bin/hdiutil"
+  args: { signed: "info" }
+}
+commands {
+  id: "last"
+  operating_system: MACOS
+
+  path: "/usr/bin/last"
+  args: []
+}
+commands {
+  id: "who"
+  operating_system: MACOS
+
+  path: "/usr/bin/who"
+  args: []
+}
+commands {
+  id: "arp_a"
+  operating_system: MACOS
+
+  path: "/usr/sbin/arp"
+  args: { signed: "-a" }
+}
+commands {
+  id: "kextstat"
+  operating_system: MACOS
+
+  path: "/usr/sbin/kextstat"
+  args: []
+}
+commands {
+  id: "system_profiler_xml_sphardware"
+  operating_system: MACOS
+
+  path: "/usr/sbin/system_profiler"
+  args: { signed: "-xml" }
+  args: { signed: "SPHardwareDataType" }
+}
+commands {
+  id: "falconctl_stats"
+  operating_system: MACOS
+
+  path: "/Applications/Falcon.app/Contents/Resources/falconctl"
+  args: { signed: "stats" }
+}
+
+commands {
+  id: "arp_a"
+  operating_system: WINDOWS
+
+  path: "arp.exe"
+  args: { signed: "-a" }
+}
+commands {
+  id: "cmd_echo_1"
+  operating_system: WINDOWS
+
+  path: "cmd.exe"
+  args: { signed: "/C" }
+  args: { signed: "echo 1" }
+}
+commands {
+  id: "driverquery_v"
+  operating_system: WINDOWS
+
+  path: "driverquery.exe"
+  args: { signed: "/v" }
+}
+commands {
+  id: "ipconfig_all"
+  operating_system: WINDOWS
+
+  path: "ipconfig.exe"
+  args: { signed: "/all" }
+}
+commands {
+  id: "netsh_advfirewall_firewall_show_rule_name_all"
+  operating_system: WINDOWS
+
+  path: "netsh.exe"
+  args: { signed: "advfirewall" }
+  args: { signed: "firewall" }
+  args: { signed: "show" }
+  args: { signed: "rule" }
+  args: { signed: "name=all" }
+}
+commands {
+  id: "netsh_advfirewall_monitor_show_firewall_rule_name_all"
+  operating_system: WINDOWS
+
+  path: "netsh.exe"
+  args: { signed: "advfirewall" }
+  args: { signed: "monitor" }
+  args: { signed: "show" }
+  args: { signed: "firewall" }
+  args: { signed: "rule" }
+  args: { signed: "name=all" }
+}
+commands {
+  id: "tasklist_SVC"
+  operating_system: WINDOWS
+
+  path: "tasklist.exe"
+  args: { signed: "/SVC" }
+}
+commands {
+  id: "tasklist_v"
+  operating_system: WINDOWS
+
+  path: "tasklist.exe"
+  args: { signed: "/v" }
+}
+commands {
+  id: "sysctl_hw_memsize"
+  operating_system: MACOS
+
+  path: "/usr/sbin/sysctl"
+  args: { signed: "-n" }
+  args: { signed: "hw.memsize" }
+}

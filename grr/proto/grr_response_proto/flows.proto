@@ -213,6 +213,7 @@ message HuntRunnerArgs {
   optional ForemanClientRuleSet client_rule_set = 18
       [(sem_type) = { description: "Rules that trigger this hunt." }];
 
+  // TODO - If removing total_cpu_seconds_limit, remove this field.
   optional uint64 cpu_limit = 9 [(sem_type) = {
     description: "An overall limit on the client cpu seconds used by this "
                  "hunt.",
@@ -328,105 +329,6 @@ message HuntRunnerArgs {
                  "a reference to the original here.",
     label: HIDDEN
   }];
-}
-
-// Next field ID: 5
-message GenericHuntArgs {
-  optional bytes flow_args = 2 [(sem_type) = {
-    dynamic_type: "GetFlowArgsClass",
-    description: "Arguments to the flow to run. This should be an "
-                 "instance of flow.args_type proto.",
-    label: HIDDEN
-  }];
-
-  optional FlowRunnerArgs flow_runner_args = 3 [
-    (sem_type) = { description: "The runner args for launching each flow." }
-  ];
-
-  // DEPRECATED: keeping it here so that existing cron jobs don't break.
-  // TODO(user): Remove.
-  repeated OutputPluginDescriptor output_plugins = 4 [(sem_type) = {
-    description: "The output plugins to use for this hunt.",
-  }];
-}
-
-// Useful messages.
-
-// Many flows use this reduced version of the GrepSpec.
-// Next field ID: 11
-message BareGrepSpec {
-  optional uint64 start_offset = 2 [
-    (sem_type) = {
-      description: "Start searching at this file offset.",
-    },
-    default = 0
-  ];
-
-  optional uint64 length = 3 [
-    (sem_type) = {
-      description: "How far (in bytes) into the file to search.",
-    },
-    default = 10737418240
-  ];
-
-  optional string regex = 4 [(sem_type) = {
-    type: "RegularExpression",
-    description: "The regular expression which will be used to search."
-  }];
-
-  optional bytes literal = 5 [(sem_type) = {
-    type: "LiteralExpression",
-    description: "Search for this literal string.",
-  }];
-
-  enum Mode {
-    ALL_HITS = 0;   // Report all hits.
-    FIRST_HIT = 1;  // Stop after one hit.
-  }
-
-  optional Mode mode = 6 [
-    (sem_type) = {
-      description: "When should searching stop? Stop after one hit "
-                   "or search for all?",
-    },
-    default = ALL_HITS
-  ];
-
-  optional uint32 bytes_before = 7 [
-    (sem_type) = {
-      description: "Include this many bytes before the hit.",
-      label: ADVANCED,
-    },
-    default = 10
-  ];
-
-  optional uint32 bytes_after = 8 [
-    (sem_type) = {
-      description: "Include this many bytes after the hit.",
-      label: ADVANCED,
-    },
-    default = 10
-  ];
-
-  optional uint32 xor_in_key = 9 [
-    (sem_type) = {
-      description: "When searching memory we need to ensure we dont "
-                   "hit on our own process. This allows us to obfuscate the search "
-                   "string in memory to avoid us finding ourselves.",
-      label: ADVANCED
-    },
-    default = 37
-  ];
-
-  optional uint32 xor_out_key = 10 [
-    (sem_type) = {
-      description: "When searching memory we need to ensure we dont "
-                   "hit on our own process. This allows us to obfuscate the search "
-                   "string in memory to avoid us finding ourselves.",
-      label: ADVANCED
-    },
-    default = 57
-  ];
 }
 
 // Various flows.
@@ -630,7 +532,7 @@ message InterrogateArgs {
 message InterrogateStore {
   optional ClientSnapshot client_snapshot = 1;
 
-  // TODO: Remove `fqdn` and `os` fields once `Interrogate` is
+  // TODO - Remove `fqdn` and `os` fields once `Interrogate` is
   // refactored to knowledgebase from individual client calls and the
   // `KnowledgeBaseInitializationFlow`.
   optional string fqdn = 2
@@ -756,89 +658,6 @@ message CollectBrowserHistoryProgress {
   repeated BrowserProgress browsers = 6;
 }
 
-// The following messages are for SUID flows which are designed to control
-// access to the datastore.
-
-// Next field ID: 3
-message CreateGenericHuntFlowArgs {
-  optional HuntRunnerArgs hunt_runner_args = 1;
-  optional GenericHuntArgs hunt_args = 2;
-}
-
-// DEPRECATED: Use CreateCronJobArgs instead.
-// Next field ID: 8
-message CreateCronJobFlowArgs {
-  optional string description = 1 [(sem_type) = {
-    description: "A human readable description of the cron job."
-  }];
-
-  optional uint64 periodicity = 2 [
-    (sem_type) = {
-      type: "DurationSeconds",
-      description: "How often to run this hunt."
-    },
-    default = 604800
-  ];  // 7d
-
-  optional FlowRunnerArgs flow_runner_args = 3;
-  optional bytes flow_args = 4 [(sem_type) = {
-    dynamic_type: "GetFlowArgsClass",
-  }];
-
-  optional bool allow_overruns = 5;
-
-  optional uint64 lifetime = 6 [
-    (sem_type) = {
-      type: "DurationSeconds",
-      description: "How long each run of the cron should be allowed to run. "
-                   "Runs that exceed lifetime will be killed. This is complimentary but"
-                   " different to periodicity e.g. it allows us to run jobs weekly that"
-                   " should be killed if they take more than a few hours.",
-    },
-    default = 0
-  ];
-
-  // DEPRECATED: Start time is not taken into account anymore.
-  optional uint64 start_time = 7 [
-    (sem_type) = {
-      type: "RDFDatetime",
-      description: "Time at which this cron should run for the first time."
-                   "Specifying this allows us to stagger or randomize cron start times so"
-                   " they don't all start at once. Default is to start immediately.",
-    },
-    default = 0
-  ];
-}
-
-message CreateCronJobArgs {
-  optional string flow_name = 1
-      [(sem_type) = { description: "Cron flow name." }];
-  optional google.protobuf.Any flow_args = 2 [(sem_type) = {
-    description: "Cron flow arguments.",
-    dynamic_type: "GetFlowArgsClass"
-  }];
-  optional HuntRunnerArgs hunt_runner_args = 3
-      [(sem_type) = { description: "Hunt runner arguments." }];
-
-  optional string description = 4
-      [(sem_type) = { description: "Cron job description." }];
-  optional uint64 frequency = 5 [(sem_type) = {
-    type: "DurationSeconds",
-    description: "Interval between cron runs."
-  }];
-  optional uint64 lifetime = 6 [(sem_type) = {
-    type: "DurationSeconds",
-    description: "How long each run of the cron should be allowed to run. "
-                 "Runs that exceed lifetime will be killed. This is complimentary but"
-                 " different to periodicity e.g. it allows us to run jobs weekly that"
-                 " should be killed if they take more than a few hours.",
-  }];
-  optional bool allow_overruns = 7 [(sem_type) = {
-    description: "If true, don't kill the previous run if new one starts.",
-    label: ADVANCED
-  }];
-}
-
 // TODO(amoser): This might be better suited for objects.proto but
 // there is a dependency of those protos to Hunt related protos that
 // will cause dependency loops if moved to objects.proto (since we use
@@ -854,7 +673,6 @@ message HuntCronAction {
   optional HuntRunnerArgs hunt_runner_args = 1;
   optional string flow_name = 2;
   optional bytes flow_args = 3 [(sem_type) = {
-    dynamic_type: "GetFlowArgsClass",
     description: "Arguments to the flow to run. This should be an "
                  "instance of flow.args_type proto.",
   }];
@@ -973,7 +791,7 @@ message ChromePluginsArgs {
   ];
 }
 
-// Next field ID: 7
+// Next field ID: 8
 message MultiGetFileArgs {
   repeated PathSpec pathspecs = 2 [(sem_type) = {
     description: "Pathspecs of files to be retrieved.",
@@ -1015,6 +833,11 @@ message MultiGetFileArgs {
     HASH = 2;
   }
   optional StopAt stop_at = 6;
+
+  // Maximum depth followed to resolve symlinks.
+  //
+  // This is used to prevent inifite loops in case of circular symlinks.
+  optional uint32 max_symlink_depth = 7;
 }
 
 message PathSpecProgress {
@@ -1027,6 +850,11 @@ message PathSpecProgress {
   }
   optional PathSpec pathspec = 1;
   optional Status status = 2;
+
+  // In case of a symlink resolution, keeps track of the symlink depth.
+  //
+  // This is used to prevent inifite loops in case of circular symlinks.
+  optional uint32 symlink_depth = 3;
 }
 
 message MultiGetFileProgress {
@@ -1121,9 +949,9 @@ message VerifyHuntOutputPluginsCronFlowArgs {
   }];
 }
 
-// Next field ID: 5
+// Next field ID: 7
 message ListProcessesArgs {
-  // TODO: Rename to filepath_regex.
+  // TODO - Rename to filepath_regex.
   optional string filename_regex = 1 [
     (sem_type) = {
       type: "RegularExpression",
@@ -1141,17 +969,35 @@ message ListProcessesArgs {
     default = false
   ];
 
-  repeated NetworkConnection.State connection_states = 3 [(sem_type) = {
-    description: "Network connection states to match. If a process has any "
-                 "network connections in any status listed here, it will be "
-                 "considered a match",
-  }];
+  reserved 3;
 
   // Identifiers of processes to fetch the information for.
   //
   // If present, only processes with identifiers corresponding to those that are
   // specified here are going to be included in the results.
   repeated uint32 pids = 4;
+
+  // Regex used to filter the list of processes. The regex is applied to the
+  // command line.
+  optional string cmdline_regex = 5;
+
+  // Regex used to filter the list of processes. The regex is applied to the
+  // process name.
+  optional string process_name_regex = 6;
+}
+
+message ListProcessesStore {
+  // Intermediate process information to send as result at the end of the flow.
+  //
+  // As more calls to the endpoint finish, this information will be gradually
+  // more and more complete.
+  repeated Process processes = 1;
+
+  // Number of time the flow has waited for the flows to arrive in blobstore.
+  //
+  // This is used to prevent the flow from being stuck in case the blobs are
+  // never going to arrive (e.g. because of some connectivity issues).
+  optional uint32 blob_wait_count = 2;
 }
 
 // Next field ID: 7
@@ -1239,37 +1085,12 @@ message FileFinderExtFlagsCondition {
 
 // Next field ID: 9
 message FileFinderContentsRegexMatchCondition {
-  enum Mode {
-    ALL_HITS = 0;   // Report all hits.
-    FIRST_HIT = 1;  // Stop after one hit.
-  }
-
-  // TODO: Remove redundant semantic type here.
+  // TODO - Remove redundant semantic type here.
   optional bytes regex = 4 [(sem_type) = { type: "RDFBytes" }];
 
-  optional Mode mode = 6 [
-    (sem_type) = {
-      description: "When should searching stop? Stop after one hit "
-                   "or search for all?",
-    },
-    default = FIRST_HIT
-  ];
-
-  optional uint32 bytes_before = 7 [
-    (sem_type) = {
-      description: "Include this many bytes before the hit.",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
-
-  optional uint32 bytes_after = 8 [
-    (sem_type) = {
-      description: "Include this many bytes after the hit.",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
+  reserved 6;
+  reserved 7;
+  reserved 8;
 
   optional uint64 start_offset = 2 [
     (sem_type) = {
@@ -1289,21 +1110,10 @@ message FileFinderContentsRegexMatchCondition {
 
 // Next field ID: 11
 message FileFinderContentsLiteralMatchCondition {
-  enum Mode {
-    ALL_HITS = 0;   // Report all hits.
-    FIRST_HIT = 1;  // Stop after one hit.
-  }
-
-  // TODO: Remove redundant semantic type here.
+  // TODO - Remove redundant semantic type here.
   optional bytes literal = 5 [(sem_type) = { type: "RDFBytes" }];
 
-  optional Mode mode = 6 [
-    (sem_type) = {
-      description: "When should searching stop? Stop after one hit "
-                   "or search for all?",
-    },
-    default = FIRST_HIT
-  ];
+  reserved 6;
 
   optional uint64 start_offset = 2 [
     (sem_type) = {
@@ -1321,21 +1131,8 @@ message FileFinderContentsLiteralMatchCondition {
     default = 20000000
   ];
 
-  optional uint32 bytes_before = 7 [
-    (sem_type) = {
-      description: "Include this many bytes before the hit.",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
-
-  optional uint32 bytes_after = 8 [
-    (sem_type) = {
-      description: "Include this many bytes after the hit.",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
+  reserved 7;
+  reserved 8;
 
   optional uint32 xor_in_key = 9 [
     (sem_type) = {
@@ -1598,7 +1395,7 @@ message FileFinderArgs {
 // Next field ID: 6
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
-  repeated BufferReference matches = 2;
+  reserved 2;
   optional Hash hash_entry = 3;
 
   /*
@@ -1646,11 +1443,11 @@ message CollectFilesByKnownPathArgs {
     // Collect Stat, Hash and File contents. Collects the whole file.
     CONTENT = 3;
 
-    // TODO: Add partial file collection options.
+    // TODO - Add partial file collection options.
   }
   optional CollectionLevel collection_level = 2;
 
-  // TODO: Add file size/offset option arguments.
+  // TODO - Add file size/offset option arguments.
 }
 
 message CollectFilesByKnownPathResult {
@@ -1807,6 +1604,9 @@ message RegistryFinderCondition {
 
 // Next field ID: 3
 message RegistryFinderArgs {
+  // TODO - Despite the name of this saying these are _key_ paths,
+  // they are actually _value_ paths (at least this is what our test suite wants
+  // it to be).
   repeated string keys_paths = 1 [(sem_type) = {
     type: "GlobExpression",
     description: "Glob expression for registry keys to be retrieved."
@@ -1879,7 +1679,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 26
+// Next field ID: 27
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -1890,17 +1690,23 @@ message YaraProcessScanRequest {
                  "Should not be used with the `yara_signature` field.",
     label: HIDDEN,
   }];
-  optional YaraSignatureShard signature_shard = 17 [(sem_type) = {
-    description: "A segment of a Yara signature used for process-scanning. "
-                 "Long Yara signatures are split on the server and sent to "
-                 "clients in multiple shards."
-    label: HIDDEN,
-  }];
-  optional uint32 num_signature_shards = 18 [(sem_type) = {
-    description: "The number of shards in which the Yara signature is sent "
-                 "to clients."
-    label: HIDDEN,
-  }];
+  optional YaraSignatureShard signature_shard = 17 [
+    (sem_type) = {
+      description: "A segment of a Yara signature used for process-scanning. "
+                   "Long Yara signatures are split on the server and sent to "
+                   "clients in multiple shards."
+      label: HIDDEN,
+    },
+    deprecated = true
+  ];
+  optional uint32 num_signature_shards = 18 [
+    (sem_type) = {
+      description: "The number of shards in which the Yara signature is sent "
+                   "to clients."
+      label: HIDDEN,
+    },
+    deprecated = true
+  ];
   repeated uint64 pids = 2 [(sem_type) = {
     description: "The pids to scan. No pids given indicates all processes.",
   }];
@@ -1954,11 +1760,15 @@ message YaraProcessScanRequest {
                  "regions.",
     label: ADVANCED,
   }];
-  optional bool skip_special_regions = 8 [(sem_type) = {
-    description: "Set this flag to avoid scanning device backed regions and "
-                 "guard pages. Applies to Windows only.",
-    label: ADVANCED,
-  }];
+  optional bool skip_special_regions = 8 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning device backed regions and "
+                   "guard pages. Applies to Windows only. DEPRECATED: no longer "
+                   "supported.",
+      label: ADVANCED,
+    },
+    deprecated = true
+  ];
   optional bool skip_mapped_files = 9 [(sem_type) = {
     description: "Set this flag to avoid scanning mapped files. Applies to "
                  "Linux only.",
@@ -1984,11 +1794,20 @@ message YaraProcessScanRequest {
                  "signature match.",
     label: ADVANCED,
   }];
-  optional uint32 max_results_per_process = 16 [(sem_type) = {
-    description: "Set this to limit the number of matches returned for "
-                 "each process scanned.",
-    label: ADVANCED,
-  }];
+  optional uint32 max_results_per_process = 16 [
+    (sem_type) = {
+      description: "Set this to limit the number of matches returned for "
+                   "each process scanned. DEPRECATED: use "
+                   "max_matches_per_pattern instead.",
+      label: ADVANCED,
+    },
+    deprecated = true
+  ];
+
+  // Set this to limit the number of matches returned for each pattern in the
+  // given YARA signature.
+  optional uint32 max_matches_per_pattern = 26;
+
   optional uint64 process_dump_size_limit = 19 [(sem_type) = {
     description: "Maximum amount of raw process memory to dump. The first "
                  "memory block going over the limit will not be written "
@@ -2010,7 +1829,7 @@ message YaraProcessScanRequest {
   // ImplementationType has been introduced for rolling-out sandboxing.
   // The purpose is to make it possible to switch the implementation at
   // run-time via the UI in case there are problems.
-  // TODO: Once sandboxing becomes the default implementation,
+  // TODO - Once sandboxing becomes the default implementation,
   // this should be removed.
 
   enum ImplementationType {
@@ -2025,6 +1844,11 @@ message YaraProcessScanRequest {
     description: "Force use of an implementation.",
     label: ADVANCED,
   }];
+}
+
+message YaraProcessScanStore {
+  // Maps PIDs to full process information.
+  map<uint64, Process> processes = 1;
 }
 
 message ProcessMemoryError {
@@ -2108,11 +1932,14 @@ message YaraProcessDumpArgs {
                  "flag to change this behavior.",
     label: ADVANCED,
   }];
-  optional bool dump_all_processes = 4 [(sem_type) = {
-    description: "This dumps all processes. Might return lots of data, "
-                 "use with care.",
-    label: ADVANCED,
-  }];
+  optional bool dump_all_processes = 4 [
+    (sem_type) = {
+      description: "This dumps all processes. Might return lots of data, "
+                   "use with care. DEPRECATED: no longer supported.",
+      label: ADVANCED,
+    },
+    deprecated = true
+  ];
   optional uint64 size_limit = 5 [(sem_type) = {
     description: "Maximum amount of raw process memory to dump. Applies to "
                  "all requested processes together. The first memory region "
@@ -2125,11 +1952,15 @@ message YaraProcessDumpArgs {
     description: "The chunk size to use when reading large memory regions.",
     label: ADVANCED,
   }];
-  optional bool skip_special_regions = 7 [(sem_type) = {
-    description: "Set this flag to avoid dumping device backed regions and "
-                 "guard pages. Applies to Windows only.",
-    label: ADVANCED,
-  }];
+  optional bool skip_special_regions = 7 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping device backed regions and "
+                   "guard pages. Applies to Windows only. DEPRECATED: no longer "
+                   "supported.",
+      label: ADVANCED,
+    },
+    deprecated = true
+  ];
   optional bool skip_mapped_files = 8 [(sem_type) = {
     description: "Set this flag to avoid dumping mapped files. Applies to "
                  "Linux only.",
@@ -2190,16 +2021,25 @@ message ProcessMemoryRegion {
   }];
 }
 
+message DumpProcessMemoryStore {
+  // Maps PIDs to full process information.
+  map<uint64, Process> processes = 1;
+}
+
 message YaraProcessDumpInformation {
   reserved 2;
 
   optional Process process = 1 [(sem_type) = {
     description: "The process that was dumped to disk.",
   }];
-  optional string error = 3 [(sem_type) = {
-    description: "Errors while dumping will be reported here. Mostly used "
-                 "when exceeding the bytes limit.",
-  }];
+  optional string error = 3 [
+    (sem_type) = {
+      description: "Errors while dumping will be reported here. Mostly used "
+                   "when exceeding the bytes limit."
+                   "DEPRECATED: Use YaraProcessDumpResponse.errors instead.",
+    },
+    deprecated = true
+  ];
   optional uint64 dump_time_us = 4 [(sem_type) = {
     description: "Time in microseconds taken to dump the process.",
   }];

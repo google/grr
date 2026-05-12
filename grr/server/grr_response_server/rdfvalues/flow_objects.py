@@ -54,31 +54,12 @@ class FlowResponse(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def AsLegacyGrrMessage(self):
-    return rdf_flows.GrrMessage(
-        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
-        request_id=self.request_id,
-        response_id=self.response_id,
-        type=rdf_flows.GrrMessage.Type.MESSAGE,
-        timestamp=self.timestamp,
-        payload=self.payload,
-    )
-
 
 class FlowIterator(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowIterator
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
-
-  def AsLegacyGrrMessage(self):
-    return rdf_flows.GrrMessage(
-        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
-        request_id=self.request_id,
-        response_id=self.response_id,
-        type=rdf_flows.GrrMessage.Type.ITERATOR,
-        timestamp=self.timestamp,
-    )
 
 
 class FlowStatus(rdf_structs.RDFProtoStruct):
@@ -91,43 +72,12 @@ class FlowStatus(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def AsLegacyGrrMessage(self):
-    payload = rdf_flows.GrrStatus(status=inv_status_map[self.status])
-    if self.error_message:
-      payload.error_message = self.error_message
-    if self.backtrace:
-      payload.backtrace = self.backtrace
-    if self.cpu_time_used:
-      payload.cpu_time_used = self.cpu_time_used
-    if self.network_bytes_sent:
-      payload.network_bytes_sent = self.network_bytes_sent
-    if self.runtime_us:
-      payload.runtime_us = self.runtime_us
-
-    return rdf_flows.GrrMessage(
-        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
-        request_id=self.request_id,
-        response_id=self.response_id,
-        type="STATUS",
-        timestamp=self.timestamp,
-        payload=payload,
-    )
-
 
 class FlowResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowResult
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
-
-  def AsLegacyGrrMessage(self):
-    return rdf_flows.GrrMessage(
-        session_id="%s/flows/%s" % (self.client_id, self.flow_id),
-        source=self.client_id,
-        type="MESSAGE",
-        timestamp=self.timestamp,
-        payload=self.payload,
-    )
 
 
 class FlowError(rdf_structs.RDFProtoStruct):
@@ -245,7 +195,7 @@ def FlowResponseForLegacyResponse(legacy_msg):
       response.any_payload = rdf_structs.AnyValue.Pack(
           legacy_msg.payload,
       )
-    # TODO: Remove this workaround for the uint64 mapping when
+    # TODO - Remove this workaround for the uint64 mapping when
     # no more ClientActions return RDFPrimitives.
     elif isinstance(legacy_msg.payload, rdfvalue.RDFInteger) or isinstance(
         legacy_msg.payload, rdfvalue.RDFDatetime
@@ -296,9 +246,3 @@ class ScheduledFlow(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ScheduledFlow
 
   rdf_deps = [rdf_flow_runner.FlowRunnerArgs, rdfvalue.RDFDatetime]
-
-
-class DefaultFlowProgress(rdf_structs.RDFProtoStruct):
-  """Default flow progress for flows without a custom GetProgress handler."""
-
-  protobuf = flows_pb2.DefaultFlowProgress

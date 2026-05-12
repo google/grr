@@ -137,13 +137,7 @@ data_files = list(
 )
 
 setup_args = dict(
-    name="grr-response-server",
     version=VERSION.get("Version", "packageversion"),
-    description="The GRR Rapid Response Server.",
-    license="Apache License, Version 2.0",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    url="https://github.com/google/grr",
     cmdclass={"sdist": Sdist, "develop": Develop},
     packages=find_packages(),
     entry_points={
@@ -172,10 +166,9 @@ setup_args = dict(
         ]
     },
     install_requires=[
-        "google-api-python-client==1.12.11",
-        "google-auth==2.23.3",
-        "google-cloud-storage==2.13.0",
-        "google-cloud-pubsub==2.18.4",
+        "google-auth==2.29.0",
+        "google-cloud-storage==2.16.0",
+        "google-cloud-pubsub==2.30.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client-builder==%s"
         % VERSION.get("Version", "packagedepends"),
@@ -186,7 +179,6 @@ setup_args = dict(
         "portpicker==1.6.0b1",
         "prometheus_client==0.16.0",
         "pyjwt==2.6.0",
-        "pyOpenSSL==21.0.0",  # https://github.com/google/grr/issues/704
         "python-crontab==2.5.1",
         "python-debian==0.1.49",
         "Werkzeug==2.1.2",
@@ -201,8 +193,8 @@ setup_args = dict(
         # python-mysqldb version of the system we support. This is currently
         # Ubuntu Jammy, see
         # https://packages.ubuntu.com/en/jammy/python3-mysqldb
-        "mysqldatastore": ["mysqlclient>=1.3.10,<=1.4.6"],
-        # TODO: We currently release fleetspeak-server-bin packages
+        "mysqldatastore": ["mysqlclient==2.1.1"],
+        # TODO - We currently release fleetspeak-server-bin packages
         # for Linux only.
         ':sys_platform=="linux"': [
             "fleetspeak-server-bin==0.1.13",

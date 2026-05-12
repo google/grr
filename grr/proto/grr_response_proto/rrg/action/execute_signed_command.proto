@@ -20,11 +20,22 @@ message Command {
       // Whether to allow execution of arbitrary argument passed in the request
       // without it being pre-signed.
       bool unsigned_allowed = 2;
+
+      // Whether to allow passing path to a filestore file specified in the
+      // request as the argument.
+      bool filestore_file_sha256_allowed = 3;
     }
   }
 
-  // Path to the executable file to execute.
-  rrg.fs.Path path = 1;
+  oneof executable {
+    // Path to the executable file to execute.
+    rrg.fs.Path path = 1;
+
+    // SHA-256 digest of a filestore file to execute.
+    //
+    // The filestore file must have been stored with the executable bit set.
+    bytes filestore_file_sha256 = 9;
+  }
 
   // Arguments to pass to the command.
   repeated string args_signed = 2; // TODO: Deprecate this field.
@@ -34,12 +45,19 @@ message Command {
 
   // Environment in which to invoke the command.
   //
-  // Note that environment variables are not inherited from the RRG process
-  // and are empty if not specified.
+  // Note that environment variables are not inherited from the RRG process by
+  // default and are empty if not specified. To inherit specific variables from
+  // the RRG process use `env_inherited`.
   map<string, string> env_signed = 3;
 
   // Environment variables that can be specified outside of the command.
   repeated string env_unsigned_allowed = 7;
+
+  // Environment variables that are inherited from the RRG process.
+  //
+  // If a variable is set to be inherited but an explicit value is provided,
+  // the explicit value takes precedence.
+  repeated string env_inherited = 8;
 
   oneof stdin {
     // Fixed standard input to pass to the executed command.
@@ -82,6 +100,13 @@ message Args {
   // For this option to work, the command that has been signed has to have each
   // key from this map be present in `env_unsigned_allowed`.
   map<string, string> unsigned_env = 6;
+
+  // SHA-256 digests of the filestore files to pass to the executed command.
+  //
+  // i-th file specified here will be provided as a path to the file on disk to
+  // the i-th argument of the signed command that has `filestore_file_allowed`
+  // set.
+  repeated bytes filestore_file_sha256s = 7;
 
   // An [Ed25519][1] signature of the command.
   //

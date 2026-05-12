@@ -126,30 +126,7 @@ class GRRFSServer:
               frozenset(batch.validation_info_tags.items()),
           )
 
-      if batch.message_type == "GrrMessage":
-        INCOMING_FLEETSPEAK_MESSAGES.Increment(
-            fields=["PROCESS_GRR"],
-            delta=len(batch.messages),
-        )
-
-        grr_message_protos: list[jobs_pb2.GrrMessage] = []
-        for message in batch.messages:
-          grr_message_proto = jobs_pb2.GrrMessage()
-          try:
-            grr_message_proto.ParseFromString(message.value)
-          except proto2_message.DecodeError:
-            logging.exception("invalid GRR message object: %r", message)
-            FLEETSPEAK_MESSAGE_BATCH_DECODE_ERRORS.Increment(
-                fields=[jobs_pb2.GrrMessage.DESCRIPTOR.full_name]
-            )
-            continue
-
-          grr_message_protos.append(grr_message_proto)
-
-        grr_messages = list(map(mig_flows.ToRDFGrrMessage, grr_message_protos))
-        self._ProcessGRRMessages(client_id, grr_messages)
-
-      elif batch.message_type == "MessageList":
+      if batch.message_type == "MessageList":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(
             fields=["PROCESS_GRR_MESSAGE_LIST"],
             delta=len(batch.messages),
@@ -291,16 +268,7 @@ class GRRFSServer:
           )
           _LogDelayed("Written client metadata for existing client")
 
-      if fs_msg.message_type == "GrrMessage":
-        INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_GRR"])
-
-        grr_message = rdf_flows.GrrMessage.FromSerializedBytes(
-            fs_msg.data.value
-        )
-        _LogDelayed("Starting processing GRR message")
-        self._ProcessGRRMessages(grr_client_id, [grr_message])
-        _LogDelayed("Finished processing GRR message")
-      elif fs_msg.message_type == "MessageList":
+      if fs_msg.message_type == "MessageList":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(
             fields=["PROCESS_GRR_MESSAGE_LIST"]
         )

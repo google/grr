@@ -25,7 +25,3 @@ class Int64Value(rdf_structs.RDFProtoStruct):
 
 class BoolValue(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.BoolValue
-
-
-class BytesValue(rdf_structs.RDFProtoStruct):
-  protobuf = config_pb2.BytesValue

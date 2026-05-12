@@ -250,7 +250,7 @@ export class FlowResultsDownloadButton {
       case FlowType.REGISTRY_FINDER:
       case FlowType.UPDATE_CLIENT:
       case FlowType.YARA_PROCESS_SCAN:
-        // TODO: There are cases where StatEntries are but no
+        // TODO - There are cases where StatEntries are but no
         // actual file contents are collected. In this case, we shouldn't show
         // this entry.
         const resultCounts = flow.resultCounts ?? [];

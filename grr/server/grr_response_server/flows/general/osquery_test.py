@@ -4,8 +4,9 @@ import hashlib
 import io
 import json
 import os
+import sys
 import time
-from typing import Optional
+from typing import Optional, Union
 from unittest import mock
 
 from absl import app
@@ -13,23 +14,29 @@ from absl.testing import absltest
 
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import osquery as rdf_core_osquery
+from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto import osquery_pb2
+from grr_response_proto import signed_commands_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import osquery as osquery_flow
-from grr_response_server.rdfvalues import osquery as rdf_osquery
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
+from grr.test_lib import rrg_test_lib
 from grr.test_lib import skip
 from grr.test_lib import test_lib
+from grr.test_lib import testing_startup
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import execute_signed_command_pb2 as rrg_execute_signed_command_pb2
 
 
 class GetColumnTest(absltest.TestCase):
@@ -95,7 +102,7 @@ class TruncateTest(absltest.TestCase):
 )
 class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
-  # TODO: Add tests for headers. Currently headers are unordered
+  # TODO - Add tests for headers. Currently headers are unordered
   # because they are determined from the JSON output. This is less than ideal
   # and they should be ordered the same way they are in the query.
 
@@ -106,21 +113,23 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def _RunFlow(
       self,
       query: str,
-      configuration_path: Optional[str] = None,
       configuration_content: Optional[str] = None,
-  ):
+  ) -> Sequence[osquery_pb2.OsqueryResult]:
     session_id = flow_test_lib.StartAndRunFlow(
         osquery_flow.OsqueryFlow,
         action_mocks.ActionMock(osquery_action.Osquery),
         client_id=self.client_id,
         creator=self.test_username,
-        flow_args=rdf_osquery.OsqueryFlowArgs(
+        flow_args=osquery_pb2.OsqueryFlowArgs(
             query=query,
-            configuration_path=configuration_path,
             configuration_content=configuration_content,
         ),
     )
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+    return flow_test_lib.GetUnpackedFlowResults(
+        self.client_id,
+        session_id,
+        osquery_pb2.OsqueryResult,
+    )
 
   def testTime(self):
     time_before = int(time.time())
@@ -128,44 +137,19 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     time_after = int(time.time())
 
     self.assertLen(results, 1)
+    self.assertIsInstance(results[0], osquery_pb2.OsqueryResult)
 
     table = results[0].table
     self.assertLen(table.rows, 1)
 
-    time_result = int(list(table.Column("unix_time"))[0])
+    time_result = int(list(osquery_flow._GetColumn(table, "unix_time"))[0])
     self.assertBetween(time_result, time_before, time_after)
-
-  def testConfigurationArgsError(self):
-    with self.assertRaises(RuntimeError):
-      _ = self._RunFlow(
-          "SELECT * FROM processes;",
-          configuration_path="foo",
-          configuration_content="bar",
-      )
 
   def testConfigurationContentNotJSONError(self):
     with self.assertRaises(RuntimeError):
       _ = self._RunFlow(
           "SELECT * FROM processes;", configuration_content="not json content"
       )
-
-  def testConfigurationPath(self):
-    with temp.AutoTempFilePath() as configuration_path:
-      configuration_content = json.dumps(
-          {"views": {"bar": "SELECT * FROM processes;"}}
-      )
-
-      with io.open(configuration_path, "wt") as config_handle:
-        config_handle.write(configuration_content)
-
-      results = self._RunFlow(
-          "SELECT * FROM bar where pid = {};".format(os.getpid()),
-          configuration_path=configuration_path,
-      )
-      self.assertLen(results, 1)
-
-      table = results[0].table
-      self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
 
   def testConfigurationContent(self):
     configuration_content = json.dumps(
@@ -179,7 +163,9 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 1)
 
     table = results[0].table
-    self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "pid")), [str(os.getpid())]
+    )
 
   def testFile(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
@@ -200,8 +186,10 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       self.assertLen(results, 1)
 
       table = results[0].table
-      self.assertEqual(list(table.Column("path")), [bar_path, baz_path])
-      self.assertEqual(list(table.Column("size")), ["3", "3"])
+      self.assertEqual(
+          list(osquery_flow._GetColumn(table, "path")), [bar_path, baz_path]
+      )
+      self.assertEqual(list(osquery_flow._GetColumn(table, "size")), ["3", "3"])
 
   def testHash(self):
 
@@ -226,8 +214,12 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       table = results[0].table
       self.assertLen(table.rows, 1)
-      self.assertEqual(list(table.Column("md5")), [MD5(content)])
-      self.assertEqual(list(table.Column("sha256")), [SHA256(content)])
+      self.assertEqual(
+          list(osquery_flow._GetColumn(table, "md5")), [MD5(content)]
+      )
+      self.assertEqual(
+          list(osquery_flow._GetColumn(table, "sha256")), [SHA256(content)]
+      )
 
   def testMultipleResults(self):
     row_count = 100
@@ -261,7 +253,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
         self.assertLen(table.rows, 2)
         self.assertEqual(
-            list(table.Column("filename")),
+            list(osquery_flow._GetColumn(table, "filename")),
             [
                 "{:04}".format(2 * i),
                 "{:04}".format(2 * i + 1),
@@ -291,7 +283,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         action_mocks.OsqueryClientMock(),
         client_id=self.client_id,
         creator=self.test_username,
-        flow_args=rdf_osquery.OsqueryFlowArgs(
+        flow_args=osquery_pb2.OsqueryFlowArgs(
             query=query,
             file_collection_columns=file_collection_columns,
         ),
@@ -302,11 +294,15 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       self,
       query: Optional[str] = None,
       file_collection_columns: Optional[Sequence[str]] = None,
-  ) -> Sequence[rdf_core_osquery.OsqueryResult]:
+  ) -> Sequence[Union[osquery_pb2.OsqueryResult, jobs_pb2.StatEntry]]:
     flow_id = self._InitializeFlow(
         query=query, file_collection_columns=file_collection_columns
     )
-    return flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    return flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        self.client_id,
+        flow_id,
+        [osquery_pb2.OsqueryResult, jobs_pb2.StatEntry],
+    )
 
   def testSuccess(self):
     stdout = """
@@ -320,14 +316,22 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertLen(results, 1)
 
-    table = results[0].table
+    res = results[0]
+    assert isinstance(res, osquery_pb2.OsqueryResult)
+    table = res.table
     self.assertLen(table.header.columns, 3)
     self.assertEqual(table.header.columns[0].name, "foo")
     self.assertEqual(table.header.columns[1].name, "bar")
     self.assertEqual(table.header.columns[2].name, "baz")
-    self.assertEqual(list(table.Column("foo")), ["quux", "blargh"])
-    self.assertEqual(list(table.Column("bar")), ["norf", "plugh"])
-    self.assertEqual(list(table.Column("baz")), ["thud", "ztesch"])
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "foo")), ["quux", "blargh"]
+    )
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "bar")), ["norf", "plugh"]
+    )
+    self.assertEqual(
+        list(osquery_flow._GetColumn(table, "baz")), ["thud", "ztesch"]
+    )
 
   def testFailure(self):
     stderr = "Error: query syntax error"
@@ -337,7 +341,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
           flow_cls=osquery_flow.OsqueryFlow,
           client_id=self.client_id,
           creator=self.test_username,
-          flow_args=rdf_osquery.OsqueryFlowArgs(
+          flow_args=osquery_pb2.OsqueryFlowArgs(
               query="<<<FAKE OSQUERY FLOW QUERY PLACEHOLDER>>>"
           ),
       )
@@ -365,7 +369,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     with osquery_test_lib.FakeOsqueryiOutput(stdout=two_row_table, stderr=""):
       with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
         flow_id = self._InitializeFlow()
-        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+        progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), max_rows)
 
@@ -382,7 +386,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     with osquery_test_lib.FakeOsqueryiOutput(stdout=three_row_table, stderr=""):
       with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
         flow_id = self._InitializeFlow()
-        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+        progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), 3)
 
@@ -402,7 +406,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
         with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
           flow_id = self._InitializeFlow()
-          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+          progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), max_rows)
 
@@ -420,7 +424,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
         flow_id = self._InitializeFlow()
-        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+        progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(progress.total_row_count, row_count)
 
@@ -439,11 +443,15 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         results = self._RunFlow(file_collection_columns=["collect_column"])
 
     self.assertLen(results, 2)
-    self.assertIsInstance(results[0], rdf_core_osquery.OsqueryResult)
-    self.assertIsInstance(results[1], rdf_client_fs.StatEntry)
+    self.assertIsInstance(results[0], osquery_pb2.OsqueryResult)
+    self.assertIsInstance(results[1], jobs_pb2.StatEntry)
 
-    pathspec = results[1].pathspec
-    client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    res1 = results[1]
+    assert isinstance(res1, jobs_pb2.StatEntry)
+    pathspec = res1.pathspec
+    client_path = db.ClientPath.FromPathSpec(
+        self.client_id, mig_paths.ToRDFPathSpec(pathspec)
+    )
     fd_rel_db = file_store.OpenFile(client_path)
     file_text = fd_rel_db.read().decode("utf-8")
     self.assertEqual(file_text, "Just sample text to put in the file.")
@@ -507,7 +515,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
               file_collection_columns=["collect_column"],
               check_flow_errors=False,
           )
-          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+          progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
       self.assertEqual(
           f"File with path {temp_file_path} is too big: "
@@ -563,7 +571,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
               file_collection_columns=["collect_column"],
               check_flow_errors=False,
           )
-          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+          progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(
         "Files for collection exceed the total size limit of "
@@ -591,7 +599,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
             file_collection_columns=["collect1", "collect2"],
             check_flow_errors=False,
         )
-        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+        progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(
         "Requested file collection for 2 columns, but the limit is 1 columns.",
@@ -633,7 +641,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
               file_collection_columns=["collect_column"],
               check_flow_errors=False,
           )
-          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+          progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(
         "Requested file collection on a table with 2 rows, "
@@ -672,7 +680,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
             file_collection_columns=["non_existent_column"],
             check_flow_errors=False,
         )
-        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+        progress = flow_test_lib.GetFlowProgressProto(self.client_id, flow_id)
 
     self.assertEqual(
         "No such column 'non_existent_column' to collect files from.",
@@ -702,9 +710,11 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         )
 
     flow = flow_base.FlowBase.CreateFlowInstance(
-        flow_test_lib.GetFlowObj(self.client_id, flow_id)
+        data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     )
-    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+    results = data_store.REL_DB.ReadFlowResults(
+        self.client_id, flow_id, offset=0, count=sys.maxsize
+    )
 
     mappings = list(flow.GetFilesArchiveMappings(iter(results)))
     self.assertCountEqual(
@@ -742,9 +752,13 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         )
 
     flow = flow_base.FlowBase.CreateFlowInstance(
-        flow_test_lib.GetFlowObj(self.client_id, flow_id)
+        data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     )
-    results = list(flow_test_lib.GetRawFlowResults(self.client_id, flow_id))
+    results = list(
+        data_store.REL_DB.ReadFlowResults(
+            self.client_id, flow_id, offset=0, count=sys.maxsize
+        )
+    )
 
     # This is how we emulate duplicate filenames in the results
     duplicated_results = results + results + results
@@ -773,6 +787,260 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       results = self._RunFlow()
 
     self.assertEmpty(results)
+
+
+class OsqueryFlowTestRRG(absltest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  @db_test_lib.WithDatabase
+  def testProcesses(self, rel_db: db.Database):
+    # TODO - Load signed commands from the `.textproto` file to
+    # ensure integrity.
+    command = rrg_execute_signed_command_pb2.Command()
+    command.path.raw_bytes = "/usr/bin/osqueryd".encode("utf-8")
+    command.args.add().signed = "--S"
+    command.args.add().signed = "--json"
+    command.unsigned_stdin_allowed = True
+
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "osquery"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = b"\x00" * 64
+    rel_db.WriteSignedCommand(signed_command)
+
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    flow_args = osquery_pb2.OsqueryFlowArgs()
+    flow_args.query = "SELECT cmdline, uid, gid FROM processes WHERE pid = 1;"
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=osquery_flow.OsqueryFlow,
+        flow_args=flow_args,
+        handlers=rrg_test_lib.FakeOsqueryHandlers({
+            # pyformat: disable
+            "SELECT cmdline, uid, gid FROM processes WHERE pid = 1;": """
+[
+  {"cmdline":"/sbin/init splash","gid":"0","uid":"0"}
+]
+            """,
+            # pyformat: enable
+        }),
+    )
+
+    flow_obj = rel_db.ReadFlowObject(
+        client_id=client_id,
+        flow_id=flow_id,
+    )
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=osquery_pb2.OsqueryResult,
+    )
+    self.assertLen(flow_results, 1)
+
+    flow_result = flow_results[0]
+    self.assertLen(flow_result.table.header.columns, 3)
+    self.assertEqual(flow_result.table.header.columns[0].name, "cmdline")
+    self.assertEqual(flow_result.table.header.columns[1].name, "gid")
+    self.assertEqual(flow_result.table.header.columns[2].name, "uid")
+    self.assertLen(flow_result.table.rows, 1)
+    self.assertEqual(flow_result.table.rows[0].values[0], "/sbin/init splash")
+    self.assertEqual(flow_result.table.rows[0].values[1], "0")
+    self.assertEqual(flow_result.table.rows[0].values[2], "0")
+
+  @db_test_lib.WithDatabase
+  def testConfigPath(self, rel_db: db.Database):
+    # TODO - Load signed commands from the `.textproto` file to
+    # ensure integrity.
+    command = rrg_execute_signed_command_pb2.Command()
+    command.path.raw_bytes = "/usr/bin/osqueryd".encode("utf-8")
+    command.args.add().signed = "--S"
+    command.args.add().signed = "--json"
+    command.args.add().signed = "--config-path"
+    command.args.add().filestore_file_sha256_allowed = True
+    command.unsigned_stdin_allowed = True
+
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "osquery_with_config"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = b"\x00" * 64
+    rel_db.WriteSignedCommand(signed_command)
+
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    flow_args = osquery_pb2.OsqueryFlowArgs()
+    flow_args.query = "SELECT cmdline, uid, gid FROM processes WHERE pid = 1;"
+    flow_args.configuration_content = """
+    {
+      "options": {
+        "logger_plugin": "filesystem",
+        "logger_path": "/var/log/osquery",
+        "verbose": "true"
+      }
+    }
+    """
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=osquery_flow.OsqueryFlow,
+        flow_args=flow_args,
+        # pyformat: disable
+        handlers=rrg_test_lib.FakeOsqueryHandlers({
+            "SELECT cmdline, uid, gid FROM processes WHERE pid = 1;": """
+[
+  {"cmdline":"/sbin/init splash","gid":"0","uid":"0"}
+]
+            """,
+        }, rrg_test_lib.Filestore()),
+        # pyformat: enable
+    )
+
+    flow_obj = rel_db.ReadFlowObject(
+        client_id=client_id,
+        flow_id=flow_id,
+    )
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=osquery_pb2.OsqueryResult,
+    )
+    self.assertLen(flow_results, 1)
+
+    flow_result = flow_results[0]
+    self.assertLen(flow_result.table.header.columns, 3)
+    self.assertEqual(flow_result.table.header.columns[0].name, "cmdline")
+    self.assertEqual(flow_result.table.header.columns[1].name, "gid")
+    self.assertEqual(flow_result.table.header.columns[2].name, "uid")
+    self.assertLen(flow_result.table.rows, 1)
+    self.assertEqual(flow_result.table.rows[0].values[0], "/sbin/init splash")
+    self.assertEqual(flow_result.table.rows[0].values[1], "0")
+    self.assertEqual(flow_result.table.rows[0].values[2], "0")
+
+  @db_test_lib.WithDatabase
+  def testFileCollection(self, rel_db: db.Database):
+    # TODO - Load signed commands from the `.textproto` file to
+    # ensure integrity.
+    command = rrg_execute_signed_command_pb2.Command()
+    command.path.raw_bytes = "/usr/bin/osqueryd".encode("utf-8")
+    command.args.add().signed = "--S"
+    command.args.add().signed = "--json"
+    command.unsigned_stdin_allowed = True
+
+    signed_command = signed_commands_pb2.SignedCommand()
+    signed_command.id = "osquery"
+    signed_command.operating_system = signed_commands_pb2.SignedCommand.OS.LINUX
+    signed_command.command = command.SerializeToString()
+    signed_command.ed25519_signature = b"\x00" * 64
+    rel_db.WriteSignedCommand(signed_command)
+
+    client_id = db_test_utils.InitializeRRGClient(
+        rel_db,
+        os_type=rrg_os_pb2.LINUX,
+    )
+
+    flow_args = osquery_pb2.OsqueryFlowArgs()
+    flow_args.query = "SELECT path FROM file WHERE path LIKE '/usr/bin/%';"
+    flow_args.file_collection_columns.append("path")
+
+    flow_id = rrg_test_lib.ExecuteFlow(
+        client_id=client_id,
+        flow_cls=osquery_flow.OsqueryFlow,
+        flow_args=flow_args,
+        # pyformat: disable
+        handlers=dict(rrg_test_lib.FakeOsqueryHandlers({
+            "SELECT path FROM file WHERE path LIKE '/usr/bin/%';": """
+[
+  {"path":"/usr/bin/cat"},
+  {"path":"/usr/bin/ls"}
+]
+            """,
+        })) | dict(rrg_test_lib.FakePosixFileHandlers({
+            "/usr/bin/cat": b"ELF\x00CAT",
+            "/usr/bin/ls": b"ELF\x00LS",
+        })),
+        # pyformat: enable
+    )
+
+    flow_obj = rel_db.ReadFlowObject(
+        client_id=client_id,
+        flow_id=flow_id,
+    )
+    self.assertEqual(flow_obj.backtrace, "")
+    self.assertEqual(flow_obj.error_message, "")
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.FlowState.FINISHED)
+
+    flow_results = flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        client_id,
+        flow_id,
+        [osquery_pb2.OsqueryResult, jobs_pb2.StatEntry],
+    )
+
+    osquery_results = []
+    stat_entries_by_path = {}
+    for flow_result in flow_results:
+      if isinstance(flow_result, osquery_pb2.OsqueryResult):
+        osquery_results.append(flow_result)
+      elif isinstance(flow_result, jobs_pb2.StatEntry):
+        stat_entry = flow_result
+        stat_entries_by_path[stat_entry.pathspec.path] = stat_entry
+      else:
+        raise ValueError(f"Unexpected flow result: {flow_result}")
+
+    self.assertLen(osquery_results, 1)
+    osquery_result = osquery_results[0]
+
+    self.assertLen(osquery_result.table.header.columns, 1)
+    self.assertEqual(osquery_result.table.header.columns[0].name, "path")
+    self.assertLen(osquery_result.table.rows, 2)
+    self.assertEqual(osquery_result.table.rows[0].values[0], "/usr/bin/cat")
+    self.assertEqual(osquery_result.table.rows[1].values[0], "/usr/bin/ls")
+
+    self.assertLen(stat_entries_by_path, 2)
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        stat_entries_by_path["/usr/bin/cat"].st_size,
+        len(b"ELF\x00CAT"),
+    )
+    self.assertEqual(  # pylint: disable=g-generic-assert
+        stat_entries_by_path["/usr/bin/ls"].st_size,
+        len(b"ELF\x00LS"),
+    )
+
+    file_cat = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("usr", "bin", "cat"),
+        ),
+    )
+    self.assertEqual(file_cat.read(), b"ELF\x00CAT")
+
+    file_ls = file_store.OpenFile(
+        db.ClientPath.OS(
+            client_id=client_id,
+            components=("usr", "bin", "ls"),
+        ),
+    )
+    self.assertEqual(file_ls.read(), b"ELF\x00LS")
 
 
 if __name__ == "__main__":

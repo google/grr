@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {OsqueryResult as ApiOsqueryResult} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {OsqueryResults} from './osquery_results';
@@ -58,7 +55,6 @@ describe('Osquery Results Component', () => {
     };
     const {harness} = await createComponent([
       newFlowResult({
-        clientId: 'C.1234',
         payloadType: PayloadType.OSQUERY_RESULT,
         payload: osqueryResult,
       }),
@@ -72,33 +68,6 @@ describe('Osquery Results Component', () => {
     const cells = await rows[0].getCells();
     const cellTexts = await Promise.all(cells.map((cell) => cell.getText()));
     expect(cellTexts).toEqual(['FOO']);
-  }));
-
-  it('shows a osquery result for hunt results', fakeAsync(async () => {
-    const osqueryResult: ApiOsqueryResult = {
-      table: {
-        query: 'SELECT * FROM test_table\nWHERE column = "FOO"',
-        header: {columns: [{name: 'column'}]},
-        rows: [{values: ['FOO']}],
-      },
-    };
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.OSQUERY_RESULT,
-        payload: osqueryResult,
-      }),
-    ]);
-
-    const tables = await harness.osqueryTables();
-    expect(tables).toHaveSize(1);
-    const table = tables[0];
-    const rows = await table.getRows();
-    expect(rows).toHaveSize(1);
-    const cells = await rows[0].getCells();
-    const cellTexts = await Promise.all(cells.map((cell) => cell.getText()));
-    expect(cellTexts[0]).toContain('C.1234');
-    expect(cellTexts[1]).toContain('FOO');
   }));
 
   it('shows multiple flow results', fakeAsync(async () => {

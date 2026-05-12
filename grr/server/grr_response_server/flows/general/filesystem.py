@@ -8,13 +8,9 @@ from typing import Optional
 
 from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -26,7 +22,7 @@ from grr_response_server import rrg_fs
 from grr_response_server import rrg_path
 from grr_response_server import rrg_stubs
 from grr_response_server import server_stubs
-from grr_response_server.rdfvalues import mig_objects
+from grr_response_server.models import paths as models_paths
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
@@ -46,7 +42,7 @@ stat_type_mask = (
 )
 
 
-def _FilterOutPathInfoDuplicates(path_infos):
+def _FilterOutPathInfoDuplicates(path_infos: Iterable[objects_pb2.PathInfo]):
   """Filters out duplicates from passed PathInfo objects.
 
   Args:
@@ -61,7 +57,7 @@ def _FilterOutPathInfoDuplicates(path_infos):
   pi_dict = {}
 
   for pi in path_infos:
-    path_key = (pi.path_type, pi.GetPathID())
+    path_key = (pi.path_type, rdf_objects.PathID.FromComponents(pi.components))
     pi_dict.setdefault(path_key, []).append(pi)
 
   def _SortKey(pi):
@@ -79,27 +75,29 @@ def _FilterOutPathInfoDuplicates(path_infos):
   return [v[0] for v in pi_dict.values()]
 
 
-def WriteStatEntries(stat_entries, client_id):
+def WriteStatEntries(
+    stat_entries: Iterable[jobs_pb2.StatEntry],
+    client_id: str,
+) -> None:
   """Persists information about stat entries.
 
   Args:
-    stat_entries: A list of `StatEntry` instances.
+    stat_entries: A list of `StatEntry`.
     client_id: An id of a client the stat entries come from.
   """
-
-  for stat_response in stat_entries:
-    if stat_response.pathspec.last.stream_name:
+  for stat_entry in stat_entries:
+    rdf_pathspec = mig_paths.ToRDFPathSpec(stat_entry.pathspec)
+    if rdf_pathspec.last.stream_name:
       # This is an ads. In that case we always need to create a file or
       # we won't be able to access the data. New clients send the correct mode
       # already but to make sure, we set this to a regular file anyways.
       # Clear all file type bits:
-      stat_response.st_mode &= ~stat_type_mask
-      stat_response.st_mode |= stat.S_IFREG
+      stat_entry.st_mode &= ~stat_type_mask
+      stat_entry.st_mode |= stat.S_IFREG
 
-  path_infos = _FilterOutPathInfoDuplicates(
-      [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
-  )
-  proto_path_infos = [mig_objects.ToProtoPathInfo(pi) for pi in path_infos]
+  path_infos = [models_paths.PathInfoFromStatEntry(s) for s in stat_entries]
+  path_infos = _FilterOutPathInfoDuplicates(path_infos)
+
   # NOTE: TSK may return duplicate entries. This is may be either due to
   # a bug in TSK implementation, or due to the fact that TSK is capable
   # of returning deleted files information. Our VFS data model only supports
@@ -110,23 +108,24 @@ def WriteStatEntries(stat_entries, client_id):
   # Current behaviour is to simply drop excessive version before the
   # WritePathInfo call. This way files returned by TSK will still make it
   # into the flow's results, but not into the VFS data.
-  data_store.REL_DB.WritePathInfos(client_id, proto_path_infos)
+  data_store.REL_DB.WritePathInfos(client_id, path_infos)
 
 
 def WriteFileFinderResults(
-    file_finder_results: Iterable[rdf_file_finder.FileFinderResult],
+    file_finder_results: Iterable[flows_pb2.FileFinderResult],
     client_id: str,
 ) -> None:
   """Persists information about file finder results.
 
   Args:
-    file_finder_results: A list of `FileFinderResult` instances.
+    file_finder_results: A list of `FileFinderResult`.
     client_id: An id of a client the stat entries come from.
   """
 
   path_infos = []
   for r in file_finder_results:
-    if r.stat_entry.pathspec.last.stream_name:
+    rdf_pathspec = mig_paths.ToRDFPathSpec(r.stat_entry.pathspec)
+    if rdf_pathspec.last.stream_name:
       # This is an ADS. In this case we always need to create a file or
       # we won't be able to access the data. New clients send the correct mode
       # already but to make sure, we set this to a regular file anyways.
@@ -134,13 +133,12 @@ def WriteFileFinderResults(
       r.stat_entry.st_mode &= ~stat_type_mask
       r.stat_entry.st_mode |= stat.S_IFREG
 
-    path_info = rdf_objects.PathInfo.FromStatEntry(r.stat_entry)
+    path_info = models_paths.PathInfoFromStatEntry(r.stat_entry)
     if r.HasField("hash_entry"):
-      path_info.hash_entry = r.hash_entry
+      path_info.hash_entry.CopyFrom(r.hash_entry)
     path_infos.append(path_info)
 
   path_infos = _FilterOutPathInfoDuplicates(path_infos)
-  proto_path_infos = [mig_objects.ToProtoPathInfo(pi) for pi in path_infos]
   # NOTE: TSK may return duplicate entries. This is may be either due to
   # a bug in TSK implementation, or due to the fact that TSK is capable
   # of returning deleted files information. Our VFS data model only supports
@@ -151,13 +149,13 @@ def WriteFileFinderResults(
   # Current behaviour is to simply drop excessive version before the
   # WritePathInfo call. This way files returned by TSK will still make it
   # into the flow's results, but not into the VFS data.
-  data_store.REL_DB.WritePathInfos(client_id, proto_path_infos)
+  data_store.REL_DB.WritePathInfos(client_id, path_infos)
 
 
 def WritePartialFileResults(
     client_id: str,
-    stat_entry: rdf_client_fs.StatEntry,
-    hash_entry: Optional[rdf_crypto.Hash] = None,
+    stat_entry: jobs_pb2.StatEntry,
+    hash_entry: Optional[jobs_pb2.Hash] = None,
 ) -> None:
   """Persists information about partial file results (without content).
 
@@ -166,7 +164,8 @@ def WritePartialFileResults(
     stat_entry: A `StatEntry` instance.
     hash_entry: An optional `Hash` instance.
   """
-  if stat_entry.pathspec.last.stream_name:
+  rdf_pathspec = mig_paths.ToRDFPathSpec(stat_entry.pathspec)
+  if rdf_pathspec.last.stream_name:
     # This is an ADS. In this case we always need to create a file or
     # we won't be able to access the data. New clients send the correct mode
     # already but to make sure, we set this to a regular file anyways.
@@ -174,20 +173,11 @@ def WritePartialFileResults(
     stat_entry.st_mode &= ~stat_type_mask
     stat_entry.st_mode |= stat.S_IFREG
 
-  path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+  path_info = models_paths.PathInfoFromStatEntry(stat_entry)
   if hash_entry:
-    path_info.hash_entry = hash_entry
+    path_info.hash_entry.CopyFrom(hash_entry)
 
-  data_store.REL_DB.WritePathInfos(
-      client_id, [mig_objects.ToProtoPathInfo(path_info)]
-  )
-
-
-class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ListDirectoryArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
+  data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
 class ListDirectory(
@@ -200,14 +190,11 @@ class ListDirectory(
   """List files in a directory."""
 
   category = "/Filesystem/"
-  args_type = ListDirectoryArgs
   behaviours = flow_base.BEHAVIOUR_ADVANCED
-  result_types = (rdf_client_fs.StatEntry,)
 
   proto_args_type = flows_pb2.ListDirectoryArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   proto_store_type = flows_pb2.ListDirectoryStore
-  only_protos_allowed = True
 
   def Start(self):
     """Issue a request to list the directory."""
@@ -217,7 +204,7 @@ class ListDirectory(
     ):
       path_raw_bytes = self.proto_args.pathspec.path.encode("utf-8")  # pytype: disable=attribute-error
 
-      # TODO: Sometimes GRR "fixes" Windows paths and inserts a
+      # TODO - Sometimes GRR "fixes" Windows paths and inserts a
       # leading '/' in front (e.g. to have `/C:/Windows`). RRG does not treat it
       # as a valid absolute path and so we need to "unfix" it here.
       #
@@ -326,7 +313,7 @@ class ListDirectory(
       path_info.components.extend(path.components)
       path_info.stat_entry.pathspec.pathtype = jobs_pb2.PathSpec.PathType.OS
       path_info.stat_entry.pathspec.path = str(path)
-      # TODO: Fix path separator in stat entries.
+      # TODO - Fix path separator in stat entries.
       if self.rrg_os_type == rrg_os_pb2.WINDOWS:
         path_info.stat_entry.pathspec.path = str(path).replace("\\", "/")
 
@@ -365,21 +352,16 @@ class ListDirectory(
 
     self.Log("Listed %s", self.store.urn)
 
-    # TODO: Get proto path info from proto stat entry.
-    path_info = rdf_objects.PathInfo.FromStatEntry(
-        mig_client_fs.ToRDFStatEntry(self.store.stat_entry)
-    )
-    data_store.REL_DB.WritePathInfos(
-        self.client_id, [mig_objects.ToProtoPathInfo(path_info)]
-    )
+    # TODO - Get proto path info from proto stat entry.
+    WriteStatEntries([self.store.stat_entry], client_id=self.client_id)
 
-    rdf_stat_entries = []
+    stat_entries = []
     for response_any in responses:
       stat_entry = jobs_pb2.StatEntry()
       stat_entry.ParseFromString(response_any.value)
       self.SendReplyProto(stat_entry)
-      rdf_stat_entries.append(mig_client_fs.ToRDFStatEntry(stat_entry))
-    WriteStatEntries(rdf_stat_entries, client_id=self.client_id)
+      stat_entries.append(stat_entry)
+    WriteStatEntries(stat_entries, client_id=self.client_id)
 
   def NotifyAboutEnd(self):
     """Sends a notification that this flow is done."""
@@ -412,13 +394,6 @@ class ListDirectory(
     )
 
 
-class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.RecursiveListDirectoryArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
 class RecursiveListDirectory(
     flow_base.FlowBase[
         flows_pb2.RecursiveListDirectoryArgs,
@@ -430,13 +405,10 @@ class RecursiveListDirectory(
 
   category = "/Filesystem/"
 
-  args_type = RecursiveListDirectoryArgs
-  result_types = (rdf_client_fs.StatEntry,)
   proto_args_type = flows_pb2.RecursiveListDirectoryArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   proto_store_type = flows_pb2.RecursiveListDirectoryStore
   proto_progress_type = flows_pb2.RecursiveListDirectoryProgress
-  only_protos_allowed = True
 
   def Start(self):
     """List the initial directory."""
@@ -467,15 +439,13 @@ class RecursiveListDirectory(
     urn = directory_pathspec.AFF4Path(self.client_urn)
 
     # Store directory.
-    rdf_stat_entries = []
-    proto_stat_entries = []
+    stat_entries = []
     for response_any in responses:
       stat_entry = jobs_pb2.StatEntry()
       stat_entry.ParseFromString(response_any.value)
       self.SendReplyProto(stat_entry)
-      proto_stat_entries.append(stat_entry)
-      rdf_stat_entries.append(mig_client_fs.ToRDFStatEntry(stat_entry))
-    WriteStatEntries(rdf_stat_entries, client_id=self.client_id)
+      stat_entries.append(stat_entry)
+    WriteStatEntries(stat_entries, client_id=self.client_id)
 
     if not self.store.first_directory:
       self.store.first_directory = str(urn)
@@ -489,7 +459,7 @@ class RecursiveListDirectory(
       )
       return
 
-    for stat_response in proto_stat_entries:
+    for stat_response in stat_entries:
       # Queue a list directory for each directory here, but do not follow
       # symlinks.
       is_dir = stat.S_ISDIR(int(stat_response.st_mode))

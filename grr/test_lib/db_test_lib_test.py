@@ -4,7 +4,6 @@ from absl.testing import absltest
 from grr_response_core.lib import rdfvalue
 from grr_response_server import blob_store
 from grr_response_server.databases import db as abstract_db
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import db_test_lib
 
 
@@ -51,9 +50,8 @@ class WithDatabaseTest(absltest.TestCase):
     def TestMethod(self, username: str, db: abstract_db.Database):
       db.WriteGRRUser(username)
 
-      proto_user = db.ReadGRRUser(username)
-      rdf_user = mig_objects.ToRDFGRRUser(proto_user)
-      self.assertEqual(rdf_user.username, username)
+      user = db.ReadGRRUser(username)
+      self.assertEqual(user.username, username)
 
     TestMethod(self, "foo")  # pylint: disable=no-value-for-parameter
     TestMethod(self, "bar")  # pylint: disable=no-value-for-parameter

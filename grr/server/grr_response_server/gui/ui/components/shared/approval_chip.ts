@@ -1,11 +1,12 @@
+import {CommonModule} from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   input,
 } from '@angular/core';
-import {MatChip} from '@angular/material/chips';
-import {MatIcon} from '@angular/material/icon';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatIconModule} from '@angular/material/icon';
 
 import {DateTime} from '../../lib/date_time';
 import {ApprovalStatus, type Approval} from '../../lib/models/user';
@@ -21,8 +22,7 @@ const TITLES: {readonly [key in ApprovalStatus['type']]: string} = {
 @Component({
   selector: 'approval-chip',
   templateUrl: './approval_chip.ng.html',
-  styleUrls: ['./approval_chip.scss'],
-  imports: [MatChip, MatIcon],
+  imports: [CommonModule, MatChipsModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApprovalChip {

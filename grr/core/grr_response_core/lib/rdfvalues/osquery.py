@@ -82,10 +82,3 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
 
   def GetTableRows(self) -> Iterator[Sequence[str]]:
     return (row.values for row in self.table.rows)
-
-
-class OsqueryProgress(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `OsqueryProgress` proto."""
-
-  protobuf = osquery_pb2.OsqueryProgress
-  rdf_deps = [OsqueryTable]

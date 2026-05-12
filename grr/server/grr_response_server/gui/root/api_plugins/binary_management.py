@@ -5,8 +5,6 @@ from typing import Optional
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
 from grr_response_proto.api.root import binary_management_pb2
 from grr_response_server import access_control
@@ -25,18 +23,6 @@ class GrrBinaryIsNotOverwritableError(access_control.UnauthorizedAccess):
 
 class GrrBinaryIsNotDeletableError(access_control.UnauthorizedAccess):
   """Raised when one tries to delete an existing GRR binary."""
-
-
-class ApiUploadGrrBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = binary_management_pb2.ApiUploadGrrBinaryArgs
-  rdf_deps = [
-      rdf_crypto.SignedBlob,
-  ]
-
-
-class ApiDeleteGrrBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = binary_management_pb2.ApiDeleteGrrBinaryArgs
-  rdf_deps = []
 
 
 def _GetBinaryRootUrn(

@@ -7,4 +7,8 @@ export class FlowConfigurationHarness extends ComponentHarness {
   static hostSelector = 'flow-configuration';
 
   readonly flowArgsForm = this.locatorForOptional(FlowArgsFormHarness);
+
+  async getText(): Promise<string | undefined> {
+    return (await this.host()).text();
+  }
 }

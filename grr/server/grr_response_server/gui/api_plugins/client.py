@@ -11,10 +11,6 @@ from urllib import parse as urlparse
 from google.protobuf import message as proto2_message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
@@ -30,7 +26,6 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.models import clients as models_clients
-from grr_response_server.rdfvalues import objects as rdf_objects
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
@@ -88,26 +83,6 @@ class ApiClientId(rdfvalue.RDFString):
       raise ValueError("Can't call ToString() on an empty client id.")
 
     return self._value
-
-
-class ApiClient(rdf_structs.RDFProtoStruct):
-  """API client object."""
-
-  protobuf = client_pb2.ApiClient
-  rdf_deps = [
-      rdf_objects.ClientLabel,
-      ApiClientId,
-      rdfvalue.ByteSize,
-      rdf_client.ClientInformation,
-      rdf_client.ClientURN,
-      rdf_cloud.CloudInstance,
-      rdf_client.HardwareInfo,
-      rdf_client_network.Interface,
-      rdf_client.KnowledgeBase,
-      rdfvalue.RDFDatetime,
-      rdf_client.Uname,
-      rdf_client_fs.Volume,
-  ]
 
 
 class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
@@ -533,7 +508,7 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   proto_result_type = client_pb2.ApiListKbFieldsResult
 
   def Handle(self, args, context=None):
-    # TODO: Add a proto function counterpart.
+    # TODO - Add a proto function counterpart.
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return client_pb2.ApiListKbFieldsResult(items=sorted(fields))
 

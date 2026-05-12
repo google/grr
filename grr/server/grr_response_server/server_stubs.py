@@ -123,12 +123,6 @@ class Echo(ClientActionStub):
   out_rdfvalues = [rdf_client_action.EchoRequest]
 
 
-class GetHostname(ClientActionStub):
-  """Retrieves the host name of the client."""
-
-  out_rdfvalues = [rdf_protodict.DataBlob]
-
-
 class GetPlatformInfo(ClientActionStub):
   """Retrieves platform information."""
 

@@ -1,6 +1,5 @@
 syntax = "proto2";
 
-import "google/protobuf/any.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -12,6 +11,8 @@ package grr;
 
 // Next id: 12
 message ApiFile {
+  reserved 9;
+
   optional string name = 1 [(sem_type) = { description: "File name." }];
   optional string path = 2
       [(sem_type) = { description: "File path starting from the VFS root." }];
@@ -33,41 +34,6 @@ message ApiFile {
   optional uint64 last_collected_size = 10 [
     (sem_type) = { description: "Size of the file last time it was collected." }
   ];
-  // Details of an ApiFile.
-  optional ApiAff4ObjectRepresentation details = 9
-      [(sem_type) = { description: "The file details." }];
-}
-
-message ApiAff4ObjectRepresentation {
-  repeated ApiAff4ObjectType types = 1
-      [(sem_type) = { description: "The list of types." }];
-}
-
-message ApiAff4ObjectType {
-  optional string name = 1
-      [(sem_type) = { description: "The name of the category." }];
-  repeated ApiAff4ObjectAttribute attributes = 2
-      [(sem_type) = { description: "The list of attributes." }];
-}
-
-message ApiAff4ObjectAttribute {
-  optional string name = 1
-      [(sem_type) = { description: "The name of the attribute." }];
-  repeated ApiAff4ObjectAttributeValue values = 2
-      [(sem_type) = { description: "The values of the attribute." }];
-}
-
-message ApiAff4ObjectAttributeValue {
-  optional string type = 1
-      [(sem_type) = { description: "The type of the attribute." }];
-  optional uint64 age = 2 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The age of the attribute."
-  }];
-  optional google.protobuf.Any value = 3 [(sem_type) = {
-    description: "The value of the attributes."
-    dynamic_type: "GetValueClass"
-  }];
 }
 
 message ApiVfsTimelineItem {

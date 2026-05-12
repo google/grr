@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 """Helper script for running end-to-end tests."""
 
+import pathlib
+import subprocess
 import sys
+import tempfile
 
 from absl import app
 from absl import flags
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 import psutil
 
 from grr_response_test.lib import api_helpers
 from grr_response_test.lib import self_contained_components
 
+
+ROOT_DIR = (pathlib.Path(__file__).parent / ".." / "..").resolve()
 
 _TESTS = flags.DEFINE_list(
     "tests", [],
@@ -38,10 +45,16 @@ _MYSQL_PASSWORD = flags.DEFINE_string("mysql_password", None,
 _LOGGING_PATH = flags.DEFINE_string(
     "logging_path", None, "Base logging path for server components to use.")
 
-flags.DEFINE_string(
+_OSQUERY_PATH = flags.DEFINE_string(
     name="osquery_path",
     default="",
     help="A path to the osquery executable.",
+)
+
+_RRG_PATH = flags.DEFINE_string(
+    "rrg_path",
+    default=None,
+    help="A path to the RRG executable.",
 )
 
 
@@ -51,13 +64,32 @@ def main(argv):
   if _MYSQL_USERNAME.value is None:
     raise ValueError("--mysql_username has to be specified.")
 
+  command_signing_key = ed25519.Ed25519PrivateKey.generate()
+  command_verifying_key = command_signing_key.public_key()
+
+  command_signing_key_file = tempfile.NamedTemporaryFile(delete=False)
+  command_signing_key_file.write(
+      command_signing_key.private_bytes(
+          encoding=serialization.Encoding.Raw,
+          format=serialization.PrivateFormat.Raw,
+          encryption_algorithm=serialization.NoEncryption(),
+      ),
+  )
+  command_signing_key_file.close()
+
+  command_verifying_key_bytes = command_verifying_key.public_bytes(
+      encoding=serialization.Encoding.Raw,
+      format=serialization.PublicFormat.Raw,
+  )
+
   # Generate server and client configs.
   grr_configs = self_contained_components.InitGRRConfigs(
       _MYSQL_DATABASE.value,
       mysql_username=_MYSQL_USERNAME.value,
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value,
-      osquery_path=flags.FLAGS.osquery_path,
+      osquery_path=_OSQUERY_PATH.value,
+      command_signing_key_path=command_signing_key_file.name,
   )
 
   fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
@@ -66,6 +98,8 @@ def main(argv):
       mysql_username=_MYSQL_USERNAME.value,
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value,
+      rrg_path=_RRG_PATH.value,
+      rrg_command_verifying_key_bytes=command_verifying_key_bytes,
   )
 
   # Start all remaining server components.
@@ -78,6 +112,50 @@ def main(argv):
 
   api_port = api_helpers.GetAdminUIPortFromConfig(grr_configs.server_config)
   grrapi = api_helpers.WaitForAPIEndpoint(api_port)
+
+  command_signer_args = [
+      "--config",
+      grr_configs.server_config,
+      "--api_endpoint",
+      f"http://localhost:{api_port}",
+      # pylint: disable=line-too-long
+      # pyformat: disable
+      str(ROOT_DIR / "config" / "command_execution" / "flow_and_artifact_commands.textproto"),
+      # pylint: enable=line-too-long
+      # pyformat: enable
+  ]
+
+  if _OSQUERY_PATH.value:
+    command_signer_args.extend([
+        # TODO - Adjust command signer to skip commands with non-
+        # existing template parameters.
+        #
+        # Right now we have to specify a template parameter for every platform
+        # with a dummy value for platforms that we are not interested in just
+        # because there is a command for it in the file.
+        "--template-param",
+        f"OSQUERY_LINUX={_OSQUERY_PATH.value}",
+        "--template-param",
+        f"OSQUERY_MACOS={_OSQUERY_PATH.value}",
+        "--template-param",
+        f"OSQUERY_WINDOWS={_OSQUERY_PATH.value}",
+        # pylint: disable=line-too-long
+        # pyformat: disable
+        str(ROOT_DIR / "config" / "command_execution" / "osquery_commands.textproto"),
+        # pylint: enable=line-too-long
+        # pyformat: enable
+    ])
+
+  subprocess.run(
+      [
+          sys.executable,
+          "-u",
+          "-m",
+          "grr_response_server.bin.command_signer",
+      ]
+      + command_signer_args,
+      check=True,
+  )
 
   # Start the client.
   preliminary_client_p = self_contained_components.StartClientProcess(

@@ -127,7 +127,7 @@ export class ExecutePythonHackForm extends FlowArgsFormInterface<
     };
   }
 
-  // TODO: As future UX improvement, we could highlight Python
+  // TODO - As future UX improvement, we could highlight Python
   // hacks that match the current client OS, since Python hacks are "bound" to
   // one OS on upload.
 

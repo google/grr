@@ -11,13 +11,6 @@
       </td>
     </ng-container>
 
-    <ng-container matColumnDef="clientId">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by client id">Client ID</th>
-      <td mat-cell *matCellDef="let r" class="path">
-        <copy-button>{{ r.clientId }}</copy-button>
-      </td>
-    </ng-container>
-
     <ng-container matColumnDef="path">
       <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by path">Path</th>
       <td mat-cell *matCellDef="let r" class="path">

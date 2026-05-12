@@ -1,7 +1,5 @@
-import {HttpErrorResponse} from '@angular/common/http';
 import {DestroyRef, inject} from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
-import {tapResponse} from '@ngrx/operators';
 import {
   patchState,
   signalStore,
@@ -11,7 +9,7 @@ import {
 } from '@ngrx/signals';
 import {rxMethod} from '@ngrx/signals/rxjs-interop';
 import {combineLatest, of, pipe} from 'rxjs';
-import {map, switchMap} from 'rxjs/operators';
+import {map, switchMap, tap} from 'rxjs/operators';
 
 import {
   ApiGetFileTextArgsEncoding,
@@ -108,21 +106,16 @@ export const FileStore = signalStore(
             path: fileQuery.path,
           };
           return httpApiService.getFileAccess(fileSpec).pipe(
-            tapResponse({
-              next: (fileAccess: boolean) => {
-                patchState(store, {
-                  fileContentAccessMap: new Map(
-                    updateFileContentAccessMap(
-                      store.fileContentAccessMap(),
-                      fileSpec,
-                      fileAccess,
-                    ),
+            tap((fileAccess: boolean) => {
+              patchState(store, {
+                fileContentAccessMap: new Map(
+                  updateFileContentAccessMap(
+                    store.fileContentAccessMap(),
+                    fileSpec,
+                    fileAccess,
                   ),
-                });
-              },
-              error: (err: HttpErrorResponse) => {
-                throw new Error(err.message);
-              },
+                ),
+              });
             }),
           );
         }),
@@ -140,22 +133,12 @@ export const FileStore = signalStore(
             path: fileQuery.path,
           };
           return httpApiService.getFileDetails(fileSpec).pipe(
-            tapResponse({
-              next: (file: File | Directory) => {
-                patchState(store, {
-                  fileDetailsMap: new Map(
-                    updateFileDetailsMap(
-                      store.fileDetailsMap(),
-                      fileSpec,
-                      file,
-                    ),
-                  ),
-                });
-              },
-              error: (err: HttpErrorResponse) => {
-                // TODO: Revisit this once errors are handled.
-                throw err;
-              },
+            tap((file: File | Directory) => {
+              patchState(store, {
+                fileDetailsMap: new Map(
+                  updateFileDetailsMap(store.fileDetailsMap(), fileSpec, file),
+                ),
+              });
             }),
           );
         }),
@@ -179,22 +162,16 @@ export const FileStore = signalStore(
               encoding: ApiGetFileTextArgsEncoding.UTF_8,
             })
             .pipe(
-              tapResponse({
-                next: (fileContent: FileContent | null) => {
-                  patchState(store, {
-                    fileTextMap: new Map(
-                      updateFileTextMap(
-                        store.fileTextMap(),
-                        fileSpec,
-                        fileContent,
-                      ),
+              tap((fileContent: FileContent | null) => {
+                patchState(store, {
+                  fileTextMap: new Map(
+                    updateFileTextMap(
+                      store.fileTextMap(),
+                      fileSpec,
+                      fileContent,
                     ),
-                  });
-                },
-                error: (err: HttpErrorResponse) => {
-                  // TODO: Revisit this once errors are handled.
-                  throw err;
-                },
+                  ),
+                });
               }),
             );
         }),

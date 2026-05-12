@@ -36,7 +36,7 @@ class Types(object):
     """Creates hunt runner args object."""
     return flows_pb2.HuntRunnerArgs()
 
-  # TODO: Delete this method as it is not really type-safe.
+  # TODO - Delete this method as it is not really type-safe.
   def CreateFlowArgs(
       self,
       flow_name: str,

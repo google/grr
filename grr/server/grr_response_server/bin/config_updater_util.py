@@ -22,7 +22,6 @@ import pkg_resources
 from google.protobuf import text_format
 from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
-from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.lib import package
 from grr_response_server import maintenance_utils
@@ -748,7 +747,6 @@ def FinalizeConfigInit(
     config,
     admin_password: Optional[str] = None,
     redownload_templates: bool = False,
-    repack_templates: bool = True,
     prompt: bool = True,
 ):
   """Performs the final steps of config initialization."""
@@ -777,22 +775,6 @@ def FinalizeConfigInit(
     else:
       UpdateUser("admin", password=admin_password, is_admin=True)
 
-  print("\nStep 4: Repackaging clients with new configuration.")
-  if prompt:
-    redownload_templates = RetryBoolQuestion(
-        "Server debs include client templates. Re-download templates?", False
-    )
-    repack_templates = RetryBoolQuestion("Repack client templates?", True)
-  if redownload_templates:
-    InstallTemplatePackage()
-  # Build debug binaries, then build release binaries.
-  if repack_templates:
-    repacking.TemplateRepacker().RepackAllTemplates(upload=True)
-  print(
-      "\nGRR Initialization complete! You can edit the new configuration "
-      "in %s.\n"
-      % config["Config.writeback"]
-  )
   if prompt and os.geteuid() == 0:
     restart = RetryBoolQuestion(
         "Restart service for the new configuration to take effect?", True
@@ -816,7 +798,6 @@ def Initialize(
     external_hostname: Optional[str] = None,
     admin_password: Optional[str] = None,
     redownload_templates: bool = False,
-    repack_templates: bool = True,
 ):
   """Initialize or update a GRR configuration."""
 
@@ -869,7 +850,6 @@ def Initialize(
       config,
       admin_password=admin_password,
       redownload_templates=redownload_templates,
-      repack_templates=repack_templates,
       prompt=True,
   )
 
@@ -887,7 +867,6 @@ def InitializeNoPrompt(
     mysql_client_cert_path: Optional[str] = None,
     mysql_ca_cert_path: Optional[str] = None,
     redownload_templates: bool = False,
-    repack_templates: bool = True,
     use_fleetspeak: bool = False,
     mysql_fleetspeak_db: Optional[str] = None,
 ):
@@ -906,7 +885,6 @@ def InitializeNoPrompt(
     mysql_client_cert_path: The path name of the client public key certificate.
     mysql_ca_cert_path: The path name of the CA certificate file.
     redownload_templates: Indicates whether templates should be re-downloaded.
-    repack_templates: Indicates whether templates should be re-packed.
     use_fleetspeak: Whether to use Fleetspeak.
     mysql_fleetspeak_db: Name of the MySQL database to use for Fleetspeak.
 
@@ -994,7 +972,6 @@ def InitializeNoPrompt(
       config,
       admin_password=admin_password,
       redownload_templates=redownload_templates,
-      repack_templates=repack_templates,
       prompt=False,
   )
 

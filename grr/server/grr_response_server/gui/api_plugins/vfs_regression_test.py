@@ -5,6 +5,7 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_proto import flows_pb2
 from grr_response_proto.api import vfs_pb2 as api_vfs_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -14,7 +15,6 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.gui.api_plugins import vfs_test as vfs_plugin_test
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -163,7 +163,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     client_id = self.SetupClient(0)
 
     # Create a running mock refresh operation.
-    flow_args = filesystem.RecursiveListDirectoryArgs()
+    flow_args = flows_pb2.RecursiveListDirectoryArgs()
 
     running_flow_id = flow_test_lib.StartFlow(
         filesystem.RecursiveListDirectory,
@@ -184,16 +184,17 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     proto_flow = data_store.REL_DB.LeaseFlowForProcessing(
         client_id, finished_flow_id, rdfvalue.Duration.From(5, rdfvalue.MINUTES)
     )
-    rdf_flow = mig_flow_objects.ToRDFFlow(proto_flow)
-    flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
-    flow_obj = flow_cls(rdf_flow)
+    flow_cls = registry.FlowRegistry.FlowClassByName(proto_flow.flow_class_name)
+    flow_obj = flow_cls(proto_flow=proto_flow)
     flow_obj.Error("Fake error")
-    proto_flow = mig_flow_objects.ToProtoFlow(rdf_flow)
-    data_store.REL_DB.ReleaseProcessedFlow(proto_flow)
+    data_store.REL_DB.ReleaseProcessedFlow(flow_obj.proto_flow_object)
 
     # Create an arbitrary flow to check on 404s.
     non_refresh_flow_id = flow_test_lib.StartFlow(
-        discovery.Interrogate, client_id, creator=self.test_username
+        discovery.Interrogate,
+        client_id,
+        flow_args=flows_pb2.InterrogateArgs(),
+        creator=self.test_username,
     )
 
     # Unknown flow ids should also cause 404s.
@@ -272,16 +273,27 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     acl_test_lib.CreateUser(self.test_username)
 
     # Create a running mock refresh operation.
-    running_flow_id = self.CreateMultiGetFileFlow(
+    mgf_running_flow_id = self.CreateMultiGetFileFlow(
         client_id, file_path="fs/os/c/bin/bash"
+    )
+    cfbkp_running_flow_id = self.CreateCollectFilesByKnownPathFlow(
+        client_id, file_path="/bin/bash"
     )
 
     # Create a mock refresh operation and complete it.
-    finished_flow_id = self.CreateMultiGetFileFlow(
+    mgf_finished_flow_id = self.CreateMultiGetFileFlow(
         client_id, file_path="fs/os/c/bin/bash"
     )
+    cfbkp_finished_flow_id = self.CreateCollectFilesByKnownPathFlow(
+        client_id, file_path="/bin/bash"
+    )
 
-    flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
+    flow_base.TerminateFlow(
+        client_id, mgf_finished_flow_id, reason="Fake Error"
+    )
+    flow_base.TerminateFlow(
+        client_id, cfbkp_finished_flow_id, reason="Fake Error"
+    )
 
     # Create an arbitrary flow to check on 404s.
     non_update_flow_id = flow.StartFlow(
@@ -295,16 +307,30 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     self.Check(
         "GetVfsFileContentUpdateState",
         args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=running_flow_id
+            client_id=client_id, operation_id=mgf_running_flow_id
         ),
-        replace={running_flow_id: "ABCDEF"},
+        replace={mgf_running_flow_id: "ABCDEF"},
     )
     self.Check(
         "GetVfsFileContentUpdateState",
         args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
-            client_id=client_id, operation_id=finished_flow_id
+            client_id=client_id, operation_id=cfbkp_running_flow_id
         ),
-        replace={finished_flow_id: "ABCDEF"},
+        replace={cfbkp_running_flow_id: "FEDCBA"},
+    )
+    self.Check(
+        "GetVfsFileContentUpdateState",
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
+            client_id=client_id, operation_id=mgf_finished_flow_id
+        ),
+        replace={mgf_finished_flow_id: "ABCDEF"},
+    )
+    self.Check(
+        "GetVfsFileContentUpdateState",
+        args=api_vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
+            client_id=client_id, operation_id=cfbkp_finished_flow_id
+        ),
+        replace={cfbkp_finished_flow_id: "FEDCBA"},
     )
     self.Check(
         "GetVfsFileContentUpdateState",

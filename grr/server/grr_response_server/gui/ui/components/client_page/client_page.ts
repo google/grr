@@ -6,7 +6,6 @@ import {
   Input as RouterInput,
 } from '@angular/core';
 import {MatTabsModule} from '@angular/material/tabs';
-import {Title} from '@angular/platform-browser';
 import {RouterModule} from '@angular/router';
 
 import {ClientStore} from '../../store/client_store';
@@ -39,9 +38,5 @@ export class ClientPage {
       {injector: this.injector},
     );
     this.clientStore.pollClientApprovals();
-  }
-
-  constructor() {
-    inject(Title).setTitle('GRR | Client');
   }
 }

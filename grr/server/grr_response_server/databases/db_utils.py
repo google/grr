@@ -227,7 +227,7 @@ class BatchPlanner(Generic[_T]):
   affect less total rows than the limit.
   """
 
-  # TODO: as soon as GRR is fully Python 3.7, this should
+  # TODO - as soon as GRR is fully Python 3.7, this should
   # be replaced with a generic NamedTuple. Unfortunately, Python 3.6
   # has issues with NamedTuples and generics. See:
   # https://stackoverflow.com/questions/50530959/generic-namedtuple-in-python-3-6

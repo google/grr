@@ -10,13 +10,11 @@ from unittest import mock
 
 from absl import app
 
-from google.protobuf import any_pb2
 from grr_response_client.client_actions import admin
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import mig_client_action
 from grr_response_core.lib.rdfvalues import mig_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -24,7 +22,6 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_server import action_registry
@@ -32,20 +29,18 @@ from grr_response_server import artifact_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
-from grr_response_server import fleetspeak_utils
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import cloud
 from grr_response_server.flows.general import discovery
+from grr_response_server.models import clients as models_clients
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import notification_test_lib
 from grr.test_lib import rrg_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
@@ -56,7 +51,6 @@ from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 from grr_response_proto.rrg.action import list_interfaces_pb2 as rrg_list_interfaces_pb2
 from grr_response_proto.rrg.action import list_mounts_pb2 as rrg_list_mounts_pb2
-from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 
 class DiscoveryTestEventListener(events.EventListener):
@@ -73,16 +67,13 @@ class DiscoveryTestEventListener(events.EventListener):
 
 class TestClientInterrogate(
     acl_test_lib.AclTestMixin,
-    notification_test_lib.NotificationTestMixin,
     flow_test_lib.FlowTestsBaseclass,
     stats_test_lib.StatsTestMixin,
 ):
   """Test the interrogate flow."""
 
-  def _OpenClient(self, client_id):
-    return mig_objects.ToRDFClientSnapshot(
-        data_store.REL_DB.ReadClientSnapshot(client_id)
-    )
+  def _OpenClient(self, client_id) -> objects_pb2.ClientSnapshot:
+    return data_store.REL_DB.ReadClientSnapshot(client_id)
 
   def _CheckUsers(self, client, expected_users):
     self.assertCountEqual(
@@ -115,7 +106,7 @@ class TestClientInterrogate(
     self.assertLen(index.LookupClients(keywords), expected_count)
 
   def _CheckNotificationsCreated(self, username, client_id):
-    notifications = self.GetUserNotifications(username)
+    notifications = data_store.REL_DB.ReadUserNotifications(username)
 
     self.assertLen(notifications, 1)
     notification = notifications[0]
@@ -159,29 +150,13 @@ class TestClientInterrogate(
     self.assertTrue(DiscoveryTestEventListener.event.timestamp)
     self.assertTrue(DiscoveryTestEventListener.event.last_ping)
 
-  def _CheckNetworkInfo(self, client):
+  def _CheckNetworkInfo(self, client: objects_pb2.ClientSnapshot):
     self.assertEqual(client.interfaces[0].mac_address, b"123456")
-    self.assertEqual(
-        client.interfaces[0].addresses[0].human_readable_address,
-        "100.100.100.1",
-    )
     self.assertEqual(
         socket.inet_ntop(
             socket.AF_INET, client.interfaces[0].addresses[0].packed_bytes
         ),
         "100.100.100.1",
-    )
-
-  def _CheckLabels(self, client_id):
-    expected_labels = ["GRRLabel1", "Label2"]
-
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
-    self.assertEqual([label.name for label in labels], expected_labels)
-
-  def _CheckLabelIndex(self, client_id):
-    """Check that label indexes are updated."""
-    self.assertCountEqual(
-        client_index.ClientIndex().LookupClients(["label:Label2"]), [client_id]
     )
 
   def _CheckRelease(self, client, desired_release, desired_version):
@@ -208,7 +183,7 @@ class TestClientInterrogate(
   def _CheckMemory(self, client):
     self.assertTrue(client.memory_size)
 
-  def _CheckCloudMetadata(self, client):
+  def _CheckCloudMetadata(self, client: objects_pb2.ClientSnapshot):
     self.assertTrue(client.cloud_instance)
     self.assertEqual(client.cloud_instance.google.instance_id, "instance_id")
     self.assertEqual(client.cloud_instance.google.project_id, "project_id")
@@ -310,7 +285,7 @@ class TestClientInterrogate(
     self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckClientSummary(
         client_id,
-        client.GetSummary(),
+        models_clients.GetSummaryFromClientSnapshot(client),
         "Linux",
         "14.4",
         release="Ubuntu",
@@ -322,10 +297,7 @@ class TestClientInterrogate(
     self._CheckUsers(client, ["yagharek", "isaac", "user1", "user2", "user3"])
     self._CheckNetworkInfo(client)
     # No VFS test when running on the relational db.
-    self._CheckLabels(client_id)
-    self._CheckLabelIndex(client_id)
     self._CheckClientKwIndex(["Linux"], 1)
-    self._CheckClientKwIndex(["Label2"], 1)
     self._CheckClientLibraries(client)
     self._CheckMemory(client)
 
@@ -365,18 +337,19 @@ class TestClientInterrogate(
     self._CheckGRRConfig(client)
     self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckClientSummary(
-        client_id, client.GetSummary(), "Windows", "6.1.7600", kernel="6.1.7601"
+        client_id,
+        models_clients.GetSummaryFromClientSnapshot(client),
+        "Windows",
+        "6.1.7600",
+        kernel="6.1.7601",
     )
     # jim parsed from registry profile keys
     self._CheckUsers(client, ["jim", "kovacs"])
     self._CheckNetworkInfo(client)
     # No VFS test for the relational db.
-    self._CheckLabels(client_id)
-    self._CheckLabelIndex(client_id)
     # No registry pathspec test for the relational db.
     self._CheckClientKwIndex(["Linux"], 0)
     self._CheckClientKwIndex(["Windows"], 1)
-    self._CheckClientKwIndex(["Label2"], 1)
     self._CheckMemory(client)
 
   def testInterrogateVolumesWindows(self):
@@ -491,7 +464,7 @@ class TestClientInterrogate(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=discovery.Interrogate,
-        flow_args=discovery.InterrogateArgs(),
+        flow_args=flows_pb2.InterrogateArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
             # We don't care about these actions in this test — the flow should
@@ -530,25 +503,6 @@ class TestClientInterrogate(
       result.type = rrg_os_pb2.Type.WINDOWS
       session.Reply(result)
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      args = rrg_query_wmi_pb2.Args()
-      assert session.args.Unpack(args)
-
-      if args.query.split()[:1] != ["SELECT"]:
-        raise RuntimeError("Non-`SELECT` WMI query")
-
-      if "Win32_LogicalDisk" not in args.query:
-        raise RuntimeError(f"Unexpected WMI query: {args.query!r}")
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["FileSystem"].string = "NTFS"
-      result.row["DeviceID"].string = "C:"
-      result.row["FreeSpace"].string = "83074121728"
-      result.row["Size"].string = "160939618304"
-      result.row["VolumeName"].string = "Foo"
-      result.row["VolumeSerialNumber"].string = "BCF3E28E"
-      session.Reply(result)
-
     def NotImplementedHandler(session: rrg_test_lib.Session) -> None:
       del session  # Unused.
       raise NotImplementedError()
@@ -556,10 +510,9 @@ class TestClientInterrogate(
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=discovery.Interrogate,
-        flow_args=discovery.InterrogateArgs(),
+        flow_args=flows_pb2.InterrogateArgs(),
         handlers={
             rrg_pb2.Action.GET_SYSTEM_METADATA: GetSystemMetadataHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
             # We don't care about these actions in this test — the flow should
             # gracefully handle their failures anyway. We verify that the flow
             # finished (and not crashed) below.
@@ -567,7 +520,19 @@ class TestClientInterrogate(
             rrg_pb2.Action.LIST_MOUNTS: NotImplementedHandler,
             rrg_pb2.Action.GET_WINREG_VALUE: NotImplementedHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: NotImplementedHandler,
-        },
+        }
+        | rrg_test_lib.FakeWmiHandlers({
+            "Win32_LogicalDisk": [
+                {
+                    "FileSystem": "NTFS",
+                    "DeviceID": "C:",
+                    "FreeSpace": "83074121728",
+                    "Size": "160939618304",
+                    "VolumeName": "Foo",
+                    "VolumeSerialNumber": "BCF3E28E",
+                },
+            ],
+        }),
     )
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -637,9 +602,7 @@ class TestClientInterrogate(
     self.assertLen(snapshot.volumes, 1)
     self.assertEqual(snapshot.volumes[0].unixvolume.mount_point, "/")
 
-  @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
-  def testFleetspeakClient(self, mock_labels_fn):
-    mock_labels_fn.return_value = ["foo", "bar"]
+  def testFleetspeakClient(self):
     client_id = "C.0000000000000001"
     data_store.REL_DB.WriteClientMetadata(
         client_id, fleetspeak_validation_info={"IP": "12.34.56.78"}
@@ -673,54 +636,12 @@ class TestClientInterrogate(
     self._CheckGRRConfig(snapshot)
     self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckRelease(snapshot, "Ubuntu", "14.4")
-    self._CheckNetworkInfo(mig_objects.ToRDFClientSnapshot(snapshot))
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
-    self.assertCountEqual([l.name for l in labels], ["foo", "bar"])
+    self._CheckNetworkInfo(snapshot)
 
     fs_validation_tags = snapshot.fleetspeak_validation_info.tags
     self.assertLen(fs_validation_tags, 1)
     self.assertEqual(fs_validation_tags[0].key, "IP")
     self.assertEqual(fs_validation_tags[0].value, "12.34.56.78")
-
-  @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
-  def testFleetspeakClient_OnlyGRRLabels(self, mock_labels_fn):
-    mock_labels_fn.return_value = []
-    client_id = "C.0000000000000001"
-    data_store.REL_DB.WriteClientMetadata(client_id)
-
-    startup_info = jobs_pb2.StartupInfo()
-    startup_info.client_info.client_name = "GRR"
-    startup_info.client_info.client_version = 1337
-    data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
-
-    client_mock = action_mocks.InterrogatedClient()
-    client_mock.InitializeClient(
-        fqdn="fleetspeak.test.com",
-        system="Linux",
-        release="Ubuntu",
-        version="14.4",
-    )
-
-    with vfs_test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeTestDataVFSHandler
-    ):
-      with self.assertStatsCounterDelta(
-          1, discovery.FLEETSPEAK_UNLABELED_CLIENTS
-      ):
-
-        flow_test_lib.StartAndRunFlow(
-            discovery.Interrogate,
-            client_mock,
-            creator=self.test_username,
-            client_id=client_id,
-        )
-
-    labels = data_store.REL_DB.ReadClientLabels(client_id)
-    expected_labels = [
-        action_mocks.InterrogatedClient.LABEL1,
-        action_mocks.InterrogatedClient.LABEL2,
-    ]
-    self.assertCountEqual([l.name for l in labels], expected_labels)
 
   def testCrowdStrikeAgentIDCollection(self):
     agent_id = binascii.hexlify(os.urandom(16)).decode("ascii")
@@ -787,7 +708,7 @@ class TestClientInterrogate(
     self.assertNotEmpty(client.metadata.source_flow_id)
     self.assertEqual(client.metadata.source_flow_id, flow_id)
 
-  # TODO: Create a test with full RRG interrogation once there is
+  # TODO - Create a test with full RRG interrogation once there is
   # a single branch point and the flow is using either RRG actions or the Python
   # agent actions.
 
@@ -814,16 +735,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
@@ -857,16 +778,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
@@ -893,16 +814,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
@@ -933,16 +854,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGGetSystemMetadata(responses)
 
@@ -980,16 +901,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGListInterfaces(responses)
 
@@ -1060,16 +981,16 @@ class TestClientInterrogate(
         status_response,
     ])
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
     flow.HandleRRGListMounts(responses)
 
@@ -1090,16 +1011,16 @@ class TestClientInterrogate(
     client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
 
     self.assertFalse(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
@@ -1115,16 +1036,16 @@ class TestClientInterrogate(
     startup_info.client_info.client_version = 1337
     data_store.REL_DB.WriteClientStartupInfo(client_id, startup_info)
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
 
     self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
@@ -1139,111 +1060,20 @@ class TestClientInterrogate(
     startup.client_info.client_version = 4321
     db.WriteClientStartupInfo(client_id, startup)
 
-    flow_args = discovery.InterrogateArgs()
+    flow_args = flows_pb2.InterrogateArgs()
     flow_args.lightweight = False
 
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-    rdf_flow.args = flow_args
+    proto_flow = flows_pb2.Flow()
+    proto_flow.client_id = client_id
+    proto_flow.flow_id = flow_id
+    proto_flow.flow_class_name = discovery.Interrogate.__name__
+    proto_flow.args.Pack(flow_args)
 
-    flow = discovery.Interrogate(rdf_flow)
+    flow = discovery.Interrogate(proto_flow=proto_flow)
     flow.Start()
 
     self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
     self.assertTrue(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
-
-  @db_test_lib.WithDatabase
-  def testProcessKnowledgeBaseCollectPasswdCacheUsers(
-      self,
-      db: abstract_db.Database,
-  ):
-    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = db_test_utils.InitializeFlow(db, client_id)
-
-    startup = jobs_pb2.StartupInfo()
-    startup.client_info.client_version = 4321
-    db.WriteClientStartupInfo(client_id, startup)
-
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-
-    flow = discovery.Interrogate(rdf_flow)
-    flow.Start()
-
-    result = knowledge_base_pb2.KnowledgeBase()
-    result.os = "Linux"
-    packed_result = any_pb2.Any()
-    packed_result.Pack(result)
-
-    responses = flow_responses.FakeResponses([packed_result], request_data=None)
-
-    with test_lib.ConfigOverrider({
-        "Interrogate.collect_passwd_cache_users": True,
-    }):
-      flow.ProcessKnowledgeBase(responses)
-
-    self.assertTrue(_HasClientActionRequest(flow, server_stubs.FileFinderOS))
-
-  @db_test_lib.WithDatabase
-  def testProcessPasswdCacheUsers(
-      self,
-      db: abstract_db.Database,
-  ):
-    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = db_test_utils.InitializeFlow(db, client_id)
-
-    startup = jobs_pb2.StartupInfo()
-    startup.client_info.client_name = "GRR"
-    startup.client_info.client_version = 4321
-    db.WriteClientStartupInfo(client_id, startup)
-
-    rdf_flow = rdf_flow_objects.Flow()
-    rdf_flow.client_id = client_id
-    rdf_flow.flow_id = flow_id
-    rdf_flow.flow_class_name = discovery.Interrogate.__name__
-
-    flow = discovery.Interrogate(rdf_flow)
-    flow.Start()
-    flow.store.client_snapshot.knowledge_base.users.extend([
-        knowledge_base_pb2.User(username="foo", full_name="Fó Fózyńczak"),
-        knowledge_base_pb2.User(username="bar"),  # No full name available.
-    ])
-
-    result = flows_pb2.FileFinderResult()
-
-    match = jobs_pb2.BufferReference()
-    match.data = "foo:x:123:1337::/home/foo:/bin/bash\n".encode("utf-8")
-    result.matches.append(match)
-
-    match = jobs_pb2.BufferReference()
-    match.data = "bar:x:456:1337:Bar Barowski:/home/bar:\n".encode("utf-8")
-    result.matches.append(match)
-
-    packed_result = any_pb2.Any()
-    packed_result.Pack(result)
-
-    responses = flow_responses.FakeResponses([packed_result], request_data=None)
-
-    flow.ProcessPasswdCacheUsers(responses)
-
-    users = list(flow.store.client_snapshot.knowledge_base.users)
-    self.assertLen(users, 2)
-    users.sort(key=lambda user: user.username)
-
-    self.assertEqual(users[0].username, "bar")
-    self.assertEqual(users[0].uid, 456)
-    self.assertEqual(users[0].gid, 1337)
-    self.assertEqual(users[0].full_name, "Bar Barowski")
-
-    self.assertEqual(users[1].username, "foo")
-    self.assertEqual(users[1].uid, 123)
-    self.assertEqual(users[1].gid, 1337)
-    self.assertEqual(users[1].full_name, "Fó Fózyńczak")
-    self.assertEqual(users[1].shell, "/bin/bash")
 
   def testForemanTimeIsResetOnClientSnapshotWrite(self):
     client_id = self._SetupMinimalClient()
@@ -1276,15 +1106,10 @@ def _HasClientActionRequest(
   """Checks whether the given flow has a request for the given action."""
   action_id = action_registry.ID_BY_ACTION_STUB[action]
 
-  def IsAction(request: rdf_flows.GrrMessage) -> bool:
-    return request.name == action_id
-
   def IsProtoAction(request: jobs_pb2.GrrMessage) -> bool:
     return request.name == action_id
 
-  return any(map(IsAction, flow.client_action_requests)) or any(
-      map(IsProtoAction, flow.proto_client_action_requests)
-  )
+  return any(map(IsProtoAction, flow.proto_client_action_requests))
 
 
 def _HasRRGRequest(

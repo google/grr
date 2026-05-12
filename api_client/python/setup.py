@@ -47,13 +47,7 @@ class Sdist(sdist):
 VERSION = get_config()
 
 setup_args = dict(
-    name="grr-api-client",
     version=VERSION.get("Version", "packageversion"),
-    description="GRR API client library",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr/tree/master/api_client/python",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
     cmdclass={
         "sdist": Sdist,
     },

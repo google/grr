@@ -6,10 +6,10 @@ import json
 from absl import app
 
 from grr_api_client import utils
+from grr_response_proto import osquery_pb2
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr_response_server.gui import api_integration_test_lib
-from grr_response_server.rdfvalues import osquery as rdf_osquery
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -28,7 +28,7 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
           action_mocks.OsqueryClientMock(),
           client_id=client_id,
           creator=self.test_username,
-          flow_args=rdf_osquery.OsqueryFlowArgs(
+          flow_args=osquery_pb2.OsqueryFlowArgs(
               query="doesn't matter",
           ),
       )

@@ -73,7 +73,7 @@ class FlowTimeoutError(Exception):
   def _build_path_to_ui(self) -> Optional[str]:
     if not FLAGS.grr_admin_ui_url:
       return None
-    url = '{}/v2/clients/{}/flows/{}'
+    url = '{}/clients/{}/flows/{}'
     return url.format(FLAGS.grr_admin_ui_url, self.client_id, self.flow_id)
 
 

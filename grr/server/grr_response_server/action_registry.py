@@ -23,7 +23,6 @@ ACTION_STUB_BY_ID = {
     "GetCloudVMMetadata": server_stubs.GetCloudVMMetadata,
     "GetConfiguration": server_stubs.GetConfiguration,
     "GetFileStat": server_stubs.GetFileStat,
-    "GetHostname": server_stubs.GetHostname,
     "GetInstallDate": server_stubs.GetInstallDate,
     "GetLibraryVersions": server_stubs.GetLibraryVersions,
     "GetMemorySize": server_stubs.GetMemorySize,

@@ -5,7 +5,6 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {FormGroup, ReactiveFormsModule} from '@angular/forms';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderContentsRegexMatchConditionMode} from '../../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../../testing';
 import {
   createRegexMatchFormGroup,
@@ -55,9 +54,6 @@ describe('Regex Match Subform component', () => {
     const regexField = await harness.regexInput();
     expect(await regexField.getValue()).toBe('');
 
-    const modeField = await harness.modeSelect();
-    expect(await modeField.getValueText()).toBe('First Hit');
-
     const lengthField = await harness.lengthInput();
     expect(await lengthField.getValue()).toBe('20000000');
   });
@@ -67,14 +63,11 @@ describe('Regex Match Subform component', () => {
 
     const regexField = await harness.regexInput();
     await regexField.setValue('test');
-    const modeField = await harness.modeSelect();
-    await modeField.clickOptions({text: 'All Hits'});
     const lengthField = await harness.lengthInput();
     await lengthField.setValue('30000000');
 
     expect(fixture.componentInstance.formGroup.value?.regexMatch).toEqual({
       regex: 'test',
-      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
       length: 30000000,
     });
   });

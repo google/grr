@@ -12,15 +12,17 @@ from absl import app
 
 from grr_api_client import errors
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_protodict
+from grr_response_proto import artifact_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import artifact_registry
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_integration_test_lib
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -159,7 +161,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED),
+        objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
     )
     self.assertEqual(
         pending_notifications[0].data.reference.type,
@@ -199,7 +201,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(
         pending_notifications[0].data.notification_type,
         int(
-            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
+            objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
         ),
     )
     self.assertEqual(
@@ -245,7 +247,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(
         pending_notifications[0].data.notification_type,
         int(
-            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
+            objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
         ),
     )
     self.assertEqual(
@@ -425,22 +427,21 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testArtifactCollectorIndicatesCollectedSizeAfterCollection(self):
     registry_stub = artifact_registry.ArtifactRegistry()
-    source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={
+    source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.FILE,
+        attributes=mig_protodict.FromNativeDictToProtoDict({
             "paths": [os.path.join(self.base_path, "numbers.txt")],
-        },
+        }),
     )
-    artifact = rdf_artifacts.Artifact(
-        name="FakeArtifact", sources=[source], doc="fake artifact doc"
+    registry_stub.RegisterArtifact(
+        artifact_pb2.Artifact(
+            name="FakeArtifact", sources=[source], doc="fake artifact doc"
+        )
     )
-    registry_stub.RegisterArtifact(artifact)
 
     client_ref = self.api.Client(client_id=self.client_id)
     with mock.patch.object(artifact_registry, "REGISTRY", registry_stub):
-      args = rdf_artifacts.ArtifactCollectorFlowArgs(
-          artifact_list=["FakeArtifact"]
-      ).AsPrimitiveProto()
+      args = flows_pb2.ArtifactCollectorFlowArgs(artifact_list=["FakeArtifact"])
       client_ref.CreateFlow(
           name=collectors.ArtifactCollectorFlow.__name__, args=args
       )

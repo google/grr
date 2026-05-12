@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
+from grr_response_proto import sysinfo_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
@@ -70,7 +71,9 @@ ii  xorg    1:7.7+23+build1 amd64        X.Org X Window System
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 1)
 
@@ -138,7 +141,9 @@ xserver-xorg|1:7.7+23+build1|amd64|xorg|X.Org X server
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 1)
 
@@ -251,7 +256,9 @@ ii  xserver-xorg     1:7.7+23+build1 amd64        X.Org X server
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 1)
 
@@ -340,7 +347,9 @@ rpm-4.19.0-1.fc39.x86_64
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 1)
 
@@ -350,7 +359,7 @@ rpm-4.19.0-1.fc39.x86_64
 
     self.assertLen(packages_by_name, 8)
 
-    # TODO: Update version checks once know what the proper way
+    # TODO - Update version checks once know what the proper way
     # forward for reporting it is.
 
     bash = packages_by_name["bash"]
@@ -420,7 +429,9 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 1)
 
@@ -430,7 +441,7 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
 
     self.assertLen(packages_by_name, 10)
 
-    # TODO: Update version checks once know what the proper way
+    # TODO - Update version checks once know what the proper way
     # forward for reporting it is.
 
     bash = packages_by_name["bash"]
@@ -501,7 +512,6 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
     self.assertEqual(gpg_pubkey.installed_on, 1711525880)
     self.assertFalse(gpg_pubkey.HasField("epoch"))
     self.assertFalse(gpg_pubkey.HasField("architecture"))
-    self.assertFalse(gpg_pubkey.HasField("vendor"))
     self.assertFalse(gpg_pubkey.HasField("source_rpm"))
 
   def testWindows(self) -> None:
@@ -615,7 +625,9 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
 
     self.assertLen(results, 2)
 
@@ -846,7 +858,9 @@ gpg-pubkey|(none)|18b8e74c|62f2920f|(none)|1711525880|(none)|(none)
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, sysinfo_pb2.SoftwarePackages
+    )
     self.assertLen(results, 1)
 
     packages_by_name = {

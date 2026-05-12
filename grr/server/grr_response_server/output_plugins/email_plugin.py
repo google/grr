@@ -33,7 +33,7 @@ class EmailOutputPlugin(
   Grr just got a new result batch (size {{ num_responses }}) in {{ source_urn }} from client {{ client_id }}
   ({{ hostname }}).<br />
   <br />
-  Click <a href='{{ admin_ui_url }}/v2{{ client_fragment_id }}'> here </a> to
+  Click <a href='{{ admin_ui_url }}{{ client_fragment_id }}'> here </a> to
   access this machine. <br />
 </p>
 <p>Thanks,</p>

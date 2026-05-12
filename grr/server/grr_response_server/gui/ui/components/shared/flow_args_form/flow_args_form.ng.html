@@ -21,6 +21,7 @@
         [editable]="editable()"
         [onSubmit]="onSubmit()" />
     }
+
     @case (FlowType.COLLECT_FILES_BY_KNOWN_PATH) {
       <collect-files-by-known-path-form
         [initialFlowArgs]="flowArgs()"
@@ -40,6 +41,7 @@
         [onSubmit]="onSubmit()"
         [client]="client()" />
     }
+
     @case (FlowType.DUMP_PROCESS_MEMORY) {
       <dump-process-memory-form
         [initialFlowArgs]="flowArgs()"

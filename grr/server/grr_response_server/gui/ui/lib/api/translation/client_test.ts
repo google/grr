@@ -718,7 +718,7 @@ describe('Client API Translation', () => {
           libcVer: '10',
           architecture: 'x86_64',
         },
-        // TODO: Remove outer users field.
+        // TODO - Remove outer users field.
         users: [
           {
             username: 'foo.bar',

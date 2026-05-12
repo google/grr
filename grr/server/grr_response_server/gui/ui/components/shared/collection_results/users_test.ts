@@ -3,10 +3,7 @@ import {TestBed, fakeAsync, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {User as ApiUser} from '../../../lib/api/api_interfaces';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {initTestEnvironment} from '../../../testing';
 import {UsersHarness} from './testing/users_harness';
@@ -75,7 +72,6 @@ describe('Users Component', () => {
   it('shows users details of multiple users', fakeAsync(async () => {
     const {harness} = await createComponent([
       newFlowResult({
-        clientId: 'C.1234',
         payloadType: PayloadType.USER,
         payload: {
           username: 'foo',
@@ -88,7 +84,6 @@ describe('Users Component', () => {
         } as ApiUser,
       }),
       newFlowResult({
-        clientId: 'C.1234',
         payloadType: PayloadType.USER,
         payload: {
           username: 'bar',
@@ -106,56 +101,5 @@ describe('Users Component', () => {
     expect(usersDetails).toHaveSize(1);
     const userDetails = usersDetails[0];
     expect(await userDetails.numTables()).toBe(2);
-  }));
-
-  it('shows client id for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.USER,
-      }),
-      newHuntResult({
-        clientId: 'C.2345',
-        payloadType: PayloadType.USER,
-      }),
-    ]);
-
-    const clientIds = await harness.clientId();
-    expect(clientIds).toHaveSize(2);
-    expect(await clientIds[0].text()).toContain('C.1234');
-    expect(await clientIds[1].text()).toContain('C.2345');
-  }));
-
-  it('does not show client id for flow results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newFlowResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.USER,
-      }),
-      newFlowResult({
-        clientId: 'C.2345',
-        payloadType: PayloadType.USER,
-      }),
-    ]);
-
-    expect(await harness.clientId()).toHaveSize(0);
-  }));
-
-  it('shows users details for each client id in separate tables', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payloadType: PayloadType.USER,
-      }),
-      newHuntResult({
-        clientId: 'C.2345',
-        payloadType: PayloadType.USER,
-      }),
-    ]);
-
-    const usersDetails = await harness.usersDetails();
-    expect(usersDetails).toHaveSize(2);
-    expect(await usersDetails[0].numTables()).toBe(1);
-    expect(await usersDetails[1].numTables()).toBe(1);
   }));
 });

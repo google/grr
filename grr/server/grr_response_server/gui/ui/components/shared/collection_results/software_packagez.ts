@@ -5,18 +5,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   ViewChild,
-  computed,
   effect,
   inject,
   input,
 } from '@angular/core';
 import {MatSort, MatSortModule, Sort} from '@angular/material/sort';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-
 import {SoftwarePackages as ApiSoftwarePackages} from '../../../lib/api/api_interfaces';
 import {translateSoftwarePackage} from '../../../lib/api/translation/flow';
 import {SoftwarePackage} from '../../../lib/models/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
 import {CollectionResult} from '../../../lib/models/result';
 import {CopyButton} from '../copy_button';
 import {FilterPaginate} from '../filter_paginate';
@@ -33,29 +30,14 @@ const COLUMNS: readonly string[] = [
   'sourceDeb',
 ];
 
-interface SoftwarePackageWithClientId extends SoftwarePackage {
-  clientId: string;
-}
-
-function softwarePackagesWithClientIdFromCollectionResults(
+function softwarePackagesFromCollectionResults(
   collectionResults: readonly CollectionResult[],
-): readonly SoftwarePackageWithClientId[] {
+): readonly SoftwarePackage[] {
   return collectionResults
-    .map((result) => {
-      const softwarePackages = (result.payload as ApiSoftwarePackages).packages;
-      const softwarePackagesWithClientId: SoftwarePackageWithClientId[] = [];
-      for (const softwarePackage of softwarePackages ?? []) {
-        if (!softwarePackage) {
-          continue;
-        }
-        softwarePackagesWithClientId.push({
-          ...translateSoftwarePackage(softwarePackage),
-          clientId: result.clientId,
-        });
-      }
-      return softwarePackagesWithClientId;
-    })
-    .flat();
+    .map((result) => (result.payload as ApiSoftwarePackages).packages)
+    .flat()
+    .filter((softwarePackage) => softwarePackage !== undefined)
+    .map(translateSoftwarePackage);
 }
 
 /**
@@ -80,24 +62,18 @@ export class SoftwarePackagez implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** Loaded results to display in the table. */
-  readonly collectionResults = input.required<readonly CollectionResult[]>();
-
-  readonly softwarePackages = computed(() =>
-    softwarePackagesWithClientIdFromCollectionResults(this.collectionResults()),
-  );
+  readonly collectionResults = input.required<
+    readonly SoftwarePackage[],
+    readonly CollectionResult[]
+  >({transform: softwarePackagesFromCollectionResults});
 
   protected readonly dataSource = new MatTableDataSource<SoftwarePackage>();
-  protected readonly displayedColumns = computed(() => {
-    if (this.collectionResults().some(isHuntResult)) {
-      return ['clientId', ...COLUMNS];
-    }
-    return COLUMNS;
-  });
+  protected readonly displayedColumns = COLUMNS;
 
   constructor() {
     effect(() => {
-      if (this.softwarePackages().length > 0) {
-        this.dataSource.data = this.softwarePackages().slice();
+      if (this.collectionResults().length > 0) {
+        this.dataSource.data = this.collectionResults().slice();
       }
     });
   }

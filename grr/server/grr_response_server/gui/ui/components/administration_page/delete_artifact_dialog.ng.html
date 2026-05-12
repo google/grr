@@ -1,0 +1,9 @@
+<h2 mat-dialog-title>Delete artifact <samp>{{dialogData.artifact.name}}</samp>?</h2>
+<mat-dialog-actions>
+  <button
+      mat-button
+      cdkFocusInitial
+      [matDialogClose]="true"
+      (click)="onDeleteClick()">Delete</button>
+  <button mat-button [matDialogClose]="false">Cancel</button>
+</mat-dialog-actions>

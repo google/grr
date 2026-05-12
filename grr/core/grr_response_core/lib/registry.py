@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-# TODO: Remove registry once migration is complete.
+# TODO - Remove registry once migration is complete.
 # Maps name to the RDFProtoStruct class (circular dep).
 _RDFPROTOSTRUCT_NAME_TO_CLS: dict[str, type[Any]] = {}
 
@@ -191,6 +191,8 @@ class SystemCronJobRegistry(CronJobRegistry):
     return job_cls
 
 
+# TODO - Remove this registry once Flow/Hunt RDF values don't
+# depend on it anymore. The registry itself is no longer referenced.
 class OutputPluginRegistry(MetaclassRegistry):
   """A dedicated registry that only contains output plugins."""
 

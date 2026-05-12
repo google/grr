@@ -6,8 +6,6 @@ from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
-from grr_response_server.rdfvalues import mig_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Username with UTF-8 characters and maximum length.
 EXAMPLE_NAME = "x" + "🧙" * (db.MAX_USERNAME_LENGTH - 2) + "x"
@@ -34,7 +32,7 @@ class DatabaseTestUsersMixin(object):
     expected.user_type = objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     expected.email = EXAMPLE_EMAIL
 
-    # TODO: Stop using `rdf_crypto.Password`
+    # TODO - Stop using `rdf_crypto.Password`
     # TODO(hanuszczak): Passwords should be required to be unicode strings.
     password_proto = jobs_pb2.Password()
     rdf_crypto.SetPassword(password_proto, "blah")
@@ -57,22 +55,20 @@ class DatabaseTestUsersMixin(object):
     d = self.db
 
     d.WriteGRRUser("f🧙oo")
-    proto_u = d.ReadGRRUser("f🧙oo")
-    rdf_u = mig_objects.ToRDFGRRUser(proto_u)
-    u_expected = rdf_objects.GRRUser(username="f🧙oo")
+    user = d.ReadGRRUser("f🧙oo")
+    u_expected = objects_pb2.GRRUser(username="f🧙oo")
 
-    self.assertEqual(u_expected, rdf_u)
+    self.assertEqual(u_expected, user)
 
   def testInsertUserTwice(self):
     d = self.db
 
     d.WriteGRRUser("f🧙oo")
     d.WriteGRRUser("f🧙oo")
-    proto_u = d.ReadGRRUser("f🧙oo")
-    rdf_u = mig_objects.ToRDFGRRUser(proto_u)
-    u_expected = rdf_objects.GRRUser(username="f🧙oo")
+    user = d.ReadGRRUser("f🧙oo")
+    u_expected = objects_pb2.GRRUser(username="f🧙oo")
 
-    self.assertEqual(u_expected, rdf_u)
+    self.assertEqual(u_expected, user)
 
   def testUpdateUserTwice(self):
     d = self.db
@@ -83,13 +79,12 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser(
         "f🧙oo", user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     )
-    proto_u = d.ReadGRRUser("f🧙oo")
-    rdf_u = mig_objects.ToRDFGRRUser(proto_u)
-    u_expected = rdf_objects.GRRUser(
+    user = d.ReadGRRUser("f🧙oo")
+    u_expected = objects_pb2.GRRUser(
         username="f🧙oo", user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
     )
 
-    self.assertEqual(u_expected, rdf_u)
+    self.assertEqual(u_expected, user)
 
   def testReadingUnknownGRRUserFails(self):
     d = self.db
@@ -102,58 +97,44 @@ class DatabaseTestUsersMixin(object):
   def testReadingMultipleGRRUsersEntriesWorks(self):
     d = self.db
 
-    u_foo = rdf_objects.GRRUser(
+    u_foo = objects_pb2.GRRUser(
         username="f🧙oo",
         ui_mode="ADVANCED",
         canary_mode=True,
-        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN,
+        user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN,
     )
-    proto_u = mig_objects.ToProtoGRRUser(u_foo)
     d.WriteGRRUser(
         u_foo.username,
-        ui_mode=proto_u.ui_mode,
-        canary_mode=proto_u.canary_mode,
-        user_type=proto_u.user_type,
+        ui_mode=u_foo.ui_mode,
+        canary_mode=u_foo.canary_mode,
+        user_type=u_foo.user_type,
     )
-    u_bar = rdf_objects.GRRUser(username="bar")
+    u_bar = objects_pb2.GRRUser(username="bar")
     d.WriteGRRUser(u_bar.username)
 
-    # TODO: Check proto values instead.
     proto_users = d.ReadGRRUsers()
-    self.assertEqual(mig_objects.ToRDFGRRUser(proto_users[0]), u_bar)
-    self.assertEqual(mig_objects.ToRDFGRRUser(proto_users[1]), u_foo)
+    self.assertEqual(proto_users[0], u_bar)
+    self.assertEqual(proto_users[1], u_foo)
 
   def testReadGRRUsersWithOffset(self):
     self.db.WriteGRRUser("f🧙oo1")
     self.db.WriteGRRUser("f🧙oo0")
     self.db.WriteGRRUser("f🧙oo2")
 
-    proto_users = self.db.ReadGRRUsers(offset=1)
-    self.assertLen(proto_users, 2)
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[0]).username, "f🧙oo1"
-    )
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[1]).username, "f🧙oo2"
-    )
-    self.assertEqual(proto_users[0].username, "f🧙oo1")
-    self.assertEqual(proto_users[1].username, "f🧙oo2")
+    users = self.db.ReadGRRUsers(offset=1)
+    self.assertLen(users, 2)
+    self.assertEqual(users[0].username, "f🧙oo1")
+    self.assertEqual(users[1].username, "f🧙oo2")
 
   def testReadGRRUsersWithCount(self):
     self.db.WriteGRRUser("f🧙oo1")
     self.db.WriteGRRUser("f🧙oo0")
     self.db.WriteGRRUser("f🧙oo2")
 
-    proto_users = self.db.ReadGRRUsers(count=2)
-    self.assertLen(proto_users, 2)
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[0]).username, "f🧙oo0"
-    )
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[1]).username, "f🧙oo1"
-    )
-    self.assertEqual(proto_users[0].username, "f🧙oo0")
-    self.assertEqual(proto_users[1].username, "f🧙oo1")
+    users = self.db.ReadGRRUsers(count=2)
+    self.assertLen(users, 2)
+    self.assertEqual(users[0].username, "f🧙oo0")
+    self.assertEqual(users[1].username, "f🧙oo1")
 
   def testReadGRRUsersWithCountAndOffset(self):
     self.db.WriteGRRUser("f🧙oo1")
@@ -161,16 +142,10 @@ class DatabaseTestUsersMixin(object):
     self.db.WriteGRRUser("f🧙oo2")
     self.db.WriteGRRUser("f🧙oo3")
 
-    proto_users = self.db.ReadGRRUsers(count=2, offset=1)
-    self.assertLen(proto_users, 2)
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[0]).username, "f🧙oo1"
-    )
-    self.assertEqual(
-        mig_objects.ToRDFGRRUser(proto_users[1]).username, "f🧙oo2"
-    )
-    self.assertEqual(proto_users[0].username, "f🧙oo1")
-    self.assertEqual(proto_users[1].username, "f🧙oo2")
+    users = self.db.ReadGRRUsers(count=2, offset=1)
+    self.assertLen(users, 2)
+    self.assertEqual(users[0].username, "f🧙oo1")
+    self.assertEqual(users[1].username, "f🧙oo2")
 
   def testWritingTooLongUsernameFails(self):
     with self.assertRaises(ValueError):
@@ -366,7 +341,7 @@ class DatabaseTestUsersMixin(object):
     approvals = list(
         d.ReadApprovalRequests(
             "requestor",
-            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
         )
     )
 
@@ -666,7 +641,7 @@ class DatabaseTestUsersMixin(object):
         1, rdfvalue.DAYS
     )
     approval_request = objects_pb2.ApprovalRequest(
-        approval_type=rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        approval_type=objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
@@ -1142,12 +1117,12 @@ class DatabaseTestUsersMixin(object):
     self._SetupUserNotificationTimerangeTest()
 
     ns = d.ReadUserNotifications(
-        username, state=rdf_objects.UserNotification.State.STATE_NOT_PENDING
+        username, state=objects_pb2.UserNotification.State.STATE_NOT_PENDING
     )
     self.assertEmpty(ns)
 
     ns = d.ReadUserNotifications(
-        username, state=rdf_objects.UserNotification.State.STATE_PENDING
+        username, state=objects_pb2.UserNotification.State.STATE_PENDING
     )
     self.assertLen(ns, 2)
 
@@ -1160,14 +1135,14 @@ class DatabaseTestUsersMixin(object):
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING,
+        state=objects_pb2.UserNotification.State.STATE_NOT_PENDING,
     )
     self.assertEmpty(ns)
 
     ns = d.ReadUserNotifications(
         username,
         timerange=(ts[0], ts[1]),
-        state=rdf_objects.UserNotification.State.STATE_PENDING,
+        state=objects_pb2.UserNotification.State.STATE_PENDING,
     )
     self.assertLen(ns, 1)
     self.assertEqual(ns[0].message, "n0")

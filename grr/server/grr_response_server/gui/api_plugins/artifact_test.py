@@ -93,11 +93,11 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 
 @db_test_lib.TestDatabases()
 @artifact_test_lib.PatchDefaultArtifactRegistry
-class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiDeleteArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super().setUp()
-    self.handler = artifact_plugin.ApiDeleteArtifactsHandler()
+    self.handler = artifact_plugin.ApiDeleteArtifactHandler()
 
   def UploadTestArtifacts(self):
     test_artifacts_file = os.path.join(
@@ -110,29 +110,25 @@ class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.UploadTestArtifacts()
     count = len(registry.GetArtifacts(reload_datastore_artifacts=True))
 
-    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
-        names=["TestFilesArtifact", "WMIActiveScriptEventConsumer"]
-    )
+    args = api_artifact_pb2.ApiDeleteArtifactArgs(name="TestFilesArtifact")
     self.handler.Handle(args, context=self.context)
 
     new_count = len(registry.GetArtifacts())
 
-    # Check that we deleted exactly 2 artifacts.
-    self.assertEqual(new_count, count - 2)
+    # Check that we deleted exactly 1 artifact.
+    self.assertEqual(new_count, count - 1)
 
   def testDeleteDependency(self, registry):
     self.UploadTestArtifacts()
-    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
-        names=["TestAggregationArtifact"]
+    args = api_artifact_pb2.ApiDeleteArtifactArgs(
+        name="TestAggregationArtifact"
     )
     with self.assertRaises(ValueError):
       self.handler.Handle(args, context=self.context)
 
   def testDeleteNonExistentArtifact(self, registry):
     self.UploadTestArtifacts()
-    args = api_artifact_pb2.ApiDeleteArtifactsArgs(
-        names=["NonExistentArtifact"]
-    )
+    args = api_artifact_pb2.ApiDeleteArtifactArgs(name="NonExistentArtifact")
     e = self.assertRaises(ValueError)
     with e:
       self.handler.Handle(args, context=self.context)

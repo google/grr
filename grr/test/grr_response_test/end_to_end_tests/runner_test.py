@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+from typing import Optional
 import unittest
 from unittest import mock
 
@@ -13,7 +14,7 @@ from grr_api_client import config as api_config
 from grr_api_client import context
 from grr_api_client import types
 from grr_api_client import utils as api_utils
-from grr_response_server.gui.api_plugins import mig_client
+from grr_response_proto.api import client_pb2
 from grr_response_server.models import clients as models_clients
 from grr_response_test.end_to_end_tests import fake_tests
 from grr_response_test.end_to_end_tests import runner
@@ -24,7 +25,18 @@ from grr.test_lib import test_lib
 class FakeApi(object):
   """Stand-in for the real GRR API."""
 
-  def __init__(self, client_data=None, raise_conn_error=False):
+  def __init__(
+      self,
+      client_data: Optional[client_pb2.ApiClient] = None,
+      raise_conn_error: bool = False,
+  ):
+    """Initializes the FakeApi.
+
+    Args:
+      client_data: Optional client data to be associated with the fake API.
+      raise_conn_error: If True, the first API request will raise a
+        requests.ConnectionError.
+    """
     self._raise_conn_error = raise_conn_error
     self.client = mock.Mock(autospec=client.Client)
     self.client.Get.return_value = self.client
@@ -350,10 +362,9 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
         api_retry_deadline_secs=api_retry_deadline_secs,
         **kwargs)
 
-  def _CreateApiClient(self, platform):
+  def _CreateApiClient(self, platform: str) -> client_pb2.ApiClient:
     client_snapshot = self._SetupTestClientObject(0, system=platform)
     api_client = models_clients.ApiClientFromClientSnapshot(client_snapshot)
-    api_client = mig_client.ToRDFApiClient(api_client)
     return api_client
 
 

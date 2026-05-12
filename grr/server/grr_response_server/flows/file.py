@@ -6,9 +6,6 @@ from typing import Optional
 
 from google.protobuf import any_pb2
 from grr_response_core import config
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import mig_file_finder
 from grr_response_core.lib.rdfvalues import mig_paths
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_proto import flows_pb2
@@ -24,20 +21,20 @@ from grr_response_server.flows.general import transfer
 
 def _CollectionLevelToStopAt(
     collection_level: flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel,
-) -> transfer.MultiGetFileArgs.StopAt:
+) -> flows_pb2.MultiGetFileArgs.StopAt:
   """Converts a CollectionLevel to an equivalent StopAt enum."""
   if (
       collection_level
       == flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel.STAT
   ):
-    return transfer.MultiGetFileArgs.StopAt.STAT
+    return flows_pb2.MultiGetFileArgs.StopAt.STAT
   elif (
       collection_level
       == flows_pb2.CollectFilesByKnownPathArgs.CollectionLevel.HASH
   ):
-    return transfer.MultiGetFileArgs.StopAt.HASH
+    return flows_pb2.MultiGetFileArgs.StopAt.HASH
   else:
-    return transfer.MultiGetFileArgs.StopAt.NOTHING
+    return flows_pb2.MultiGetFileArgs.StopAt.NOTHING
 
 
 class CollectFilesByKnownPath(
@@ -53,18 +50,9 @@ class CollectFilesByKnownPath(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
-  args_type = rdf_file_finder.CollectFilesByKnownPathArgs
-  result_types = (rdf_file_finder.CollectFilesByKnownPathResult,)
-  progress_type = rdf_file_finder.CollectFilesByKnownPathProgress
-
   proto_args_type = flows_pb2.CollectFilesByKnownPathArgs
   proto_result_types = (flows_pb2.CollectFilesByKnownPathResult,)
   proto_progress_type = flows_pb2.CollectFilesByKnownPathProgress
-
-  only_protos_allowed = True
-
-  def GetProgress(self) -> rdf_file_finder.CollectFilesByKnownPathProgress:
-    return mig_file_finder.ToRDFCollectFilesByKnownPathProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.CollectFilesByKnownPathProgress:
     return self.progress
@@ -101,6 +89,15 @@ class CollectFilesByKnownPath(
   def Start(self):
     stop_at = _CollectionLevelToStopAt(self.proto_args.collection_level)
     unique_paths = set(list(path for path in self.proto_args.paths))
+    # TODO - `MultiGetFile` mangles Windows slashes and the logic
+    # of this flow does not account for different paths in results (as it just
+    # removes done paths). So, instead of demangling them (which is not easy as
+    # path can contain both back- and forward-slashes at the same time and we
+    # cannot be sure which was which), we pre-mangle them before passing them
+    # to `MultiGetFile`.
+    if self.client_os == "Windows":
+      unique_paths = set(path.replace("\\", "/") for path in unique_paths)
+
     mgf_args = flows_pb2.MultiGetFileArgs(
         pathspecs=[
             jobs_pb2.PathSpec(path=path, pathtype=jobs_pb2.PathSpec.PathType.OS)
@@ -213,7 +210,7 @@ class CollectFilesByKnownPath(
     # `MultiGetFile`. FlowIDs are not stored in the VFS, so we can't use
     # that to grab the specific version of the file we want. So, for now, we
     # just grab the latest version available.
-    # TODO: Once we have a way to grab the flow-specific
+    # TODO - Once we have a way to grab the flow-specific
     # version of the file, we should use that instead of the latest version.
     history = data_store.REL_DB.ReadPathInfoHistory(
         self.client_id, client_path.path_type, client_path.components
@@ -366,20 +363,13 @@ class CollectMultipleFiles(
 
   friendly_name = "Collect multiple files"
   category = "/Filesystem/"
-  args_type = rdf_file_finder.CollectMultipleFilesArgs
-  result_types = (rdf_file_finder.CollectMultipleFilesResult,)
-  progress_type = rdf_file_finder.CollectMultipleFilesProgress
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
   proto_args_type = flows_pb2.CollectMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
   proto_progress_type = flows_pb2.CollectMultipleFilesProgress
-  only_protos_allowed = True
 
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
-
-  def GetProgress(self) -> rdf_file_finder.CollectMultipleFilesProgress:
-    return mig_file_finder.ToRDFCollectMultipleFilesProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.CollectMultipleFilesProgress:
     return self.progress
@@ -571,8 +561,6 @@ class StatMultipleFiles(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_file_finder.StatMultipleFilesArgs
-  result_types = (rdf_client_fs.StatEntry,)
   proto_args_type = flows_pb2.StatMultipleFilesArgs
   proto_result_types = (jobs_pb2.StatEntry,)
   only_protos_allowed = True
@@ -642,18 +630,11 @@ class HashMultipleFiles(
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_file_finder.HashMultipleFilesArgs
-  result_types = (rdf_file_finder.CollectMultipleFilesResult,)
-  progress_type = rdf_file_finder.HashMultipleFilesProgress
   proto_args_type = flows_pb2.HashMultipleFilesArgs
   proto_result_types = (flows_pb2.CollectMultipleFilesResult,)
   proto_progress_type = flows_pb2.HashMultipleFilesProgress
-  only_protos_allowed = True
 
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
-
-  def GetProgress(self) -> rdf_file_finder.HashMultipleFilesProgress:
-    return mig_file_finder.ToRDFHashMultipleFilesProgress(self.progress)
 
   def GetProgressProto(self) -> flows_pb2.HashMultipleFilesProgress:
     return self.progress

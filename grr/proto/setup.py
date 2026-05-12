@@ -16,9 +16,9 @@ from setuptools.command.sdist import sdist
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
-PROTOBUF = "protobuf>=3.20.3,<4"
+GRPCIO = "grpcio==1.78.0"
+GRPCIO_TOOLS = "grpcio-tools==1.78.0"
+PROTOBUF = "protobuf==6.33.6"
 
 
 def get_config():
@@ -104,13 +104,7 @@ VERSION = get_config()
 PACKAGES = find_packages()
 
 setup_args = dict(
-    name="grr-response-proto",
     version=VERSION.get("Version", "packageversion"),
-    description="GRR API client library",
-    license="Apache License, Version 2.0",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
-    url="https://github.com/google/grr/tree/master/proto",
     cmdclass={
         "build_py": Build,
         "develop": Develop,

@@ -5,7 +5,6 @@ Server.fleetspeak_message_listen_address: grr-fleetspeak-frontend:11111
 AdminUI.csrf_secret_key: random_passphrase____PLEASE_REPLACE_WHEN_RUNNING_IN_PRODUCTION____
 AdminUI.url: http://admin-ui:8000
 AdminUI.bind: 0.0.0.0
-AdminUI.use_precompiled_js: true
 
 API.DefaultRouter: ApiCallRouterWithoutChecks
 

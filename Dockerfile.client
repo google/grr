@@ -37,6 +37,10 @@ RUN apt-get update && \
   build-essential \
   linux-headers-generic
 
+# Copy uv binaries from official Astral image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1
+
 ENV FLEETSPEAK_BIN /fleetspeak/bin
 RUN mkdir -p $FLEETSPEAK_BIN
 COPY --from=ghcr.io/google/fleetspeak:latest /fleetspeak/bin/client $FLEETSPEAK_BIN/fleetspeak-client
@@ -45,7 +49,7 @@ ENV PATH=${FLEETSPEAK_BIN}:${PATH}
 ENV VIRTUAL_ENV=/usr/share/grr-server
 ENV GRR_SOURCE=/usr/src/grr
 
-RUN python -m venv --system-site-packages $VIRTUAL_ENV
+RUN uv venv --system-site-packages $VIRTUAL_ENV
 ENV PATH=${VIRTUAL_ENV}/bin:${PATH}
 
 RUN mkdir -p ${GRR_SOURCE}
@@ -53,10 +57,11 @@ ADD . ${GRR_SOURCE}
 
 WORKDIR ${GRR_SOURCE}
 
-RUN ${VIRTUAL_ENV}/bin/python -m pip install \
-  -e grr/proto \
-  -e grr/core \
-  -e grr/client
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv pip install \
+    -e grr/proto \
+    -e grr/core \
+    -e grr/client
 
 RUN ${VIRTUAL_ENV}/bin/python grr/proto/makefile.py && \
   ${VIRTUAL_ENV}/bin/python grr/core/grr_response_core/artifacts/makefile.py

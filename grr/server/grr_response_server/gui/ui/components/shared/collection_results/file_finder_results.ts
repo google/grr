@@ -13,21 +13,17 @@ import {
   translateHashToHex,
   translateVfsStatEntry,
 } from '../../../lib/api/translation/flow';
-import {isHuntResult} from '../../../lib/models/hunt';
+import {RegistryKey, RegistryValue} from '../../../lib/models/flow';
 import {CollectionResult} from '../../../lib/models/result';
 import {
   FileResultsTable,
   FlowFileResult,
 } from './data_renderer/file_results_table/file_results_table';
-import {
-  RegistryKeyWithClientId,
-  RegistryResultsTable,
-  RegistryValueWithClientId,
-} from './data_renderer/registry_results_table';
+import {RegistryResultsTable} from './data_renderer/registry_results_table';
 
 interface FileOrRegistryResult {
   readonly fileResult?: FlowFileResult;
-  readonly registryResult?: RegistryKeyWithClientId | RegistryValueWithClientId;
+  readonly registryResult?: RegistryKey | RegistryValue;
 }
 
 function flowFileOrRegistryResultsFromCollectionResults(
@@ -48,11 +44,8 @@ function flowFileOrRegistryResultsFromCollectionResults(
       };
       return {fileResult};
     } else if (isRegistryEntry(statOrRegistryEntry)) {
-      const registryResult:
-        | RegistryKeyWithClientId
-        | RegistryValueWithClientId = {
+      const registryResult: RegistryKey | RegistryValue = {
         ...statOrRegistryEntry,
-        clientId: item.clientId,
       };
       return {registryResult};
     }
@@ -89,9 +82,5 @@ export class FileFinderResults {
     return this.fileOrRegistryResults()
       .filter((item) => item.fileResult !== undefined)
       .map((item) => item.fileResult!);
-  });
-
-  protected isHuntResult = computed(() => {
-    return this.collectionResults().some(isHuntResult);
   });
 }

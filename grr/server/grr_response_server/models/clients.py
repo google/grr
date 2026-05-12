@@ -3,10 +3,11 @@
 
 from collections.abc import Mapping
 import ipaddress
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
 from grr_response_proto.api import client_pb2
@@ -347,3 +348,126 @@ def SetGrrMessagePayload(
   # the server when available, so for consistency we set it here too, even
   # if it's an outbound message.
   message.payload_any.Pack(payload)
+
+
+def GetIpAddressesFromClientSnapshot(
+    client: objects_pb2.ClientSnapshot,
+) -> Sequence[str]:
+  """IP addresses from all interfaces."""
+  result = []
+  filtered_ips = ["127.0.0.1", "::1", "fe80::1"]
+
+  for interface in client.interfaces:
+    for address in interface.addresses:
+      # IP address can be stored as either human-readable string or
+      # packed bytes.
+      if address.HasField("packed_bytes"):
+        if address.address_type == jobs_pb2.NetworkAddress.Family.INET:
+          ip = str(ipaddress.IPv4Address(address.packed_bytes))
+        elif address.address_type == jobs_pb2.NetworkAddress.Family.INET6:
+          ip = str(ipaddress.IPv6Address(address.packed_bytes))
+        else:
+          continue
+      else:
+        continue
+
+      if ip not in filtered_ips:
+        result.append(ip)
+
+  return sorted(result)
+
+
+def HumanReadableMacAddress(mac_address: bytes) -> str:
+  """Returns a human readable MAC address from a binary MAC address.
+
+  For values previously stored as an RDFBytes MacAddress.
+
+  Args:
+    mac_address: A binary MAC address.
+
+  Returns:
+    A human readable MAC address.
+  """
+  return text.Hexify(mac_address)
+
+
+def GetMacAddressesFromClientSnapshot(
+    snapshot: objects_pb2.ClientSnapshot,
+) -> list[str]:
+  """Returns a list of MAC addresses, excluding null addresses."""
+  result = set()
+  for interface in snapshot.interfaces:
+    # We exlclude null addresses.
+    if interface.mac_address and interface.mac_address != b"\x00" * len(
+        interface.mac_address
+    ):
+      result.add(HumanReadableMacAddress(interface.mac_address))
+  return sorted(result)
+
+
+def GetSummaryFromClientSnapshot(
+    snapshot: objects_pb2.ClientSnapshot,
+) -> jobs_pb2.ClientSummary:
+  """Creates a ClientSummary proto from a ClientSnapshot proto.
+
+  Args:
+    snapshot: The ClientSnapshot proto to summarize.
+
+  Returns:
+    A ClientSummary proto containing key information from the snapshot.
+
+  Raises:
+    ValueError: If an unknown cloud type is encountered.
+  """
+  summary = jobs_pb2.ClientSummary()
+  summary.client_id = snapshot.client_id
+  summary.timestamp = snapshot.timestamp
+
+  summary.system_info.release = snapshot.os_release
+  summary.system_info.version = str(snapshot.os_version or "")
+  summary.system_info.kernel = snapshot.kernel
+  summary.system_info.machine = snapshot.arch
+  summary.system_info.install_date = snapshot.install_time
+  kb = snapshot.knowledge_base
+  if kb:
+    summary.system_info.fqdn = kb.fqdn
+    summary.system_info.system = kb.os
+    summary.users.extend(kb.users)
+    summary.interfaces.extend(snapshot.interfaces)
+    summary.client_info.CopyFrom(snapshot.startup_info.client_info)
+
+    # We use knowledge base release information only if it was not set already
+    # (and the same applies to the version information). This is because the
+    # knowledge base information comes from artifact definitions that are less
+    # precise than platform information obtained through the `distro` package.
+    if not summary.system_info.release and kb.os_release:
+      summary.system_info.release = kb.os_release
+      if not summary.system_info.version and kb.os_major_version:
+        summary.system_info.version = "%d.%d" % (
+            kb.os_major_version,
+            kb.os_minor_version,
+        )
+
+  summary.edr_agents.extend(snapshot.edr_agents)
+  if snapshot.HasField("fleetspeak_validation_info"):
+    summary.fleetspeak_validation_info.CopyFrom(
+        snapshot.fleetspeak_validation_info
+    )
+
+  hwi = snapshot.hardware_info
+  if hwi:
+    summary.serial_number = hwi.serial_number
+    summary.system_manufacturer = hwi.system_manufacturer
+    summary.system_uuid = hwi.system_uuid
+
+  cloud_instance_type = snapshot.cloud_instance.cloud_type
+  if cloud_instance_type != jobs_pb2.CloudInstance.InstanceType.UNSET:
+    summary.cloud_type = cloud_instance_type
+    if cloud_instance_type == jobs_pb2.CloudInstance.InstanceType.GOOGLE:
+      summary.cloud_instance_id = snapshot.cloud_instance.google.unique_id
+    elif cloud_instance_type == jobs_pb2.CloudInstance.InstanceType.AMAZON:
+      summary.cloud_instance_id = snapshot.cloud_instance.amazon.instance_id
+    else:
+      raise ValueError("Bad cloud type: %s" % cloud_instance_type)
+
+  return summary

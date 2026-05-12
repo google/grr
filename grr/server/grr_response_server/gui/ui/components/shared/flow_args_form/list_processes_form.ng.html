@@ -36,40 +36,6 @@
       </mat-error>
     </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Connection state</mat-label>
-      <mat-chip-grid #chipList
-        [formControl]="controls.connectionStates"
-        aria-label="Connection state"
-      >
-        @for (state of controls.connectionStates.value; track state) {
-          <mat-chip-row [removable]="true" (removed)="removeConnectionState(state)">
-            {{state}} <mat-icon matChipRemove>cancel</mat-icon>
-          </mat-chip-row>
-        }
-        <input
-          #connectionStateInputEl
-          placeholder="LISTEN, ESTABLISHED, ..."
-          [formControl]="connectionStateInputControl"
-          [matAutocomplete]="auto"
-          [matChipInputFor]="chipList"
-          [matChipInputSeparatorKeyCodes]="SEPARATOR_KEY_CODES"
-          (matChipInputTokenEnd)="tryAddInputConnectionState($event.value, connectionStateInputEl)"
-        />
-      </mat-chip-grid>
-      <mat-autocomplete
-        #auto="matAutocomplete"
-        (optionSelected)="addConnectionState($event.option.value); connectionStateInputEl.value = ''"
-      >
-        @for (state of connectionStateSuggestions(); track state) {
-          <mat-option [value]="state">{{state}} </mat-option>
-        }
-      </mat-autocomplete>
-      <mat-hint>
-        If set, only list processes that have network connections matching any of the states
-      </mat-hint>
-    </mat-form-field>
-
     <mat-checkbox [formControl]="controls.fetchBinaries">
       Collect process executables
     </mat-checkbox>

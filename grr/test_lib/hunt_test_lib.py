@@ -1,29 +1,24 @@
 #!/usr/bin/env python
 """Classes for hunt-related testing."""
 
-import sys
+from typing import Optional, Sequence
 
+from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import foreman
-from grr_response_server import foreman_rules
 from grr_response_server import hunt
-from grr_response_server import mig_foreman_rules
-from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
+from grr_response_server.models import hunts as models_hunts
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -49,7 +44,7 @@ class SampleHuntMock(action_mocks.ActionMock):
     self.network_bytes_sent = network_bytes_sent
 
   def FileFinderOS(self, args):
-    # TODO: Stop relying on these constants.
+    # TODO - Stop relying on these constants.
     response = rdf_file_finder.FileFinderResult(
         stat_entry=rdf_client_fs.StatEntry(
             pathspec=rdf_paths.PathSpec(
@@ -85,7 +80,7 @@ class SampleHuntMock(action_mocks.ActionMock):
         status=status or rdf_flows.GrrStatus.ReturnedStatus.OK
     )
 
-    # TODO: Stop relying on these constants.
+    # TODO - Stop relying on these constants.
     if message.name == "FileFinderOS":
       # Create status message to report sample resource usage
       if self.user_cpu_time is None:
@@ -203,74 +198,112 @@ def TestHuntHelper(client_mock,
 class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
   """Mixin with helper methods for hunt tests."""
 
-  def _CreateForemanClientRuleSet(self):
-    return foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-            regex=foreman_rules.ForemanRegexClientRule(
-                field="CLIENT_NAME", attribute_regex="GRR"))
-    ])
+  def _CreateForemanClientRuleSet(self) -> jobs_pb2.ForemanClientRuleSet:
+    return jobs_pb2.ForemanClientRuleSet(
+        rules=[
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field="CLIENT_NAME", attribute_regex="GRR"
+                ),
+            )
+        ]
+    )
 
   def CreateHunt(
       self,
-      flow_runner_args=None,
-      flow_args=None,
-      client_rule_set=None,
-      original_object=None,
-      client_rate=0,
-      client_limit=100,
-      duration=None,
-      creator="test_creator",
-      **kwargs,
-  ):
+      flow_runner_args: Optional[flows_pb2.FlowRunnerArgs] = None,
+      flow_args: Optional[pb_message.Message] = None,
+      client_rule_set: Optional[jobs_pb2.ForemanClientRuleSet] = None,
+      original_object: Optional[flows_pb2.FlowLikeObjectReference] = None,
+      client_rate: int = 0,
+      client_limit: int = 100,
+      duration_seconds: Optional[int] = None,
+      creator: str = "test_creator",
+      description: Optional[str] = None,
+      output_plugins: Optional[
+          Sequence[output_plugin_pb2.OutputPluginDescriptor]
+      ] = None,
+  ) -> str:
     # Only initialize default flow_args value if default flow_runner_args value
     # is to be used.
-    if not flow_runner_args:
-      flow_args = rdf_file_finder.FileFinderArgs(
-          paths=["/tmp/evil.txt"],
-          pathtype=rdf_paths.PathSpec.PathType.OS,
-          action=rdf_file_finder.FileFinderAction.Download(),
-      )
+    if flow_runner_args is None:
+      flow_name = file_finder.ClientFileFinder.__name__
+      if flow_args is None:
+        flow_args = flows_pb2.FileFinderArgs(
+            paths=["/tmp/evil.txt"],
+            pathtype=jobs_pb2.PathSpec.PathType.OS,
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD,
+                download=flows_pb2.FileFinderDownloadActionOptions(
+                    collect_ext_attrs=False
+                ),
+            ),
+        )
+    else:
+      flow_name = flow_runner_args.flow_name
+      if flow_args is None:
+        raise ValueError("flow_args must be specified if flow_runner_args is.")
 
-    flow_runner_args = flow_runner_args or rdf_flow_runner.FlowRunnerArgs(
-        flow_name=file_finder.ClientFileFinder.__name__
-    )
-
-    client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
-
-    hunt_args = rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=flow_runner_args.flow_name,
-            flow_args=rdf_structs.AnyValue.Pack(flow_args),
-        ),
-    )
-
-    hunt_obj = rdf_hunt_objects.Hunt(
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
+        flow_name=flow_name,
+        flow_args=flow_args,
         creator=creator,
+    )
+    hunt_obj.client_rate = client_rate
+    hunt_obj.client_limit = client_limit
+
+    if description is not None:
+      hunt_obj.description = description
+
+    client_rule_set = client_rule_set or self._CreateForemanClientRuleSet()
+    hunt_obj.client_rule_set.CopyFrom(client_rule_set)
+
+    if original_object is not None:
+      hunt_obj.original_object.CopyFrom(original_object)
+    if duration_seconds is not None:
+      hunt_obj.duration = duration_seconds
+    if output_plugins is not None:
+      del hunt_obj.output_plugins[:]
+      hunt_obj.output_plugins.extend(output_plugins)
+
+    hunt.CreateHunt(hunt_obj)
+    return hunt_obj.hunt_id
+
+  def StartHunt(
+      self,
+      paused: bool = False,
+      flow_runner_args: Optional[flows_pb2.FlowRunnerArgs] = None,
+      flow_args: Optional[pb_message.Message] = None,
+      client_rule_set: Optional[jobs_pb2.ForemanClientRuleSet] = None,
+      original_object: Optional[flows_pb2.FlowLikeObjectReference] = None,
+      client_rate: int = 0,
+      client_limit: int = 100,
+      creator: str = "test_creator",
+      description: Optional[str] = None,
+      output_plugins: Optional[
+          Sequence[output_plugin_pb2.OutputPluginDescriptor]
+      ] = None,
+  ) -> str:
+    hunt_id = self.CreateHunt(
+        flow_runner_args=flow_runner_args,
+        flow_args=flow_args,
         client_rule_set=client_rule_set,
         original_object=original_object,
         client_rate=client_rate,
         client_limit=client_limit,
-        duration=duration,
-        args=hunt_args,
-        **kwargs,
+        creator=creator,
+        description=description,
+        output_plugins=output_plugins,
     )
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
-    hunt.CreateHunt(hunt_obj)
-
-    return hunt_obj.hunt_id
-
-  def StartHunt(self, paused=False, **kwargs):
-    hunt_id = self.CreateHunt(**kwargs)
     if not paused:
       hunt.StartHunt(hunt_id)
     return hunt_id
 
-  def FindForemanRules(self, hunt_obj):
+  def FindForemanRules(self, hunt_obj) -> list[jobs_pb2.ForemanCondition]:
     rules = data_store.REL_DB.ReadAllForemanRules()
     return [
-        mig_foreman_rules.ToRDFForemanCondition(rule)
+        rule
         for rule in rules
         if hunt_obj is None or rule.hunt_id == hunt_obj.urn.Basename()
     ]
@@ -330,18 +363,13 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
     for value in values:
-      data_store.REL_DB.WriteFlowResults(
-          [
-              mig_flow_objects.ToProtoFlowResult(
-                  rdf_flow_objects.FlowResult(
-                      client_id=client_id,
-                      flow_id=flow_id,
-                      hunt_id=hunt_id,
-                      payload=value,
-                  )
-              )
-          ]
+      result = flows_pb2.FlowResult(
+          client_id=client_id,
+          flow_id=flow_id,
+          hunt_id=hunt_id,
       )
+      result.payload.Pack(value)
+      data_store.REL_DB.WriteFlowResults([result])
 
   def FinishHuntFlow(self, hunt_id, client_id):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
@@ -370,70 +398,3 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     flow_obj.error_message = message
     flow_obj.backtrace = backtrace
     data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
-
-  def GetHuntResults(self, hunt_id):
-    """Gets flow results for a given flow.
-
-    Args:
-      hunt_id: String with a hunt id or a RDFURN.
-
-    Returns:
-      List with hunt results payloads.
-    """
-    return [
-        mig_flow_objects.ToRDFFlowResult(r)
-        for r in data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
-    ]
-
-
-class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
-  num_calls = 0
-  num_responses = 0
-
-  def ProcessResponses(self, state, responses):
-    DummyHuntOutputPlugin.num_calls += 1
-    DummyHuntOutputPlugin.num_responses += len(list(responses))
-
-
-class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
-
-  def ProcessResponses(self, state, responses):
-    raise RuntimeError("Oh no!")
-
-
-class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
-
-  def ProcessResponses(self, state, responses):
-    pass
-
-  def Flush(self, state):
-    raise RuntimeError("Flush, oh no!")
-
-
-class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
-  """Stateful dummy hunt output plugin."""
-  data = []
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.delta = 0
-
-  def InitializeState(self, state):
-    super().InitializeState(state)
-    state.index = 0
-
-  def ProcessResponses(self, state, responses):
-    StatefulDummyHuntOutputPlugin.data.append(state.index + self.delta)
-    self.delta += 1
-
-  def UpdateState(self, state):
-    state.index += self.delta
-
-
-class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
-  num_calls = 0
-  faketime = None
-
-  def ProcessResponses(self, state, responses):
-    LongRunningDummyHuntOutputPlugin.num_calls += 1
-    LongRunningDummyHuntOutputPlugin.faketime.time += 100

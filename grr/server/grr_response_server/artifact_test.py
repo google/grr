@@ -36,6 +36,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
+from grr_response_server.models import knowledge_base as models_knowledge_base
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
@@ -48,7 +49,6 @@ from grr_response_proto.rrg.action import get_winreg_value_pb2 as rrg_get_winreg
 from grr_response_proto.rrg.action import grep_file_contents_pb2 as rrg_grep_file_contents_pb2
 from grr_response_proto.rrg.action import list_utmp_users_pb2 as rrg_list_utmp_users_pb2
 from grr_response_proto.rrg.action import list_winreg_keys_pb2 as rrg_list_winreg_keys_pb2
-from grr_response_proto.rrg.action import query_wmi_pb2 as rrg_query_wmi_pb2
 
 # pylint: mode=test
 
@@ -83,7 +83,7 @@ WMI_SAMPLE = [
 ]
 
 
-# TODO: These should be defined next to the test they are used in
+# TODO - These should be defined next to the test they are used in
 # once the metaclass registry madness is resolved.
 
 # pylint: disable=function-redefined
@@ -152,7 +152,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         collectors.ArtifactCollectorFlow,
         client_mock=client_mock,
         client_id=client_id,
-        flow_args=rdf_artifacts.ArtifactCollectorFlowArgs(
+        flow_args=flows_pb2.ArtifactCollectorFlowArgs(
             artifact_list=artifact_list,
             error_on_no_results=error_on_no_results,
             split_output_by_artifact=split_output_by_artifact,
@@ -160,7 +160,11 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         creator=self.test_username,
     )
 
-    return flow_test_lib.GetFlowResults(client_id, session_id)
+    return flow_test_lib.GetUnpackedFlowResultsOfTypes(
+        client_id,
+        session_id,
+        [jobs_pb2.StatEntry, jobs_pb2.ExecuteResponse, jobs_pb2.Dict],
+    )
 
 
 class GRRArtifactTest(ArtifactTest):
@@ -190,14 +194,11 @@ class GRRArtifactTest(ArtifactTest):
           artifacts_by_name["WMIActiveScriptEventConsumer"].urls[0],
           "https://msdn.microsoft.com/en-us/library/",
       )
-      self.assertEqual(
-          artifacts_by_name["TestCmdArtifact"].sources[0].attributes["cmd"],
-          "/usr/bin/dpkg",
+      attrs = mig_protodict.ToRDFDict(
+          artifacts_by_name["TestCmdArtifact"].sources[0].attributes
       )
-      self.assertEqual(
-          artifacts_by_name["TestCmdArtifact"].sources[0].attributes["args"],
-          ["--list"],
-      )
+      self.assertEqual(attrs["cmd"], "/usr/bin/dpkg")
+      self.assertEqual(attrs["args"], ["--list"])
     finally:
       artifact.LoadArtifactsOnce()
 
@@ -237,29 +238,6 @@ supported_os: [Linux]
 
     with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
-
-  def testCommandArgumentOrderIsPreserved(self):
-    content = """name: CommandOrder
-doc: here's the doc
-sources:
-- type: COMMAND
-  attributes:
-    args: ["-L", "-v", "-n"]
-    cmd: /sbin/iptables
-supported_os: [Linux]
-"""
-    artifact.UploadArtifactYamlFile(content)
-    artifact_obj = artifact_registry.REGISTRY.GetArtifacts(
-        name_list=["CommandOrder"]
-    ).pop()
-    arglist = artifact_obj.sources[0].attributes.get("args")
-    self.assertEqual(arglist, ["-L", "-v", "-n"])
-
-    # Check serialize/deserialize doesn't change order.
-    serialized = artifact_obj.SerializeToBytes()
-    artifact_obj = rdf_artifacts.Artifact.FromSerializedBytes(serialized)
-    arglist = artifact_obj.sources[0].attributes.get("args")
-    self.assertEqual(arglist, ["-L", "-v", "-n"])
 
   def testSystemArtifactOverwrite(self):
     content = """
@@ -395,7 +373,7 @@ class GrrKbTest(ArtifactTest):
   def _RunKBI(self, require_complete: bool = True):
     session_id = flow_test_lib.StartAndRunFlow(
         artifact.KnowledgeBaseInitializationFlow,
-        # TODO: remove additional client actions when Glob flow
+        # TODO - remove additional client actions when Glob flow
         # ArtifactCollectorFlow dependency is removed.
         action_mocks.ClientFileFinderWithVFS(
             file_fingerprint.FingerprintFile,
@@ -409,12 +387,16 @@ class GrrKbTest(ArtifactTest):
         ),
         client_id=test_lib.TEST_CLIENT_ID,
         creator=self.test_username,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(
             require_complete=require_complete,
         ),
     )
 
-    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        test_lib.TEST_CLIENT_ID,
+        session_id,
+        result_type=knowledge_base_pb2.KnowledgeBase,
+    )
     self.assertLen(results, 1)
     return results[0]
 
@@ -454,7 +436,7 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(kb.environ_systemdrive, "C:")
 
     self.assertCountEqual([x.username for x in kb.users], ["jim", "kovacs"])
-    user = kb.GetUser(username="jim")
+    user = models_knowledge_base.GetUser(kb, "jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
 
@@ -503,18 +485,23 @@ class GrrKbLinuxTest(GrrKbTest):
         client_mock=KnowledgebaseInitMock(),
     )
 
-    results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        test_lib.TEST_CLIENT_ID,
+        session_id,
+        result_type=knowledge_base_pb2.KnowledgeBase,
+    )
 
     self.assertLen(results, 1)
-    self.assertIsInstance(results[0], rdf_client.KnowledgeBase)
-
     kb = results[0]
 
     self.assertCountEqual(
         [x.username for x in kb.users], ["user1", "user2", "user3", "yagharek"]
     )
-    user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
+    user = models_knowledge_base.GetUser(kb, "user1")
+    last_logon = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+        user.last_logon
+    ).AsSecondsSinceEpoch()
+    self.assertEqual(last_logon, 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
 
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
@@ -545,7 +532,7 @@ class GrrKbDarwinTest(GrrKbTest):
     self.assertEqual(kb.os_minor_version, 9)
     # scalzi from /Users dir listing.
     self.assertCountEqual([x.username for x in kb.users], ["scalzi"])
-    user = kb.GetUser(username="scalzi")
+    user = models_knowledge_base.GetUser(kb, "scalzi")
     self.assertEqual(user.homedir, "/Users/scalzi")
 
 
@@ -646,7 +633,9 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, result_type=knowledge_base_pb2.KnowledgeBase
+    )
 
     self.assertLen(results, 1)
     self.assertLen(results[0].users, 3)
@@ -662,7 +651,7 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("baz", users_by_username)
     self.assertEqual(users_by_username["baz"].homedir, "X:\\Users\\baz")
 
-  # TODO: Remove once the `ListDirectory` action is fixed not
+  # TODO - Remove once the `ListDirectory` action is fixed not
   # to yield results with leading slashes on Windows.
   def testWindowsListUsersDirWithForwardAndLeadingSlashes(self):
     assert data_store.REL_DB is not None
@@ -723,7 +712,9 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
         creator=creator,
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, result_type=knowledge_base_pb2.KnowledgeBase
+    )
 
     self.assertLen(results, 1)
     self.assertLen(results[0].users, 1)
@@ -797,12 +788,14 @@ class KnowledgeBaseInitializationFlowTest(flow_test_lib.FlowTestsBaseclass):
         ActionMock(),
         client_id=client_id,
         creator=creator,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(
             lightweight=False,
         ),
     )
 
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id, flow_id, result_type=knowledge_base_pb2.KnowledgeBase
+    )
 
     self.assertLen(results, 1)
     self.assertLen(results[0].users, 1)
@@ -878,7 +871,7 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(),
         handlers={
             rrg_pb2.Action.GET_FILE_CONTENTS: GetFileContentsHandler,
             rrg_pb2.Action.GREP_FILE_CONTENTS: GrepFileContentHandler,
@@ -926,7 +919,7 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(),
         handlers=rrg_test_lib.FakePosixFileHandlers({
             "/Users/foo": {},
             "/Users/bar": {},
@@ -1119,19 +1112,13 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
         result.subkey = subkey
         session.Reply(result)
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      del session  # Unused.
-
-      raise NotImplementedError()
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
         }
         | rrg_test_lib.FakeWindowsFileHandlers({
             "C:\\Users\\All Users": "C:\\ProgramData",
@@ -1140,7 +1127,8 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
             "C:\\Users\\desktop.ini": b"",
             "C:\\Users\\quux": {},
             "C:\\Users\\Public": {},
-        }),
+        })
+        | rrg_test_lib.FakeWmiHandlers({}),
     )
 
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
@@ -1231,7 +1219,7 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
 
     self.assertEqual(
         users_by_username["foobar"].temp,
-        # TODO: Currently we do not support per-user environment
+        # TODO - Currently we do not support per-user environment
         # variable expansion. We should revisit this assertion once we do.
         r"%USERPROFILE%\AppData\Local\Temp",
     )
@@ -1374,23 +1362,18 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
         result.subkey = subkey
         session.Reply(result)
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      del session  # Unused.
-
-      raise NotImplementedError()
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
         }
         | rrg_test_lib.FakeWindowsFileHandlers({
             "C:\\Users\\foobar": {},
-        }),
+        })
+        | rrg_test_lib.FakeWmiHandlers({}),
     )
 
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
@@ -1451,20 +1434,15 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
 
       raise NotImplementedError()
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      del session  # Unused.
-
-      raise NotImplementedError()
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(),
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        }
+        | rrg_test_lib.FakeWmiHandlers({}),
     )
 
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)
@@ -1499,32 +1477,32 @@ quux:x:1339:41:Mirosław Kwudzyniak:/home/quux:/bin/bash
 
       raise NotImplementedError()
 
-    def QueryWmiHandler(session: rrg_test_lib.Session) -> None:
-      result = rrg_query_wmi_pb2.Result()
-      result.row["SID"].string = "S-1-5-21-11112222-3333344444-555556666-777888"
-      result.row["Name"].string = "foo"
-      result.row["FullName"].string = "Foo Thudycz"
-      result.row["Domain"].string = "EXAMPLE"
-      session.Reply(result)
-
-      result = rrg_query_wmi_pb2.Result()
-      result.row["SID"].string = "S-1-5-21-99998888-7777766666-555554444-333222"
-      result.row["Name"].string = "bar"
-      result.row["FullName"].string = "Bar Quuxerski"
-      result.row["Domain"].string = "EXAMPLE"
-      session.Reply(result)
-
     flow_id = rrg_test_lib.ExecuteFlow(
         client_id=client_id,
         flow_cls=artifact.KnowledgeBaseInitializationFlow,
-        flow_args=artifact.KnowledgeBaseInitializationArgs(
+        flow_args=flows_pb2.KnowledgeBaseInitializationArgs(
             lightweight=False,
         ),
         handlers={
             rrg_pb2.Action.GET_WINREG_VALUE: GetWinregValueHandler,
             rrg_pb2.Action.LIST_WINREG_KEYS: ListWinregKeysHandler,
-            rrg_pb2.Action.QUERY_WMI: QueryWmiHandler,
-        },
+        }
+        | rrg_test_lib.FakeWmiHandlers({
+            "Win32_UserAccount": [
+                {
+                    "SID": "S-1-5-21-11112222-3333344444-555556666-777888",
+                    "Name": "foo",
+                    "FullName": "Foo Thudycz",
+                    "Domain": "EXAMPLE",
+                },
+                {
+                    "SID": "S-1-5-21-99998888-7777766666-555554444-333222",
+                    "Name": "bar",
+                    "FullName": "Bar Quuxerski",
+                    "Domain": "EXAMPLE",
+                },
+            ],
+        }),
     )
 
     flow_obj = rel_db.ReadFlowObject(client_id, flow_id)

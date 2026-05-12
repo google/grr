@@ -13,10 +13,20 @@ message Args {
   repeated uint32 pids = 1;
 
   // YARA signature source to use for scanning.
-  string signature = 2;
+  oneof signature_oneof {
+      // Signature passed inline with the request as a UTF-8 string.
+      string signature_inline = 2;
+      // SHA-256 checksum of the signature, which must have been previously stored in the filestore.
+      bytes signature_file_sha256 = 10;
+  }
 
   // Maximum time spent scanning a single process.
   google.protobuf.Duration timeout = 3;
+
+  // Maximum number of matches returned for each pattern in the given YARA signature.
+  // Scanning for a particular pattern will stop once this number of matches has been found in memory.
+  // No error will be emitted in that case.
+  optional uint32 max_matches_per_pattern = 11;
 
   // Set this flag to avoid scanning mapped files.
   bool skip_mapped_files = 4;

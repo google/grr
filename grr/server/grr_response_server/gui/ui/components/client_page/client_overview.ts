@@ -84,7 +84,7 @@ export class ClientOverview {
   });
 
   constructor() {
-    // TODO: Move this to a more appropriate place.
+    // TODO - Move this to a more appropriate place.
     this.globalStore.fetchAllLabels();
   }
 

@@ -206,3 +206,8 @@ message ApiCallRobotRouterParams {
 message ApiInterrogateRouterParams {
   optional uint64 daily_limit_per_client_and_user = 1;
 }
+
+message ApiHuntRouterParams {
+  // A list of flow names that are allowed to be used in hunts.
+  repeated string allowed_flow_names = 1;
+}

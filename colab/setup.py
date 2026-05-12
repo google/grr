@@ -46,13 +46,7 @@ class Sdist(sdist):
 VERSION = get_config()
 
 setup(
-    name="grr-colab",
     version=VERSION.get("Version", "packageversion"),
-    description="GRR Colab library",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr/tree/master/colab",
-    maintainer="GRR Development Team",
-    maintainer_email="grr-dev@googlegroups.com",
     cmdclass={
         "sdist": Sdist,
     },

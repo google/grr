@@ -7,18 +7,6 @@
       (matSortChange)="announceSortChange($event)"
     >
 
-      <ng-container matColumnDef="clientId">
-        <th mat-header-cell
-            *matHeaderCellDef
-            mat-sort-header
-            sortActionDescription="Sort by client ID">
-          Client ID
-        </th>
-        <td mat-cell class="monospace" *matCellDef="let c">
-          <copy-button>{{ c.clientId }}</copy-button>
-        </td>
-      </ng-container>
-
       <ng-container matColumnDef="containerId">
         <th mat-header-cell
             *matHeaderCellDef
@@ -127,8 +115,8 @@
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" colspan="4">No data.</td>

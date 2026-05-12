@@ -77,13 +77,6 @@ export class FlowArgsPreviewPipe implements PipeTransform {
         if (listProcessesArgs.fetchBinaries) {
           summary.push('with binaries');
         }
-        if (listProcessesArgs.connectionStates) {
-          summary.push(
-            listProcessesArgs.connectionStates
-              .map((state) => state.toString())
-              .join(', '),
-          );
-        }
         if (listProcessesArgs.pids) {
           summary.push(listProcessesArgs.pids.join(', '));
         }

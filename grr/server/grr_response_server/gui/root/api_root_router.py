@@ -6,7 +6,7 @@ and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 from grr_response_proto.api import metadata_pb2 as api_metadata_pb2
 from grr_response_proto.api import reflection_pb2 as api_reflection_pb2
@@ -16,6 +16,7 @@ from grr_response_proto.api.root import binary_management_pb2
 from grr_response_proto.api.root import user_management_pb2
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import signed_commands as api_signed_commands
@@ -161,3 +162,23 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
     return api_metadata.ApiGetOpenApiDescriptionHandler(self)
+
+
+class ApiRootAndNonRootRouter(
+    ApiRootRouter,
+    api_call_router_without_checks.ApiCallRouterWithoutChecks,
+):
+  """Root router that also allows calling non-root methods."""
+
+  # TODO - Remove once name conflict is resolved.
+  def GetGrrUser(  # pytype: disable=signature-mismatch
+      self,
+      args: Any,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_user_management.ApiGetGrrUserHandler:
+    # There is no sensible way to handle these requests (`RawConnector` does so
+    # by inspecting argument types but we don't want that) so for now we just
+    # bail out since you are not supposed to use this router unless you know
+    # what you are doing. Once the name conflict is resolved, this shouldn't be
+    # an issue anymore.
+    raise NotImplementedError()

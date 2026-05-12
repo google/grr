@@ -472,6 +472,69 @@ class MySQLDBHuntMixin(object):
 
     return result
 
+  @db_utils.CallLogged
+  @db_utils.CallAccounted
+  @mysql_utils.WithTransaction(readonly=True)
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> int:
+    """Counts hunt objects in the database."""
+    assert cursor is not None
+
+    query = "SELECT COUNT(*) FROM hunts"
+    args = []
+
+    components = []
+    if with_creator is not None:
+      components.append("creator = %s ")
+      args.append(with_creator)
+
+    if created_by is not None:
+      # If it is an empty list of creators, return empty results.
+      if not created_by:
+        return 0
+      components.append("creator IN %s ")
+      # We explicitly convert created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(created_by))
+
+    if not_created_by:
+      components.append("creator NOT IN %s ")
+      # We explicitly convert not_created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(not_created_by))
+
+    if created_after is not None:
+      components.append("create_timestamp > FROM_UNIXTIME(%s) ")
+      args.append(mysql_utils.RDFDatetimeToTimestamp(created_after))
+
+    if with_description_match is not None:
+      components.append("description LIKE %s")
+      args.append("%" + with_description_match + "%")
+
+    if with_states is not None:
+      if not with_states:
+        return 0
+      components.append("hunt_state IN %s ")
+      args.append([int(state) for state in with_states])
+
+    if components:
+      query += " WHERE " + " AND ".join(components)
+
+    cursor.execute(query, args)
+    return cursor.fetchone()[0]
+
   def _HuntOutputPluginStateFromRow(
       self, row: tuple[str, bytes, bytes, bytes]
   ) -> output_plugin_pb2.OutputPluginState:
@@ -487,7 +550,7 @@ class MySQLDBHuntMixin(object):
       plugin_args_any = any_pb2.Any()
       plugin_args_any.ParseFromString(plugin_args_any_bytes)
     elif plugin_args_bytes is not None:
-      # TODO: The db migration added a new column but didn't
+      # TODO - The db migration added a new column but didn't
       # backfill the data, so a fallback to parse the old format is implemented
       # here. Remove this fallback mechanism after  the new format has been
       # adopted and old data is not needed anymore.

@@ -21,7 +21,6 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import objects_pb2
@@ -29,36 +28,36 @@ from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import email_alerts
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
 from grr_response_server import signed_binary_utils
+from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
-
-
-class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.ClientActionRunnerArgs
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 class ClientActionRunner(flow_base.FlowBase):
   """Just call the specified client action directly."""
 
-  args_type = ClientActionRunnerArgs
+  proto_args_type = tests_pb2.ClientActionRunnerArgs
 
   def Start(self):
-    self.CallClient(
-        action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End"
+    self.CallClientProto(
+        action_registry.ACTION_STUB_BY_ID[self.proto_args.action],
+        next_state="End",
     )
 
 
@@ -120,8 +119,10 @@ class TestAdministrativeFlows(
         action_mocks.ActionMock.With({
             "DeleteGRRTempFiles": FakeDeleteGRRTempFiles,
         }),
-        flow_args=administrative.DeleteGRRTempFilesArgs(
-            pathspec=rdf_paths.PathSpec(path="tmp/foo/bar")
+        flow_args=flows_pb2.DeleteGRRTempFilesArgs(
+            pathspec=jobs_pb2.PathSpec(
+                path="tmp/foo/bar", pathtype=jobs_pb2.PathSpec.OS
+            )
         ),
         creator=self.test_username,
         client_id=client_id,
@@ -174,7 +175,7 @@ class TestAdministrativeFlows(
     # Make sure the flow state is included in the email message.
     self.assertIn("Host-0.example.com", email_message["message"])
     self.assertIn(
-        "http://localhost:8000/v2/clients/C.1000000000000000",
+        "http://localhost:8000/clients/C.1000000000000000",
         email_message["message"],
     )
 
@@ -203,7 +204,7 @@ class TestAdministrativeFlows(
         ClientActionRunner,
         client_mock,
         client_id=client_id,
-        flow_args=ClientActionRunnerArgs(
+        flow_args=tests_pb2.ClientActionRunnerArgs(
             action="SendStartupInfo",
         ),
         creator=self.test_username,
@@ -229,7 +230,7 @@ sys.test_code_ran_here = True
         administrative.ExecutePythonHack,
         client_mock,
         client_id=client_id,
-        flow_args=administrative.ExecutePythonHackArgs(
+        flow_args=flows_pb2.ExecutePythonHackArgs(
             hack_name="test",
         ),
         creator=self.test_username,
@@ -252,9 +253,9 @@ sys.test_code_ran_here = True
         administrative.ExecutePythonHack,
         client_mock,
         client_id=client_id,
-        flow_args=administrative.ExecutePythonHackArgs(
+        flow_args=flows_pb2.ExecutePythonHackArgs(
             hack_name="test",
-            py_args=dict(value=5678),
+            py_args=rdf_protodict.Dict({"value": 5678}).AsPrimitiveProto(),
         ),
         creator=self.test_username,
     )
@@ -276,18 +277,22 @@ magic_return_str = str(py_args["foobar"])
         administrative.ExecutePythonHack,
         client_mock=action_mocks.ActionMock(standard.ExecutePython),
         client_id=client_id,
-        flow_args=administrative.ExecutePythonHackArgs(
+        flow_args=flows_pb2.ExecutePythonHackArgs(
             hack_name="quux",
-            py_args={"foobar": 42},
+            py_args=rdf_protodict.Dict({"foobar": 42}).AsPrimitiveProto(),
         ),
         creator=self.test_username,
     )
 
     flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
 
-    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=flows_pb2.ExecutePythonHackResult,
+    )
     self.assertLen(results, 1)
-    self.assertIsInstance(results[0], administrative.ExecutePythonHackResult)
+    self.assertIsInstance(results[0], flows_pb2.ExecutePythonHackResult)
     self.assertEqual(results[0].result_string, "42")
 
   def testExecutePythonHackWithFormatString(self):
@@ -305,7 +310,7 @@ magic_return_str = "foo(%s)"
         administrative.ExecutePythonHack,
         client_mock=action_mocks.ActionMock(standard.ExecutePython),
         client_id=client_id,
-        flow_args=administrative.ExecutePythonHackArgs(
+        flow_args=flows_pb2.ExecutePythonHackArgs(
             hack_name="quux",
         ),
         creator=self.test_username,
@@ -313,9 +318,13 @@ magic_return_str = "foo(%s)"
 
     flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
 
-    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=flows_pb2.ExecutePythonHackResult,
+    )
     self.assertLen(results, 1)
-    self.assertIsInstance(results[0], administrative.ExecutePythonHackResult)
+    self.assertIsInstance(results[0], flows_pb2.ExecutePythonHackResult)
     self.assertEqual(results[0].result_string, "foo(%s)")
 
   def testExecuteBinariesWithArgs(self):
@@ -346,8 +355,8 @@ magic_return_str = "foo(%s)"
           administrative.LaunchBinary,
           client_mock,
           client_id=self.SetupClient(0),
-          flow_args=administrative.LaunchBinaryArgs(
-              binary=upload_path,
+          flow_args=flows_pb2.LaunchBinaryArgs(
+              binary=str(upload_path),
               command_line="--value 356",
           ),
           creator=self.test_username,
@@ -404,8 +413,8 @@ magic_return_str = "foo(%s)"
           administrative.LaunchBinary,
           client_mock,
           client_id=self.SetupClient(0),
-          flow_args=administrative.LaunchBinaryArgs(
-              binary=upload_path,
+          flow_args=flows_pb2.LaunchBinaryArgs(
+              binary=str(upload_path),
               command_line="--value 356",
           ),
           creator=self.test_username,
@@ -454,8 +463,8 @@ magic_return_str = "foo(%s)"
           action_mocks.ActionMock(standard.ExecuteBinaryCommand),
           client_id=client_id,
           creator=self.test_username,
-          flow_args=administrative.LaunchBinaryArgs(
-              binary=binary_path,
+          flow_args=flows_pb2.LaunchBinaryArgs(
+              binary=str(binary_path),
               command_line="--bar --baz",
           ),
       )
@@ -487,13 +496,17 @@ magic_return_str = "foo(%s)"
         client_mock,
         client_id=client_id,
         creator=self.test_username,
-        flow_args=administrative.UpdateClientArgs(
+        flow_args=flows_pb2.UpdateClientArgs(
             binary_path=os.path.join(
                 config.CONFIG["Client.platform"], "test.deb"
             ),
         ),
     )
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.ExecuteBinaryResponse,
+    )
     self.assertLen(results, 1)
     self.assertEqual(0, results[0].exit_status)
     self.assertEqual(results[0].stdout, b"foobar")
@@ -525,7 +538,7 @@ magic_return_str = "foo(%s)"
         client_mock,
         client_id=client_id,
         creator=self.test_username,
-        flow_args=administrative.UpdateClientArgs(
+        flow_args=flows_pb2.UpdateClientArgs(
             binary_path=os.path.join(
                 config.CONFIG["Client.platform"], "test.deb"
             ),
@@ -535,7 +548,11 @@ magic_return_str = "foo(%s)"
 
     rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     self.assertEqual(rel_flow_obj.flow_state, flows_pb2.Flow.FlowState.ERROR)
-    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        result_type=jobs_pb2.ExecuteBinaryResponse,
+    )
     self.assertEmpty(results)
     self.assertContainsInOrder(
         ["stdout: b'\\xff\\xff\\xff\\xff'", "stderr: b'foobar'"],
@@ -557,9 +574,7 @@ magic_return_str = "foo(%s)"
       flow_test_lib.StartAndRunFlow(
           administrative.OnlineNotification,
           client_mock,
-          flow_args=administrative.OnlineNotificationArgs(
-              email="test@localhost"
-          ),
+          flow_args=flows_pb2.OnlineNotificationArgs(email="test@localhost"),
           creator=self.test_username,
           client_id=client_id,
       )
@@ -619,6 +634,50 @@ magic_return_str = "foo(%s)"
         new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
         self.assertIsNotNone(new_si)
         self.assertNotEqual(new_si.client_info, si.client_info)
+
+  @db_test_lib.WithDatabase
+  def testStartupHandler_FleetspeakLabels(self, db: abstract_db.Database):
+    # TODO - System labels currently rely on the `GRR` user being
+    # in the database.
+    db_test_utils.InitializeUser(db, username="GRR")
+
+    client_id = db_test_utils.InitializeClient(db)
+
+    def ListClients(
+        request: admin_pb2.ListClientsRequest,
+        **kwargs,
+    ) -> admin_pb2.ListClientsResponse:
+      del request, kwargs  # Unused.
+
+      result = admin_pb2.ListClientsResponse()
+
+      result_client = result.clients.add()
+      result_client.client_id = fleetspeak_utils.GRRIDToFleetspeakID(client_id)
+      # TODO - `client` seems to be some magic constant we use when
+      # mangling labels from Fleetspeak. I don't think we should rely on it.
+      result_client.labels.add(service_name="client", label="foo")
+      result_client.labels.add(service_name="client", label="bar")
+      result_client.last_clock.GetCurrentTime()
+      result_client.last_contact_time.GetCurrentTime()
+
+      return result
+
+    fleetspeak_connector.CONN.outgoing.ListClients.side_effect = ListClients
+
+    startup = jobs_pb2.StartupInfo()
+    startup.client_info.client_version = 4321
+
+    request = objects_pb2.MessageHandlerRequest()
+    request.client_id = client_id
+    request.request.name = jobs_pb2.StartupInfo.__name__
+    request.request.data = startup.SerializeToString()
+
+    handler = administrative.ClientStartupHandler()
+    handler.ProcessMessages([mig_objects.ToRDFMessageHandlerRequest(request)])
+
+    label_names = [label.name for label in db.ReadClientLabels(client_id)]
+    self.assertIn("foo", label_names)
+    self.assertIn("bar", label_names)
 
   def testStartupTriggersInterrogateForNewClient(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
@@ -739,13 +798,11 @@ magic_return_str = "foo(%s)"
       self._RunSendStartupInfo(client_id)
 
       data_store.REL_DB.WriteFlowObject(
-          mig_flow_objects.ToProtoFlow(
-              rdf_flow_objects.Flow(
-                  flow_id=flow.RandomFlowId(),
-                  client_id=client_id,
-                  flow_class_name=discovery.Interrogate.__name__,
-                  flow_state=rdf_flow_objects.Flow.FlowState.RUNNING,
-              )
+          flows_pb2.Flow(
+              flow_id=flow.RandomFlowId(),
+              client_id=client_id,
+              flow_class_name=discovery.Interrogate.__name__,
+              flow_state=flows_pb2.Flow.FlowState.RUNNING,
           )
       )
 
@@ -776,13 +833,11 @@ magic_return_str = "foo(%s)"
       self._RunSendStartupInfo(client_id)
 
     data_store.REL_DB.WriteFlowObject(
-        mig_flow_objects.ToProtoFlow(
-            rdf_flow_objects.Flow(
-                flow_id=flow.RandomFlowId(),
-                client_id=client_id,
-                flow_class_name=discovery.Interrogate.__name__,
-                flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
-            )
+        flows_pb2.Flow(
+            flow_id=flow.RandomFlowId(),
+            client_id=client_id,
+            flow_class_name=discovery.Interrogate.__name__,
+            flow_state=flows_pb2.Flow.FlowState.FINISHED,
         )
     )
 
@@ -806,6 +861,51 @@ magic_return_str = "foo(%s)"
         f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
     ]
     self.assertLen(interrogates, orig_count + 1)
+
+  @db_test_lib.WithDatabase
+  def testStartupDoesNotTriggerInterrogateIfExcludedLabel(
+      self,
+      db: abstract_db.Database,
+  ) -> None:
+    username = db_test_utils.InitializeUser(db)
+
+    client_id_foo = db_test_utils.InitializeClient(db)
+    db.AddClientLabels(client_id_foo, username, labels=["foo"])
+
+    client_id_bar = db_test_utils.InitializeClient(db)
+    db.AddClientLabels(client_id_bar, username, labels=["bar"])
+
+    startup_info_foo = jobs_pb2.StartupInfo()
+    startup_info_foo.client_info.client_name = "GRR"
+
+    startup_info_bar = jobs_pb2.StartupInfo()
+    startup_info_bar.client_info.client_name = "GRR"
+
+    request_foo = objects_pb2.MessageHandlerRequest()
+    request_foo.client_id = client_id_foo
+    request_foo.request.name = "StartupInfo"
+    request_foo.request.data = startup_info_foo.SerializeToString()
+
+    request_bar = objects_pb2.MessageHandlerRequest()
+    request_bar.client_id = client_id_bar
+    request_bar.request.name = "StartupInfo"
+    request_bar.request.data = startup_info_bar.SerializeToString()
+
+    request_foo = mig_objects.ToRDFMessageHandlerRequest(request_foo)
+    request_bar = mig_objects.ToRDFMessageHandlerRequest(request_bar)
+
+    with test_lib.ConfigOverrider({
+        "Interrogate.startup_exclude_labels": ["foo"],
+    }):
+      handler = administrative.ClientStartupHandler()
+      handler.ProcessMessages([request_foo, request_bar])
+
+    flow_objs_foo = db.ReadAllFlowObjects(client_id_foo)
+    self.assertEmpty(flow_objs_foo)
+
+    flow_objs_bar = db.ReadAllFlowObjects(client_id_bar)
+    self.assertLen(flow_objs_bar, 1)
+    self.assertEqual(flow_objs_bar[0].flow_class_name, "Interrogate")
 
   def testClientAlertHandler(self):
     client_id = self.SetupClient(0)

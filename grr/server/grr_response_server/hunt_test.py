@@ -13,8 +13,6 @@ from google.protobuf import any_pb2
 from google.protobuf import message as message_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_proto import hunts_pb2
 from grr_response_proto import jobs_pb2
@@ -22,21 +20,16 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import foreman
-from grr_response_server import foreman_rules
 from grr_response_server import hunt
-from grr_response_server import mig_foreman_rules
 from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
+from grr_response_server.models import hunts as models_hunts
 from grr_response_server.output_plugins import test_plugins
-from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import mig_hunt_objects
-from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
-from grr.test_lib import notification_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -73,13 +66,16 @@ class OPPInitFails(output_plugin.OutputPluginProto):
     raise RuntimeError("Init failed!")
 
 
-class _DummyRDFOP(output_plugin.OutputPlugin):
-  name = "_DummyRDFOP"
-  description = "Dummy RDF Output Plugin."
-  processed_values = []
+class OPPBadProcessResultsFails(output_plugin.OutputPluginProto):
 
-  def ProcessResponses(self, state, values):
-    _DummyRDFOP.processed_values.extend(values)
+  def ProcessResults(self, replies: list[flows_pb2.FlowResult]) -> None:
+    raise RuntimeError("ProcessResults failed!")
+
+
+class OPPFlushFails(output_plugin.OutputPluginProto):
+
+  def Flush(self) -> None:
+    raise RuntimeError("Flush failed!")
 
 
 class _DummyProtoOP(output_plugin.OutputPluginProto):
@@ -91,29 +87,38 @@ class _DummyProtoOP(output_plugin.OutputPluginProto):
     _DummyProtoOP.processed_values.extend(replies)
 
 
+class OPPTracksCallsAndNumResponses(output_plugin.OutputPluginProto):
+  """Dummy hunt output plugin."""
+
+  name = "OPPTracksCallsAndNumResponses"
+  description = "Dummy hunt output plugin."
+  num_calls = 0
+  num_responses = 0
+
+  def ProcessResults(self, replies: list[flows_pb2.FlowResult]) -> None:
+    OPPTracksCallsAndNumResponses.num_calls += 1
+    OPPTracksCallsAndNumResponses.num_responses += len(replies)
+
+
 class HuntTest(
     stats_test_lib.StatsTestMixin,
-    notification_test_lib.NotificationTestMixin,
     test_lib.GRRBaseTest,
 ):
   """Tests for the relational hunts implementation."""
 
-  def ClientFileFinderHuntArgs(self):
-    args = rdf_file_finder.FileFinderArgs()
-    args.paths = ["/tmp/evil.txt"]
-    args.action.action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-
-    return rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=file_finder.ClientFileFinder.__name__,
-            flow_args=rdf_structs.AnyValue.Pack(args),
+  def _CreateClientFileFinderHuntObject(self) -> hunts_pb2.Hunt:
+    return models_hunts.CreateDefaultHuntForFlow(
+        flow_name=file_finder.ClientFileFinder.__name__,
+        flow_args=flows_pb2.FileFinderArgs(
+            paths=["/tmp/evil.txt"],
+            action=flows_pb2.FileFinderAction(
+                action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
+            ),
         ),
+        creator=self.test_username,
     )
 
-  def _CreateHunt(self, **kwargs):
-    hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username, **kwargs)
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+  def _CreateHunt(self, hunt_obj: Optional[hunts_pb2.Hunt]):
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
@@ -131,11 +136,11 @@ class HuntTest(
     )
 
   def _CreateAndRunHunt(
-      self, num_clients=5, client_mock=None, iteration_limit=None, **kwargs
+      self, num_clients=5, client_mock=None, iteration_limit=None, hunt_obj=None
   ):
     client_ids = self.SetupClients(num_clients)
 
-    hunt_id = self._CreateHunt(**kwargs)
+    hunt_id = self._CreateHunt(hunt_obj=hunt_obj)
     self._RunHunt(
         client_ids, client_mock=client_mock, iteration_limit=iteration_limit
     )
@@ -150,19 +155,20 @@ class HuntTest(
     acl_test_lib.CreateUser(self.test_username)
 
   def testForemanRulesAreCorrectlyPropagatedWhenHuntStarts(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(
+    client_rule_set = jobs_pb2.ForemanClientRuleSet(
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-                regex=foreman_rules.ForemanRegexClientRule(
-                    field="CLIENT_NAME", attribute_regex="HUNT"
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field=jobs_pb2.ForemanRegexClientRule.CLIENT_NAME,
+                    attribute_regex="HUNT",
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-                integer=foreman_rules.ForemanIntegerClientRule(
-                    field="CLIENT_VERSION",
-                    operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                integer=jobs_pb2.ForemanIntegerClientRule(
+                    field=jobs_pb2.ForemanIntegerClientRule.CLIENT_VERSION,
+                    operator=jobs_pb2.ForemanIntegerClientRule.Operator.GREATER_THAN,
                     value=1337,
                 ),
             ),
@@ -171,9 +177,8 @@ class HuntTest(
 
     self.assertEmpty(data_store.REL_DB.ReadAllForemanRules())
 
-    hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj = models_hunts.CreateDefaultHunt()
+    hunt_obj.client_rule_set.CopyFrom(client_rule_set)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
@@ -183,14 +188,12 @@ class HuntTest(
     rule = rules[0]
     self.assertEqual(
         rule.client_rule_set,
-        mig_foreman_rules.ToProtoForemanClientRuleSet(client_rule_set),
+        client_rule_set,
     )
     self.assertEqual(rule.hunt_id, hunt_obj.hunt_id)
     self.assertEqual(
         rule.expiration_time,
-        (
-            hunt_obj.init_start_time + hunt_obj.duration
-        ).AsMicrosecondsSinceEpoch(),
+        hunt.GetExpiryTimeMicros(hunt_obj),
     )
 
     # Running a second time should not change the rules any more.
@@ -200,28 +203,28 @@ class HuntTest(
     self.assertLen(rules, 1)
 
   def testForemanRulesAreCorrectlyRemovedWhenHuntIsStopped(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(
+    client_rule_set = jobs_pb2.ForemanClientRuleSet(
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-                regex=foreman_rules.ForemanRegexClientRule(
-                    field="CLIENT_NAME", attribute_regex="HUNT"
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field=jobs_pb2.ForemanRegexClientRule.CLIENT_NAME,
+                    attribute_regex="HUNT",
                 ),
             ),
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-                integer=foreman_rules.ForemanIntegerClientRule(
-                    field="CLIENT_VERSION",
-                    operator=foreman_rules.ForemanIntegerClientRule.Operator.GREATER_THAN,
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER,
+                integer=jobs_pb2.ForemanIntegerClientRule(
+                    field=jobs_pb2.ForemanIntegerClientRule.CLIENT_VERSION,
+                    operator=jobs_pb2.ForemanIntegerClientRule.Operator.GREATER_THAN,
                     value=1337,
                 ),
             ),
         ]
     )
 
-    hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj = models_hunts.CreateDefaultHunt()
+    hunt_obj.client_rule_set.CopyFrom(client_rule_set)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
@@ -233,16 +236,15 @@ class HuntTest(
     self.assertEmpty(rules)
 
   def testStopHuntWithReason(self):
-    hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj = models_hunts.CreateDefaultHunt()
+    hunt_obj.creator = self.test_username
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
     hunt.StopHunt(
         hunt_obj.hunt_id,
-        hunt_state_reason=rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
+        hunt_state_reason=hunts_pb2.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
         reason_comment="not working",
     )
 
@@ -255,40 +257,37 @@ class HuntTest(
     self.assertEqual(hunt_obj2.hunt_state_comment, "not working")
 
   def testHuntWithInvalidForemanRulesDoesNotStart(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(
+    client_rule_set = jobs_pb2.ForemanClientRuleSet(
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.REGEX,
-                regex=foreman_rules.ForemanRegexClientRule(
-                    field="UNSET", attribute_regex="HUNT"
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.REGEX,
+                regex=jobs_pb2.ForemanRegexClientRule(
+                    field=jobs_pb2.ForemanRegexClientRule.UNSET,
+                    attribute_regex="HUNT",
                 ),
             )
         ]
     )
 
-    hunt_obj = rdf_hunt_objects.Hunt(client_rule_set=client_rule_set)
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj = models_hunts.CreateDefaultHunt()
+    hunt_obj.client_rule_set.CopyFrom(client_rule_set)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     with self.assertRaises(ValueError):
       hunt.StartHunt(hunt_obj.hunt_id)
 
   def testForemanRulesWorkCorrectlyWithStandardHunt(self):
-    client_rule_set = foreman_rules.ForemanClientRuleSet(
+    client_rule_set = jobs_pb2.ForemanClientRuleSet(
         rules=[
-            foreman_rules.ForemanClientRule(
-                rule_type=foreman_rules.ForemanClientRule.Type.OS,
-                os=foreman_rules.ForemanOsClientRule(os_windows=True),
+            jobs_pb2.ForemanClientRule(
+                rule_type=jobs_pb2.ForemanClientRule.Type.OS,
+                os=jobs_pb2.ForemanOsClientRule(os_windows=True),
             )
         ]
     )
-    hunt_obj = rdf_hunt_objects.Hunt(
-        client_rule_set=client_rule_set,
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-    )
-    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    self.assertEmpty(data_store.REL_DB.ReadAllForemanRules())
+
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rule_set.CopyFrom(client_rule_set)
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
     hunt.StartHunt(hunt_obj.hunt_id)
@@ -309,12 +308,9 @@ class HuntTest(
     self.assertEmpty(flows)
 
   def testStandardHuntFlowsReportBackToTheHunt(self):
-    hunt_id, _ = self._CreateAndRunHunt(
-        num_clients=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-    )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_id, _ = self._CreateAndRunHunt(num_clients=10, hunt_obj=hunt_obj)
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients, 10)
@@ -324,12 +320,8 @@ class HuntTest(
   def testHangingClientsAreCorrectlyAccountedFor(self):
     client_ids = self.SetupClients(10)
 
-    hunt_obj = rdf_hunt_objects.Hunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-    )
-    hunt_obj = mig_hunt_objects.ToProtoHunt(hunt_obj)
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
@@ -346,11 +338,10 @@ class HuntTest(
     self.assertEqual(hunt_counters.num_failed_clients, 4)
 
   def testPausingAndRestartingDoesNotStartHuntTwiceOnTheSameClient(self):
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
     hunt_id, client_ids = self._CreateAndRunHunt(
-        num_clients=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
+        num_clients=10, hunt_obj=hunt_obj
     )
 
     for client_id in client_ids:
@@ -367,13 +358,10 @@ class HuntTest(
       self.assertLen(flows, 1)
 
   def testHuntIsPausedOnReachingClientLimit(self):
-    hunt_id, _ = self._CreateAndRunHunt(
-        num_clients=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        client_limit=5,
-        args=self.ClientFileFinderHuntArgs(),
-    )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.client_limit = 5
+    hunt_id, _ = self._CreateAndRunHunt(num_clients=10, hunt_obj=hunt_obj)
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.PAUSED)
@@ -388,12 +376,9 @@ class HuntTest(
   def testHuntClientRateIsAppliedCorrectly(self):
     now = rdfvalue.RDFDatetime.Now()
 
-    _, client_ids = self._CreateAndRunHunt(
-        num_clients=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=1,
-        args=self.ClientFileFinderHuntArgs(),
-    )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 1
+    _, client_ids = self._CreateAndRunHunt(num_clients=10, hunt_obj=hunt_obj)
 
     requests = data_store.REL_DB.ReadFlowProcessingRequests()
     requests.sort(key=lambda r: r.delivery_time)
@@ -416,24 +401,23 @@ class HuntTest(
     num_files = len(glob.glob(path))
     self.assertGreater(num_files, 1)
 
-    flow_args = rdf_file_finder.FileFinderArgs()
-    flow_args.paths = [path]
-    flow_args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
-
-    hunt_args = rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=file_finder.FileFinder.__name__,
-            flow_args=rdf_structs.AnyValue.Pack(flow_args),
+    flow_args = flows_pb2.FileFinderArgs(
+        paths=[path],
+        action=flows_pb2.FileFinderAction(
+            action_type=flows_pb2.FileFinderAction.Action.STAT
         ),
     )
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
+        flow_name=file_finder.ClientFileFinder.__name__,
+        flow_args=flow_args,
+        creator=self.test_username,
+    )
+    hunt_obj.client_rate = 0
 
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=action_mocks.FileFinderClientMock(),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=hunt_args,
+        hunt_obj=hunt_obj,
     )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
@@ -441,18 +425,13 @@ class HuntTest(
     self.assertEqual(hunt_counters.num_results, 5 * num_files)
 
   def testStoppingHuntMarksHuntFlowsForTermination(self):
-    hunt_args = rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=flow_test_lib.InfiniteFlow.__name__
-        ),
-    )
+    hunt_obj = models_hunts.CreateDefaultHunt()
+    hunt_obj.client_rate = 0
+    hunt_obj.args.standard.flow_name = flow_test_lib.InfiniteFlow.__name__
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         iteration_limit=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=hunt_args,
+        hunt_obj=hunt_obj,
     )
 
     hunt.StopHunt(hunt_id)
@@ -476,11 +455,11 @@ class HuntTest(
       self.assertFalse(req_resp)
 
   def testResultsAreCorrectlyWrittenAndAreFilterable(self):
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=10,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     results = data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
@@ -491,25 +470,25 @@ class HuntTest(
       r.payload.Unpack(ff_result)
       self.assertEqual(ff_result.stat_entry.pathspec.path, "/tmp/evil.txt")
 
+  @test_plugins.WithOutputPluginProto(OPPTracksCallsAndNumResponses)
   def testOutputPluginsAreCorrectlyAppliedAndTheirStatusCanBeRead(self):
-    hunt_test_lib.StatefulDummyHuntOutputPlugin.data = []
-    hunt_test_lib.DummyHuntOutputPlugin.num_calls = 0
-    hunt_test_lib.DummyHuntOutputPlugin.num_responses = 0
+    OPPTracksCallsAndNumResponses.num_calls = 0
+    OPPTracksCallsAndNumResponses.num_responses = 0
 
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin"
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPTracksCallsAndNumResponses.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.append(plugin_descriptor)
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[plugin_descriptor],
+        hunt_obj=hunt_obj,
     )
 
-    self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_calls, 5)
-    self.assertEqual(hunt_test_lib.DummyHuntOutputPlugin.num_responses, 5)
+    self.assertEqual(OPPTracksCallsAndNumResponses.num_calls, 5)
+    self.assertEqual(OPPTracksCallsAndNumResponses.num_responses, 5)
 
     logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
         hunt_id,
@@ -528,18 +507,19 @@ class HuntTest(
       self.assertGreater(l.timestamp, 0)
       self.assertEqual(l.message, "Processed 1 replies.")
 
+  @test_plugins.WithOutputPluginProto(OPPBadProcessResultsFails)
   def testOutputPluginsErrorsAreCorrectlyWrittenAndCanBeRead(self):
-    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin"
+    failing_plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPBadProcessResultsFails.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.append(failing_plugin_descriptor)
 
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[failing_plugin_descriptor],
+        hunt_obj=hunt_obj,
     )
 
     errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
@@ -557,42 +537,23 @@ class HuntTest(
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
-      self.assertEqual(e.message, "Error while processing 1 replies: Oh no!")
+      self.assertEqual(
+          e.message, "Error while processing 1 replies: ProcessResults failed!"
+      )
 
-  def testOutputPluginsMaintainGlobalState(self):
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="StatefulDummyHuntOutputPlugin"
-    )
-
-    self.assertListEqual(hunt_test_lib.StatefulDummyHuntOutputPlugin.data, [])
-
-    _ = self._CreateAndRunHunt(
-        num_clients=5,
-        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[plugin_descriptor],
-    )
-
-    # Output plugins should have been called 5 times, adding a number
-    # to the "data" list on every call and incrementing it each time.
-    self.assertListEqual(
-        hunt_test_lib.StatefulDummyHuntOutputPlugin.data, [0, 1, 2, 3, 4]
-    )
-
+  @test_plugins.WithOutputPluginProto(OPPFlushFails)
   def testOutputPluginFlushErrorIsLoggedProperly(self):
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingInFlushDummyHuntOutputPlugin"
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPFlushFails.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.append(plugin_descriptor)
 
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[plugin_descriptor],
+        hunt_obj=hunt_obj,
     )
 
     logs = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
@@ -617,24 +578,31 @@ class HuntTest(
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
       self.assertEqual(
-          e.message, "Error while processing 1 replies: Flush, oh no!"
+          e.message, "Error while processing 1 replies: Flush failed!"
       )
 
+  @test_plugins.WithOutputPluginProto(OPPBadProcessResultsFails)
+  @test_plugins.WithOutputPluginProto(OPPTracksCallsAndNumResponses)
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
-    failing_plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin"
+    failing_plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPBadProcessResultsFails.__name__
     )
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin"
+    OPPTracksCallsAndNumResponses.num_calls = 0
+    OPPTracksCallsAndNumResponses.num_responses = 0
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPTracksCallsAndNumResponses.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.extend([
+        failing_plugin_descriptor,
+        plugin_descriptor,
+    ])
 
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[failing_plugin_descriptor, plugin_descriptor],
+        hunt_obj=hunt_obj,
     )
 
     errors = data_store.REL_DB.ReadHuntOutputPluginLogEntries(
@@ -657,92 +625,90 @@ class HuntTest(
     self.assertLen(logs, 5)
 
   @test_plugins.WithOutputPluginProto(_DummyProtoOP)
-  def testHuntFlowWithRDFAndProtoOutputPlugins(self):
-    _DummyRDFOP.processed_values = []
-    _DummyProtoOP.processed_values = []
-
-    rdf_plugin = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=_DummyRDFOP.__name__
-    )
-    proto_plugin = rdf_output_plugin.OutputPluginDescriptor(
+  def testHuntWithUnknownOutputPluginFails(self):
+    exists = output_plugin_pb2.OutputPluginDescriptor(
         plugin_name=_DummyProtoOP.__name__
     )
-
-    self._CreateAndRunHunt(
-        num_clients=1,
-        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
-        output_plugins=[rdf_plugin, proto_plugin],
+    does_not_exist = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name="IDontExist"
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.output_plugins.extend([exists, does_not_exist])
 
-    self.assertLen(_DummyRDFOP.processed_values, 1)
-    self.assertLen(_DummyProtoOP.processed_values, 1)
+    with self.assertRaises(hunt.UnknownOutputPluginError):
+      self._CreateAndRunHunt(
+          num_clients=1,
+          client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
+          hunt_obj=hunt_obj,
+      )
 
+  @test_plugins.WithOutputPluginProto(OPPTracksCallsAndNumResponses)
   def testUpdatesStatsCounterOnOutputPluginSuccess(self):
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin"
+    OPPTracksCallsAndNumResponses.num_calls = 0
+    OPPTracksCallsAndNumResponses.num_responses = 0
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPTracksCallsAndNumResponses.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.append(plugin_descriptor)
 
     # 1 result for each client makes it 5 results.
     with self.assertStatsCounterDelta(
         5,
         flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
-        fields=["DummyHuntOutputPlugin"],
+        fields=[OPPTracksCallsAndNumResponses.__name__],
     ):
       with self.assertStatsCounterDelta(
           0,
           flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
-          fields=["DummyHuntOutputPlugin"],
+          fields=[OPPTracksCallsAndNumResponses.__name__],
       ):
         self._CreateAndRunHunt(
             num_clients=5,
             client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-            client_rule_set=foreman_rules.ForemanClientRuleSet(),
-            client_rate=0,
-            args=self.ClientFileFinderHuntArgs(),
-            output_plugins=[plugin_descriptor],
+            hunt_obj=hunt_obj,
         )
 
+  @test_plugins.WithOutputPluginProto(OPPBadProcessResultsFails)
   def testUpdatesStatsCounterOnOutputPluginFailure(self):
-    plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name="FailingDummyHuntOutputPlugin"
+    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
+        plugin_name=OPPBadProcessResultsFails.__name__
     )
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.output_plugins.append(plugin_descriptor)
 
     # 1 error for each client makes it 5 errors, 0 results.
     with self.assertStatsCounterDelta(
         0,
         flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
-        fields=["FailingDummyHuntOutputPlugin"],
+        fields=[OPPBadProcessResultsFails.__name__],
     ):
       with self.assertStatsCounterDelta(
           5,
           flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
-          fields=["FailingDummyHuntOutputPlugin"],
+          fields=[OPPBadProcessResultsFails.__name__],
       ):
         self._CreateAndRunHunt(
             num_clients=5,
             client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-            client_rule_set=foreman_rules.ForemanClientRuleSet(),
-            client_rate=0,
-            args=self.ClientFileFinderHuntArgs(),
-            output_plugins=[plugin_descriptor],
+            hunt_obj=hunt_obj,
         )
 
   def _CheckHuntStoppedNotification(self, str_match):
-    pending = self.GetUserNotifications(self.test_username)
+    pending = data_store.REL_DB.ReadUserNotifications(self.test_username)
     self.assertLen(pending, 1)
     self.assertIn(str_match, pending[0].message)
 
   def testHuntIsStoppedIfCrashNumberOverThreshold(self):
     client_ids = self.SetupClients(4)
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.crash_limit = 3
 
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        crash_limit=3,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     client_mock = flow_test_lib.CrashClientMock()
@@ -761,17 +727,16 @@ class HuntTest(
   def testHuntIsStoppedIfAveragePerClientResultsCountTooHigh(self):
     client_ids = self.SetupClients(5)
 
-    hunt_args = rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=processes.ListProcesses.__name__
-        ),
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
+        flow_name=processes.ListProcesses.__name__,
+        flow_args=flows_pb2.ListProcessesArgs(),
+        creator=self.test_username,
     )
+    hunt_obj.client_rate = 0
+    hunt_obj.avg_results_per_client_limit = 1
+
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        avg_results_per_client_limit=1,
-        args=hunt_args,
+        hunt_obj=hunt_obj,
     )
 
     single_process = [rdf_client.Process(pid=1, exe="a.exe")]
@@ -829,12 +794,12 @@ class HuntTest(
 
   def testHuntIsStoppedIfAveragePerClientCpuUsageTooHigh(self):
     client_ids = self.SetupClients(5)
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.avg_cpu_seconds_per_client_limit = 3
 
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        avg_cpu_seconds_per_client_limit=3,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     with mock.patch.object(hunt, "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
@@ -889,7 +854,7 @@ class HuntTest(
           ),
       )
 
-      # TODO: Re-enable the checks after the test is reworked to
+      # TODO - Re-enable the checks after the test is reworked to
       # run with approximate limits (flow not persisted in the DB every time).
 
       # # Hunt should be terminated: the average is exceeded.
@@ -900,12 +865,12 @@ class HuntTest(
 
   def testHuntIsStoppedIfAveragePerClientNetworkUsageTooHigh(self):
     client_ids = self.SetupClients(5)
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.avg_network_bytes_per_client_limit = 1
 
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        avg_network_bytes_per_client_limit=1,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     with mock.patch.object(hunt, "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
@@ -959,7 +924,7 @@ class HuntTest(
           ),
       )
 
-      # TODO: Re-enable the checks after the test is reworked to
+      # TODO - Re-enable the checks after the test is reworked to
       # run with approximate limits (flow not persisted in the DB every time).
 
       # # Hunt should be terminated: the limit is exceeded.
@@ -970,12 +935,12 @@ class HuntTest(
 
   def testHuntIsStoppedIfTotalNetworkUsageIsTooHigh(self):
     client_ids = self.SetupClients(5)
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.total_network_bytes_limit = 5
 
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        total_network_bytes_limit=5,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     def CheckState(hunt_state, network_bytes_sent):
@@ -1008,7 +973,7 @@ class HuntTest(
         client_mock=hunt_test_lib.SampleHuntMock(network_bytes_sent=1),
     )
 
-    # TODO: Re-enable the checks after the test is reworked to
+    # TODO - Re-enable the checks after the test is reworked to
     # run with approximate limits (flow not persisted in the DB every time).
 
     # # 6 is greater than the total limit. The hunt should be stopped now.
@@ -1028,17 +993,24 @@ class HuntTest(
         30, rdfvalue.DAYS
     )
 
-    duration = rdfvalue.Duration.From(1, rdfvalue.DAYS)
-    expiry_time = fake_time + duration
+    # Hunt duration is set in DurationSeconds (not Duration).
+    # If you assign rdf_hunt_objects.Hunt.duration with the wrong RDF primitive
+    # (this case before the refactor), it'll be automatically converted and
+    # interpreted to DurationSeconds. The same is not true for protos, so we
+    # explicitly create the right type here, and then convert it to an int
+    # when setting the proto value.
+    hunt_duration = rdfvalue.DurationSeconds.From(1, rdfvalue.DAYS)
+    expiry_time = fake_time + hunt_duration
 
     foreman_obj = foreman.Foreman()
 
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.duration = hunt_duration.SerializeToWireFormat()
+
     with test_lib.FakeTime(fake_time):
       hunt_id = self._CreateHunt(
-          client_rule_set=foreman_rules.ForemanClientRuleSet(),
-          client_rate=0,
-          duration=duration,
-          args=self.ClientFileFinderHuntArgs(),
+          hunt_obj=hunt_obj,
       )
 
       foreman_obj.AssignTasksToClient(client_ids[0])
@@ -1060,20 +1032,19 @@ class HuntTest(
     ):
       foreman_obj.AssignTasksToClient(client_ids[2])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-      self.assertEqual(
-          hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.COMPLETED
-      )
+      self.assertEqual(hunt_obj.hunt_state, hunts_pb2.Hunt.HuntState.COMPLETED)
       hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
       self.assertEqual(hunt_counters.num_clients, 2)
 
   def testPausingTheHuntChangingParametersAndStartingAgainWorksAsExpected(self):
     client_ids = self.SetupClients(2)
 
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.client_limit = 1
+
     hunt_id = self._CreateHunt(
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        client_limit=1,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     self._RunHunt(client_ids[:2])
@@ -1091,12 +1062,12 @@ class HuntTest(
     self.assertEqual(hunt_counters.num_clients, 2)
 
   def testResourceUsageStatsAreReportedCorrectly(self):
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=10,
         client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     usage_stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
@@ -1131,18 +1102,16 @@ class HuntTest(
       prev = p
 
   def testHuntFlowLogsAreCorrectlyWrittenAndCanBeRead(self):
-    hunt_args = rdf_hunt_objects.HuntArguments(
-        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-        standard=rdf_hunt_objects.HuntArgumentsStandard(
-            flow_name=flow_test_lib.DummyLogFlow.__name__
-        ),
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
+        flow_name=flow_test_lib.DummyLogFlow.__name__,
+        flow_args=flows_pb2.EmptyFlowArgs(),
+        creator=self.test_username,
     )
+    hunt_obj.client_rate = 0
+
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=10,
-        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=hunt_args,
+        hunt_obj=hunt_obj,
     )
 
     hunt_logs = data_store.REL_DB.ReadHuntLogEntries(hunt_id, 0, sys.maxsize)
@@ -1161,11 +1130,11 @@ class HuntTest(
       self.assertEqual(log.hunt_id, hunt_id)
 
   def testCreatorUsernameIsPropagatedToChildrenFlows(self):
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=1,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -1176,13 +1145,13 @@ class HuntTest(
     self.assertEqual(flows[0].creator, hunt_obj.creator)
 
   def testPerClientLimitsArePropagatedToChildrenFlows(self):
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.client_rate = 0
+    hunt_obj.per_client_cpu_limit = 42
+    hunt_obj.per_client_network_bytes_limit = 43
     hunt_id, client_ids = self._CreateAndRunHunt(
         num_clients=1,
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        per_client_cpu_limit=42,
-        per_client_network_bytes_limit=43,
-        args=self.ClientFileFinderHuntArgs(),
+        hunt_obj=hunt_obj,
     )
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -1206,7 +1175,8 @@ class HuntTest(
 
   def testScheduleHuntRaceCondition(self):
     client_id = self.SetupClient(0)
-    hunt_id = self._CreateHunt(args=self.ClientFileFinderHuntArgs())
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_id = self._CreateHunt(hunt_obj=hunt_obj)
     original = data_store.REL_DB.delegate.WriteFlowObject
 
     def WriteFlowObject(*args, **kwargs):
@@ -1227,68 +1197,15 @@ class HuntTest(
       with self.assertRaises(hunt.flow.CanNotStartFlowWithExistingIdError):
         hunt.StartHuntFlowOnClient(client_id, hunt_id)
 
-  def testCreateHuntWithRDFPluginInitializesState(self):
-    plugin_descriptor = output_plugin_pb2.OutputPluginDescriptor(
-        plugin_name="StatefulDummyHuntOutputPlugin"
-    )
-    args = flows_pb2.FileFinderArgs(
-        paths=["/tmp/evil.txt"],
-        action=flows_pb2.FileFinderAction(
-            action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
-        ),
-    )
-    packed_args = any_pb2.Any()
-    packed_args.Pack(args)
-    hunt_args = hunts_pb2.HuntArguments(
-        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
-        standard=hunts_pb2.HuntArgumentsStandard(
-            flow_name=file_finder.ClientFileFinder.__name__,
-            flow_args=packed_args,
-        ),
-    )
-    hunt_obj = hunts_pb2.Hunt(
-        hunt_id=rdf_hunt_objects.RandomHuntId(),
-        creator=self.test_username,
-        args=hunt_args,
-        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
-        output_plugins=[plugin_descriptor],
-    )
-    hunt.CreateHunt(hunt_obj)
-
-    states = data_store.REL_DB.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
-    self.assertLen(states, 1)
-    self.assertEqual(
-        states[0].plugin_descriptor.plugin_name, "StatefulDummyHuntOutputPlugin"
-    )
-
   @test_plugins.WithOutputPluginProto(OPPInitFails)
   def testCreateHuntWithProtoPluginInitFails(self):
-    args = flows_pb2.FileFinderArgs(
-        paths=["/tmp/evil.txt"],
-        action=flows_pb2.FileFinderAction(
-            action_type=flows_pb2.FileFinderAction.Action.DOWNLOAD
-        ),
+    hunt_obj = self._CreateClientFileFinderHuntObject()
+    hunt_obj.output_plugins.append(
+        output_plugin_pb2.OutputPluginDescriptor(
+            plugin_name=OPPInitFails.__name__
+        )
     )
-    packed_args = any_pb2.Any()
-    packed_args.Pack(args)
-    hunt_args = hunts_pb2.HuntArguments(
-        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
-        standard=hunts_pb2.HuntArgumentsStandard(
-            flow_name=file_finder.ClientFileFinder.__name__,
-            flow_args=packed_args,
-        ),
-    )
-    hunt_obj = hunts_pb2.Hunt(
-        hunt_id=rdf_hunt_objects.RandomHuntId(),
-        creator=self.test_username,
-        args=hunt_args,  # Should be irrelevant.
-        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
-        output_plugins=[
-            output_plugin_pb2.OutputPluginDescriptor(
-                plugin_name=OPPInitFails.__name__
-            )
-        ],
-    )
+
     with self.assertRaisesRegex(RuntimeError, "Init failed!"):
       hunt.CreateHunt(hunt_obj)
 
@@ -1304,26 +1221,99 @@ class HuntTest(
         args=any_args,
     )
 
-    hunt_args = hunts_pb2.HuntArguments(
-        hunt_type=hunts_pb2.HuntArguments.HuntType.STANDARD,
-        standard=hunts_pb2.HuntArgumentsStandard(
-            flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
-        ),
-    )
-
-    hunt_obj = hunts_pb2.Hunt(
-        hunt_id=rdf_hunt_objects.RandomHuntId(),
+    hunt_obj = models_hunts.CreateDefaultHuntForFlow(
+        flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
+        flow_args=flows_pb2.EmptyFlowArgs(),
         creator=self.test_username,
-        args=hunt_args,
-        hunt_state=hunts_pb2.Hunt.HuntState.PAUSED,
-        output_plugins=[plugin_descriptor],
     )
+    hunt_obj.output_plugins.append(plugin_descriptor)
+
     hunt.CreateHunt(hunt_obj)
 
     self.assertCountEqual(
         OPPWithArgs.args_during_init,
         [jobs_pb2.LogMessage(data="args")],
     )
+
+
+class GetExpiryTimeMicrosTest(test_lib.GRRBaseTest):
+
+  def testGetExpiryTimeNoStartTimeReturnsNone(self):
+    hunt_obj = hunts_pb2.Hunt()
+    self.assertIsNone(hunt.GetExpiryTimeMicros(hunt_obj))
+
+  def testGetExpiryTimeReturnsCorrectTime(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    duration = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    expected_expiry = start_time + duration
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.init_start_time = start_time.AsMicrosecondsSinceEpoch()
+    hunt_obj.duration = duration.ToInt(rdfvalue.SECONDS)
+
+    self.assertEqual(
+        hunt.GetExpiryTimeMicros(hunt_obj),
+        expected_expiry.AsMicrosecondsSinceEpoch(),
+    )
+
+
+class IsExpiredTest(test_lib.GRRBaseTest):
+
+  def testIsExpiredNoStartTimeReturnsFalse(self):
+    hunt_obj = hunts_pb2.Hunt()
+    self.assertFalse(hunt.IsExpired(hunt_obj))
+
+  def testIsExpiredReturnsFalseBeforeExpiry(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    duration = rdfvalue.DurationSeconds.From(1, rdfvalue.DAYS)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.init_start_time = start_time.AsMicrosecondsSinceEpoch()
+    hunt_obj.duration = duration.SerializeToWireFormat()
+
+    fake_1h_after_start = start_time + rdfvalue.Duration.From(1, rdfvalue.HOURS)
+    with test_lib.FakeTime(fake_1h_after_start):
+      self.assertFalse(hunt.IsExpired(hunt_obj))
+
+  def testIsExpiredReturnsFalseBeforeExpiryBorderCase(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    duration = rdfvalue.DurationSeconds.From(1, rdfvalue.DAYS)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.init_start_time = start_time.AsMicrosecondsSinceEpoch()
+    hunt_obj.duration = duration.SerializeToWireFormat()
+
+    fake_1s_before_expiry = (
+        start_time + duration - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+    )
+    with test_lib.FakeTime(fake_1s_before_expiry):
+      self.assertFalse(hunt.IsExpired(hunt_obj))
+
+  def testIsExpiredExactExpiry(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    duration = rdfvalue.DurationSeconds.From(1, rdfvalue.DAYS)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.init_start_time = start_time.AsMicrosecondsSinceEpoch()
+    hunt_obj.duration = duration.SerializeToWireFormat()
+
+    fake_exact_expiry = start_time + duration
+    with test_lib.FakeTime(fake_exact_expiry):
+      self.assertFalse(hunt.IsExpired(hunt_obj))
+
+  def testIsExpiredReturnsTrueAfterExpiry(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    duration = rdfvalue.DurationSeconds.From(1, rdfvalue.DAYS)
+
+    hunt_obj = hunts_pb2.Hunt()
+    hunt_obj.init_start_time = start_time.AsMicrosecondsSinceEpoch()
+    hunt_obj.duration = duration.SerializeToWireFormat()
+
+    fake_1s_after_expiry = (
+        start_time + duration + rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+    )
+    with test_lib.FakeTime(fake_1s_after_expiry):
+      self.assertTrue(hunt.IsExpired(hunt_obj))
 
 
 def main(argv):

@@ -31,7 +31,7 @@ class FakeSink(sinks.Sink):
     """
     return self._parcels[client_id]
 
-  # TODO: Add the `@override` annotation [1] once we can use
+  # TODO - Add the `@override` annotation [1] once we can use
   # Python 3.12 features.
   #
   # [1]: https://peps.python.org/pep-0698/

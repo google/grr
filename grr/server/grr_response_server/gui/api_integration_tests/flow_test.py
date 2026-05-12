@@ -14,6 +14,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -22,7 +24,6 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import mig_flow_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -79,13 +80,13 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     unicode_str = "🐊 🐢 🦎 🐍"
 
     client_id = self.SetupClient(0)
-    args = processes.ListProcessesArgs(
+    args = flows_pb2.ListProcessesArgs(
         filename_regex=unicode_str, fetch_binaries=True
     )
 
     client_ref = self.api.Client(client_id=client_id)
     result_flow = client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
+        name=processes.ListProcesses.__name__, args=args
     )
 
     got_flow = client_ref.Flow(flow_id=result_flow.flow_id).Get()
@@ -93,7 +94,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testCreateFlowFromClientRef(self):
     client_id = self.SetupClient(0)
-    args = processes.ListProcessesArgs(
+    args = flows_pb2.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True
     )
 
@@ -101,18 +102,19 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEmpty(flows)
 
     client_ref = self.api.Client(client_id=client_id)
-    client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
-    )
+    client_ref.CreateFlow(name=processes.ListProcesses.__name__, args=args)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
-    flow = mig_flow_objects.ToRDFFlow(flows[0])
-    self.assertEqual(flow.args, args)
+    created_flow_args = flows_pb2.ListProcessesArgs()
+    assert flows[0].args.Unpack(created_flow_args)
+    self.assertEqual(created_flow_args.filename_regex, args.filename_regex)
+    self.assertEqual(created_flow_args.fetch_binaries, args.fetch_binaries)
+    self.assertEmpty(created_flow_args.pids)
 
   def testCreateFlowFromClientObject(self):
     client_id = self.SetupClient(0)
-    args = processes.ListProcessesArgs(
+    args = flows_pb2.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True
     )
 
@@ -120,14 +122,15 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEmpty(flows)
 
     client = self.api.Client(client_id=client_id).Get()
-    client.CreateFlow(
-        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto()
-    )
+    client.CreateFlow(name=processes.ListProcesses.__name__, args=args)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertLen(flows, 1)
-    flow = mig_flow_objects.ToRDFFlow(flows[0])
-    self.assertEqual(flow.args, args)
+    created_flow_args = flows_pb2.ListProcessesArgs()
+    assert flows[0].args.Unpack(created_flow_args)
+    self.assertEqual(created_flow_args.filename_regex, args.filename_regex)
+    self.assertEqual(created_flow_args.fetch_binaries, args.fetch_binaries)
+    self.assertEmpty(created_flow_args.pids)
 
   def testRunInterrogateFlow(self):
     client_id = self.SetupClient(0)
@@ -369,9 +372,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertLen(pending_notifications, 1)
     self.assertEqual(
         pending_notifications[0].data.notification_type,
-        int(
-            rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED
-        ),
+        objects_pb2.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
     )
     self.assertEqual(
         pending_notifications[0].data.reference.type,

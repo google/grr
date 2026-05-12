@@ -9,6 +9,9 @@ message ApiArg {
     // Whether to allow execution of arbitrary argument passed in the request
     // without it being pre-signed.
     bool unsigned_allowed = 2;
+    // Whether to allow passing path to a filestore file specified in the
+    // request as the argument.
+    bool filestore_file_sha256_allowed = 3;
   }
 }
 
@@ -23,8 +26,23 @@ message ApiCommand {
   // Operating system the command is running on.
   optional ApiSignedCommand.OS operating_system = 9;
 
-  // Path to the executable file to execute.
-  optional string path = 3;
+  oneof path_oneof {
+    // Path to the executable file to execute.
+    string path = 3;
+
+    // Path template to the executable file to execute.
+    //
+    // Syntax used by templates corresponds to the one found in the Python's
+    // standard library [1].
+    //
+    // Templates are resolved at command signing time, so they are still "fixed"
+    // and cannot be dynamically changed by the GRR server. Template values can
+    // be specified using `--template-param` flags of the command signer tool.
+    //
+    // [1]:
+    // https://docs.python.org/3/library/string.html#template-strings-strings
+    string path_template = 12;
+  }
 
   // The arguments passed to the command.
   reserved 4;
@@ -35,6 +53,9 @@ message ApiCommand {
 
   // Environment variables that can be specified outside of the command.
   repeated string env_vars_unsigned_allowed = 11;
+
+  // Environment variables that are inherited from the RRG process.
+  repeated string env_vars_inherited = 13;
 
   oneof stdin {
     // Fixed standard input to pass to the executed command.

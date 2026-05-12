@@ -36,7 +36,7 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Block hunt creation for the flow." }];
 }
 
-// Next id: 21
+// Next id: 22
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
 
@@ -111,6 +111,10 @@ message ApiFlow {
     description: "An error that happened while reading the flow. This is "
                  "not an error while executing the flow but an internal data issue."
   }];
+
+  optional string parent_hunt_id = 21 [(sem_type) = {
+    description: "If this flow was started by a hunt, the hunt id.",
+  }];
 }
 
 message ApiFlowReference {
@@ -121,10 +125,16 @@ message ApiFlowReference {
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
 
+// Next id: 7
 message ApiFlowRequest {
+  reserved 3;
+
   optional string request_id = 1;
   optional RequestState request_state = 2;
-  repeated GrrMessage responses = 3;
+
+  repeated FlowResponse flow_responses = 4;
+  repeated FlowStatus flow_statuses = 5;
+  repeated FlowIterator flow_iterators = 6;
 }
 
 message ApiFlowResult {
@@ -208,7 +218,7 @@ message ApiListFlowResultsArgs {
   optional string filter = 5 [(sem_type) = {
     description: "Return only results whose string representation "
                  "contains given substring."
-                 "TODO: total_count is unset if a filter is set. "
+                 "TODO - total_count is unset if a filter is set. "
   }];
   optional string with_tag = 6 [(sem_type) = {
     description: "Return only results that have a matching tag."
@@ -223,7 +233,7 @@ message ApiListFlowResultsResult {
       [(sem_type) = { description: "The flow results." }];
   optional int64 total_count = 2 [(sem_type) = {
     description: "Total count of items."
-                 "TODO: Unset if a filter is set."
+                 "TODO - Unset if a filter is set."
   }];
 }
 

@@ -16,13 +16,12 @@ from google.protobuf import message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util import text
 from grr_response_proto import export_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import export_converters_registry
-from grr_response_server.export_converters import base
+from grr_response_server.models import clients as models_clients
 
 
 class Error(Exception):
@@ -35,88 +34,6 @@ class NoConverterFound(Error):
 
 class ExportError(Error):
   """Unspecified error while exporting."""
-
-
-def GetMetadata(client_id, client_full_info):
-  """Builds ExportedMetadata object for a given client id and ClientFullInfo."""
-
-  metadata = base.ExportedMetadata()
-
-  last_snapshot = None
-  if client_full_info.HasField("last_snapshot"):
-    last_snapshot = client_full_info.last_snapshot
-
-  metadata.client_urn = client_id
-  metadata.client_id = rdf_client.ClientURN(client_id).Basename()
-  metadata.client_age = client_full_info.metadata.first_seen
-
-  if last_snapshot is not None:
-    kb = client_full_info.last_snapshot.knowledge_base
-    os_release = last_snapshot.os_release
-    os_version = last_snapshot.os_version
-
-    metadata.hostname = kb.fqdn
-    metadata.os = kb.os
-    metadata.os_release = os_release
-    metadata.os_version = os_version
-    metadata.usernames = ",".join(user.username for user in kb.users)
-
-    addresses = last_snapshot.GetMacAddresses()
-    if addresses:
-      metadata.mac_address = "\n".join(last_snapshot.GetMacAddresses())
-    metadata.hardware_info = last_snapshot.hardware_info
-    metadata.kernel_version = last_snapshot.kernel
-
-    ci = last_snapshot.cloud_instance
-    if ci is not None:
-      if ci.cloud_type == ci.InstanceType.AMAZON:
-        metadata.cloud_instance_type = metadata.CloudInstanceType.AMAZON
-        metadata.cloud_instance_id = ci.amazon.instance_id
-      elif ci.cloud_type == ci.InstanceType.GOOGLE:
-        metadata.cloud_instance_type = metadata.CloudInstanceType.GOOGLE
-        metadata.cloud_instance_id = ci.google.unique_id
-
-  system_labels = set()
-  user_labels = set()
-  for l in client_full_info.labels:
-    if l.owner == "GRR":
-      system_labels.add(l.name)
-    else:
-      user_labels.add(l.name)
-
-  metadata.labels = ",".join(sorted(system_labels | user_labels))
-  metadata.system_labels = ",".join(sorted(system_labels))
-  metadata.user_labels = ",".join(sorted(user_labels))
-
-  return metadata
-
-
-def HumanReadableMacAddress(mac_address: bytes) -> str:
-  """Returns a human readable MAC address from a binary MAC address.
-
-  For values previously stored as an RDFBytes MacAddress.
-
-  Args:
-    mac_address: A binary MAC address.
-
-  Returns:
-    A human readable MAC address.
-  """
-  return text.Hexify(mac_address)
-
-
-def GetMacAddressesFromSnapshot(
-    snapshot: objects_pb2.ClientSnapshot,
-) -> list[str]:
-  """Returns a list of MAC addresses from a snapshot, excluding null addresses."""
-  result = set()
-  for interface in snapshot.interfaces:
-    # We exlclude null addresses.
-    if interface.mac_address and interface.mac_address != b"\x00" * len(
-        interface.mac_address
-    ):
-      result.add(HumanReadableMacAddress(interface.mac_address))
-  return sorted(result)
 
 
 def GetExportedMetadataProto(
@@ -147,7 +64,7 @@ def GetExportedMetadataProto(
       metadata.os_version = os_version
     metadata.usernames = ",".join(user.username for user in kb.users)
 
-    addresses = GetMacAddressesFromSnapshot(last_snapshot)
+    addresses = models_clients.GetMacAddressesFromClientSnapshot(last_snapshot)
     if addresses:
       metadata.mac_address = "\n".join(addresses)
     if last_snapshot.HasField("hardware_info"):
@@ -181,52 +98,6 @@ def GetExportedMetadataProto(
   metadata.user_labels = ",".join(sorted(user_labels))
 
   return metadata
-
-
-def ConvertValuesWithMetadata(metadata_value_pairs, options=None):
-  """Converts a set of RDFValues into a set of export-friendly RDFValues.
-
-  Args:
-    metadata_value_pairs: Tuples of (metadata, rdf_value), where metadata is an
-      instance of ExportedMetadata and rdf_value is an RDFValue subclass
-      instance to be exported.
-    options: rdfvalue.ExportOptions instance that will be passed to
-      ExportConverters.
-
-  Yields:
-    Converted values. Converted values may be of different types.
-
-  Raises:
-    NoConverterFound: in case no suitable converters were found for a value in
-                      metadata_value_pairs. This error is only raised after
-                      all values in metadata_value_pairs are attempted to be
-                      converted. If there are multiple value types that could
-                      not be converted because of the lack of corresponding
-                      converters, only the last one will be specified in the
-                      exception message.
-  """
-  no_converter_found_error = None
-  metadata_value_groups = collection.Group(
-      metadata_value_pairs, lambda pair: pair[1].__class__.__name__
-  )
-  for metadata_values_group in metadata_value_groups.values():
-    _, first_value = metadata_values_group[0]
-    converters_classes = export_converters_registry.GetConvertersByValue(
-        first_value
-    )
-    if not converters_classes:
-      no_converter_found_error = "No converters found for value: %s" % str(
-          first_value
-      )
-      continue
-
-    converters = [cls(options) for cls in converters_classes]
-    for converter in converters:
-      for result in converter.BatchConvert(metadata_values_group):
-        yield result
-
-  if no_converter_found_error is not None:
-    raise NoConverterFound(no_converter_found_error)
 
 
 def FetchMetadataAndConvertFlowResults(
@@ -344,27 +215,3 @@ def FetchMetadataAndConvertFlowResults(
         )
 
         yield from converter.BatchConvert(batch_with_metadata)
-
-
-def ConvertValues(default_metadata, values, options=None):
-  """Converts a set of RDFValues into a set of export-friendly RDFValues.
-
-  Args:
-    default_metadata: base.ExportedMetadata instance with basic information
-      about where the values come from. This metadata will be passed to
-      exporters.
-    values: Values to convert. They should be of the same type.
-    options: rdfvalue.ExportOptions instance that will be passed to
-      ExportConverters.
-
-  Returns:
-    Converted values. Converted values may be of different types
-    (unlike the source values which are all of the same type). This is due to
-    the fact that multiple ExportConverters may be applied to the same value
-    thus generating multiple converted values of different types.
-
-  Raises:
-    NoConverterFound: in case no suitable converters were found for the values.
-  """
-  batch_data = [(default_metadata, obj) for obj in values]
-  return ConvertValuesWithMetadata(batch_data, options=options)

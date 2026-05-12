@@ -7,7 +7,6 @@ set -e
 
 source "${HOME}/INSTALL/bin/activate"
 pip install -r build_requirements.txt
-pip install --upgrade six
 
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS

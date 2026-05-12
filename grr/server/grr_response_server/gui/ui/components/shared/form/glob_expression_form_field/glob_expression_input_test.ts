@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
@@ -19,6 +19,7 @@ import {GlobExpressionInput} from './glob_expression_input';
 initTestEnvironment();
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<glob-expression-input [formControl]="formControl" [client]="client" />`,
   imports: [GlobExpressionInput, MatFormFieldModule, ReactiveFormsModule],
 })

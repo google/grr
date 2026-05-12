@@ -1,0 +1,107 @@
+# proto-file: grr_response_proto/api/signed_commands.proto
+# proto-message: ApiCommands
+
+commands {
+  id: "osquery"
+  operating_system: LINUX
+
+  path_template: "${OSQUERY_LINUX}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}
+
+commands {
+  id: "osquery"
+  operating_system: MACOS
+
+  path_template: "${OSQUERY_MACOS}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}
+
+commands {
+  id: "osquery"
+  operating_system: WINDOWS
+
+  path_template: "${OSQUERY_WINDOWS}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}
+
+commands {
+  id: "osquery_with_config"
+  operating_system: LINUX
+
+  path_template: "${OSQUERY_LINUX}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  args { signed: "--config-path" }
+  args { filestore_file_sha256_allowed: true }
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}
+
+commands {
+  id: "osquery_with_config"
+  operating_system: MACOS
+
+  path_template: "${OSQUERY_MACOS}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  args { signed: "--config-path" }
+  args { filestore_file_sha256_allowed: true }
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}
+
+commands {
+  id: "osquery_with_config"
+  operating_system: WINDOWS
+
+  path_template: "${OSQUERY_WINDOWS}"
+  args { signed: "--S" }  # Enforce shell execution.
+  args { signed: "--json" }
+  args { signed: "--logger_stderr=false" }  # Only allow errors to be written to stderr.
+  args { signed: "--logger_min_status=3" }  # Disable status logs.
+  args { signed: "--logger_min_stderr=2" }  # Enable only `ERROR`-level logs to stderr.
+
+  args { signed: "--config-path" }
+  args { filestore_file_sha256_allowed: true }
+
+  env_vars_inherited: "SystemRoot"
+
+  unsigned_stdin_allowed: true
+}

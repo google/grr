@@ -7,25 +7,12 @@ import io
 from typing import Optional
 
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
 from grr_response_server import data_store
 from grr_response_server.flows.general import osquery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import mig_flow_objects
-
-
-class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the arguments of Osquery exporter."""
-
-  protobuf = api_osquery_pb2.ApiGetOsqueryResultsArgs
-  rdf_deps = [
-      api_client.ApiClientId,
-      api_flow.ApiFlowId,
-  ]
 
 
 class ApiGetOsqueryResultsHandler(api_call_handler_base.ApiCallHandler):

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Central registry for artifacts."""
 
+from collections.abc import Iterable
 import io
 import logging
 import os
 import threading
+from typing import Any, Iterator, Optional
 
 import yaml
 
@@ -14,7 +16,8 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import mig_artifacts
+from grr_response_core.lib.rdfvalues import mig_protodict
+from grr_response_proto import artifact_pb2
 from grr_response_server import data_store
 
 # Names of fields that should no longer be used but might occur in old artifact
@@ -25,14 +28,17 @@ DEPRECATED_ARTIFACT_FIELDS = frozenset([
 ])
 
 
-class ArtifactRegistrySources(object):
+class ArtifactRegistrySources:
   """Represents sources of the artifact registry used for getting artifacts."""
+
+  _dirs: set[str]
+  _files: set[str]
 
   def __init__(self):
     self._dirs = set()
     self._files = set()
 
-  def AddDir(self, dirpath):
+  def AddDir(self, dirpath: str) -> bool:
     """Adds a directory path as a source.
 
     Args:
@@ -46,7 +52,7 @@ class ArtifactRegistrySources(object):
       return True
     return False
 
-  def AddFile(self, filepath):
+  def AddFile(self, filepath: str) -> bool:
     """Adds a file path as a source.
 
     Args:
@@ -64,15 +70,15 @@ class ArtifactRegistrySources(object):
     self._dirs.clear()
     self._files.clear()
 
-  def GetDirs(self):
+  def GetDirs(self) -> Iterator[str]:
     """Returns an iterator over defined source directory paths."""
     return iter(self._dirs)
 
-  def GetFiles(self):
+  def GetFiles(self) -> Iterator[str]:
     """Returns an iterator over defined source file paths."""
     return iter(self._files)
 
-  def GetAllFiles(self):
+  def GetAllFiles(self) -> Iterator[str]:
     """Yields all defined source file paths.
 
     This includes file paths defined directly and those defined implicitly by
@@ -87,8 +93,8 @@ class ArtifactRegistrySources(object):
           continue
         yield filepath
 
-  @staticmethod
-  def _GetDirYamlFiles(dirpath):
+  @classmethod
+  def _GetDirYamlFiles(cls, dirpath: str) -> Iterator[str]:
     try:
       for filename in os.listdir(dirpath):
         if filename.endswith(".json") or filename.endswith(".yaml"):
@@ -99,22 +105,95 @@ class ArtifactRegistrySources(object):
       )
 
 
-class ArtifactRegistry(object):
+# GRR does not support ESXi, Android and iOS.
+_IGNORE_OS_LIST = ("ESXi", "Android", "iOS")
+
+
+def ArtifactsFromYaml(yaml_content: str) -> list[artifact_pb2.Artifact]:
+  """Get a list of Artifacts from yaml."""
+  raw_list = list(yaml.safe_load_all(yaml_content))
+
+  # TODO(hanuszczak): I am very sceptical about that "doing the right thing"
+  # below. What are the real use cases?
+
+  # Try to do the right thing with json/yaml formatted as a list.
+  if (
+      isinstance(raw_list, list)
+      and len(raw_list) == 1
+      and isinstance(raw_list[0], list)
+  ):
+    raw_list = raw_list[0]
+
+  # Convert json into artifact and validate.
+  valid_artifacts: list[artifact_pb2.Artifact] = []
+  for artifact_dict in raw_list:
+    # Old artifacts might still use deprecated fields, so we have to ignore
+    # such. Here, we simply delete keys from the dictionary as otherwise the
+    # RDF value constructor would raise on unknown fields.
+    for field in DEPRECATED_ARTIFACT_FIELDS:
+      artifact_dict.pop(field, None)
+
+    # Strip operating systems that are supported in ForensicArtifacts, but not
+    # in GRR. The Artifact will still be added to GRR's repository, but the
+    # unsupported OS will be removed. This can result in artifacts with 0
+    # supported_os entries. For end-users, there might still be value in
+    # seeing the artifact, even if the artifact's OS is not supported.
+    if "supported_os" in artifact_dict:
+      artifact_dict["supported_os"] = [
+          os
+          for os in artifact_dict["supported_os"]
+          if os not in _IGNORE_OS_LIST
+      ]
+
+    # In this case we are feeding parameters directly from potentially
+    # untrusted yaml/json to our proto object. However, yaml.safe_load ensures
+    # these are all primitive types as long as there is no other
+    # deserialization involved, and we are passing these into protobuf
+    # primitive types.
+    try:
+      # Source attributes must be converted to proto `Dict` objects.
+      # This might fail if the attributes are not dicts.
+      for source in artifact_dict.get("sources", []):
+        if "attributes" in source:
+          source["attributes"] = mig_protodict.FromNativeDictToProtoDict(
+              source["attributes"]
+          )
+      valid_artifacts.append(artifact_pb2.Artifact(**artifact_dict))
+    except (
+        TypeError,
+        AttributeError,
+        ValueError,
+        type_info.TypeValueError,
+    ) as e:
+      name = artifact_dict.get("name")
+      raise rdf_artifacts.ArtifactDefinitionError(
+          name, "invalid definition", cause=e
+      )
+
+  return valid_artifacts
+
+
+class ArtifactRegistry:
   """A global registry of artifacts."""
 
+  _artifacts: dict[str, artifact_pb2.Artifact]
+  _sources: ArtifactRegistrySources
+  _dirty: bool
+  _artifact_loaded_from: dict[str, str]
+
   def __init__(self):
-    self._artifacts: dict[str, rdf_artifacts.Artifact] = {}
+    self._artifacts = {}
     self._sources = ArtifactRegistrySources()
     self._dirty = False
     # Field required by the utils.Synchronized annotation.
     self.lock = threading.RLock()
 
     # Maps artifact name to the source from which it was loaded for debugging.
-    self._artifact_loaded_from: dict[str, str] = {}
+    self._artifact_loaded_from = {}
 
   def _LoadArtifactsFromDatastore(self):
     """Load artifacts from the data store."""
-    loaded_artifacts = []
+    loaded_artifacts: list[artifact_pb2.Artifact] = []
 
     # TODO(hanuszczak): Why do we have to remove anything? If some artifact
     # tries to shadow system artifact shouldn't we just ignore them and perhaps
@@ -125,12 +204,7 @@ class ArtifactRegistry(object):
     # to be deleted from the data store.
     to_delete = []
 
-    artifact_list = [
-        mig_artifacts.ToRDFArtifact(a)
-        for a in data_store.REL_DB.ReadAllArtifacts()
-    ]
-
-    for artifact_value in artifact_list:
+    for artifact_value in data_store.REL_DB.ReadAllArtifacts():
       try:
         self.RegisterArtifact(
             artifact_value, source="datastore:", overwrite_if_exists=True
@@ -168,61 +242,6 @@ class ArtifactRegistry(object):
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
 
-  # TODO(hanuszczak): This method should be a stand-alone function as it doesn't
-  # use the `self` parameter at all.
-  @utils.Synchronized
-  def ArtifactsFromYaml(self, yaml_content):
-    """Get a list of Artifacts from yaml."""
-    raw_list = list(yaml.safe_load_all(yaml_content))
-
-    # TODO(hanuszczak): I am very sceptical about that "doing the right thing"
-    # below. What are the real use cases?
-
-    # Try to do the right thing with json/yaml formatted as a list.
-    if (
-        isinstance(raw_list, list)
-        and len(raw_list) == 1
-        and isinstance(raw_list[0], list)
-    ):
-      raw_list = raw_list[0]
-
-    # Convert json into artifact and validate.
-    valid_artifacts = []
-    for artifact_dict in raw_list:
-      # Old artifacts might still use deprecated fields, so we have to ignore
-      # such. Here, we simply delete keys from the dictionary as otherwise the
-      # RDF value constructor would raise on unknown fields.
-      for field in DEPRECATED_ARTIFACT_FIELDS:
-        artifact_dict.pop(field, None)
-
-      # Strip operating systems that are supported in ForensicArtifacts, but not
-      # in GRR. The Artifact will still be added to GRR's repository, but the
-      # unsupported OS will be removed. This can result in artifacts with 0
-      # supported_os entries. For end-users, there might still be value in
-      # seeing the artifact, even if the artifact's OS is not supported.
-      if "supported_os" in artifact_dict:
-        artifact_dict["supported_os"] = [
-            os
-            for os in artifact_dict["supported_os"]
-            if os not in rdf_artifacts.Artifact.IGNORE_OS_LIST
-        ]
-
-      # In this case we are feeding parameters directly from potentially
-      # untrusted yaml/json to our RDFValue class. However, safe_load ensures
-      # these are all primitive types as long as there is no other
-      # deserialization involved, and we are passing these into protobuf
-      # primitive types.
-      try:
-        artifact_value = rdf_artifacts.Artifact(**artifact_dict)
-        valid_artifacts.append(artifact_value)
-      except (TypeError, AttributeError, type_info.TypeValueError) as e:
-        name = artifact_dict.get("name")
-        raise rdf_artifacts.ArtifactDefinitionError(
-            name, "invalid definition", cause=e
-        )
-
-    return valid_artifacts
-
   def _LoadArtifactsFromFiles(self, file_paths, overwrite_if_exists=True):
     """Load artifacts from file paths as json or yaml."""
     loaded_files = []
@@ -231,7 +250,7 @@ class ArtifactRegistry(object):
       try:
         with io.open(file_path, mode="r", encoding="utf-8") as fh:
           logging.debug("Loading artifacts from %s", file_path)
-          for artifact_val in self.ArtifactsFromYaml(fh.read()):
+          for artifact_val in ArtifactsFromYaml(fh.read()):
             self.RegisterArtifact(
                 artifact_val,
                 source="file:%s" % file_path,
@@ -281,13 +300,14 @@ class ArtifactRegistry(object):
   @utils.Synchronized
   def RegisterArtifact(
       self,
-      artifact_rdfvalue,
-      source="datastore",
-      overwrite_if_exists=False,
-      overwrite_system_artifacts=False,
+      artifact: artifact_pb2.Artifact,
+      source: str = "datastore",
+      overwrite_if_exists: bool = False,
+      overwrite_system_artifacts: bool = False,
   ):
     """Registers a new artifact."""
-    artifact_name = artifact_rdfvalue.name
+
+    artifact_name = artifact.name
     if artifact_name in self._artifacts:
       if not overwrite_if_exists:
         details = "artifact already exists and `overwrite_if_exists` is unset"
@@ -303,8 +323,8 @@ class ArtifactRegistry(object):
     # Preserve where the artifact was loaded from to help debugging.
     self._artifact_loaded_from[artifact_name] = source
     # Clear any stale errors.
-    artifact_rdfvalue.error_message = None
-    self._artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
+    artifact.ClearField("error_message")
+    self._artifacts[artifact_name] = artifact
 
   def IsLoadedFrom(self, artifact_name: str, source: str) -> bool:
     return self._artifact_loaded_from.get(artifact_name, "").startswith(source)
@@ -355,12 +375,12 @@ class ArtifactRegistry(object):
   @utils.Synchronized
   def GetArtifacts(
       self,
-      os_name=None,
-      name_list=None,
-      source_type=None,
-      exclude_dependents=False,
-      reload_datastore_artifacts=False,
-  ):
+      os_name: Optional[str] = None,
+      name_list: Optional[list[str]] = None,
+      source_type: Optional["artifact_pb2.ArtifactSource.SourceType"] = None,
+      exclude_dependents: bool = False,
+      reload_datastore_artifacts: bool = False,
+  ) -> list[artifact_pb2.Artifact]:
     """Retrieve artifact classes with optional filtering.
 
     All filters must match for the artifact to be returned.
@@ -379,7 +399,7 @@ class ArtifactRegistry(object):
       list of artifacts matching filter criteria
     """
     self._CheckDirty(reload_datastore_artifacts=reload_datastore_artifacts)
-    results = {}
+    results: dict[str, artifact_pb2.Artifact] = {}
     for artifact in self._artifacts.values():
 
       # artifact.supported_os = [] matches all OSes
@@ -403,11 +423,11 @@ class ArtifactRegistry(object):
     return list(results.values())
 
   @utils.Synchronized
-  def GetRegisteredArtifactNames(self):
+  def GetRegisteredArtifactNames(self) -> list[str]:
     return [str(x) for x in self._artifacts]
 
   @utils.Synchronized
-  def GetArtifact(self, name):
+  def GetArtifact(self, name: str) -> artifact_pb2.Artifact:
     """Get artifact by name, or by alias.
 
     Args:
@@ -448,21 +468,23 @@ class ArtifactRegistry(object):
     return True
 
   @utils.Synchronized
-  def GetArtifactNames(self, *args, **kwargs):
+  def GetArtifactNames(self, *args, **kwargs) -> set[str]:
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
 
 
 REGISTRY = ArtifactRegistry()
 
 
-def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
+def DeleteArtifactsFromDatastore(
+    artifact_names: Iterable[str], reload_artifacts: bool = True
+):
   """Deletes a list of artifacts from the data store."""
   artifacts_list = REGISTRY.GetArtifacts(
       reload_datastore_artifacts=reload_artifacts
   )
 
   to_delete = set(artifact_names)
-  deps = set()
+  deps: set[str] = set()
   for artifact_obj in artifacts_list:
     if artifact_obj.name in to_delete:
       continue
@@ -492,43 +514,116 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
     REGISTRY.UnregisterArtifact(artifact_name)
 
 
-def ValidateSyntax(rdf_artifact):
+_SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
+
+
+def _ValidatePaths(source: artifact_pb2.ArtifactSource, attrs: dict[str, Any]):
+  """Catch common mistake of path vs paths."""
+  paths = attrs.get("paths")
+  if paths and not isinstance(paths, list):
+    raise rdf_artifacts.ArtifactSourceSyntaxError(
+        source, "`paths` is not a list"
+    )
+
+  # TODO(hanuszczak): It looks like no collector is using `path` attribute.
+  # Is this really necessary?
+  path = attrs.get("path")
+  if path and not isinstance(path, str):
+    raise rdf_artifacts.ArtifactSourceSyntaxError(
+        source, "`path` is not a string"
+    )
+
+
+_REQUIRED_ATTRIBUTES_MAP = {
+    artifact_pb2.ArtifactSource.FILE: {"paths"},
+    artifact_pb2.ArtifactSource.PATH: {"paths"},
+    artifact_pb2.ArtifactSource.REGISTRY_KEY: {"keys"},
+    artifact_pb2.ArtifactSource.REGISTRY_VALUE: {"key_value_pairs"},
+    artifact_pb2.ArtifactSource.WMI: {"query"},
+    artifact_pb2.ArtifactSource.COMMAND: {"cmd", "args"},
+    artifact_pb2.ArtifactSource.ARTIFACT_GROUP: {"names"},
+}
+
+
+def _ValidateRequiredAttributes(
+    source: artifact_pb2.ArtifactSource, attrs: dict[str, Any]
+):
+  required = _REQUIRED_ATTRIBUTES_MAP.get(source.type, set())
+  provided = attrs.keys()
+  missing = required.difference(provided)
+
+  if missing:
+    quoted = ("'%s'" % attribute for attribute in missing)
+    detail = "missing required attributes: %s" % ", ".join(quoted)
+    raise rdf_artifacts.ArtifactSourceSyntaxError(source, detail)
+
+
+def _ValidateCommandArgs(
+    source: artifact_pb2.ArtifactSource, attrs: dict[str, Any]
+):
+  """Validate arguments for command artifacts."""
+  if source.type != artifact_pb2.ArtifactSource.SourceType.COMMAND:
+    return
+
+  # Specifying command execution artifacts with multiple arguments as a single
+  # string is a common mistake. For example, an artifact with `ls` as a
+  # command and `["-l -a"]` as arguments will not work. Instead, arguments
+  # need to be split into multiple elements like `["-l", "-a"]`.
+  args = attrs.get("args")
+  if len(args) == 1 and " " in args[0]:
+    detail = "single argument '%s' containing a space" % args[0]
+    raise rdf_artifacts.ArtifactSourceSyntaxError(source, detail)
+
+
+def ValidateSource(source: artifact_pb2.ArtifactSource):
+  """Check the source is well constructed."""
+
+  attrs = mig_protodict.FromProtoDictToNativeDict(source.attributes)
+
+  _ValidatePaths(source, attrs)
+  _ValidateRequiredAttributes(source, attrs)
+  _ValidateCommandArgs(source, attrs)
+
+
+def ValidateSyntax(artifact: artifact_pb2.Artifact):
   """Validates artifact syntax.
 
   This method can be used to validate individual artifacts as they are loaded,
   without needing all artifacts to be loaded first, as for Validate().
 
   Args:
-    rdf_artifact: RDF object artifact.
+    artifact: artifact proto object.
 
   Raises:
     ArtifactSyntaxError: If artifact syntax is invalid.
   """
-  if not rdf_artifact.doc:
-    raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, "missing doc")
+  if not artifact.doc:
+    raise rdf_artifacts.ArtifactSyntaxError(artifact, "missing doc")
 
-  for supp_os in rdf_artifact.supported_os:
-    valid_os = rdf_artifact.SUPPORTED_OS_LIST
-    if supp_os not in valid_os:
-      detail = "invalid `supported_os` ('%s' not in %s)" % (supp_os, valid_os)
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+  for supp_os in artifact.supported_os:
+    if supp_os not in _SUPPORTED_OS_LIST:
+      detail = "invalid `supported_os` ('%s' not in %s)" % (
+          supp_os,
+          _SUPPORTED_OS_LIST,
+      )
+      raise rdf_artifacts.ArtifactSyntaxError(artifact, detail)
 
   kb_field_names = rdf_client.KnowledgeBase().GetKbFieldNames()
 
   # Any %%blah%% path dependencies must be defined in the KnowledgeBase
-  for dep in GetArtifactPathDependencies(rdf_artifact):
+  for dep in GetArtifactPathDependencies(artifact):
     if dep not in kb_field_names:
       detail = f"broken path dependencies ({dep!r} not in {kb_field_names})"
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
+      raise rdf_artifacts.ArtifactSyntaxError(artifact, detail)
 
-  for source in rdf_artifact.sources:
+  for source in artifact.sources:
     try:
-      source.Validate()
+      ValidateSource(source)
     except rdf_artifacts.ArtifactSourceSyntaxError as e:
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, "bad source", e)
+      raise rdf_artifacts.ArtifactSyntaxError(artifact, "bad source", e)
 
 
-def ValidateDependencies(rdf_artifact):
+def ValidateDependencies(artifact: artifact_pb2.Artifact):
   """Validates artifact dependencies.
 
   This method checks whether all dependencies of the artifact are present
@@ -537,47 +632,49 @@ def ValidateDependencies(rdf_artifact):
   This method can be called only after all other artifacts have been loaded.
 
   Args:
-    rdf_artifact: RDF object artifact.
+    artifact: artifact proto object.
 
   Raises:
     ArtifactDependencyError: If a dependency is missing or contains errors.
   """
-  for dependency in GetArtifactDependencies(rdf_artifact):
+  for dependency in GetArtifactDependencies(artifact):
     try:
       dependency_obj = REGISTRY.GetArtifact(dependency)
     except rdf_artifacts.ArtifactNotRegisteredError as e:
       raise rdf_artifacts.ArtifactDependencyError(
-          rdf_artifact, "missing dependency", cause=e
+          artifact, "missing dependency", cause=e
       )
 
     message = dependency_obj.error_message
     if message:
       raise rdf_artifacts.ArtifactDependencyError(
-          rdf_artifact, "dependency error", cause=message
+          artifact, "dependency error", cause=message
       )
 
 
-def Validate(rdf_artifact):
+def Validate(artifact: artifact_pb2.Artifact):
   """Attempts to validate the artifact has been well defined.
 
   This checks both syntax and dependencies of the artifact. Because of that,
   this method can be called only after all other artifacts have been loaded.
 
   Args:
-    rdf_artifact: RDF object artifact.
+    artifact: artifact proto object.
 
   Raises:
     ArtifactDefinitionError: If artifact is invalid.
   """
-  ValidateSyntax(rdf_artifact)
-  ValidateDependencies(rdf_artifact)
+  ValidateSyntax(artifact)
+  ValidateDependencies(artifact)
 
 
-def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
+def GetArtifactDependencies(
+    artifact: artifact_pb2.Artifact, recursive: bool = False, depth: int = 1
+) -> set[str]:
   """Return a set of artifact dependencies.
 
   Args:
-    rdf_artifact: RDF object artifact.
+    artifact: artifact proto object.
     recursive: If True recurse into dependencies to find their dependencies.
     depth: Used for limiting recursion depth.
 
@@ -588,10 +685,11 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
     RuntimeError: If maximum recursion depth reached.
   """
   deps = set()
-  for source in rdf_artifact.sources:
-    if source.type == rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP:
-      if source.attributes.GetItem("names"):
-        deps.update(source.attributes.GetItem("names"))
+  for source in artifact.sources:
+    if source.type == artifact_pb2.ArtifactSource.SourceType.ARTIFACT_GROUP:
+      attrs = mig_protodict.ToRDFDict(source.attributes)
+      if attrs.GetItem("names"):
+        deps.update(attrs.GetItem("names"))
 
   if depth > 10:
     raise RuntimeError("Max artifact recursion depth reached.")
@@ -607,38 +705,20 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
   return deps_set
 
 
-# TODO(user): Add tests for this and for all other Get* functions in this
-# package.
-def GetArtifactsDependenciesClosure(name_list, os_name=None):
-  """For all the artifacts in the list returns them and their dependencies."""
-
-  artifacts = {
-      a.name: a
-      for a in REGISTRY.GetArtifacts(os_name=os_name, name_list=name_list)
-  }
-
-  dep_names = set()
-  for art in artifacts.values():
-    dep_names.update(GetArtifactDependencies(art, recursive=True))
-  if dep_names:
-    for dep in REGISTRY.GetArtifacts(os_name=os_name, name_list=dep_names):
-      artifacts[dep.name] = dep
-  return list(artifacts.values())
-
-
-def GetArtifactPathDependencies(rdf_artifact):
+def GetArtifactPathDependencies(artifact: artifact_pb2.Artifact) -> set[str]:
   """Return a set of knowledgebase path dependencies.
 
   Args:
-    rdf_artifact: RDF artifact object.
+    artifact: artifact proto object.
 
   Returns:
     A set of strings for the required kb objects e.g.
     ["users.appdata", "systemroot"]
   """
   deps = set()
-  for source in rdf_artifact.sources:
-    for arg, value in source.attributes.items():
+  for source in artifact.sources:
+    attrs = mig_protodict.ToRDFDict(source.attributes)
+    for arg, value in attrs.items():
       paths = []
       if arg in ["path", "query"]:
         paths.append(value)
@@ -649,5 +729,5 @@ def GetArtifactPathDependencies(rdf_artifact):
         paths.extend(value)
       for path in paths:
         for match in artifact_utils.INTERPOLATED_REGEX.finditer(path):
-          deps.add(match.group()[2:-2])  # Strip off %%.
+          deps.add(str(match.group(1)))  # Strip off %%.
   return deps

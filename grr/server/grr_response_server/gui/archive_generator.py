@@ -9,16 +9,16 @@ import zipfile
 
 import yaml
 
+from google.protobuf import json_format
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
+from grr_response_proto.api import client_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import export as flow_export
-from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import mig_client
 from grr_response_server.models import clients as models_clients
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -141,10 +141,12 @@ class CollectionArchiveGenerator:
   def _GenerateClientInfo(
       self,
       client_id: str,
-      client_fd: api_client.ApiClient,
+      client: client_pb2.ApiClient,
   ) -> Iterator[bytes]:
     """Yields chucks of archive information for given client."""
-    summary_dict = client_fd.ToPrimitiveDict(stringify_leaf_fields=True)
+    summary_dict = json_format.MessageToDict(
+        client, preserving_proto_field_name=True
+    )
     summary = yaml.safe_dump(summary_dict).encode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_id, "client_info.yaml")
@@ -202,7 +204,6 @@ class CollectionArchiveGenerator:
         client = models_clients.ApiClientFromClientFullInfo(
             client_id, client_info
         )
-        client = mig_client.ToRDFApiClient(client)
         for chunk in self._GenerateClientInfo(client_id, client):
           yield chunk
 

@@ -4,6 +4,7 @@ from absl import app
 from grr_response_client import actions
 from grr_response_core.lib.rdfvalues import containers as rdf_containers
 from grr_response_proto import containers_pb2
+from grr_response_server import data_store
 from grr_response_server.flows.general import containers
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -46,7 +47,7 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
 
   def testInput(self):
     """Tests that the input is correctly passed to the client."""
-    args = containers.ListContainersFlowArgs(inspect_hostroot=True)
+    args = containers_pb2.ListContainersFlowArgs(inspect_hostroot=True)
     flow_id = flow_test_lib.StartAndRunFlow(
         containers.ListContainers,
         action_mocks.ActionMock.With(
@@ -56,7 +57,11 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         flow_args=args,
     )
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetUnpackedFlowResults(
+        self.client_id,
+        flow_id,
+        containers_pb2.ListContainersFlowResult,
+    )
     self.assertLen(results, 1)
     self.assertEqual(results[0].containers[0].names, ["hostroot"])
 
@@ -87,7 +92,7 @@ class ListContainersTest(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
     )
     instance = containers.ListContainers(
-        flow_test_lib.GetFlowObj(self.client_id, flow_id)
+        proto_flow=data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     )
 
     # Test crictl

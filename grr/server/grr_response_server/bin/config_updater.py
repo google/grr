@@ -11,7 +11,6 @@ from absl.flags import argparse_flags
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 # pylint: enable=g-bad-import-order,unused-import
 
-from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
@@ -49,11 +48,6 @@ subparsers = parser.add_subparsers(
 
 parser_generate_keys = subparsers.add_parser(
     "generate_keys", help="Generate crypto keys in the configuration."
-)
-
-parser_repack_clients = subparsers.add_parser(
-    "repack_clients",
-    help="Repack the clients binaries with the current configuration.",
 )
 
 parser_initialize = subparsers.add_parser(
@@ -127,13 +121,6 @@ parser_initialize.add_argument(
     ),
 )
 
-# TODO(hanuszczak): Rename this flag to `repack_templates` (true by default).
-parser_initialize.add_argument(
-    "--norepack_templates",
-    default=False,
-    action="store_true",
-    help="Skip template repacking during noninteractive config initialization.",
-)
 
 parser_initialize.add_argument(
     "--mysql_hostname",
@@ -238,14 +225,6 @@ parser_generate_keys.add_argument(
     default=False,
     action="store_true",
     help="Required to overwrite existing keys.",
-)
-
-# Repack arguments.
-parser_repack_clients.add_argument(
-    "--noupload",
-    default=False,
-    action="store_true",
-    help="Don't upload the client binaries to the datastore.",
 )
 
 
@@ -363,7 +342,6 @@ def main(args):
           mysql_client_cert_path=args.mysql_client_cert_path,
           mysql_ca_cert_path=args.mysql_ca_cert_path,
           redownload_templates=args.redownload_templates,
-          repack_templates=not args.norepack_templates,
           use_fleetspeak=args.use_fleetspeak,
           mysql_fleetspeak_db=args.mysql_fleetspeak_db,
       )
@@ -373,7 +351,6 @@ def main(args):
           external_hostname=args.external_hostname,
           admin_password=args.admin_password,
           redownload_templates=args.redownload_templates,
-          repack_templates=not args.norepack_templates,
       )
     return
 
@@ -394,10 +371,6 @@ def main(args):
       print("ERROR: %s" % e)
       sys.exit(1)
     grr_config.CONFIG.Write()
-
-  elif args.subparser_name == "repack_clients":
-    upload = not args.noupload
-    repacking.TemplateRepacker().RepackAllTemplates(upload=upload)
 
   elif args.subparser_name == "show_user":
     if args.username:

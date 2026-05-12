@@ -154,16 +154,3 @@ def ToRDFFlowResultMetadata(
       proto.SerializeToString()
   )
 
-
-def ToProtoDefaultFlowProgress(
-    rdf: rdf_flow_objects.DefaultFlowProgress,
-) -> flows_pb2.DefaultFlowProgress:
-  return rdf.AsPrimitiveProto()
-
-
-def ToRDFDefaultFlowProgress(
-    proto: flows_pb2.DefaultFlowProgress,
-) -> rdf_flow_objects.DefaultFlowProgress:
-  return rdf_flow_objects.DefaultFlowProgress.FromSerializedBytes(
-      proto.SerializeToString()
-  )

@@ -8,10 +8,7 @@ import {
 } from '../../../lib/api/api_interfaces';
 import {HttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_service';
 import {mockHttpApiWithTranslationService} from '../../../lib/api/http_api_with_translation_test_util';
-import {
-  newFlowResult,
-  newHuntResult,
-} from '../../../lib/models/model_test_util';
+import {newFlowResult} from '../../../lib/models/model_test_util';
 import {CollectionResult, PayloadType} from '../../../lib/models/result';
 import {PathSpecPathType} from '../../../lib/models/vfs';
 import {initTestEnvironment} from '../../../testing';
@@ -195,33 +192,5 @@ describe('Stat Entry Results Component', () => {
     ]);
 
     expect(await harness.collapsibleContainers()).toHaveSize(2);
-  }));
-
-  it('shows client id column for hunt results', fakeAsync(async () => {
-    const {harness} = await createComponent([
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {
-          pathspec: {path: '/foo', pathtype: PathSpecPathType.OS},
-        },
-      }),
-      newHuntResult({
-        clientId: 'C.1234',
-        payload: {
-          pathspec: {path: 'HKLM\\foo', pathtype: PathSpecPathType.REGISTRY},
-        },
-      }),
-    ]);
-
-    expect(await harness.fileResultsTables()).toHaveSize(1);
-    const fileResultsTable = (await harness.fileResultsTables())[0];
-    expect(await fileResultsTable.getCellText(0, 'clientId')).toContain(
-      'C.1234',
-    );
-    expect(await harness.registryResultsTables()).toHaveSize(1);
-    const registryResultsTable = (await harness.registryResultsTables())[0];
-    expect(await registryResultsTable.getCellText(0, 'clientId')).toContain(
-      'C.1234',
-    );
   }));
 });

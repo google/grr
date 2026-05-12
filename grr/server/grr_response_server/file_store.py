@@ -14,6 +14,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.models import blobs as models_blob
@@ -70,7 +71,7 @@ FileMetadata = NamedTuple(
     "FileMetadata",
     [
         ("client_path", db.ClientPath),
-        ("blob_refs", Iterable[rdf_objects.BlobReference]),
+        ("blob_refs", Iterable[objects_pb2.BlobReference]),
     ],
 )
 
@@ -137,7 +138,7 @@ class BlobStream:
   def __init__(
       self,
       client_path: db.ClientPath,
-      blob_refs: Sequence[rdf_objects.BlobReference],
+      blob_refs: Sequence[objects_pb2.BlobReference],
       hash_id: Optional[rdf_objects.HashID],
   ) -> None:
     self._client_path = client_path
@@ -156,7 +157,7 @@ class BlobStream:
 
   def _GetChunk(
       self,
-  ) -> tuple[Optional[bytes], Optional[rdf_objects.BlobReference]]:
+  ) -> tuple[Optional[bytes], Optional[objects_pb2.BlobReference]]:
     """Fetches a chunk corresponding to the current offset."""
 
     found_ref = None
@@ -251,7 +252,7 @@ BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(120, rdfvalue.SECONDS)
 
 def AddFilesWithUnknownHashes(
     client_path_blob_refs: Dict[
-        db.ClientPath, Iterable[rdf_objects.BlobReference]
+        db.ClientPath, Iterable[objects_pb2.BlobReference]
     ],
     use_external_stores: bool = True,
 ) -> Dict[db.ClientPath, rdf_objects.SHA256HashID]:
@@ -281,7 +282,6 @@ def AddFilesWithUnknownHashes(
   for client_path, blob_refs in client_path_blob_refs.items():
     if blob_refs:
       for blob_ref in blob_refs:
-        blob_ref = mig_objects.ToProtoBlobReference(blob_ref)
         all_client_path_blob_refs.append((client_path, blob_ref))
     else:
       # Make sure empty files (without blobs) are correctly handled.
@@ -341,12 +341,7 @@ def AddFilesWithUnknownHashes(
     for client_path in verified_client_path_blob_refs.keys():
       metadatas[client_path_hash_id[client_path]] = FileMetadata(
           client_path=client_path,
-          blob_refs=list(
-              map(
-                  mig_objects.ToRDFBlobReference,
-                  verified_client_path_blob_refs[client_path],
-              )
-          ),
+          blob_refs=verified_client_path_blob_refs[client_path],
       )
 
     EXTERNAL_FILE_STORE.AddFiles(metadatas)
@@ -356,12 +351,12 @@ def AddFilesWithUnknownHashes(
 
 def AddFileWithUnknownHash(
     client_path: db.ClientPath,
-    blob_refs: Sequence[rdf_objects.BlobReference],
+    blob_refs: Sequence[objects_pb2.BlobReference],
     use_external_stores: bool = True,
 ) -> rdf_objects.SHA256HashID:
   """Add a new file consisting of given blob IDs."""
   precondition.AssertType(client_path, db.ClientPath)
-  precondition.AssertIterableType(blob_refs, rdf_objects.BlobReference)
+  precondition.AssertIterableType(blob_refs, objects_pb2.BlobReference)
   return AddFilesWithUnknownHashes(
       {client_path: blob_refs}, use_external_stores=use_external_stores
   )[client_path]
@@ -439,7 +434,6 @@ def OpenFile(
         "blob references, but they were not found: %r" % hash_id
     )
 
-  blob_references = list(map(mig_objects.ToRDFBlobReference, blob_references))
   return BlobStream(client_path, blob_references, hash_id)
 
 

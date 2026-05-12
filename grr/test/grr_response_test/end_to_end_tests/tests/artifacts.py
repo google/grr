@@ -70,6 +70,17 @@ class TestParserDependency(test_base.EndToEndTest):
     self._CollectArtifact("WindowsEnvironmentVariableWinDir")
 
   def testWinUserShellFolder(self):
+    # TODO - Re-enable once the artifact definition is fixed.
+    #
+    # Under RRG this test returns no results and does rightfully so as the
+    # artifact definition is not correct. Once the artifact [fix][1] is merged
+    # and the dependency is updated to the patched version, we can re-enable
+    # this. More details on why the artifact definition is not correct are in
+    # the pull request description.
+    #
+    # [1]: https://github.com/ForensicArtifacts/artifacts/pull/663
+    self.skipTest("Invalid artifact definition")
+
     results = self._CollectArtifact("WindowsUserShellFolders")
     self.assertNotEmpty(results)
 
@@ -96,23 +107,6 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  kb_attributes = ["os", "os_major_version", "os_minor_version"]
-
-  # TODO(user): time_zone, environ_path, and environ_temp are currently only
-  # implemented for Windows, move to kb_attributes once available on other OSes.
-  kb_win_attributes = [
-      "time_zone", "environ_path", "environ_temp", "environ_systemroot",
-      "environ_windir", "environ_programfiles", "environ_programfilesx86",
-      "environ_systemdrive", "environ_allusersprofile",
-      "environ_allusersappdata", "current_control_set", "code_page"
-  ]
-
-  def _CheckAttributes(self, attributes, v):
-    for attribute in attributes:
-      value = getattr(v, attribute)
-      self.assertTrue(value is not None, "Attribute %s is None." % attribute)
-      self.assertTrue(str(value), "str(%s) is empty" % attribute)
-
   def runTest(self):
     args = self.grr_api.types.CreateFlowArgs("KnowledgeBaseInitializationFlow")
     # Set what Interrogate flow normally sets when running this flow.
@@ -124,6 +118,30 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
     kb = results[0].payload
 
-    self._CheckAttributes(self.kb_attributes, kb)
+    self.assertNotEmpty(kb.os)
+
+    if self.platform == test_base.EndToEndTest.Platform.LINUX:
+      # `os_major_version` and `os_minor_version` are currently only filled for
+      # Linux.
+      #
+      # We are fine with versions like 14.0 and 0.23, so we do not assert on
+      # individual parts but their sum should be non-zero (as 0.0 does not seem
+      # like a legit system version).
+      self.assertGreater(kb.os_major_version + kb.os_minor_version, 0)
+
     if self.platform == test_base.EndToEndTest.Platform.WINDOWS:
-      self._CheckAttributes(self.kb_win_attributes, kb)
+      # TODO - `time_zone`, `environ_path`, and `environ_temp` are
+      # currently only implemented for Windows, move to common assertions once
+      # available on other OSes.
+      self.assertNotEmpty(kb.environ_path)
+      self.assertNotEmpty(kb.environ_temp)
+      self.assertNotEmpty(kb.environ_systemroot)
+      self.assertNotEmpty(kb.environ_windir)
+      self.assertNotEmpty(kb.code_page)
+      self.assertNotEmpty(kb.current_control_set)
+      self.assertNotEmpty(kb.environ_programfiles)
+      self.assertNotEmpty(kb.environ_programfilesx86)
+      self.assertNotEmpty(kb.environ_systemdrive)
+      self.assertNotEmpty(kb.environ_allusersprofile)
+      self.assertNotEmpty(kb.environ_allusersappdata)
+      self.assertNotEmpty(kb.time_zone)

@@ -1,6 +1,5 @@
 import {computed, DestroyRef, effect, inject, untracked} from '@angular/core';
-import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
-import {tapResponse} from '@ngrx/operators';
+import {takeUntilDestroyed, toObservable} from '@angular/core/rxjs-interop';
 import {
   getState,
   patchState,
@@ -12,14 +11,18 @@ import {
   withState,
 } from '@ngrx/signals';
 import {rxMethod} from '@ngrx/signals/rxjs-interop';
-import {of, pipe, throwError} from 'rxjs';
-import {startWith, switchMap, takeWhile} from 'rxjs/operators';
+import {of, pipe} from 'rxjs';
+import {
+  filter,
+  startWith,
+  switchMap,
+  take,
+  takeWhile,
+  tap,
+} from 'rxjs/operators';
 
 import {Any} from '../lib/api/api_interfaces';
-import {
-  DEFAULT_POLLING_INTERVAL,
-  MissingApprovalError,
-} from '../lib/api/http_api_service';
+import {DEFAULT_POLLING_INTERVAL} from '../lib/api/http_api_service';
 import {HttpApiWithTranslationService} from '../lib/api/http_api_with_translation_service';
 import {
   Client,
@@ -49,6 +52,8 @@ export interface FlowResultsQuery {
   readonly count: number;
   readonly withTag: string;
   readonly withType: string;
+
+  readonly hasAccess: boolean | null;
 }
 
 /** Flow results grouped by payload type. */
@@ -123,14 +128,15 @@ function getInitialState(): ClientStoreState {
 // tslint:disable-next-line:enforce-name-casing
 export const ClientStore = signalStore(
   withState<ClientStoreState>(getInitialState),
-  withProps(() => ({
+  withProps((store) => ({
     httpApiService: inject(HttpApiWithTranslationService),
     globalStore: inject(GlobalStore),
     destroyRef: inject(DestroyRef),
+    hasAccess$: toObservable(store.hasAccess),
   })),
   withHooks({
     onInit({globalStore, ...store}) {
-      // TODO: Ideally we would trigger the fetch of the scheduled
+      // TODO - Ideally we would trigger the fetch of the scheduled
       // flows with an effect
       // (https://ngrx.io/guide/signals/signal-store/events) but they are still
       // experimantal and not available internally.
@@ -332,18 +338,9 @@ export const ClientStore = signalStore(
               DEFAULT_POLLING_INTERVAL,
             )
             .pipe(
-              tapResponse({
-                next: (flows: Flow[]) => {
-                  flows.sort(compareDateNewestFirst((f: Flow) => f.startedAt));
-                  patchState(store, {flows});
-                },
-                error: (err) => {
-                  // TODO: Revisit this once approvals are
-                  // implemented.
-                  if (!(err instanceof MissingApprovalError)) {
-                    throwError(() => err);
-                  }
-                },
+              tap((flows: Flow[]) => {
+                flows.sort(compareDateNewestFirst((f: Flow) => f.startedAt));
+                patchState(store, {flows});
               }),
             );
         }),
@@ -370,17 +367,11 @@ export const ClientStore = signalStore(
               DEFAULT_POLLING_INTERVAL,
             )
             .pipe(
-              tapResponse({
-                next: (scheduledFlows: ScheduledFlow[]) => {
-                  scheduledFlows.sort(
-                    compareDateNewestFirst((f: ScheduledFlow) => f.createTime),
-                  );
-                  patchState(store, {scheduledFlows});
-                },
-                error: (err) => {
-                  // TODO: Revisit this once errors are handled.
-                  throwError(() => err);
-                },
+              tap((scheduledFlows: ScheduledFlow[]) => {
+                scheduledFlows.sort(
+                  compareDateNewestFirst((f: ScheduledFlow) => f.createTime),
+                );
+                patchState(store, {scheduledFlows});
               }),
             );
         }),
@@ -452,23 +443,24 @@ export const ClientStore = signalStore(
             // until the flow id is available.
             return of(null);
           }
-          return httpApiService
-            .pollFlow(clientId, flowId, DEFAULT_POLLING_INTERVAL)
-            .pipe(
-              tapResponse({
-                next: (flow: Flow) => {
-                  // Create a copy of the flowsByFlowId map because Angular's
-                  // change detection relies on reference equality for signals.
-                  const flowsByFlowId = new Map(store.flowsByFlowId());
-                  flowsByFlowId.set(flowId, flow);
-                  patchState(store, {flowsByFlowId});
-                },
-                error: (err) => {
-                  // TODO: Revisit this once errors are handled.
-                  throwError(() => err);
-                },
-              }),
-            );
+          return store.hasAccess$.pipe(
+            filter((hasAccess) => !!hasAccess),
+            take(1),
+            switchMap(() => {
+              return httpApiService.pollFlow(
+                clientId,
+                flowId,
+                DEFAULT_POLLING_INTERVAL,
+              );
+            }),
+            tap((flow: Flow) => {
+              // Create a copy of the flowsByFlowId map because Angular's
+              // change detection relies on reference equality for signals.
+              const flowsByFlowId = new Map(store.flowsByFlowId());
+              flowsByFlowId.set(flowId!, flow);
+              patchState(store, {flowsByFlowId});
+            }),
+          );
         }),
       ),
     ),
@@ -478,6 +470,10 @@ export const ClientStore = signalStore(
           const clientId = store.clientId();
           if (clientId === null) {
             throw new Error('Client ID is not set. Call `initialize` first.');
+          }
+
+          if (!query.hasAccess) {
+            return of([]);
           }
           if (query.flowId == null) {
             // The flow id is read from the URL, so it's possible that it's not
@@ -502,34 +498,28 @@ export const ClientStore = signalStore(
               DEFAULT_POLLING_INTERVAL,
             )
             .pipe(
-              tapResponse({
-                next: (results: ListFlowResultsResult) => {
-                  // Create a copy of the flowsByFlowId map because Angular's
-                  // change detection relies on reference equality for signals.
-                  const flowResultsByFlowId = new Map(
-                    store.flowResultsByFlowId(),
-                  );
-                  const resultsMap = new Map<PayloadType, FlowResult[]>();
-                  for (const res of results.results) {
-                    if (res.payloadType) {
-                      if (resultsMap.has(res.payloadType)) {
-                        resultsMap.get(res.payloadType)!.push(res);
-                      } else {
-                        resultsMap.set(res.payloadType, [res]);
-                      }
+              tap((results: ListFlowResultsResult) => {
+                // Create a copy of the flowsByFlowId map because Angular's
+                // change detection relies on reference equality for signals.
+                const flowResultsByFlowId = new Map(
+                  store.flowResultsByFlowId(),
+                );
+                const resultsMap = new Map<PayloadType, FlowResult[]>();
+                for (const res of results.results) {
+                  if (res.payloadType) {
+                    if (resultsMap.has(res.payloadType)) {
+                      resultsMap.get(res.payloadType)!.push(res);
+                    } else {
+                      resultsMap.set(res.payloadType, [res]);
                     }
                   }
-                  flowResultsByFlowId.set(flowId, {
-                    flowResultsByPayloadType: resultsMap,
-                    countLoaded: results.results.length,
-                    totalCount: results.totalCount ?? 0,
-                  });
-                  patchState(store, {flowResultsByFlowId});
-                },
-                error: (err) => {
-                  // TODO: Revisit this once errors are handled.
-                  throwError(() => err);
-                },
+                }
+                flowResultsByFlowId.set(flowId, {
+                  flowResultsByPayloadType: resultsMap,
+                  countLoaded: results.results.length,
+                  totalCount: results.totalCount ?? 0,
+                });
+                patchState(store, {flowResultsByFlowId});
               }),
               takeWhile(() => {
                 const flow = store.flowsByFlowId().get(flowId);

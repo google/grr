@@ -2990,7 +2990,7 @@ class Database(metaclass=abc.ABCMeta):
       descending order.
     """
 
-  # TODO: Cleanup `with_creator`(single user) in favor of
+  # TODO - Cleanup `with_creator`(single user) in favor of
   # `created_by`(list).
   @abc.abstractmethod
   def ListHuntObjects(
@@ -3032,6 +3032,42 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       A list of rdf_hunt_objects.HuntMetadata objects sorted by create_time in
       descending order.
+    """
+
+  @abc.abstractmethod
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+  ) -> int:
+    """Counts hunt objects from the database.
+
+    Args:
+      with_creator: When specified, should be a string corresponding to a GRR
+        username. Only metadata for hunts created by the matching user will be
+        returned.
+      created_after: When specified, should be a rdfvalue.RDFDatetime. Only
+        metadata for hunts with create_time after created_after timestamp will
+        be returned.
+      with_description_match: When specified, will only return metadata for
+        hunts with descriptions containing a given substring.
+      created_by: When specified, should be a list of strings corresponding to
+        GRR usernames. Only metadata for hunts created by the matching users
+        will be returned.
+      not_created_by: When specified, should be a list of strings corresponding
+        to GRR usernames. Only metadata for hunts NOT created by any of the
+        matching users will be returned.
+      with_states: When specified should be a list of `Hunt.HuntState`s. Only
+        metadata for hunts with states on the list will be returned.
+
+    Returns:
+      Number of hunt objects matching the specified conditions.
     """
 
   @abc.abstractmethod
@@ -5028,6 +5064,37 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadHuntObjects(
         offset,
         count,
+        with_creator=with_creator,
+        created_after=created_after,
+        with_description_match=with_description_match,
+        created_by=created_by,
+        not_created_by=not_created_by,
+        with_states=with_states,
+    )
+
+  def CountHuntObjects(
+      self,
+      with_creator: Optional[str] = None,
+      created_after: Optional[rdfvalue.RDFDatetime] = None,
+      with_description_match: Optional[str] = None,
+      created_by: Optional[Set[str]] = None,
+      not_created_by: Optional[Set[str]] = None,
+      with_states: Optional[
+          Collection[hunts_pb2.Hunt.HuntState.ValueType]
+      ] = None,
+  ) -> int:
+    precondition.AssertOptionalType(with_creator, str)
+    precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(with_description_match, str)
+    if created_by is not None:
+      precondition.AssertIterableType(created_by, str)
+    if not_created_by is not None:
+      precondition.AssertIterableType(not_created_by, str)
+    if with_states is not None:
+      for state in with_states:
+        _ValidateProtoEnumType(state, hunts_pb2.Hunt.HuntState)
+
+    return self.delegate.CountHuntObjects(
         with_creator=with_creator,
         created_after=created_after,
         with_description_match=with_description_match,

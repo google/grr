@@ -265,17 +265,40 @@ describe('translateFile', () => {
 });
 
 describe('parseVfsPath', () => {
+  it('converts the root path correctly', () => {
+    expect(parseVfsPath('fs/os/')).toEqual({
+      pathtype: PathSpecPathType.OS,
+      path: '/',
+    });
+  });
   it('converts OS paths correctly', () => {
     expect(parseVfsPath('fs/os/foo/bar')).toEqual({
       pathtype: PathSpecPathType.OS,
       path: '/foo/bar',
     });
   });
-
-  it('converts the root path correctly', () => {
-    expect(parseVfsPath('fs/os/')).toEqual({
-      pathtype: PathSpecPathType.OS,
-      path: '/',
+  it('converts TSK paths correctly', () => {
+    expect(parseVfsPath('fs/tsk/foo/bar')).toEqual({
+      pathtype: PathSpecPathType.TSK,
+      path: '/foo/bar',
+    });
+  });
+  it('converts NTFS paths correctly', () => {
+    expect(parseVfsPath('fs/ntfs/foo/bar')).toEqual({
+      pathtype: PathSpecPathType.NTFS,
+      path: '/foo/bar',
+    });
+  });
+  it('converts REGISTRY paths correctly', () => {
+    expect(parseVfsPath('registry/foo/bar')).toEqual({
+      pathtype: PathSpecPathType.REGISTRY,
+      path: '/foo/bar',
+    });
+  });
+  it('converts TMPFILE paths correctly', () => {
+    expect(parseVfsPath('temp/foo/bar')).toEqual({
+      pathtype: PathSpecPathType.TMPFILE,
+      path: '/foo/bar',
     });
   });
 });

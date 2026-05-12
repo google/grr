@@ -13,13 +13,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {windowOpen} from 'safevalues/dom';
 import {OsqueryFlowArgs} from '../../../lib/api/api_interfaces';
-import {
-  FormControlWithWarnings,
-  FormErrors,
-  FormWarnings,
-  literalKnowledgebaseExpressionWarning,
-  requiredInput,
-} from '../form/form_validation';
+import {FormErrors, requiredInput} from '../form/form_validation';
 import {ControlValues, FlowArgsFormInterface} from './flow_args_form_interface';
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
 import {SubmitButton} from './submit_button';
@@ -40,10 +34,6 @@ function makeControls() {
     fileCollectionColumns: new FormControl<readonly string[]>([], {
       nonNullable: true,
     }),
-    configurationPath: new FormControlWithWarnings('', {
-      nonNullable: true,
-      validators: [literalKnowledgebaseExpressionWarning()],
-    }),
     configurationContent: new FormControl('', {nonNullable: true}),
   };
 }
@@ -58,7 +48,6 @@ type Controls = ReturnType<typeof makeControls>;
   imports: [
     CommonModule,
     FormErrors,
-    FormWarnings,
     FormsModule,
     MatButtonModule,
     MatButtonToggleModule,
@@ -119,9 +108,6 @@ export class OsqueryForm extends FlowArgsFormInterface<
         flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue,
       ),
       query: flowArgs.query ?? this.controls.query.defaultValue,
-      configurationPath:
-        flowArgs.configurationPath ??
-        this.controls.configurationPath.defaultValue,
       configurationContent:
         flowArgs.configurationContent ??
         this.controls.configurationContent.defaultValue,

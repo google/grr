@@ -9,7 +9,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 
@@ -207,16 +206,6 @@ class FindSpec(rdf_structs.RDFProtoStruct):
           "A Find specification can not contain both an empty "
           "path regex and an empty data regex"
       )
-
-
-class BareGrepSpec(rdf_structs.RDFProtoStruct):
-  """A GrepSpec without a target."""
-
-  protobuf = flows_pb2.BareGrepSpec
-  rdf_deps = [
-      rdf_standard.LiteralExpression,
-      rdf_standard.RegularExpression,
-  ]
 
 
 class GrepSpec(rdf_structs.RDFProtoStruct):

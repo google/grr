@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GRR</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="/static/dist/styles.css" />
+    <link rel="shortcut icon" href="/static/images/favicon.ico" />
+
+    <!-- Needed for Material icons -->
+    {% if googlefonts_override %}
+    <link rel="stylesheet" href="{{ googlefonts_override }}" />
+    {% else %}
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=block"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Google+Sans+Text|Google+Sans&display=block"
+      rel="stylesheet"
+    />
+    {% endif %}
+
+    {% if analytics_id %}
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ analytics_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ analytics_id }}', {
+        send_page_view: false
+      });
+    </script>
+    {% endif %}
+  </head>
+  <body>
+    <app-root></app-root>
+    <script src="/static/dist/runtime.js" type="module"></script>
+    <script src="/static/dist/polyfills.js" type="module"></script>
+    <script src="/static/dist/vendor.js" type="module"></script>
+    <script src="/static/dist/main.js" type="module"></script>
+  </body>
+</html>

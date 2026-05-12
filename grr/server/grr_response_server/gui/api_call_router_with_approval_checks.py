@@ -54,7 +54,7 @@ class ApprovalCheckParamsAdminAccessChecker(
     for g in params.admin_groups:
       self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
-  # TODO: Add the `@override` annotation [1] once we can use
+  # TODO - Add the `@override` annotation [1] once we can use
   # Python 3.12 features.
   #
   # [1]: https://peps.python.org/pep-0698/
@@ -97,7 +97,7 @@ class ApprovalCheckParamsMitigationFlowsAccessChecker(
     for g in params.mitigation_flows_groups:
       self._admin_groups_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
 
-  # TODO: Add the `@override` annotation [1] once we can use
+  # TODO - Add the `@override` annotation [1] once we can use
   # Python 3.12 features.
   #
   # [1]: https://peps.python.org/pep-0698/
@@ -217,14 +217,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.UploadArtifact(args, context=context)
 
-  def DeleteArtifacts(
+  def DeleteArtifact(
       self,
-      args: api_artifact_pb2.ApiDeleteArtifactsArgs,
+      args: api_artifact_pb2.ApiDeleteArtifactArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
     # Everybody is allowed to delete artifacts.
 
-    return self.delegate.DeleteArtifacts(args, context=context)
+    return self.delegate.DeleteArtifact(args, context=context)
 
   # Clients methods.
   # ===============
@@ -769,15 +769,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListCronJobs(args, context=context)
 
-  def CreateCronJob(
-      self,
-      args: api_cron_pb2.ApiCreateCronJobArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can create a cron job.
-
-    return self.delegate.CreateCronJob(args, context=context)
-
   def GetCronJob(
       self,
       args: api_cron_pb2.ApiGetCronJobArgs,
@@ -915,15 +906,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can get hunt's export command.
 
     return self.delegate.GetHuntResultsExportCommand(args, context=context)
-
-  def ListHuntOutputPlugins(
-      self,
-      args: api_hunt_pb2.ApiListHuntOutputPluginsArgs,
-      context: Optional[api_call_context.ApiCallContext] = None,
-  ):
-    # Everybody can list hunt output plugins.
-
-    return self.delegate.ListHuntOutputPlugins(args, context=context)
 
   def ListHuntOutputPluginLogs(
       self,

@@ -2,7 +2,6 @@
 """Flows for listing running services."""
 
 from google.protobuf import any_pb2
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_proto import sysinfo_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -14,10 +13,8 @@ class ListRunningServices(flow_base.FlowBase):
 
   category = "/Processes/"
   behaviours = flow_base.BEHAVIOUR_BASIC
-  result_types = (rdf_client.OSXServiceInformation,)
 
   proto_result_types = (sysinfo_pb2.OSXServiceInformation,)
-  only_protos_allowed = True
 
   def Start(self):
     if self.client_os != "Darwin":
