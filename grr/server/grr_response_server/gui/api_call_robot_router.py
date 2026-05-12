@@ -277,6 +277,24 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       )
     return flow_obj.flow_class_name
 
+  def _CheckClientRobotAccess(self, client_id, context=None):
+    """Verify the requesting user has at least one flow on this client.
+
+    Used for endpoints that take a client_id but no flow_id, such as
+    GetFileBlob.  This ensures the robot user has some prior relationship
+    with the client, consistent with the per-flow checks on other methods.
+    """
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id=str(client_id),
+        created_by=frozenset([context.username]),
+        include_child_flows=False,
+    )
+    if not flows:
+      raise access_control.UnauthorizedAccess(
+          "Robot user %s has no flows on client %s."
+          % (context.username, client_id)
+      )
+
   def _FixFileFinderArgs(
       self, source_args: any_pb2.Any
   ) -> flows_pb2.FileFinderArgs:
@@ -462,6 +480,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       raise access_control.UnauthorizedAccess(
           "GetFileBlob is not allowed by the configuration."
       )
+
+    self._CheckClientRobotAccess(args.client_id, context=context)
 
     return api_vfs.ApiGetFileBlobHandler()
 
