@@ -382,6 +382,7 @@ class ApiCallRouterWithApprovalChecksTest(
       "ListAllFlowOutputPluginLogs",
       "ListFlowLogs",
       "ScheduleFlow",
+      "ListScheduledFlows",
   ])
 
   def testClientFlowsMethodsAreAccessChecked(self):
@@ -418,6 +419,13 @@ class ApiCallRouterWithApprovalChecksTest(
         "CheckIfHasAccessToFlow",
         access_checker_mock=self.mitigation_flows_access_checker_mock,
         args=args,
+    )
+
+    args = api_flow_pb2.ApiListScheduledFlowsArgs(
+        client_id=self.client_id, creator="test"
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.ListScheduledFlows, "CheckClientAccess", args=args
     )
 
     args = api_flow_pb2.ApiCancelFlowArgs(client_id=self.client_id)

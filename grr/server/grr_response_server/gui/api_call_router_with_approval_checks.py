@@ -712,6 +712,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiListScheduledFlowsHandler:
+    self.approval_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.ListScheduledFlows(args, context=context)
 
   def UnscheduleFlow(

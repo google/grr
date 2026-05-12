@@ -1411,8 +1411,10 @@ class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
       args: flow_pb2.ApiListScheduledFlowsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> flow_pb2.ApiListScheduledFlowsResult:
+    assert context is not None
+
     results = flow.ListScheduledFlows(
-        client_id=args.client_id, creator=args.creator
+        client_id=args.client_id, creator=context.username
     )
     results = sorted(results, key=lambda sf: sf.create_time)
     results = [InitApiScheduledFlowFromScheduledFlow(sf) for sf in results]
