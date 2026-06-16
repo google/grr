@@ -205,6 +205,12 @@ class FrontEndServer(object):
       flow_responses = []
       for message in unprocessed_msgs:
         try:
+          # Verify that the session_id belongs to the sender client
+          msg_client_id = rdf_flow_objects._ClientIDFromSessionID(message.session_id)
+          if msg_client_id != client_id:
+            logging.error("Client %s tried to spoof response for %s", client_id, msg_client_id)
+            continue
+            
           response = rdf_flow_objects.FlowResponseForLegacyResponse(message)
         except ValueError as e:
           logging.warning(
