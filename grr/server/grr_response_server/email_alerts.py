@@ -141,17 +141,45 @@ class SMTPEmailAlerter(EmailAlerterBase):
           int(config.CONFIG["Worker.smtp_port"]),
       )
       s.ehlo()
+      
       if config.CONFIG["Worker.smtp_starttls"]:
-        s.starttls()
-        s.ehlo()
+        if s.has_extn("starttls"):
+          s.starttls()
+          s.ehlo()
+        else:
+          smtp_server = config.CONFIG["Worker.smtp_server"]
+          error_msg = (
+              f"STARTTLS is enabled but not supported by {smtp_server}."
+          )
+          
+          if config.CONFIG.get("Worker.smtp_starttls_strict", False):
+            raise EmailNotSentError(
+                f"{error_msg} Refusing to send email without encryption. "
+                "Use a server that supports STARTTLS or disable strict mode."
+            )
+          
+          logging.warning(
+              "%s Continuing without encryption. Set smtp_starttls_strict "
+              "to enforce TLS.", error_msg
+          )
+      
       if (
           config.CONFIG["Worker.smtp_user"]
           and config.CONFIG["Worker.smtp_password"]
       ):
-        s.login(
-            config.CONFIG["Worker.smtp_user"],
-            config.CONFIG["Worker.smtp_password"],
-        )
+        try:
+          s.login(
+              config.CONFIG["Worker.smtp_user"],
+              config.CONFIG["Worker.smtp_password"],
+          )
+        except smtplib.SMTPException as login_error:
+          smtp_server = config.CONFIG["Worker.smtp_server"]
+          if config.CONFIG["Worker.smtp_starttls"] and not s.has_extn("starttls"):
+            raise EmailNotSentError(
+                f"Authentication failed on {smtp_server}. Server may require "
+                "STARTTLS but doesn't support it."
+            ) from login_error
+          raise
 
       s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
       s.quit()
